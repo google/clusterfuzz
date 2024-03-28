@@ -16,6 +16,7 @@
 import json
 import os
 import unittest
+from unittest import mock
 
 from pyfakefs import fake_filesystem_unittest
 
@@ -77,7 +78,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     # we won't have the build directory properly set.
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1, progression_task_output)
+        None, '/tmp/blah', 'job_type', 1, None, progression_task_output)
     self.assertIsNone(result)
     self.assertIs(worker_output.error_type,
                   uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
@@ -94,7 +95,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     self.mock.check_for_bad_build.return_value = build_data
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1, progression_task_output)
+        None, '/tmp/blah', 'job_type', 1, None, progression_task_output)
     self.assertIsNone(result)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
@@ -114,7 +115,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        testcase, '/tmp/blah', 'job_type', 1, progression_task_output)
+        testcase, '/tmp/blah', 'job_type', 1, None, progression_task_output)
     self.assertIsNone(worker_output)
     self.assertIsNotNone(result)
     self.assertEqual(len(progression_task_output.build_data_list), 1)
@@ -319,9 +320,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.check_app_path.return_value = None
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
-    progression_input = uworker_msg_pb2.ProgressionTaskInput()
+    uworker_input = uworker_msg_pb2.Input()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path, progression_input)
+        testcase, testcase_file_path, uworker_input)
     self.assertEqual(result.error_message,
                      'Build setup failed for custom binary')
     self.assertEqual(result.error_type,
@@ -348,9 +349,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
 
-    progression_input = uworker_msg_pb2.ProgressionTaskInput()
+    uworker_input = uworker_msg_pb2.Input()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path, progression_input)
+        testcase, testcase_file_path, uworker_input)
     self.assertTrue(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message,
@@ -370,9 +371,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
 
-    progression_input = uworker_msg_pb2.ProgressionTaskInput()
+    uworker_input = uworker_msg_pb2.Input()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path, progression_input)
+        testcase, testcase_file_path, uworker_input)
     self.assertFalse(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message, '')
@@ -385,11 +386,10 @@ class UpdateIssueMetadataTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.find_fuzzer_path',
-        'clusterfuzz._internal.bot.fuzzers.engine_common.get_all_issue_metadata',
     ])
 
     data_types.FuzzTarget(engine='libFuzzer', binary='fuzzer').put()
-    self.mock.get_all_issue_metadata.return_value = {
+    self.issue_metadata = {
         'issue_labels': 'label1',
         'issue_components': 'component1',
     }
@@ -397,11 +397,10 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase = data_types.Testcase(
         overridden_fuzzer_name='libFuzzer_fuzzer')
     self.testcase.put()
+    progression_task._update_issue_metadata(self.testcase, self.issue_metadata)  # pylint: disable=protected-access
 
   def test_update_issue_metadata_non_existent(self):
     """Test update issue metadata a testcase with no metadata."""
-    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
-
     testcase = self.testcase.key.get()
     self.assertDictEqual({
         'issue_labels': 'label1',
@@ -414,7 +413,6 @@ class UpdateIssueMetadataTest(unittest.TestCase):
         'issue_labels': 'label1',
         'issue_components': 'component2',
     })
-    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -431,7 +429,6 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase.put()
 
     self.testcase.crash_type = 'test'  # Should not be written.
-    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -524,3 +521,15 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
         self.testcase, self.testcase_file_path, progression_task_input)
     self.mock.upload_signed_url.assert_called_with(
         b'A', progression_task_input.regression_testcase_url)
+
+  def test_untrusted_testcase(self):
+    """Tests that a user-uploaded testcase is not stored for regression
+    testing."""
+    self.mock.get.return_value = False
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
+    with mock.patch(
+        'clusterfuzz._internal.datastore.data_handler.get_fuzz_target',
+        return_value=mock.Mock()):
+      progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
+          progression_task_input, self.testcase)
+    self.assertFalse(bool(progression_task_input.regression_testcase_url))

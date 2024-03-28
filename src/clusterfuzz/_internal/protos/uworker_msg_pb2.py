@@ -36,7 +36,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\")\n\x10\x41nalyzeTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"P\n\x12SymbolizeTaskInput\x12!\n\x14old_crash_stacktrace\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x17\n\x15_old_crash_stacktrace\"C\n\rBlobUploadUrl\x12\x10\n\x03key\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x10\n\x03url\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x06\n\x04_keyB\x06\n\x04_url\"\x82\x03\n\rFuzzTaskInput\x12\'\n\x1asample_testcase_upload_key\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\'\n\x1asample_testcase_upload_url\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\"\n\x15script_log_upload_url\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x35\n\x0b\x66uzz_target\x18\x04 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x03\x88\x01\x01\x12&\n\x06\x63orpus\x18\x05 \x01(\x0b\x32\x11.FuzzTargetCorpusH\x04\x88\x01\x01\x12)\n\x11\x63rash_upload_urls\x18\x06 \x03(\x0b\x32\x0e.BlobUploadUrlB\x1d\n\x1b_sample_testcase_upload_keyB\x1d\n\x1b_sample_testcase_upload_urlB\x18\n\x16_script_log_upload_urlB\x0e\n\x0c_fuzz_targetB\t\n\x07_corpus\"|\n\x10\x46uzzTargetCorpus\x12\x1c\n\x06\x63orpus\x18\x01 \x01(\x0b\x32\x07.CorpusH\x00\x88\x01\x01\x12(\n\x12regressions_corpus\x18\x02 \x01(\x0b\x32\x07.CorpusH\x01\x88\x01\x01\x42\t\n\x07_corpusB\x15\n\x13_regressions_corpus\"\xf2\x01\n\x06\x43orpus\x12,\n\x0b\x63orpus_urls\x18\x01 \x03(\x0b\x32\x17.Corpus.CorpusUrlsEntry\x12:\n\x11last_updated_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00\x88\x01\x01\x12\x14\n\x07gcs_url\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x0bupload_urls\x18\x04 \x03(\t\x1a\x31\n\x0f\x43orpusUrlsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x14\n\x12_last_updated_timeB\n\n\x08_gcs_url\"\xff\x01\n\x11MinimizeTaskInput\x12 \n\x13testcase_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1f\n\x12testcase_blob_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12!\n\x14stacktrace_blob_name\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\"\n\x15stacktrace_upload_url\x18\x04 \x01(\tH\x03\x88\x01\x01\x42\x16\n\x14_testcase_upload_urlB\x15\n\x13_testcase_blob_nameB\x17\n\x15_stacktrace_blob_nameB\x18\n\x16_stacktrace_upload_url\",\n\x13RegressionTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"\x81\x02\n\x14ProgressionTaskInput\x12\x1a\n\rcustom_binary\x18\x01 \x01(\x08H\x00\x88\x01\x01\x12\x15\n\rbad_revisions\x18\x02 \x03(\x03\x12$\n\x17regression_testcase_url\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x16\n\tblob_name\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\"\n\x15stacktrace_upload_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x42\x10\n\x0e_custom_binaryB\x1a\n\x18_regression_testcase_urlB\x0c\n\n_blob_nameB\x18\n\x16_stacktrace_upload_url\"\xd2\x01\n\x19\x43rossPollinateFuzzerProto\x12\x35\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x1f\n\x12\x62\x61\x63kup_bucket_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1f\n\x12\x63orpus_engine_name\x18\x03 \x01(\tH\x02\x88\x01\x01\x42\x0e\n\x0c_fuzz_targetB\x15\n\x13_backup_bucket_nameB\x15\n\x13_corpus_engine_name\"\xd6\x02\n\x16\x43orpusPruningTaskInput\x12\x35\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\"\n\x15last_execution_failed\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12;\n\x17\x63ross_pollinate_fuzzers\x18\x03 \x03(\x0b\x32\x1a.CrossPollinateFuzzerProto\x12&\n\x06\x63orpus\x18\x04 \x01(\x0b\x32\x11.FuzzTargetCorpusH\x02\x88\x01\x01\x12\x31\n\x11quarantine_corpus\x18\x05 \x01(\x0b\x32\x11.FuzzTargetCorpusH\x03\x88\x01\x01\x42\x0e\n\x0c_fuzz_targetB\x18\n\x16_last_execution_failedB\t\n\x07_corpusB\x14\n\x12_quarantine_corpus\"\x83\n\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12+\n\x0buworker_env\x18\x04 \x03(\x0b\x32\x16.Input.UworkerEnvEntry\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x03\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x04\x88\x01\x01\x12\x32\n\x12variant_task_input\x18\x08 \x01(\x0b\x32\x11.VariantTaskInputH\x05\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\t \x01(\tH\x06\x88\x01\x01\x12%\n\x0bsetup_input\x18\n \x01(\x0b\x32\x0b.SetupInputH\x07\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0b \x01(\x0b\x32\x11.AnalyzeTaskInputH\x08\x88\x01\x01\x12?\n\x19\x63orpus_pruning_task_input\x18\x0c \x01(\x0b\x32\x17.CorpusPruningTaskInputH\t\x88\x01\x01\x12,\n\x0f\x66uzz_task_input\x18\r \x01(\x0b\x32\x0e.FuzzTaskInputH\n\x88\x01\x01\x12\x34\n\x13minimize_task_input\x18\x0e \x01(\x0b\x32\x12.MinimizeTaskInputH\x0b\x88\x01\x01\x12:\n\x16progression_task_input\x18\x0f \x01(\x0b\x32\x15.ProgressionTaskInputH\x0c\x88\x01\x01\x12\x38\n\x15regression_task_input\x18\x10 \x01(\x0b\x32\x14.RegressionTaskInputH\r\x88\x01\x01\x12\x36\n\x14symbolize_task_input\x18\x11 \x01(\x0b\x32\x13.SymbolizeTaskInputH\x0e\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x12 \x01(\tH\x0f\x88\x01\x01\x12>\n\x15preprocess_start_time\x18\x13 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x10\x88\x01\x01\x1a\x31\n\x0fUworkerEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\x15\n\x13_variant_task_inputB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x1c\n\x1a_corpus_pruning_task_inputB\x12\n\x10_fuzz_task_inputB\x16\n\x14_minimize_task_inputB\x19\n\x17_progression_task_inputB\x18\n\x16_regression_task_inputB\x17\n\x15_symbolize_task_inputB\x0e\n\x0c_module_nameB\x18\n\x16_preprocess_start_time\"H\n\x10VariantTaskInput\x12\x1e\n\x11original_job_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x14\n\x12_original_job_type\"\xc7\x02\n\x13SymbolizeTaskOutput\x12\x17\n\ncrash_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1a\n\rcrash_address\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1d\n\x10\x63rash_stacktrace\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x17\n\nsymbolized\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x06 \x01(\x05H\x05\x88\x01\x01\x12\x16\n\tbuild_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\r\n\x0b_crash_typeB\x10\n\x0e_crash_addressB\x0e\n\x0c_crash_stateB\x13\n\x11_crash_stacktraceB\r\n\x0b_symbolizedB\x11\n\x0f_crash_revisionB\x0c\n\n_build_url\"\x93\x06\n\x11\x41nalyzeTaskOutput\x12\x1b\n\x0e\x63rash_revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x1a\n\rabsolute_path\x18\x02 \x01(\tH\x01\x88\x01\x01\x12 \n\x13minimized_arguments\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1d\n\x10\x63rash_stacktrace\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_info_set\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x16\n\thttp_flag\x18\x06 \x01(\x08H\x05\x88\x01\x01\x12\x17\n\ncrash_type\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x1a\n\rcrash_address\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\t \x01(\tH\x08\x88\x01\x01\x12\x1a\n\rsecurity_flag\x18\n \x01(\x08H\t\x88\x01\x01\x12\x1e\n\x11security_severity\x18\x0b \x01(\x05H\n\x88\x01\x01\x12\"\n\x15one_time_crasher_flag\x18\x0c \x01(\x08H\x0b\x88\x01\x01\x12\x16\n\tbuild_key\x18\r \x01(\tH\x0c\x88\x01\x01\x12\x16\n\tbuild_url\x18\x0e \x01(\tH\r\x88\x01\x01\x12\x14\n\x07gn_args\x18\x0f \x01(\tH\x0e\x88\x01\x01\x12\x15\n\x08platform\x18\x10 \x01(\tH\x0f\x88\x01\x01\x12\x18\n\x0bplatform_id\x18\x11 \x01(\tH\x10\x88\x01\x01\x42\x11\n\x0f_crash_revisionB\x10\n\x0e_absolute_pathB\x16\n\x14_minimized_argumentsB\x13\n\x11_crash_stacktraceB\x11\n\x0f_crash_info_setB\x0c\n\n_http_flagB\r\n\x0b_crash_typeB\x10\n\x0e_crash_addressB\x0e\n\x0c_crash_stateB\x10\n\x0e_security_flagB\x14\n\x12_security_severityB\x18\n\x16_one_time_crasher_flagB\x0c\n\n_build_keyB\x0c\n\n_build_urlB\n\n\x08_gn_argsB\x0b\n\t_platformB\x0e\n\x0c_platform_id\"\x8f\x02\n\x1bStoreFuzzerRunResultsOutput\x12\x1f\n\x12\x66uzzer_return_code\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12&\n\x19generated_testcase_string\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1b\n\x0e\x63onsole_output\x18\x03 \x01(\tH\x02\x88\x01\x01\x12%\n\x18uploaded_sample_testcase\x18\x04 \x01(\x08H\x03\x88\x01\x01\x42\x15\n\x13_fuzzer_return_codeB\x1c\n\x1a_generated_testcase_stringB\x11\n\x0f_console_outputB\x1b\n\x19_uploaded_sample_testcase\"\x8c\x06\n\rFuzzTaskCrash\x12\x16\n\tfile_path\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x17\n\ncrash_time\x18\x02 \x01(\x02H\x01\x88\x01\x01\x12\x18\n\x0breturn_code\x18\x03 \x01(\x05H\x02\x88\x01\x01\x12\x15\n\rresource_list\x18\x04 \x03(\t\x12\x10\n\x08gestures\x18\x05 \x03(\t\x12\x16\n\targuments\x18\x06 \x01(\tH\x03\x88\x01\x01\x12\x1a\n\x12\x66uzzing_strategies\x18\x07 \x03(\t\x12\x1a\n\rsecurity_flag\x18\x08 \x01(\x08H\x04\x88\x01\x01\x12\x1e\n\x11should_be_ignored\x18\t \x01(\x08H\x05\x88\x01\x01\x12\x16\n\thttp_flag\x18\n \x01(\x08H\x06\x88\x01\x01\x12%\n\x18\x61pplication_command_line\x18\x0b \x01(\tH\x07\x88\x01\x01\x12*\n\x1dunsymbolized_crash_stacktrace\x18\x0c \x01(\tH\x08\x88\x01\x01\x12\x17\n\ncrash_type\x18\r \x01(\tH\t\x88\x01\x01\x12\x1a\n\rcrash_address\x18\x0e \x01(\tH\n\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x0f \x01(\tH\x0b\x88\x01\x01\x12\x1d\n\x10\x63rash_stacktrace\x18\x10 \x01(\tH\x0c\x88\x01\x01\x12\x18\n\x10\x63rash_categories\x18\x11 \x03(\t\x12\x10\n\x03key\x18\x12 \x01(\tH\r\x88\x01\x01\x12\x14\n\x0c\x63rash_frames\x18\x13 \x03(\tB\x0c\n\n_file_pathB\r\n\x0b_crash_timeB\x0e\n\x0c_return_codeB\x0c\n\n_argumentsB\x10\n\x0e_security_flagB\x14\n\x12_should_be_ignoredB\x0c\n\n_http_flagB\x1b\n\x19_application_command_lineB \n\x1e_unsymbolized_crash_stacktraceB\r\n\x0b_crash_typeB\x10\n\x0e_crash_addressB\x0e\n\x0c_crash_stateB\x13\n\x11_crash_stacktraceB\x06\n\x04_key\"\xe5\x02\n\x0b\x46uzzContext\x12\x14\n\x07redzone\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12\x1a\n\rdisable_ubsan\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\x1c\n\x0fwindow_argument\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x12timeout_multiplier\x18\x04 \x01(\x02H\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x39\n\x0f\x66uzzer_metadata\x18\x06 \x03(\x0b\x32 .FuzzContext.FuzzerMetadataEntry\x1a\x35\n\x13\x46uzzerMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\n\n\x08_redzoneB\x10\n\x0e_disable_ubsanB\x12\n\x10_window_argumentB\x15\n\x13_timeout_multiplierB\x0f\n\r_test_timeout\"\xdb\x01\n\x12\x46uzzTaskCrashGroup\x12\"\n\x07\x63ontext\x18\x01 \x01(\x0b\x32\x0c.FuzzContextH\x00\x88\x01\x01\x12\x1f\n\x07\x63rashes\x18\x02 \x03(\x0b\x32\x0e.FuzzTaskCrash\x12\'\n\nmain_crash\x18\x03 \x01(\x0b\x32\x0e.FuzzTaskCrashH\x01\x88\x01\x01\x12\"\n\x15one_time_crasher_flag\x18\x04 \x01(\x08H\x02\x88\x01\x01\x42\n\n\x08_contextB\r\n\x0b_main_crashB\x18\n\x16_one_time_crasher_flag\"\xf7\x03\n\x0e\x46uzzTaskOutput\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x03\x88\x01\x01\x12=\n\x12\x66uzzer_run_results\x18\x08 \x01(\x0b\x32\x1c.StoreFuzzerRunResultsOutputH\x04\x88\x01\x01\x12\x1e\n\x11new_targets_count\x18\t \x01(\x05H\x05\x88\x01\x01\x12\x1c\n\x0f\x66uzzer_revision\x18\n \x01(\x05H\x06\x88\x01\x01\x12\x14\n\x0c\x66uzz_targets\x18\x0b \x03(\t\x12)\n\x0c\x63rash_groups\x18\x0c \x03(\x0b\x32\x13.FuzzTaskCrashGroupB\x1e\n\x1c_fully_qualified_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x15\n\x13_testcases_executedB\x15\n\x13_fuzzer_run_resultsB\x14\n\x12_new_targets_countB\x12\n\x10_fuzzer_revision\"\xd7\x05\n\x12MinimizeTaskOutput\x12L\n\x16last_crash_result_dict\x18\x01 \x03(\x0b\x32,.MinimizeTaskOutput.LastCrashResultDictEntry\x12\x18\n\x0b\x66laky_stack\x18\x02 \x01(\x08H\x00\x88\x01\x01\x12&\n\x19security_severity_updated\x18\x03 \x01(\x08H\x01\x88\x01\x01\x12\x1e\n\x11security_severity\x18\x04 \x01(\x05H\x02\x88\x01\x01\x12\x1f\n\x12minimization_phase\x18\x05 \x01(\x05H\x03\x88\x01\x01\x12\x10\n\x08gestures\x18\x06 \x03(\t\x12\x1b\n\x0eminimized_keys\x18\x07 \x01(\tH\x04\x88\x01\x01\x12 \n\x13minimized_arguments\x18\x08 \x01(\tH\x05\x88\x01\x01\x12\x1a\n\rarchive_state\x18\t \x01(\x05H\x06\x88\x01\x01\x12\x1a\n\rabsolute_path\x18\n \x01(\tH\x07\x88\x01\x01\x12G\n\x13memory_tool_options\x18\x0b \x03(\x0b\x32*.MinimizeTaskOutput.MemoryToolOptionsEntry\x1a:\n\x18LastCrashResultDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x38\n\x16MemoryToolOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x0e\n\x0c_flaky_stackB\x1c\n\x1a_security_severity_updatedB\x14\n\x12_security_severityB\x15\n\x13_minimization_phaseB\x11\n\x0f_minimized_keysB\x16\n\x14_minimized_argumentsB\x10\n\x0e_archive_stateB\x10\n\x0e_absolute_path\"\xef\x02\n\x14RegressionTaskOutput\x12#\n\x16regression_range_start\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12!\n\x14regression_range_end\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12 \n\x13last_regression_min\x18\x03 \x01(\x03H\x02\x88\x01\x01\x12 \n\x13last_regression_max\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12#\n\x0f\x62uild_data_list\x18\x05 \x03(\x0b\x32\n.BuildData\x12%\n\x18is_testcase_reproducible\x18\x06 \x01(\x08H\x04\x88\x01\x01\x42\x19\n\x17_regression_range_startB\x17\n\x15_regression_range_endB\x16\n\x14_last_regression_minB\x16\n\x14_last_regression_maxB\x1b\n\x19_is_testcase_reproducible\"\xa3\x02\n\x11VariantTaskOutput\x12\x13\n\x06status\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x15\n\x08revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x17\n\ncrash_type\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1a\n\rsecurity_flag\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x17\n\nis_similar\x18\x06 \x01(\x08H\x05\x88\x01\x01\x12\x15\n\x08platform\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\t\n\x07_statusB\x0b\n\t_revisionB\r\n\x0b_crash_typeB\x0e\n\x0c_crash_stateB\x10\n\x0e_security_flagB\r\n\x0b_is_similarB\x0b\n\t_platform\"\xe7\x01\n\tBuildData\x12\x15\n\x08revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x19\n\x0cis_bad_build\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\'\n\x1ashould_ignore_crash_result\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12%\n\x18\x62uild_run_console_output\x18\x04 \x01(\tH\x03\x88\x01\x01\x42\x0b\n\t_revisionB\x0f\n\r_is_bad_buildB\x1d\n\x1b_should_ignore_crash_resultB\x1b\n\x19_build_run_console_output\"\xb5\x05\n\x15ProgressionTaskOutput\x12\x19\n\x0cmin_revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x19\n\x0cmax_revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x1c\n\x0f\x63rash_on_latest\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12$\n\x17\x63rash_on_latest_message\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12)\n\x1clast_tested_crash_stacktrace\x18\x06 \x01(\tH\x05\x88\x01\x01\x12!\n\x14last_progression_min\x18\x07 \x01(\x03H\x06\x88\x01\x01\x12!\n\x14last_progression_max\x18\x08 \x01(\x03H\x07\x88\x01\x01\x12#\n\x16\x63lear_min_max_metadata\x18\t \x01(\x08H\x08\x88\x01\x01\x12\x41\n\x0eissue_metadata\x18\n \x03(\x0b\x32).ProgressionTaskOutput.IssueMetadataEntry\x12#\n\x0f\x62uild_data_list\x18\x0b \x03(\x0b\x32\n.BuildData\x1a\x34\n\x12IssueMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x0f\n\r_min_revisionB\x0f\n\r_max_revisionB\x12\n\x10_crash_on_latestB\x1a\n\x18_crash_on_latest_messageB\x11\n\x0f_crash_revisionB\x1f\n\x1d_last_tested_crash_stacktraceB\x17\n\x15_last_progression_minB\x17\n\x15_last_progression_maxB\x19\n\x17_clear_min_max_metadata\"\xc6\x03\n\x1a\x43rossPollinationStatistics\x12#\n\x16project_qualified_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x14\n\x07sources\x18\x02 \x01(\tH\x01\x88\x01\x01\x12 \n\x13initial_corpus_size\x18\x03 \x01(\x05H\x02\x88\x01\x01\x12\x18\n\x0b\x63orpus_size\x18\x04 \x01(\x05H\x03\x88\x01\x01\x12\"\n\x15initial_edge_coverage\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x1a\n\redge_coverage\x18\x06 \x01(\x05H\x05\x88\x01\x01\x12%\n\x18initial_feature_coverage\x18\x07 \x01(\x05H\x06\x88\x01\x01\x12\x1d\n\x10\x66\x65\x61ture_coverage\x18\x08 \x01(\x05H\x07\x88\x01\x01\x42\x19\n\x17_project_qualified_nameB\n\n\x08_sourcesB\x16\n\x14_initial_corpus_sizeB\x0e\n\x0c_corpus_sizeB\x18\n\x16_initial_edge_coverageB\x10\n\x0e_edge_coverageB\x1b\n\x19_initial_feature_coverageB\x13\n\x11_feature_coverage\"\x97\x04\n\x13\x43overageInformation\x12\x19\n\x0cproject_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x32\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x01\x88\x01\x01\x12\x1e\n\x11\x63orpus_size_units\x18\x03 \x01(\x05H\x02\x88\x01\x01\x12\x1e\n\x11\x63orpus_size_bytes\x18\x04 \x01(\x05H\x03\x88\x01\x01\x12\x1c\n\x0f\x63orpus_location\x18\x05 \x01(\tH\x04\x88\x01\x01\x12#\n\x16\x63orpus_backup_location\x18\x06 \x01(\tH\x05\x88\x01\x01\x12\"\n\x15quarantine_size_units\x18\x07 \x01(\x05H\x06\x88\x01\x01\x12\"\n\x15quarantine_size_bytes\x18\x08 \x01(\x05H\x07\x88\x01\x01\x12 \n\x13quarantine_location\x18\t \x01(\tH\x08\x88\x01\x01\x42\x0f\n\r_project_nameB\x0c\n\n_timestampB\x14\n\x12_corpus_size_unitsB\x14\n\x12_corpus_size_bytesB\x12\n\x10_corpus_locationB\x19\n\x17_corpus_backup_locationB\x18\n\x16_quarantine_size_unitsB\x18\n\x16_quarantine_size_bytesB\x16\n\x14_quarantine_location\"\xbc\x01\n\x17\x43orpusPruningTaskOutput\x12\x41\n\x17\x63ross_pollination_stats\x18\x01 \x01(\x0b\x32\x1b.CrossPollinationStatisticsH\x00\x88\x01\x01\x12\x30\n\rcoverage_info\x18\x02 \x01(\x0b\x32\x14.CoverageInformationH\x01\x88\x01\x01\x42\x1a\n\x18_cross_pollination_statsB\x10\n\x0e_coverage_info\"\x9d\x08\n\x06Output\x12#\n\nerror_type\x18\x03 \x01(\x0e\x32\n.ErrorTypeH\x00\x88\x01\x01\x12\"\n\ruworker_input\x18\x04 \x01(\x0b\x32\x06.InputH\x01\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x02H\x02\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x02H\x03\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x07 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08\x62ot_name\x18\x11 \x01(\tH\x05\x88\x01\x01\x12\x18\n\x0bplatform_id\x18\x12 \x01(\tH\x06\x88\x01\x01\x12\x34\n\x13\x61nalyze_task_output\x18\x08 \x01(\x0b\x32\x12.AnalyzeTaskOutputH\x07\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\t \x01(\x0b\x32\x0f.FuzzTaskOutputH\x08\x88\x01\x01\x12\x36\n\x14minimize_task_output\x18\n \x01(\x0b\x32\x13.MinimizeTaskOutputH\t\x88\x01\x01\x12:\n\x16regression_task_output\x18\x0b \x01(\x0b\x32\x15.RegressionTaskOutputH\n\x88\x01\x01\x12<\n\x17progression_task_output\x18\x0c \x01(\x0b\x32\x16.ProgressionTaskOutputH\x0b\x88\x01\x01\x12\x38\n\x15symbolize_task_output\x18\r \x01(\x0b\x32\x14.SymbolizeTaskOutputH\x0c\x88\x01\x01\x12\x34\n\x13variant_task_output\x18\x0e \x01(\x0b\x32\x12.VariantTaskOutputH\r\x88\x01\x01\x12\x41\n\x1a\x63orpus_pruning_task_output\x18\x10 \x01(\x0b\x32\x18.CorpusPruningTaskOutputH\x0e\x88\x01\x01\x12\x1a\n\rerror_message\x18\x0f \x01(\tH\x0f\x88\x01\x01\x42\r\n\x0b_error_typeB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x0b\n\t_bot_nameB\x0e\n\x0c_platform_idB\x16\n\x14_analyze_task_outputB\x13\n\x11_fuzz_task_outputB\x17\n\x15_minimize_task_outputB\x19\n\x17_regression_task_outputB\x1a\n\x18_progression_task_outputB\x18\n\x16_symbolize_task_outputB\x16\n\x14_variant_task_outputB\x1d\n\x1b_corpus_pruning_task_outputB\x10\n\x0e_error_message*\xdd\x08\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x1d\n\x19\x41NALYZE_NO_REVISION_INDEX\x10\x04\x12\x12\n\x0eTESTCASE_SETUP\x10\x05\x12\r\n\tUNHANDLED\x10\x06\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x07\x12\x12\n\x0eMINIMIZE_SETUP\x10\x08\x12\x1c\n\x18\x46UZZ_BUILD_SETUP_FAILURE\x10\t\x12\"\n\x1e\x46UZZ_DATA_BUNDLE_SETUP_FAILURE\x10\n\x12\x12\n\x0e\x46UZZ_NO_FUZZER\x10\x0b\x12 \n\x1c\x46UZZ_NO_FUZZ_TARGET_SELECTED\x10\r\x12#\n\x1fPROGRESSION_REVISION_LIST_ERROR\x10\x0e\x12\x1f\n\x1bPROGRESSION_BUILD_NOT_FOUND\x10\x0f\x12\x18\n\x14PROGRESSION_NO_CRASH\x10\x10\x12!\n\x1dPROGRESSION_BAD_STATE_MIN_MAX\x10\x11\x12\x17\n\x13PROGRESSION_TIMEOUT\x10\x12\x12\x19\n\x15PROGRESSION_BAD_BUILD\x10\x13\x12!\n\x1dPROGRESSION_BUILD_SETUP_ERROR\x10\x14\x12\"\n\x1eREGRESSION_REVISION_LIST_ERROR\x10\x15\x12\x1e\n\x1aREGRESSION_BUILD_NOT_FOUND\x10\x16\x12 \n\x1cREGRESSION_BUILD_SETUP_ERROR\x10\x17\x12\x1e\n\x1aREGRESSION_BAD_BUILD_ERROR\x10\x18\x12\x17\n\x13REGRESSION_NO_CRASH\x10\x19\x12\x1c\n\x18REGRESSION_TIMEOUT_ERROR\x10\x1a\x12\x31\n-REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE\x10\x1b\x12\x1f\n\x1bSYMBOLIZE_BUILD_SETUP_ERROR\x10\x1c\x12!\n\x1dMINIMIZE_UNREPRODUCIBLE_CRASH\x10\x1d\x12\x1c\n\x18MINIMIZE_CRASH_TOO_FLAKY\x10\x1e\x12\x1e\n\x1aMINIMIZE_DEADLINE_EXCEEDED\x10\x1f\x12\x31\n-MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE\x10 \x12)\n%LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE\x10!\x12!\n\x1dLIBFUZZER_MINIMIZATION_FAILED\x10\"\x12&\n\"CORPUS_PRUNING_FUZZER_SETUP_FAILED\x10#\x12\x18\n\x14\x43ORPUS_PRUNING_ERROR\x10$b\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x80\x03\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x12$\n\x1cglobal_blacklisted_functions\x18\x07 \x03(\t\x12/\n\x14\x64\x61ta_bundle_corpuses\x18\x08 \x03(\x0b\x32\x11.DataBundleCorpusB\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\")\n\x10\x41nalyzeTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"P\n\x12SymbolizeTaskInput\x12!\n\x14old_crash_stacktrace\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x17\n\x15_old_crash_stacktrace\"C\n\rBlobUploadUrl\x12\x10\n\x03key\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x10\n\x03url\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x06\n\x04_keyB\x06\n\x04_url\"\xa8\x03\n\rFuzzTaskInput\x12\'\n\x1asample_testcase_upload_key\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\'\n\x1asample_testcase_upload_url\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\"\n\x15script_log_upload_url\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x35\n\x0b\x66uzz_target\x18\x04 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x03\x88\x01\x01\x12&\n\x06\x63orpus\x18\x05 \x01(\x0b\x32\x11.FuzzTargetCorpusH\x04\x88\x01\x01\x12$\n\x1cglobal_blacklisted_functions\x18\x06 \x03(\t\x12)\n\x11\x63rash_upload_urls\x18\x07 \x03(\x0b\x32\x0e.BlobUploadUrlB\x1d\n\x1b_sample_testcase_upload_keyB\x1d\n\x1b_sample_testcase_upload_urlB\x18\n\x16_script_log_upload_urlB\x0e\n\x0c_fuzz_targetB\t\n\x07_corpus\"\x90\x01\n\x10\x44\x61taBundleCorpus\x12\x35\n\x0b\x64\x61ta_bundle\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x14\n\x07gcs_url\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x0b\x63orpus_urls\x18\x03 \x03(\tB\x0e\n\x0c_data_bundleB\n\n\x08_gcs_url\"|\n\x10\x46uzzTargetCorpus\x12\x1c\n\x06\x63orpus\x18\x01 \x01(\x0b\x32\x07.CorpusH\x00\x88\x01\x01\x12(\n\x12regressions_corpus\x18\x02 \x01(\x0b\x32\x07.CorpusH\x01\x88\x01\x01\x42\t\n\x07_corpusB\x15\n\x13_regressions_corpus\"\xf2\x01\n\x06\x43orpus\x12,\n\x0b\x63orpus_urls\x18\x01 \x03(\x0b\x32\x17.Corpus.CorpusUrlsEntry\x12:\n\x11last_updated_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00\x88\x01\x01\x12\x14\n\x07gcs_url\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x0bupload_urls\x18\x04 \x03(\t\x1a\x31\n\x0f\x43orpusUrlsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x14\n\x12_last_updated_timeB\n\n\x08_gcs_url\"\x92\x02\n\x11MinimizeTaskInput\x12 \n\x13testcase_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1f\n\x12testcase_blob_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12!\n\x14stacktrace_blob_name\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\"\n\x15stacktrace_upload_url\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x11\n\targuments\x18\x05 \x03(\tB\x16\n\x14_testcase_upload_urlB\x15\n\x13_testcase_blob_nameB\x17\n\x15_stacktrace_blob_nameB\x18\n\x16_stacktrace_upload_url\",\n\x13RegressionTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"\x81\x02\n\x14ProgressionTaskInput\x12\x1a\n\rcustom_binary\x18\x01 \x01(\x08H\x00\x88\x01\x01\x12\x15\n\rbad_revisions\x18\x02 \x03(\x03\x12$\n\x17regression_testcase_url\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x16\n\tblob_name\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\"\n\x15stacktrace_upload_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x42\x10\n\x0e_custom_binaryB\x1a\n\x18_regression_testcase_urlB\x0c\n\n_blob_nameB\x18\n\x16_stacktrace_upload_url\"\xd2\x01\n\x19\x43rossPollinateFuzzerProto\x12\x35\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x1f\n\x12\x62\x61\x63kup_bucket_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1f\n\x12\x63orpus_engine_name\x18\x03 \x01(\tH\x02\x88\x01\x01\x42\x0e\n\x0c_fuzz_targetB\x15\n\x13_backup_bucket_nameB\x15\n\x13_corpus_engine_name\"\xd6\x02\n\x16\x43orpusPruningTaskInput\x12\x35\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\"\n\x15last_execution_failed\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12;\n\x17\x63ross_pollinate_fuzzers\x18\x03 \x03(\x0b\x32\x1a.CrossPollinateFuzzerProto\x12&\n\x06\x63orpus\x18\x04 \x01(\x0b\x32\x11.FuzzTargetCorpusH\x02\x88\x01\x01\x12\x31\n\x11quarantine_corpus\x18\x05 \x01(\x0b\x32\x11.FuzzTargetCorpusH\x03\x88\x01\x01\x42\x0e\n\x0c_fuzz_targetB\x18\n\x16_last_execution_failedB\t\n\x07_corpusB\x14\n\x12_quarantine_corpus\"\xf0\n\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12+\n\x0buworker_env\x18\x04 \x03(\x0b\x32\x16.Input.UworkerEnvEntry\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x03\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x04\x88\x01\x01\x12\x32\n\x12variant_task_input\x18\x08 \x01(\x0b\x32\x11.VariantTaskInputH\x05\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\t \x01(\tH\x06\x88\x01\x01\x12%\n\x0bsetup_input\x18\n \x01(\x0b\x32\x0b.SetupInputH\x07\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0b \x01(\x0b\x32\x11.AnalyzeTaskInputH\x08\x88\x01\x01\x12?\n\x19\x63orpus_pruning_task_input\x18\x0c \x01(\x0b\x32\x17.CorpusPruningTaskInputH\t\x88\x01\x01\x12,\n\x0f\x66uzz_task_input\x18\r \x01(\x0b\x32\x0e.FuzzTaskInputH\n\x88\x01\x01\x12\x34\n\x13minimize_task_input\x18\x0e \x01(\x0b\x32\x12.MinimizeTaskInputH\x0b\x88\x01\x01\x12:\n\x16progression_task_input\x18\x0f \x01(\x0b\x32\x15.ProgressionTaskInputH\x0c\x88\x01\x01\x12\x38\n\x15regression_task_input\x18\x10 \x01(\x0b\x32\x14.RegressionTaskInputH\r\x88\x01\x01\x12\x36\n\x14symbolize_task_input\x18\x11 \x01(\x0b\x32\x13.SymbolizeTaskInputH\x0e\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x12 \x01(\tH\x0f\x88\x01\x01\x12>\n\x15preprocess_start_time\x18\x13 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x10\x88\x01\x01\x12$\n\x1cglobal_blacklisted_functions\x18\x14 \x03(\t\x12\x35\n\x0b\x66uzz_target\x18\x15 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x11\x88\x01\x01\x1a\x31\n\x0fUworkerEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\x15\n\x13_variant_task_inputB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x1c\n\x1a_corpus_pruning_task_inputB\x12\n\x10_fuzz_task_inputB\x16\n\x14_minimize_task_inputB\x19\n\x17_progression_task_inputB\x18\n\x16_regression_task_inputB\x17\n\x15_symbolize_task_inputB\x0e\n\x0c_module_nameB\x18\n\x16_preprocess_start_timeB\x0e\n\x0c_fuzz_target\"H\n\x10VariantTaskInput\x12\x1e\n\x11original_job_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x14\n\x12_original_job_type\"\xc7\x02\n\x13SymbolizeTaskOutput\x12\x17\n\ncrash_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1a\n\rcrash_address\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1d\n\x10\x63rash_stacktrace\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x17\n\nsymbolized\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x06 \x01(\x05H\x05\x88\x01\x01\x12\x16\n\tbuild_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\r\n\x0b_crash_typeB\x10\n\x0e_crash_addressB\x0e\n\x0c_crash_stateB\x13\n\x11_crash_stacktraceB\r\n\x0b_symbolizedB\x11\n\x0f_crash_revisionB\x0c\n\n_build_url\"\x93\x06\n\x11\x41nalyzeTaskOutput\x12\x1b\n\x0e\x63rash_revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x1a\n\rabsolute_path\x18\x02 \x01(\tH\x01\x88\x01\x01\x12 \n\x13minimized_arguments\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1d\n\x10\x63rash_stacktrace\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_info_set\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x16\n\thttp_flag\x18\x06 \x01(\x08H\x05\x88\x01\x01\x12\x17\n\ncrash_type\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x1a\n\rcrash_address\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\t \x01(\tH\x08\x88\x01\x01\x12\x1a\n\rsecurity_flag\x18\n \x01(\x08H\t\x88\x01\x01\x12\x1e\n\x11security_severity\x18\x0b \x01(\x05H\n\x88\x01\x01\x12\"\n\x15one_time_crasher_flag\x18\x0c \x01(\x08H\x0b\x88\x01\x01\x12\x16\n\tbuild_key\x18\r \x01(\tH\x0c\x88\x01\x01\x12\x16\n\tbuild_url\x18\x0e \x01(\tH\r\x88\x01\x01\x12\x14\n\x07gn_args\x18\x0f \x01(\tH\x0e\x88\x01\x01\x12\x15\n\x08platform\x18\x10 \x01(\tH\x0f\x88\x01\x01\x12\x18\n\x0bplatform_id\x18\x11 \x01(\tH\x10\x88\x01\x01\x42\x11\n\x0f_crash_revisionB\x10\n\x0e_absolute_pathB\x16\n\x14_minimized_argumentsB\x13\n\x11_crash_stacktraceB\x11\n\x0f_crash_info_setB\x0c\n\n_http_flagB\r\n\x0b_crash_typeB\x10\n\x0e_crash_addressB\x0e\n\x0c_crash_stateB\x10\n\x0e_security_flagB\x14\n\x12_security_severityB\x18\n\x16_one_time_crasher_flagB\x0c\n\n_build_keyB\x0c\n\n_build_urlB\n\n\x08_gn_argsB\x0b\n\t_platformB\x0e\n\x0c_platform_id\"\x8f\x02\n\x1bStoreFuzzerRunResultsOutput\x12\x1f\n\x12\x66uzzer_return_code\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12&\n\x19generated_testcase_string\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1b\n\x0e\x63onsole_output\x18\x03 \x01(\tH\x02\x88\x01\x01\x12%\n\x18uploaded_sample_testcase\x18\x04 \x01(\x08H\x03\x88\x01\x01\x42\x15\n\x13_fuzzer_return_codeB\x1c\n\x1a_generated_testcase_stringB\x11\n\x0f_console_outputB\x1b\n\x19_uploaded_sample_testcase\"\x8c\x06\n\rFuzzTaskCrash\x12\x16\n\tfile_path\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x17\n\ncrash_time\x18\x02 \x01(\x02H\x01\x88\x01\x01\x12\x18\n\x0breturn_code\x18\x03 \x01(\x05H\x02\x88\x01\x01\x12\x15\n\rresource_list\x18\x04 \x03(\t\x12\x10\n\x08gestures\x18\x05 \x03(\t\x12\x16\n\targuments\x18\x06 \x01(\tH\x03\x88\x01\x01\x12\x1a\n\x12\x66uzzing_strategies\x18\x07 \x03(\t\x12\x1a\n\rsecurity_flag\x18\x08 \x01(\x08H\x04\x88\x01\x01\x12\x1e\n\x11should_be_ignored\x18\t \x01(\x08H\x05\x88\x01\x01\x12\x16\n\thttp_flag\x18\n \x01(\x08H\x06\x88\x01\x01\x12%\n\x18\x61pplication_command_line\x18\x0b \x01(\tH\x07\x88\x01\x01\x12*\n\x1dunsymbolized_crash_stacktrace\x18\x0c \x01(\tH\x08\x88\x01\x01\x12\x17\n\ncrash_type\x18\r \x01(\tH\t\x88\x01\x01\x12\x1a\n\rcrash_address\x18\x0e \x01(\tH\n\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x0f \x01(\tH\x0b\x88\x01\x01\x12\x1d\n\x10\x63rash_stacktrace\x18\x10 \x01(\tH\x0c\x88\x01\x01\x12\x18\n\x10\x63rash_categories\x18\x11 \x03(\t\x12\x10\n\x03key\x18\x12 \x01(\tH\r\x88\x01\x01\x12\x14\n\x0c\x63rash_frames\x18\x13 \x03(\tB\x0c\n\n_file_pathB\r\n\x0b_crash_timeB\x0e\n\x0c_return_codeB\x0c\n\n_argumentsB\x10\n\x0e_security_flagB\x14\n\x12_should_be_ignoredB\x0c\n\n_http_flagB\x1b\n\x19_application_command_lineB \n\x1e_unsymbolized_crash_stacktraceB\r\n\x0b_crash_typeB\x10\n\x0e_crash_addressB\x0e\n\x0c_crash_stateB\x13\n\x11_crash_stacktraceB\x06\n\x04_key\"\xe5\x02\n\x0b\x46uzzContext\x12\x14\n\x07redzone\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12\x1a\n\rdisable_ubsan\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\x1c\n\x0fwindow_argument\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x12timeout_multiplier\x18\x04 \x01(\x02H\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x39\n\x0f\x66uzzer_metadata\x18\x06 \x03(\x0b\x32 .FuzzContext.FuzzerMetadataEntry\x1a\x35\n\x13\x46uzzerMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\n\n\x08_redzoneB\x10\n\x0e_disable_ubsanB\x12\n\x10_window_argumentB\x15\n\x13_timeout_multiplierB\x0f\n\r_test_timeout\"\xdb\x01\n\x12\x46uzzTaskCrashGroup\x12\"\n\x07\x63ontext\x18\x01 \x01(\x0b\x32\x0c.FuzzContextH\x00\x88\x01\x01\x12\x1f\n\x07\x63rashes\x18\x02 \x03(\x0b\x32\x0e.FuzzTaskCrash\x12\'\n\nmain_crash\x18\x03 \x01(\x0b\x32\x0e.FuzzTaskCrashH\x01\x88\x01\x01\x12\"\n\x15one_time_crasher_flag\x18\x04 \x01(\x08H\x02\x88\x01\x01\x42\n\n\x08_contextB\r\n\x0b_main_crashB\x18\n\x16_one_time_crasher_flag\"\x93\x04\n\x0e\x46uzzTaskOutput\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x03\x88\x01\x01\x12=\n\x12\x66uzzer_run_results\x18\x08 \x01(\x0b\x32\x1c.StoreFuzzerRunResultsOutputH\x04\x88\x01\x01\x12\x1e\n\x11new_targets_count\x18\t \x01(\x05H\x05\x88\x01\x01\x12\x1c\n\x0f\x66uzzer_revision\x18\n \x01(\x05H\x06\x88\x01\x01\x12\x14\n\x0c\x66uzz_targets\x18\x0b \x03(\t\x12\x1a\n\x12testcase_run_jsons\x18\x0c \x03(\t\x12)\n\x0c\x63rash_groups\x18\r \x03(\x0b\x32\x13.FuzzTaskCrashGroupB\x1e\n\x1c_fully_qualified_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x15\n\x13_testcases_executedB\x15\n\x13_fuzzer_run_resultsB\x14\n\x12_new_targets_countB\x12\n\x10_fuzzer_revision\"\xd7\x05\n\x12MinimizeTaskOutput\x12L\n\x16last_crash_result_dict\x18\x01 \x03(\x0b\x32,.MinimizeTaskOutput.LastCrashResultDictEntry\x12\x18\n\x0b\x66laky_stack\x18\x02 \x01(\x08H\x00\x88\x01\x01\x12&\n\x19security_severity_updated\x18\x03 \x01(\x08H\x01\x88\x01\x01\x12\x1e\n\x11security_severity\x18\x04 \x01(\x05H\x02\x88\x01\x01\x12\x1f\n\x12minimization_phase\x18\x05 \x01(\x05H\x03\x88\x01\x01\x12\x10\n\x08gestures\x18\x06 \x03(\t\x12\x1b\n\x0eminimized_keys\x18\x07 \x01(\tH\x04\x88\x01\x01\x12 \n\x13minimized_arguments\x18\x08 \x01(\tH\x05\x88\x01\x01\x12\x1a\n\rarchive_state\x18\t \x01(\x05H\x06\x88\x01\x01\x12\x1a\n\rabsolute_path\x18\n \x01(\tH\x07\x88\x01\x01\x12G\n\x13memory_tool_options\x18\x0b \x03(\x0b\x32*.MinimizeTaskOutput.MemoryToolOptionsEntry\x1a:\n\x18LastCrashResultDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x38\n\x16MemoryToolOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\x0e\n\x0c_flaky_stackB\x1c\n\x1a_security_severity_updatedB\x14\n\x12_security_severityB\x15\n\x13_minimization_phaseB\x11\n\x0f_minimized_keysB\x16\n\x14_minimized_argumentsB\x10\n\x0e_archive_stateB\x10\n\x0e_absolute_path\"\xef\x02\n\x14RegressionTaskOutput\x12#\n\x16regression_range_start\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12!\n\x14regression_range_end\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12 \n\x13last_regression_min\x18\x03 \x01(\x03H\x02\x88\x01\x01\x12 \n\x13last_regression_max\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12#\n\x0f\x62uild_data_list\x18\x05 \x03(\x0b\x32\n.BuildData\x12%\n\x18is_testcase_reproducible\x18\x06 \x01(\x08H\x04\x88\x01\x01\x42\x19\n\x17_regression_range_startB\x17\n\x15_regression_range_endB\x16\n\x14_last_regression_minB\x16\n\x14_last_regression_maxB\x1b\n\x19_is_testcase_reproducible\"\xa3\x02\n\x11VariantTaskOutput\x12\x13\n\x06status\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x15\n\x08revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x17\n\ncrash_type\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1a\n\rsecurity_flag\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x17\n\nis_similar\x18\x06 \x01(\x08H\x05\x88\x01\x01\x12\x15\n\x08platform\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\t\n\x07_statusB\x0b\n\t_revisionB\r\n\x0b_crash_typeB\x0e\n\x0c_crash_stateB\x10\n\x0e_security_flagB\r\n\x0b_is_similarB\x0b\n\t_platform\"\xe7\x01\n\tBuildData\x12\x15\n\x08revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x19\n\x0cis_bad_build\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\'\n\x1ashould_ignore_crash_result\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12%\n\x18\x62uild_run_console_output\x18\x04 \x01(\tH\x03\x88\x01\x01\x42\x0b\n\t_revisionB\x0f\n\r_is_bad_buildB\x1d\n\x1b_should_ignore_crash_resultB\x1b\n\x19_build_run_console_output\"\xbc\x04\n\x15ProgressionTaskOutput\x12\x19\n\x0cmin_revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x19\n\x0cmax_revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x1c\n\x0f\x63rash_on_latest\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12$\n\x17\x63rash_on_latest_message\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12)\n\x1clast_tested_crash_stacktrace\x18\x06 \x01(\tH\x05\x88\x01\x01\x12!\n\x14last_progression_min\x18\x07 \x01(\x03H\x06\x88\x01\x01\x12!\n\x14last_progression_max\x18\x08 \x01(\x03H\x07\x88\x01\x01\x12#\n\x16\x63lear_min_max_metadata\x18\t \x01(\x08H\x08\x88\x01\x01\x12#\n\x0f\x62uild_data_list\x18\x0b \x03(\x0b\x32\n.BuildDataB\x0f\n\r_min_revisionB\x0f\n\r_max_revisionB\x12\n\x10_crash_on_latestB\x1a\n\x18_crash_on_latest_messageB\x11\n\x0f_crash_revisionB\x1f\n\x1d_last_tested_crash_stacktraceB\x17\n\x15_last_progression_minB\x17\n\x15_last_progression_maxB\x19\n\x17_clear_min_max_metadata\"\xc6\x03\n\x1a\x43rossPollinationStatistics\x12#\n\x16project_qualified_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x14\n\x07sources\x18\x02 \x01(\tH\x01\x88\x01\x01\x12 \n\x13initial_corpus_size\x18\x03 \x01(\x05H\x02\x88\x01\x01\x12\x18\n\x0b\x63orpus_size\x18\x04 \x01(\x05H\x03\x88\x01\x01\x12\"\n\x15initial_edge_coverage\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x1a\n\redge_coverage\x18\x06 \x01(\x05H\x05\x88\x01\x01\x12%\n\x18initial_feature_coverage\x18\x07 \x01(\x05H\x06\x88\x01\x01\x12\x1d\n\x10\x66\x65\x61ture_coverage\x18\x08 \x01(\x05H\x07\x88\x01\x01\x42\x19\n\x17_project_qualified_nameB\n\n\x08_sourcesB\x16\n\x14_initial_corpus_sizeB\x0e\n\x0c_corpus_sizeB\x18\n\x16_initial_edge_coverageB\x10\n\x0e_edge_coverageB\x1b\n\x19_initial_feature_coverageB\x13\n\x11_feature_coverage\"\x97\x04\n\x13\x43overageInformation\x12\x19\n\x0cproject_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x32\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x01\x88\x01\x01\x12\x1e\n\x11\x63orpus_size_units\x18\x03 \x01(\x05H\x02\x88\x01\x01\x12\x1e\n\x11\x63orpus_size_bytes\x18\x04 \x01(\x05H\x03\x88\x01\x01\x12\x1c\n\x0f\x63orpus_location\x18\x05 \x01(\tH\x04\x88\x01\x01\x12#\n\x16\x63orpus_backup_location\x18\x06 \x01(\tH\x05\x88\x01\x01\x12\"\n\x15quarantine_size_units\x18\x07 \x01(\x05H\x06\x88\x01\x01\x12\"\n\x15quarantine_size_bytes\x18\x08 \x01(\x05H\x07\x88\x01\x01\x12 \n\x13quarantine_location\x18\t \x01(\tH\x08\x88\x01\x01\x42\x0f\n\r_project_nameB\x0c\n\n_timestampB\x14\n\x12_corpus_size_unitsB\x14\n\x12_corpus_size_bytesB\x12\n\x10_corpus_locationB\x19\n\x17_corpus_backup_locationB\x18\n\x16_quarantine_size_unitsB\x18\n\x16_quarantine_size_bytesB\x16\n\x14_quarantine_location\"\xbc\x01\n\x17\x43orpusPruningTaskOutput\x12\x41\n\x17\x63ross_pollination_stats\x18\x01 \x01(\x0b\x32\x1b.CrossPollinationStatisticsH\x00\x88\x01\x01\x12\x30\n\rcoverage_info\x18\x02 \x01(\x0b\x32\x14.CoverageInformationH\x01\x88\x01\x01\x42\x1a\n\x18_cross_pollination_statsB\x10\n\x0e_coverage_info\"\x87\t\n\x06Output\x12#\n\nerror_type\x18\x03 \x01(\x0e\x32\n.ErrorTypeH\x00\x88\x01\x01\x12\"\n\ruworker_input\x18\x04 \x01(\x0b\x32\x06.InputH\x01\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x02H\x02\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x02H\x03\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x07 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08\x62ot_name\x18\x12 \x01(\tH\x05\x88\x01\x01\x12\x18\n\x0bplatform_id\x18\x13 \x01(\tH\x06\x88\x01\x01\x12\x34\n\x13\x61nalyze_task_output\x18\x08 \x01(\x0b\x32\x12.AnalyzeTaskOutputH\x07\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\t \x01(\x0b\x32\x0f.FuzzTaskOutputH\x08\x88\x01\x01\x12\x36\n\x14minimize_task_output\x18\n \x01(\x0b\x32\x13.MinimizeTaskOutputH\t\x88\x01\x01\x12:\n\x16regression_task_output\x18\x0b \x01(\x0b\x32\x15.RegressionTaskOutputH\n\x88\x01\x01\x12<\n\x17progression_task_output\x18\x0c \x01(\x0b\x32\x16.ProgressionTaskOutputH\x0b\x88\x01\x01\x12\x38\n\x15symbolize_task_output\x18\r \x01(\x0b\x32\x14.SymbolizeTaskOutputH\x0c\x88\x01\x01\x12\x34\n\x13variant_task_output\x18\x0e \x01(\x0b\x32\x12.VariantTaskOutputH\r\x88\x01\x01\x12\x41\n\x1a\x63orpus_pruning_task_output\x18\x10 \x01(\x0b\x32\x18.CorpusPruningTaskOutputH\x0e\x88\x01\x01\x12\x32\n\x0eissue_metadata\x18\x11 \x03(\x0b\x32\x1a.Output.IssueMetadataEntry\x12\x1a\n\rerror_message\x18\x0f \x01(\tH\x0f\x88\x01\x01\x1a\x34\n\x12IssueMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\r\n\x0b_error_typeB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x0b\n\t_bot_nameB\x0e\n\x0c_platform_idB\x16\n\x14_analyze_task_outputB\x13\n\x11_fuzz_task_outputB\x17\n\x15_minimize_task_outputB\x19\n\x17_regression_task_outputB\x1a\n\x18_progression_task_outputB\x18\n\x16_symbolize_task_outputB\x16\n\x14_variant_task_outputB\x1d\n\x1b_corpus_pruning_task_outputB\x10\n\x0e_error_message*\xdd\x08\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x1d\n\x19\x41NALYZE_NO_REVISION_INDEX\x10\x04\x12\x12\n\x0eTESTCASE_SETUP\x10\x05\x12\r\n\tUNHANDLED\x10\x06\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x07\x12\x12\n\x0eMINIMIZE_SETUP\x10\x08\x12\x1c\n\x18\x46UZZ_BUILD_SETUP_FAILURE\x10\t\x12\"\n\x1e\x46UZZ_DATA_BUNDLE_SETUP_FAILURE\x10\n\x12\x12\n\x0e\x46UZZ_NO_FUZZER\x10\x0b\x12 \n\x1c\x46UZZ_NO_FUZZ_TARGET_SELECTED\x10\r\x12#\n\x1fPROGRESSION_REVISION_LIST_ERROR\x10\x0e\x12\x1f\n\x1bPROGRESSION_BUILD_NOT_FOUND\x10\x0f\x12\x18\n\x14PROGRESSION_NO_CRASH\x10\x10\x12!\n\x1dPROGRESSION_BAD_STATE_MIN_MAX\x10\x11\x12\x17\n\x13PROGRESSION_TIMEOUT\x10\x12\x12\x19\n\x15PROGRESSION_BAD_BUILD\x10\x13\x12!\n\x1dPROGRESSION_BUILD_SETUP_ERROR\x10\x14\x12\"\n\x1eREGRESSION_REVISION_LIST_ERROR\x10\x15\x12\x1e\n\x1aREGRESSION_BUILD_NOT_FOUND\x10\x16\x12 \n\x1cREGRESSION_BUILD_SETUP_ERROR\x10\x17\x12\x1e\n\x1aREGRESSION_BAD_BUILD_ERROR\x10\x18\x12\x17\n\x13REGRESSION_NO_CRASH\x10\x19\x12\x1c\n\x18REGRESSION_TIMEOUT_ERROR\x10\x1a\x12\x31\n-REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE\x10\x1b\x12\x1f\n\x1bSYMBOLIZE_BUILD_SETUP_ERROR\x10\x1c\x12!\n\x1dMINIMIZE_UNREPRODUCIBLE_CRASH\x10\x1d\x12\x1c\n\x18MINIMIZE_CRASH_TOO_FLAKY\x10\x1e\x12\x1e\n\x1aMINIMIZE_DEADLINE_EXCEEDED\x10\x1f\x12\x31\n-MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE\x10 \x12)\n%LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE\x10!\x12!\n\x1dLIBFUZZER_MINIMIZATION_FAILED\x10\"\x12&\n\"CORPUS_PRUNING_FUZZER_SETUP_FAILED\x10#\x12\x18\n\x14\x43ORPUS_PRUNING_ERROR\x10$b\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
@@ -230,8 +230,8 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=11748,
-  serialized_end=12865,
+  serialized_start=12110,
+  serialized_end=13227,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
@@ -298,30 +298,37 @@ _SETUPINPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='data_bundles', full_name='SetupInput.data_bundles', index=2,
-      number=3, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='fuzzer_log_upload_url', full_name='SetupInput.fuzzer_log_upload_url', index=3,
+      name='fuzzer_log_upload_url', full_name='SetupInput.fuzzer_log_upload_url', index=2,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='fuzzer_download_url', full_name='SetupInput.fuzzer_download_url', index=4,
+      name='fuzzer_download_url', full_name='SetupInput.fuzzer_download_url', index=3,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='testcase_download_url', full_name='SetupInput.testcase_download_url', index=5,
+      name='testcase_download_url', full_name='SetupInput.testcase_download_url', index=4,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='global_blacklisted_functions', full_name='SetupInput.global_blacklisted_functions', index=5,
+      number=7, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='data_bundle_corpuses', full_name='SetupInput.data_bundle_corpuses', index=6,
+      number=8, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -363,7 +370,7 @@ _SETUPINPUT = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=130,
-  serialized_end=478,
+  serialized_end=514,
 )
 
 
@@ -394,8 +401,8 @@ _ANALYZETASKINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=480,
-  serialized_end=521,
+  serialized_start=516,
+  serialized_end=557,
 )
 
 
@@ -431,8 +438,8 @@ _SYMBOLIZETASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=523,
-  serialized_end=603,
+  serialized_start=559,
+  serialized_end=639,
 )
 
 
@@ -480,8 +487,8 @@ _BLOBUPLOADURL = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=605,
-  serialized_end=672,
+  serialized_start=641,
+  serialized_end=708,
 )
 
 
@@ -529,8 +536,15 @@ _FUZZTASKINPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='crash_upload_urls', full_name='FuzzTaskInput.crash_upload_urls', index=5,
-      number=6, type=11, cpp_type=10, label=3,
+      name='global_blacklisted_functions', full_name='FuzzTaskInput.global_blacklisted_functions', index=5,
+      number=6, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='crash_upload_urls', full_name='FuzzTaskInput.crash_upload_urls', index=6,
+      number=7, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -572,8 +586,64 @@ _FUZZTASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=675,
-  serialized_end=1061,
+  serialized_start=711,
+  serialized_end=1135,
+)
+
+
+_DATABUNDLECORPUS = _descriptor.Descriptor(
+  name='DataBundleCorpus',
+  full_name='DataBundleCorpus',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='data_bundle', full_name='DataBundleCorpus.data_bundle', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='gcs_url', full_name='DataBundleCorpus.gcs_url', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='corpus_urls', full_name='DataBundleCorpus.corpus_urls', index=2,
+      number=3, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='_data_bundle', full_name='DataBundleCorpus._data_bundle',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_gcs_url', full_name='DataBundleCorpus._gcs_url',
+      index=1, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+  ],
+  serialized_start=1138,
+  serialized_end=1282,
 )
 
 
@@ -621,8 +691,8 @@ _FUZZTARGETCORPUS = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1063,
-  serialized_end=1187,
+  serialized_start=1284,
+  serialized_end=1408,
 )
 
 
@@ -660,8 +730,8 @@ _CORPUS_CORPUSURLSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1349,
-  serialized_end=1398,
+  serialized_start=1570,
+  serialized_end=1619,
 )
 
 _CORPUS = _descriptor.Descriptor(
@@ -722,8 +792,8 @@ _CORPUS = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1190,
-  serialized_end=1432,
+  serialized_start=1411,
+  serialized_end=1653,
 )
 
 
@@ -763,6 +833,13 @@ _MINIMIZETASKINPUT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='arguments', full_name='MinimizeTaskInput.arguments', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -795,8 +872,8 @@ _MINIMIZETASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1435,
-  serialized_end=1690,
+  serialized_start=1656,
+  serialized_end=1930,
 )
 
 
@@ -827,8 +904,8 @@ _REGRESSIONTASKINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1692,
-  serialized_end=1736,
+  serialized_start=1932,
+  serialized_end=1976,
 )
 
 
@@ -907,8 +984,8 @@ _PROGRESSIONTASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1739,
-  serialized_end=1996,
+  serialized_start=1979,
+  serialized_end=2236,
 )
 
 
@@ -968,8 +1045,8 @@ _CROSSPOLLINATEFUZZERPROTO = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1999,
-  serialized_end=2209,
+  serialized_start=2239,
+  serialized_end=2449,
 )
 
 
@@ -1048,8 +1125,8 @@ _CORPUSPRUNINGTASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=2212,
-  serialized_end=2554,
+  serialized_start=2452,
+  serialized_end=2794,
 )
 
 
@@ -1087,8 +1164,8 @@ _INPUT_UWORKERENVENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3418,
-  serialized_end=3467,
+  serialized_start=3751,
+  serialized_end=3800,
 )
 
 _INPUT = _descriptor.Descriptor(
@@ -1225,6 +1302,20 @@ _INPUT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='global_blacklisted_functions', full_name='Input.global_blacklisted_functions', index=18,
+      number=20, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='fuzz_target', full_name='Input.fuzz_target', index=19,
+      number=21, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -1321,9 +1412,14 @@ _INPUT = _descriptor.Descriptor(
       index=16, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_fuzz_target', full_name='Input._fuzz_target',
+      index=17, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=2557,
-  serialized_end=3840,
+  serialized_start=2797,
+  serialized_end=4189,
 )
 
 
@@ -1359,8 +1455,8 @@ _VARIANTTASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=3842,
-  serialized_end=3914,
+  serialized_start=4191,
+  serialized_end=4263,
 )
 
 
@@ -1468,8 +1564,8 @@ _SYMBOLIZETASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=3917,
-  serialized_end=4244,
+  serialized_start=4266,
+  serialized_end=4593,
 )
 
 
@@ -1697,8 +1793,8 @@ _ANALYZETASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=4247,
-  serialized_end=5034,
+  serialized_start=4596,
+  serialized_end=5383,
 )
 
 
@@ -1770,8 +1866,8 @@ _STOREFUZZERRUNRESULTSOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=5037,
-  serialized_end=5308,
+  serialized_start=5386,
+  serialized_end=5657,
 )
 
 
@@ -1998,8 +2094,8 @@ _FUZZTASKCRASH = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=5311,
-  serialized_end=6091,
+  serialized_start=5660,
+  serialized_end=6440,
 )
 
 
@@ -2037,8 +2133,8 @@ _FUZZCONTEXT_FUZZERMETADATAENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6308,
-  serialized_end=6361,
+  serialized_start=6657,
+  serialized_end=6710,
 )
 
 _FUZZCONTEXT = _descriptor.Descriptor(
@@ -2128,8 +2224,8 @@ _FUZZCONTEXT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=6094,
-  serialized_end=6451,
+  serialized_start=6443,
+  serialized_end=6800,
 )
 
 
@@ -2196,8 +2292,8 @@ _FUZZTASKCRASHGROUP = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=6454,
-  serialized_end=6673,
+  serialized_start=6803,
+  serialized_end=7022,
 )
 
 
@@ -2266,8 +2362,15 @@ _FUZZTASKOUTPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='crash_groups', full_name='FuzzTaskOutput.crash_groups', index=8,
-      number=12, type=11, cpp_type=10, label=3,
+      name='testcase_run_jsons', full_name='FuzzTaskOutput.testcase_run_jsons', index=8,
+      number=12, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='crash_groups', full_name='FuzzTaskOutput.crash_groups', index=9,
+      number=13, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -2319,8 +2422,8 @@ _FUZZTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=6676,
-  serialized_end=7179,
+  serialized_start=7025,
+  serialized_end=7556,
 )
 
 
@@ -2358,8 +2461,8 @@ _MINIMIZETASKOUTPUT_LASTCRASHRESULTDICTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7623,
-  serialized_end=7681,
+  serialized_start=8000,
+  serialized_end=8058,
 )
 
 _MINIMIZETASKOUTPUT_MEMORYTOOLOPTIONSENTRY = _descriptor.Descriptor(
@@ -2396,8 +2499,8 @@ _MINIMIZETASKOUTPUT_MEMORYTOOLOPTIONSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7683,
-  serialized_end=7739,
+  serialized_start=8060,
+  serialized_end=8116,
 )
 
 _MINIMIZETASKOUTPUT = _descriptor.Descriptor(
@@ -2537,8 +2640,8 @@ _MINIMIZETASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=7182,
-  serialized_end=7909,
+  serialized_start=7559,
+  serialized_end=8286,
 )
 
 
@@ -2629,8 +2732,8 @@ _REGRESSIONTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=7912,
-  serialized_end=8279,
+  serialized_start=8289,
+  serialized_end=8656,
 )
 
 
@@ -2738,8 +2841,8 @@ _VARIANTTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=8282,
-  serialized_end=8573,
+  serialized_start=8659,
+  serialized_end=8950,
 )
 
 
@@ -2811,48 +2914,10 @@ _BUILDDATA = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=8576,
-  serialized_end=8807,
+  serialized_start=8953,
+  serialized_end=9184,
 )
 
-
-_PROGRESSIONTASKOUTPUT_ISSUEMETADATAENTRY = _descriptor.Descriptor(
-  name='IssueMetadataEntry',
-  full_name='ProgressionTaskOutput.IssueMetadataEntry',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='key', full_name='ProgressionTaskOutput.IssueMetadataEntry.key', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='value', full_name='ProgressionTaskOutput.IssueMetadataEntry.value', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=b'8\001',
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=9240,
-  serialized_end=9292,
-)
 
 _PROGRESSIONTASKOUTPUT = _descriptor.Descriptor(
   name='ProgressionTaskOutput',
@@ -2926,14 +2991,7 @@ _PROGRESSIONTASKOUTPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='issue_metadata', full_name='ProgressionTaskOutput.issue_metadata', index=9,
-      number=10, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='build_data_list', full_name='ProgressionTaskOutput.build_data_list', index=10,
+      name='build_data_list', full_name='ProgressionTaskOutput.build_data_list', index=9,
       number=11, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -2942,7 +3000,7 @@ _PROGRESSIONTASKOUTPUT = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_PROGRESSIONTASKOUTPUT_ISSUEMETADATAENTRY, ],
+  nested_types=[],
   enum_types=[
   ],
   serialized_options=None,
@@ -2996,8 +3054,8 @@ _PROGRESSIONTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=8810,
-  serialized_end=9503,
+  serialized_start=9187,
+  serialized_end=9759,
 )
 
 
@@ -3117,8 +3175,8 @@ _CROSSPOLLINATIONSTATISTICS = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=9506,
-  serialized_end=9960,
+  serialized_start=9762,
+  serialized_end=10216,
 )
 
 
@@ -3250,8 +3308,8 @@ _COVERAGEINFORMATION = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=9963,
-  serialized_end=10498,
+  serialized_start=10219,
+  serialized_end=10754,
 )
 
 
@@ -3299,10 +3357,48 @@ _CORPUSPRUNINGTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=10501,
-  serialized_end=10689,
+  serialized_start=10757,
+  serialized_end=10945,
 )
 
+
+_OUTPUT_ISSUEMETADATAENTRY = _descriptor.Descriptor(
+  name='IssueMetadataEntry',
+  full_name='Output.IssueMetadataEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='Output.IssueMetadataEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='Output.IssueMetadataEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=b'8\001',
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=11709,
+  serialized_end=11761,
+)
 
 _OUTPUT = _descriptor.Descriptor(
   name='Output',
@@ -3349,14 +3445,14 @@ _OUTPUT = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='bot_name', full_name='Output.bot_name', index=5,
-      number=17, type=9, cpp_type=9, label=1,
+      number=18, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='platform_id', full_name='Output.platform_id', index=6,
-      number=18, type=9, cpp_type=9, label=1,
+      number=19, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -3418,7 +3514,14 @@ _OUTPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='error_message', full_name='Output.error_message', index=15,
+      name='issue_metadata', full_name='Output.issue_metadata', index=15,
+      number=17, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='error_message', full_name='Output.error_message', index=16,
       number=15, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -3427,7 +3530,7 @@ _OUTPUT = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[],
+  nested_types=[_OUTPUT_ISSUEMETADATAENTRY, ],
   enum_types=[
   ],
   serialized_options=None,
@@ -3516,12 +3619,12 @@ _OUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=10692,
-  serialized_end=11745,
+  serialized_start=10948,
+  serialized_end=12107,
 )
 
 _SETUPINPUT.fields_by_name['fuzzer'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
-_SETUPINPUT.fields_by_name['data_bundles'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_SETUPINPUT.fields_by_name['data_bundle_corpuses'].message_type = _DATABUNDLECORPUS
 _SETUPINPUT.oneofs_by_name['_fuzzer'].fields.append(
   _SETUPINPUT.fields_by_name['fuzzer'])
 _SETUPINPUT.fields_by_name['fuzzer'].containing_oneof = _SETUPINPUT.oneofs_by_name['_fuzzer']
@@ -3564,6 +3667,13 @@ _FUZZTASKINPUT.fields_by_name['fuzz_target'].containing_oneof = _FUZZTASKINPUT.o
 _FUZZTASKINPUT.oneofs_by_name['_corpus'].fields.append(
   _FUZZTASKINPUT.fields_by_name['corpus'])
 _FUZZTASKINPUT.fields_by_name['corpus'].containing_oneof = _FUZZTASKINPUT.oneofs_by_name['_corpus']
+_DATABUNDLECORPUS.fields_by_name['data_bundle'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_DATABUNDLECORPUS.oneofs_by_name['_data_bundle'].fields.append(
+  _DATABUNDLECORPUS.fields_by_name['data_bundle'])
+_DATABUNDLECORPUS.fields_by_name['data_bundle'].containing_oneof = _DATABUNDLECORPUS.oneofs_by_name['_data_bundle']
+_DATABUNDLECORPUS.oneofs_by_name['_gcs_url'].fields.append(
+  _DATABUNDLECORPUS.fields_by_name['gcs_url'])
+_DATABUNDLECORPUS.fields_by_name['gcs_url'].containing_oneof = _DATABUNDLECORPUS.oneofs_by_name['_gcs_url']
 _FUZZTARGETCORPUS.fields_by_name['corpus'].message_type = _CORPUS
 _FUZZTARGETCORPUS.fields_by_name['regressions_corpus'].message_type = _CORPUS
 _FUZZTARGETCORPUS.oneofs_by_name['_corpus'].fields.append(
@@ -3645,6 +3755,7 @@ _INPUT.fields_by_name['progression_task_input'].message_type = _PROGRESSIONTASKI
 _INPUT.fields_by_name['regression_task_input'].message_type = _REGRESSIONTASKINPUT
 _INPUT.fields_by_name['symbolize_task_input'].message_type = _SYMBOLIZETASKINPUT
 _INPUT.fields_by_name['preprocess_start_time'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_INPUT.fields_by_name['fuzz_target'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.oneofs_by_name['_testcase'].fields.append(
   _INPUT.fields_by_name['testcase'])
 _INPUT.fields_by_name['testcase'].containing_oneof = _INPUT.oneofs_by_name['_testcase']
@@ -3696,6 +3807,9 @@ _INPUT.fields_by_name['module_name'].containing_oneof = _INPUT.oneofs_by_name['_
 _INPUT.oneofs_by_name['_preprocess_start_time'].fields.append(
   _INPUT.fields_by_name['preprocess_start_time'])
 _INPUT.fields_by_name['preprocess_start_time'].containing_oneof = _INPUT.oneofs_by_name['_preprocess_start_time']
+_INPUT.oneofs_by_name['_fuzz_target'].fields.append(
+  _INPUT.fields_by_name['fuzz_target'])
+_INPUT.fields_by_name['fuzz_target'].containing_oneof = _INPUT.oneofs_by_name['_fuzz_target']
 _VARIANTTASKINPUT.oneofs_by_name['_original_job_type'].fields.append(
   _VARIANTTASKINPUT.fields_by_name['original_job_type'])
 _VARIANTTASKINPUT.fields_by_name['original_job_type'].containing_oneof = _VARIANTTASKINPUT.oneofs_by_name['_original_job_type']
@@ -3954,8 +4068,6 @@ _BUILDDATA.fields_by_name['should_ignore_crash_result'].containing_oneof = _BUIL
 _BUILDDATA.oneofs_by_name['_build_run_console_output'].fields.append(
   _BUILDDATA.fields_by_name['build_run_console_output'])
 _BUILDDATA.fields_by_name['build_run_console_output'].containing_oneof = _BUILDDATA.oneofs_by_name['_build_run_console_output']
-_PROGRESSIONTASKOUTPUT_ISSUEMETADATAENTRY.containing_type = _PROGRESSIONTASKOUTPUT
-_PROGRESSIONTASKOUTPUT.fields_by_name['issue_metadata'].message_type = _PROGRESSIONTASKOUTPUT_ISSUEMETADATAENTRY
 _PROGRESSIONTASKOUTPUT.fields_by_name['build_data_list'].message_type = _BUILDDATA
 _PROGRESSIONTASKOUTPUT.oneofs_by_name['_min_revision'].fields.append(
   _PROGRESSIONTASKOUTPUT.fields_by_name['min_revision'])
@@ -4044,6 +4156,7 @@ _CORPUSPRUNINGTASKOUTPUT.fields_by_name['cross_pollination_stats'].containing_on
 _CORPUSPRUNINGTASKOUTPUT.oneofs_by_name['_coverage_info'].fields.append(
   _CORPUSPRUNINGTASKOUTPUT.fields_by_name['coverage_info'])
 _CORPUSPRUNINGTASKOUTPUT.fields_by_name['coverage_info'].containing_oneof = _CORPUSPRUNINGTASKOUTPUT.oneofs_by_name['_coverage_info']
+_OUTPUT_ISSUEMETADATAENTRY.containing_type = _OUTPUT
 _OUTPUT.fields_by_name['error_type'].enum_type = _ERRORTYPE
 _OUTPUT.fields_by_name['uworker_input'].message_type = _INPUT
 _OUTPUT.fields_by_name['analyze_task_output'].message_type = _ANALYZETASKOUTPUT
@@ -4054,6 +4167,7 @@ _OUTPUT.fields_by_name['progression_task_output'].message_type = _PROGRESSIONTAS
 _OUTPUT.fields_by_name['symbolize_task_output'].message_type = _SYMBOLIZETASKOUTPUT
 _OUTPUT.fields_by_name['variant_task_output'].message_type = _VARIANTTASKOUTPUT
 _OUTPUT.fields_by_name['corpus_pruning_task_output'].message_type = _CORPUSPRUNINGTASKOUTPUT
+_OUTPUT.fields_by_name['issue_metadata'].message_type = _OUTPUT_ISSUEMETADATAENTRY
 _OUTPUT.oneofs_by_name['_error_type'].fields.append(
   _OUTPUT.fields_by_name['error_type'])
 _OUTPUT.fields_by_name['error_type'].containing_oneof = _OUTPUT.oneofs_by_name['_error_type']
@@ -4107,6 +4221,7 @@ DESCRIPTOR.message_types_by_name['AnalyzeTaskInput'] = _ANALYZETASKINPUT
 DESCRIPTOR.message_types_by_name['SymbolizeTaskInput'] = _SYMBOLIZETASKINPUT
 DESCRIPTOR.message_types_by_name['BlobUploadUrl'] = _BLOBUPLOADURL
 DESCRIPTOR.message_types_by_name['FuzzTaskInput'] = _FUZZTASKINPUT
+DESCRIPTOR.message_types_by_name['DataBundleCorpus'] = _DATABUNDLECORPUS
 DESCRIPTOR.message_types_by_name['FuzzTargetCorpus'] = _FUZZTARGETCORPUS
 DESCRIPTOR.message_types_by_name['Corpus'] = _CORPUS
 DESCRIPTOR.message_types_by_name['MinimizeTaskInput'] = _MINIMIZETASKINPUT
@@ -4169,6 +4284,13 @@ FuzzTaskInput = _reflection.GeneratedProtocolMessageType('FuzzTaskInput', (_mess
   # @@protoc_insertion_point(class_scope:FuzzTaskInput)
   })
 _sym_db.RegisterMessage(FuzzTaskInput)
+
+DataBundleCorpus = _reflection.GeneratedProtocolMessageType('DataBundleCorpus', (_message.Message,), {
+  'DESCRIPTOR' : _DATABUNDLECORPUS,
+  '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
+  # @@protoc_insertion_point(class_scope:DataBundleCorpus)
+  })
+_sym_db.RegisterMessage(DataBundleCorpus)
 
 FuzzTargetCorpus = _reflection.GeneratedProtocolMessageType('FuzzTargetCorpus', (_message.Message,), {
   'DESCRIPTOR' : _FUZZTARGETCORPUS,
@@ -4351,19 +4473,11 @@ BuildData = _reflection.GeneratedProtocolMessageType('BuildData', (_message.Mess
 _sym_db.RegisterMessage(BuildData)
 
 ProgressionTaskOutput = _reflection.GeneratedProtocolMessageType('ProgressionTaskOutput', (_message.Message,), {
-
-  'IssueMetadataEntry' : _reflection.GeneratedProtocolMessageType('IssueMetadataEntry', (_message.Message,), {
-    'DESCRIPTOR' : _PROGRESSIONTASKOUTPUT_ISSUEMETADATAENTRY,
-    '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
-    # @@protoc_insertion_point(class_scope:ProgressionTaskOutput.IssueMetadataEntry)
-    })
-  ,
   'DESCRIPTOR' : _PROGRESSIONTASKOUTPUT,
   '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
   # @@protoc_insertion_point(class_scope:ProgressionTaskOutput)
   })
 _sym_db.RegisterMessage(ProgressionTaskOutput)
-_sym_db.RegisterMessage(ProgressionTaskOutput.IssueMetadataEntry)
 
 CrossPollinationStatistics = _reflection.GeneratedProtocolMessageType('CrossPollinationStatistics', (_message.Message,), {
   'DESCRIPTOR' : _CROSSPOLLINATIONSTATISTICS,
@@ -4387,11 +4501,19 @@ CorpusPruningTaskOutput = _reflection.GeneratedProtocolMessageType('CorpusPrunin
 _sym_db.RegisterMessage(CorpusPruningTaskOutput)
 
 Output = _reflection.GeneratedProtocolMessageType('Output', (_message.Message,), {
+
+  'IssueMetadataEntry' : _reflection.GeneratedProtocolMessageType('IssueMetadataEntry', (_message.Message,), {
+    'DESCRIPTOR' : _OUTPUT_ISSUEMETADATAENTRY,
+    '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
+    # @@protoc_insertion_point(class_scope:Output.IssueMetadataEntry)
+    })
+  ,
   'DESCRIPTOR' : _OUTPUT,
   '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
   # @@protoc_insertion_point(class_scope:Output)
   })
 _sym_db.RegisterMessage(Output)
+_sym_db.RegisterMessage(Output.IssueMetadataEntry)
 
 
 _CORPUS_CORPUSURLSENTRY._options = None
@@ -4399,5 +4521,5 @@ _INPUT_UWORKERENVENTRY._options = None
 _FUZZCONTEXT_FUZZERMETADATAENTRY._options = None
 _MINIMIZETASKOUTPUT_LASTCRASHRESULTDICTENTRY._options = None
 _MINIMIZETASKOUTPUT_MEMORYTOOLOPTIONSENTRY._options = None
-_PROGRESSIONTASKOUTPUT_ISSUEMETADATAENTRY._options = None
+_OUTPUT_ISSUEMETADATAENTRY._options = None
 # @@protoc_insertion_point(module_scope)

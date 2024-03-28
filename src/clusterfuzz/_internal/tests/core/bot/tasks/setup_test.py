@@ -19,7 +19,9 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -165,3 +167,71 @@ class ClearOldDataBundlesIfNeededTest(fake_filesystem_unittest.TestCase):
     setup._clear_old_data_bundles_if_needed()
     self.assertEqual([str(i) for i in range(1, 5)],
                      sorted(os.listdir(self.data_bundles_dir), key=int))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class PreprocessGetDataBundlesTest(unittest.TestCase):
+  """Tests for preprocess_get_data_bundles."""
+
+  def setUp(self):
+    self.setup_input = uworker_msg_pb2.SetupInput()
+    helpers.patch_environ(self)
+    environment.set_value('TASK_NAME', 'fuzz')
+    environment.set_value('JOB_NAME', 'libfuzzer_chrome_asan')
+
+  def test_no_bundles(self):
+    """Tests that preprocess_get_data_bundles works when there are no data
+    bundles."""
+    setup.preprocess_get_data_bundles('fake', self.setup_input)
+    self.assertEqual(list(self.setup_input.data_bundle_corpuses), [])
+
+  def test_bundles(self):
+    """Tests that preprocess_get_data_bundles works when there are bundles."""
+    bundles_name = 'mybundle'
+    bundles = [
+        data_types.DataBundle(name=bundles_name),
+        data_types.DataBundle(name=bundles_name)
+    ]
+    for bundle in bundles:
+      bundle.put()
+    setup.preprocess_get_data_bundles(bundles_name, self.setup_input)
+    saved_bundles = [
+        uworker_io.entity_from_protobuf(corpus.data_bundle,
+                                        data_types.DataBundle)
+        for corpus in self.setup_input.data_bundle_corpuses
+    ]
+    self.assertEqual(bundles, saved_bundles)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
+  """Tests for preprocess_update_fuzzer_and_data_bundles."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_download_url',
+        'clusterfuzz._internal.bot.tasks.task_types.is_remote_utask',
+        'clusterfuzz._internal.bot.tasks.setup._update_fuzzer',
+        'clusterfuzz._internal.bot.tasks.setup._clear_old_data_bundles_if_needed',
+        'clusterfuzz._internal.bot.tasks.setup.update_data_bundle',
+    ])
+    self.mock.get_signed_upload_url.return_value = 'https://fake/upload'
+    self.mock.get_signed_download_url.return_value = 'https://fake/download'
+    self.fuzzer_name = 'fuzzer'
+    data_bundle_name = 'data_bundle_name'
+    data_types.Fuzzer(
+        name=self.fuzzer_name, data_bundle_name=data_bundle_name).put()
+    self.data_bundle = data_types.DataBundle(name=data_bundle_name)
+    self.data_bundle.put()
+    data_types.DataBundle(name=data_bundle_name).put()
+    helpers.patch_environ(self)
+    environment.set_value('FUZZERS_DIR', '/fuzzer')
+
+  def test_data_bundles(self):
+    """Tests that data bundles are set properly in preprocess."""
+    self.mock.is_remote_utask.return_value = False
+    setup_input = setup.preprocess_update_fuzzer_and_data_bundles(
+        self.fuzzer_name)
+    setup.update_fuzzer_and_data_bundles(setup_input)
+    self.assertEqual(self.mock.update_data_bundle.call_count, 2)

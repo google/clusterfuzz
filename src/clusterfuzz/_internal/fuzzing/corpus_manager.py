@@ -20,6 +20,9 @@ import shutil
 from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks import task_types
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -423,9 +426,12 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     return True
 
   def _sync_corpus_to_disk(self, corpus, directory):
+    """Syncs a corpus from GCS to disk."""
     shell.create_directory(directory, create_intermediates=True)
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     for filepath, upload_url in results:
+      if filepath is None:
+        continue
       self._filenames_to_delete_urls_mapping[filepath] = (
           corpus.corpus_urls[upload_url])
 
@@ -559,6 +565,42 @@ def _get_gcs_url(bucket_name, bucket_path, suffix=''):
     url += '/'
 
   return url
+
+
+def get_proto_data_bundle_corpus(
+    data_bundle) -> uworker_msg_pb2.DataBundleCorpus:
+  """Returns a data bundle corpus that can be used by uworkers or trusted
+  workers to download the data bundle files using the fastest means available to
+  them."""
+  data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()
+  data_bundle_corpus.gcs_url = data_handler.get_data_bundle_bucket_url(
+      data_bundle.name)
+  data_bundle_corpus.data_bundle.CopyFrom(
+      uworker_io.entity_to_protobuf(data_bundle))
+  if task_types.task_main_runs_on_uworker():
+    # Slow path for when we need an untrusted worker to run a task.
+    # Note that the security of the system (only the correctness) depends on
+    # this path being taken. If it is not taken when we need to, utask_main will
+    # simply fail as it tries to do privileged operation it does not have
+    # permissions for.
+    urls = (f'{data_bundle_corpus.gcs_url}/{url}'
+            for url in storage.list_blobs(data_bundle_corpus.gcs_url))
+    data_bundle_corpus.corpus_urls.extend([
+        url_pair[0] for url_pair in storage.sign_urls_for_existing_files(
+            urls, include_delete_urls=False)
+    ])
+
+  return data_bundle_corpus
+
+
+def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
+  if not task_types.task_main_runs_on_uworker():
+    # Fast path for when we don't need an untrusted worker to run a task.
+    return gsutil.GSUtilRunner().rsync(
+        data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
+  results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
+                                         directory)
+  return results.count(None) < MAX_SYNC_ERRORS
 
 
 def get_proto_corpus(bucket_name,

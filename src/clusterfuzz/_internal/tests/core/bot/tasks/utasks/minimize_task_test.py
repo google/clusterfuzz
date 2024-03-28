@@ -89,7 +89,7 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
 
     minimize_task_input = uworker_msg_pb2.MinimizeTaskInput()
     output = minimize_task.do_libfuzzer_minimization(
-        minimize_task_input, testcase, '/testcase_file_path')
+        None, minimize_task_input, testcase, '/testcase_file_path')
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED)
     crash_result_dict = output.minimize_task_output.last_crash_result_dict
@@ -202,8 +202,12 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
+    uworker_env = {
+        'JOB_NAME': 'libfuzzer_chrome_asan',
+        'TASK_NAME': 'progression'
+    }
     uworker_input = minimize_task.utask_preprocess(
-        str(testcase.key.id()), 'libfuzzer_asan_job', {})
+        str(testcase.key.id()), 'libfuzzer_asan_job', uworker_env)
     output = minimize_task.utask_main(uworker_input)
     output.uworker_input.CopyFrom(uworker_input)
     minimize_task.update_testcase(output)

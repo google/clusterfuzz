@@ -36,14 +36,10 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
-def _add_default_issue_metadata(testcase):
+def _add_default_issue_metadata(testcase, fuzz_target_metadata):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
-  default_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
-  if not default_metadata:
-    return
-
   testcase_metadata = testcase.get_metadata()
-  for key, default_value in default_metadata.items():
+  for key, default_value in fuzz_target_metadata.items():
     # Only string metadata are supported.
     if not isinstance(default_value, str):
       continue
@@ -129,13 +125,13 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 
 def setup_testcase_and_build(
-    testcase, testcase_upload_metadata, job_type, setup_input,
+    testcase, job_type, setup_input,
     bad_revisions) -> (Optional[str], Optional[uworker_msg_pb2.Output]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
-  _, testcase_file_path, error = setup.setup_testcase(
-      testcase, job_type, setup_input, metadata=testcase_upload_metadata)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
   if error:
     return None, error
 
@@ -185,13 +181,15 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.put()
 
 
-def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
+def test_for_crash_with_retries(fuzz_target, testcase, testcase_file_path,
+                                test_timeout):
   """Tests for a crash with retries. Tries with HTTP (with retries) if initial
   attempts fail. Returns the most recent crash result and the possibly updated
   HTTP flag."""
   # Get the crash output.
   http_flag = testcase.http_flag
   result = testcase_manager.test_for_crash_with_retries(
+      fuzz_target,
       testcase,
       testcase_file_path,
       test_timeout,
@@ -204,6 +202,7 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   if (not result.is_crash() and not http_flag and
       not environment.is_engine_fuzzer_job()):
     result_with_http = testcase_manager.test_for_crash_with_retries(
+        fuzz_target,
         testcase,
         testcase_file_path,
         test_timeout,
@@ -296,9 +295,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   initialize_testcase_for_main(testcase, job_type)
 
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
   analyze_task_input = get_analyze_task_input()
-  return uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       testcase_upload_metadata=uworker_io.entity_to_protobuf(
           testcase_upload_metadata),
       testcase=uworker_io.entity_to_protobuf(testcase),
@@ -308,6 +307,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       job_type=job_type,
       analyze_task_input=analyze_task_input,
   )
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return uworker_input
 
 
 def get_analyze_task_input():
@@ -342,6 +343,7 @@ def utask_main(uworker_input):
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
   prepare_env_for_main(testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
@@ -350,8 +352,8 @@ def utask_main(uworker_input):
     leak_blacklist.create_empty_local_blacklist()
 
   testcase_file_path, output = setup_testcase_and_build(
-      testcase, testcase_upload_metadata, uworker_input.job_type,
-      uworker_input.setup_input, uworker_input.analyze_task_input.bad_revisions)
+      testcase, uworker_input.job_type, uworker_input.setup_input,
+      uworker_input.analyze_task_input.bad_revisions)
   testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
@@ -361,8 +363,9 @@ def utask_main(uworker_input):
 
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  result, http_flag = test_for_crash_with_retries(testcase, testcase_file_path,
-                                                  test_timeout)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
+  result, http_flag = test_for_crash_with_retries(
+      fuzz_target, testcase, testcase_file_path, test_timeout)
 
   # Set application command line with the correct http flag.
   application_command_line = (
@@ -407,19 +410,26 @@ def utask_main(uworker_input):
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
-  test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
+  test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
+                           test_timeout)
   analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
+
+  fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
+      fuzz_target)
+
   return uworker_msg_pb2.Output(
       analyze_task_output=analyze_task_output,
       test_timeout=test_timeout,
-      crash_time=crash_time)
+      crash_time=crash_time,
+      issue_metadata=fuzz_target_metadata)
 
 
-def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
+def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
+                             test_timeout):
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-      testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
-      state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
-      testcase.http_flag, testcase.gestures)
+      fuzz_target, testcase_file_path, state.crash_type, state.crash_state,
+      testcase.security_flag, test_timeout, testcase.http_flag,
+      testcase.gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
 
@@ -556,7 +566,7 @@ def utask_postprocess(output):
   testcase_upload_metadata.security_flag = testcase.security_flag
   testcase_upload_metadata.put()
 
-  _add_default_issue_metadata(testcase)
+  _add_default_issue_metadata(testcase, output.issue_metadata)
   logs.log('Creating post-analyze tasks.')
 
   # Create tasks to

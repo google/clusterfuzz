@@ -13,6 +13,7 @@
 # limitations under the License.
 """Automated bug filing."""
 
+import collections
 import datetime
 import itertools
 import json
@@ -254,6 +255,7 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
 def _file_issue(testcase, issue_tracker, throttler):
   """File an issue for the testcase."""
+  logs.log(f'_file_issue for {testcase.key.id()}')
   filed = False
   file_exception = None
 
@@ -306,6 +308,7 @@ def main():
   throttler = Throttler()
 
   for testcase_id in data_handler.get_open_testcase_id_iterator():
+    logs.log(f'Triaging {testcase_id}')
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
@@ -389,26 +392,18 @@ class Throttler:
   """Bug throttler"""
 
   def __init__(self):
-    self._bug_filed_per_job_per_24hrs = {}
-    self._bug_filed_per_project_per_24hrs = {}
-    self._max_bugs_per_job_per_24hrs = {}
-    self._max_bugs_per_project_per_24hrs = {}
+    self._bug_filed_per_job_per_24hrs = collections.defaultdict(int)
+    self._bug_filed_per_project_per_24hrs = collections.defaultdict(int)
     self._bug_throttling_cutoff = datetime.datetime.now() - datetime.timedelta(
         hours=24)
+    for bug in ndb_utils.get_all_from_query(
+        data_types.FiledBug.query(
+            data_types.FiledBug.timestamp >= self._bug_throttling_cutoff)):
+      self._bug_filed_per_job_per_24hrs[bug.job_type] += 1
+      self._bug_filed_per_project_per_24hrs[bug.project_name] += 1
 
-  def _query_job_bugs_filed_count(self, job_type):
-    """Gets the number of bugs that have been filed for a given job
-    within a given time period."""
-    return data_types.FiledBug.query(
-        data_types.FiledBug.job_type == job_type and
-        data_types.FiledBug.timestamp >= self._bug_throttling_cutoff).count()
-
-  def _query_project_bugs_filed_count(self, project_name):
-    """Gets the number of bugs that have been filed for a given project
-    within a given time period."""
-    return data_types.FiledBug.query(
-        data_types.FiledBug.project_name == project_name and
-        data_types.FiledBug.timestamp >= self._bug_throttling_cutoff).count()
+    self._max_bugs_per_job_per_24hrs = {}
+    self._max_bugs_per_project_per_24hrs = {}
 
   def _get_job_bugs_filing_max(self, job_type):
     """Gets the maximum number of bugs that can be filed for a given job."""
@@ -455,13 +450,11 @@ class Throttler:
     if job_bugs_filing_max is not None:
       # Get the number of bugs filed for the current job in the past 24 hours.
       # First check the cache, then query the datastore if not exists.
-      count_per_job = self._bug_filed_per_job_per_24hrs.get(
-          testcase.job_type) or self._query_job_bugs_filed_count(
-              testcase.job_type)
+      count_per_job = self._bug_filed_per_job_per_24hrs[testcase.job_type]
       if count_per_job < job_bugs_filing_max:
-        self._bug_filed_per_job_per_24hrs[testcase.job_type] = count_per_job + 1
+        self._bug_filed_per_job_per_24hrs[testcase.job_type] += 1
         return False
-      logs.log(
+      logs.log_error(
           f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
           f'{count_per_job} bugs have been filed fom '
           f'{self._bug_throttling_cutoff} '
@@ -470,15 +463,14 @@ class Throttler:
 
     # Check if the current bug has exceeded the maximum number of bugs
     # that can be filed per project.
-    count_per_project = self._bug_filed_per_project_per_24hrs.get(
-        testcase.project_name) or self._query_project_bugs_filed_count(
-            testcase.project_name)
+    count_per_project = (
+        self._bug_filed_per_project_per_24hrs[testcase.project_name])
+
     if count_per_project < self._get_project_bugs_filing_max(testcase.job_type):
-      self._bug_filed_per_project_per_24hrs[testcase.project_name] = (
-          count_per_project + 1)
+      self._bug_filed_per_project_per_24hrs[testcase.project_name] += 1
       return False
 
-    logs.log(
+    logs.log_error(
         f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
         f'{count_per_project} bugs have been filed from '
         f'{self._bug_throttling_cutoff} '

@@ -326,9 +326,7 @@ class Crash:
         crash_frames=self.crash_frames,
     )
 
-
-def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout,
-                    upload_urls: UploadUrlCollection):
+def find_main_crash(crashes, full_fuzzer_name, test_timeout, upload_urls: UploadUrlCollection):
   """Find the first reproducible crash or the first valid crash.
     And return the crash and the one_time_crasher_flag."""
   for crash in crashes:
@@ -345,9 +343,9 @@ def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout,
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state parameters.
+    fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
     if testcase_manager.test_for_reproducibility(
-        fuzzer_name,
-        full_fuzzer_name,
+        fuzz_target,
         crash.file_path,
         crash.crash_type,
         None,
@@ -383,8 +381,7 @@ class CrashGroup:
       fully_qualified_fuzzer_name = context.fuzzer_name
 
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, context.fuzzer_name, fully_qualified_fuzzer_name,
-        context.test_timeout, upload_urls)
+        crashes, fully_qualified_fuzzer_name, context.test_timeout, upload_urls)
 
     self.newly_created_testcase = None
 
@@ -1064,7 +1061,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       window_argument=group.context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
           group.context.timeout_multiplier, crash, group.context.test_timeout),
-      minimized_arguments=crash.arguments)
+      minimized_arguments=crash.arguments, trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if group.context.fuzzer_metadata:
@@ -1649,7 +1646,7 @@ class FuzzingSession:
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
                                        self.job_type, revision)
-      upload_testcase_run_stats(testcase_run)
+      self.fuzz_task_output.testcase_run_jsons.append(testcase_run.to_json())
       if result.crashes:
         crashes.extend([
             Crash.from_engine_crash(crash, fuzzing_strategies)
@@ -1825,9 +1822,11 @@ class FuzzingSession:
     failure_wait_interval = environment.get_value('FAIL_WAIT')
 
     # Update LSAN local blacklist with global blacklist.
-    is_lsan_enabled = environment.get_value('LSAN')
-    if is_lsan_enabled:
-      leak_blacklist.copy_global_to_local_blacklist()
+    global_blacklisted_functions = (
+        self.uworker_input.fuzz_task_input.global_blacklisted_functions)
+    if global_blacklisted_functions:
+      leak_blacklist.copy_global_to_local_blacklist(
+          global_blacklisted_functions)
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
@@ -1903,7 +1902,7 @@ class FuzzingSession:
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
-    self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
+    self.data_directory = setup.trusted_get_data_bundle_directory(self.fuzzer)
     if not self.data_directory:
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
@@ -2000,11 +1999,17 @@ class FuzzingSession:
     logs.log('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
              f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
-
     postprocess_process_crashes(uworker_input, uworker_output)
+    upload_job_run_stats(
+        fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
+        fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
+        fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
+        fuzz_task_output.testcases_executed, crash_groups)
 
-    if environment.is_engine_fuzzer_job():
+    if not environment.is_engine_fuzzer_job():
       return
+
+    uworker_input = uworker_output.uworker_input
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if not fuzz_task_output.fuzz_targets:
       new_targets_count = 0
@@ -2013,6 +2018,19 @@ class FuzzingSession:
     if (not targets_count or targets_count.count != new_targets_count):
       data_types.FuzzTargetsCount(
           id=uworker_input.job_type, count=new_targets_count).put()
+
+    _upload_testcase_run_jsons(
+        uworker_output.fuzz_task_output.testcase_run_jsons)
+
+
+def _upload_testcase_run_jsons(testcase_run_jsons):
+  for testcase_run in testcase_run_jsons:
+    testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
+    if not testcase_run:
+      logs.log_error('Failed to create testcase_run')
+      continue
+    upload_testcase_run_stats(testcase_run)
+  # TODO(metzman): Find out if this can be a single upload.
 
 
 def handle_fuzz_build_setup_failure(output):
@@ -2113,6 +2131,12 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     url.url = blobs.get_signed_upload_url(url.key)
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
+
+  if environment.get_value('LSAN'):
+    # Copy global blacklist into local suppressions file if LSan is enabled.
+    fuzz_task_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
+
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,

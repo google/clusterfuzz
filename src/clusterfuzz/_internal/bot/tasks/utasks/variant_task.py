@@ -60,6 +60,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  uworker_io.check_handling_testcase_safe(testcase)
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
@@ -71,7 +72,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # a different fuzzing engine.
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
-  setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
+  setup_input = setup.preprocess_setup_testcase(
+      testcase, uworker_env, with_deps=False)
   variant_input = uworker_msg_pb2.VariantTaskInput(
       original_job_type=original_job_type)
 
@@ -83,11 +85,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       variant_task_input=variant_input,
       setup_input=setup_input,
   )
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  if testcase_upload_metadata:
-    uworker_input.testcase_upload_metadata.CopyFrom(
-        uworker_io.entity_to_protobuf(testcase_upload_metadata))
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
   return uworker_input
 
 
@@ -96,11 +94,6 @@ def utask_main(uworker_input):
   if the build can reproduce the error."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  testcase_upload_metadata = None
-  if uworker_input.HasField('testcase_upload_metadata'):
-    testcase_upload_metadata = uworker_io.entity_from_protobuf(
-        uworker_input.testcase_upload_metadata,
-        data_types.TestcaseUploadMetadata)
   if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
@@ -109,10 +102,7 @@ def utask_main(uworker_input):
 
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(
-      testcase,
-      uworker_input.job_type,
-      uworker_input.setup_input,
-      metadata=testcase_upload_metadata)
+      testcase, uworker_input.job_type, uworker_input.setup_input)
   if error:
     return error
 
@@ -141,13 +131,20 @@ def utask_main(uworker_input):
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   revision = environment.get_value('APP_REVISION')
-  result = testcase_manager.test_for_crash_with_retries(
-      testcase,
-      testcase_file_path,
-      test_timeout,
-      http_flag=testcase.http_flag,
-      use_gestures=use_gestures,
-      compare_crash=False)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
+  try:
+    result = testcase_manager.test_for_crash_with_retries(
+        fuzz_target,
+        testcase,
+        testcase_file_path,
+        test_timeout,
+        http_flag=testcase.http_flag,
+        use_gestures=use_gestures,
+        compare_crash=False)
+  except testcase_manager.TargetNotFoundError:
+    logs.log_warn('Could not find target in build, probably does not exist.')
+    return uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   if result.is_crash() and not result.should_ignore():
     crash_state = result.get_state()
@@ -155,10 +152,10 @@ def utask_main(uworker_input):
     security_flag = result.is_security_issue()
 
     gestures = testcase.gestures if use_gestures else None
+    fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-        testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
-        crash_type, crash_state, security_flag, test_timeout,
-        testcase.http_flag, gestures)
+        fuzz_target, testcase_file_path, crash_type, crash_state, security_flag,
+        test_timeout, testcase.http_flag, gestures)
     if one_time_crasher_flag:
       status = data_types.TestcaseVariantStatus.FLAKY
     else:

@@ -31,6 +31,7 @@ from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -467,6 +468,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (blackbox)."""
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         self.blackbox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
@@ -505,6 +507,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
@@ -540,6 +543,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
 
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         self.blackbox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
@@ -575,7 +579,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.blackbox_testcase, '/fuzz-testcase', 10, compare_crash=False)
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
+        self.blackbox_testcase,
+        '/fuzz-testcase',
+        10,
+        compare_crash=False)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual('crash', crash_result.output)
@@ -613,7 +621,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     # compare_crash should be overridden to False.
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.blackbox_testcase, '/fuzz-testcase', 10, compare_crash=True)
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
+        self.blackbox_testcase,
+        '/fuzz-testcase',
+        10,
+        compare_crash=True)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual('crash', crash_result.output)
@@ -649,6 +661,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
@@ -681,7 +694,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.greybox_testcase, '/fuzz-testcase', 10, compare_crash=False)
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
+        self.greybox_testcase,
+        '/fuzz-testcase',
+        10,
+        compare_crash=False)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual(self.GREYBOX_FUZZER_CRASH, crash_result.output)
@@ -713,8 +730,9 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     with open('/flags-testcase', 'w', encoding='utf-8') as f:
       f.write('%TESTCASE% target -arg1 -arg2')
 
-    testcase_manager.test_for_crash_with_retries(self.greybox_testcase,
-                                                 '/fuzz-testcase', 10)
+    testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
+        self.greybox_testcase, '/fuzz-testcase', 10)
     mock_engine.reproduce.assert_has_calls([
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   120),
@@ -729,9 +747,9 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   def test_test_for_reproducibility_blackbox_succeed(self):
     """Test test_for_reproducibility with success on all runs (blackbox)."""
     self.mock.run_process.return_value = (1, 1, 'crash')
+    fuzz_target = _get_fuzz_target_from_preprocess(self.blackbox_testcase)
     result = testcase_manager.test_for_reproducibility(
-        'fuzzer',
-        'fuzzer',
+        fuzz_target,
         '/fuzz-testcase',
         'type',
         'state',
@@ -762,8 +780,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         (1, 1, 'crash'),
     ]
     result = testcase_manager.test_for_reproducibility(
-        'fuzzer',
-        'fuzzer',
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         '/fuzz-testcase',
         'type',
         'state',
@@ -793,8 +810,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
-        'engine_target',
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         '/fuzz-testcase',
         'type',
         'state',
@@ -828,8 +844,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
-        'engine_target',
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         '/fuzz-testcase',
         'type',
         'state',
@@ -852,6 +867,12 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             output=self.GREYBOX_FUZZER_CRASH),
         mock.call('Crash is reproducible.'),
     ])
+
+
+def _get_fuzz_target_from_preprocess(testcase):
+  uworker_input = uworker_msg_pb2.Input()
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return testcase_manager.get_fuzz_target_from_input(uworker_input)
 
 
 class UntrustedEngineReproduceTest(
@@ -954,3 +975,46 @@ class GetCommandLineFlagsTest(fake_filesystem_unittest.TestCase):
     """Test both APP_ARGS and additional args."""
     self.assertEqual('',
                      testcase_manager.get_command_line_flags('/fuzz-testcase'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class PreprocessTestcaseManagerTest(unittest.TestCase):
+  """Tests for preprocess_testcase_manager."""
+
+  def setUp(self):
+    self.fuzz_target = data_types.FuzzTarget(engine='engine', binary='target')
+    self.fuzz_target.put()
+
+  def test_engine_fuzzer_target(self):
+    """Tests that everything works properly when a testcase was found by a
+    target using an engine fuzzer."""
+    greybox_testcase = data_types.Testcase(
+        crash_state='state', overridden_fuzzer_name='engine_target')
+    greybox_testcase.put()
+    uworker_input = uworker_msg_pb2.Input()
+    testcase_manager.preprocess_testcase_manager(greybox_testcase,
+                                                 uworker_input)
+    actual_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
+    name = actual_target.fully_qualified_name()
+    self.assertEqual(name, self.fuzz_target.fully_qualified_name())
+
+  @mock.patch('clusterfuzz.fuzz.engine.get', return_value=mock.Mock())
+  def test_engine_fuzzer_no_target(self, _):
+    """Tests that a TargetNotFoundError is thrown when the target doesn't
+    exist."""
+    testcase = data_types.Testcase(
+        crash_state='state', overridden_fuzzer_name='engine_target_nonexistent')
+    testcase.put()
+    uworker_input = uworker_msg_pb2.Input()
+    with self.assertRaises(testcase_manager.TargetNotFoundError):
+      testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+
+  def test_blackbox_fuzzer_no_target(self):
+    """Tests that fuzz_target is not set on the output proto"""
+    blackbox_testcase = data_types.Testcase(
+        crash_state='state', fuzzer_name='nonengine')
+    blackbox_testcase.put()
+    uworker_input = uworker_msg_pb2.Input()
+    testcase_manager.preprocess_testcase_manager(blackbox_testcase,
+                                                 uworker_input)
+    self.assertFalse(uworker_input.HasField('fuzz_target'))

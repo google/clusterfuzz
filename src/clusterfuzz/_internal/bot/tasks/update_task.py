@@ -312,7 +312,7 @@ def update_tests_if_needed():
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
       with archive.open(temp_archive) as reader:
-        archive.unpack(reader, data_directory, trusted=True)
+        reader.extract_all(data_directory, trusted=True)
       shell.remove_file(temp_archive)
       error_occured = False
       break
@@ -342,7 +342,8 @@ def run():
     shell.clear_data_directories_on_low_disk_space()
 
     # Download new layout tests once per day.
-    update_tests_if_needed()
+    if not environment.is_uworker():
+      update_tests_if_needed()
   except Exception:
     logs.log_error('Error occurred while running update task.')
 

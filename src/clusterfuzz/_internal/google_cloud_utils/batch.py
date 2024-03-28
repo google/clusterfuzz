@@ -57,7 +57,10 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
-_UNPRIVILEGED_TASKS = {'variant'}
+_UNPRIVILEGED_TASKS = {
+    'analyze', 'symbolize', 'regression', 'variant', 'minimize', 'progression'
+}
+_PRIVILEGED_JOBS = {'linux_asan_chrome_media', 'linux_d8_dbg_cm'}
 
 
 def _create_batch_client_new():
@@ -130,7 +133,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
   logs.log('Creating batch jobs.')
   jobs = []
 
-  logs.log(f'Starting utask_mains: {job_specs}.')
+  logs.log('Batching utask_mains.')
   for spec, input_urls in job_specs.items():
     for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
       jobs.append(_create_job(spec, input_urls_portion))
@@ -231,9 +234,9 @@ def _create_job(spec, input_urls):
   # The job's parent is the region in which the job will run
   project_id = 'google.com:clusterfuzz'
   create_request.parent = f'projects/{project_id}/locations/us-west1'
-  result = _send_create_job_request(create_request)
-  logs.log('Created batch job.')
-  return result
+  job_result = _send_create_job_request(create_request)
+  logs.log(f'Created batch job id={job_name}.', spec=spec)
+  return job_result
 
 
 @retry.wrap(
@@ -255,6 +258,12 @@ def _get_job(job_name):
   return data_types.Job.query(data_types.Job.name == job_name).get()
 
 
+def is_no_privilege_workload(command, job_name):
+  if not is_remote_task(command, job_name):
+    return False
+  return job_name not in _PRIVILEGED_JOBS
+
+
 def is_remote_task(command, job_name):
   try:
     _get_spec_from_config(command, job_name)
@@ -273,7 +282,8 @@ def _get_spec_from_config(command, job_name):
     config_name += '-NONPREEMPTIBLE'
   # TODO(metzman): Get rid of this when we stop doing privileged operations in
   # utasks.
-  if command in _UNPRIVILEGED_TASKS:
+  # TODO(metzman): Remove linux_asan_chrome_media part when cl/616752659 lands.
+  if command in _UNPRIVILEGED_TASKS and job_name not in _PRIVILEGED_JOBS:
     config_name += '-UNPRIVILEGED'
   batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(config_name, None)

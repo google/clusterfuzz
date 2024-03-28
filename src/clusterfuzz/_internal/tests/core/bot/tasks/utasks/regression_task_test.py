@@ -78,6 +78,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
         'job_type',
         1,
         regression_task_output,
+        None,
         should_log=False)
     self.assertIsNone(is_crash)
     self.assertIsNotNone(error)
@@ -92,7 +93,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     self.mock.check_for_bad_build.return_value = build_data
     result, worker_output = regression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1, regression_task_output)
+        None, '/tmp/blah', 'job_type', 1, regression_task_output, None)
     self.assertIsNone(result)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR)
@@ -124,6 +125,7 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
                             testcase_file_path,
                             job_type,
                             revision,
+                            fuzz_target,
                             regression_task_output,
                             should_log=True,
                             min_revision=None,
@@ -133,7 +135,7 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.mock._testcase_reproduces_in_revision.side_effect = testcase_reproduces
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9, None,
         regression_task_output)
     self.assertIsNotNone(result)
     self.assertEqual(result.regression_task_output.regression_range_start, 19)
@@ -145,7 +147,7 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.mock._testcase_reproduces_in_revision.return_value = True, None
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9, None,
         regression_task_output)
     self.assertIsNotNone(result)
     self.assertEqual(result.regression_task_output.regression_range_start, 0)
@@ -159,6 +161,7 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
                             testcase_file_path,
                             job_type,
                             revision,
+                            fuzz_target,
                             regression_task_output,
                             should_log=True,
                             min_revision=None,
@@ -168,7 +171,7 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.mock._testcase_reproduces_in_revision.side_effect = testcase_reproduces
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9, None,
         regression_task_output)
     self.assertIsNone(result)
 
@@ -199,7 +202,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     self.mock._testcase_reproduces_in_revision.return_value = False, None
     result = regression_task.validate_regression_range(
-        testcase, '/a/b', 'job_type', [0], 0, regression_task_output)
+        testcase, '/a/b', 'job_type', [0], 0, regression_task_output, None)
     self.assertIsNone(result)
 
   def test_one_earlier_revision(self):
@@ -209,7 +212,8 @@ class ValidateRegressionRangeTest(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     self.mock._testcase_reproduces_in_revision.return_value = False, None
     result = regression_task.validate_regression_range(
-        testcase, '/a/b', 'job_type', [0, 1, 2], 1, regression_task_output)
+        testcase, '/a/b', 'job_type', [0, 1, 2], 1, regression_task_output,
+        None)
     self.assertIsNone(result)
 
   def test_invalid_range(self):
@@ -221,7 +225,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.validate_regression_range(
         testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4,
-        regression_task_output)
+        regression_task_output, None)
     self.assertEqual(
         result.error_type,
         uworker_msg_pb2.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE)
@@ -239,7 +243,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
     self.mock._testcase_reproduces_in_revision.return_value = False, None
     result = regression_task.validate_regression_range(
         testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4,
-        regression_task_output)
+        regression_task_output, None)
     self.assertIsNone(result)
 
 

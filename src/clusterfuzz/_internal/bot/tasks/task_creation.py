@@ -13,8 +13,10 @@
 # limitations under the License.
 """Common functions for task creation for test cases."""
 from clusterfuzz._internal.base import bisection
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -147,6 +149,8 @@ def create_regression_task_if_needed(testcase):
 
 def create_variant_tasks_if_needed(testcase):
   """Creates a variant task if needed."""
+  # TODO(https://b.corp.google.com/issues/328691756): Allow untrusted
+  # testcases to only run untrusted variants.
   if testcase.duplicate_of:
     # If another testcase exists with same params, no need to spend cycles on
     # calculating variants again.
@@ -186,6 +190,11 @@ def create_variant_tasks_if_needed(testcase):
     if (not testcase_job_is_engine and
         job_environment.get('APP_NAME') != testcase_job_app_name):
       continue
+
+    if not testcase.trusted:
+      if (task_utils.is_remotely_executing_utasks() and
+          not task_types.is_no_privilege_workload('variant', job_type)):
+        continue
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 

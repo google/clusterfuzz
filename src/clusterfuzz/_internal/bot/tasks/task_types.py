@@ -71,6 +71,12 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
 
+def is_no_privilege_workload(command, job):
+  if not COMMAND_TYPES[command].is_execution_remote():
+    return False
+  return batch.is_no_privilege_workload(command, job)
+
+
 def is_remote_utask(command, job):
   if not COMMAND_TYPES[command].is_execution_remote():
     return False
@@ -80,6 +86,14 @@ def is_remote_utask(command, job):
     return True
 
   return batch.is_remote_task(command, job)
+
+
+def task_main_runs_on_uworker():
+  """This returns True if the uworker_main portion of this task is
+  unprivileged."""
+  command = environment.get_value('TASK_NAME')
+  job = environment.get_value('JOB_NAME')
+  return is_remote_utask(command, job)
 
 
 class UTaskLocalExecutor(BaseUTask):

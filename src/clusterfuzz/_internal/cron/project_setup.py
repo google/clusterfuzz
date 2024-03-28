@@ -46,8 +46,8 @@ LOGS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=14)
 QUARANTINE_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=90)
 
 JOB_TEMPLATE = ('{build_type} = {build_bucket_path}\n'
-                'PROJECT_NAME = {project}\n'
-                'SUMMARY_PREFIX = {project}\n'
+                'PROJECT_NAME = {project_name}\n'
+                'SUMMARY_PREFIX = {project_name}\n'
                 'MANAGED = True\n')
 
 OBJECT_VIEWER_IAM_ROLE = 'roles/storage.objectViewer'
@@ -71,6 +71,8 @@ OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
 SetupResult = collections.namedtuple('SetupResult', 'project_names job_names')
 
 HTTP_TIMEOUT_SECONDS = 30
+
+PROJECTS_USING_SUBQUEUES = {'android'}
 
 
 class ProjectSetupError(Exception):
@@ -738,6 +740,13 @@ class ProjectSetup:
     build_path = build_path.replace('%SANITIZER%', memory_tool)
     return build_path
 
+  def _get_base_project_name(self, project):
+    """Returns the base project if subqueues are being used."""
+    for base_project in PROJECTS_USING_SUBQUEUES:
+      if project.startswith(base_project):
+        return base_project
+    return project
+
   def _sync_job(self, project, info, corpus_bucket_name, quarantine_bucket_name,
                 logs_bucket_name, backup_bucket_name):
     """Sync the config with ClusterFuzz."""
@@ -794,11 +803,12 @@ class ProjectSetup:
         build_bucket_path = self._get_build_bucket_path(
             project, info, template.engine, template.memory_tool,
             template.architecture)
+      base_project_name = self._get_base_project_name(project)
       job.environment_string = JOB_TEMPLATE.format(
           build_type=self._build_type,
           build_bucket_path=build_bucket_path,
           engine=template.engine,
-          project=project)
+          project_name=base_project_name)
 
       # Centipede requires a separate build of the sanitized binary.
       if template.engine == 'centipede':

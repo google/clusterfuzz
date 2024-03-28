@@ -145,15 +145,13 @@
           </div>
         </template>
       </div>
-      <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
-        <div class="warning">
-          <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
-          Only upload testcases that you trust enough to run on your own
-          machine. Note that some jobs do not use the Chrome sandbox, the
-          following jobs do:<br>
-          [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
-        </div>
-      </template>
+      <div class="warning">
+        <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
+        Only upload testcases that you trust enough to run on your own
+        machine. Note that the following jobs do use the Chrome sandbox
+        but this is not a guarantee of protection:<br>
+        [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
+      </div>
       <div class="inline wide">
         <paper-dropdown-menu
             class="dropdown-filter"

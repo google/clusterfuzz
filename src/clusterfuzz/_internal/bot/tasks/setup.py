@@ -32,6 +32,7 @@ from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -50,16 +51,12 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
-def _set_timeout_value_from_user_upload(testcase_id, metadata):
+def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
   """Get the timeout associated with this testcase."""
-  if metadata is None:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
-    # query once consolidation is complete.
-    metadata = data_types.TestcaseUploadMetadata.query(
-        data_types.TestcaseUploadMetadata.testcase_id == int(
-            testcase_id)).get()
+  metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   if metadata and metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+    uworker_env['TEST_TIMEOUT'] = str(metadata.timeout)
 
 
 def _copy_testcase_to_device_and_setup_environment(testcase,
@@ -150,7 +147,7 @@ def _setup_memory_tools_environment(testcase):
     environment.set_memory_tool_options(options_name, options_value)
 
 
-def prepare_environment_for_testcase(testcase, job_type, task_name):
+def prepare_environment_for_testcase(testcase):
   """Set various environment variables based on the test case."""
   _setup_memory_tools_environment(testcase)
 
@@ -169,13 +166,6 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
   fuzz_target = testcase.get_metadata('fuzzer_binary_name')
   if fuzz_target:
     environment.set_value('FUZZ_TARGET', fuzz_target)
-
-  # Override APP_ARGS with minimized arguments (if available). Don't do this
-  # for variant task since other job types can have its own set of required
-  # arguments, so use the full set of arguments of that job.
-  app_args = _get_application_arguments(testcase, job_type, task_name)
-  if app_args:
-    environment.set_value('APP_ARGS', app_args)
 
 
 def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
@@ -206,7 +196,10 @@ ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 })
 
 
-def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
+def preprocess_setup_testcase(testcase,
+                              uworker_env,
+                              fuzzer_override=None,
+                              with_deps=True):
   """Preprocessing for setup_testcase function."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
@@ -235,14 +228,24 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
   else:
     setup_input = uworker_msg_pb2.SetupInput()
   setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
+  if environment.get_value('LSAN'):
+    setup_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
+  if testcase.uploader_email:
+    _set_timeout_value_from_user_upload(testcase_id, uworker_env)
+
+  # Override APP_ARGS with minimized arguments (if available). Don't do this
+  # for variant task since other job types can have its own set of required
+  # arguments, so use the full set of arguments of that job.
+  app_args = _get_application_arguments(testcase, uworker_env['JOB_NAME'],
+                                        uworker_env['TASK_NAME'])
+  if app_args:
+    environment.set_value('APP_ARGS', app_args, uworker_env)
   return setup_input
 
 
-def setup_testcase(
-    testcase: data_types.Testcase,
-    job_type: str,
-    setup_input: uworker_msg_pb2.SetupInput,
-    metadata: Optional[data_types.TestcaseUploadMetadata] = None):
+def setup_testcase(testcase: data_types.Testcase, job_type: str,
+                   setup_input: uworker_msg_pb2.SetupInput):
   """Sets up the testcase and needed dependencies like fuzzer, data bundle,
   etc."""
   testcase_id = testcase.key.id()
@@ -260,11 +263,6 @@ def setup_testcase(
 
   # Clear testcase directories.
   shell.clear_testcase_directories()
-
-  # Adjust the test timeout value if this is coming from an user uploaded
-  # testcase.
-  if testcase.uploader_email:
-    _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if setup_input.fuzzer_name:
@@ -293,13 +291,12 @@ def setup_testcase(
     file_host.push_testcases_to_worker()
 
   # Copy global blacklist into local blacklist.
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
+  if setup_input.global_blacklisted_functions:
     # Get local blacklist without this testcase's entry.
-    leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
+    leak_blacklist.copy_global_to_local_blacklist(
+        setup_input.global_blacklisted_functions, excluded_testcase=testcase)
 
-  task_name = environment.get_value('TASK_NAME')
-  prepare_environment_for_testcase(testcase, job_type, task_name)
+  prepare_environment_for_testcase(testcase)
 
   return file_list, testcase_file_path, None
 
@@ -345,14 +342,8 @@ def _get_testcase_key_and_archive_status(testcase):
   """Returns the testcase's key and whether or not it is archived."""
   if _is_testcase_minimized(testcase):
     key = testcase.minimized_keys
-    # TODO(alhijazi): Remove this check once the issue with blob cleanup
-    # in minimize postprocess is resolved.
-    if storage.get(blobs.get_gcs_path(key)):
-      archived = bool(
-          testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
-      return key, archived
-    logs.log(f'blob key {key} does not exist in storage'
-             'for the minimized_task, will use the fuzzed_key.')
+    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
+    return key, archived
 
   key = testcase.fuzzed_keys
   archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
@@ -390,7 +381,7 @@ def unpack_testcase(testcase, testcase_download_url):
   file_list = []
   if archived:
     with archive.open(temp_filename) as reader:
-      archive.unpack(reader, input_directory)
+      reader.extract_all(input_directory)
       file_list = [f.name for f in reader.list_members()]
 
     shell.remove_file(temp_filename)
@@ -444,35 +435,50 @@ def _clear_old_data_bundles_if_needed():
     shell.remove_directory(dir_to_remove)
 
 
-def update_data_bundle(fuzzer: data_types.Fuzzer,
-                       data_bundle: data_types.DataBundle) -> bool:
-  """Updates a data bundle to the latest version."""
-  # TODO(metzman): Migrate this functionality to utask.
-  logs.log('Setting up data bundle %s.' % data_bundle)
-  # This module can't be in the global imports due to appengine issues
-  # with multiprocessing and psutil imports.
-  from clusterfuzz._internal.google_cloud_utils import gsutil
-
-  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
-  if not data_bundle_directory:
-    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
-    return False
-
-  if not shell.create_directory(
-      data_bundle_directory, create_intermediates=True):
-    logs.log_error(
-        'Failed to create data bundle %s directory.' % data_bundle.name)
-    return False
-
+def _should_update_data_bundle(data_bundle, data_bundle_directory):
+  """Returns True if the data bundle should be updated because it is out of
+  date."""
   # Check if data bundle is up to date. If yes, skip the update.
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.log('Data bundle was recently synced, skip.')
-    return True
+    return False
 
   # Re-check if another bot did the sync already. If yes, skip.
   # TODO(metzman): Figure out if is this even needed without NFS?
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.log('Another bot finished the sync, skip.')
+    return False
+
+  return True
+
+
+def _prepare_update_data_bundle(fuzzer, data_bundle):
+  """Create necessary directories to download the data bundle."""
+  data_bundle_directory = get_data_bundle_directory(fuzzer, data_bundle)
+  if not data_bundle_directory:
+    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
+    return None
+
+  if not shell.create_directory(
+      data_bundle_directory, create_intermediates=True):
+    logs.log_error(
+        'Failed to create data bundle %s directory.' % data_bundle.name)
+    return None
+
+  return data_bundle_directory
+
+
+def update_data_bundle(
+    fuzzer: data_types.Fuzzer,
+    data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:
+  """Updates a data bundle to the latest version."""
+  data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
+                                                data_types.DataBundle)
+  logs.log('Setting up data bundle %s.' % data_bundle)
+
+  data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
+
+  if not _should_update_data_bundle(data_bundle, data_bundle_directory):
     return True
 
   time_before_sync_start = time.time()
@@ -480,29 +486,32 @@ def update_data_bundle(fuzzer: data_types.Fuzzer,
   # No need to sync anything if this is a search index data bundle. In that
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
-    bucket_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
 
-    if environment.is_trusted_host() and data_bundle.sync_to_worker:
-      from clusterfuzz._internal.bot.untrusted_runner import corpus_manager
+    if not (environment.is_trusted_host() and data_bundle.sync_to_worker):
+      result = corpus_manager.sync_data_bundle_corpus_to_disk(
+          data_bundle_corpus, data_bundle_directory)
+    else:
+      from clusterfuzz._internal.bot.untrusted_runner import \
+          corpus_manager as untrusted_corpus_manager
       from clusterfuzz._internal.bot.untrusted_runner import file_host
       worker_data_bundle_directory = file_host.rebase_to_worker_root(
           data_bundle_directory)
 
       file_host.create_directory(
           worker_data_bundle_directory, create_intermediates=True)
-      result = corpus_manager.RemoteGSUtilRunner().rsync(
-          bucket_url, worker_data_bundle_directory, delete=False)
-    else:
-      result = gsutil.GSUtilRunner().rsync(
-          bucket_url, data_bundle_directory, delete=False)
+      result = untrusted_corpus_manager.RemoteGSUtilRunner().rsync(
+          data_bundle_corpus.gcs_url,
+          worker_data_bundle_directory,
+          delete=False)
+      result = result.return_code == 0
 
-    if result.return_code != 0:
-      logs.log_error('Failed to sync data bundle %s: %s.' % (data_bundle.name,
-                                                             result.output))
+    if not result:
+      logs.log_error(f'Failed to sync data bundle {data_bundle.name}.')
       return False
 
   # Update the testcase list file.
   testcase_manager.create_testcase_list_file(data_bundle_directory)
+  logs.log('Synced data bundle.')
 
   #  Write last synced time in the sync file.
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
@@ -540,6 +549,18 @@ def _set_fuzzer_env_vars(fuzzer):
     environment.set_value('FUZZ_INPUTS', testcase_disk_directory)
 
 
+def preprocess_get_data_bundles(data_bundle_name, setup_input):
+  data_bundles = list(
+      ndb_utils.get_all_from_query(
+          data_types.DataBundle.query(
+              data_types.DataBundle.name == data_bundle_name)))
+  logs.log(f'Data bundles: {data_bundles}')
+  setup_input.data_bundle_corpuses.extend([
+      corpus_manager.get_proto_data_bundle_corpus(bundle_entity)
+      for bundle_entity in data_bundles
+  ])
+
+
 def preprocess_update_fuzzer_and_data_bundles(
     fuzzer_name: str) -> uworker_msg_pb2.SetupInput:
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
@@ -549,20 +570,9 @@ def preprocess_update_fuzzer_and_data_bundles(
     logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError
 
-  data_bundles = list(
-      ndb_utils.get_all_from_query(
-          data_types.DataBundle.query(
-              data_types.DataBundle.name == fuzzer.data_bundle_name)))
-  logs.log('Data bundles: %s' % data_bundles)
-
-  data_bundle_protos = [
-      uworker_io.entity_to_protobuf(data_bundle) for data_bundle in data_bundles
-  ]
   update_input = uworker_msg_pb2.SetupInput(
-      fuzzer_name=fuzzer_name,
-      data_bundles=data_bundle_protos,
-      fuzzer=uworker_io.entity_to_protobuf(fuzzer))
-
+      fuzzer_name=fuzzer_name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+  preprocess_get_data_bundles(fuzzer.data_bundle_name, update_input)
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
   if not fuzzer.builtin:
@@ -603,7 +613,7 @@ def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput,
 
   try:
     with archive.open(archive_path) as reader:
-      archive.unpack(reader, fuzzer_directory)
+      reader.extract_all(fuzzer_directory)
   except Exception:
     error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
                      '(bad archive or unsupported format).')
@@ -641,12 +651,10 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
   logs.log('Setting up data bundles.')
-  for data_bundle_proto in update_input.data_bundles:
-    data_bundle = uworker_io.entity_from_protobuf(data_bundle_proto,
-                                                  data_types.DataBundle)
-    fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
-                                             data_types.Fuzzer)
-    if not update_data_bundle(fuzzer, data_bundle):
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
+                                           data_types.Fuzzer)
+  for data_bundle_corpus in update_input.data_bundle_corpuses:
+    if not update_data_bundle(fuzzer, data_bundle_corpus):
       return False
 
   return True
@@ -734,13 +742,18 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   return False
 
 
-def get_data_bundle_directory(fuzzer_name):
-  """Return data bundle data directory."""
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
-  if not fuzzer:
-    logs.log_error('Unable to find fuzzer %s.' % fuzzer_name)
-    return None
+def trusted_get_data_bundle_directory(fuzzer):
+  """For fuzz_task which doesn't get data bundles in an untrusted manner."""
+  # TODO(metzman): Delete this when fuzz_task is migrated.
+  # Check if we have a fuzzer-specific data bundle. Use it to calculate the
+  # data directory we will fetch our testcases from.
+  data_bundle = data_types.DataBundle.query(
+      data_types.DataBundle.name == fuzzer.data_bundle_name).get()
+  return get_data_bundle_directory(fuzzer, data_bundle)
 
+
+def get_data_bundle_directory(fuzzer, data_bundle):
+  """Return data bundle data directory."""
   # Store corpora for built-in fuzzers like libFuzzer in the same directory
   # as other local data bundles. This makes it easy to clear them when we run
   # out of disk space.
@@ -748,10 +761,6 @@ def get_data_bundle_directory(fuzzer_name):
   if fuzzer.builtin:
     return local_data_bundles_directory
 
-  # Check if we have a fuzzer-specific data bundle. Use it to calculate the
-  # data directory we will fetch our testcases from.
-  data_bundle = data_types.DataBundle.query(
-      data_types.DataBundle.name == fuzzer.data_bundle_name).get()
   if not data_bundle:
     # Generic data bundle directory. Available to all fuzzers if they don't
     # have their own data bundle.

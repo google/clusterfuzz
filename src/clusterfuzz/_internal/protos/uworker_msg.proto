@@ -20,10 +20,11 @@ import "google/protobuf/timestamp.proto";
 message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
   optional string fuzzer_name = 2;
-  repeated google.datastore.v1.Entity data_bundles = 3;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
   optional string testcase_download_url = 6;
+  repeated string global_blacklisted_functions = 7;
+  repeated DataBundleCorpus data_bundle_corpuses = 8;
 }
 
 message AnalyzeTaskInput {
@@ -44,9 +45,17 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_key = 1;
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
+  // TODO(metzman): Merge this with input's fuzz_target.
   optional google.datastore.v1.Entity fuzz_target = 4;
   optional FuzzTargetCorpus corpus = 5;
-  repeated BlobUploadUrl crash_upload_urls = 6;
+  repeated string global_blacklisted_functions = 6;
+  repeated BlobUploadUrl crash_upload_urls = 7;
+}
+
+message DataBundleCorpus {
+  optional google.datastore.v1.Entity data_bundle = 1;
+  optional string gcs_url = 2;
+  repeated string corpus_urls = 3;
 }
 
 message FuzzTargetCorpus {
@@ -67,6 +76,7 @@ message MinimizeTaskInput {
   optional string testcase_blob_name = 2;
   optional string stacktrace_blob_name = 3;
   optional string stacktrace_upload_url = 4;
+  repeated string arguments = 5;
 }
 
 message RegressionTaskInput {
@@ -88,6 +98,7 @@ message CrossPollinateFuzzerProto{
 }
 
 message CorpusPruningTaskInput {
+  // TODO(metzman): Merge this with Input's fuzz_target.
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
@@ -117,6 +128,8 @@ message Input {
   optional SymbolizeTaskInput symbolize_task_input = 17;
   optional string module_name = 18;
   optional google.protobuf.Timestamp preprocess_start_time = 19;
+  repeated string global_blacklisted_functions = 20;
+  optional google.datastore.v1.Entity fuzz_target = 21;
 }
 
 message VariantTaskInput {
@@ -209,7 +222,8 @@ message FuzzTaskOutput {
   optional int32 new_targets_count = 9;
   optional int32 fuzzer_revision = 10;
   repeated string fuzz_targets = 11;
-  repeated FuzzTaskCrashGroup crash_groups = 12;
+  repeated string testcase_run_jsons = 12;
+  repeated FuzzTaskCrashGroup crash_groups = 13;
 }
 
 message MinimizeTaskOutput {
@@ -252,7 +266,7 @@ message BuildData{
   optional string build_run_console_output = 4;
 }
 
-message ProgressionTaskOutput{
+message ProgressionTaskOutput {
   optional int64 min_revision = 1;
   optional int64 max_revision = 2;
   // Set to true when latest revision or latest custom build still crash.
@@ -266,7 +280,6 @@ message ProgressionTaskOutput{
   // When set to True, we delete the metadata related to: last_progression_min
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
-  map<string, string> issue_metadata = 10;
   repeated BuildData build_data_list = 11;
 }
 
@@ -346,8 +359,8 @@ message Output {
   optional float test_timeout = 5;
   optional float crash_time = 6;
   optional string crash_stacktrace_output = 7;
-  optional string bot_name = 17;
-  optional string platform_id = 18;
+  optional string bot_name = 18;
+  optional string platform_id = 19;
 
   optional AnalyzeTaskOutput analyze_task_output = 8;
   optional FuzzTaskOutput fuzz_task_output = 9;
@@ -357,5 +370,6 @@ message Output {
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
   optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
+  map<string,string> issue_metadata = 17;
   optional string error_message = 15;
 }
