@@ -168,7 +168,7 @@ message CrashInfo {
   optional string crash_type = 3;
   optional string crash_state = 4;
   optional bool security_flag = 5;
-  optional string unit_path = 6;
+  optional string unit_name = 6;
   optional string crash_address = 7;
   optional string crash_stacktrace = 8;
 }

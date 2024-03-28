@@ -21,7 +21,6 @@ import shutil
 import tempfile
 import unittest
 from unittest import mock
-import zipfile
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
@@ -36,6 +35,7 @@ from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -626,22 +626,27 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
         cross_pollination_stats=None)
 
     corpus_pruning_task._upload_corpus_crashes_zip(
-        None, result, self.corpus_crashes_upload_url)
+        None, result, self.corpus_crashes_blob_name,
+        self.corpus_crashes_upload_url)
 
-    corpus_crashes_zip_local_path = os.path.join(self.temp_dir,
-                                                 'corpus_crashes.zip')
+    corpus_crashes_zip_local_path = os.path.join(
+        self.temp_dir, f'{self.corpus_crashes_blob_name}.zip')
     storage.copy_file_from(
         blobs.get_gcs_path(self.corpus_crashes_blob_name),
         corpus_crashes_zip_local_path)
-    crashes_zip_file = zipfile.ZipFile(corpus_crashes_zip_local_path)
-    self.assertEqual(2, len(crashes_zip_file.infolist()))
-    crashes_zip_file.extractall(self.temp_dir)
 
-    with open(os.path.join(self.temp_dir, unit1_path), 'r') as f:
-      self.assertEqual('unit1_contents', f.read())
+    with archive.open(corpus_crashes_zip_local_path) as zip_reader:
+      members = zip_reader.list_members()
+      self.assertEqual(2, len(members))
+      zip_reader.extract_all(self.temp_dir)
 
-    with open(os.path.join(self.temp_dir, unit2_path), 'r') as f:
-      self.assertEqual('unit2_contents', f.read())
+      with open(os.path.join(self.temp_dir, os.path.basename(unit1_path)),
+                'r') as f:
+        self.assertEqual('unit1_contents', f.read())
+
+      with open(os.path.join(self.temp_dir, os.path.basename(unit2_path)),
+                'r') as f:
+        self.assertEqual('unit2_contents', f.read())
 
   def tearDown(self):
     """Tear Down."""
