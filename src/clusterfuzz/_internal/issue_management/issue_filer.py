@@ -334,7 +334,6 @@ def file_issue(testcase,
   logs.log(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
-  logs.log('policy: %s' % policy)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
