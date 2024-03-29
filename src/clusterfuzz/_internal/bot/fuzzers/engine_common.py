@@ -24,6 +24,7 @@ import shutil
 import sys
 import time
 
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -448,7 +449,7 @@ def get_all_issue_metadata(fuzz_target_path):
   if issue_metadata:
     metadata['issue_metadata'] = issue_metadata
 
-  return metadata
+  return json_utils.dumps(metadata)
 
 
 def get_fuzz_target_issue_metadata(fuzz_target):

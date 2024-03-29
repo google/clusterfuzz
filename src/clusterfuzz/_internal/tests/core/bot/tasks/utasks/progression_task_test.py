@@ -21,6 +21,7 @@ from unittest import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -397,7 +398,8 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase = data_types.Testcase(
         overridden_fuzzer_name='libFuzzer_fuzzer')
     self.testcase.put()
-    progression_task._update_issue_metadata(self.testcase, self.issue_metadata)  # pylint: disable=protected-access
+    progression_task._update_issue_metadata(  # pylint: disable=protected-access
+        self.testcase, json_utils.dumps(self.issue_metadata))
 
   def test_update_issue_metadata_non_existent(self):
     """Test update issue metadata a testcase with no metadata."""
