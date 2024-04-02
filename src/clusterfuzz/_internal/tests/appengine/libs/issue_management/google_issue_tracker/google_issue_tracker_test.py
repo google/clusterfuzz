@@ -810,6 +810,76 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
+  def test_update_issue_with_severity_label(self):
+    """Test updating an existing issue with a new severity label."""
+    self.client.issues().get().execute.return_value = BASIC_ISSUE
+    self.client.issues().modify().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId':
+                '1337',
+            'type':
+                'ASSIGNED',
+            'status':
+                'NEW',
+            'priority':
+                'P2',
+            'severity':
+                'S0',
+            'title':
+                'issue title2',
+            'accessLimit': {
+                'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
+            },
+            'reporter': {
+                'emailAddress': 'reporter@google.com',
+                'userGaiaStatus': 'ACTIVE',
+            },
+            'assignee': {
+                'emailAddress': 'assignee2@google.com',
+                'userGaiaStatus': 'ACTIVE',
+            },
+            'retention':
+                'COMPONENT_DEFAULT',
+            'ccs': [{
+                'emailAddress': 'cc@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },],
+            'hotlistIds': ['12345',],
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+        'modifiedTime': '2019-06-25T01:29:30.021Z',
+        'userData': {},
+        'accessLimit': {
+            'accessLevel': 'INTERNAL'
+        },
+        'lastModifier': {
+            'emailAddress': 'user1@google.com',
+            'userGaiaStatus': 'ACTIVE',
+        },
+    }
+
+    issue = self.issue_tracker.get_issue(68828938)
+    issue.labels.add('Security_Severity-Critical')
+    issue.save()
+
+    self.assertEqual(68828938, issue.id)
+    self.client.issues().modify.assert_has_calls([
+        mock.call(
+            body={
+                'add': {
+                    'severity': 'S0'
+                },
+                'removeMask': '',
+                'addMask': 'severity',
+                'remove': {},
+                'significanceOverride': 'MAJOR',
+            },
+            issueId='68828938',
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
   def test_update_issue_to_security(self):
     """Test updating an existing issue."""
     self.client.issues().get().execute.return_value = BASIC_ISSUE
