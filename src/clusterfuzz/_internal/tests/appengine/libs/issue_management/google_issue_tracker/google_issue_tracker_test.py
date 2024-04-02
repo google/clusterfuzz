@@ -1001,8 +1001,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     url = self.issue_tracker.issue_url(123)
     self.assertEqual('https://issues.chromium.org/issues/123', url)
 
-  def test_get_severity_from_crash_text(self):
-    """Test _get_severity_from_crash_text."""
+  def test_get_severity_from_label_value(self):
+    """Test _get_severity_from_label_value."""
     testcases = [
         {
             'name': 'Empty input',
@@ -1029,10 +1029,15 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             'input': 'Low',
             'expected': 'S3'
         },
+        {
+            'name': 'low input',
+            'input': 'low',
+            'expected': 'S3'
+        },
     ]
     for case in testcases:
       # pylint: disable=protected-access
-      actual = issue_tracker._get_severity_from_crash_text(case['input'])
+      actual = issue_tracker._get_severity_from_label_value(case['input'])
       self.assertEqual(
           case['expected'], actual, 'failed test %s. expected %s. actual %s' %
           (case['name'], case['expected'], actual))

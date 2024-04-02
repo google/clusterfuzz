@@ -110,7 +110,9 @@ def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
 
 def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
   """Return the value of the first severity label, if any."""
-  values = _get_labels(labels, _SEVERITY_LABEL_PREFIX)
+  # Ignore case to match `issue_tracker.LabelStore.remove_by_prefix()`.
+  values = _get_labels((l.lower() for l in labels),
+                       _SEVERITY_LABEL_PREFIX.lower())
   if not values:
     return None
 
@@ -120,10 +122,25 @@ def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
         f'google_issue_tracker: ignoring additional severity labels: [{extra}]')
 
   value = values[0]
-  severity = _get_severity_from_crash_text(value)
+  severity = _get_severity_from_label_value(value)
   logs.log(
       f'google_issue_tracker: severity label = {value}, field = {severity}')
   return severity
+
+
+def _get_severity_from_label_value(value):
+  """Convert a severity label value into a Google issue tracker severity."""
+  value = value.lower()
+  if value == 'critical':
+    return 'S0'
+  if value == 'high':
+    return 'S1'
+  if value == 'medium':
+    return 'S2'
+  if value == 'low':
+    return 'S3'
+  # Default case.
+  return _DEFAULT_SEVERITY
 
 
 class Issue(issue_tracker.Issue):
@@ -567,6 +584,7 @@ class Issue(issue_tracker.Issue):
       self._set_severity(severity)
       added.append('severity')
       update_body['add']['severity'] = severity
+      self.labels.remove_by_prefix(_SEVERITY_LABEL_PREFIX)
 
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
@@ -998,20 +1016,6 @@ def _get_query(keywords, only_open):
   if only_open:
     query += ' status:open'
   return query
-
-
-def _get_severity_from_crash_text(crash_severity_text):
-  """Get Google issue tracker severity from crash severity text."""
-  if crash_severity_text == 'Critical':
-    return 'S0'
-  if crash_severity_text == 'High':
-    return 'S1'
-  if crash_severity_text == 'Medium':
-    return 'S2'
-  if crash_severity_text == 'Low':
-    return 'S3'
-  # Default case.
-  return _DEFAULT_SEVERITY
 
 
 # Uncomment for local testing. Will need access to a service account for these
