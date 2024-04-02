@@ -17,6 +17,9 @@
 
 import datetime
 import enum
+from typing import List
+from typing import Optional
+from typing import Sequence
 import urllib.parse
 
 from google.auth import exceptions
@@ -53,7 +56,8 @@ class IssueTrackerPermissionError(IssueTrackerError):
   """Permission error."""
 
 
-def _extract_all_labels(labels, prefix):
+def _extract_all_labels(labels: issue_tracker.LabelStore,
+                        prefix: str) -> List[str]:
   """Extract all label values."""
   results = []
   labels_to_remove = []
@@ -67,7 +71,7 @@ def _extract_all_labels(labels, prefix):
   return results
 
 
-def _sanitize_oses(oses):
+def _sanitize_oses(oses: List[str]):
   """Sanitize the OS custom field values.
 
   The OS custom field no longer has the 'Chrome' value.
@@ -78,7 +82,8 @@ def _sanitize_oses(oses):
       oses[i] = 'ChromeOS'
 
 
-def _extract_label(labels, prefix):
+def _extract_label(labels: issue_tracker.LabelStore,
+                   prefix: str) -> Optional[str]:
   """Extract a label value."""
   for label in labels:
     if not label.startswith(prefix):
@@ -89,10 +94,10 @@ def _extract_label(labels, prefix):
   return None
 
 
-def _get_labels(labels_dict, prefix):
-  """Return all label values from labels.added or labels.removed"""
+def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
+  """Return the values of all labels with the given prefix."""
   results = []
-  for label in labels_dict:
+  for label in labels:
     if not label.startswith(prefix):
       continue
     results.append(label[len(prefix):])
