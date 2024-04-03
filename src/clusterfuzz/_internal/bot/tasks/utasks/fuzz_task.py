@@ -2004,6 +2004,7 @@ class FuzzingSession:
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
 
+
     if not environment.is_engine_fuzzer_job():
       return
 
@@ -2111,6 +2112,19 @@ def _preprocess_get_fuzz_target(fuzzer_name, job_type):
   return None
 
 
+def _create_blob_upload_url():
+  url = uworker_msg_pb2.BlobUploadUrl()
+  url.key, url.url = blobs.get_blob_signed_upload_url()
+  return url
+
+
+def _create_crashes_upload_urls():
+  urls = []
+  for _ in range(MAX_CRASHES_UPLOADED):
+    urls.append(_create_blob_upload_url())
+  return urls
+
+
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
@@ -2123,10 +2137,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
 
-  for _ in range(MAX_CRASHES_UPLOADED):
-    url = fuzz_task_input.crash_upload_urls.add()
-    url.key = blobs.generate_new_blob_name()
-    url.url = blobs.get_signed_upload_url(url.key)
+  fuzz_task_input.crashes_upload_urls.extend(_create_crashes_upload_urls())
+
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
 

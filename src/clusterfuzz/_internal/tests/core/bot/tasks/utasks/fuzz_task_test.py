@@ -451,8 +451,10 @@ class CrashGroupTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.find_main_crash',
         'clusterfuzz._internal.datastore.data_handler.find_testcase',
         'clusterfuzz._internal.datastore.data_handler.get_project_name',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url',
     ])
 
+    self.mock.get_signed_upload_url.side_effect = lambda url: url
     self.mock.get_project_name.return_value = 'some_project'
     self.crashes = [self._make_crash('g1'), self._make_crash('g2')]
     self.context = mock.MagicMock(
@@ -465,6 +467,7 @@ class CrashGroupTest(unittest.TestCase):
         project_name='some_project',
         bug_information='',
         one_time_crasher_flag=True)
+    self.crashes_upload_urls = fuzz_task._create_crashes_upload_urls()
 
   def _make_crash(self, gestures):
     crash = mock.MagicMock(
@@ -495,7 +498,7 @@ class CrashGroupTest(unittest.TestCase):
     self.mock.find_testcase.return_value = None
     self.mock.find_main_crash.return_value = self.crashes[0], True
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    group = fuzz_task.CrashGroup(self.crashes, self.context, self.crashes_upload_urls)
 
     self.assertTrue(group.should_create_testcase())
     self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
@@ -511,7 +514,7 @@ class CrashGroupTest(unittest.TestCase):
     self.mock.find_testcase.return_value = self.reproducible_testcase
     self.mock.find_main_crash.return_value = (self.crashes[0], True)
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    group = fuzz_task.CrashGroup(self.crashes, self.context, self.crashes_upload_urls)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
@@ -525,7 +528,7 @@ class CrashGroupTest(unittest.TestCase):
     self.mock.find_testcase.return_value = self.unreproducible_testcase
     self.mock.find_main_crash.return_value = (self.crashes[0], False)
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    group = fuzz_task.CrashGroup(self.crashes, self.context, self.crashes_upload_urls)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
@@ -541,7 +544,7 @@ class CrashGroupTest(unittest.TestCase):
     self.mock.find_testcase.return_value = self.unreproducible_testcase
     self.mock.find_main_crash.return_value = (self.crashes[0], True)
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    group = fuzz_task.CrashGroup(self.crashes, self.context, self.crashes_upload_urls)
 
     self.assertFalse(group.should_create_testcase())
 
@@ -742,7 +745,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
-            thread_wait_timeout=3,
             data_directory='/data'))
     self.assertEqual(0, new_crash_count)
     self.assertEqual(2, known_crash_count)
@@ -817,7 +819,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
-            thread_wait_timeout=3,
             data_directory='/data'))
     self.assertEqual(5, new_crash_count)
     self.assertEqual(3, known_crash_count)
@@ -967,7 +968,6 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         testcases_metadata={},
         timeout_multiplier=1.0,
         test_timeout=5,
-        thread_wait_timeout=6,
         data_directory='data')
 
   def _make_crash(self, state):
