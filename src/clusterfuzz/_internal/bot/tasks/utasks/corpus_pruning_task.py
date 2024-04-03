@@ -19,6 +19,7 @@ import os
 import random
 import shutil
 from typing import List
+import zipfile
 
 from google.cloud import ndb
 from google.protobuf import timestamp_pb2
@@ -729,91 +730,132 @@ def do_corpus_pruning(context, revision):
       cross_pollination_stats=cross_pollination_stats)
 
 
-def _process_corpus_crashes(context, result):
+def _update_crash_unit_path(context, crash):
+  """If running on a trusted host, updates the crash unit_path after copying
+  the file locally."""
+  if not environment.is_trusted_host():
+    return
+  from clusterfuzz._internal.bot.untrusted_runner import file_host
+  unit_path = os.path.join(context.bad_units_path,
+                           os.path.basename(crash.unit_path))
+  # Prevent the worker from escaping out of |context.bad_units_path|.
+  if not file_host.is_directory_parent(unit_path, context.bad_units_path):
+    raise CorpusPruningError('Invalid units path from worker.')
+
+  file_host.copy_file_from_worker(crash.unit_path, unit_path)
+  crash.unit_path = unit_path
+
+
+def _upload_corpus_crashes_zip(context, result, corpus_crashes_blob_name,
+                               corpus_crashes_upload_url):
+  """Packs the corpus crashes in a zip file. The file is then uploaded
+  using the signed upload url from the input."""
+  temp_dir = environment.get_value('BOT_TMPDIR')
+  zip_filename = os.path.join(temp_dir, corpus_crashes_blob_name)
+  with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+    for crash in result.crashes:
+      _update_crash_unit_path(context, crash)
+      unit_name = os.path.basename(crash.unit_path)
+      zip_file.write(crash.unit_path, unit_name, zipfile.ZIP_DEFLATED)
+
+  with open(zip_filename, 'rb') as fp:
+    data = fp.read()
+    storage.upload_signed_url(data, corpus_crashes_upload_url)
+  os.remove(zip_filename)
+
+
+def _process_corpus_crashes(output: uworker_msg_pb2.Output):
   """Process crashes found in the corpus."""
-  # Default Testcase entity values.
-  crash_revision = result.revision
+  if not output.corpus_pruning_task_output.crashes:
+    return
+
+  corpus_pruning_output = output.corpus_pruning_task_output
+  crash_revision = corpus_pruning_output.crash_revision
+  fuzz_target = data_handler.get_fuzz_target(output.uworker_input.fuzzer_name)
   job_type = environment.get_value('JOB_NAME')
-  minimized_arguments = '%TESTCASE% ' + context.fuzz_target.binary
+
+  minimized_arguments = f'%TESTCASE% {fuzz_target.binary}'
   project_name = data_handler.get_project_name(job_type)
 
-  comment = 'Fuzzer %s generated corpus testcase crashed (r%s)' % (
-      context.fuzz_target.project_qualified_name(), crash_revision)
+  comment = (f'Fuzzer {fuzz_target.project_qualified_name()} generated corpus'
+             f' testcase crashed (r{crash_revision})')
 
-  # Generate crash reports.
-  for crash in result.crashes:
-    existing_testcase = data_handler.find_testcase(
-        project_name,
-        crash.crash_type,
-        crash.crash_state,
-        crash.security_flag,
-        fuzz_target=context.fuzz_target.project_qualified_name())
-    if existing_testcase:
-      continue
+  # Copy the crashes zip file from cloud storage into a temporary directory.
+  temp_dir = environment.get_value('BOT_TMPDIR')
+  corpus_crashes_blob_name = (
+      output.uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name)
+  corpus_crashes_zip_local_path = os.path.join(
+      temp_dir, f'{corpus_crashes_blob_name}.zip')
+  storage.copy_file_from(
+      blobs.get_gcs_path(corpus_crashes_blob_name),
+      corpus_crashes_zip_local_path)
+  with archive.open(corpus_crashes_zip_local_path) as zip_reader:
+    for crash in corpus_pruning_output.crashes:
+      existing_testcase = data_handler.find_testcase(
+          project_name,
+          crash.crash_type,
+          crash.crash_state,
+          crash.security_flag,
+          fuzz_target=fuzz_target.project_qualified_name())
+      if existing_testcase:
+        continue
 
-    # Upload/store testcase.
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      unit_path = os.path.join(context.bad_units_path,
-                               os.path.basename(crash.unit_path))
-      # Prevent the worker from escaping out of |context.bad_units_path|.
-      if not file_host.is_directory_parent(unit_path, context.bad_units_path):
-        raise CorpusPruningError('Invalid units path from worker.')
+      crash_local_unit_path = os.path.join(temp_dir, crash.unit_name)
+      # Extract the crash unit_path into crash_local_unit_path
+      zip_reader.extract(member=crash.unit_name, path=temp_dir)
+      # Upload/store testcase.
+      with open(crash_local_unit_path, 'rb') as f:
+        key = blobs.write_blob(f)
 
-      file_host.copy_file_from_worker(crash.unit_path, unit_path)
-    else:
-      unit_path = crash.unit_path
+      # Set the absolute_path property of the Testcase to a file in FUZZ_INPUTS
+      # instead of the local quarantine directory.
+      absolute_testcase_path = os.path.join(
+          environment.get_value('FUZZ_INPUTS'), 'testcase')
 
-    with open(unit_path, 'rb') as f:
-      key = blobs.write_blob(f)
+      # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on
+      # the job when we start doing untrusted fuzzing.
+      testcase_id = data_handler.store_testcase(
+          crash=crash,
+          fuzzed_keys=key,
+          minimized_keys='',
+          regression='',
+          fixed='',
+          one_time_crasher_flag=False,
+          crash_revision=crash_revision,
+          comment=comment,
+          absolute_path=absolute_testcase_path,
+          fuzzer_name=fuzz_target.engine,
+          fully_qualified_fuzzer_name=fuzz_target.fully_qualified_name(),
+          job_type=job_type,
+          archived=False,
+          archive_filename='',
+          http_flag=False,
+          gestures=None,
+          redzone=DEFAULT_REDZONE,
+          disable_ubsan=False,
+          window_argument=None,
+          timeout_multiplier=1.0,
+          minimized_arguments=minimized_arguments,
+          trusted=True)
 
-    # Set the absolute_path property of the Testcase to a file in FUZZ_INPUTS
-    # instead of the local quarantine directory.
-    absolute_testcase_path = os.path.join(
-        environment.get_value('FUZZ_INPUTS'), 'testcase')
+      # Set fuzzer_binary_name in testcase metadata.
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+      testcase.set_metadata('fuzzer_binary_name',
+                            corpus_pruning_output.fuzzer_binary_name)
 
-    # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on the
-    # job when we start doing untrusted fuzzing.
-    testcase_id = data_handler.store_testcase(
-        crash=crash,
-        fuzzed_keys=key,
-        minimized_keys='',
-        regression='',
-        fixed='',
-        one_time_crasher_flag=False,
-        crash_revision=crash_revision,
-        comment=comment,
-        absolute_path=absolute_testcase_path,
-        fuzzer_name=context.fuzz_target.engine,
-        fully_qualified_fuzzer_name=context.fuzz_target.fully_qualified_name(),
-        job_type=job_type,
-        archived=False,
-        archive_filename='',
-        http_flag=False,
-        gestures=None,
-        redzone=DEFAULT_REDZONE,
-        disable_ubsan=False,
-        window_argument=None,
-        timeout_multiplier=1.0,
-        minimized_arguments=minimized_arguments,
-        trusted=True)
+      if output.issue_metadata:
+        for key, value in output.issue_metadata.items():
+          testcase.set_metadata(key, value, update_testcase=False)
 
-    # Set fuzzer_binary_name in testcase metadata.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    testcase.set_metadata('fuzzer_binary_name', result.fuzzer_binary_name)
+        testcase.put()
 
-    # TODO(alhijazi): This should be added to Output.
-    issue_metadata = engine_common.get_fuzz_target_issue_metadata(
-        context.fuzz_target)
-    if issue_metadata:
-      for key, value in issue_metadata.items():
-        testcase.set_metadata(key, value, update_testcase=False)
+      # Create additional tasks for testcase (starting with minimization).
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+      task_creation.create_tasks(testcase)
 
-      testcase.put()
-
-    # Create additional tasks for testcase (starting with minimization).
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    task_creation.create_tasks(testcase)
+  os.remove(corpus_crashes_zip_local_path)
+  # Cleanup the uploaded zip file.
+  blobs.delete_blob(corpus_crashes_blob_name)
 
 
 def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name):
@@ -934,6 +976,20 @@ def _extract_coverage_information(context, result):
   return coverage_info
 
 
+def _extract_corpus_crashes(result):
+  """Extracts the corpus crashes as a list of CrashInfo from the result."""
+  return [
+      uworker_msg_pb2.CrashInfo(
+          crash_type=crash.crash_type,
+          crash_state=crash.crash_state,
+          security_flag=crash.security_flag,
+          crash_address=crash.crash_address,
+          crash_stacktrace=crash.crash_stacktrace,
+          unit_name=os.path.basename(crash.unit_path))
+      for crash in result.crashes
+  ]
+
+
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
   fuzz_target = uworker_io.entity_from_protobuf(
@@ -958,12 +1014,21 @@ def utask_main(uworker_input):
   uworker_output = None
   try:
     result = do_corpus_pruning(context, revision)
+    issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
+    issue_metadata = issue_metadata or {}
+    _upload_corpus_crashes_zip(
+        context, result,
+        uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
+        uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
     uworker_output = uworker_msg_pb2.Output(
         corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(
-            coverage_info=_extract_coverage_information(context, result)))
+            coverage_info=_extract_coverage_information(context, result),
+            fuzzer_binary_name=result.fuzzer_binary_name,
+            crash_revision=result.revision,
+            crashes=_extract_corpus_crashes(result)),
+        issue_metadata=issue_metadata)
     _fill_cross_pollination_stats(result.cross_pollination_stats,
                                   uworker_output)
-    _process_corpus_crashes(context, result)
   except Exception as e:
     # TODO(metzman): Don't catch every exception, it makes testing almost
     # impossible.
@@ -1021,12 +1086,17 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
       fuzz_target.engine, fuzz_target.project_qualified_name())
 
+  (corpus_crashes_blob_name,
+   corpus_crashes_upload_url) = blobs.get_blob_signed_upload_url()
+
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
       corpus=corpus.proto_corpus,
-      quarantine_corpus=quarantine_corpus.proto_corpus)
+      quarantine_corpus=quarantine_corpus.proto_corpus,
+      corpus_crashes_blob_name=corpus_crashes_blob_name,
+      corpus_crashes_upload_url=corpus_crashes_upload_url)
 
   if environment.get_value('LSAN'):
     # Copy global blacklist into local suppressions file if LSan is enabled.
@@ -1059,4 +1129,5 @@ def utask_postprocess(output):
 
   _record_cross_pollination_stats(output)
   _save_coverage_information(output)
+  _process_corpus_crashes(output)
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
