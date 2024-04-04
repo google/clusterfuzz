@@ -22,6 +22,7 @@ from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -37,6 +38,7 @@ class TworkerPreprocessTest(unittest.TestCase):
   JOB_TYPE = 'libfuzzer_asan'
 
   def setUp(self):
+    monitor.metrics_store().reset_for_testing()
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
@@ -48,8 +50,7 @@ class TworkerPreprocessTest(unittest.TestCase):
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
-    module = mock.MagicMock(__name__='tasks.analyze_task')
-    module.__name__ = 'mock_task'
+    module = mock.MagicMock(__name__='mock_task')
 
     uworker_input = uworker_msg_pb2.Input(job_type='something')
     module.utask_preprocess.return_value = uworker_input
@@ -87,7 +88,7 @@ class TworkerPreprocessTest(unittest.TestCase):
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
   def test_return_none(self):
-    module = mock.MagicMock()
+    module = mock.MagicMock(__name__='mock_task')
     module.utask_preprocess.return_value = None
     self.assertIsNone(
         utasks.tworker_preprocess(module, self.TASK_ARGUMENT, self.JOB_TYPE,
@@ -119,6 +120,7 @@ class UworkerMainTest(unittest.TestCase):
   UWORKER_OUTPUT_UPLOAD_URL = 'https://uworker_output_upload_url'
 
   def setUp(self):
+    monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
@@ -183,6 +185,7 @@ class TworkerPostprocessTest(unittest.TestCase):
   """Tests that tworker_postprocess works as intended."""
 
   def setUp(self):
+    monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
