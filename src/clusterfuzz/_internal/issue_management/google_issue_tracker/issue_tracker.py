@@ -680,9 +680,8 @@ class Issue(issue_tracker.Issue):
         self._data['issueState']['foundInVersions'] = foundin_values
 
       severity = _get_severity_from_labels(self.labels) or _DEFAULT_SEVERITY
-      if severity is not None:
-        self._set_severity(severity)
-        self.labels.remove_by_prefix(_SEVERITY_LABEL_PREFIX)
+      self._set_severity(severity)
+      self.labels.remove_by_prefix(_SEVERITY_LABEL_PREFIX)
 
       # Make sure self.labels contains only hotlist IDs.
       self._filter_labels()
