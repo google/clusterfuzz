@@ -61,7 +61,8 @@ _UNPRIVILEGED_TASKS = {
     'analyze', 'symbolize', 'regression', 'variant', 'minimize', 'progression'
 }
 _PRIVILEGED_JOBS = {
-    'linux_asan_chrome_media', 'linux_d8_dbg_cm', 'centipede_v8_asan_dbg_custom'
+    'linux_d8_dbg_cm',
+    'centipede_v8_asan_dbg_custom',
 }
 
 
