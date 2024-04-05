@@ -748,14 +748,19 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
     self.release_urls = release_urls
     self.debug_urls = debug_urls
 
-  def _assert_env_vars_both(self):
+  def _assert_env_vars_both(self, reuse_regular=False):
     """Assert env vars."""
     self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
 
-    self.assertEqual(
-        os.environ['APP_PATH'],
-        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-        'release/app')
+    if reuse_regular:
+      self.assertEqual(
+          os.environ['APP_PATH'],
+          '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/app')
+    else:
+      self.assertEqual(
+          os.environ['APP_PATH'],
+          '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+          'release/app')
 
     self.assertEqual(
         os.environ['APP_PATH_DEBUG'],
@@ -872,6 +877,82 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(self.mock._unpack_build.call_count, 1)
 
     self.assertIsNone(build_manager.setup_symbolized_builds(4))
+
+  def test_setup_symbolized_reuse_regular(self):
+    """Tests that symbolized builds can re-use existing regular build."""
+    self._prepare_test([
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ], [
+        'gs://path/file-debug-10.zip',
+        'gs://path/file-debug-2.zip',
+        'gs://path/file-debug-1.zip',
+    ])
+
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+    regular_build = build_manager.setup_regular_build(2)
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+        'revisions', 'gs://path/file-release-2.zip', None)
+    self.mock._unpack_build.reset_mock()
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_symbolized_builds(2, regular_build)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.assertIsInstance(build, build_manager.SymbolizedBuild)
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+        'symbolized/debug', 'gs://path/file-debug-2.zip')
+    self._assert_env_vars_both(reuse_regular=True)
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.assertEqual(build.release_build_dir, regular_build.build_dir)
+
+  def test_setup_symbolized_reuse_ignore(self):
+    """Tests that symbolized builds ignore incompatible regular builds."""
+    self._prepare_test([
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ], [
+        'gs://path/file-debug-10.zip',
+        'gs://path/file-debug-2.zip',
+        'gs://path/file-debug-1.zip',
+    ])
+
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+    regular_build = build_manager.setup_regular_build(1)
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+        'revisions', 'gs://path/file-release-1.zip', None)
+    self.mock._unpack_build.reset_mock()
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_symbolized_builds(2, regular_build)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.assertIsInstance(build, build_manager.SymbolizedBuild)
+    self.mock._unpack_build.assert_has_calls([
+        mock.call(
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+            'symbolized/release', 'gs://path/file-release-2.zip'),
+        mock.call(
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+            'symbolized/debug', 'gs://path/file-debug-2.zip'),
+    ])
+    self._assert_env_vars_both()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.assertNotEqual(build.release_build_dir, regular_build.build_dir)
 
   def test_delete(self):
     """Test deleting this build."""
