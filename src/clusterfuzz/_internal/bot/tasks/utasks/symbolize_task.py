@@ -107,7 +107,7 @@ def utask_main(uworker_input):
     build_revision = testcase.crash_revision
 
   # Set up a custom or regular build based on revision.
-  build_manager.setup_build(build_revision)
+  build = build_manager.setup_build(build_revision)
 
   # Get crash revision used in setting up build.
   crash_revision = environment.get_value('APP_REVISION')
@@ -159,7 +159,8 @@ def utask_main(uworker_input):
       redzone /= 2
 
   # We should have atleast a symbolized debug or a release build.
-  symbolized_builds = build_manager.setup_symbolized_builds(crash_revision)
+  symbolized_builds = build_manager.setup_symbolized_builds(
+      crash_revision, build)
   if (not symbolized_builds or
       (not build_manager.check_app_path() and
        not build_manager.check_app_path('APP_PATH_DEBUG'))):
