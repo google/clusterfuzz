@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 import time
+from typing import Optional
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -328,9 +329,9 @@ class Build(BaseBuild):
   """Represent a build type at a particular revision."""
 
   def __init__(self,
-               base_build_dir,
-               revision,
-               build_prefix='',
+               base_build_dir: str,
+               revision: int,
+               build_prefix: str = '',
                fuzz_targets=None):
     super().__init__(base_build_dir)
     self.revision = revision
@@ -764,17 +765,59 @@ class CuttlefishKernelBuild(RegularBuild):
 
 
 class SymbolizedBuild(Build):
-  """Symbolized build."""
+  """Symbolized build, containing at least one of:
 
-  def __init__(self, base_build_dir, revision, release_build_url,
-               debug_build_url):
+  - a symbolized release build
+  - a symbolized debug build
+
+  Members:
+    release_build_url (Optional[str]): The URL from which the release build is
+      downloaded, if any.
+    debug_build_url (Optional[str]): The URL from which the debug build is
+      downloaded, if any.
+  """
+
+  def __init__(self,
+               base_build_dir: str,
+               revision: int,
+               release_build_url: Optional[str],
+               debug_build_url: str,
+               regular_build: Optional[RegularBuild] = None):
+    """Initializes a symbolized build.
+
+    Args:
+      base_build_dir: The directory in which to store symbolized builds.
+      revision: The revision at which to download symbolized builds.
+      release_build_url: The URL from which to download the release build, if
+        any.
+      debug_build_url: The URL from which to download the debug build, if any.
+      regular_build: A regular build to consider re-using as the symbolized
+        release build. This is reused iff its base build directory is the same
+        as this instance's, its URL is the same as `release_build_url` and its
+        revision is the same as `revision`. In that case,
+        `self.release_build_dir` is set to that build's directory, which is not
+        under `self.build_dir`.
+    """
     super().__init__(base_build_dir, revision)
     self._build_dir = os.path.join(self.base_build_dir, 'symbolized')
-    self.release_build_dir = os.path.join(self.build_dir, 'release')
-    self.debug_build_dir = os.path.join(self.build_dir, 'debug')
 
     self.release_build_url = release_build_url
     self.debug_build_url = debug_build_url
+
+    # If we have already set up the same build as a regular build, re-use it.
+    self._reuse_release_build = (
+        regular_build and
+        self.base_build_dir == regular_build.base_build_dir and
+        self.release_build_url == regular_build.build_url and
+        self.revision == regular_build.revision)
+    if self._reuse_release_build:
+      logs.log(
+          f'Re-using {regular_build.build_dir} as the symbolized release build')
+      self.release_build_dir = regular_build.build_dir
+    else:
+      self.release_build_dir = os.path.join(self.build_dir, 'release')
+
+    self.debug_build_dir = os.path.join(self.build_dir, 'debug')
 
   @property
   def build_dir(self):
@@ -790,7 +833,7 @@ class SymbolizedBuild(Build):
     if not self.release_build_url and not self.debug_build_url:
       return False
 
-    if self.release_build_url:
+    if self.release_build_url and not self._reuse_release_build:
       if not self._unpack_build(self.base_build_dir, self.release_build_dir,
                                 self.release_build_url):
         return False
@@ -1189,9 +1232,9 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
   return build
 
 
-def setup_regular_build(revision,
-                        bucket_path=None,
-                        build_prefix='',
+def setup_regular_build(revision: int,
+                        bucket_path: Optional[str] = None,
+                        build_prefix: str = '',
                         target_weights=None,
                         fuzz_targets=None) -> RegularBuild:
   """Sets up build with a particular revision."""
@@ -1261,8 +1304,17 @@ def setup_regular_build(revision,
   return result
 
 
-def setup_symbolized_builds(revision):
-  """Set up symbolized release and debug build."""
+def setup_symbolized_builds(revision: int,
+                            regular_build: Optional[RegularBuild] = None):
+  """Set up symbolized release and debug build at the given revision.
+
+  Args:
+    revision: The revision at which to set up builds.
+    regular_build: A previously-set-up regular build, if any. If its GCS bucket
+       path and build URL are the same as the would-be symbolized release
+       build's, then it is reused and no additional symbolized release build is
+       set up.
+  """
   sym_release_build_bucket_path = environment.get_value(
       'SYM_RELEASE_BUILD_BUCKET_PATH')
   sym_debug_build_bucket_path = environment.get_value(
@@ -1287,11 +1339,13 @@ def setup_symbolized_builds(revision):
 
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
+    # TODO: pylint complains about no-member because there really does not exist
+    # a `RemoteSymbolizedBuild` in `build_setup_host`. Remove this?
     from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
     build_class = build_setup_host.RemoteSymbolizedBuild  # pylint: disable=no-member
 
   build = build_class(base_build_dir, revision, sym_release_build_url,
-                      sym_debug_build_url)
+                      sym_debug_build_url, regular_build)
   if build.setup():
     return build
 
