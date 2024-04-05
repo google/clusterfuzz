@@ -191,6 +191,25 @@ class IntegrationTest(unittest.TestCase):
     else:
       os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
 
+  def test_reproduce_fuzztest(self):
+    """Tests reproducing a check failure from a fuzz test."""
+    testcase_path = setup_testcase('check', self.test_paths)
+
+    engine_impl, target_path, sanitized_target_path = setup_centipede(
+        'example_fuzztest',
+        self.test_paths,
+        sanitized_target_dir=self.test_paths.data)
+
+    result = engine_impl.reproduce(target_path, testcase_path, [], MAX_TIME)
+
+    self.assertListEqual([f'{sanitized_target_path}'], result.command)
+    self.assertRegex(result.output, constants.FATAL_ERROR_CHECK_FAILURE)
+
+    crash_info = re.search(constants.FATAL_ERROR_CHECK_FAILURE, result.output)
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(2), 'Fake fuzz-test check failure.')
+
   def test_options_arguments(self):
     """Tests that the options file is correctly taken into account when querying for arguments."""
     testcase_path = setup_testcase('fuzzer_arguments', self.test_paths)
