@@ -782,7 +782,7 @@ class SymbolizedBuild(Build):
                revision: int,
                release_build_url: Optional[str],
                debug_build_url: str,
-               regular_build: Optional[RegularBuild] = None):
+               existing_build: Optional[Build] = None):
     """Initializes a symbolized build.
 
     Args:
@@ -791,7 +791,7 @@ class SymbolizedBuild(Build):
       release_build_url: The URL from which to download the release build, if
         any.
       debug_build_url: The URL from which to download the debug build, if any.
-      regular_build: A regular build to consider re-using as the symbolized
+      existing_build: An existing build to consider re-using as the symbolized
         release build. This is reused iff its base build directory is the same
         as this instance's, its URL is the same as `release_build_url` and its
         revision is the same as `revision`. In that case,
@@ -804,16 +804,17 @@ class SymbolizedBuild(Build):
     self.release_build_url = release_build_url
     self.debug_build_url = debug_build_url
 
-    # If we have already set up the same build as a regular build, re-use it.
+    # If we have already set up the same build as an existing build, re-use it.
+    # We only re-use regular builds, which are downloaded from GCS like
+    # symbolized builds are.
     self._reuse_release_build = (
-        regular_build and
-        self.base_build_dir == regular_build.base_build_dir and
-        self.release_build_url == regular_build.build_url and
-        self.revision == regular_build.revision)
+        existing_build and isinstance(existing_build, RegularBuild) and
+        self.base_build_dir == existing_build.base_build_dir and
+        self.release_build_url == existing_build.build_url and
+        self.revision == existing_build.revision)
     if self._reuse_release_build:
-      logs.log(
-          f'Re-using {regular_build.build_dir} as the symbolized release build')
-      self.release_build_dir = regular_build.build_dir
+      logs.log(f'Re-using symbolized release build: {existing_build.build_dir}')
+      self.release_build_dir = existing_build.build_dir
     else:
       self.release_build_dir = os.path.join(self.build_dir, 'release')
 
@@ -1305,15 +1306,15 @@ def setup_regular_build(revision: int,
 
 
 def setup_symbolized_builds(revision: int,
-                            regular_build: Optional[RegularBuild] = None) -> Optional[SymbolizedBuild]:
+                            existing_build: Optional[Build] = None
+                           ) -> Optional[SymbolizedBuild]:
   """Set up symbolized release and debug build at the given revision.
 
   Args:
     revision: The revision at which to set up builds.
-    regular_build: A previously-set-up regular build, if any. If its GCS bucket
-       path and build URL are the same as the would-be symbolized release
-       build's, then it is reused and no additional symbolized release build is
-       set up.
+    existing_build: A previously-set-up build, if any. If its GCS bucket path
+       and build URL are the same as the would-be symbolized release build's,
+       then it is reused and no additional symbolized release build is set up.
 
   Returns:
     The build if successful, None otherwise.
@@ -1348,7 +1349,7 @@ def setup_symbolized_builds(revision: int,
     build_class = build_setup_host.RemoteSymbolizedBuild  # pylint: disable=no-member
 
   build = build_class(base_build_dir, revision, sym_release_build_url,
-                      sym_debug_build_url, regular_build)
+                      sym_debug_build_url, existing_build)
   if build.setup():
     return build
 
