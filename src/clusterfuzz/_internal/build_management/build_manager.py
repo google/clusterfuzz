@@ -1236,7 +1236,7 @@ def setup_regular_build(revision: int,
                         bucket_path: Optional[str] = None,
                         build_prefix: str = '',
                         target_weights=None,
-                        fuzz_targets=None) -> RegularBuild:
+                        fuzz_targets=None) -> Optional[RegularBuild]:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1305,7 +1305,7 @@ def setup_regular_build(revision: int,
 
 
 def setup_symbolized_builds(revision: int,
-                            regular_build: Optional[RegularBuild] = None):
+                            regular_build: Optional[RegularBuild] = None) -> Optional[SymbolizedBuild]:
   """Set up symbolized release and debug build at the given revision.
 
   Args:
@@ -1314,6 +1314,9 @@ def setup_symbolized_builds(revision: int,
        path and build URL are the same as the would-be symbolized release
        build's, then it is reused and no additional symbolized release build is
        set up.
+
+  Returns:
+    The build if successful, None otherwise.
   """
   sym_release_build_bucket_path = environment.get_value(
       'SYM_RELEASE_BUILD_BUCKET_PATH')
@@ -1352,7 +1355,7 @@ def setup_symbolized_builds(revision: int,
   return None
 
 
-def setup_custom_binary(target_weights=None):
+def setup_custom_binary(target_weights=None) -> Optional[CustomBuild]:
   """Set up the custom binary for a particular job."""
   # Check if this build is dependent on any other custom job. If yes,
   # then fake out our job name for setting up the build.
@@ -1390,7 +1393,7 @@ def setup_custom_binary(target_weights=None):
   return None
 
 
-def setup_system_binary():
+def setup_system_binary() -> Optional[SystemBuild]:
   """Set up a build that we assume is already installed on the system."""
   system_binary_directory = environment.get_value('SYSTEM_BINARY_DIR', '')
   build = SystemBuild(system_binary_directory)
@@ -1400,7 +1403,7 @@ def setup_system_binary():
   return None
 
 
-def setup_build(revision=0, target_weights=None):
+def setup_build(revision: int = 0, target_weights=None) -> Optional[Build]:
   """Set up a custom or regular build based on revision."""
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
