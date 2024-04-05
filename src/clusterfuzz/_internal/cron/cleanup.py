@@ -754,12 +754,15 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
     return
 
   issue.labels.add(needs_feedback_label)
-
+  last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
+  crash_revision = ''
+  if last_tested_revision:
+    crash_revision = f' r{last_tested_revision}'
   if issue.status in [policy.status('fixed'), policy.status('verified')]:
     issue_comment = (
         f'ClusterFuzz testcase {testcase.key.id()} is still reproducing '
-        'on tip-of-tree build '
-        '(trunk).\n\nPlease re-test your fix against this testcase and if the '
+        f'on the latest available build {crash_revision}.'
+        '\n\nPlease re-test your fix against this testcase and if the '
         'fix was incorrect or incomplete, please re-open the bug.')
 
     wrong_label = policy.label('wrong')
@@ -770,8 +773,8 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
     # Covers WontFix, Archived cases.
     issue_comment = (
         f'ClusterFuzz testcase {testcase.key.id()} '
-        'is still reproducing on tip-of-tree build '
-        '(trunk).\n\nIf this testcase was not reproducible locally or '
+        f'is still reproducing on the latest available build {crash_revision}.'
+        '\n\nIf this testcase was not reproducible locally or '
         'unworkable, ignore this notification and we will file another '
         'bug soon with hopefully a better and workable testcase.\n\n')
     ignore_label = policy.label('ignore')
