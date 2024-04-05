@@ -267,7 +267,7 @@ class Engine(engine.Engine):
           f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
           f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
 
-    if sanitized_target.endswith(('_fuzztest', '_fuzz_test')):
+    if environment.get_value('FUZZTEST_MODE'):
       runner = new_process.UnicodeProcessRunner(sanitized_target)
       result = runner.run_and_wait(
           timeout=max_time, extra_env={'FUZZTEST_REPLAY': input_path})

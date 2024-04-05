@@ -193,6 +193,7 @@ class IntegrationTest(unittest.TestCase):
 
   def test_reproduce_fuzztest(self):
     """Tests reproducing a check failure from a fuzz test."""
+    environment.set_value('FUZZTEST_MODE', True)
     testcase_path = setup_testcase('check', self.test_paths)
 
     engine_impl, target_path, sanitized_target_path = setup_centipede(
