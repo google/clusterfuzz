@@ -761,7 +761,7 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
   if issue.status in [policy.status('fixed'), policy.status('verified')]:
     issue_comment = (
         f'ClusterFuzz testcase {testcase.key.id()} is still reproducing '
-        f'on the latest available build{crash_revision}.'
+        f'on the latest available build {crash_revision}.'
         '\n\nPlease re-test your fix against this testcase and if the '
         'fix was incorrect or incomplete, please re-open the bug.')
 
@@ -773,7 +773,7 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
     # Covers WontFix, Archived cases.
     issue_comment = (
         f'ClusterFuzz testcase {testcase.key.id()} '
-        f'is still reproducing on the latest available build{crash_revision}.'
+        f'is still reproducing on the latest available build {crash_revision}.'
         '\n\nIf this testcase was not reproducible locally or '
         'unworkable, ignore this notification and we will file another '
         'bug soon with hopefully a better and workable testcase.\n\n')
