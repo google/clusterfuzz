@@ -101,25 +101,6 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.assertEqual(regression_task_output.build_data_list[0], build_data)
 
 
-def _make_testcase_reproduces_after(latest_good_revision):
-  """Returns a mock function for `_testcase_reproduces_in_revision` that
-  returns True for revisions greater than `latest_good_revision`.
-  """
-
-  def testcase_reproduces(testcase,
-                          testcase_file_path,
-                          job_type,
-                          revision,
-                          fuzz_target,
-                          regression_task_output,
-                          should_log=True,
-                          min_revision=None,
-                          max_revision=None):
-    return revision > latest_good_revision, None
-
-  return testcase_reproduces
-
-
 @test_utils.with_cloud_emulators('datastore')
 class TestCheckExtremeRevisions(unittest.TestCase):
   """Test check_latest_revisions and check_earliest_revisions."""
