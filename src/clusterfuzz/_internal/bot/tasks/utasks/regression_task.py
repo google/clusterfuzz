@@ -195,7 +195,7 @@ def check_latest_revisions(
   return None
 
 
-def check_earliest_revisions(
+def find_earliest_good_revision(
     testcase: data_types.Testcase,
     testcase_file_path: str,
     job_type: str,
@@ -203,17 +203,20 @@ def check_earliest_revisions(
     fuzz_target: Optional[data_types.FuzzTarget],
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
-  """Check that the earliest good build does not crash.
+  """Finds the earliest good build and checks if it crashes.
 
   Adds information about any bad builds encountered while running to
   `regression_task_output.build_data_list`.
 
   Returns:
-    None if one of the earliest builds is good and does not crash.
-    An output proto if:
+    None if the earliest good build does not crash, in which case
+    `regression_task_output.last_regression_min` is set to that revision.
 
-    a. The earliest good build crashes, in which case the regression range is
-       set to [0, min_good_revision).
+    An output proto otherwise, which means one of two things:
+
+    a. The earliest good build crashes, in which case:
+       - `regression_task_output.regression_range_start` is set to 0
+       - `regression_task_output.regression_range_end` is set to that revision
     b. An error occurred.
   """
   # Test to see if we crash in the oldest revision we can run. This is a pre-
@@ -380,9 +383,9 @@ def find_regression_range(
     if result:
       return result
 
-    result = check_earliest_revisions(testcase, testcase_file_path, job_type,
-                                      revision_range, fuzz_target,
-                                      regression_task_output)
+    result = find_earliest_good_revision(testcase, testcase_file_path, job_type,
+                                         revision_range, fuzz_target,
+                                         regression_task_output)
     if result:
       return result
 
