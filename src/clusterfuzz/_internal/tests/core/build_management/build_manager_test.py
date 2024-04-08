@@ -983,6 +983,89 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(
         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
 
+  def test_reuse_release_build_true(self):
+    """Check reuse_release_build is true when existing build matches."""
+    base_dir = "base/build/dir"
+    revision = 12
+    build_url = "gs://path/file-release-12.zip"
+
+    existing_build = build_manager.RegularBuild(base_dir, revision, build_url)
+    symbolized_build = build_manager.SymbolizedBuild(
+        base_dir, revision, build_url, None, existing_build)
+
+    self.assertTrue(symbolized_build.reuse_release_build)
+    self.assertEqual(symbolized_build.release_build_dir,
+                     existing_build.build_dir)
+
+  def test_reuse_release_build_no_existing_build(self):
+    """Check reuse_release_build is false when there is no existing build."""
+    base_dir = "base/build/dir"
+    revision = 12
+    build_url = "gs://path/file-release-12.zip"
+
+    symbolized_build = build_manager.SymbolizedBuild(base_dir, revision,
+                                                     build_url, None, None)
+
+    self.assertFalse(symbolized_build.reuse_release_build)
+
+  def test_reuse_release_build_wrong_class(self):
+    """Check reuse_release_build is false when the existing build is not a
+    regular build.
+    """
+    base_dir = "base/build/dir"
+    revision = 12
+    build_url = "gs://path/file-release-12.zip"
+
+    existing_build = build_manager.SystemBuild("system/bin/dir")
+    symbolized_build = build_manager.SymbolizedBuild(
+        base_dir, revision, build_url, None, existing_build)
+
+    self.assertFalse(symbolized_build.reuse_release_build)
+
+  def test_reuse_release_build_wrong_base(self):
+    """Check reuse_release_build is false when the existing build has a
+    different base_build_dir.
+    """
+    base_dir = "base/build/dir"
+    revision = 12
+    build_url = "gs://path/file-release-12.zip"
+
+    existing_build = build_manager.RegularBuild("wrong/build/dir", revision,
+                                                build_url)
+    symbolized_build = build_manager.SymbolizedBuild(
+        base_dir, revision, build_url, None, existing_build)
+
+    self.assertFalse(symbolized_build.reuse_release_build)
+
+  def test_reuse_release_build_wrong_url(self):
+    """Check reuse_release_build is false when the existing build has a
+    different build_url.
+    """
+    base_dir = "base/build/dir"
+    revision = 12
+    build_url = "gs://path/file-release-12.zip"
+
+    existing_build = build_manager.RegularBuild(base_dir, revision,
+                                                "gs://path/file-debug-12.zip")
+    symbolized_build = build_manager.SymbolizedBuild(
+        base_dir, revision, build_url, None, existing_build)
+
+    self.assertFalse(symbolized_build.reuse_release_build)
+
+  def test_reuse_release_build_wrong_revision(self):
+    """Check reuse_release_build is false when the existing build has a
+    different revision.
+    """
+    base_dir = "base/build/dir"
+    revision = 12
+    build_url = "gs://path/file-release.zip"
+
+    existing_build = build_manager.RegularBuild(base_dir, 1337, build_url)
+    symbolized_build = build_manager.SymbolizedBuild(
+        base_dir, revision, build_url, None, existing_build)
+
+    self.assertFalse(symbolized_build.reuse_release_build)
+
 
 class ProductionBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for production build setup."""
