@@ -775,6 +775,8 @@ class SymbolizedBuild(Build):
       downloaded, if any.
     debug_build_url (Optional[str]): The URL from which the debug build is
       downloaded, if any.
+    reuse_release_build (bool): Whether the release build is re-used from an
+      existing build instead of downloaded anew.
   """
 
   def __init__(self,
@@ -823,6 +825,10 @@ class SymbolizedBuild(Build):
   @property
   def build_dir(self):
     return self._build_dir
+
+  @property
+  def reuse_release_build(self):
+    return self._reuse_release_build
 
   def _unpack_builds(self):
     """Download and unpack builds."""
