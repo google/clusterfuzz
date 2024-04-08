@@ -102,8 +102,8 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class TestCheckExtremeRevisions(unittest.TestCase):
-  """Test check_latest_revisions and check_earliest_revisions."""
+class TestCheckLatestRevisions(unittest.TestCase):
+  """Test check_latest_revisions."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -180,12 +180,45 @@ class TestCheckExtremeRevisions(unittest.TestCase):
 
     self.assertIsNone(result)
 
+
+@test_utils.with_cloud_emulators('datastore')
+class TestFindEarliestGoodRevision(unittest.TestCase):
+  """Test find_earliest_good_revision."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.regression_task.save_regression_range',
+        'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
+    ])
+
+    # Keep a dummy test case. Values are not important, but we need an id.
+    self.testcase = data_types.Testcase()
+    self.testcase.put()
+
+    self.revision_list = [1, 2, 5, 8, 9, 12, 15, 19, 21, 22]
+    self.reproduces_in_revision = lambda revision: (True, None)
+    self.mock._testcase_reproduces_in_revision.side_effect = (
+        self._testcase_reproduces)
+
+  def _testcase_reproduces(self,
+                           testcase,
+                           testcase_file_path,
+                           job_type,
+                           revision,
+                           fuzz_target,
+                           regression_task_output,
+                           should_log=True,
+                           min_revision=None,
+                           max_revision=None):
+    """Mock for `regression_task._testcase_reproduces_in_revision()`."""
+    return self.reproduces_in_revision(revision)
+
   def test_regressed_at_min_revision(self):
-    """Ensures that `check_earliest_revisions` returns a result if we reproduce
+    """Ensures that `find_earliest_good_revision` returns a result if we reproduce
     in the earliest revision.
     """
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    result = regression_task.check_earliest_revisions(
+    result = regression_task.find_earliest_good_revision(
         self.testcase, '/a/b', 'job_name', self.revision_list, None,
         regression_task_output)
 
@@ -194,7 +227,7 @@ class TestCheckExtremeRevisions(unittest.TestCase):
     self.assertEqual(result.regression_task_output.regression_range_end, 1)
 
   def test_regressed_near_min_revision(self):
-    """Ensures that `check_earliest_revisions` returns a result if we reproduce
+    """Ensures that `find_earliest_good_revision` returns a result if we reproduce
     in the earliest good revision.
     """
 
@@ -208,7 +241,7 @@ class TestCheckExtremeRevisions(unittest.TestCase):
     self.reproduces_in_revision = repros
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    result = regression_task.check_earliest_revisions(
+    result = regression_task.find_earliest_good_revision(
         self.testcase, '/a/b', 'job_name', self.revision_list, None,
         regression_task_output)
 
@@ -217,13 +250,13 @@ class TestCheckExtremeRevisions(unittest.TestCase):
     self.assertEqual(result.regression_task_output.regression_range_end, 5)
 
   def test_earliest_revisions_all_good(self):
-    """Ensures that `check_earliest_revisions` returns None if none of the
+    """Ensures that `find_earliest_good_revision` returns None if none of the
     earliest revisions crash.
     """
     self.reproduces_in_revision = lambda revision: (revision > 10, None)
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    result = regression_task.check_earliest_revisions(
+    result = regression_task.find_earliest_good_revision(
         self.testcase, '/a/b', 'job_name', self.revision_list, None,
         regression_task_output)
 
