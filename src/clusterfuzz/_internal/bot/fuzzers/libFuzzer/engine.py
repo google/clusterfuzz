@@ -521,6 +521,7 @@ class Engine(engine.Engine):
         artifact_prefix=reproducers_dir,
         merge_control_file=getattr(self, '_merge_control_file', None))
 
+    logs.log('Merge completed.', fuzzer_output=result.output)
     if result.timed_out:
       logs.log_error(
           'Merging new testcases timed out.', fuzzer_output=result.output)
@@ -528,7 +529,8 @@ class Engine(engine.Engine):
 
     if result.return_code != 0:
       logs.log_error(
-          'Merging new testcases timed out.', fuzzer_output=result.output)
+          f'Merging new testcases failed with error code {result.return_code}',
+          fuzzer_output=result.output)
       raise MergeError('Merging new testcases failed.')
 
     merge_output = result.output
