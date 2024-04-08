@@ -418,13 +418,15 @@ class Build(BaseBuild):
     # Track time taken to unpack builds so that it doesn't silently regress.
     start_time = time.time()
 
+    logs.log(f'Unpacking build from {build_url} into {build_dir}.')
+
     # Free up memory.
     utils.python_gc()
 
     # Remove the current build.
-    logs.log('Removing build directory %s.' % build_dir)
+    logs.log(f'Removing build directory {build_dir}.')
     if not shell.remove_directory(build_dir, recreate=True):
-      logs.log_error('Unable to clear build directory %s.' % build_dir)
+      logs.log_error(f'Unable to clear build directory {build_dir}.')
       _handle_unrecoverable_error_on_windows()
       return False
 
@@ -440,11 +442,11 @@ class Build(BaseBuild):
           'Failed to make space for download. '
           'Cleared all data directories to free up space, exiting.')
 
-    logs.log('Downloading build from url %s.' % build_url)
+    logs.log(f'Downloading build from {build_url}.')
     try:
       storage.copy_file_from(build_url, build_local_archive)
-    except:
-      logs.log_error('Unable to download build url %s.' % build_url)
+    except Exception as e:
+      logs.log_error(f'Unable to download build from {build_url}: {e}')
       return False
 
     try:
@@ -479,13 +481,15 @@ class Build(BaseBuild):
               'Cleared all data directories to free up space, exiting.')
 
         # Unpack the local build archive.
-        logs.log('Unpacking build archive %s.' % build_local_archive)
+        logs.log(
+            f'Unpacking build archive {build_local_archive} to {build_dir}.')
         trusted = not utils.is_oss_fuzz()
 
         build.unpack(
             build_dir=build_dir, fuzz_target=fuzz_target, trusted=trusted)
-    except:
-      logs.log_error(f'Unable to open build archive {build_local_archive}.')
+    except Exception as e:
+      logs.log_error(
+          f'Unable to unpack build archive {build_local_archive}: {e}')
       return False
 
     if unpack_everything:
@@ -503,10 +507,10 @@ class Build(BaseBuild):
     # No point in keeping the archive around.
     shell.remove_file(build_local_archive)
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
+    elapsed_time = time.time() - start_time
+    elapsed_mins = elapsed_time / 60.
     log_func = logs.log_warn if elapsed_time > UNPACK_TIME_LIMIT else logs.log
-    log_func('Build took %0.02f minutes to unpack.' % (elapsed_time / 60.))
+    log_func(f'Build took {elapsed_mins:0.02f} minutes to unpack.')
 
     return True
 
@@ -649,7 +653,7 @@ class RegularBuild(Build):
     self._pre_setup()
     environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
 
-    logs.log(f'Retrieving build r{self.revision}.')
+    logs.log(f'Retrieving build r{self.revision} from {self.build_url}.')
     build_update = not self.exists()
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
