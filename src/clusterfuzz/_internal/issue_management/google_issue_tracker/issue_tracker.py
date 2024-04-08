@@ -17,6 +17,9 @@
 
 import datetime
 import enum
+from typing import List
+from typing import Optional
+from typing import Sequence
 import urllib.parse
 
 from google.auth import exceptions
@@ -32,6 +35,10 @@ _ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
 _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
+
+_SEVERITY_LABEL_PREFIX = 'Security_Severity-'
+
+_DEFAULT_SEVERITY = 'S4'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -53,7 +60,8 @@ class IssueTrackerPermissionError(IssueTrackerError):
   """Permission error."""
 
 
-def _extract_all_labels(labels, prefix):
+def _extract_all_labels(labels: issue_tracker.LabelStore,
+                        prefix: str) -> List[str]:
   """Extract all label values."""
   results = []
   labels_to_remove = []
@@ -67,7 +75,7 @@ def _extract_all_labels(labels, prefix):
   return results
 
 
-def _sanitize_oses(oses):
+def _sanitize_oses(oses: List[str]):
   """Sanitize the OS custom field values.
 
   The OS custom field no longer has the 'Chrome' value.
@@ -78,7 +86,8 @@ def _sanitize_oses(oses):
       oses[i] = 'ChromeOS'
 
 
-def _extract_label(labels, prefix):
+def _extract_label(labels: issue_tracker.LabelStore,
+                   prefix: str) -> Optional[str]:
   """Extract a label value."""
   for label in labels:
     if not label.startswith(prefix):
@@ -89,14 +98,49 @@ def _extract_label(labels, prefix):
   return None
 
 
-def _get_labels(labels_dict, prefix):
-  """Return all label values from labels.added or labels.removed"""
+def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
+  """Return the values of all labels with the given prefix."""
   results = []
-  for label in labels_dict:
+  for label in labels:
     if not label.startswith(prefix):
       continue
     results.append(label[len(prefix):])
   return results
+
+
+def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
+  """Return the value of the first severity label, if any."""
+  # Ignore case to match `issue_tracker.LabelStore.remove_by_prefix()`.
+  values = _get_labels((l.lower() for l in labels),
+                       _SEVERITY_LABEL_PREFIX.lower())
+  if not values:
+    return None
+
+  if len(values) > 1:
+    extra = ','.join(values[1:])
+    logs.log_error(
+        f'google_issue_tracker: ignoring additional severity labels: [{extra}]')
+
+  value = values[0]
+  severity = _get_severity_from_label_value(value)
+  logs.log(
+      f'google_issue_tracker: severity label = {value}, field = {severity}')
+  return severity
+
+
+def _get_severity_from_label_value(value):
+  """Convert a severity label value into a Google issue tracker severity."""
+  value = value.lower()
+  if value == 'critical':
+    return 'S0'
+  if value == 'high':
+    return 'S1'
+  if value == 'medium':
+    return 'S2'
+  if value == 'low':
+    return 'S3'
+  # Default case.
+  return _DEFAULT_SEVERITY
 
 
 class Issue(issue_tracker.Issue):
@@ -408,6 +452,9 @@ class Issue(issue_tracker.Issue):
     else:
       removed.append(api_field_name)
 
+  def _set_severity(self, severity: str):
+    self._data['issueState']['severity'] = severity
+
   def _add_update_collection(self,
                              update_body,
                              added,
@@ -532,6 +579,13 @@ class Issue(issue_tracker.Issue):
     # hotlist IDs.
     self.labels.remove_by_prefix('FoundIn-')
 
+    severity = _get_severity_from_labels(self.labels.added)
+    if severity is not None:
+      self._set_severity(severity)
+      added.append('severity')
+      update_body['add']['severity'] = severity
+      self.labels.remove_by_prefix(_SEVERITY_LABEL_PREFIX)
+
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -625,10 +679,9 @@ class Issue(issue_tracker.Issue):
       if foundin_values:
         self._data['issueState']['foundInVersions'] = foundin_values
 
-      severity_text = _extract_label(self.labels, 'Security_Severity-')
-      logs.log('google_issue_tracker: severity_text: %s' % severity_text)
-      severity = _get_severity_from_crash_text(severity_text)
-      self._data['issueState']['severity'] = severity
+      severity = _get_severity_from_labels(self.labels) or _DEFAULT_SEVERITY
+      self._set_severity(severity)
+      self.labels.remove_by_prefix(_SEVERITY_LABEL_PREFIX)
 
       # Make sure self.labels contains only hotlist IDs.
       self._filter_labels()
@@ -962,20 +1015,6 @@ def _get_query(keywords, only_open):
   if only_open:
     query += ' status:open'
   return query
-
-
-def _get_severity_from_crash_text(crash_severity_text):
-  """Get Google issue tracker severity from crash severity text."""
-  if crash_severity_text == 'Critical':
-    return 'S0'
-  if crash_severity_text == 'High':
-    return 'S1'
-  if crash_severity_text == 'Medium':
-    return 'S2'
-  if crash_severity_text == 'Low':
-    return 'S3'
-  # Default case.
-  return 'S4'
 
 
 # Uncomment for local testing. Will need access to a service account for these
