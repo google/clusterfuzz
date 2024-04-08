@@ -159,6 +159,9 @@ def check_latest_revisions(
 
   The last revision in `revision_range` is assumed to crash.
 
+  Adds information about any bad builds encountered while running to
+  `output.build_data_list`.
+
   Returns:
     An output proto if the regression was found or in case of error.
     None otherwise, i.e. if all most recent revisions crash, in which case
@@ -199,6 +202,9 @@ def check_earliest_revisions(
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Check that the earliest good build does not crash.
+
+  Adds information about any bad builds encountered while running to
+  `regression_task_output.build_data_list`.
 
   Returns:
     None if one of the earliest builds is good and does not crash.
