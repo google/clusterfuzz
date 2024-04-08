@@ -180,6 +180,25 @@ class TestCheckExtremeRevisions(unittest.TestCase):
 
     self.assertIsNone(result)
 
+  def test_skip_latest_bad_builds(self):
+    """Ensures that `check_latest_revisions` skips bad builds."""
+
+    def repros(revision):
+      if revision > 19:
+        return False, uworker_msg_pb2.Output(
+            error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)
+
+      return True, None
+
+    self.reproduces_in_revision = repros
+
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    result = regression_task.check_latest_revisions(
+        self.testcase, '/a/b', 'job_name', self.revision_list, None,
+        regression_task_output)
+
+    self.assertIsNone(result)
+
   def test_regressed_at_min_revision(self):
     """Ensures that `check_earliest_revisions` returns a result if we reproduce
     in the earliest revision.
