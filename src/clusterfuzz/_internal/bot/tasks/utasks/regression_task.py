@@ -205,8 +205,17 @@ def find_earliest_good_revision(
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Finds the earliest good build and checks if it crashes.
 
-  Adds information about any bad builds encountered while running to
-  `regression_task_output.build_data_list`.
+  Args:
+    testcase: Passed to `_testcase_reproduces_in_revision()`.
+    testcase_file_path: Passed to `_testcase_reproduces_in_revision()`.
+    job_type: Passed to `_testcase_reproduces_in_revision()`.
+    fuzz_target: Passed to `_testcase_reproduces_in_revision()`.
+    revision_range: The range of revisions in which to search. Must not be
+      empty. It is assumed that the last element / max revision is good and
+      crashes.
+    regression_task_output: Output argument. Any bad builds encountered while
+      searching for the earliest good build are appended to `build_data_list`.
+      See also below for values set in different return conditions.
 
   Returns:
     None if the earliest good build does not crash, in which case
@@ -219,13 +228,8 @@ def find_earliest_good_revision(
        - `regression_task_output.regression_range_end` is set to that revision
     b. An error occurred.
   """
-  # Test to see if we crash in the oldest revision we can run. This is a pre-
-  # condition for our binary search. If we do crash in that revision, it
-  # implies that we regressed between the first commit and our first revision,
-  # which we represent as 0:|min_revision|.
-
-  revision_range = revision_range[:EXTREME_REVISIONS_TO_TEST]
-  for revision in revision_range:
+  # Skip over the max revision, which is assumed to be good and crash.
+  for revision in revision_range[:-1]:
     is_crash, error = _testcase_reproduces_in_revision(
         testcase,
         testcase_file_path,
@@ -242,24 +246,22 @@ def find_earliest_good_revision(
       return error
 
     if is_crash:
+      # The first good build crashes.
       regression_task_output.regression_range_start = 0
       regression_task_output.regression_range_end = revision
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           regression_task_output=regression_task_output)
 
+    # The first good build does not crash.
+    regression_task_output.last_regression_min = revision
     return None
 
-  # We should have returned above. If we get here, it means we tried too many
-  # builds near the min revision, and they were all bad.
-
-  bad_revisions = ','.join(f'r{revision}' for revision in revision_range)
-  logs.error(
-      'Tried too many builds near the min revision, and they were all bad: ' +
-      f'[{bad_revisions}]')
-
-  return uworker_msg_pb2.Output(  # pylint: disable=no-member
-      regression_task_output=regression_task_output,
-      error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)  # pylint: disable=no-member
+  # If we get here, it means all builds except the max were bad. In other words,
+  # the first good build crashes.
+  regression_task_output.regression_range_start = 0
+  regression_task_output.regression_range_end = revision_range[-1]
+  return uworker_msg_pb2.Output(
+      regression_task_output=regression_task_output)  # pylint: disable=no-member
 
 
 def validate_regression_range(
