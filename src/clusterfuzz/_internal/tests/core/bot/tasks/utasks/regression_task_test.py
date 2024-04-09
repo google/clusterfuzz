@@ -191,7 +191,11 @@ class TestFindEarliestGoodRevision(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.regression_task.save_regression_range',
         'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
+        'time.time',
     ])
+
+    self.mock.time.return_value = 0.
+    self.deadline = 1.
 
     # Keep a dummy test case. Values are not important, but we need an id.
     self.testcase = data_types.Testcase()
@@ -222,7 +226,7 @@ class TestFindEarliestGoodRevision(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.find_earliest_good_revision(
         self.testcase, '/a/b', 'job_name', self.revision_list, None,
-        regression_task_output)
+        self.deadline, regression_task_output)
 
     self.assertIsNotNone(result)
     self.assertEqual(result.regression_task_output.regression_range_start, 0)
@@ -245,7 +249,7 @@ class TestFindEarliestGoodRevision(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.find_earliest_good_revision(
         self.testcase, '/a/b', 'job_name', self.revision_list, None,
-        regression_task_output)
+        self.deadline, regression_task_output)
 
     self.assertIsNotNone(result)
     self.assertEqual(result.regression_task_output.regression_range_start, 0)
@@ -260,7 +264,7 @@ class TestFindEarliestGoodRevision(unittest.TestCase):
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.find_earliest_good_revision(
         self.testcase, '/a/b', 'job_name', self.revision_list, None,
-        regression_task_output)
+        self.deadline, regression_task_output)
 
     self.assertIsNone(result)
 
