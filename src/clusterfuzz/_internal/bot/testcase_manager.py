@@ -1197,7 +1197,9 @@ def check_for_bad_build(job_type: str,
         crash_result.get_stacktrace(symbolized=True),
         crash_result.get_stacktrace(symbolized=False))
     logs.log(
-        'Bad build for %s detected at r%d.' % (job_type, crash_revision),
+        f'Bad build for {job_type} detected at r{crash_revision}: ' +
+        f'return code = {return_code}, crash type = {crash_result.get_type()}',
+        raw_output=output,
         output=build_run_console_output)
 
   # Exit all running instances.
