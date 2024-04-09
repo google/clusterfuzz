@@ -267,8 +267,13 @@ class Engine(engine.Engine):
           f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
           f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
 
-    runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
-    result = runner.run_and_wait(timeout=max_time)
+    if environment.get_value('FUZZTEST_MODE'):
+      runner = new_process.UnicodeProcessRunner(sanitized_target)
+      result = runner.run_and_wait(
+          timeout=max_time, extra_env={'FUZZTEST_REPLAY': input_path})
+    else:
+      runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
+      result = runner.run_and_wait(timeout=max_time)
 
     if existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
