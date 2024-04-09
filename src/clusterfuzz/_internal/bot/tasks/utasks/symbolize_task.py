@@ -107,7 +107,7 @@ def utask_main(uworker_input):
     build_revision = testcase.crash_revision
 
   # Set up a custom or regular build based on revision.
-  build_manager.setup_build(build_revision)
+  build = build_manager.setup_build(build_revision)
 
   # Get crash revision used in setting up build.
   crash_revision = environment.get_value('APP_REVISION')
@@ -157,6 +157,10 @@ def utask_main(uworker_input):
           break
 
       redzone /= 2
+
+  # We no longer need this build, delete it to save some disk space. We will
+  # download a symbolized release build to perform the symbolization.
+  build.delete()
 
   # We should have atleast a symbolized debug or a release build.
   symbolized_builds = build_manager.setup_symbolized_builds(crash_revision)
