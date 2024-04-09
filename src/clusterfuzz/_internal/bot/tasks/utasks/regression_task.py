@@ -159,17 +159,24 @@ def check_latest_revisions(
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Check if the regression happened near the last revision in a range.
 
-  The last revision in `revision_range` is assumed to crash.
-
-  Adds information about any bad builds encountered while running to
-  `output.build_data_list`.
+  Args:
+    testcase: Passed to `_testcase_reproduces_in_revision()`.
+    testcase_file_path: Passed to `_testcase_reproduces_in_revision()`.
+    job_type: Passed to `_testcase_reproduces_in_revision()`.
+    fuzz_target: Passed to `_testcase_reproduces_in_revision()`.
+    revision_range: The range of revisions in which to search. Must not be
+      empty. It is assumed that the last element / max revision is good and
+      crashes.
+    output: Output argument. Any bad builds encountered while searching for the
+      latest passing revision are appended to `build_data_list`.
+      See also below for values set in different return conditions.
 
   Returns:
     An output proto if the regression was found or in case of error.
-    None otherwise, i.e. if all most recent revisions crash, in which case
-    `output.build_data_list` contains details about all tested revisions.
+    None otherwise, in which case `output.last_regression_max` is set to the
+    lowest revision which reproduces the crash - at most `revision_range[-1]`.
   """
-  last_known_crashing_revision = revision_range[-1]
+  output.last_regression_max = revision_range[-1]
 
   for revision in reversed(revision_range[-EXTREME_REVISIONS_TO_TEST - 1:-1]):
     # If we don't crash in a recent revision, we regressed in one of the
@@ -186,10 +193,10 @@ def check_latest_revisions(
     if not is_crash:
       # We've found the latest passing revision, no need to binary search.
       output.regression_range_start = revision
-      output.regression_range_end = last_known_crashing_revision
+      output.regression_range_end = output.last_regression_max
       return uworker_msg_pb2.Output(regression_task_output=output)  # pylint: disable=no-member
 
-    last_known_crashing_revision = revision
+    output.last_regression_max = revision
 
   # All most recent revisions crash.
   return None
@@ -331,7 +338,9 @@ def find_regression_range(
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
   max_revision = testcase.get_metadata('last_regression_max')
-  first_run = not min_revision and not max_revision
+  had_last_regression_min = min_revision is not None
+  had_last_regression_max = max_revision is not None
+
   if not min_revision:
     min_revision = revisions.get_first_revision_in_list(revision_list)
   if not max_revision:
@@ -375,19 +384,21 @@ def find_regression_range(
   # If we've made it this far, the test case appears to be reproducible.
   regression_task_output.is_testcase_reproducible = True
 
-  # On the first run, check to see if we regressed near either the min or max
-  # revision.
-  if first_run:
-    revision_range = revision_list[min_index:max_index + 1]
+  if not had_last_regression_max:
     result = check_latest_revisions(testcase, testcase_file_path, job_type,
-                                    revision_range, fuzz_target,
-                                    regression_task_output)
+                                    revision_list[min_index:max_index + 1],
+                                    fuzz_target, regression_task_output)
     if result:
       return result
 
+    # If we used slices below instead of indices, we could avoid having to
+    # perform this lookup.
+    max_index = revision_list.index(regression_task_output.last_regression_max)
+
+  if not had_last_regression_min:
     result = find_earliest_good_revision(testcase, testcase_file_path, job_type,
-                                         revision_range, fuzz_target,
-                                         regression_task_output)
+                                         revision_list[min_index:max_index + 1],
+                                         fuzz_target, regression_task_output)
     if result:
       return result
 
