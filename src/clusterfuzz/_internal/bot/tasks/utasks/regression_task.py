@@ -208,6 +208,7 @@ def find_earliest_good_revision(
     job_type: str,
     revision_range: List[int],
     fuzz_target: Optional[data_types.FuzzTarget],
+    deadline: float,
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Finds the earliest good build and checks if it crashes.
@@ -228,15 +229,25 @@ def find_earliest_good_revision(
     None if the earliest good build does not crash, in which case
     `regression_task_output.last_regression_min` is set to that revision.
 
-    An output proto otherwise, which means one of two things:
+    An output proto otherwise, which means one of three things:
 
     a. The earliest good build crashes, in which case:
        - `regression_task_output.regression_range_start` is set to 0
        - `regression_task_output.regression_range_end` is set to that revision
-    b. An error occurred.
+    b. We timed out, in which case `regression_task_output.last_regression_min`
+       is set to the next revision that should be checked.
+    b. Some other error occurred.
   """
   # Skip over the max revision, which is assumed to be good and crash.
   for revision in revision_range[:-1]:
+    # In case we time out, next time we should start from here.
+    regression_task_output.last_regression_min = revision
+
+    if time.time() > deadline:
+      return uworker_msg_pb2.Output(
+          error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,
+          regression_task_output=regression_task_output)
+
     is_crash, error = _testcase_reproduces_in_revision(
         testcase,
         testcase_file_path,
@@ -260,7 +271,6 @@ def find_earliest_good_revision(
           regression_task_output=regression_task_output)
 
     # The first good build does not crash.
-    regression_task_output.last_regression_min = revision
     return None
 
   # If we get here, it means all builds except the max were bad. In other words,
@@ -398,9 +408,14 @@ def find_regression_range(
   if not had_last_regression_min:
     result = find_earliest_good_revision(testcase, testcase_file_path, job_type,
                                          revision_list[min_index:max_index + 1],
-                                         fuzz_target, regression_task_output)
+                                         fuzz_target, deadline,
+                                         regression_task_output)
     if result:
       return result
+
+    # If we used slices below instead of indices, we could avoid having to
+    # perform this lookup.
+    min_index = revision_list.index(regression_task_output.last_regression_min)
 
   while time.time() < deadline:
     min_revision = revision_list[min_index]
