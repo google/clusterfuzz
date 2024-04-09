@@ -160,6 +160,7 @@ class TestCheckLatestRevisions(unittest.TestCase):
         regression_task_output)
 
     self.assertIsNone(result)
+    self.assertEqual(regression_task_output.last_regression_max, 15)
 
   def test_skip_latest_bad_builds(self):
     """Ensures that `check_latest_revisions` skips bad builds."""
@@ -179,6 +180,7 @@ class TestCheckLatestRevisions(unittest.TestCase):
         regression_task_output)
 
     self.assertIsNone(result)
+    self.assertEqual(regression_task_output.last_regression_max, 15)
 
 
 @test_utils.with_cloud_emulators('datastore')
