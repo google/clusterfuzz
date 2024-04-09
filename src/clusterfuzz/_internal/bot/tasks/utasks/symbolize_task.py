@@ -140,9 +140,10 @@ def utask_main(uworker_input):
         security_flag = crash_result.is_security_issue()
 
         if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
-          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
-                   'stack trace should be ignored.',
-                   stacktrace=state.crash_stacktrace)
+          logs.log(
+              f'Skipping crash with ASAN redzone size {redzone}: ' +
+              'stack trace should be ignored.',
+              stacktrace=state.crash_stacktrace)
         elif security_flag != testcase.security_flag:
           logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
                    f'mismatched security flag: old = {testcase.security_flag}, '
