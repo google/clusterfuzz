@@ -91,7 +91,6 @@ def utask_main(uworker_input):
   # Initialize variables.
   old_crash_stacktrace = (
       uworker_input.symbolize_task_input.old_crash_stacktrace)
-  sym_crash_type = testcase.crash_type
   sym_crash_address = testcase.crash_address
   sym_crash_state = testcase.crash_state
   sym_redzone = DEFAULT_REDZONE
@@ -123,6 +122,8 @@ def utask_main(uworker_input):
   if environment.tool_matches('ASAN', job_type) and testcase.security_flag:
     redzone = MAX_REDZONE
     while redzone >= MIN_REDZONE:
+      logs.log(f'Trying to reproduce crash with ASAN redzone size {redzone}.')
+
       environment.reset_current_memory_tool_options(
           redzone_size=testcase.redzone, disable_ubsan=testcase.disable_ubsan)
 
@@ -138,22 +139,33 @@ def utask_main(uworker_input):
         state = crash_result.get_symbolized_data()
         security_flag = crash_result.is_security_issue()
 
-        if (not crash_analyzer.ignore_stacktrace(state.crash_stacktrace) and
-            security_flag == testcase.security_flag and
-            state.crash_type == testcase.crash_type and
-            (state.crash_type != sym_crash_type or
-             state.crash_state != sym_crash_state)):
-          logs.log('Changing crash parameters.\nOld : %s, %s, %s' %
-                   (sym_crash_type, sym_crash_address, sym_crash_state))
+        if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
+          logs.log(
+              f'Skipping crash with ASAN redzone size {redzone}: ' +
+              'stack trace should be ignored.',
+              stacktrace=state.crash_stacktrace)
+        elif security_flag != testcase.security_flag:
+          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
+                   f'mismatched security flag: old = {testcase.security_flag}, '
+                   f'new = {security_flag}')
+        elif state.crash_type != testcase.crash_type:
+          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
+                   f'mismatched crash type: old = {testcase.crash_type}, '
+                   f'new = {state.crash_type}')
+        elif state.crash_state == sym_crash_state:
+          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
+                   f'same crash state = {sym_crash_state}')
+        else:
+          logs.log(f'Using crash with larger ASAN redzone size {redzone}: ' +
+                   f'old crash address = {sym_crash_address}, ' +
+                   f'new crash address = {state.crash_address}, ' +
+                   f'old crash state = {sym_crash_state}, ' +
+                   f'new crash state = {state.crash_state}')
 
-          sym_crash_type = state.crash_type
           sym_crash_address = state.crash_address
           sym_crash_state = state.crash_state
           sym_redzone = redzone
           old_crash_stacktrace = state.crash_stacktrace
-
-          logs.log('\nNew : %s, %s, %s' % (sym_crash_type, sym_crash_address,
-                                           sym_crash_state))
           break
 
       redzone /= 2
@@ -188,7 +200,7 @@ def utask_main(uworker_input):
                                  old_crash_stacktrace, sym_crash_state))
 
   symbolize_task_output = uworker_msg_pb2.SymbolizeTaskOutput(
-      crash_type=sym_crash_type,
+      crash_type=testcase.crash_type,
       crash_address=sym_crash_address,
       crash_state=sym_crash_state,
       crash_stacktrace=(data_handler.filter_stacktrace(sym_crash_stacktrace)),
