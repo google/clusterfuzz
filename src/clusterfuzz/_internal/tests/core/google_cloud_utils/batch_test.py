@@ -38,7 +38,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
         user_data='file://linux-init.yaml',
         disk_size_gb=110,
         disk_type='pd-standard',
-        service_account_email='test-unpriv-clusterfuzz-service-account-email',
+        service_account_email='test-clusterfuzz-service-account-email',
         subnetwork=None,
         gce_zone='gce-zone',
         project='test-clusterfuzz',

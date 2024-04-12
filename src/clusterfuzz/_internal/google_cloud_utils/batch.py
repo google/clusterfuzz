@@ -58,10 +58,12 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
 ])
 
 _UNPRIVILEGED_TASKS = {
-    'analyze', 'corpus_pruning', 'symbolize', 'regression', 'variant',
-    'minimize', 'progression'
+    'analyze', 'symbolize', 'regression', 'variant', 'minimize', 'progression'
 }
-_PRIVILEGED_JOBS = {'linux_asan_chrome_media', 'linux_d8_dbg_cm'}
+_PRIVILEGED_JOBS = {
+    'linux_d8_dbg_cm',
+    'centipede_v8_asan_dbg_custom',
+}
 
 
 def _create_batch_client_new():
