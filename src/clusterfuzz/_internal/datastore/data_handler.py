@@ -1113,6 +1113,8 @@ def update_task_status(task_name, status, expiry_interval=None):
 def update_heartbeat(force_update=False):
   """Updates heartbeat with current timestamp and log data."""
   # Check if the heartbeat was recently updated. If yes, bail out.
+  if is_uworker():
+    return 0
   last_modified_time = persistent_cache.get_value(
       HEARTBEAT_LAST_UPDATE_KEY, constructor=datetime.datetime.utcfromtimestamp)
   if (not force_update and last_modified_time and not dates.time_has_expired(
