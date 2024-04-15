@@ -118,6 +118,7 @@ _FUZZER_JOB_FIELDS = [
     'platform',
     'weight',
     'multiplier',
+    'actual_weight',
 ]
 
 
@@ -130,6 +131,7 @@ def _fuzzer_job_to_dict(
       'platform': fuzzer_job.platform,
       'weight': fuzzer_job.weight,
       'multiplier': fuzzer_job.multiplier,
+      'actual_weight': fuzzer_job.actual_weight,
   }
 
 
