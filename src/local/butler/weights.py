@@ -35,12 +35,6 @@ from src.clusterfuzz._internal.datastore import data_types
 from src.clusterfuzz._internal.datastore import ndb_init
 
 
-class EntryType(enum.Enum):
-  FUZZER_JOB = 'fuzzer_job'
-  FUZZER_JOBS = 'fuzzer_jobs'
-  FUZZ_TARGET_JOB = 'fuzz_target_job'
-
-
 def _iter_weights(
     fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> Sequence[float]:
   for fj in fuzzer_jobs:
@@ -163,11 +157,25 @@ def _dump_fuzzer_jobs_batches() -> None:
       writer.writerow(fields)
 
 
-def _query_fuzz_target_jobs() -> Sequence[data_types.FuzzTargetJob]:
-  return data_types.FuzzTargetJob.query()
+def _query_fuzz_target_jobs(
+    targets: Optional[Sequence[str]] = None,
+    jobs: Optional[Sequence[str]] = None,
+    engines: Optional[Sequence[str]] = None,
+) -> Sequence[data_types.FuzzTargetJob]:
+  query = data_types.FuzzTargetJob.query()
+
+  if targets:
+    query = query.filter(data_types.FuzzTargetJob.fuzz_target_name.IN(targets))
+  if jobs:
+    query = query.filter(data_types.FuzzTargetJob.job.IN(jobs))
+  if engines:
+    query = query.filter(data_types.FuzzTargetJob.engine.IN(engines))
+
+  return query
 
 
-def _dump_fuzz_target_jobs() -> None:
+def _dump_fuzz_target_jobs(
+    fuzz_target_jobs: Sequence[data_types.FuzzTargetJob]) -> None:
   """Dumps FuzzTargetJob entries from the database to stdout in CSV format."""
   entries = _query_fuzz_target_jobs()
 
@@ -182,7 +190,7 @@ def _dump_fuzz_target_jobs() -> None:
       ])
   writer.writeheader()
 
-  for entry in entries:
+  for entry in fuzz_target_jobs:
     writer.writerow({
         'fuzz_target_name': entry.fuzz_target_name,
         'job': entry.job,
@@ -190,16 +198,6 @@ def _dump_fuzz_target_jobs() -> None:
         'weight': entry.weight,
         'last_run': entry.last_run,
     })
-
-
-def _dump_entries(entry_type: EntryType) -> None:
-  """Dumps entries of the given type from the database to stdout."""
-  if entry_type == EntryType.FUZZER_JOB:
-    _dump_fuzzer_jobs()
-  elif entry_type == EntryType.FUZZER_JOBS:
-    _dump_fuzzer_jobs_batches()
-  elif entry_type == EntryType.FUZZ_TARGET_JOB:
-    _dump_fuzz_target_jobs()
 
 
 def _fuzzer_job_matches(
@@ -270,23 +268,55 @@ def _aggregate_fuzzer_jobs(
   _print_stats(others, total_weight)
 
 
+def _execute_fuzzer_command(args) -> None:
+  cmd = args.fuzzer_command
+  if cmd == 'platforms':
+    list_platforms()
+  elif cmd == 'list':
+    #_dump_entries(EntryType(args.type))
+    _list_fuzzer_jobs(
+        _query_fuzzer_jobs(
+            platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs))
+  elif cmd == 'aggregate':
+    _aggregate_fuzzer_jobs(args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
+  else:
+    raise TypeError(f'weights fuzzer command {repr(cmd)} unrecognized')
+
+
+def _execute_fuzzer_batch_command(args) -> None:
+  cmd = args.fuzzer_batch_command
+  if cmd == 'list':
+    _dump_fuzzer_jobs_batches()
+  else:
+    raise TypeError(f'weights fuzzer-batch command {repr(cmd)} unrecognized')
+
+
+def _execute_fuzz_target_command(args) -> None:
+  cmd = args.fuzz_target_command
+  if cmd == 'list':
+    _dump_fuzz_target_jobs(
+        _query_fuzz_target_jobs(
+            targets=args.targets, jobs=args.jobs, engines=args.engines))
+  else:
+    raise TypeError(f'weights fuzz-target command {repr(cmd)} unrecognized')
+
+
+def _execute_command(args) -> None:
+  cmd = args.weights_command
+  if cmd == 'fuzzer':
+    _execute_fuzzer_command(args)
+  elif cmd == 'fuzzer-batch':
+    _execute_fuzzer_batch_command(args)
+  elif cmd == 'fuzz-target':
+    _execute_fuzz_target_command(args)
+  else:
+    raise TypeError(f'weights command {repr(cmd)} unrecognized')
+
+
 def execute(args) -> None:
   """Entrypoint from butler.py."""
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
   local_config.ProjectConfig().set_environment()
 
   with ndb_init.context():
-    cmd = args.weights_command
-    if cmd == 'platforms':
-      list_platforms()
-    elif cmd == 'dump':
-      _dump_entries(EntryType(args.type))
-    elif cmd == 'list':
-      _list_fuzzer_jobs(
-          _query_fuzzer_jobs(
-              platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs))
-    elif cmd == 'aggregate':
-      _aggregate_fuzzer_jobs(
-          args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
-    else:
-      raise TypeError(f'weights command {repr(cmd)} unrecognized')
+    _execute_command(args)

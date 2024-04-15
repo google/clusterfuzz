@@ -98,6 +98,90 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_weights_fuzzer_subparser(weights_subparsers):
+  parser = weights_subparsers.add_parser(
+      'fuzzer', help='Interact with FuzzerJob weights.')
+  subparsers = parser.add_subparsers(dest='fuzzer_command')
+
+  subparsers.add_parser(
+      'platforms', help='List distinct platform field values.')
+
+  list_parser = subparsers.add_parser('list', help='List FuzzerJob entries.')
+  list_parser.add_argument(
+      '-p',
+      '--platforms',
+      help='Which platforms to list entries for.',
+      nargs='+')
+  list_parser.add_argument(
+      '-f', '--fuzzers', help='Which fuzzers to list entries for.', nargs='+')
+  list_parser.add_argument(
+      '-j', '--jobs', help='Which jobs to list entries for.', nargs='+')
+  list_parser.add_argument(
+      '--format',
+      help='Output format.',
+      choices=['text', 'csv'],
+      default='text')
+
+  aggregate_parser = subparsers.add_parser(
+      'aggregate', help='Aggregate matching FuzzerJob entries.')
+  aggregate_parser.add_argument(
+      '-p', '--platform', help='Which platform to query.', required=True)
+  aggregate_parser.add_argument(
+      '-f', '--fuzzers', help='Which fuzzers to aggregate.', nargs='+')
+  aggregate_parser.add_argument(
+      '-j', '--jobs', help='Which jobs to aggregate.', nargs='+')
+
+
+def _add_weights_batches_subparser(weights_subparsers):
+  parser = weights_subparsers.add_parser(
+      'fuzzer-batch',
+      help='Interact with FuzzerJobs (FuzzerJob batches) weights.')
+  subparsers = parser.add_subparsers(dest='fuzzer_batch_command')
+
+  list_parser = subparsers.add_parser('list', help='List FuzzerJobs entries.')
+  list_parser.add_argument(
+      '-p',
+      '--platforms',
+      help='Which platforms to list entries for.',
+      nargs='+')
+  list_parser.add_argument(
+      '--format',
+      help='Output format.',
+      choices=['text', 'csv'],
+      default='text')
+
+
+def _add_weights_target_subparser(weights_subparsers):
+  parser = weights_subparsers.add_parser(
+      'fuzz-target', help='Interact with FuzzTargetJob weights.')
+  subparsers = parser.add_subparsers(dest='fuzz_target_command')
+
+  list_parser = subparsers.add_parser(
+      'list', help='List FuzzerTargetJob entries.')
+  list_parser.add_argument(
+      '-t',
+      '--targets',
+      help='Which fuzz target names to list entries for.',
+      nargs='+')
+  list_parser.add_argument(
+      '-j', '--jobs', help='Which jobs to list entries for.', nargs='+')
+  list_parser.add_argument(
+      '-e', '--engines', help='Which engine to list entries for.', nargs='+')
+
+
+def _add_weights_subparser(toplevel_subparsers):
+  parser = toplevel_subparsers.add_parser(
+      'weights', help='Interact with fuzzer/job weights.')
+
+  parser.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+
+  subparsers = parser.add_subparsers(dest='weights_command')
+  _add_weights_fuzzer_subparser(subparsers)
+  _add_weights_batches_subparser(subparsers)
+  _add_weights_target_subparser(subparsers)
+
+
 def main():
   """Parse the command-line args and invoke the right command."""
   parser = _ArgumentParser(
@@ -249,41 +333,7 @@ def main():
   subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')
 
-  parser_weights = subparsers.add_parser(
-      'weights', help='Interact with fuzzer/job weights.')
-  parser_weights.add_argument(
-      '-c', '--config-dir', required=True, help='Path to application config.')
-
-  weights_subparsers = parser_weights.add_subparsers(dest='weights_command')
-  weights_subparsers.add_parser('platforms', help='List platforms.')
-
-  weights_dump_parser = weights_subparsers.add_parser(
-      'dump', help='Dump database entries.')
-  weights_dump_parser.add_argument(
-      'type',
-      help='The type of entries to dump from the database.',
-      choices=['fuzzer_job', 'fuzzer_jobs', 'fuzz_target_job'])
-
-  weights_list_parser = weights_subparsers.add_parser(
-      'list', help='List FuzzerJob entries.')
-  weights_list_parser.add_argument(
-      '-p',
-      '--platforms',
-      help='Which platforms to list entries for.',
-      nargs='+')
-  weights_list_parser.add_argument(
-      '-f', '--fuzzers', help='Which fuzzers to list entries for.', nargs='+')
-  weights_list_parser.add_argument(
-      '-j', '--jobs', help='Which jobs to list entries for.', nargs='+')
-
-  weights_aggregate_parser = weights_subparsers.add_parser(
-      'aggregate', help='Aggregate matching FuzzerJob entries.')
-  weights_aggregate_parser.add_argument(
-      '-p', '--platform', help='Which platform to query.', required=True)
-  weights_aggregate_parser.add_argument(
-      '-f', '--fuzzers', help='Which fuzzers to aggregate.', nargs='+')
-  weights_aggregate_parser.add_argument(
-      '-j', '--jobs', help='Which jobs to aggregate.', nargs='+')
+  _add_weights_subparser(subparsers)
 
   args = parser.parse_args()
   if not args.command:
