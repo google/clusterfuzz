@@ -478,7 +478,7 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
   """Archive and store corpus as a backup.
 
   Args:
-    backup_bucket_name: Backup bucket.
+    dated_backup_signed_url: Signed url to upload the backup.
     corpus: uworker_msg.FuzzTargetCorpus.
     directory: Path to directory to be archived and backuped.
 

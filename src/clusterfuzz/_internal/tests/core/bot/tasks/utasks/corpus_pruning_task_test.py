@@ -251,7 +251,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertDictEqual(
         {
             'corpus_backup_location':
-                f'gs://{self.backup_bucket}/corpus/libFuzzer/test_fuzzer/{today}.zip',
+                uworker_input.corpus_pruning_task_input.dated_backup_gcs_url,
             'corpus_location':
                 'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
