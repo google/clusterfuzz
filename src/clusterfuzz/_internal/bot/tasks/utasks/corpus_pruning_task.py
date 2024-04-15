@@ -638,9 +638,9 @@ def do_corpus_pruning(context, revision):
                                         'regressions')
   if shell.get_directory_file_count(regressions_input_dir):
     shutil.copytree(regressions_input_dir, regressions_output_dir)
-  backup_succeeded = corpus_manager.backup_corpus(context.dated_backup_gcs_url,
-                                                  context.corpus,
-                                                  context.minimized_corpus_path)
+  backup_succeeded = corpus_manager.backup_corpus(
+      context.dated_backup_signed_url, context.corpus,
+      context.minimized_corpus_path)
   corpus_backup_location = (
       context.dated_backup_gcs_url if backup_succeeded else None)
   shell.remove_directory(regressions_output_dir)

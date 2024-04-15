@@ -313,7 +313,7 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
 
   def _mock_make_archive(self, archive_path, backup_format, _):
     path = archive_path + '.' + backup_format
-    self.fs.create_file(path)
+    self.fs.create_file(file_path=path, contents='archive contents...')
 
     return path
 
@@ -329,14 +329,12 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_blob',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url',
         'multiprocessing.cpu_count',
         'shutil.make_archive',
     ])
 
-    self.mock.copy_blob.return_value = True
-    self.mock.copy_file_to.return_value = True
+    self.mock.upload_signed_url.return_value = True
     self.mock.cpu_count.return_value = 2
     self.mock.make_archive.side_effect = self._mock_make_archive
     self.mock.utcnow.return_value = datetime.datetime(2017, 1, 1)
@@ -345,17 +343,10 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     """Test backup_corpus."""
     libfuzzer_corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
 
-    corpus_manager.backup_corpus('backup_bucket', libfuzzer_corpus, '/dir')
+    corpus_manager.backup_corpus('signed_upload_url', libfuzzer_corpus, '/dir')
 
-    self.mock.copy_file_to.assert_has_calls([
-        mock.call('/2017-01-01.zip',
-                  'gs://backup_bucket/corpus/libFuzzer/fuzzer/2017-01-01.zip')
-    ])
-
-    self.mock.copy_blob.assert_has_calls([
-        mock.call('gs://backup_bucket/corpus/libFuzzer/fuzzer/2017-01-01.zip',
-                  'gs://backup_bucket/corpus/libFuzzer/fuzzer/latest.zip'),
-    ])
+    self.mock.upload_signed_url.assert_has_calls(
+        [mock.call(b'archive contents...', 'signed_upload_url')])
 
 
 class FileMixin:

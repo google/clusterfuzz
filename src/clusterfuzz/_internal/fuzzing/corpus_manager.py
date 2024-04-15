@@ -500,9 +500,10 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
   try:
     backup_archive_path = shutil.make_archive(backup_archive_path,
                                               BACKUP_ARCHIVE_FORMAT, directory)
-    if not storage.upload_signed_url(backup_archive_path,
-                                     dated_backup_signed_url):
-      return False
+    with open(backup_archive_path, 'rb') as fp:
+      data = fp.read()
+      if not storage.upload_signed_url(data, dated_backup_signed_url):
+        return False
   except Exception as ex:
     backup_succeeded = False
     logs.log_error(
