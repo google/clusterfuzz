@@ -276,6 +276,17 @@ def main():
   weights_list_parser.add_argument(
       '-j', '--jobs', help='Which jobs to list entries for.', nargs='+')
 
+  weights_aggregate_parser = weights_subparsers.add_parser(
+      'aggregate', help='Aggregate matching FuzzerJob entries.')
+  weights_aggregate_parser.add_argument(
+      '-p',
+      '--platform',
+      help='Which platform to query.', required=True)
+  weights_aggregate_parser.add_argument(
+      '-f', '--fuzzers', help='Which fuzzers to aggregate.', nargs='+')
+  weights_aggregate_parser.add_argument(
+      '-j', '--jobs', help='Which jobs to aggregate.', nargs='+')
+
   args = parser.parse_args()
   if not args.command:
     parser.print_help()

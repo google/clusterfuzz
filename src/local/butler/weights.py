@@ -22,10 +22,13 @@ Usage:
 import enum
 import os
 import csv
+import statistics
 import sys
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 from typing import Union
 
 from src.clusterfuzz._internal.config import local_config
@@ -37,6 +40,27 @@ from src.clusterfuzz._internal.datastore import ndb_utils
 class EntryType(enum.Enum):
   FUZZER_JOB = 'fuzzer_job'
   FUZZER_JOBS = 'fuzzer_jobs'
+
+
+def _iter_weights(
+    fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> Sequence[float]:
+  for fj in fuzzer_jobs:
+    yield fj.actual_weight
+
+
+def _sum_weights(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> float:
+  return sum(_iter_weights(fuzzer_jobs))
+
+
+def _compute_weight_deciles(
+    fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> Tuple[float, float]:
+  deciles = statistics.quantiles(_iter_weights(fuzzer_jobs), n=10)
+  print(repr(deciles))
+  return deciles[4], deciles[8]
+
+
+def _display_prob(probability: float) -> str:
+  return f'{probability:0.04f} = {probability * 100:0.02f}%'
 
 
 def list_platforms() -> None:
@@ -97,7 +121,7 @@ def list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
     print(f'  Platform: {fuzzer_job.platform}')
     print(f'  Weight: {fuzzer_job.actual_weight} = ' +
           f'{fuzzer_job.weight} * {fuzzer_job.multiplier}')
-    print(f'  Probability: {probability} = {probability * 100:0.02f}%')
+    print(f'  Probability: {_display_prob(probability)}')
 
   print(f'Count: {len(fuzzer_jobs)}')
   print(f'Total weight (for this query): {total_weight}')
@@ -153,14 +177,64 @@ def _dump_entries(entry_type: EntryType) -> None:
     _dump_fuzzer_jobs_batches()
 
 
-def print_fuzzer_jobs_stats(
-    platforms: Sequence[str],
-    fuzzers: Sequence[str],
-    jobs: Sequence[str],
+def _fuzzer_job_matches(
+    fuzzer_job: data_types.FuzzerJob,
+    fuzzers: Optional[Sequence[str]],
+    jobs: Optional[Sequence[str]],
+) -> bool:
+  if fuzzers and fuzzer_job.fuzzer not in fuzzers:
+    return False
+
+  if jobs and fuzzer_job.job not in jobs:
+    return False
+
+  return True
+
+
+def _aggregate_fuzzer_jobs(
+    platform: str,
+    fuzzers: Optional[Sequence[str]] = None,
+    jobs: Optional[Sequence[str]] = None,
 ) -> None:
-  fuzzer_jobs = query_fuzzer_jobs(platforms, fuzzers, jobs)
-  total_weight = sum(fj.actual_weight for fj in fuzzer_jobs)
-  print("Total weight: {}")
+  matches = []
+  others = []
+  for fuzzer_job in _query_fuzzer_jobs(platforms=[platform]):
+    if _fuzzer_job_matches(fuzzer_job, fuzzers, jobs):
+      matches.append(fuzzer_job)
+    else:
+      others.append(fuzzer_job)
+
+  matches_weight = _sum_weights(matches)
+  others_weight = _sum_weights(others)
+  total_weight = matches_weight + others_weight
+
+  matches_prob = matches_weight / total_weight
+  others_prob = others_weight / total_weight
+
+  matches_median, matches_90p = _compute_weight_deciles(matches)
+  others_median, others_90p = _compute_weight_deciles(others)
+
+  matches_median_prob = matches_median / total_weight
+  matches_90p_prob = matches_90p / total_weight
+  others_median_prob = others_median / total_weight
+  others_90p_prob = others_90p / total_weight
+
+  print('Matching FuzzerJob entries:')
+  print(f'  Count: {len(matches)}')
+  print(f'  Total weight: {matches_weight}')
+  print(f'  Total probability: {_display_prob(matches_prob)}')
+  print(f'  Median weight: {matches_median}')
+  print(f'  Median probability: {_display_prob(matches_median_prob)}')
+  print(f'  90th percentile weight: {matches_90p}')
+  print(f'  90th percentile probability: {_display_prob(matches_90p_prob)}')
+  print('Other FuzzerJob entries:')
+  print(f'  Count: {len(others)}')
+  print(f'  Total weight: {others_weight}')
+  print(f'  Total probability: {_display_prob(others_prob)}')
+  print(f'  Median weight: {others_median}')
+  print(f'  Median probability: {_display_prob(others_median_prob)}')
+  print(f'  90th percentile weight: {others_90p}')
+  print(f'  90th percentile probability: {_display_prob(others_90p_prob)}')
 
 
 def execute(args) -> None:
@@ -176,7 +250,8 @@ def execute(args) -> None:
       list_fuzzer_jobs(
           _query_fuzzer_jobs(
               platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs))
-    elif args.weights_command == 'stats':
-      print_fuzzer_jobs_stats(args.platforms, args.fuzzers, args.jobs)
+    elif args.weights_command == 'aggregate':
+      _aggregate_fuzzer_jobs(
+          args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
     else:
       raise TypeError(f'weights command {repr(command)} unrecognized')
