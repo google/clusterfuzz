@@ -250,7 +250,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertDictEqual(
         {
             'corpus_backup_location':
-                'backup_link',
+                f'gs://test-backup-bucket/corpus/libFuzzer/test_fuzzer/{today}.zip',
             'corpus_location':
                 'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
@@ -287,7 +287,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
-    context = corpus_pruning_task.Context(None, fuzz_target, [])
+    context = corpus_pruning_task.Context(uworker_msg_pb2.Input(), fuzz_target,
+                                          [])
 
     runner = corpus_pruning_task.Runner(self.build_dir, context)
     flags = runner.get_libfuzzer_flags()
