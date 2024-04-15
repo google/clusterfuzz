@@ -255,13 +255,13 @@ def main():
       '-c', '--config-dir', required=True, help='Path to application config.')
 
   weights_subparsers = parser_weights.add_subparsers(dest='weights_command')
-  weights_subparsers.add_parser(
-      'platforms', help='List platforms.')
+  weights_subparsers.add_parser('platforms', help='List platforms.')
 
   weights_dump_parser = weights_subparsers.add_parser(
       'dump', help='Dump database entries.')
   weights_dump_parser.add_argument(
-      'type', help='The type of entries to dump from the database.',
+      'type',
+      help='The type of entries to dump from the database.',
       choices=['fuzzer_job', 'fuzzer_jobs'])
 
   weights_list_parser = weights_subparsers.add_parser(
@@ -279,9 +279,7 @@ def main():
   weights_aggregate_parser = weights_subparsers.add_parser(
       'aggregate', help='Aggregate matching FuzzerJob entries.')
   weights_aggregate_parser.add_argument(
-      '-p',
-      '--platform',
-      help='Which platform to query.', required=True)
+      '-p', '--platform', help='Which platform to query.', required=True)
   weights_aggregate_parser.add_argument(
       '-f', '--fuzzers', help='Which fuzzers to aggregate.', nargs='+')
   weights_aggregate_parser.add_argument(

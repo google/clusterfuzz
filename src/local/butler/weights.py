@@ -19,9 +19,9 @@ Usage:
 
 """
 
+import csv
 import enum
 import os
-import csv
 import statistics
 import sys
 from typing import Dict
