@@ -38,20 +38,20 @@ def list_platforms() -> None:
     print(platform)
 
 
-def query_fuzzer_jobs_batches(
-    platforms: Sequence[str]) -> Sequence[data_types.FuzzerJob]:
-  query = data_types.FuzzerJob.query()
+def _query_fuzzer_jobs_batches(platforms: Optional[Sequence[str]] = None,
+                              ) -> Sequence[data_types.FuzzerJobs]:
+  query = data_types.FuzzerJobs.query()
 
   if platforms:
-    query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
+    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
   return query
 
 
-def query_fuzzer_jobs(
-    platforms: Sequence[str],
-    fuzzers: Sequence[str],
-    jobs: Sequence[str],
+def _query_fuzzer_jobs(
+    platforms: Optional[Sequence[str]] = None,
+    fuzzers: Optional[Sequence[str]] = None,
+    jobs: Optional[Sequence[str]] = None,
 ) -> Sequence[data_types.FuzzerJob]:
   query = data_types.FuzzerJob.query()
 
@@ -72,12 +72,8 @@ def flatten_fuzzer_jobs_batches(
       yield item
 
 
-def list_fuzzer_jobs(
-    platforms: Sequence[str],
-    fuzzers: Sequence[str],
-    jobs: Sequence[str],
-) -> None:
-  fuzzer_jobs = list(query_fuzzer_jobs(platforms, fuzzers, jobs))
+def list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
+  fuzzer_jobs = list(fuzzer_jobs)
   fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
 
   total_weight = sum(fj.actual_weight for fj in fuzzer_jobs)
@@ -88,12 +84,13 @@ def list_fuzzer_jobs(
     print("FuzzerJob:")
     print(f'  Fuzzer: {fuzzer_job.fuzzer}')
     print(f'  Job: {fuzzer_job.job}')
+    print(f'  Platform: {fuzzer_job.platform}')
     print(f'  Weight: {fuzzer_job.actual_weight} = ' +
           f'{fuzzer_job.weight} * {fuzzer_job.multiplier}')
     print(f'  Probability: {probability} = {probability * 100:0.02f}%')
 
   print(f'Count: {len(fuzzer_jobs)}')
-  print(f'Total weight: {total_weight}')
+  print(f'Total weight (for this query): {total_weight}')
 
 
 def print_fuzzer_jobs_stats(
@@ -114,6 +111,10 @@ def execute(args) -> None:
     if args.weights_command == 'platforms':
       list_platforms()
     elif args.weights_command == 'list':
-      list_fuzzer_jobs(args.platforms, args.fuzzers, args.jobs)
+      list_fuzzer_jobs(
+          _query_fuzzer_jobs(
+              platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs))
     elif args.weights_command == 'stats':
       print_fuzzer_jobs_stats(args.platforms, args.fuzzers, args.jobs)
+    else:
+      raise TypeError(f'weights command {repr(command)} unrecognized')
