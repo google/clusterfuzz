@@ -189,6 +189,14 @@ def _print_stats(fuzzer_jobs: List[data_types.FuzzerJob],
   weight = _sum_weights(fuzzer_jobs)
   probability = weight / total_weight
 
+  print(f'  Count: {len(fuzzer_jobs)}')
+  print(f'  Total weight: {weight}')
+  print(f'  Total probability: {_display_prob(probability)}')
+
+  # New in Python 3.8.
+  if not hasattr(statistics, 'quantiles'):
+    return
+
   # `quantiles()` returns n-1 cut points between n quantiles.
   # `weight_deciles[0]` separates the first from the second decile, i.e. it is
   # the 10% percentile value. `weight_deciles[i]` is the (i+1)*10-th.
@@ -199,9 +207,6 @@ def _print_stats(fuzzer_jobs: List[data_types.FuzzerJob],
   prob_median = weight_median / total_weight
   prob_90p = weight_90p / total_weight
 
-  print(f'  Count: {len(fuzzer_jobs)}')
-  print(f'  Total weight: {weight}')
-  print(f'  Total probability: {_display_prob(probability)}')
   print(f'  Median weight: {weight_median}')
   print(f'  Median probability: {_display_prob(prob_median)}')
   print(f'  90th percentile weight: {weight_90p}')
