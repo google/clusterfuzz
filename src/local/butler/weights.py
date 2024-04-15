@@ -25,7 +25,6 @@ import os
 import statistics
 import sys
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -34,7 +33,6 @@ from typing import Union
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.datastore import data_types
 from src.clusterfuzz._internal.datastore import ndb_init
-from src.clusterfuzz._internal.datastore import ndb_utils
 
 
 class EntryType(enum.Enum):
@@ -87,6 +85,7 @@ def _query_fuzzer_jobs(
     fuzzers: Optional[Sequence[str]] = None,
     jobs: Optional[Sequence[str]] = None,
 ) -> Sequence[data_types.FuzzerJob]:
+  """Queries Datastore for matching FuzzerJob entries."""
   query = data_types.FuzzerJob.query()
 
   if platforms:
@@ -99,7 +98,8 @@ def _query_fuzzer_jobs(
   return query
 
 
-def list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
+def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
+  """Lists the given FuzzerJob entries on stdout."""
   fuzzer_jobs = list(fuzzer_jobs)
   fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
 
@@ -131,6 +131,7 @@ _FUZZER_JOB_FIELDS = [
 
 def _fuzzer_job_to_dict(
     fuzzer_job: data_types.FuzzerJob) -> Dict[str, Union[str, float]]:
+  """Converts the given FuzzerJob to a dictionary of CSV column values."""
   return {
       'fuzzer': fuzzer_job.fuzzer,
       'job': fuzzer_job.job,
@@ -141,6 +142,7 @@ def _fuzzer_job_to_dict(
 
 
 def _dump_fuzzer_jobs() -> None:
+  """Dumps FuzzerJob entries from the database to stdout in CSV format."""
   fuzzer_jobs = _query_fuzzer_jobs()
 
   writer = csv.DictWriter(sys.stdout, fieldnames=_FUZZER_JOB_FIELDS)
@@ -151,12 +153,13 @@ def _dump_fuzzer_jobs() -> None:
 
 
 def _dump_fuzzer_jobs_batches() -> None:
+  """Dumps FuzzerJobs entries from the database to stdout in CSV format."""
   batches = _query_fuzzer_jobs_batches()
 
   writer = csv.DictWriter(sys.stdout, fieldnames=['batch'] + _FUZZER_JOB_FIELDS)
   writer.writeheader()
 
-  for batch in _query_fuzzer_jobs_batches():
+  for batch in batches:
     for fuzzer_job in batch.fuzzer_jobs:
       fields = _fuzzer_job_to_dict(fuzzer_job)
       fields['batch'] = batch.key.id()
@@ -164,6 +167,7 @@ def _dump_fuzzer_jobs_batches() -> None:
 
 
 def _dump_entries(entry_type: EntryType) -> None:
+  """Dumps entries of the given type from the database to stdout."""
   if entry_type == EntryType.FUZZER_JOB:
     _dump_fuzzer_jobs()
   elif entry_type == EntryType.FUZZER_JOBS:
@@ -175,6 +179,7 @@ def _fuzzer_job_matches(
     fuzzers: Optional[Sequence[str]],
     jobs: Optional[Sequence[str]],
 ) -> bool:
+  """Returns whether the given FuzzerJob matches the given optional filters."""
   if fuzzers and fuzzer_job.fuzzer not in fuzzers:
     return False
 
@@ -189,6 +194,7 @@ def _aggregate_fuzzer_jobs(
     fuzzers: Optional[Sequence[str]] = None,
     jobs: Optional[Sequence[str]] = None,
 ) -> None:
+  """Aggregates statistics for matching and non-matching FuzzerJob entries."""
   matches = []
   others = []
   for fuzzer_job in _query_fuzzer_jobs(platforms=[platform]):
@@ -231,20 +237,22 @@ def _aggregate_fuzzer_jobs(
 
 
 def execute(args) -> None:
+  """Entrypoint from butler.py."""
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
   local_config.ProjectConfig().set_environment()
 
   with ndb_init.context():
-    if args.weights_command == 'platforms':
+    cmd = args.weights_command
+    if cmd == 'platforms':
       list_platforms()
-    elif args.weights_command == 'dump':
+    elif cmd == 'dump':
       _dump_entries(EntryType(args.type))
-    elif args.weights_command == 'list':
-      list_fuzzer_jobs(
+    elif cmd == 'list':
+      _list_fuzzer_jobs(
           _query_fuzzer_jobs(
               platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs))
-    elif args.weights_command == 'aggregate':
+    elif cmd == 'aggregate':
       _aggregate_fuzzer_jobs(
           args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
     else:
-      raise TypeError(f'weights command {repr(command)} unrecognized')
+      raise TypeError(f'weights command {repr(cmd)} unrecognized')
