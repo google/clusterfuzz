@@ -19,14 +19,24 @@ Usage:
 
 """
 
+import enum
 import os
+import csv
+import sys
+from typing import Dict
 from typing import Optional
 from typing import Sequence
+from typing import Union
 
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.datastore import data_types
 from src.clusterfuzz._internal.datastore import ndb_init
 from src.clusterfuzz._internal.datastore import ndb_utils
+
+
+class EntryType(enum.Enum):
+  FUZZER_JOB = 'fuzzer_job'
+  FUZZER_JOBS = 'fuzzer_jobs'
 
 
 def list_platforms() -> None:
@@ -93,6 +103,56 @@ def list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
   print(f'Total weight (for this query): {total_weight}')
 
 
+_FUZZER_JOB_FIELDS = [
+    'fuzzer',
+    'job',
+    'platform',
+    'weight',
+    'multiplier',
+]
+
+
+def _fuzzer_job_to_dict(
+    fuzzer_job: data_types.FuzzerJob) -> Dict[str, Union[str, float]]:
+  return {
+      'fuzzer': fuzzer_job.fuzzer,
+      'job': fuzzer_job.job,
+      'platform': fuzzer_job.platform,
+      'weight': fuzzer_job.weight,
+      'multiplier': fuzzer_job.multiplier,
+  }
+
+
+def _dump_fuzzer_jobs() -> None:
+  fuzzer_jobs = _query_fuzzer_jobs()
+
+  writer = csv.DictWriter(sys.stdout, fieldnames=_FUZZER_JOB_FIELDS)
+  writer.writeheader()
+
+  for fuzzer_job in fuzzer_jobs:
+    writer.writerow(_fuzzer_job_to_dict(fuzzer_job))
+
+
+def _dump_fuzzer_jobs_batches() -> None:
+  batches = _query_fuzzer_jobs_batches()
+
+  writer = csv.DictWriter(sys.stdout, fieldnames=['batch'] + _FUZZER_JOB_FIELDS)
+  writer.writeheader()
+
+  for batch in _query_fuzzer_jobs_batches():
+    for fuzzer_job in batch.fuzzer_jobs:
+      fields = _fuzzer_job_to_dict(fuzzer_job)
+      fields['batch'] = batch.key.id()
+      writer.writerow(fields)
+
+
+def _dump_entries(entry_type: EntryType) -> None:
+  if entry_type == EntryType.FUZZER_JOB:
+    _dump_fuzzer_jobs()
+  elif entry_type == EntryType.FUZZER_JOBS:
+    _dump_fuzzer_jobs_batches()
+
+
 def print_fuzzer_jobs_stats(
     platforms: Sequence[str],
     fuzzers: Sequence[str],
@@ -110,6 +170,8 @@ def execute(args) -> None:
   with ndb_init.context():
     if args.weights_command == 'platforms':
       list_platforms()
+    elif args.weights_command == 'dump':
+      _dump_entries(EntryType(args.type))
     elif args.weights_command == 'list':
       list_fuzzer_jobs(
           _query_fuzzer_jobs(
