@@ -25,9 +25,9 @@ import os
 import statistics
 import sys
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Sequence
-from typing import Tuple
 from typing import Union
 
 from src.clusterfuzz._internal.config import local_config
@@ -48,13 +48,6 @@ def _iter_weights(
 
 def _sum_weights(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> float:
   return sum(_iter_weights(fuzzer_jobs))
-
-
-def _compute_weight_deciles(
-    fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> Tuple[float, float]:
-  deciles = statistics.quantiles(_iter_weights(fuzzer_jobs), n=10)
-  print(repr(deciles))
-  return deciles[4], deciles[8]
 
 
 def _display_prob(probability: float) -> str:
@@ -189,51 +182,52 @@ def _fuzzer_job_matches(
   return True
 
 
+def _print_stats(fuzzer_jobs: List[data_types.FuzzerJob],
+                 total_weight: float) -> None:
+  """Helper for `_aggregate_fuzzer_jobs()`."""
+  weight = _sum_weights(fuzzer_jobs)
+  probability = weight / total_weight
+
+  # `quantiles()` returns n-1 cut points between n quantiles.
+  # `weight_deciles[0]` separates the first from the second decile, i.e. it is
+  # the 10% percentile value. `weight_deciles[i]` is the (i+1)*10-th.
+  weight_deciles = statistics.quantiles(_iter_weights(fuzzer_jobs), n=10)
+  weight_median = weight_deciles[4]
+  weight_90p = weight_deciles[8]
+
+  prob_median = weight_median / total_weight
+  prob_90p = weight_90p / total_weight
+
+  print(f'  Count: {len(fuzzer_jobs)}')
+  print(f'  Total weight: {weight}')
+  print(f'  Total probability: {_display_prob(probability)}')
+  print(f'  Median weight: {weight_median}')
+  print(f'  Median probability: {_display_prob(prob_median)}')
+  print(f'  90th percentile weight: {weight_90p}')
+  print(f'  90th percentile probability: {_display_prob(prob_90p)}')
+
+
 def _aggregate_fuzzer_jobs(
     platform: str,
     fuzzers: Optional[Sequence[str]] = None,
     jobs: Optional[Sequence[str]] = None,
 ) -> None:
   """Aggregates statistics for matching and non-matching FuzzerJob entries."""
+  fuzzer_jobs = list(_query_fuzzer_jobs(platforms=[platform]))
+  total_weight = _sum_weights(fuzzer_jobs)
+
   matches = []
   others = []
-  for fuzzer_job in _query_fuzzer_jobs(platforms=[platform]):
+  for fuzzer_job in fuzzer_jobs:
     if _fuzzer_job_matches(fuzzer_job, fuzzers, jobs):
       matches.append(fuzzer_job)
     else:
       others.append(fuzzer_job)
 
-  matches_weight = _sum_weights(matches)
-  others_weight = _sum_weights(others)
-  total_weight = matches_weight + others_weight
-
-  matches_prob = matches_weight / total_weight
-  others_prob = others_weight / total_weight
-
-  matches_median, matches_90p = _compute_weight_deciles(matches)
-  others_median, others_90p = _compute_weight_deciles(others)
-
-  matches_median_prob = matches_median / total_weight
-  matches_90p_prob = matches_90p / total_weight
-  others_median_prob = others_median / total_weight
-  others_90p_prob = others_90p / total_weight
-
   print('Matching FuzzerJob entries:')
-  print(f'  Count: {len(matches)}')
-  print(f'  Total weight: {matches_weight}')
-  print(f'  Total probability: {_display_prob(matches_prob)}')
-  print(f'  Median weight: {matches_median}')
-  print(f'  Median probability: {_display_prob(matches_median_prob)}')
-  print(f'  90th percentile weight: {matches_90p}')
-  print(f'  90th percentile probability: {_display_prob(matches_90p_prob)}')
+  _print_stats(matches, total_weight)
   print('Other FuzzerJob entries:')
-  print(f'  Count: {len(others)}')
-  print(f'  Total weight: {others_weight}')
-  print(f'  Total probability: {_display_prob(others_prob)}')
-  print(f'  Median weight: {others_median}')
-  print(f'  Median probability: {_display_prob(others_median_prob)}')
-  print(f'  90th percentile weight: {others_90p}')
-  print(f'  90th percentile probability: {_display_prob(others_90p_prob)}')
+  _print_stats(others, total_weight)
 
 
 def execute(args) -> None:
