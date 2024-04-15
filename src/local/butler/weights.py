@@ -99,13 +99,6 @@ def _query_fuzzer_jobs(
   return query
 
 
-def flatten_fuzzer_jobs_batches(
-    batches: Sequence[data_types.FuzzerJobs]) -> Sequence[data_types.FuzzerJob]:
-  for batch in batches:
-    for item in batch.fuzzer_jobs:
-      yield item
-
-
 def list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
   fuzzer_jobs = list(fuzzer_jobs)
   fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
