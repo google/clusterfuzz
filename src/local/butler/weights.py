@@ -24,6 +24,7 @@ import enum
 import os
 import statistics
 import sys
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -104,8 +105,20 @@ def _query_fuzz_target_jobs(
   return query
 
 
-def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
+def _print_with_prefix(prefix: str) -> Callable[[str], None]:
+  if not prefix:
+    return print
+
+  def _print(s: str) -> None:
+    print(prefix + s)
+
+  return _print
+
+
+def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob], prefix='') -> None:
   """Lists the given FuzzerJob entries on stdout."""
+  _print = _print_with_prefix(prefix)
+
   fuzzer_jobs = list(fuzzer_jobs)
   fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
 
@@ -114,16 +127,29 @@ def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
   for fuzzer_job in fuzzer_jobs:
     probability = fuzzer_job.actual_weight / total_weight
 
-    print("FuzzerJob:")
-    print(f'  Fuzzer: {fuzzer_job.fuzzer}')
-    print(f'  Job: {fuzzer_job.job}')
-    print(f'  Platform: {fuzzer_job.platform}')
-    print(f'  Weight: {fuzzer_job.actual_weight} = ' +
+    _print("FuzzerJob:")
+    _print(f'  Fuzzer: {fuzzer_job.fuzzer}')
+    _print(f'  Job: {fuzzer_job.job}')
+    _print(f'  Platform: {fuzzer_job.platform}')
+    _print(f'  Weight: {fuzzer_job.actual_weight} = ' +
           f'{fuzzer_job.weight} * {fuzzer_job.multiplier}')
-    print(f'  Probability: {_display_prob(probability)}')
+    _print(f'  Probability: {_display_prob(probability)}')
 
-  print(f'Count: {len(fuzzer_jobs)}')
-  print(f'Total weight (for this query): {total_weight}')
+  _print(f'Count: {len(fuzzer_jobs)}')
+  _print(f'Total weight: {total_weight}')
+
+
+def _list_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
+  count = 0
+  for batch in batches:
+    count += 1
+
+    print('FuzzerJobs:')
+    print(f'  ID: {batch.key.id()}')
+    print(f'  Platform: {batch.platform}')
+    _list_fuzzer_jobs(batch.fuzzer_jobs, prefix='  ')
+
+  print(f'Count: {count}')
 
 
 _FUZZER_JOB_FIELDS = [
@@ -286,8 +312,13 @@ def _execute_fuzzer_command(args) -> None:
 def _execute_fuzzer_batch_command(args) -> None:
   cmd = args.fuzzer_batch_command
   if cmd == 'list':
-    _dump_fuzzer_jobs_batches(
-        _query_fuzzer_jobs_batches(platforms=args.platforms))
+    batches = _query_fuzzer_jobs_batches(platforms=args.platforms)
+    if args.format == 'text':
+      _list_fuzzer_jobs_batches(batches)
+    elif args.format == 'csv':
+      _dump_fuzzer_jobs_batches(batches)
+    else:
+      raise TypeError(f'--format {repr(args.format)} unrecognized')
   else:
     raise TypeError(f'weights fuzzer-batch command {repr(cmd)} unrecognized')
 

@@ -144,6 +144,11 @@ def _add_weights_batches_subparser(weights_subparsers):
       '--platforms',
       help='Which platforms to list entries for.',
       nargs='+')
+  list_parser.add_argument(
+      '--format',
+      help='Output format.',
+      choices=['text', 'csv'],
+      default='text')
 
 
 def _add_weights_target_subparser(weights_subparsers):
