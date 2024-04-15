@@ -262,7 +262,7 @@ def main():
   weights_dump_parser.add_argument(
       'type',
       help='The type of entries to dump from the database.',
-      choices=['fuzzer_job', 'fuzzer_jobs'])
+      choices=['fuzzer_job', 'fuzzer_jobs', 'fuzz_target_job'])
 
   weights_list_parser = weights_subparsers.add_parser(
       'list', help='List FuzzerJob entries.')

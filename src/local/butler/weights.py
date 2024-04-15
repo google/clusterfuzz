@@ -38,6 +38,7 @@ from src.clusterfuzz._internal.datastore import ndb_init
 class EntryType(enum.Enum):
   FUZZER_JOB = 'fuzzer_job'
   FUZZER_JOBS = 'fuzzer_jobs'
+  FUZZ_TARGET_JOB = 'fuzz_target_job'
 
 
 def _iter_weights(
@@ -162,12 +163,43 @@ def _dump_fuzzer_jobs_batches() -> None:
       writer.writerow(fields)
 
 
+def _query_fuzz_target_jobs() -> Sequence[data_types.FuzzTargetJob]:
+  return data_types.FuzzTargetJob.query()
+
+
+def _dump_fuzz_target_jobs() -> None:
+  """Dumps FuzzTargetJob entries from the database to stdout in CSV format."""
+  entries = _query_fuzz_target_jobs()
+
+  writer = csv.DictWriter(
+      sys.stdout,
+      fieldnames=[
+          'fuzz_target_name',
+          'job',
+          'engine',
+          'weight',
+          'last_run',
+      ])
+  writer.writeheader()
+
+  for entry in entries:
+    writer.writerow({
+        'fuzz_target_name': entry.fuzz_target_name,
+        'job': entry.job,
+        'engine': entry.engine,
+        'weight': entry.weight,
+        'last_run': entry.last_run,
+    })
+
+
 def _dump_entries(entry_type: EntryType) -> None:
   """Dumps entries of the given type from the database to stdout."""
   if entry_type == EntryType.FUZZER_JOB:
     _dump_fuzzer_jobs()
   elif entry_type == EntryType.FUZZER_JOBS:
     _dump_fuzzer_jobs_batches()
+  elif entry_type == EntryType.FUZZ_TARGET_JOB:
+    _dump_fuzz_target_jobs()
 
 
 def _fuzzer_job_matches(
