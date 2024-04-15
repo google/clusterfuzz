@@ -15,7 +15,7 @@
 
 Usage:
 
-  python butler.py weights -c CONFIG_DIR [-p PLATFORM]
+  python butler.py weights --help
 
 """
 
