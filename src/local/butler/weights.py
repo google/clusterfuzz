@@ -149,10 +149,8 @@ def _fuzzer_job_to_dict(
   }
 
 
-def _dump_fuzzer_jobs() -> None:
+def _dump_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
   """Dumps FuzzerJob entries from the database to stdout in CSV format."""
-  fuzzer_jobs = _query_fuzzer_jobs()
-
   writer = csv.DictWriter(sys.stdout, fieldnames=_FUZZER_JOB_FIELDS)
   writer.writeheader()
 
@@ -271,10 +269,14 @@ def _execute_fuzzer_command(args) -> None:
   if cmd == 'platforms':
     list_platforms()
   elif cmd == 'list':
-    #_dump_entries(EntryType(args.type))
-    _list_fuzzer_jobs(
-        _query_fuzzer_jobs(
-            platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs))
+    fuzzer_jobs = _query_fuzzer_jobs(
+        platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs)
+    if args.format == 'text':
+      _list_fuzzer_jobs(fuzzer_jobs)
+    elif args.format == 'csv':
+      _dump_fuzzer_jobs(fuzzer_jobs)
+    else:
+      raise TypeError(f'--format {repr(args.format)} unrecognized')
   elif cmd == 'aggregate':
     _aggregate_fuzzer_jobs(args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
   else:
