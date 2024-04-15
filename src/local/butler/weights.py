@@ -193,14 +193,14 @@ def _print_stats(fuzzer_jobs: List[data_types.FuzzerJob],
   print(f'  Total weight: {weight}')
   print(f'  Total probability: {_display_prob(probability)}')
 
-  # New in Python 3.8.
+  # New in Python 3.8. We appease the linter by disabling `no-member` below.
   if not hasattr(statistics, 'quantiles'):
     return
 
   # `quantiles()` returns n-1 cut points between n quantiles.
   # `weight_deciles[0]` separates the first from the second decile, i.e. it is
   # the 10% percentile value. `weight_deciles[i]` is the (i+1)*10-th.
-  weight_deciles = statistics.quantiles(_iter_weights(fuzzer_jobs), n=10)
+  weight_deciles = statistics.quantiles(_iter_weights(fuzzer_jobs), n=10)  # pylint: disable=no-member
   weight_median = weight_deciles[4]
   weight_90p = weight_deciles[8]
 
