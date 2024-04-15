@@ -20,7 +20,6 @@ Usage:
 """
 
 import csv
-import enum
 import os
 import statistics
 import sys
@@ -93,6 +92,7 @@ def _query_fuzz_target_jobs(
     jobs: Optional[Sequence[str]] = None,
     engines: Optional[Sequence[str]] = None,
 ) -> Sequence[data_types.FuzzTargetJob]:
+  """Queries Datastore for matching FuzzTargetJob entries."""
   query = data_types.FuzzTargetJob.query()
 
   if targets:
@@ -115,9 +115,10 @@ def _print_with_prefix(prefix: str) -> Callable[[str], None]:
   return _print
 
 
-def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob], prefix='') -> None:
+def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
+                      prefix='') -> None:
   """Lists the given FuzzerJob entries on stdout."""
-  _print = _print_with_prefix(prefix)
+  printer = _print_with_prefix(prefix)
 
   fuzzer_jobs = list(fuzzer_jobs)
   fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
@@ -127,19 +128,20 @@ def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob], prefix='') ->
   for fuzzer_job in fuzzer_jobs:
     probability = fuzzer_job.actual_weight / total_weight
 
-    _print("FuzzerJob:")
-    _print(f'  Fuzzer: {fuzzer_job.fuzzer}')
-    _print(f'  Job: {fuzzer_job.job}')
-    _print(f'  Platform: {fuzzer_job.platform}')
-    _print(f'  Weight: {fuzzer_job.actual_weight} = ' +
-          f'{fuzzer_job.weight} * {fuzzer_job.multiplier}')
-    _print(f'  Probability: {_display_prob(probability)}')
+    printer("FuzzerJob:")
+    printer(f'  Fuzzer: {fuzzer_job.fuzzer}')
+    printer(f'  Job: {fuzzer_job.job}')
+    printer(f'  Platform: {fuzzer_job.platform}')
+    printer(f'  Weight: {fuzzer_job.actual_weight} = ' +
+            f'{fuzzer_job.weight} * {fuzzer_job.multiplier}')
+    printer(f'  Probability: {_display_prob(probability)}')
 
-  _print(f'Count: {len(fuzzer_jobs)}')
-  _print(f'Total weight: {total_weight}')
+  printer(f'Count: {len(fuzzer_jobs)}')
+  printer(f'Total weight: {total_weight}')
 
 
 def _list_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
+  """Lists the given FuzzerJobs entries on stdout."""
   count = 0
   for batch in batches:
     count += 1
@@ -199,8 +201,6 @@ def _dump_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
 def _dump_fuzz_target_jobs(
     fuzz_target_jobs: Sequence[data_types.FuzzTargetJob]) -> None:
   """Dumps FuzzTargetJob entries from the database to stdout in CSV format."""
-  entries = _query_fuzz_target_jobs()
-
   writer = csv.DictWriter(
       sys.stdout,
       fieldnames=[
@@ -291,6 +291,7 @@ def _aggregate_fuzzer_jobs(
 
 
 def _execute_fuzzer_command(args) -> None:
+  """Executes the `fuzzer` command."""
   cmd = args.fuzzer_command
   if cmd == 'platforms':
     list_platforms()
@@ -310,6 +311,7 @@ def _execute_fuzzer_command(args) -> None:
 
 
 def _execute_fuzzer_batch_command(args) -> None:
+  """Executes the `fuzzer-batch` command."""
   cmd = args.fuzzer_batch_command
   if cmd == 'list':
     batches = _query_fuzzer_jobs_batches(platforms=args.platforms)
@@ -324,6 +326,7 @@ def _execute_fuzzer_batch_command(args) -> None:
 
 
 def _execute_fuzz_target_command(args) -> None:
+  """Executes the `fuzz-target` command."""
   cmd = args.fuzz_target_command
   if cmd == 'list':
     _dump_fuzz_target_jobs(
@@ -334,6 +337,7 @@ def _execute_fuzz_target_command(args) -> None:
 
 
 def _execute_command(args) -> None:
+  """Executes the `weights` command."""
   cmd = args.weights_command
   if cmd == 'fuzzer':
     _execute_fuzzer_command(args)

@@ -99,6 +99,7 @@ def _setup_args_for_remote(parser):
 
 
 def _add_weights_fuzzer_subparser(weights_subparsers):
+  """Adds a parser for the `weights fuzzer` command."""
   parser = weights_subparsers.add_parser(
       'fuzzer', help='Interact with FuzzerJob weights.')
   subparsers = parser.add_subparsers(dest='fuzzer_command')
@@ -133,6 +134,7 @@ def _add_weights_fuzzer_subparser(weights_subparsers):
 
 
 def _add_weights_batches_subparser(weights_subparsers):
+  """Adds a parser for the `weights fuzzer-batch` command."""
   parser = weights_subparsers.add_parser(
       'fuzzer-batch',
       help='Interact with FuzzerJobs (FuzzerJob batches) weights.')
@@ -152,6 +154,7 @@ def _add_weights_batches_subparser(weights_subparsers):
 
 
 def _add_weights_target_subparser(weights_subparsers):
+  """Adds a parser for the `weights fuzz-target` command."""
   parser = weights_subparsers.add_parser(
       'fuzz-target', help='Interact with FuzzTargetJob weights.')
   subparsers = parser.add_subparsers(dest='fuzz_target_command')
@@ -170,6 +173,7 @@ def _add_weights_target_subparser(weights_subparsers):
 
 
 def _add_weights_subparser(toplevel_subparsers):
+  """Adds a parser for the `weights` command."""
   parser = toplevel_subparsers.add_parser(
       'weights', help='Interact with fuzzer/job weights.')
 
