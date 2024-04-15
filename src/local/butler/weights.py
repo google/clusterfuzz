@@ -55,15 +55,14 @@ def _display_prob(probability: float) -> str:
 
 
 def list_platforms() -> None:
-  platforms = [
-      item.platform for item in data_types.FuzzerJob.query(
-          projection=[data_types.FuzzerJob.platform], distinct=True)
-  ]
-  for platform in platforms:
-    print(platform)
+  # Query only distinct platform values from the database.
+  fuzzer_jobs = data_types.FuzzerJob.query(
+      projection=[data_types.FuzzerJob.platform], distinct=True)
+  for fuzzer_job in fuzzer_jobs:
+    print(fuzzer_job.platform)
 
 
-def _query_fuzzer_jobs_batches(platforms: Optional[Sequence[str]] = None,
+def _query_fuzzer_jobs_batches(platforms: Optional[Sequence[str]] = None
                               ) -> Sequence[data_types.FuzzerJobs]:
   query = data_types.FuzzerJobs.query()
 
@@ -96,7 +95,7 @@ def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
   fuzzer_jobs = list(fuzzer_jobs)
   fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
 
-  total_weight = sum(fj.actual_weight for fj in fuzzer_jobs)
+  total_weight = _sum_weights(fuzzer_jobs)
 
   for fuzzer_job in fuzzer_jobs:
     probability = fuzzer_job.actual_weight / total_weight
