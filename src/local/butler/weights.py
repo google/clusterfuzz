@@ -87,6 +87,23 @@ def _query_fuzzer_jobs(
   return query
 
 
+def _query_fuzz_target_jobs(
+    targets: Optional[Sequence[str]] = None,
+    jobs: Optional[Sequence[str]] = None,
+    engines: Optional[Sequence[str]] = None,
+) -> Sequence[data_types.FuzzTargetJob]:
+  query = data_types.FuzzTargetJob.query()
+
+  if targets:
+    query = query.filter(data_types.FuzzTargetJob.fuzz_target_name.IN(targets))
+  if jobs:
+    query = query.filter(data_types.FuzzTargetJob.job.IN(jobs))
+  if engines:
+    query = query.filter(data_types.FuzzTargetJob.engine.IN(engines))
+
+  return query
+
+
 def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
   """Lists the given FuzzerJob entries on stdout."""
   fuzzer_jobs = list(fuzzer_jobs)
@@ -143,10 +160,8 @@ def _dump_fuzzer_jobs() -> None:
     writer.writerow(_fuzzer_job_to_dict(fuzzer_job))
 
 
-def _dump_fuzzer_jobs_batches() -> None:
+def _dump_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
   """Dumps FuzzerJobs entries from the database to stdout in CSV format."""
-  batches = _query_fuzzer_jobs_batches()
-
   writer = csv.DictWriter(sys.stdout, fieldnames=['batch'] + _FUZZER_JOB_FIELDS)
   writer.writeheader()
 
@@ -155,23 +170,6 @@ def _dump_fuzzer_jobs_batches() -> None:
       fields = _fuzzer_job_to_dict(fuzzer_job)
       fields['batch'] = batch.key.id()
       writer.writerow(fields)
-
-
-def _query_fuzz_target_jobs(
-    targets: Optional[Sequence[str]] = None,
-    jobs: Optional[Sequence[str]] = None,
-    engines: Optional[Sequence[str]] = None,
-) -> Sequence[data_types.FuzzTargetJob]:
-  query = data_types.FuzzTargetJob.query()
-
-  if targets:
-    query = query.filter(data_types.FuzzTargetJob.fuzz_target_name.IN(targets))
-  if jobs:
-    query = query.filter(data_types.FuzzTargetJob.job.IN(jobs))
-  if engines:
-    query = query.filter(data_types.FuzzTargetJob.engine.IN(engines))
-
-  return query
 
 
 def _dump_fuzz_target_jobs(
@@ -286,7 +284,8 @@ def _execute_fuzzer_command(args) -> None:
 def _execute_fuzzer_batch_command(args) -> None:
   cmd = args.fuzzer_batch_command
   if cmd == 'list':
-    _dump_fuzzer_jobs_batches()
+    _dump_fuzzer_jobs_batches(
+        _query_fuzzer_jobs_batches(platforms=args.platforms))
   else:
     raise TypeError(f'weights fuzzer-batch command {repr(cmd)} unrecognized')
 
