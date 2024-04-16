@@ -198,7 +198,7 @@ def _print_stats(fuzzer_jobs: List[data_types.FuzzerJob],
   print(f'  Total probability: {_display_prob(probability)}')
 
   # New in Python 3.8. We appease the linter by disabling `no-member` below.
-  if not hasattr(statistics, 'quantiles'):
+  if len(fuzzer_jobs) < 2 or not hasattr(statistics, 'quantiles'):
     return
 
   # `quantiles()` returns n-1 cut points between n quantiles.
