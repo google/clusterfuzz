@@ -67,7 +67,9 @@ def _query_fuzzer_jobs_batches(platforms: Optional[Sequence[str]] = None
   query = data_types.FuzzerJobs.query()
 
   if platforms:
-    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
+    query = query.filter(data_types.FuzzerJobs.platform.IN([
+        p.upper() for p in platforms
+    ]))
 
   return query
 
@@ -81,7 +83,9 @@ def _query_fuzzer_jobs(
   query = data_types.FuzzerJob.query()
 
   if platforms:
-    query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
+    query = query.filter(data_types.FuzzerJob.platform.IN([
+        p.upper() for p in platforms
+    ]))
   if fuzzers:
     query = query.filter(data_types.FuzzerJob.fuzzer.IN(fuzzers))
   if jobs:
@@ -219,7 +223,7 @@ def _aggregate_fuzzer_jobs(
     jobs: Optional[Sequence[str]] = None,
 ) -> None:
   """Aggregates statistics for matching and non-matching FuzzerJob entries."""
-  fuzzer_jobs = list(_query_fuzzer_jobs(platforms=[platform]))
+  fuzzer_jobs = list(_query_fuzzer_jobs(platforms=[platform.upper()]))
   total_weight = _sum_weights(fuzzer_jobs)
 
   matches = []
