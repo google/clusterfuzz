@@ -176,6 +176,25 @@ def _add_weights_target_subparser(weights_subparsers):
       choices=['text', 'csv'],
       default='text')
 
+  set_parser = subparsers.add_parser(
+      'set', help='Set the weight of a FuzzTargetJob entry.')
+  set_parser.add_argument(
+      '-t',
+      '--target',
+      help='The fuzz_target_name field of the entry to modify.',
+      required=True)
+  set_parser.add_argument(
+      '-j',
+      '--job',
+      help='The job field of the entry to modify.',
+      required=True)
+  set_parser.add_argument(
+      '-w',
+      '--weight',
+      help='The new weight to set.',
+      type=float,
+      required=True)
+
 
 def _add_weights_subparser(toplevel_subparsers):
   """Adds a parser for the `weights` command."""
