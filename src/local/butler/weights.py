@@ -30,6 +30,8 @@ from typing import Optional
 from typing import Sequence
 from typing import Union
 
+from google.cloud import ndb
+
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.datastore import data_types
 from src.clusterfuzz._internal.datastore import ndb_init
@@ -313,6 +315,36 @@ def _aggregate_fuzzer_jobs(
   _print_stats(others, total_weight)
 
 
+def _set_fuzz_target_job_weight(
+    fuzz_target_name: str,
+    job: str,
+    weight: float,
+) -> None:
+  """Sets the matching FuzzTargetJob's weight to the given value."""
+  key = ndb.Key(data_types.FuzzTargetJob,
+                data_types.fuzz_target_job_key(fuzz_target_name, job))
+  ftj = key.get()
+  if ftj is None:
+    print(f'No FuzzTargetJob entry found for key {key.id()}.')
+    return
+
+  print(f'Fuzz target name: {ftj.fuzz_target_name}')
+  print(f'Job: {ftj.job}')
+  print(f'Engine: {ftj.engine}')
+  print(f'Last run: {ftj.last_run}')
+  print(f'Old weight: {ftj.weight}')
+  print(f'-> New weight: {weight}')
+
+  answer = input('Do you want to apply this mutation? [y,n] ')
+  if answer.lower() != 'y':
+    print('Not applying mutation.')
+    return
+
+  ftj.weight = weight
+  ftj.put()
+  print('Mutation applied.')
+
+
 def _execute_fuzzer_command(args) -> None:
   """Executes the `fuzzer` command."""
   cmd = args.fuzzer_command
@@ -360,6 +392,8 @@ def _execute_fuzz_target_command(args) -> None:
       _dump_fuzz_target_jobs(fuzz_target_jobs)
     else:
       raise TypeError(f'--format {repr(args.format)} unrecognized')
+  elif cmd == 'set':
+    _set_fuzz_target_job_weight(args.target, args.job, args.weight)
   else:
     raise TypeError(f'weights fuzz-target command {repr(cmd)} unrecognized')
 
