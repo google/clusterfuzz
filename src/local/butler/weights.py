@@ -67,9 +67,8 @@ def _query_fuzzer_jobs_batches(platforms: Optional[Sequence[str]] = None
   query = data_types.FuzzerJobs.query()
 
   if platforms:
-    query = query.filter(data_types.FuzzerJobs.platform.IN([
-        p.upper() for p in platforms
-    ]))
+    query = query.filter(
+        data_types.FuzzerJobs.platform.IN([p.upper() for p in platforms]))
 
   return query
 
@@ -83,9 +82,8 @@ def _query_fuzzer_jobs(
   query = data_types.FuzzerJob.query()
 
   if platforms:
-    query = query.filter(data_types.FuzzerJob.platform.IN([
-        p.upper() for p in platforms
-    ]))
+    query = query.filter(
+        data_types.FuzzerJob.platform.IN([p.upper() for p in platforms]))
   if fuzzers:
     query = query.filter(data_types.FuzzerJob.fuzzer.IN(fuzzers))
   if jobs:
