@@ -170,6 +170,11 @@ def _add_weights_target_subparser(weights_subparsers):
       '-j', '--jobs', help='Which jobs to list entries for.', nargs='+')
   list_parser.add_argument(
       '-e', '--engines', help='Which engine to list entries for.', nargs='+')
+  list_parser.add_argument(
+      '--format',
+      help='Output format.',
+      choices=['text', 'csv'],
+      default='text')
 
 
 def _add_weights_subparser(toplevel_subparsers):

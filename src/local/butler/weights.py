@@ -154,6 +154,29 @@ def _list_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
   print(f'Count: {count}')
 
 
+def _list_fuzz_target_jobs(
+    fuzz_target_jobs: Sequence[data_types.FuzzTargetJob]) -> None:
+  """Lists the given FuzzTargetJob entries on stdout."""
+  fuzz_target_jobs = list(fuzz_target_jobs)
+  fuzz_target_jobs.sort(key=lambda ftj: ftj.weight, reverse=True)
+
+  total_weight = sum(ftj.weight for ftj in fuzz_target_jobs)
+
+  for ftj in fuzz_target_jobs:
+    probability = ftj.weight / total_weight
+
+    print('FuzzTargetJob:')
+    print(f'  Fuzz target name: {ftj.fuzz_target_name}')
+    print(f'  Job: {ftj.job}')
+    print(f'  Engine: {ftj.engine}')
+    print(f'  Weight: {ftj.weight}')
+    print(f'  Relative probability: {_display_prob(probability)}')
+    print(f'  Last run: {ftj.last_run}')
+
+  print(f'Count: {len(fuzz_target_jobs)}')
+  print(f'Total weight: {total_weight}')
+
+
 _FUZZER_JOB_FIELDS = [
     'fuzzer',
     'job',
@@ -329,9 +352,14 @@ def _execute_fuzz_target_command(args) -> None:
   """Executes the `fuzz-target` command."""
   cmd = args.fuzz_target_command
   if cmd == 'list':
-    _dump_fuzz_target_jobs(
-        _query_fuzz_target_jobs(
-            targets=args.targets, jobs=args.jobs, engines=args.engines))
+    fuzz_target_jobs = _query_fuzz_target_jobs(
+        targets=args.targets, jobs=args.jobs, engines=args.engines)
+    if args.format == 'text':
+      _list_fuzz_target_jobs(fuzz_target_jobs)
+    elif args.format == 'csv':
+      _dump_fuzz_target_jobs(fuzz_target_jobs)
+    else:
+      raise TypeError(f'--format {repr(args.format)} unrecognized')
   else:
     raise TypeError(f'weights fuzz-target command {repr(cmd)} unrecognized')
 
