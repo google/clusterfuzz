@@ -160,7 +160,7 @@ def _add_weights_target_subparser(weights_subparsers):
   subparsers = parser.add_subparsers(dest='fuzz_target_command')
 
   list_parser = subparsers.add_parser(
-      'list', help='List FuzzerTargetJob entries.')
+      'list', help='List FuzzTargetJob entries.')
   list_parser.add_argument(
       '-t',
       '--targets',
