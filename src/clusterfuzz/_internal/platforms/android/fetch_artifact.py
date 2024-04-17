@@ -34,6 +34,8 @@ DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 # Maximum number of retries for artifact access.
 MAX_RETRIES = 5
 
+STABLE_CUTTLEFISH_BUILD = '11655237'
+
 
 def execute_request_with_retries(request):
   """Executes request and retries on failure."""
@@ -181,7 +183,9 @@ def get_latest_artifact_info(branch, target, signed=False):
     return None
 
   build = builds['builds'][0]
-  bid = build['buildId']
+  # TODO(https://github.com/google/clusterfuzz/issues/3950)
+  # After stabilizing the Cuttlefish image, revert this
+  bid = STABLE_CUTTLEFISH_BUILD
   target = build['target']['name']
   return {'bid': bid, 'branch': branch, 'target': target}
 
