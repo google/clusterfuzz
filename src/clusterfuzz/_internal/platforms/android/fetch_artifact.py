@@ -184,12 +184,12 @@ def get_latest_artifact_info(branch, target, signed=False):
       maxResults=1,
       signed=signed)
   request_str = (f'{request.uri}, {request.method}, '
-                  f'{request.body}, {request.methodId}')
+                 f'{request.body}, {request.methodId}')
 
   builds = execute_request_with_retries(request)
   if not builds:
     logs.log_error(f'No build found for target {target}, branch {branch}, '
-                    f'request: {request_str}.')
+                   f'request: {request_str}.')
     return None
 
   build = builds['builds'][0]
