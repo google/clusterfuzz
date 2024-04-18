@@ -16,7 +16,6 @@
 import base64
 import collections
 import copy
-import gc
 import json
 import re
 
