@@ -176,27 +176,26 @@ def get_latest_artifact_info(branch, target, signed=False):
   if stable_build:
     return stable_build
 
-  else:
-    request = client.build().list(  # pylint: disable=no-member
-        buildType='submitted',
-        branch=branch,
-        target=target,
-        successful=True,
-        maxResults=1,
-        signed=signed)
-    request_str = (f'{request.uri}, {request.method}, '
-                   f'{request.body}, {request.methodId}')
+  request = client.build().list(  # pylint: disable=no-member
+      buildType='submitted',
+      branch=branch,
+      target=target,
+      successful=True,
+      maxResults=1,
+      signed=signed)
+  request_str = (f'{request.uri}, {request.method}, '
+                  f'{request.body}, {request.methodId}')
 
-    builds = execute_request_with_retries(request)
-    if not builds:
-      logs.log_error(f'No build found for target {target}, branch {branch}, '
-                     f'request: {request_str}.')
-      return None
+  builds = execute_request_with_retries(request)
+  if not builds:
+    logs.log_error(f'No build found for target {target}, branch {branch}, '
+                    f'request: {request_str}.')
+    return None
 
-    build = builds['builds'][0]
-    bid = build['buildId']
-    target = build['target']['name']
-    return {'bid': bid, 'branch': branch, 'target': target}
+  build = builds['builds'][0]
+  bid = build['buildId']
+  target = build['target']['name']
+  return {'bid': bid, 'branch': branch, 'target': target}
 
 
 def get(bid, target, regex, output_directory, output_filename=None):
