@@ -34,7 +34,11 @@ DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 # Maximum number of retries for artifact access.
 MAX_RETRIES = 5
 
-STABLE_CUTTLEFISH_BUILD = '11655237'
+STABLE_CUTTLEFISH_BUILD = {
+    'bid': '11655237',
+    'branch': 'git_main',
+    'target': 'cf_x86_64_phone-next-userdebug'
+}
 
 
 def execute_request_with_retries(request):
@@ -166,28 +170,33 @@ def get_latest_artifact_info(branch, target, signed=False):
   if not client:
     return None
 
-  request = client.build().list(  # pylint: disable=no-member
-      buildType='submitted',
-      branch=branch,
-      target=target,
-      successful=True,
-      maxResults=1,
-      signed=signed)
-  request_str = (f'{request.uri}, {request.method}, '
-                 f'{request.body}, {request.methodId}')
-
-  builds = execute_request_with_retries(request)
-  if not builds:
-    logs.log_error(f'No build found for target {target}, branch {branch}, '
-                   f'request: {request_str}.')
-    return None
-
-  build = builds['builds'][0]
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
-  bid = STABLE_CUTTLEFISH_BUILD
-  target = build['target']['name']
-  return {'bid': bid, 'branch': branch, 'target': target}
+  stable_build = STABLE_CUTTLEFISH_BUILD
+  if stable_build:
+    return stable_build
+
+  else:
+    request = client.build().list(  # pylint: disable=no-member
+        buildType='submitted',
+        branch=branch,
+        target=target,
+        successful=True,
+        maxResults=1,
+        signed=signed)
+    request_str = (f'{request.uri}, {request.method}, '
+                   f'{request.body}, {request.methodId}')
+
+    builds = execute_request_with_retries(request)
+    if not builds:
+      logs.log_error(f'No build found for target {target}, branch {branch}, '
+                     f'request: {request_str}.')
+      return None
+
+    build = builds['builds'][0]
+    bid = build['buildId']
+    target = build['target']['name']
+    return {'bid': bid, 'branch': branch, 'target': target}
 
 
 def get(bid, target, regex, output_directory, output_filename=None):
