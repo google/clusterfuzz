@@ -16,6 +16,7 @@
 import base64
 import collections
 import copy
+import gc
 import json
 import re
 
@@ -273,7 +274,11 @@ def get_oss_fuzz_projects():
 
 def get_projects_from_gcs(gcs_url):
   """Get projects from GCS path."""
-  data = json.loads(storage.read_data(gcs_url))
+  try:
+    data = json.loads(storage.read_data(gcs_url))
+  except:
+    raise ProjectSetupError(f'Error loading json file from {gcs_url}.')
+
   return [(project['name'], project) for project in data['projects']]
 
 
