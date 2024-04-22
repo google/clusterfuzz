@@ -14,21 +14,6 @@
 
 cron:
   # Python crons start here.
-  - description: Backup
-    url: /backup
-    schedule: every day 01:47
-    target: cron-service
-
-  - description: Batch FuzzerJobs.
-    url: /batch-fuzzer-jobs
-    schedule: every 30 minutes
-    target: cron-service
-
-  - description: Build crash stats.
-    url: /build-crash-stats
-    schedule: every 5 minutes
-    target: cron-service
-
   - description: Cleanup.
     url: /cleanup
     schedule: every 1 minutes
@@ -53,31 +38,6 @@ cron:
   - description: Load important stats from yesterday into the cache.
     url: /fuzzer-stats/preload
     schedule: every day 04:30
-    target: cron-service
-
-  - description: Adjust target and job weights based on fuzzer stats.
-    url: /fuzzer-and-job-weights
-    schedule: every day 03:00
-    target: cron-service
-
-  - description: Adjust strategy selection weights based on strategy stats.
-    url: /fuzz-strategy-selection
-    schedule: every day 05:00
-    target: cron-service
-
-  - description: Load BigQuery stats.
-    url: /load-bigquery-stats
-    schedule: every day 01:00
-    target: cron-service
-
-  - description: Manage VMs.
-    url: /manage-vms
-    schedule: every 30 minutes
-    target: cron-service
-
-  - description: Schedule corpus pruning task.
-    url: /schedule-corpus-pruning
-    schedule: every day 19:00
     target: cron-service
 
   - description: Schedule impact tasks.
@@ -109,10 +69,5 @@ cron:
 
   - description: File bugs for open test cases.
     url: /triage
-    schedule: every 1 hours
-    target: cron-service
-
-  - description: Sync admin users.
-    url: /sync-admins
     schedule: every 1 hours
     target: cron-service

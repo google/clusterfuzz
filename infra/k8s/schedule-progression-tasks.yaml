@@ -35,5 +35,7 @@ spec:
               value: "true"
             - name: DISABLE_MOUNTS
               value: "true"
+            - name: REDIS_HOST
+              value: $REDIS_HOST
           restartPolicy: OnFailure
       backoffLimit: 3
