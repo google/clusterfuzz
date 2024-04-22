@@ -273,7 +273,11 @@ def get_oss_fuzz_projects():
 
 def get_projects_from_gcs(gcs_url):
   """Get projects from GCS path."""
-  data = json.loads(storage.read_data(gcs_url))
+  try:
+    data = json.loads(storage.read_data(gcs_url))
+  except json.decoder.JSONDecodeError as e:
+    raise ProjectSetupError(f'Error loading json file from {gcs_url}: {e}')
+
   return [(project['name'], project) for project in data['projects']]
 
 
