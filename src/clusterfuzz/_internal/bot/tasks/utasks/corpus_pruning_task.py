@@ -1043,9 +1043,9 @@ def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):
   data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
 
 
-def _fill_backup_urls(fuzz_target: data_types.FuzzTarget,
-                      corpus_pruning_task_input):
-  """Fills the backup urls if a backup bucket is provided."""
+def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
+                        corpus_pruning_task_input):
+  """Creates the backup urls if a backup bucket is provided."""
   backup_bucket_name = environment.get_value('BACKUP_BUCKET')
   if not backup_bucket_name:
     logs.log('No backup bucket provided, corpus backup will be skipped.')
@@ -1118,7 +1118,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       corpus_crashes_blob_name=corpus_crashes_blob_name,
       corpus_crashes_upload_url=corpus_crashes_upload_url)
 
-  _fill_backup_urls(fuzz_target, corpus_pruning_task_input)
+  _create_backup_urls(fuzz_target, corpus_pruning_task_input)
 
   if environment.get_value('LSAN'):
     # Copy global blacklist into local suppressions file if LSan is enabled.
