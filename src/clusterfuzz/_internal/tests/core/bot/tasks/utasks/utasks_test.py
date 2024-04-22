@@ -80,11 +80,12 @@ class TworkerPreprocessTest(unittest.TestCase):
         'platform': 'LINUX',
     }
 
-    durations = monitoring_metrics.UTASK_DURATION_SECS.get(metric_labels)
+    durations = monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.get(
+        metric_labels)
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
 
-    e2e_durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get(
+    e2e_durations = monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.get(
         metric_labels)
     self.assertEqual(e2e_durations.count, 1)
     self.assertLess(
@@ -177,11 +178,12 @@ class UworkerMainTest(unittest.TestCase):
         'platform': 'LINUX',
     }
 
-    durations = monitoring_metrics.UTASK_DURATION_SECS.get(metric_labels)
+    durations = monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.get(
+        metric_labels)
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
 
-    e2e_durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get(
+    e2e_durations = monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.get(
         metric_labels)
     self.assertEqual(e2e_durations.count, 1)
     self.assertLess(e2e_durations.sum * 10**9,
@@ -245,11 +247,12 @@ class TworkerPostprocessTest(unittest.TestCase):
         'platform': 'LINUX',
     }
 
-    durations = monitoring_metrics.UTASK_DURATION_SECS.get(metric_labels)
+    durations = monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.get(
+        metric_labels)
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
 
-    e2e_durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get(
+    e2e_durations = monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.get(
         metric_labels)
     self.assertEqual(e2e_durations.count, 1)
     self.assertLess(e2e_durations.sum * 10**9,
