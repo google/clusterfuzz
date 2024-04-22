@@ -258,7 +258,7 @@ def _get_job(job_name):
 
 
 def is_no_privilege_workload(command, job_name):
-  return is_remote_task(command, job_name):
+  return is_remote_task(command, job_name)
 
 
 def is_remote_task(command, job_name):
