@@ -862,7 +862,15 @@ class CustomBuild(Build):
 
     build_local_archive = os.path.join(self.build_dir,
                                        self.custom_binary_filename)
-    if not blobs.read_blob_to_disk(self.custom_binary_key, build_local_archive):
+    custom_builds_bucket = environment.get_value('CUSTOM_BUILDS_BUCKET')
+    if custom_builds_bucket:
+      directory = os.path.dirname(build_local_archive)
+      if not os.path.exists(directory):
+        os.makedirs(directory)
+      gcs_path = f'/{custom_builds_bucket}/{self.custom_binary_key}'
+      storage.copy_file_from(gcs_path, build_local_archive)
+    elif not blobs.read_blob_to_disk(self.custom_binary_key,
+                                     build_local_archive):
       return False
 
     # If custom binary is an archive, then unpack it.
