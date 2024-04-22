@@ -51,7 +51,7 @@ def _display_prob(probability: float) -> str:
   return f'{probability:0.04f} = {probability * 100:0.02f}%'
 
 
-def list_platforms() -> None:
+def _display_platforms() -> None:
   # Query only distinct platform values from the database.
   fuzzer_jobs = data_types.FuzzerJob.query(
       projection=[data_types.FuzzerJob.platform], distinct=True)
@@ -117,8 +117,8 @@ def _print_with_prefix(prefix: str) -> Callable[[str], None]:
   return _print
 
 
-def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
-                      prefix='') -> None:
+def _display_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
+                         prefix='') -> None:
   """Lists the given FuzzerJob entries on stdout."""
   printer = _print_with_prefix(prefix)
 
@@ -142,7 +142,8 @@ def _list_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
   printer(f'Total weight: {total_weight}')
 
 
-def _list_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
+def _display_fuzzer_jobs_batches(
+    batches: Sequence[data_types.FuzzerJobs]) -> None:
   """Lists the given FuzzerJobs entries on stdout."""
   count = 0
   for batch in batches:
@@ -151,12 +152,12 @@ def _list_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
     print('FuzzerJobs:')
     print(f'  ID: {batch.key.id()}')
     print(f'  Platform: {batch.platform}')
-    _list_fuzzer_jobs(batch.fuzzer_jobs, prefix='  ')
+    _display_fuzzer_jobs(batch.fuzzer_jobs, prefix='  ')
 
   print(f'Count: {count}')
 
 
-def _list_fuzz_target_jobs(
+def _display_fuzz_target_jobs(
     fuzz_target_jobs: Sequence[data_types.FuzzTargetJob]) -> None:
   """Lists the given FuzzTargetJob entries on stdout."""
   fuzz_target_jobs = list(fuzz_target_jobs)
@@ -203,7 +204,7 @@ def _fuzzer_job_to_dict(
 
 
 def _dump_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
-  """Dumps FuzzerJob entries from the database to stdout in CSV format."""
+  """Dumps the provided FuzzerJob entries to stdout in CSV format."""
   writer = csv.DictWriter(sys.stdout, fieldnames=_FUZZER_JOB_FIELDS)
   writer.writeheader()
 
@@ -212,7 +213,7 @@ def _dump_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> None:
 
 
 def _dump_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
-  """Dumps FuzzerJobs entries from the database to stdout in CSV format."""
+  """Dumps the provided FuzzerJobs entries to stdout in CSV format."""
   writer = csv.DictWriter(sys.stdout, fieldnames=['batch'] + _FUZZER_JOB_FIELDS)
   writer.writeheader()
 
@@ -225,7 +226,7 @@ def _dump_fuzzer_jobs_batches(batches: Sequence[data_types.FuzzerJobs]) -> None:
 
 def _dump_fuzz_target_jobs(
     fuzz_target_jobs: Sequence[data_types.FuzzTargetJob]) -> None:
-  """Dumps FuzzTargetJob entries from the database to stdout in CSV format."""
+  """Dumps the provided FuzzTargetJob entries to stdout in CSV format."""
   writer = csv.DictWriter(
       sys.stdout,
       fieldnames=[
@@ -349,12 +350,12 @@ def _execute_fuzzer_command(args) -> None:
   """Executes the `fuzzer` command."""
   cmd = args.fuzzer_command
   if cmd == 'platforms':
-    list_platforms()
+    _display_platforms()
   elif cmd == 'list':
     fuzzer_jobs = _query_fuzzer_jobs(
         platforms=args.platforms, fuzzers=args.fuzzers, jobs=args.jobs)
     if args.format == 'text':
-      _list_fuzzer_jobs(fuzzer_jobs)
+      _display_fuzzer_jobs(fuzzer_jobs)
     elif args.format == 'csv':
       _dump_fuzzer_jobs(fuzzer_jobs)
     else:
@@ -371,7 +372,7 @@ def _execute_fuzzer_batch_command(args) -> None:
   if cmd == 'list':
     batches = _query_fuzzer_jobs_batches(platforms=args.platforms)
     if args.format == 'text':
-      _list_fuzzer_jobs_batches(batches)
+      _display_fuzzer_jobs_batches(batches)
     elif args.format == 'csv':
       _dump_fuzzer_jobs_batches(batches)
     else:
@@ -387,7 +388,7 @@ def _execute_fuzz_target_command(args) -> None:
     fuzz_target_jobs = _query_fuzz_target_jobs(
         targets=args.targets, jobs=args.jobs, engines=args.engines)
     if args.format == 'text':
-      _list_fuzz_target_jobs(fuzz_target_jobs)
+      _display_fuzz_target_jobs(fuzz_target_jobs)
     elif args.format == 'csv':
       _dump_fuzz_target_jobs(fuzz_target_jobs)
     else:
