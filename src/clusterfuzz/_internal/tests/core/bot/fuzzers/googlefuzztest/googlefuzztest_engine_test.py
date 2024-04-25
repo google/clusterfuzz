@@ -20,6 +20,7 @@ import sys
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
+from clusterfuzz._internal.metrics import logs
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
@@ -46,7 +47,7 @@ class UnitTest(unittest.TestCase):
                                                  PASSING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-    
+
     print(results.logs, file=sys.stderr)
 
     self.assertIn("--logtostderr", results.command)
@@ -54,13 +55,18 @@ class UnitTest(unittest.TestCase):
 
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
+    logs.log("starting test_fuzz_no_crash test")
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  PASSING_TEST_DIR_SUFFIX)
+    logs.log('Found target path: {}'.format(target_path))
+
     options = engine_impl.prepare(None, target_path, DATA_DIR)
+    logs.log("Attempting to fuzz: {}".format(target_path))
+
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
-    print(results.logs, file=sys.stderr)
+    logs.log("Fuzzing finished running. Logs: {}".format(results.logs))
 
     self.assertEqual(len(results.crashes), 0)
 

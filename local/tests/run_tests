@@ -2,4 +2,4 @@
 
 echo 'Running unit tests...'
 #python butler.py py_unittest -t appengine -m "$@"
-python butler.py py_unittest -t core -m "$@"
+python butler.py py_unittest -t core -p googlefuzztest_engine_* -m "$@"
