@@ -15,15 +15,15 @@
 # pylint: disable=unused-argument
 
 import os
-import shutil
 import unittest
 
-from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
+
 
 class UnitTest(unittest.TestCase):
   """Unit tests."""
@@ -37,7 +37,6 @@ class UnitTest(unittest.TestCase):
     self.assertIn("--logtostderr", results.command)
     self.assertIn("--minloglevel=3", results.command)
 
-  #@test_utils.slow
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
     engine_impl = engine.Engine()
@@ -46,7 +45,6 @@ class UnitTest(unittest.TestCase):
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assertEqual(len(results.crashes), 0)
-    
 
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
@@ -56,4 +54,5 @@ class UnitTest(unittest.TestCase):
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
-    self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address", crash.stacktrace)
+    self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address",
+                  crash.stacktrace)
