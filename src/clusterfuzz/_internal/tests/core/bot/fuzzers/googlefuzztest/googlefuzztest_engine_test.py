@@ -23,16 +23,29 @@ from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
+FAILING_TEST_DIR_SUFFIX = "failing_fuzz_test"
+PASSING_TEST_DIR_SUFFIX = "passing_fuzz_test"
 
 
 class UnitTest(unittest.TestCase):
   """Unit tests."""
 
+  def setUp(self):
+    os.chmod(
+        os.path.join(DATA_DIR, FAILING_TEST_DIR_SUFFIX,
+                     FAILING_TEST_DIR_SUFFIX), 0o755)
+    os.chmod(
+        os.path.join(DATA_DIR, PASSING_TEST_DIR_SUFFIX,
+                     PASSING_TEST_DIR_SUFFIX), 0o755)
+
   def test_googlefuzztest_invoked_with_low_log_volume(self):
+    """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'passing_fuzz_test')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 PASSING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    print(results.logs)
 
     self.assertIn("--logtostderr", results.command)
     self.assertIn("--minloglevel=3", results.command)
@@ -40,19 +53,26 @@ class UnitTest(unittest.TestCase):
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'passing_fuzz_test')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 PASSING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    print(results.logs)
 
     self.assertEqual(len(results.crashes), 0)
 
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'failing_fuzz_test')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 FAILING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
+
+    print(results.logs)
+
     self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address",
                   crash.stacktrace)
