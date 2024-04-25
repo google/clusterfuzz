@@ -80,7 +80,6 @@ class UnitTest(unittest.TestCase):
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
 
-    print(results.logs, file=sys.stderr)
-
+    self.assertEqual(None, results.logs)
     self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address",
                   crash.stacktrace)
