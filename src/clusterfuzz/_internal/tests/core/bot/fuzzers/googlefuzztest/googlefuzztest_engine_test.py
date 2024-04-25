@@ -77,9 +77,11 @@ class UnitTest(unittest.TestCase):
                                                  FAILING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assertEqual(None, results.logs)
+
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
 
-    self.assertEqual(None, results.logs)
     self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address",
                   crash.stacktrace)
