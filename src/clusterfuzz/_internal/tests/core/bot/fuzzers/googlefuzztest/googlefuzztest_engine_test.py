@@ -16,6 +16,7 @@
 
 import os
 import unittest
+import sys
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
@@ -45,7 +46,8 @@ class UnitTest(unittest.TestCase):
                                                  PASSING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-    print(results.logs)
+    
+    print(results.logs, file=sys.stderr)
 
     self.assertIn("--logtostderr", results.command)
     self.assertIn("--minloglevel=3", results.command)
@@ -58,7 +60,7 @@ class UnitTest(unittest.TestCase):
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
-    print(results.logs)
+    print(results.logs, file=sys.stderr)
 
     self.assertEqual(len(results.crashes), 0)
 
@@ -72,7 +74,7 @@ class UnitTest(unittest.TestCase):
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
 
-    print(results.logs)
+    print(results.logs, file=sys.stderr)
 
     self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address",
                   crash.stacktrace)

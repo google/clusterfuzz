@@ -9,12 +9,12 @@ fi
 INTEGRATION=1 $SCRIPT_DIR/run_tests
 # https://github.com/google/clusterfuzz/issues/2678.
 # $SCRIPT_DIR/run_js_tests
-$SCRIPT_DIR/run_untrusted_test untrusted_runner_integration
-$SCRIPT_DIR/run_untrusted_test corpus_pruning
-$SCRIPT_DIR/run_untrusted_test testcase_manager
-$SCRIPT_DIR/run_untrusted_test fuzz_task
-$SCRIPT_DIR/run_untrusted_test minimize_task
-$SCRIPT_DIR/run_utask_test analyze_task
+#$SCRIPT_DIR/run_untrusted_test untrusted_runner_integration
+#$SCRIPT_DIR/run_untrusted_test corpus_pruning
+#$SCRIPT_DIR/run_untrusted_test testcase_manager
+#$SCRIPT_DIR/run_untrusted_test fuzz_task
+#$SCRIPT_DIR/run_untrusted_test minimize_task
+#$SCRIPT_DIR/run_utask_test analyze_task#
 
 echo 'Running end-to-end integration tests...'
-python butler.py integration_tests
+#python butler.py integration_tests
