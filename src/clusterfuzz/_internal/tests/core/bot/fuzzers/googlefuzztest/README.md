@@ -1,6 +1,6 @@
 ### How to build your own googlefuzztest binaries
 
-* Install cmake => https://abseil.io/docs/cpp/tools/cmake-installs
+* Install cmake => https://cmake.org/download
 * Install abseil => https://abseil.io/docs/cpp/tools/cmake-installs
 * Install protobuff => https://github.com/protocolbuffers/protobuf/blob/main/cmake/README.md
 * Follow googlefuzztest quickstart => https://github.com/google/fuzztest/blob/main/doc/quickstart-cmake.md

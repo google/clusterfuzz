@@ -16,7 +16,6 @@
 
 import os
 import unittest
-import sys
 import logging
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -29,15 +28,8 @@ TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 FAILING_TEST_DIR_SUFFIX = "failing_fuzz_test"
 PASSING_TEST_DIR_SUFFIX = "passing_fuzz_test"
 
-# https://stackoverflow.com/questions/7472863/pydev-unittesting-how-to-capture-text-logged-to-a-logging-logger-in-captured-o
-logger = logging.getLogger()
-logger.level = logging.INFO
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
-
-
-class UnitTest(unittest.TestCase):
-  """Unit tests."""
+class GoogleFuzzTestUnitTests(unittest.TestCase):
+  """Unit tests for the googlefuzztest fuzzing engine."""
 
   def setUp(self):
     self.maxDiff = None
@@ -71,8 +63,6 @@ class UnitTest(unittest.TestCase):
                                                  FAILING_TEST_DIR_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
-    logging.getLogger().info('Showing result logs: {}'.format(results.logs))
 
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
