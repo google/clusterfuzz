@@ -17,6 +17,7 @@ from flask import request
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -106,7 +107,7 @@ class Handler(base_handler.Handler):
     ]
     result, params = get_results()
 
-    bucket = environment.get_value('CUSTOM_BUILDS_BUCKET')
+    bucket = local_config.ProjectConfig.get('custom_builds.bucket')
     if not bucket:
       bucket = storage.blobs_bucket()
     upload_info = gcs.prepare_upload(blobs.generate_new_blob_name())._asdict()

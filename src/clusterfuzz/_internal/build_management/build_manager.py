@@ -25,6 +25,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import build_archive
 from clusterfuzz._internal.build_management import overrides
 from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -862,7 +863,8 @@ class CustomBuild(Build):
 
     build_local_archive = os.path.join(self.build_dir,
                                        self.custom_binary_filename)
-    custom_builds_bucket = environment.get_value('CUSTOM_BUILDS_BUCKET')
+    custom_builds_bucket = local_config.ProjectConfig.get(
+        'custom_builds.bucket')
     if custom_builds_bucket:
       directory = os.path.dirname(build_local_archive)
       if not os.path.exists(directory):
