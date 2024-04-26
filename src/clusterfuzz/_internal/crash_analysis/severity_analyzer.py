@@ -22,7 +22,9 @@ from clusterfuzz._internal.datastore.data_types import SecuritySeverity
 from clusterfuzz._internal.system import environment
 
 # These should be generic within ClusterFuzz.
-LOW_SEVERITY_CRASH_TYPES = []
+LOW_SEVERITY_CRASH_TYPES = [
+    'V8 sandbox violation',
+]
 MEDIUM_SEVERITY_CRASH_TYPES = [
     'Container-overflow', 'Heap-buffer-overflow',
     'Incorrect-function-pointer-type', 'Index-out-of-bounds',
