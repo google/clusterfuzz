@@ -107,7 +107,7 @@ class Handler(base_handler.Handler):
     ]
     result, params = get_results()
 
-    bucket = local_config.ProjectConfig.get('custom_builds.bucket')
+    bucket = local_config.ProjectConfig().get('custom_builds.bucket')
     if not bucket:
       bucket = storage.blobs_bucket()
     upload_info = gcs.prepare_upload(blobs.generate_new_blob_name())._asdict()

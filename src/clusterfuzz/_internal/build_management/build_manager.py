@@ -863,7 +863,7 @@ class CustomBuild(Build):
 
     build_local_archive = os.path.join(self.build_dir,
                                        self.custom_binary_filename)
-    custom_builds_bucket = local_config.ProjectConfig.get(
+    custom_builds_bucket = local_config.ProjectConfig().get(
         'custom_builds.bucket')
     if custom_builds_bucket:
       directory = os.path.dirname(build_local_archive)
