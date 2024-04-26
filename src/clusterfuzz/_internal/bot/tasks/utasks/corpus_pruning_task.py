@@ -199,23 +199,16 @@ class Context:
         '%s_bad_units' % self.fuzz_target.project_qualified_name())
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
-    if uworker_input is not None:
-      self.corpus = corpus_manager.ProtoFuzzTargetCorpus(
-          self.fuzz_target.engine, self.fuzz_target.project_qualified_name(),
-          uworker_input.corpus_pruning_task_input.corpus)
-      self.quarantine_corpus = corpus_manager.ProtoFuzzTargetCorpus(
-          self.fuzz_target.engine, self.fuzz_target.project_qualified_name(),
-          uworker_input.corpus_pruning_task_input.quarantine_corpus)
-    else:
-      # Delete this branch after we get rid of untrusted runnner.
-      self.corpus = corpus_manager.FuzzTargetCorpus(
-          self.fuzz_target.engine,
-          self.fuzz_target.project_qualified_name(),
-          include_regressions=True)
-      self.quarantine_corpus = corpus_manager.FuzzTargetCorpus(
-          self.fuzz_target.engine,
-          self.fuzz_target.project_qualified_name(),
-          quarantine=True)
+    self.corpus = corpus_manager.ProtoFuzzTargetCorpus(
+        self.fuzz_target.engine, self.fuzz_target.project_qualified_name(),
+        uworker_input.corpus_pruning_task_input.corpus)
+    self.quarantine_corpus = corpus_manager.ProtoFuzzTargetCorpus(
+        self.fuzz_target.engine, self.fuzz_target.project_qualified_name(),
+        uworker_input.corpus_pruning_task_input.quarantine_corpus)
+    self.dated_backup_gcs_url = (
+        uworker_input.corpus_pruning_task_input.dated_backup_gcs_url)
+    self.dated_backup_signed_url = (
+        uworker_input.corpus_pruning_task_input.dated_backup_signed_url)
 
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
@@ -645,9 +638,11 @@ def do_corpus_pruning(context, revision):
                                         'regressions')
   if shell.get_directory_file_count(regressions_input_dir):
     shutil.copytree(regressions_input_dir, regressions_output_dir)
-  backup_bucket = environment.get_value('BACKUP_BUCKET')
-  corpus_backup_url = corpus_manager.backup_corpus(
-      backup_bucket, context.corpus, context.minimized_corpus_path)
+  backup_succeeded = corpus_manager.backup_corpus(
+      context.dated_backup_signed_url, context.corpus,
+      context.minimized_corpus_path)
+  corpus_backup_location = (
+      context.dated_backup_gcs_url if backup_succeeded else None)
   shell.remove_directory(regressions_output_dir)
 
   minimized_corpus_size_units = shell.get_directory_file_count(
@@ -684,7 +679,7 @@ def do_corpus_pruning(context, revision):
   coverage_info.corpus_size_bytes = minimized_corpus_size_bytes
   coverage_info.quarantine_size_units = quarantine_corpus_size
   coverage_info.quarantine_size_bytes = quarantine_corpus_dir_size
-  coverage_info.corpus_backup_location = corpus_backup_url
+  coverage_info.corpus_backup_location = corpus_backup_location
   coverage_info.corpus_location = context.corpus.get_gcs_url()
   coverage_info.quarantine_location = context.quarantine_corpus.get_gcs_url()
 
@@ -1025,7 +1020,8 @@ def utask_main(uworker_input):
             coverage_info=_extract_coverage_information(context, result),
             fuzzer_binary_name=result.fuzzer_binary_name,
             crash_revision=result.revision,
-            crashes=_extract_corpus_crashes(result)),
+            crashes=_extract_corpus_crashes(result),
+            corpus_backup_uploaded=bool(result.coverage_info.corpus_location)),
         issue_metadata=issue_metadata)
     _fill_cross_pollination_stats(result.cross_pollination_stats,
                                   uworker_output)
@@ -1045,6 +1041,30 @@ def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):
   task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'
                f'{output.uworker_input.job_type}')
   data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
+
+
+def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
+                        corpus_pruning_task_input):
+  """Creates the backup urls if a backup bucket is provided."""
+  backup_bucket_name = environment.get_value('BACKUP_BUCKET')
+  if not backup_bucket_name:
+    logs.log('No backup bucket provided, corpus backup will be skipped.')
+    return
+
+  timestamp = str(utils.utcnow().date())
+  dated_backup_gcs_url = corpus_manager.gcs_url_for_backup_file(
+      backup_bucket_name, fuzz_target.engine,
+      fuzz_target.project_qualified_name(), timestamp)
+  latest_backup_gcs_url = corpus_manager.gcs_url_for_backup_file(
+      backup_bucket_name, fuzz_target.engine,
+      fuzz_target.project_qualified_name(),
+      corpus_manager.LATEST_BACKUP_TIMESTAMP)
+
+  dated_backup_signed_url = storage.get_signed_upload_url(dated_backup_gcs_url)
+
+  corpus_pruning_task_input.dated_backup_gcs_url = dated_backup_gcs_url
+  corpus_pruning_task_input.latest_backup_gcs_url = latest_backup_gcs_url
+  corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -1098,6 +1118,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       corpus_crashes_blob_name=corpus_crashes_blob_name,
       corpus_crashes_upload_url=corpus_crashes_upload_url)
 
+  _create_backup_urls(fuzz_target, corpus_pruning_task_input)
+
   if environment.get_value('LSAN'):
     # Copy global blacklist into local suppressions file if LSan is enabled.
     setup_input.global_blacklisted_functions.extend(
@@ -1119,6 +1141,26 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 })
 
 
+def _update_latest_backup(output):
+  """Updates the latest_backup with the dated_backup uploaded in utask_main
+  if any."""
+  if not output.corpus_pruning_task_output.corpus_backup_uploaded:
+    return
+
+  dated_backup_gcs_url = (
+      output.uworker_input.corpus_pruning_task_input.dated_backup_gcs_url)
+  latest_backup_gcs_url = (
+      output.uworker_input.corpus_pruning_task_input.latest_backup_gcs_url)
+
+  try:
+    if not storage.copy_blob(dated_backup_gcs_url, latest_backup_gcs_url):
+      logs.log_error('backup_corpus: Failed to update latest corpus backup at '
+                     f'{latest_backup_gcs_url}.')
+  except:
+    logs.log_error('backup_corpus: Failed to update latest corpus backup at '
+                   f'{latest_backup_gcs_url}.')
+
+
 def utask_postprocess(output):
   """Trusted: Handles errors and writes anything needed to the db."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
@@ -1127,6 +1169,7 @@ def utask_postprocess(output):
   task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'
                f'{output.uworker_input.job_type}')
 
+  _update_latest_backup(output)
   _record_cross_pollination_stats(output)
   _save_coverage_information(output)
   _process_corpus_crashes(output)

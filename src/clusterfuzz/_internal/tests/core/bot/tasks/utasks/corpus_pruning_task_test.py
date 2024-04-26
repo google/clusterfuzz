@@ -81,7 +81,7 @@ class BaseTest:
     self.mock.proto_rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
-    self.mock.backup_corpus.return_value = 'backup_link'
+    self.mock.backup_corpus.return_value = True
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -175,6 +175,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
     self.maxDiff = None
+    self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
 
   def test_preprocess_existing_task_running(self):
     """Preprocess test when another task is running."""
@@ -250,7 +251,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertDictEqual(
         {
             'corpus_backup_location':
-                'backup_link',
+                uworker_input.corpus_pruning_task_input.dated_backup_gcs_url,
             'corpus_location':
                 'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
@@ -287,7 +288,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
-    context = corpus_pruning_task.Context(None, fuzz_target, [])
+    context = corpus_pruning_task.Context(uworker_msg_pb2.Input(), fuzz_target,
+                                          [])
 
     runner = corpus_pruning_task.Runner(self.build_dir, context)
     flags = runner.get_libfuzzer_flags()

@@ -474,50 +474,40 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   return f'{backup_dir.rstrip("/")}/{backup_file}'
 
 
-def backup_corpus(backup_bucket_name, corpus, directory):
+def backup_corpus(dated_backup_signed_url, corpus, directory):
   """Archive and store corpus as a backup.
 
   Args:
-    backup_bucket_name: Backup bucket.
+    dated_backup_signed_url: Signed url to upload the backup.
     corpus: uworker_msg.FuzzTargetCorpus.
     directory: Path to directory to be archived and backuped.
 
   Returns:
     The backup GCS url, or None on failure.
   """
-  logs.log(f'Backing up corpus {backup_bucket_name} {corpus} {directory}')
-  # TODO(metzman): Make this safe to run on a uworker.
-  if not backup_bucket_name:
-    logs.log('No backup bucket provided, skipping corpus backup.')
-    return None
+  logs.log(f'Backing up corpus {corpus} {directory}')
+  if not dated_backup_signed_url:
+    logs.log('No backup url provided, skipping corpus backup.')
+    return False
 
-  dated_backup_url = None
   timestamp = str(utils.utcnow().date())
 
   # The archive path for shutil.make_archive should be without an extension.
   backup_archive_path = os.path.join(
       os.path.dirname(os.path.normpath(directory)), timestamp)
+
+  backup_succeeded = True
   try:
     backup_archive_path = shutil.make_archive(backup_archive_path,
                                               BACKUP_ARCHIVE_FORMAT, directory)
-    dated_backup_url = gcs_url_for_backup_file(
-        backup_bucket_name, corpus.engine, corpus.project_qualified_target_name,
-        timestamp)
-
-    if not storage.copy_file_to(backup_archive_path, dated_backup_url):
-      return None
-
-    latest_backup_url = gcs_url_for_backup_file(
-        backup_bucket_name, corpus.engine, corpus.project_qualified_target_name,
-        LATEST_BACKUP_TIMESTAMP)
-
-    if not storage.copy_blob(dated_backup_url, latest_backup_url):
-      logs.log_error('backup_corpus: Failed to update latest corpus backup at '
-                     f'{latest_backup_url}.')
+    with open(backup_archive_path, 'rb') as fp:
+      data = fp.read()
+      if not storage.upload_signed_url(data, dated_backup_signed_url):
+        return False
   except Exception as ex:
+    backup_succeeded = False
     logs.log_error(
         f'backup_corpus failed: {ex}\n',
-        backup_bucket_name=backup_bucket_name,
         directory=directory,
         backup_archive_path=backup_archive_path)
 
@@ -525,7 +515,7 @@ def backup_corpus(backup_bucket_name, corpus, directory):
     # Remove backup archive.
     shell.remove_file(backup_archive_path)
 
-  return dated_backup_url
+  return backup_succeeded
 
 
 def gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,

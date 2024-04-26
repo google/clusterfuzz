@@ -100,6 +100,9 @@ message CorpusPruningTaskInput {
   optional FuzzTargetCorpus quarantine_corpus = 5;
   optional string corpus_crashes_blob_name = 6;
   optional string corpus_crashes_upload_url = 7;
+  optional string dated_backup_gcs_url = 8;
+  optional string latest_backup_gcs_url = 9;
+  optional string dated_backup_signed_url = 10;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
@@ -282,6 +285,7 @@ message CorpusPruningTaskOutput {
   optional string fuzzer_binary_name = 3;
   optional int32 crash_revision = 4;
   repeated CrashInfo crashes = 5;
+  optional bool corpus_backup_uploaded = 6;
 }
 
 enum ErrorType {
