@@ -58,7 +58,8 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
 ])
 
 _UNPRIVILEGED_TASKS = {
-    'analyze', 'symbolize', 'regression', 'variant', 'minimize', 'progression'
+    'analyze', 'corpus_pruning', 'symbolize', 'regression', 'variant',
+    'minimize', 'progression'
 }
 
 

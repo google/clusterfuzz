@@ -116,9 +116,14 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       return
 
     now = time.time_ns()
-    e2e_duration_ns = now - self._preprocess_start_time_ns
-    monitoring_metrics.UTASK_E2E_DURATION_SECS.add(e2e_duration_ns / 10**9,
-                                                   self._labels)
+
+    duration_secs = (now - self.start_time_ns) / 10**9
+    monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.add(duration_secs,
+                                                       self._labels)
+
+    e2e_duration_secs = (now - self._preprocess_start_time_ns) / 10**9
+    monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.add(
+        e2e_duration_secs, self._labels)
 
 
 def ensure_uworker_env_type_safety(uworker_env):

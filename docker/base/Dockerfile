@@ -15,7 +15,11 @@
 # Copy some commonly linked library versions from xenial for backwards
 # compatibility with older builds.
 FROM ubuntu:16.04 as xenial
-ENV DEBIAN_FRONTEND noninteractive
+
+# Prevent interactive prompts during package installation. This seems to work
+# better than `ENV DEBIAN_FRONTEND=noninteractive` for some reason.
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
 RUN apt-get update && \
     apt-get install -y \
       libcurl3-gnutls \
@@ -25,10 +29,11 @@ RUN apt-get update && \
 
 FROM ubuntu:20.04
 
+# And again with the newest ubuntu image.
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
 RUN mkdir /data
 WORKDIR /data
-
-ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
     apt-get upgrade -y && \
