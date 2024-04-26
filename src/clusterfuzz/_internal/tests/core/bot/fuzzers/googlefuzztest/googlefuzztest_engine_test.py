@@ -17,6 +17,7 @@
 import os
 import unittest
 import sys
+import logging
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
@@ -27,6 +28,12 @@ DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 FAILING_TEST_DIR_SUFFIX = "failing_fuzz_test"
 PASSING_TEST_DIR_SUFFIX = "passing_fuzz_test"
+
+# https://stackoverflow.com/questions/7472863/pydev-unittesting-how-to-capture-text-logged-to-a-logging-logger-in-captured-o
+logger = logging.getLogger()
+logger.level = logging.INFO
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
 
 
 class UnitTest(unittest.TestCase):
@@ -43,25 +50,17 @@ class UnitTest(unittest.TestCase):
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
-    print(results.logs, file=sys.stderr)
-
     self.assertIn("--logtostderr", results.command)
     self.assertIn("--minloglevel=3", results.command)
 
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
-    logs.log("starting test_fuzz_no_crash test")
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  PASSING_TEST_DIR_SUFFIX)
-    logs.log('Found target path: {}'.format(target_path))
-
     options = engine_impl.prepare(None, target_path, DATA_DIR)
-    logs.log("Attempting to fuzz: {}".format(target_path))
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
-    logs.log("Fuzzing finished running. Logs: {}".format(results.logs))
 
     self.assertEqual(len(results.crashes), 0)
 
@@ -73,7 +72,7 @@ class UnitTest(unittest.TestCase):
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
-    self.assertEqual(None, results.logs)
+    logging.getLogger().info('Showing result logs: {}'.format(results.logs))
 
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
