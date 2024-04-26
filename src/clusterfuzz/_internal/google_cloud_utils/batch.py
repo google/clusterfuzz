@@ -58,11 +58,11 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
 ])
 
 _UNPRIVILEGED_TASKS = {
-    'analyze', 'symbolize', 'regression', 'variant', 'minimize', 'progression'
+    'analyze', 'corpus_pruning', 'symbolize', 'regression', 'variant',
+    'minimize', 'progression'
 }
 _PRIVILEGED_JOBS = {
-    'linux_d8_dbg_cm',
-    'centipede_v8_asan_dbg_custom',
+    'centipede_v8_asan_dbg_custom', 'linux_asan_chrome_media', 'linux_d8_dbg_cm'
 }
 
 
