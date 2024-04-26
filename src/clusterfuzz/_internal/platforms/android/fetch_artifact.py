@@ -25,6 +25,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.system import environment
 
 from . import adb
 
@@ -40,6 +42,9 @@ STABLE_CUTTLEFISH_BUILD = {
     'target': 'cf_x86_64_phone-next-userdebug'
 }
 
+DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
+    "gs://test-blobs-bucket/fuzzers/target-cuttlefish/stable_build_info.json"
+)
 
 def execute_request_with_retries(request):
   """Executes request and retries on failure."""
@@ -163,12 +168,31 @@ def get_client():
 
   return client
 
+def get_stable_build_info():
+  """Return stable artifact for cuttlefish branch and target."""
+  stable_build_info = STABLE_CUTTLEFISH_BUILD
+  gcs_build_info_url = DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO
+
+  gcs_url_override = environment.get_value('OVERRIDE_STABLE_CUTTLEFISH_BUILD_INFO')
+  if gcs_url_override:
+    gcs_build_info_url = gcs_url_override
+
+  build_info_data = storage.read_data(gcs_build_info_url)
+  if build_info_data:
+    stable_build_info = json.loads(build_info_data)
+
+  return stable_build_info
 
 def get_latest_artifact_info(branch, target, signed=False):
   """Return latest artifact for a branch and target."""
   client = get_client()
   if not client:
     return None
+
+  if environment.is_android_cuttlefish():
+    stable_build = get_stable_build_info()
+    if stable_build:
+      return stable_build
 
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
