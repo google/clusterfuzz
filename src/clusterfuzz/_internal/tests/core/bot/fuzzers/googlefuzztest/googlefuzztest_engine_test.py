@@ -13,26 +13,21 @@
 # limitations under the License.
 """Tests for googlefuzztest engine."""
 # pylint: disable=unused-argument
-
 import os
 import unittest
-import logging
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
-from clusterfuzz._internal.metrics import logs
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
-FAILING_TEST_DIR_SUFFIX = "failing_fuzz_test"
-PASSING_TEST_DIR_SUFFIX = "passing_fuzz_test"
+FAILING_TEST_DIR_SUFFIX = 'failing_fuzz_test'
+PASSING_TEST_DIR_SUFFIX = 'passing_fuzz_test'
+
 
 class GoogleFuzzTestUnitTests(unittest.TestCase):
-  """Unit tests for the googlefuzztest fuzzing engine."""
-
-  def setUp(self):
-    self.maxDiff = None
+  """Tests to make sure the fuzzing engine correctly handles logging, crash and non crash scenarios"""
 
   def test_googlefuzztest_invoked_with_low_log_volume(self):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
@@ -42,8 +37,8 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
-    self.assertIn("--logtostderr", results.command)
-    self.assertIn("--minloglevel=3", results.command)
+    self.assertIn('--logtostderr', results.command)
+    self.assertIn('--minloglevel=3', results.command)
 
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
@@ -67,5 +62,5 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
 
-    self.assertIn("ERROR: AddressSanitizer: heap-buffer-overflow on address",
+    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
                   crash.stacktrace)
