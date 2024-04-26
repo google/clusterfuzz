@@ -24,8 +24,8 @@ import apiclient
 from oauth2client.service_account import ServiceAccountCredentials
 
 from clusterfuzz._internal.config import db_config
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 from . import adb
@@ -173,7 +173,9 @@ def get_stable_build_info():
   stable_build_info = STABLE_CUTTLEFISH_BUILD
   gcs_build_info_url = DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO
 
-  gcs_url_override = environment.get_value('OVERRIDE_STABLE_CUTTLEFISH_BUILD_INFO')
+  gcs_url_override = (
+    environment.get_value('OVERRIDE_STABLE_CUTTLEFISH_BUILD_INFO')
+    )
   if gcs_url_override:
     gcs_build_info_url = gcs_url_override
 
