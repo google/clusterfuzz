@@ -33,12 +33,7 @@ class UnitTest(unittest.TestCase):
   """Unit tests."""
 
   def setUp(self):
-    os.chmod(
-        os.path.join(DATA_DIR, FAILING_TEST_DIR_SUFFIX,
-                     FAILING_TEST_DIR_SUFFIX), 0o755)
-    os.chmod(
-        os.path.join(DATA_DIR, PASSING_TEST_DIR_SUFFIX,
-                     PASSING_TEST_DIR_SUFFIX), 0o755)
+    self.maxDiff = None
 
   def test_googlefuzztest_invoked_with_low_log_volume(self):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
