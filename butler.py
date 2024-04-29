@@ -137,7 +137,11 @@ def _add_weights_batches_subparser(weights_subparsers):
   """Adds a parser for the `weights fuzzer-batch` command."""
   parser = weights_subparsers.add_parser(
       'fuzzer-batch',
-      help='Interact with FuzzerJobs (FuzzerJob batches) weights.')
+      help='Interact with FuzzerJobs weights. FuzzerJobs database entries ' +
+      'consist of batches of FuzzerJob entries that share the same platform. ' +
+      'These are periodically generated from FuzzerJob entries. Bots read ' +
+      'from FuzzerJobs batches in production instead of reading directly ' +
+      'from FuzzerJob entries.')
   subparsers = parser.add_subparsers(dest='fuzzer_batch_command')
 
   list_parser = subparsers.add_parser('list', help='List FuzzerJobs entries.')
