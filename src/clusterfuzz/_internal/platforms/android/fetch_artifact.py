@@ -45,6 +45,7 @@ STABLE_CUTTLEFISH_BUILD = {
 DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
     "gs://test-blobs-bucket/fuzzers/target-cuttlefish/stable_build_info.json")
 
+
 def execute_request_with_retries(request):
   """Executes request and retries on failure."""
   result = None
@@ -167,6 +168,7 @@ def get_client():
 
   return client
 
+
 def get_stable_build_info():
   """Return stable artifact for cuttlefish branch and target."""
   logs.log('Reached get_stable_build_info')
@@ -184,6 +186,7 @@ def get_stable_build_info():
 
   logs.log('Using stable cuttlefish image - %s' % stable_build_info)
   return stable_build_info
+
 
 def get_latest_artifact_info(branch, target, signed=False):
   """Return latest artifact for a branch and target."""
