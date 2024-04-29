@@ -130,7 +130,7 @@ def _display_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
   for fuzzer_job in fuzzer_jobs:
     probability = fuzzer_job.actual_weight / total_weight
 
-    printer("FuzzerJob:")
+    printer('FuzzerJob:')
     printer(f'  Fuzzer: {fuzzer_job.fuzzer}')
     printer(f'  Job: {fuzzer_job.job}')
     printer(f'  Platform: {fuzzer_job.platform}')
