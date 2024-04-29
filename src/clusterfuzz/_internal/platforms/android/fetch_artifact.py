@@ -43,8 +43,7 @@ STABLE_CUTTLEFISH_BUILD = {
 }
 
 DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
-    "gs://test-blobs-bucket/fuzzers/target-cuttlefish/stable_build_info.json"
-)
+    "gs://test-blobs-bucket/fuzzers/target-cuttlefish/stable_build_info.json")
 
 def execute_request_with_retries(request):
   """Executes request and retries on failure."""
@@ -170,19 +169,20 @@ def get_client():
 
 def get_stable_build_info():
   """Return stable artifact for cuttlefish branch and target."""
+  logs.log('Reached get_stable_build_info')
   stable_build_info = STABLE_CUTTLEFISH_BUILD
-  gcs_build_info_url = DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO
 
-  gcs_url_override = (
-    environment.get_value('OVERRIDE_STABLE_CUTTLEFISH_BUILD_INFO')
-    )
-  if gcs_url_override:
-    gcs_build_info_url = gcs_url_override
+  try:
+    build_info_data = storage.read_data(DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO)
+    if build_info_data:
+      logs.log('Loading stable cuttlefish image from %s' %
+               DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO)
+      stable_build_info = json.loads(build_info_data)
+  except Exception as e:
+    logs.log_error(
+        'Error loading remote data: %s!\nUsing default build info!' % e)
 
-  build_info_data = storage.read_data(gcs_build_info_url)
-  if build_info_data:
-    stable_build_info = json.loads(build_info_data)
-
+  logs.log('Using stable cuttlefish image - %s' % stable_build_info)
   return stable_build_info
 
 def get_latest_artifact_info(branch, target, signed=False):
@@ -191,16 +191,10 @@ def get_latest_artifact_info(branch, target, signed=False):
   if not client:
     return None
 
-  if environment.is_android_cuttlefish():
-    stable_build = get_stable_build_info()
-    if stable_build:
-      return stable_build
-
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
-  stable_build = STABLE_CUTTLEFISH_BUILD
-  if stable_build:
-    return stable_build
+  if environment.is_android_cuttlefish():
+    return get_stable_build_info()
 
   request = client.build().list(  # pylint: disable=no-member
       buildType='submitted',
