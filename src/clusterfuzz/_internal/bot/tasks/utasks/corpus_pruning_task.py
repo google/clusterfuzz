@@ -932,7 +932,8 @@ def _save_coverage_information(output):
     coverage_info.corpus_size_units = cov_info.corpus_size_units
     coverage_info.corpus_size_bytes = cov_info.corpus_size_bytes
     coverage_info.corpus_location = cov_info.corpus_location
-    coverage_info.corpus_backup_location = cov_info.corpus_backup_location
+    if cov_info.corpus_backup_location:
+      coverage_info.corpus_backup_location = cov_info.corpus_backup_location
     coverage_info.quarantine_size_units = cov_info.quarantine_size_units
     coverage_info.quarantine_size_bytes = cov_info.quarantine_size_bytes
     coverage_info.quarantine_location = cov_info.quarantine_location
@@ -961,8 +962,9 @@ def _extract_coverage_information(context, result):
   coverage_info.corpus_size_units = result.coverage_info.corpus_size_units
   coverage_info.corpus_size_bytes = result.coverage_info.corpus_size_bytes
   coverage_info.corpus_location = result.coverage_info.corpus_location
-  coverage_info.corpus_backup_location = (
-      result.coverage_info.corpus_backup_location)
+  if result.coverage_info.corpus_backup_location:
+    coverage_info.corpus_backup_location = (
+        result.coverage_info.corpus_backup_location)
   coverage_info.quarantine_size_units = (
       result.coverage_info.quarantine_size_units)
   coverage_info.quarantine_size_bytes = (
