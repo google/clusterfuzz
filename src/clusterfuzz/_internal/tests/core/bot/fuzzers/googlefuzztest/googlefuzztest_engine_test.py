@@ -18,6 +18,7 @@ import unittest
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
@@ -25,6 +26,8 @@ TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX = 'googlefuzztest_engine_test'
 
 
+#Forcing to skip this in local unit test runs, as the generated binary only works in CI
+@test_utils.integration
 class GoogleFuzzTestUnitTests(unittest.TestCase):
   """Tests to make sure the fuzzing engine correctly handles logging, crash and non crash scenarios"""
 
