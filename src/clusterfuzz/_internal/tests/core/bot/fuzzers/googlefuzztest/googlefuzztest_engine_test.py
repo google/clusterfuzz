@@ -31,8 +31,8 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
   def test_googlefuzztest_invoked_with_low_log_volume(self):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
+    target_path = engine_common.find_fuzzer_path(
+        DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
@@ -42,8 +42,8 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
+    target_path = engine_common.find_fuzzer_path(
+        DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -53,8 +53,8 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
+    target_path = engine_common.find_fuzzer_path(
+        DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     options.set_extra_env_vars({"FUZZTEST_SHOULD_FAIL": "1"})
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)

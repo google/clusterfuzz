@@ -25,13 +25,16 @@ _CRASH_REGEX = re.compile(r'.*Reproducer file written to:\s*(.*)$')
 class GoogleFuzzTestError(Exception):
   """Base exception class."""
 
+
 class GoogleFuzzTestFuzzOptions(engine.FuzzOptions):
+
   def __init__(self, corpus_dir, arguments, strategies):
     super().__init__(corpus_dir, arguments, strategies)
     self.extra_env_vars = {}
-  
+
   def set_extra_env_vars(self, env):
     self.extra_env_vars = env
+
 
 def _get_reproducer_path(line):
   """Get the reproducer path, if any."""
@@ -77,7 +80,9 @@ class Engine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    extra_env = {'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,}
+    extra_env = {
+        'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,
+    }
     if options.extra_env_vars:
       extra_env.update(options.extra_env_vars)
     runner = new_process.UnicodeProcessRunner(target_path)
