@@ -25,6 +25,13 @@ _CRASH_REGEX = re.compile(r'.*Reproducer file written to:\s*(.*)$')
 class GoogleFuzzTestError(Exception):
   """Base exception class."""
 
+class GoogleFuzzTestFuzzOptions(engine.FuzzOptions):
+  def __init__(self, corpus_dir, arguments, strategies):
+    super().__init__(corpus_dir, arguments, strategies)
+    self.extra_env_vars = {}
+  
+  def set_extra_env_vars(self, env):
+    self.extra_env_vars = env
 
 def _get_reproducer_path(line):
   """Get the reproducer path, if any."""
@@ -44,7 +51,7 @@ class Engine(engine.Engine):
 
   def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
-    FuzzOptions object.
+    GoogleFuzzTestFuzzOptions object.
 
     Args:
       corpus_dir: The main corpus directory.
@@ -52,17 +59,17 @@ class Engine(engine.Engine):
       build_dir: Path to the build directory.
 
     Returns:
-      A FuzzOptions object.
+      A GoogleFuzzTestFuzzOptions object.
     """
     os.chmod(target_path, 0o775)
-    return engine.FuzzOptions(corpus_dir, [], {})
+    return GoogleFuzzTestFuzzOptions(corpus_dir, [], {})
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session.
 
     Args:
       target_path: Path to the target.
-      options: The FuzzOptions object returned by prepare().
+      options: The GoogleFuzzTestFuzzOptions object returned by prepare().
       reproducers_dir: The directory to put reproducers in when crashes
           are found.
       max_time: Maximum allowed time for the fuzzing to run.
@@ -70,14 +77,14 @@ class Engine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    del options  # Unused.
+    extra_env = {'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,}
+    if options.extra_env_vars:
+      extra_env.update(options.extra_env_vars)
     runner = new_process.UnicodeProcessRunner(target_path)
 
     fuzz_result = runner.run_and_wait(
         timeout=max_time,
-        extra_env={
-            'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,
-        },
+        extra_env=extra_env,
         # See https://buganizer.corp.google.com/issues/334956516
         additional_args=['--logtostderr', '--minloglevel=3'])
     log_lines = fuzz_result.output.splitlines()

@@ -22,8 +22,7 @@ from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
-FAILING_TEST_DIR_SUFFIX = 'failing_fuzz_test'
-PASSING_TEST_DIR_SUFFIX = 'passing_fuzz_test'
+GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX = 'googlefuzztest_engine_test'
 
 
 class GoogleFuzzTestUnitTests(unittest.TestCase):
@@ -33,7 +32,7 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 PASSING_TEST_DIR_SUFFIX)
+                                                 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
@@ -44,7 +43,7 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     """Test fuzzing (no crash)."""
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 PASSING_TEST_DIR_SUFFIX)
+                                                 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -55,10 +54,10 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     """Test fuzzing that results in a crash."""
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 FAILING_TEST_DIR_SUFFIX)
+                                                 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
+    options.set_extra_env_vars({"FUZZTEST_SHOULD_FAIL": "1"})
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
     self.assertGreater(len(results.crashes), 0)
     crash = results.crashes[0]
 
