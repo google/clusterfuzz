@@ -7,9 +7,8 @@
 
 ### How to build binaries for this test suite
 
-* cd test_data/failing_fuzz_test/build
+* cd test_data/googlefuzztest_engine_test/build
 * CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebug -DFUZZTEST_FUZZING_MODE=on ..
 * cmake --build .
-* cp failing_fuzz_test ../failing_fuzztest
-* ./failing_fuzz_test
-* Completely analogous for passing_fuzz_test
+* cp googlefuzztest_engine_test ../googlefuzztest_engine_test
+* ./googlefuzztest_engine_test (or FUZZTEST_SHOULD_FAIL=1 ./googlefuzztest_engine_test)
