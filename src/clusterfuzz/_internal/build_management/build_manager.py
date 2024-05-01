@@ -25,6 +25,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import build_archive
 from clusterfuzz._internal.build_management import overrides
 from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -862,7 +863,16 @@ class CustomBuild(Build):
 
     build_local_archive = os.path.join(self.build_dir,
                                        self.custom_binary_filename)
-    if not blobs.read_blob_to_disk(self.custom_binary_key, build_local_archive):
+    custom_builds_bucket = local_config.ProjectConfig().get(
+        'custom_builds.bucket')
+    if custom_builds_bucket:
+      directory = os.path.dirname(build_local_archive)
+      if not os.path.exists(directory):
+        os.makedirs(directory)
+      gcs_path = f'/{custom_builds_bucket}/{self.custom_binary_key}'
+      storage.copy_file_from(gcs_path, build_local_archive)
+    elif not blobs.read_blob_to_disk(self.custom_binary_key,
+                                     build_local_archive):
       return False
 
     # If custom binary is an archive, then unpack it.

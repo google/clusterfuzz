@@ -17,10 +17,13 @@ from flask import request
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import filters
 from libs import form
@@ -103,6 +106,11 @@ class Handler(base_handler.Handler):
     ]
     result, params = get_results()
 
+    bucket = local_config.ProjectConfig().get('custom_builds.bucket')
+    if not bucket:
+      bucket = storage.blobs_bucket()
+    upload_info = gcs.prepare_upload(blobs.generate_new_blob_name())._asdict()
+
     return self.render(
         'jobs.html',
         values={
@@ -114,7 +122,7 @@ class Handler(base_handler.Handler):
                 'queues': queues,
                 'update_job_url': '/update-job',
                 'update_job_template_url': '/update-job-template',
-                'upload_info': gcs.prepare_blob_upload()._asdict(),
+                'upload_info': upload_info,
             },
             'params': params,
         })
