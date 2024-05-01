@@ -14,6 +14,7 @@
 """Task scheduler used to recreate recurring tasks."""
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
@@ -21,6 +22,9 @@ from clusterfuzz._internal.metrics import logs
 
 def schedule(task):
   """Creates tasks for open reproducible testcases."""
+  if task == 'impact' and not utils.is_chromium():
+    logs.log_warning('Not creating impact tasks outside of Chrome.')
+    return
 
   testcase_ids = []
   for status in ['Processed', 'Duplicate']:

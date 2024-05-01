@@ -13,14 +13,11 @@
 # limitations under the License.
 """Creates impact tasks."""
 
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.cron.helpers import tasks_scheduler
 
 
 def main():
   """Creates impact tasks."""
-  if not utils.is_chromium():
-    return True
   task = 'impact'
   tasks_scheduler.schedule(task)
   return True
