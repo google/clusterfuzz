@@ -24,7 +24,6 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
-from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import filters
 from libs import form
