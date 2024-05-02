@@ -33,7 +33,7 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     self.temp_dir = tempfile.gettempdir()
 
   def tearDown(self):
-    shutil.rmtree(self.TEMP_DIR, ignore_errors=True)
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_googlefuzztest_invoked_with_low_log_volume(self):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
