@@ -24,6 +24,7 @@ from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX = 'googlefuzztest_engine_test'
+NO_OP_TEST_SUFFIX = 'no_op'
 
 
 class GoogleFuzzTestUnitTests(unittest.TestCase):
@@ -39,7 +40,7 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(
-        DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
+        DATA_DIR, NO_OP_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, self.temp_dir, 10)
 
