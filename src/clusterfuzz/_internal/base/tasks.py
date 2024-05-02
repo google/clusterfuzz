@@ -720,7 +720,7 @@ def redo_testcase(testcase, tasks, user_email):
   # Log the task for debug purposes
   logs.log_info(
       f'{utils.current_date_time()} : Adding testcase id {testcase_id} \
-  to queue {queue_for_testcase(testcase)} with job {testcase.job_type} for tasks {sorted(task_list)}...\n'
+  to queue {queue_for_testcase(testcase)} with job {testcase.job_type} for tasks {sorted(task_list)}.'
   )
 
   # Allow new notifications to be sent for this testcase.
