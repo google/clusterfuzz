@@ -107,7 +107,6 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     ])
     helpers.patch_environ(self)
 
-
   def test_chromium(self):
     """Tests scheduling of impact tasks in chrome."""
     self.mock.is_chromium.return_value = True
