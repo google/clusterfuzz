@@ -747,6 +747,12 @@ def redo_testcase(testcase, tasks, user_email):
         wait_time=wait_time)
 
   if progression:
+    # Log the task for debug purposes
+    testcase.comments += '[%s] : Redo task: Adding testcase id %s task \
+    to queue %s with job %s...\n' % (utils.current_date_time(), testcase_id,
+                                     queue_for_testcase(testcase),
+                                     testcase.job_type)
+    testcase.put()
     add_task(
         'progression',
         testcase_id,
