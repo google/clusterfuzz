@@ -717,7 +717,7 @@ def redo_testcase(testcase, tasks, user_email):
   testcase.one_time_crasher_flag = False
   testcase.put()
 
-  # Log the task for debug purposes
+  # Log the task's queue for debug purposes.
   logs.log_info(
       f'{utils.current_date_time()} : Adding testcase id {testcase_id} \
   to queue {queue_for_testcase(testcase)} with job {testcase.job_type} for tasks {sorted(task_list)}.'
