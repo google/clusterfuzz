@@ -97,7 +97,7 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
 
 class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
-  """Tests ProgressionTasksScheduler."""
+  """Tests schedule_impact_tasks."""
 
   def setUp(self):
     super().setUp()
@@ -109,7 +109,7 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
 
   def test_chromium(self):
-    """Tests scheduling of progression tasks."""
+    """Tests scheduling of impact tasks in chrome."""
     self.mock.is_chromium.return_value = True
     schedule_impact_tasks.main()
     self.mock.add_task.assert_has_calls([
@@ -118,7 +118,7 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     ])
 
   def test_nonchromium(self):
-    """Tests scheduling of progression tasks."""
+    """Tests there is no scheduling of impact tasks outside of chromium."""
     self.mock.is_chromium.return_value = False
     schedule_impact_tasks.main()
     self.mock.add_task.assert_not_called()
