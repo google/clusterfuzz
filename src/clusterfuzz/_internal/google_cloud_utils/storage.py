@@ -1258,6 +1258,8 @@ def _error_tolerant_delete_signed_url(url):
 
 
 def upload_signed_urls(signed_urls, files):
+  if not signed_urls:
+    return []
   logs.log('Uploading URLs.')
   with _pool() as pool:
     result = list(
@@ -1274,6 +1276,8 @@ def download_signed_urls(signed_urls, directory):
   """Download |signed_urls| to |directory|."""
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
+  if not signed_urls:
+    return []
   basename = uuid.uuid4().hex
   filepaths = [
       os.path.join(directory, f'{basename}-{idx}')
@@ -1289,6 +1293,8 @@ def download_signed_urls(signed_urls, directory):
 
 
 def delete_signed_urls(urls):
+  if not urls:
+    return []
   logs.log('Deleting URLs.')
   with _pool() as pool:
     result = list(pool.map(_error_tolerant_delete_signed_url, urls))

@@ -24,7 +24,9 @@ import apiclient
 from oauth2client.service_account import ServiceAccountCredentials
 
 from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 from . import adb
 
@@ -39,6 +41,9 @@ STABLE_CUTTLEFISH_BUILD = {
     'branch': 'git_main',
     'target': 'cf_x86_64_phone-next-userdebug'
 }
+
+DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
+    "gs://test-blobs-bucket/fuzzers/target-cuttlefish/stable_build_info.json")
 
 
 def execute_request_with_retries(request):
@@ -164,6 +169,25 @@ def get_client():
   return client
 
 
+def get_stable_build_info():
+  """Return stable artifact for cuttlefish branch and target."""
+  logs.log('Reached get_stable_build_info')
+  stable_build_info = STABLE_CUTTLEFISH_BUILD
+
+  try:
+    build_info_data = storage.read_data(DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO)
+    if build_info_data:
+      logs.log('Loading stable cuttlefish image from %s' %
+               DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO)
+      stable_build_info = json.loads(build_info_data)
+  except Exception as e:
+    logs.log_error(
+        'Error loading remote data: %s!\nUsing default build info!' % e)
+
+  logs.log('Using stable cuttlefish image - %s' % stable_build_info)
+  return stable_build_info
+
+
 def get_latest_artifact_info(branch, target, signed=False):
   """Return latest artifact for a branch and target."""
   client = get_client()
@@ -172,9 +196,8 @@ def get_latest_artifact_info(branch, target, signed=False):
 
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
-  stable_build = STABLE_CUTTLEFISH_BUILD
-  if stable_build:
-    return stable_build
+  if environment.is_android_cuttlefish():
+    return get_stable_build_info()
 
   request = client.build().list(  # pylint: disable=no-member
       buildType='submitted',
