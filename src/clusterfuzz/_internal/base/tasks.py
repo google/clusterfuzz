@@ -717,6 +717,12 @@ def redo_testcase(testcase, tasks, user_email):
   testcase.one_time_crasher_flag = False
   testcase.put()
 
+  # Log the task's queue for debug purposes.
+  logs.log(
+      f'{utils.current_date_time()} : Adding testcase id {testcase_id} '
+      f'to queue {queue_for_testcase(testcase)} with job {testcase.job_type} '
+      f'for tasks {sorted(task_list)}.')
+
   # Allow new notifications to be sent for this testcase.
   notifications = ndb_utils.get_all_from_query(
       data_types.Notification.query(
