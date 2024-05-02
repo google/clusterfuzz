@@ -82,6 +82,7 @@ THREAD_WAIT_TIMEOUT = 1
 class FuzzTaskError(Exception):
   """Fuzz task exception."""
 
+
 class FuzzTargetNotFoundError(Exception):
   """Fuzz target not in build."""
 
