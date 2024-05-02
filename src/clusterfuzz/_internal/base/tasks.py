@@ -717,6 +717,12 @@ def redo_testcase(testcase, tasks, user_email):
   testcase.one_time_crasher_flag = False
   testcase.put()
 
+  # Log the task for debug purposes
+  logs.log_info(
+      f'{utils.current_date_time()} : Adding testcase id {testcase_id} \
+  to queue {queue_for_testcase(testcase)} with job {testcase.job_type} for tasks {sorted(task_list)}...\n'
+  )
+
   # Allow new notifications to be sent for this testcase.
   notifications = ndb_utils.get_all_from_query(
       data_types.Notification.query(
@@ -747,12 +753,6 @@ def redo_testcase(testcase, tasks, user_email):
         wait_time=wait_time)
 
   if progression:
-    # Log the task for debug purposes
-    testcase.comments += '[%s] : Redo task: Adding testcase id %s task \
-    to queue %s with job %s...\n' % (utils.current_date_time(), testcase_id,
-                                     queue_for_testcase(testcase),
-                                     testcase.job_type)
-    testcase.put()
     add_task(
         'progression',
         testcase_id,
