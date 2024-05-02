@@ -39,8 +39,7 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
   def test_googlefuzztest_invoked_with_low_log_volume(self):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
     engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(
-        DATA_DIR, NO_OP_TEST_SUFFIX)
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, NO_OP_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, self.temp_dir, 10)
 
