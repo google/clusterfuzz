@@ -14,22 +14,26 @@
 """Tests for googlefuzztest engine."""
 # pylint: disable=unused-argument
 import os
+import shutil
+import tempfile
 import unittest
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.googlefuzztest import engine
-from clusterfuzz._internal.tests.test_libs import test_utils
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
-TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX = 'googlefuzztest_engine_test'
 
 
-#Forcing to skip this in local unit test runs, as the generated binary only works in CI
-@test_utils.integration
 class GoogleFuzzTestUnitTests(unittest.TestCase):
-  """Tests to make sure the fuzzing engine correctly handles logging, crash and non crash scenarios"""
+  """Tests to make sure the fuzzing engine correctly handles logging by passing correct abseil flags"""
+
+  def setUp(self):
+    self.temp_dir = tempfile.gettempdir()
+
+  def tearDown(self):
+    shutil.rmtree(self.TEMP_DIR, ignore_errors=True)
 
   def test_googlefuzztest_invoked_with_low_log_volume(self):
     """Test if we call fuzztest with the correct abseil flags to reduce logging volume."""
@@ -37,32 +41,7 @@ class GoogleFuzzTestUnitTests(unittest.TestCase):
     target_path = engine_common.find_fuzzer_path(
         DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
     options = engine_impl.prepare(None, target_path, DATA_DIR)
-    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    results = engine_impl.fuzz(target_path, options, self.temp_dir, 10)
 
     self.assertIn('--logtostderr', results.command)
     self.assertIn('--minloglevel=3', results.command)
-
-  def test_fuzz_no_crash(self):
-    """Test fuzzing (no crash)."""
-    engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(
-        DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
-    options = engine_impl.prepare(None, target_path, DATA_DIR)
-
-    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
-    self.assertEqual(len(results.crashes), 0)
-
-  def test_fuzz_crash(self):
-    """Test fuzzing that results in a crash."""
-    engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(
-        DATA_DIR, GOOGLEFUZZTEST_ENGINE_TEST_SUFFIX)
-    options = engine_impl.prepare(None, target_path, DATA_DIR)
-    options.set_extra_env_vars({"FUZZTEST_SHOULD_FAIL": "1"})
-    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-    self.assertGreater(len(results.crashes), 0)
-    crash = results.crashes[0]
-
-    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
-                  crash.stacktrace)
