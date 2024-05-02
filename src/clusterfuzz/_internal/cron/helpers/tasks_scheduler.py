@@ -23,7 +23,7 @@ from clusterfuzz._internal.metrics import logs
 def schedule(task):
   """Creates tasks for open reproducible testcases."""
   if task == 'impact' and not utils.is_chromium():
-    logs.log_warning('Not creating impact tasks outside of Chrome.')
+    logs.log_warn('Not creating impact tasks outside of Chrome.')
     return
 
   testcase_ids = []
