@@ -103,12 +103,22 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     super().setUp()
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
+        'clusterfuzz._internal.base.utils.is_chromium',
     ])
+    helpers.patch_environ(self)
 
-  def test_execute(self):
+
+  def test_chromium(self):
     """Tests scheduling of progression tasks."""
+    self.mock.is_chromium.return_value = True
     schedule_impact_tasks.main()
     self.mock.add_task.assert_has_calls([
         mock.call('impact', 1, 'job', queue='jobs-linux'),
         mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
     ])
+
+  def test_nonchromium(self):
+    """Tests scheduling of progression tasks."""
+    self.mock.is_chromium.return_value = False
+    schedule_impact_tasks.main()
+    self.mock.add_task.assert_not_called()
