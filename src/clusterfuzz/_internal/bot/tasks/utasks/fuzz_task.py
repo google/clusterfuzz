@@ -82,6 +82,9 @@ THREAD_WAIT_TIMEOUT = 1
 class FuzzTaskError(Exception):
   """Fuzz task exception."""
 
+class FuzzTargetNotFoundError(Exception):
+  """Fuzz target not in build."""
+
 
 class FuzzErrorCode:
   FUZZER_TIMEOUT = -1
@@ -1282,6 +1285,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 
   build_dir = environment.get_value('BUILD_DIR')
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+  if target_path is None:
+    raise FuzzTargetNotFoundError(f'{target_path} is not found.')
   options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -1564,9 +1569,13 @@ class FuzzingSession:
     # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.log(f'Fuzzing round {fuzzing_round}.')
-      result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
-          engine_impl, self.fuzz_target.binary, sync_corpus_directory,
-          self.testcase_directory)
+      try:
+        result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
+            engine_impl, self.fuzz_target.binary, sync_corpus_directory,
+            self.testcase_directory)
+      except FuzzTargetNotFoundError:
+        return [], {}
+
       fuzzer_metadata.update(current_fuzzer_metadata)
 
       # Prepare stats.
