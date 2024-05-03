@@ -77,7 +77,9 @@ class Engine(engine.Engine):
         timeout=max_time,
         extra_env={
             'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,
-        })
+        },
+        # See https://buganizer.corp.google.com/issues/334956516
+        additional_args=['--logtostderr', '--minloglevel=3'])
     log_lines = fuzz_result.output.splitlines()
 
     crashes = []
