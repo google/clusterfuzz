@@ -109,7 +109,8 @@ class Handler(base_handler.Handler):
     bucket = local_config.ProjectConfig().get('custom_builds.bucket')
     if not bucket:
       bucket = storage.blobs_bucket()
-    upload_info = gcs.prepare_upload(blobs.generate_new_blob_name())._asdict()
+    upload_info = gcs.prepare_upload(bucket,
+                                     blobs.generate_new_blob_name())._asdict()
 
     return self.render(
         'jobs.html',
