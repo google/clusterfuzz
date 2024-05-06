@@ -192,11 +192,12 @@
           </paper-dropdown-menu>
         </template>
       </div>
-        <b>WARNING</b>: ClusterFuzz only has partial support for untrusted workloads.<br>
-        ClusterFuzz only supports untrusted workloads on Linux jobs except for these:<br>
-        [[formatSandboxedJobs(fieldValues.trustedJobs)]]<br>
-        If your job is one of these, or runs on an operating system other than Linux, only upload it to ClusterFuzz if you trust it enough to run on your own machine.<br>
-        If you are uploading a testcase to a job that only supports trusted workloads, you must fill out the extra form field indictating you undestand what you are doing.
+      <div class="warning">
+      <span><strong>WARNING</strong>: ClusterFuzz only partially supports untrusted workloads.<br></span>
+        ClusterFuzz supports untrusted workloads when the platform is Linux<br>
+        If your upload does not use Linux as the platform, Clusterfuzz will treat the input testcase as trusted,
+        and therefore run with privileged jobs. Only upload this testcase if you trust it enough to run on your own machine.<br>
+        To confirm this testcase is trusted, you must fill out the extra field confirming so.
       </div>
       <div class="inline narrow">
         <template is="dom-if" if="[[shouldShowIssueField()]]">
@@ -385,23 +386,6 @@
       generatePermalink() {
         window.location.href = '?upload=true&' + window.query.compute(
             this.uploadParams, this.paramKeys);
-      }
-
-      showWarning(job) {
-        let secureJobs = new Set(this.fieldValues.sandboxedJobs);
-        return this.fieldValues.isChromium && !secureJobs.has(job);
-      }
-
-      formatSandboxedJobs(jobs) {
-        if (!jobs) { return ''; }
-
-        let s = '';
-        for (let i=0;i<jobs.length;i++) {
-          if (i > 0) { s += ', '; }
-          if (i == (jobs.length - 1)) { s += 'and '; }
-          s += jobs[i]
-        }
-        return s;
       }
 
       onmatch(key) {

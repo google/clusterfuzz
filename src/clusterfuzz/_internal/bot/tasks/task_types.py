@@ -9,7 +9,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions andis_
+# See the License for the specific language governing permissions and
 # limitations under the License.
 """Types of tasks. This needs to be seperate from commands.py because
 base/tasks.py depends on this module and many things commands.py imports depend
@@ -86,12 +86,6 @@ def is_remote_utask(command, job):
     return True
 
   return batch.is_remote_task(command, job)
-
-
-def is_untrusted_task(command, job):
-  if not COMMAND_TYPES[command].is_execution_remote():
-    return False
-  return batch.is_untrusted_task(command, job)
 
 
 def task_main_runs_on_uworker():

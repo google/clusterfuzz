@@ -28,7 +28,6 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -390,11 +389,10 @@ class UploadHandlerCommon:
     gestures = request.get('gestures') or '[]'
     stacktrace = request.get('stacktrace')
     trusted_agreement_signed = request.get(
-        'trustedAgreement') == TRUSTED_AGREEMENT_TEXT
+        'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
 
     if (not trusted_agreement_signed and
-        task_utils.is_remotely_executing_utasks() and
-        not task_types.is_untrusted_task('analyze', job_type)):
+        task_utils.is_remotely_executing_utasks()):
       # Trusted agreement was not signed even though the job has privileges and
       # there are other jobs that don't have privileges.
       raise helpers.EarlyExitError(
