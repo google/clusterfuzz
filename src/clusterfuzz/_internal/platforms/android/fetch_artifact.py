@@ -42,8 +42,7 @@ STABLE_CUTTLEFISH_BUILD = {
     'target': 'cf_x86_64_phone-next-userdebug'
 }
 
-DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
-    "gs://test-blobs-bucket/fuzzers/target-cuttlefish/stable_build_info.json")
+DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = "gs://android-haiku/target-cuttlefish/stable_build_info.json"
 
 
 def execute_request_with_retries(request):
