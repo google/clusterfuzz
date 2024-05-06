@@ -43,7 +43,7 @@ STABLE_CUTTLEFISH_BUILD = {
 }
 
 DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
-  "gs://android-haiku/target-cuttlefish/stable_build_info.json")
+    "gs://android-haiku/target-cuttlefish/stable_build_info.json")
 
 
 def execute_request_with_retries(request):
