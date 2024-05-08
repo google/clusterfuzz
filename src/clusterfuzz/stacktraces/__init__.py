@@ -1407,6 +1407,10 @@ def should_ignore_line_for_crash_processing(line, state):
   if SAN_DEADLYSIGNAL_REGEX.match(line):
     return True
 
+  if len(line) > 1024**2:
+    logs.log_error('Line is too long for a stacktrace.')
+    return True
+
   return False
 
 
