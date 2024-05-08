@@ -180,7 +180,7 @@ class StackParser:
                             type_filter=lambda s: s,
                             reset=False) -> re.Match or None:
     """Update the specified parts of the state if we have a match."""
-    
+
     match = compiled_regex.match(line)
     if not match:
       return None
@@ -1408,6 +1408,7 @@ def should_ignore_line_for_crash_processing(line, state):
     return True
 
   if len(line) > 1024**2:
+    logs.log_error('Line is too long for a stacktrace.')
     return True
 
   return False
