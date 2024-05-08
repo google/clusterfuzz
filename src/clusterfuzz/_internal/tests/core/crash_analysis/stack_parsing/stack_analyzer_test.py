@@ -3747,7 +3747,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_split_stacktrace_no_dos(self):
     """Tests that split_stacktrace wont search forever unless there's a very
     well crafted input."""
-    stacktrace = "S text\n" + " 42 " * 100000 + "j text\n";
+    stacktrace = "S text\n" + " 42 " * 100000 + "j text\n"
     StackParser.split_stacktrace(stacktrace)
 
   def test_jazzer_js_javascript(self):

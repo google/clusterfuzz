@@ -69,7 +69,8 @@ ASSERT_REGEX_GLIBC = re.compile(
 # Add the lookahead group to prevent DoS, see
 # https://github.com/google/clusterfuzz/issues/3978.
 ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
-    r'(?=.*assertion .* failed:.).*.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
+    r'(?=.*assertion .* failed:.).*.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)'  # pylint: disable=line-too-long
+)
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
 CENTIPEDE_TIMEOUT_REGEX = re.compile(r'(?:%s)' % '|'.join([
     r'========= Timeout of \d+ seconds exceeded; exiting',
@@ -205,7 +206,8 @@ SAN_DEADLYSIGNAL_REGEX = re.compile(
 # Use the lookahead group to prevent DoS, see
 # https://github.com/google/clusterfuzz/issues/3978.
 CONCATENATED_SAN_DEADLYSIGNAL_REGEX = re.compile(
-    r'\n(?=.*Sanitizer\:DEADLYSIGNAL.*)([^\n]*\S[^\n]*)(' + SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
+    r'\n(?=.*Sanitizer\:DEADLYSIGNAL.*)([^\n]*\S[^\n]*)(' +
+    SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
 SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX = r'\n\1\n\2\n'
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
