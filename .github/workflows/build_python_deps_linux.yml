@@ -23,10 +23,13 @@ jobs:
       - name: Build wheel and upload to GCS
         run: |
           cd grpcio-1.63.0
-          python -m pip install --user --upgrade build
-          python -m build
+          #python -m pip install --user --upgrade build
+          #python -m build
+          mkdir dist
+          echo -n "NOTHING TO SEE HERE" > dist/artifact.whl
           WHEEL_FILE=$(find ./dist/*.whl)
           echo "WHEEL_FILE=${WHEEL_FILE}" >> GITHUB_OUTPUT
+          echo $WHEEL_FILE 1>2
 
       - uses: actions/upload-artifact@v4
         with:
