@@ -28,7 +28,7 @@ jobs:
           #python -m build
           mkdir dist
           echo -n "NOTHING TO SEE HERE" > dist/artifact.whl
-          WHEEL_FILE=$(find ./dist/*.whl)
+          WHEEL_FILE=$(find ${PWD}/dist/*.whl)
           echo "WHEEL_FILE=${WHEEL_FILE}" >> $GITHUB_OUTPUT
           echo $WHEEL_FILE 
 
