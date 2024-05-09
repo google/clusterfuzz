@@ -16,23 +16,41 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Pull source package from PyPI
+      - name: Pull source packages from PyPI
         run: |
           wget https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz
           tar xvf grpcio-1.63.0.tar.gz
+          wget https://files.pythonhosted.org/packages/86/15/8473774dfdd0fa901cfb1ad0d590c5a3e6a7c5906dc23b47619ccfc7fe62/grpcio_tools-1.63.0.tar.gz
+          tar xvf grpcio_tools-1.63.0.tar.gz
       - name: Build wheel and upload to GCS
         id: build_wheel
         run: |
           cd grpcio-1.63.0
           python -m pip install --user --upgrade build
           python -m build
-          WHEEL_FILE=$(find ${PWD}/dist/*.whl)
-          echo "WHEEL_FILE=${WHEEL_FILE}" >> $GITHUB_OUTPUT
+          GRPCIO_WHEEL_FILE=$(find ${PWD}/dist/*.whl)
+          echo "GRPCIO_WHEEL_FILE=${GRPCIO_WHEEL_FILE}" >> $GITHUB_OUTPUT
+          cd ../grpcio_tools-1.63.0
+          python -m pip install --user --upgrade build
+          python -m build
+          GRPCIOTOOLS_WHEEL_FILE=$(find ${PWD}/dist/*.whl)
+          echo "GRPCIOTOOLS_WHEEL_FILE=${GRPCIOTOOLS_WHEEL_FILE}" >> $GITHUB_OUTPUT
           
       - uses: actions/upload-artifact@v4
+        id: upload_grpcio
         with:
-          name: "python 3.7 grpcio 1.63 ubuntu"
-          path: ${{ steps.build_wheel.outputs.WHEEL_FILE }}
+          name: "grpcio_ubuntu_py39"
+          path: ${{ steps.build_wheel.outputs.GRPCIO_WHEEL_FILE }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: false
+
+      - uses: actions/upload-artifact@v4
+        id: upload_grpciotools
+        with:
+          name: "grpciotools_ubuntu_py39"
+          path: ${{ steps.build_wheel.outputs.GRPCIOTOOLS_WHEEL_FILE }}
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
