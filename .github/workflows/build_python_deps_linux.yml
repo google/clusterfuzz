@@ -21,6 +21,7 @@ jobs:
           wget https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz
           tar xvf grpcio-1.63.0.tar.gz
       - name: Build wheel and upload to GCS
+        id: build_wheel
         run: |
           cd grpcio-1.63.0
           #python -m pip install --user --upgrade build
@@ -30,12 +31,11 @@ jobs:
           WHEEL_FILE=$(find ./dist/*.whl)
           echo "WHEEL_FILE=${WHEEL_FILE}" >> GITHUB_OUTPUT
           echo $WHEEL_FILE 
-          echo "wheel file in output env is ${{ steps.vars.outputs.WHEEL_FILE }}""
 
       - uses: actions/upload-artifact@v4
         with:
           name: "python 3.7 grpcio 1.63 ubuntu"
-          path: ${{ steps.vars.outputs.WHEEL_FILE }}
+          path: ${{ steps.build_wheel.outputs.WHEEL_FILE }}
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
