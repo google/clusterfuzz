@@ -22,7 +22,7 @@ jobs:
           tar xvf grpcio-1.63.0.tar.gz
       - name: Build wheel and upload to GCS
         run: |
-          
+          cd grpcio-1.63.0
           python -m pip install --user --upgrade build
           python -m build
           WHEEL_FILE=$(find ./dist/*.whl)
