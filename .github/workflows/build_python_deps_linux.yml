@@ -6,10 +6,6 @@ on:
 
 jobs:
   build_wheel:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
     runs-on: ubuntu-22.04
     
     steps:
@@ -19,17 +15,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
-
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          workload_identity_provider: ${{ secrets.PythonBuildsBucketIdp }}
-          service_account: ${{ secrets.PythonBuildsBucketServiceAccount }}
-
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v2'
-        with:
-          version: '>= 363.0.0'
 
       - name: Pull source package from PyPI
         run: |
