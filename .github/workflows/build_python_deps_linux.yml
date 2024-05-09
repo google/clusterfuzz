@@ -32,6 +32,11 @@ jobs:
           echo "WHEEL_FILE=${WHEEL_FILE}" >> GITHUB_OUTPUT
           echo $WHEEL_FILE 
 
+      - name: Build wheel and upload to GCS
+        id: use_wheel
+        run: |
+          echo ${{ steps.build_wheel.outputs.WHEEL_FILE }}
+
       - uses: actions/upload-artifact@v4
         with:
           name: "python 3.7 grpcio 1.63 ubuntu"
