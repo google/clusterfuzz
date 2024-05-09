@@ -700,6 +700,12 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
     _ERROR_HANDLER.handle(output)
     return
 
+  # If there is a fine grained bisection service available, request it. Both
+  # regression and fixed ranges are requested once. Regression is also requested
+  # here as the bisection service may require details that are not yet available
+  # (e.g. issue ID) at the time regress_task completes.
+  bisection.request_bisection(testcase)
+
   if task_output and task_output.crash_on_latest:
     crash_on_latest(output)
     return
@@ -728,9 +734,3 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
   if task_output.HasField('min_revision'):
     _save_fixed_range(output.uworker_input.testcase_id,
                       task_output.min_revision, task_output.max_revision)
-
-  # If there is a fine grained bisection service available, request it. Both
-  # regression and fixed ranges are requested once. Regression is also requested
-  # here as the bisection service may require details that are not yet available
-  # (e.g. issue ID) at the time regress_task completes.
-  bisection.request_bisection(testcase)
