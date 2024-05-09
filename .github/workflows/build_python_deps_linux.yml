@@ -29,7 +29,8 @@ jobs:
           echo -n "NOTHING TO SEE HERE" > dist/artifact.whl
           WHEEL_FILE=$(find ./dist/*.whl)
           echo "WHEEL_FILE=${WHEEL_FILE}" >> GITHUB_OUTPUT
-          echo $WHEEL_FILE 1>2
+          echo $WHEEL_FILE 
+          echo "wheel file in output env is ${{ steps.vars.outputs.WHEEL_FILE }}""
 
       - uses: actions/upload-artifact@v4
         with:
