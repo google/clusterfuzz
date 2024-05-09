@@ -29,7 +29,7 @@ jobs:
           mkdir dist
           echo -n "NOTHING TO SEE HERE" > dist/artifact.whl
           WHEEL_FILE=$(find ./dist/*.whl)
-          echo "WHEEL_FILE=${WHEEL_FILE}" >> GITHUB_OUTPUT
+          echo "WHEEL_FILE=${WHEEL_FILE}" >> $GITHUB_OUTPUT
           echo $WHEEL_FILE 
 
       - name: Build wheel and upload to GCS
