@@ -6,8 +6,8 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.wheel_combinations.platform }}
-    runs-on: ${{ matrix.wheel_combinations.arch }}
+    name: Build wheels on ${{ matrix.wheel_combinations[0] }} for arch ${{ matrix.wheel_combinations[1] }}
+    runs-on: ${{ matrix.wheel_combinations[0] }}
     strategy:
       matrix:
         python_versions: [
