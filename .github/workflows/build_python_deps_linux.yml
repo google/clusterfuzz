@@ -49,7 +49,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          python -m cibuildwheel rpcio-1.63.0.tar.gz --output-dir wheelhouse
+          python -m cibuildwheel grpcio-1.63.0.tar.gz --output-dir wheelhouse
         # to supply options, put them in 'env', like:
         env:
           CIBW_ARCHS: ${{ matrix.wheel_combinations[1] }}
