@@ -5,54 +5,44 @@ on:
       - feature/ga-python-builds
 
 jobs:
-  build_wheel:
-    runs-on: ubuntu-22.04
-    
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        python_version: ["3.7","3.8","3.9","3.10","3.11","3.12"]
+
     steps:
-      - uses: actions/checkout@v2
-      
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python_version: ${{ matrix.python_version }}
 
-      - name: Pull source packages from PyPI
+      - name: Download and Untar File - Unix
         run: |
-          wget https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz
-          tar xvf grpcio-1.63.0.tar.gz
-          wget https://files.pythonhosted.org/packages/86/15/8473774dfdd0fa901cfb1ad0d590c5a3e6a7c5906dc23b47619ccfc7fe62/grpcio_tools-1.63.0.tar.gz
-          tar xvf grpcio_tools-1.63.0.tar.gz
-      - name: Build wheel and upload to GCS
-        id: build_wheel
-        run: |
-          cd grpcio-1.63.0
-          python -m pip install --user --upgrade build
-          python -m build
-          GRPCIO_WHEEL_FILE=$(find ${PWD}/dist/*.whl)
-          echo "GRPCIO_WHEEL_FILE=${GRPCIO_WHEEL_FILE}" >> $GITHUB_OUTPUT
-          cd ../grpcio_tools-1.63.0
-          python -m pip install --user --upgrade build
-          python -m build
-          GRPCIOTOOLS_WHEEL_FILE=$(find ${PWD}/dist/*.whl)
-          echo "GRPCIOTOOLS_WHEEL_FILE=${GRPCIOTOOLS_WHEEL_FILE}" >> $GITHUB_OUTPUT
-          
-      - uses: actions/upload-artifact@v4
-        id: upload_grpcio
-        with:
-          name: "grpcio_ubuntu_py39"
-          path: ${{ steps.build_wheel.outputs.GRPCIO_WHEEL_FILE }}
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
-          overwrite: false
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            Invoke-WebRequest -Uri "https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz" -OutFile "grpcio-1.63.0.tar.gz"
+            Expand-Archive -Path "grpcio-1.63.0.tar.gz" -DestinationPath "grpcio-1.63.0"
+            cd grpcio-1.63.0
+          else
+            wget -O grpcio-1.63.0.tar.gz https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz
+            mkdir grpcio-1.63.0
+            tar -xzf grpcio-1.63.0.tar.gz -C grpcio-1.63.0
+            cd grpcio-1.63.0
+          fi
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.17.0
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        # to supply options, put them in 'env', like:
+        # env:
+        #   CIBW_SOME_OPTION: value
 
       - uses: actions/upload-artifact@v4
-        id: upload_grpciotools
         with:
-          name: "grpciotools_ubuntu_py39"
-          path: ${{ steps.build_wheel.outputs.GRPCIOTOOLS_WHEEL_FILE }}
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
-          overwrite: false
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
           
