@@ -20,7 +20,7 @@ jobs:
         ]
         wheel_combinations: [
           #["ubuntu-latest", "x86_64"],
-          ["windows-latest", "x86_64"],
+          ["windows-latest", "AMD64"],
           #["macos13", "x86_64"],
           #["macos13", "arm64"],
           #["macos14", "x86_64"],
