@@ -20,7 +20,7 @@ jobs:
           python_version: ${{ matrix.python_version }}
 
       - name: Download and Untar File - Unix
-        matrix.os == 'windows-latest'
+        if: matrix.os != 'windows-latest'
         run: |
           wget -O grpcio-1.63.0.tar.gz https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz
           tar -xzf grpcio-1.63.0.tar.gz
