@@ -53,7 +53,6 @@ StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'arguments',
     'additional_corpus_dirs',
     'extra_env',
-    'use_dataflow_tracing',
     'is_mutations_run',
 ])
 
@@ -62,9 +61,6 @@ MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                         r'(.*(crash|oom|timeout|leak)-.*)')
-
-# Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
-DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
 
 # List of all strategies that affect LD_PRELOAD.
 MUTATOR_STRATEGIES = [
@@ -1154,7 +1150,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     temp_dir = fuzzer_utils.get_temp_dir()
 
   build_dir = environment.get_value('BUILD_DIR')
-  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
   is_android = environment.is_android()
   is_fuchsia = environment.platform() == 'FUCHSIA'
 
@@ -1175,11 +1170,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     # structure of CF but this shouldn't be a big deal.
     minijail_chroot.add_binding(
         minijail.ChrootBinding(build_dir, build_dir, writeable=False))
-
-    if dataflow_build_dir:
-      minijail_chroot.add_binding(
-          minijail.ChrootBinding(
-              dataflow_build_dir, dataflow_build_dir, writeable=False))
 
     # Also bind the build dir to /out to make it easier to hardcode references
     # to data files.
@@ -1321,10 +1311,6 @@ def set_sanitizer_options(fuzzer_path, fuzz_options=None):
   sanitizer_options = environment.get_memory_tool_options(
       sanitizer_options_var, {})
   sanitizer_options['exitcode'] = constants.TARGET_ERROR_EXITCODE
-  if fuzz_options and fuzz_options.use_dataflow_tracing:
-    # Focus function feature does not work without symbolization.
-    sanitizer_options['symbolize'] = 1
-    environment.update_symbolizer_options(sanitizer_options)
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
@@ -1435,24 +1421,6 @@ def pick_strategies(strategy_pool,
   is_mutations_run = (not environment.is_ephemeral() and
                       candidate_generator != engine_common.Generator.NONE)
 
-  # Depends on the presense of DFSan instrumented build.
-  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  use_dataflow_tracing = (
-      dataflow_build_dir and
-      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
-  if use_dataflow_tracing:
-    dataflow_binary_path = os.path.join(
-        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
-    dataflow_trace_dir = dataflow_binary_path + DATAFLOW_TRACE_DIR_SUFFIX
-    if os.path.exists(dataflow_trace_dir):
-      arguments[constants.DATA_FLOW_TRACE_FLAGNAME] = str(dataflow_trace_dir)
-      arguments[constants.FOCUS_FUNCTION_FLAGNAME] = 'auto'
-      fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
-    else:
-      logs.log_warn(
-          'Dataflow trace is not found in dataflow build, skipping strategy.')
-      use_dataflow_tracing = False
-
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
     new_testcase_mutations_directory = create_corpus_directory('mutations')
@@ -1476,8 +1444,7 @@ def pick_strategies(strategy_pool,
     arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  if not use_dataflow_tracing and should_set_fork_flag(existing_arguments,
-                                                       strategy_pool):
+  if should_set_fork_flag(existing_arguments, strategy_pool):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
     arguments[constants.FORK_FLAGNAME] = num_fuzz_processes
@@ -1496,7 +1463,7 @@ def pick_strategies(strategy_pool,
     fuzzing_strategies.append(strategy.USE_EXTRA_SANITIZERS_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
-                      extra_env, use_dataflow_tracing, is_mutations_run)
+                      extra_env, is_mutations_run)
 
 
 def should_set_fork_flag(existing_arguments, strategy_pool):

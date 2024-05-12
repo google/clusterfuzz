@@ -494,9 +494,6 @@ class Build(BaseBuild):
       return False
 
     if unpack_everything:
-      # Set a random fuzz target now that the build has been unpacked, if we
-      # didn't set one earlier. For an auxiliary build, fuzz target is already
-      # specified during main build unpacking.
       self._pick_fuzz_target(
           self._get_fuzz_targets_from_dir(build_dir), target_weights)
     else:

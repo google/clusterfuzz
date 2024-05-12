@@ -29,8 +29,6 @@ CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
 # Supported fuzzing strategies.
 CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
     name='corpus_mutations_radamsa', probability=0.15, manually_enable=False)
-DATAFLOW_TRACING_STRATEGY = Strategy(
-    name='dataflow_tracing', probability=0.50, manually_enable=True)
 CORPUS_SUBSET_STRATEGY = Strategy(
     name='corpus_subset', probability=0.50, manually_enable=True)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
@@ -51,7 +49,6 @@ LIBFUZZER_STRATEGY_LIST = [
     VALUE_PROFILE_STRATEGY,
     FORK_STRATEGY,
     CORPUS_SUBSET_STRATEGY,
-    DATAFLOW_TRACING_STRATEGY,
     PEACH_GRAMMAR_MUTATION_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,
 ]
@@ -81,7 +78,6 @@ LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
 
 LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
-    DATAFLOW_TRACING_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     VALUE_PROFILE_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,
