@@ -65,11 +65,10 @@ class LibFuzzerOptions(engine.FuzzOptions):
   """LibFuzzer engine options."""
 
   def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
-               extra_env, use_dataflow_tracing, is_mutations_run):
+               extra_env, is_mutations_run):
     super().__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
-    self.use_dataflow_tracing = use_dataflow_tracing
     self.is_mutations_run = is_mutations_run
     self.merge_back_new_testcases = True
 
@@ -144,8 +143,7 @@ class Engine(engine.Engine):
     subset_size = engine_common.random_choice(
         engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-    if (not strategy_info.use_dataflow_tracing and
-        strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
+    if (strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
         shell.get_directory_file_count(corpus_dir) > subset_size):
       # Copy |subset_size| testcases into 'subset' directory.
       corpus_subset_dir = self._create_temp_corpus_dir('subset')
@@ -177,10 +175,10 @@ class Engine(engine.Engine):
 
     strategies = stats.process_strategies(
         strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
-    return LibFuzzerOptions(
-        corpus_dir, arguments.list(), strategies,
-        strategy_info.additional_corpus_dirs, strategy_info.extra_env,
-        strategy_info.use_dataflow_tracing, strategy_info.is_mutations_run)
+    return LibFuzzerOptions(corpus_dir, arguments.list(), strategies,
+                            strategy_info.additional_corpus_dirs,
+                            strategy_info.extra_env,
+                            strategy_info.is_mutations_run)
 
   def _create_empty_testcase_file(self, reproducers_dir):
     """Create an empty testcase file in temporary directory."""
@@ -271,7 +269,7 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
-    libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
+    libfuzzer.set_sanitizer_options(target_path)
     runner = libfuzzer.get_runner(target_path)
 
     # Directory to place new units.

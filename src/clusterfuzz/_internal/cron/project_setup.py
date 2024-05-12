@@ -902,20 +902,6 @@ class ProjectSetup:
 
         create_pubsub_topics_for_queue_id(job.platform)
 
-      if (template.engine == 'libfuzzer' and
-          template.architecture == 'x86_64' and
-          'dataflow' in info.get('fuzzing_engines', DEFAULT_ENGINES)):
-        # Dataflow binaries are built with dataflow sanitizer, but can be used
-        # as an auxiliary build with libFuzzer builds (e.g. with ASan or UBSan).
-        dataflow_build_bucket_path = self._get_build_bucket_path(
-            project_name=project,
-            info=info,
-            engine='dataflow',
-            memory_tool='dataflow',
-            architecture=template.architecture)
-        job.environment_string += (
-            f'DATAFLOW_BUILD_BUCKET_PATH = {dataflow_build_bucket_path}\n')
-
       if self._additional_vars:
         additional_vars = {}
         additional_vars.update(self._additional_vars.get('all', {}))
@@ -1088,7 +1074,6 @@ def main():
             'honggfuzz': bucket_config.get('honggfuzz'),
             'googlefuzztest': bucket_config.get('googlefuzztest'),
             'none': bucket_config.get('no_engine'),
-            'dataflow': bucket_config.get('dataflow'),
             'centipede': bucket_config.get('centipede'),
         },
         fuzzer_entities=fuzzer_entities,

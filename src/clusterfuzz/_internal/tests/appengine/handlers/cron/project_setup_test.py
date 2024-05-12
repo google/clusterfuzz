@@ -205,7 +205,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'build_buckets': {
                 'afl': 'clusterfuzz-builds-afl',
                 'centipede': 'clusterfuzz-builds-centipede',
-                'dataflow': 'clusterfuzz-builds-dataflow',
                 'honggfuzz': 'clusterfuzz-builds-honggfuzz',
                 'libfuzzer': 'clusterfuzz-builds',
                 'libfuzzer_i386': 'clusterfuzz-builds-i386',
@@ -288,8 +287,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib6', {
             'homepage': 'http://example6.com',
-            'sanitizers': ['address', 'dataflow', 'memory', 'undefined'],
-            'fuzzing_engines': ['libfuzzer', 'afl', 'dataflow'],
+            'sanitizers': ['address', 'memory', 'undefined'],
+            'fuzzing_engines': ['libfuzzer', 'afl'],
             'auto_ccs': 'User@example.com',
             'vendor_ccs': ['vendor1@example.com', 'vendor2@example.com'],
         }),
@@ -509,9 +508,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib6-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib6-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib6,Engine-libfuzzer\n'
-        'FILE_GITHUB_ISSUE = False\n'
-        'DATAFLOW_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds-dataflow/lib6/lib6-dataflow-([0-9]+).zip\n')
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib7').get()
@@ -1793,7 +1790,6 @@ class GenericProjectSetupTest(unittest.TestCase):
                 'experimental_sanitizers': ['memory'],
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl',
-                    'dataflow': 'clusterfuzz-builds-dataflow',
                     'honggfuzz': 'clusterfuzz-builds-honggfuzz',
                     'googlefuzztest': 'clusterfuzz-builds-googlefuzztest',
                     'libfuzzer': 'clusterfuzz-builds',
@@ -1829,7 +1825,6 @@ class GenericProjectSetupTest(unittest.TestCase):
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl-dbg',
-                    'dataflow': 'clusterfuzz-builds-dataflow-dbg',
                     'honggfuzz': 'clusterfuzz-builds-honggfuzz-dbg',
                     'googlefuzztest': 'clusterfuzz-builds-googlefuzztest-dbg',
                     'libfuzzer': 'clusterfuzz-builds-dbg',

@@ -195,10 +195,6 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'strategy_dataflow_tracing',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'number_of_executed_units',
     'type': 'INTEGER'
 }, {

@@ -91,7 +91,6 @@ class PrepareTest(fake_fs_unittest.TestCase):
         }),
         additional_corpus_dirs=['/new_corpus_dir'],
         extra_env={'extra_env': '1'},
-        use_dataflow_tracing=False,
         is_mutations_run=True)
 
   def test_prepare(self):
@@ -111,7 +110,6 @@ class PrepareTest(fake_fs_unittest.TestCase):
     self.assertCountEqual(['/new_corpus_dir', '/corpus_dir'],
                           options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
-    self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
 
     self.mock.unpack_seed_corpus_if_needed.assert_called_with(
@@ -157,7 +155,6 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         strategies=[],
         fuzz_corpus_dirs=[],
         extra_env={},
-        use_dataflow_tracing=False,
         is_mutations_run=False)
     self.assertEqual(1800.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
@@ -171,7 +168,6 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         strategies=[],
         fuzz_corpus_dirs=[],
         extra_env={},
-        use_dataflow_tracing=False,
         is_mutations_run=True)
     self.assertEqual(2400.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
@@ -249,7 +245,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         '-dict=blah.dict',
         '-max_len=9001',
         '-use_value_profile=1',
-    ], [], ['/corpus'], {}, False, False)
+    ], [], ['/corpus'], {}, False)
 
     with open(os.path.join(TEST_DIR, 'crash.txt'), encoding='utf-8') as f:
       fuzz_output = f.read()
@@ -383,7 +379,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'startup_crash_count': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_subset': 0,
-        'strategy_dataflow_tracing': 0,
         'strategy_extra_sanitizers': 0,
         'strategy_fork': 0,
         'strategy_peach_grammar_mutation': '',
