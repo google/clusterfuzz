@@ -1614,6 +1614,8 @@ class FuzzingSession:
         ])
 
     logs.log('All fuzzing rounds complete.')
+    self.sync_new_corpus_files()
+
     return crashes, fuzzer_metadata
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
