@@ -175,10 +175,10 @@ class Engine(engine.Engine):
 
     strategies = stats.process_strategies(
         strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
-    return LibFuzzerOptions(
-        corpus_dir, arguments.list(), strategies,
-        strategy_info.additional_corpus_dirs, strategy_info.extra_env,
-      strategy_info.is_mutations_run)
+    return LibFuzzerOptions(corpus_dir, arguments.list(), strategies,
+                            strategy_info.additional_corpus_dirs,
+                            strategy_info.extra_env,
+                            strategy_info.is_mutations_run)
 
   def _create_empty_testcase_file(self, reproducers_dir):
     """Create an empty testcase file in temporary directory."""
@@ -269,7 +269,7 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
-    libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
+    libfuzzer.set_sanitizer_options(target_path)
     runner = libfuzzer.get_runner(target_path)
 
     # Directory to place new units.

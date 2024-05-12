@@ -245,7 +245,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         '-dict=blah.dict',
         '-max_len=9001',
         '-use_value_profile=1',
-    ], [], ['/corpus'], {}, False, False)
+    ], [], ['/corpus'], {}, False)
 
     with open(os.path.join(TEST_DIR, 'crash.txt'), encoding='utf-8') as f:
       fuzz_output = f.read()

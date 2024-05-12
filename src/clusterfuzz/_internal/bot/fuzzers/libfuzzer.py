@@ -1303,9 +1303,9 @@ def parse_log_stats(log_lines):
   return log_stats
 
 
-def set_sanitizer_options(fuzzer_path, fuzz_options=None):
-  """Sets sanitizer options based on .options file overrides, FuzzOptions (if
-  provided), and what this script requires."""
+def set_sanitizer_options(fuzzer_path):
+  """Sets sanitizer options based on .options file overrides and what this
+  script requires."""
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
   sanitizer_options_var = environment.get_current_memory_tool_var()
   sanitizer_options = environment.get_memory_tool_options(
@@ -1410,7 +1410,6 @@ def pick_strategies(strategy_pool,
                     existing_arguments,
                     grammar=None):
   """Pick strategies."""
-  build_directory = environment.get_value('BUILD_DIR')
   fuzzing_strategies = []
   arguments = fuzzer_options.FuzzerArguments({})
   additional_corpus_dirs = []
