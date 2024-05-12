@@ -556,9 +556,8 @@ class GcsCorpus:
     result = already_synced or self._sync_to_disk(self._corpus_directory)
     self._synced_files.clear()
     self._synced_files.update(self._walk())
-
-    logs.log('%d corpus files for target %s synced to disk.' % (len(
-        self._synced_files), self._project_qualified_target_name))
+    logs.log(f'{len(self._synced_files)} corpus files for target '
+             f'{self._project_qualified_target_name} synced to disk.')
 
     # On success of rsync, update the last sync file with current timestamp.
     if result and self._synced_files and not already_synced:
@@ -1133,8 +1132,8 @@ def write_crashes_to_big_query(group, context):
 
     for error in errors:
       logs.log_error(
-          ('Ignoring error writing the crash (%s) to BigQuery.' %
-           group.crashes[error['index']].crash_type),
+          ('Ignoring error writing the crash '
+           f'({group.crashes[error["index"]].crash_type}) to BigQuery.'),
           exception=Exception(error))
   except Exception:
     logs.log_error('Ignoring error writing a group of crashes to BigQuery')
@@ -1196,19 +1195,14 @@ def process_crashes(crashes, context):
                group.crashes[0].crash_state)
       continue
 
-    logs.log(
-        'Process the crash group (file=%s, '
-        'fuzzed_key=%s, '
-        'return code=%s, '
-        'crash time=%d, '
-        'crash type=%s, '
-        'crash state=%s, '
-        'security flag=%s, '
-        'crash stacktrace=%s)' %
-        (group.main_crash.filename, group.main_crash.fuzzed_key,
-         group.main_crash.return_code, group.main_crash.crash_time,
-         group.main_crash.crash_type, group.main_crash.crash_state,
-         group.main_crash.security_flag, group.main_crash.crash_stacktrace))
+    logs.log(f'Process the crash group (file={group.main_crash.filename}, '
+             f'fuzzed_key={group.main_crash.fuzzed_key}, '
+             f'return code={group.main_crash.return_code}, '
+             f'crash time={group.main_crash.crash_time}, '
+             f'crash type={group.main_crash.crash_type}, '
+             f'crash state={group.main_crash.crash_state}, '
+             f'security flag={group.main_crash.security_flag}, '
+             f'crash stacktrace={group.main_crash.crash_stacktrace})')
 
     if group.should_create_testcase():
       group.newly_created_testcase = create_testcase(
