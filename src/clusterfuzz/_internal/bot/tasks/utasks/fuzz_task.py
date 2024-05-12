@@ -1902,7 +1902,7 @@ class FuzzingSession:
 
     logs.log(f'Raw crash count: {len(crashes)}')
 
-    project_name = os.environ['PROJECT_NAME']
+    project_name = environment.get_value('PROJECT_NAME')
 
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
