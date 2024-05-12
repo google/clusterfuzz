@@ -137,10 +137,6 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'exception_count',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'slow_unit_count',
     'type': 'INTEGER'
 }, {
@@ -362,10 +358,6 @@ _LIBFUZZER_SCHEMA = [{
 }, {
     'mode': 'NULLABLE',
     'name': 'seed_corpus_rss',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'exception_count',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
