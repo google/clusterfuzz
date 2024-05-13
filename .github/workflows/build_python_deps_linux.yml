@@ -43,9 +43,7 @@ jobs:
           #["ubuntu-latest", "x86_64"],
           ["windows-latest", "AMD64"],
           #["macos13", "x86_64"],
-          #["macos13", "arm64"],
           #["macos14", "x86_64"],
-          #["macos14", "arm64"],
         ]
       fail-fast: false
 
