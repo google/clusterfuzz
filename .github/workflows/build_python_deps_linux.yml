@@ -85,6 +85,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{ matrix.wheel_combinations[0] }}-${{ strategy.job-index }}
+          name: ${{ matrix.libraries[1] }}-${{ matrix.wheel_combinations[0] }}-${{ matrix.wheel_combinations[1] }}-py${{ matrix.python_versions[0] }}
           path: ./wheelhouse/*.whl
           
