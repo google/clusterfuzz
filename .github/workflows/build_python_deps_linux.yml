@@ -73,7 +73,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.wheel_combinations[1] }}
           CIBW_BUILD: ${{ matrix.python_versions[1] }}
-          CIBW_SKIL: "*-musllinux_*"
+          CIBW_SKIP: "*-musllinux_*"
 
 
       - uses: actions/upload-artifact@v4
