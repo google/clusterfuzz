@@ -141,7 +141,7 @@ message SymbolizeTaskOutput {
   optional string crash_state = 3;
   optional string crash_stacktrace = 4;
   optional bool symbolized = 5;
-  optional int32 crash_revision = 6;
+  optional int64 crash_revision = 6;
   optional string build_url = 7;
 }
 
@@ -283,7 +283,7 @@ message CorpusPruningTaskOutput {
   optional CrossPollinationStatistics cross_pollination_stats = 1;
   optional CoverageInformation coverage_info = 2;
   optional string fuzzer_binary_name = 3;
-  optional int32 crash_revision = 4;
+  optional int64 crash_revision = 4;
   repeated CrashInfo crashes = 5;
   optional bool corpus_backup_uploaded = 6;
 }
