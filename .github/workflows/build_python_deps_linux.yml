@@ -6,7 +6,7 @@ on:
 
 jobs:
   build_wheels:
-    name: ${{ matrix.wheel_combinations[0] }}-${{ matrix.wheel_combinations[1] }}-py${{ matrix.python_versions[0] }}
+    name: ${{ matrix.libraries[1] }}-${{ matrix.wheel_combinations[0] }}-${{ matrix.wheel_combinations[1] }}-py${{ matrix.python_versions[0] }}
     runs-on: ${{ matrix.wheel_combinations[0] }}
     strategy:
       matrix:
@@ -59,12 +59,12 @@ jobs:
       - name: Download and Untar File - Windows
         if: matrix.wheel_combinations[0] == 'windows-latest'
         run: |
-          Invoke-WebRequest -Uri "${{ matrix.libraries[0] }}" -OutFile "grpcio-1.63.0.tar.gz"
+          Invoke-WebRequest -Uri ${{ matrix.libraries[0] }} -OutFile ${{ matrix.libraries[1] }}
 
       - name: Download and Untar File - Unix
         if: matrix.wheel_combinations[0] != 'windows-latest'
         run: |
-          wget -O grpcio-1.63.0.tar.gz ${{ matrix.libraries[0] }}
+          wget -O ${{ matrix.libraries[1] }} ${{ matrix.libraries[0] }}
 
       - name: Build wheels
         run: |
