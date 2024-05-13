@@ -318,6 +318,9 @@ def get_task():
 
     task = get_regular_task()
     if task:
+      # Log the task details for debug purposes.
+      logs.log(f'Got task with cmd {task.command} args {task.argument} '
+               f'job {task.job} from {regular_queue()} queue.')
       return task
 
   task = get_fuzz_task()
