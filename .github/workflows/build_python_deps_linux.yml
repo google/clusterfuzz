@@ -62,11 +62,13 @@ jobs:
 
       - name: Install python deps
         run: python -m pip install cibuildwheel==2.17.0
+        
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: matrix.wheel_combinations[0] == 'ubuntu-latest'
 
       - name: Setup linux
         if: matrix.wheel_combinations[0] == 'ubuntu-latest'
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
           sudo apt-get install -y libffi-dev
 
       - name: Download and Untar File - Windows
