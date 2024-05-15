@@ -101,7 +101,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
       return
 
     try:
-      with open(absolute_path) as file_handle:
+      # It is necessary to open the file as binary because `self.wfile` is now
+      # an `io.BufferedIOBase` since python3.6, and thus expects binary input
+      # in the `self.wfile.write` call below.
+      with open(absolute_path, 'rb') as file_handle:
         data = file_handle.read()
     except OSError:
       self.send_response(403)
