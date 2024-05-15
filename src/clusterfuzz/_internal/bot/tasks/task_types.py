@@ -19,6 +19,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.swarming_utils import swarming
 from clusterfuzz._internal.system import environment
 
 
@@ -85,7 +86,8 @@ def is_remote_utask(command, job):
     # Return True even if we can't query the db.
     return True
 
-  return batch.is_remote_task(command, job)
+  return batch.is_remote_task(command, job) or swarming.is_swarming_task(
+      command, job)
 
 
 def task_main_runs_on_uworker():
@@ -123,7 +125,8 @@ class UTask(BaseUTask):
     logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
     if not (self.is_execution_remote() and
-            batch.is_remote_task(command, job_type)):
+            (batch.is_remote_task(command, job_type) or
+             swarming.is_swarming_task(command, job_type))):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
@@ -133,7 +136,11 @@ class UTask(BaseUTask):
       return
 
     logs.info('Queueing utask for remote execution.', download_url=download_url)
-    tasks.add_utask_main(command, download_url, job_type)
+    if batch.is_remote_task(command, job_type):
+      tasks.add_utask_main(command, download_url, job_type)
+    else:
+      assert swarming.is_swarming_task(command, job_type)
+      swarming.push_swarming_task(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,

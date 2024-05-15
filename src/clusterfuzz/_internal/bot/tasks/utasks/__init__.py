@@ -26,6 +26,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.swarming_utils import swarming
 from clusterfuzz._internal.system import environment
 
 # Define an alias to appease pylint.
@@ -40,6 +41,9 @@ class _Mode(enum.Enum):
 
   # `uworker_main` tasks are executed on bots via a Pub/Sub queue.
   QUEUE = 'queue'
+
+  # `uworker_main` tasks are executed on swarming.
+  SWARMING = "swarming"
 
 
 class _Subtask(enum.Enum):
@@ -56,6 +60,14 @@ def _timestamp_now() -> Timestamp:
   return ts
 
 
+def _get_execution_mode(utask_module, job_type):
+  """Determines whether this task in executed on swarming on batch."""
+  command = task_utils.get_command_from_module(utask_module.__name__)
+  if swarming.is_swarming_task(command, job_type):
+    return _Mode.SWARMING
+  return _Mode.BATCH
+
+
 class _MetricRecorder(contextlib.AbstractContextManager):
   """Records task execution metrics, even in case of error and exceptions.
 
@@ -64,10 +76,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       nanoseconds since the Unix epoch.
   """
 
-  def __init__(self, subtask: _Subtask, mode: _Mode):
+  def __init__(self, subtask: _Subtask):
     self.start_time_ns = time.time_ns()
     self._subtask = subtask
-    self._mode = mode
     self._labels = None
 
     if subtask == _Subtask.PREPROCESS:
@@ -78,6 +89,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   def set_task_details(self,
                        utask_module,
                        job_type: str,
+                       execution_mode: _Mode,
                        platform: str,
                        preprocess_start_time: Optional[Timestamp] = None):
     """Sets task details that might not be known at instantation time.
@@ -97,7 +109,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         'task': task_utils.get_command_from_module(utask_module.__name__),
         'job': job_type,
         'subtask': self._subtask.value,
-        'mode': self._mode.value,
+        'mode': execution_mode.value,
         'platform': platform,
     }
 
@@ -141,13 +153,14 @@ def ensure_uworker_env_type_safety(uworker_env):
 
 
 def _preprocess(utask_module, task_argument, job_type, uworker_env,
-                recorder: _MetricRecorder):
+                recorder: _MetricRecorder, execution_mode: _Mode):
   """Shared logic for preprocessing between preprocess_no_io and the I/O
   tworker_preprocess."""
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
 
-  recorder.set_task_details(utask_module, job_type, environment.platform())
+  recorder.set_task_details(utask_module, job_type, execution_mode,
+                            environment.platform())
 
   logs.info('Starting utask_preprocess: %s.' % utask_module)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
@@ -184,9 +197,9 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
-  with _MetricRecorder(_Subtask.PREPROCESS, _Mode.QUEUE) as recorder:
+  with _MetricRecorder(_Subtask.PREPROCESS) as recorder:
     uworker_input = _preprocess(utask_module, task_argument, job_type,
-                                uworker_env, recorder)
+                                uworker_env, recorder, _Mode.QUEUE)
     if not uworker_input:
       return None
 
@@ -196,7 +209,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
 def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  with _MetricRecorder(_Subtask.UWORKER_MAIN, _Mode.QUEUE) as recorder:
+  with _MetricRecorder(_Subtask.UWORKER_MAIN) as recorder:
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_input = uworker_io.deserialize_uworker_input(
         serialized_uworker_input)
@@ -205,7 +218,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     uworker_input.uworker_env.clear()
 
     recorder.set_task_details(utask_module, uworker_input.job_type,
-                              environment.platform(),
+                              environment.platform(), _Mode.QUEUE,
                               uworker_input.preprocess_start_time)
 
     uworker_output = utask_module.utask_main(uworker_input)
@@ -221,7 +234,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   """Executes the postprocess step on the trusted (t)worker (in this case it is
   the same bot as the uworker)."""
   logs.info('Starting postprocess on trusted worker.')
-  with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.QUEUE) as recorder:
+  with _MetricRecorder(_Subtask.POSTPROCESS) as recorder:
     uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
 
     # Do this to simulate out-of-band tamper-proof storage of the input.
@@ -231,7 +244,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
     set_uworker_env(uworker_output.uworker_input.uworker_env)
 
     recorder.set_task_details(utask_module, uworker_input.job_type,
-                              environment.platform(),
+                              environment.platform(), _Mode.QUEUE,
                               uworker_input.preprocess_start_time)
 
     utask_module.utask_postprocess(uworker_output)
@@ -241,9 +254,10 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
-  with _MetricRecorder(_Subtask.PREPROCESS, _Mode.BATCH) as recorder:
+  with _MetricRecorder(_Subtask.PREPROCESS) as recorder:
+    execution_mode = _get_execution_mode(utask_module, job_type)
     uworker_input = _preprocess(utask_module, task_argument, job_type,
-                                uworker_env, recorder)
+                                uworker_env, recorder, execution_mode)
     if not uworker_input:
       # Bail if preprocessing failed since we can't proceed.
       return None
@@ -266,7 +280,7 @@ def set_uworker_env(uworker_env: dict) -> None:
 def uworker_main(input_download_url) -> None:
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  with _MetricRecorder(_Subtask.UWORKER_MAIN, _Mode.BATCH) as recorder:
+  with _MetricRecorder(_Subtask.UWORKER_MAIN) as recorder:
     uworker_input = uworker_io.download_and_deserialize_uworker_input(
         input_download_url)
     uworker_output_upload_url = uworker_input.uworker_output_upload_url
@@ -279,8 +293,9 @@ def uworker_main(input_download_url) -> None:
     _start_web_server_if_needed(uworker_input.job_type)
 
     utask_module = get_utask_module(uworker_input.module_name)
+    execution_mode = _get_execution_mode(utask_module, uworker_input.job_type)
     recorder.set_task_details(utask_module, uworker_input.job_type,
-                              environment.platform(),
+                              environment.platform(), execution_mode,
                               uworker_input.preprocess_start_time)
 
     logs.info('Starting utask_main: %s.' % utask_module)
@@ -308,16 +323,18 @@ def uworker_bot_main():
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   logs.info('Starting postprocess untrusted worker.')
-  with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.BATCH) as recorder:
+  with _MetricRecorder(_Subtask.POSTPROCESS) as recorder:
     uworker_output = uworker_io.download_and_deserialize_uworker_output(
         output_download_url)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
 
     utask_module = get_utask_module(uworker_output.uworker_input.module_name)
+    execution_mode = _get_execution_mode(utask_module,
+                                         uworker_output.uworker_input.job_type)
     recorder.set_task_details(
         utask_module, uworker_output.uworker_input.job_type,
-        environment.platform(),
+        environment.platform(), execution_mode,
         uworker_output.uworker_input.preprocess_start_time)
 
     utask_module.utask_postprocess(uworker_output)
