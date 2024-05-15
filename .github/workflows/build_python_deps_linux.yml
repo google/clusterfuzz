@@ -12,11 +12,11 @@ jobs:
       matrix:
         libraries: [
 
-          #["https://files.pythonhosted.org/packages/78/63/66c03eb51f0d241862083deb3f17ab5fce08cf6b347db7887bcb4d1a194e/cryptography-42.0.7.tar.gz", "cryptography-42.0.7.tar.gz"],
+          ["https://files.pythonhosted.org/packages/78/63/66c03eb51f0d241862083deb3f17ab5fce08cf6b347db7887bcb4d1a194e/cryptography-42.0.7.tar.gz", "cryptography-42.0.7.tar.gz"],
           #["https://files.pythonhosted.org/packages/6b/b0/e595ce2a2527e169c3bcd6c33d2473c1918e0b7f6826a043ca1245dd4e5b/crcmod-1.7.tar.gz", "crcmod-1.7.tar.gz"],
           #["https://files.pythonhosted.org/packages/90/c7/6dc0a455d111f68ee43f27793971cf03fe29b6ef972042549db29eec39a2/psutil-5.9.8.tar.gz", "psutil-5.9.8.tar.gz"],
           #["https://files.pythonhosted.org/packages/0c/2a/23943e19b4bbbdad60a9d881e44cd53bb48b31c7419ebb7b983edfbbb708/grpcio-1.63.0.tar.gz", "grpcio-1.63.0.tar.gz"],  
-          ["https://files.pythonhosted.org/packages/5e/d8/65adb47d921ce828ba319d6587aa8758da022de509c3862a70177a958844/protobuf-4.25.3.tar.gz", "protobuf-4.25.3.tar.gz"],
+          #["https://files.pythonhosted.org/packages/5e/d8/65adb47d921ce828ba319d6587aa8758da022de509c3862a70177a958844/protobuf-4.25.3.tar.gz", "protobuf-4.25.3.tar.gz"],
 
 
            #  ["https://files.pythonhosted.org/packages/87/5b/aae44c6655f3801e81aa3eef09dbbf012431987ba564d7231722f68df02d/MarkupSafe-2.1.5.tar.gz", "MarkupSafe-2.1.5.tar.gz"],
@@ -48,7 +48,7 @@ jobs:
         ]
         wheel_combinations: [
           ["ubuntu-latest", "x86_64"],
-          ["windows-latest", "AMD64"],
+          ["windows-2019", "AMD64"],
           #["macos13", "x86_64"],
      #     ["macos14", "x86_64"],
         ]
@@ -62,6 +62,14 @@ jobs:
 
       - name: Install python deps
         run: python -m pip install cibuildwheel==2.17.0
+
+      - name: Setup linux
+        if: matrix.wheel_combinations[0] == 'ubuntu-latest'
+        run: apt install -y rustc
+
+      - name: Setup windows
+        if: matrix.wheel_combinations[0] == 'ubuntu-latest'
+        run: apt install -y rustc
 
       - name: Download and Untar File - Windows
         if: matrix.wheel_combinations[0] == 'windows-latest'
