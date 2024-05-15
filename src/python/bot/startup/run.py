@@ -202,7 +202,7 @@ def run_loop(bot_command, heartbeat_command):
       start_heartbeat(heartbeat_command)
     exit_code = start_bot(bot_command)
     if environment.is_uworker():
-      logs.log(f'Batch job exited with code: {exit_code}. Exiting.')
+      logs.log(f'Job exited with code: {exit_code}. Exiting.')
       sys.exit(exit_code)
 
     # See if our run timed out, if yes bail out.

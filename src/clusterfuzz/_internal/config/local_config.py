@@ -33,6 +33,7 @@ ISSUE_TRACKERS_PATH = 'issue_trackers.config'
 BATCH_PATH = 'batch.batch'
 MONITORING_REGIONS_PATH = 'monitoring.regions'
 PROJECT_PATH = 'project'
+SWARMING_PATH = 'swarming.config'
 
 
 def _load_yaml_file(yaml_file_path):
@@ -251,3 +252,10 @@ class GCEClustersConfig(Config):
 
   def __init__(self):
     super().__init__(GCE_CLUSTERS_PATH)
+
+
+class SwarmingConfig(Config):
+  """Swarming config."""
+
+  def __init__(self):
+    super().__init__(SWARMING_PATH)
