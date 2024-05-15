@@ -65,7 +65,9 @@ jobs:
 
       - name: Setup linux
         if: matrix.wheel_combinations[0] == 'ubuntu-latest'
-        run:  sudo apt-get install setuptools_rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+          sudo apt-get install -y libffi-dev
 
       - name: Download and Untar File - Windows
         if: matrix.wheel_combinations[0] == 'windows-latest'
