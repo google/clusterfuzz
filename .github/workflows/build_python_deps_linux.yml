@@ -65,7 +65,7 @@ jobs:
 
       - name: Setup linux
         if: matrix.wheel_combinations[0] == 'ubuntu-latest'
-        run: sudo apt install -y rustc
+        run:  sudo apt-get install setuptools_rust
 
       - name: Download and Untar File - Windows
         if: matrix.wheel_combinations[0] == 'windows-latest'
