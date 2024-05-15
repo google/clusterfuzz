@@ -95,6 +95,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     """Handle a GET request."""
     absolute_path = get_absolute_testcase_file(self.path)
     if not absolute_path:
+      logs.log_warn(f"Could not find an absolute path for {self.path}.")
       self.send_response(404)
       self.end_headers()
       return
