@@ -67,10 +67,6 @@ jobs:
         if: matrix.wheel_combinations[0] == 'ubuntu-latest'
         run: sudo apt install -y rustc
 
-      - name: Setup windows
-        if: matrix.wheel_combinations[0] == 'ubuntu-latest'
-        run: apt install -y rustc
-
       - name: Download and Untar File - Windows
         if: matrix.wheel_combinations[0] == 'windows-latest'
         run: |
