@@ -323,6 +323,8 @@ def get_task():
                f'job {task.job} from {regular_queue()} queue.')
       return task
 
+  logs.log(f'Could not get task from {regular_queue()}. Fuzzing.')
+
   task = get_fuzz_task()
   if not task:
     logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
