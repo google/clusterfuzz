@@ -23,6 +23,7 @@ from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
@@ -168,6 +169,17 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env,
   return uworker_input
 
 
+def _start_web_server_if_needed(job_type):
+  """Start web server for blackbox fuzzer jobs (non-engine fuzzer jobs)."""
+  if environment.is_engine_fuzzer_job(job_type):
+    return
+
+  try:
+    http_server.start()
+  except Exception:
+    logs.log_error('Failed to start web server, skipping.')
+
+
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
@@ -261,6 +273,9 @@ def uworker_main(input_download_url) -> None:
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+
+    logs.log('Starting HTTP server.')
+    _start_web_server_if_needed(uworker_input.job_type)
 
     utask_module = get_utask_module(uworker_input.module_name)
     recorder.set_task_details(utask_module, uworker_input.job_type,
