@@ -609,7 +609,7 @@ def get_proto_corpus(bucket_name,
       gcs_url, num_uploads=max_upload_urls)
   corpus = uworker_msg_pb2.Corpus(
       corpus_urls=corpus_urls,
-      upload_urls=upload_urls,
+    upload_urls=upload_urls,
       gcs_url=gcs_url,
   )
   last_updated = storage.last_updated(_get_gcs_url(bucket_name, bucket_path))
