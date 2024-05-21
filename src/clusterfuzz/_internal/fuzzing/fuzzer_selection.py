@@ -35,24 +35,19 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
   query = data_types.FuzzerJob.query()
   query = query.filter(data_types.FuzzerJob.fuzzer == fuzzer.name)
-  entities = ndb_utils.get_all_from_query(query)
+  fuzzer_job_entities = ndb_utils.get_all_from_query(query)
   old_mappings = {}
-  for entity in entities:
-    old_mappings[entity.job] = entity
+  for fuzzer_job in fuzzer_job_entities:
+    old_mappings[fuzzer_job.job] = fuzzer_job
 
   new_mappings = []
+  jobs = ndb_utils.get_all_from_query(
+      data_types.Job.query(data_types.Job.name.IN(mappings)))
+  jobs = {job.name: job for job in jobs}
   for job_name in mappings:
     mapping = old_mappings.pop(job_name, None)
-    if mapping:
-      continue
-
-    job = data_types.Job.query(data_types.Job.name == job_name).get()
-    if not job:
-      logs.log_error('An unknown job %s was selected for fuzzer %s.' %
-                     (job_name, fuzzer.name))
-      continue
-
-    mapping = data_types.FuzzerJob()
+    if not mapping:
+      mapping = data_types.FuzzerJob()
     mapping.fuzzer = fuzzer.name
     mapping.job = job_name
     mapping.platform = job.platform
