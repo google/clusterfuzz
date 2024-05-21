@@ -392,7 +392,7 @@ class UploadHandlerCommon:
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
 
     if (not trusted_agreement_signed and
-        task_utils.is_remotely_executing_utasks()):
+        task_utils.is_remotely_executing_utasks() and platform_id != "Linux"):
       # Trusted agreement was not signed even though the job has privileges and
       # there are other jobs that don't have privileges.
       raise helpers.EarlyExitError(
