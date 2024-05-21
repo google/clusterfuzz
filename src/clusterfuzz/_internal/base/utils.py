@@ -124,6 +124,20 @@ def fetch_url(url):
   return response.text
 
 
+@retry.wrap(
+    retries=URL_REQUEST_RETRIES,
+    delay=URL_REQUEST_FAIL_WAIT,
+    function='base.utils.post_url')
+def post_url(url, data, headers):
+  """Post to url."""
+  operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+
+  response = requests.post(
+      url, data=data, headers=headers, timeout=operations_timeout)
+  response.raise_for_status()
+  return response.text
+
+
 def fields_match(string_1,
                  string_2,
                  field_separator=':',

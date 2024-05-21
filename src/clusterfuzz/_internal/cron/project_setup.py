@@ -915,6 +915,7 @@ class ProjectSetup:
               f'{key} = {str(value).encode("unicode-escape").decode("utf-8")}\n'
           )
 
+      job.requires_gpu = bool(job.get_environment().get('REQUIRES_GPU'))
       job.put()
 
     return job_names

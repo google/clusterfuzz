@@ -21,12 +21,12 @@ from typing import Optional
 
 from google.protobuf import timestamp_pb2
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.swarming_utils import swarming
 from clusterfuzz._internal.system import environment
 
 # Define an alias to appease pylint.
@@ -61,7 +61,7 @@ def _timestamp_now() -> Timestamp:
 
 
 def _get_execution_mode(utask_module, job_type):
-  """Determines whether this task in executed on swarming on batch."""
+  """Determines whether this task in executed on swarming or batch."""
   command = task_utils.get_command_from_module(utask_module.__name__)
   if swarming.is_swarming_task(command, job_type):
     return _Mode.SWARMING

@@ -33,7 +33,7 @@ ISSUE_TRACKERS_PATH = 'issue_trackers.config'
 BATCH_PATH = 'batch.batch'
 MONITORING_REGIONS_PATH = 'monitoring.regions'
 PROJECT_PATH = 'project'
-SWARMING_PATH = 'swarming.config'
+SWARMING_PATH = 'swarming.swarming'
 
 
 def _load_yaml_file(yaml_file_path):

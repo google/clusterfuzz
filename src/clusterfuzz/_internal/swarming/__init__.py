@@ -13,10 +13,10 @@
 # limitations under the License.
 """Swarming helpers."""
 
+import base64
 import uuid
 
-import requests
-
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -36,35 +36,28 @@ def is_swarming_task(command: str, job_name: str):
     return False
 
 
-def get_task_name():
+def _get_task_name():
   return 't-' + str(uuid.uuid4()).lower()
 
 
-def _get_job(job_name: str):
-  """Returns the Job entity named by |job_name|. This function was made to make
-  mocking easier."""
-  return data_types.Job.query(data_types.Job.name == job_name).get()
-
-
 def _get_swarming_config():
-  """Returns the swarming config. This function was made to make mocking easier."""
+  """Returns the swarming config."""
   return local_config.SwarmingConfig()
 
 
-def _get_new_task_spec(command: str, job_name: str, download_url: str):
+def _get_new_task_spec(command: str, job_name: str,
+                       download_url: str) -> swarming_pb2.NewTaskRequest:
   """Gets the configured specifications for a swarming task."""
-  job = _get_job(job_name)
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
   config_name = job.platform
-  if command == 'fuzz':
-    config_name += '-PREEMPTIBLE'
-  else:
-    config_name += '-NONPREEMPTIBLE'
   swarming_config = _get_swarming_config()
   instance_spec = swarming_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
   swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
+  # The priority of the task
+  priority = instance_spec['priority']
   # The command to launch the startup script
   command = instance_spec['command']
   # The cas instance storing the startup script
@@ -74,15 +67,24 @@ def _get_new_task_spec(command: str, job_name: str, download_url: str):
   # The startup script size in bytes
   digest_size_bytes = instance_spec['digest_size_bytes']
   # The service account that the task runs as.
-  service_account = instance_spec['service_account']
+  service_account = instance_spec['service_account_email']
+  # If this task request slice is not scheduled after waiting this long,
+  # the task state will be set to EXPIRED.
+  expiration_secs = instance_spec['expiration_secs']
+  # Maximum number of seconds the task can run before its process is
+  # forcibly terminated and the task results in TIMED_OUT.
+  execution_timeout_secs = instance_spec['execution_timeout_secs']
+  if command == 'fuzz':
+    execution_timeout_secs = swarming_config.get('fuzzing_session_duration')
+  docker_image = instance_spec['docker_image'] or ''
   return swarming_pb2.NewTaskRequest(
-      name=get_task_name(),
-      priority=1,
+      name=_get_task_name(),
+      priority=priority,
       realm=swarming_realm,
       service_account=service_account,
       task_slices=[
           swarming_pb2.TaskSlice(
-              expiration_secs=86400,
+              expiration_secs=expiration_secs,
               properties=swarming_pb2.TaskProperties(
                   command=[command],
                   dimensions=[
@@ -93,13 +95,14 @@ def _get_new_task_spec(command: str, job_name: str, download_url: str):
                       cas_instance=cas_instance,
                       digest=swarming_pb2.Digest(
                           hash=digest_hash, size_bytes=digest_size_bytes)),
-                  execution_timeout_secs=86400,
+                  execution_timeout_secs=execution_timeout_secs,
                   env=[
+                      swarming_pb2.StringPair(key='UWORKER', value='True'),
+                      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),
                       swarming_pb2.StringPair(
-                          key='UWORKER_INPUT_DOWNLOAD_URL', value=download_url),
-                      swarming_pb2.StringPair(key='UWORKER', value=True),
-                      swarming_pb2.StringPair(key='SWARMING_BOT', value=True)
-                  ]))
+                          key='DOCKER_IMAGE', value=docker_image)
+                  ],
+                  secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
 
 
@@ -118,6 +121,4 @@ def push_swarming_task(command, download_url, job_type):
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  r = requests.post(
-      url=url, data=task_spec.SerializeToString(), headers=headers)
-  logs.log(r.status_code)
+  utils.post_url(url=url, data=task_spec.SerializeToString(), headers=headers)
