@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,20 +13,28 @@
 # limitations under the License.
 
 mapping:
-  LINUX-NONPREEMPTIBLE:
+  LINUX:
+    priority: 1
     command: './linux_entry_point.sh'
     cas_instance: 'projects/server-name/instances/instance_name'
     digest_hash: 'linux_entry_point_archive_hash'
-    digest_byte_size: 1234
+    digest_size_bytes: 1234
     service_account_email: test-clusterfuzz-service-account-email
     preemptible: false
-  MAC-NONPREEMPTIBLE:
+    expiration_secs: 86400
+    execution_timeout_secs: 86400
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+  MAC:
+    priority: 1
     command: './mac_entry_point.sh'
     cas_instance: 'projects/server-name/instances/instance_name'
     digest_hash: 'mac_entry_point_archive_hash'
-    digest_byte_size: 456
+    digest_size_bytes: 456
     service_account_email: test-clusterfuzz-service-account-email
     preemptible: false
+    expiration_secs: 86400
+    execution_timeout_secs: 86400
 swarming_server: 'server-name'
 swarming_pool: 'pool-name'
 swarming_realm: 'realm-name'
+fuzzing_session_duration: 86400
