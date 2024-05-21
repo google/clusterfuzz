@@ -40,9 +40,11 @@ class TworkerPreprocessTest(unittest.TestCase):
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, [
+        'clusterfuzz._internal.swarming.is_swarming_task',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
     ])
+    self.mock.is_swarming_task.return_value = False
     self.mock.get_uworker_output_urls.return_value = (
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
@@ -131,12 +133,14 @@ class UworkerMainTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
+        'clusterfuzz._internal.swarming.is_swarming_task',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
     ])
     self.module = mock.MagicMock(__name__='tasks.analyze_task')
     self.mock.get_utask_module.return_value = self.module
+    self.mock.is_swarming_task.return_value = False
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
@@ -207,9 +211,11 @@ class TworkerPostprocessTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
+        'clusterfuzz._internal.swarming.is_swarming_task',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
     ])
+    self.mock.is_swarming_task.return_value = False
 
   def test_success(self):
     """Tests that if utask_postprocess suceeds, uworker_postprocess does too.

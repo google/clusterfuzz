@@ -217,8 +217,8 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
 
-    recorder.set_task_details(utask_module, uworker_input.job_type,
-                              environment.platform(), _Mode.QUEUE,
+    recorder.set_task_details(utask_module, uworker_input.job_type, _Mode.QUEUE,
+                              environment.platform(),
                               uworker_input.preprocess_start_time)
 
     uworker_output = utask_module.utask_main(uworker_input)
@@ -243,8 +243,8 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
 
-    recorder.set_task_details(utask_module, uworker_input.job_type,
-                              environment.platform(), _Mode.QUEUE,
+    recorder.set_task_details(utask_module, uworker_input.job_type, _Mode.QUEUE,
+                              environment.platform(),
                               uworker_input.preprocess_start_time)
 
     utask_module.utask_postprocess(uworker_output)
@@ -294,9 +294,9 @@ def uworker_main(input_download_url) -> None:
 
     utask_module = get_utask_module(uworker_input.module_name)
     execution_mode = _get_execution_mode(utask_module, uworker_input.job_type)
-    recorder.set_task_details(utask_module, uworker_input.job_type,
-                              environment.platform(), execution_mode,
-                              uworker_input.preprocess_start_time)
+    recorder.set_task_details(
+        utask_module, uworker_input.job_type, execution_mode,
+        environment.platform(), uworker_input.preprocess_start_time)
 
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
@@ -333,8 +333,8 @@ def tworker_postprocess(output_download_url) -> None:
     execution_mode = _get_execution_mode(utask_module,
                                          uworker_output.uworker_input.job_type)
     recorder.set_task_details(
-        utask_module, uworker_output.uworker_input.job_type,
-        environment.platform(), execution_mode,
+        utask_module, uworker_output.uworker_input.job_type, execution_mode,
+        environment.platform(),
         uworker_output.uworker_input.preprocess_start_time)
 
     utask_module.utask_postprocess(uworker_output)
