@@ -99,7 +99,7 @@ def encode_json(value):
 _JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(
         os.path.join(os.path.dirname(__file__), '..', 'templates')),
-    extensions=['jinja2.ext.autoescape'],
+    extensions=[],
     autoescape=True)
 _MENU_ITEMS = []
 
