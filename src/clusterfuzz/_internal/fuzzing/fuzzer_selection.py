@@ -41,9 +41,12 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
     old_mappings[fuzzer_job.job] = fuzzer_job
 
   new_mappings = []
-  jobs = ndb_utils.get_all_from_query(
-      data_types.Job.query(data_types.Job.name.IN(mappings)))
-  jobs = {job.name: job for job in jobs}
+  if mappings:
+    jobs = ndb_utils.get_all_from_query(
+      data_types.Job.query().filter(data_types.Job.name.IN(mappings)))
+    jobs = {job.name: job for job in jobs}
+  else:
+    jobs = {}
   for job_name in mappings:
     mapping = old_mappings.pop(job_name, None)
     if not mapping:
