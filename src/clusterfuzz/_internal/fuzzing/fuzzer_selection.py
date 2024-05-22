@@ -50,7 +50,7 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
       mapping = data_types.FuzzerJob()
     mapping.fuzzer = fuzzer.name
     mapping.job = job_name
-    mapping.platform = job.platform
+    mapping.platform = jobs[job_name].platform
     new_mappings.append(mapping)
 
   ndb_utils.put_multi(new_mappings)
