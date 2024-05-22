@@ -176,7 +176,8 @@ def run_process(cmdline,
     android.logger.clear_log()
 
     # Run the app.
-    adb_output = android.adb.run_command(cmdline, timeout=timeout)
+    adb_output = android.adb.run_command(
+        cmdline, timeout=timeout, log_output=True)
   else:
     cmd = shell.get_command(cmdline)
 
