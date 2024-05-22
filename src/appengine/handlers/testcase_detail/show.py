@@ -19,6 +19,7 @@ import re
 
 from flask import request
 import jinja2
+from markupsafe import escape
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import revisions
@@ -297,7 +298,7 @@ def convert_to_lines(raw_stacktrace, crash_state_lines, crash_type):
   raw_lines = raw_stacktrace.splitlines()
 
   frames = get_stack_frames(crash_state_lines)
-  escaped_frames = [jinja2.escape(f) for f in frames]
+  escaped_frames = [escape(f) for f in frames]
   combined_frames = frames + escaped_frames
 
   # Certain crash types have their own customized frames that are not related to
