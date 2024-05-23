@@ -146,7 +146,7 @@ class HandlerTest(unittest.TestCase):
     app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 302)
-    self.assertEqual('http://localhost/login?dest=http%3A%2F%2Flocalhost%2F',
+    self.assertEqual('/login?dest=http%3A%2F%2Flocalhost%2F',
                      response.headers['Location'])
 
   def test_forbidden_logged_in(self):
@@ -165,8 +165,8 @@ class HandlerTest(unittest.TestCase):
     flaskapp.add_url_rule('/', view_func=FlaskRedirectHandler.as_view('/'))
     app = webtest.TestApp(flaskapp)
     response = app.get('/?redirect=%2Fanother-page')
-    self.assertEqual('http://localhost/another-page',
-                     response.headers['Location'])
+    self.assertEqual(response.status_int, 302)
+    self.assertEqual('/another-page', response.headers['Location'])
 
   def test_redirect_another_domain(self):
     """Test redirect to another domain."""
