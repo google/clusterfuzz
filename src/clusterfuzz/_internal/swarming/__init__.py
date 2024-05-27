@@ -16,18 +16,25 @@
 import base64
 import uuid
 
+from google.protobuf import json_format
+
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
+
+
+def _job_requires_gpu(job: data_types.Job) -> bool:
+  """Checks whether the job should run on devices with gpu."""
+  requires_gpu = job.get_environment().get('REQUIRES_GPU')
+  return bool(utils.string_is_true(requires_gpu))
 
 
 def is_swarming_task(command: str, job_name: str):
   """Returns True if the task is supposed to run on swarming. """
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not job.requires_gpu:
+  if not job or not _job_requires_gpu(job):
     return False
   try:
     _get_new_task_spec(command, job_name, '')
@@ -59,7 +66,7 @@ def _get_new_task_spec(command: str, job_name: str,
   # The priority of the task
   priority = instance_spec['priority']
   # The command to launch the startup script
-  command = instance_spec['command']
+  startup_command = instance_spec['command']
   # The cas instance storing the startup script
   cas_instance = instance_spec['cas_instance']
   # The startup script archive hash
@@ -75,9 +82,8 @@ def _get_new_task_spec(command: str, job_name: str,
   # forcibly terminated and the task results in TIMED_OUT.
   execution_timeout_secs = instance_spec['execution_timeout_secs']
   if command == 'fuzz':
-    execution_timeout_secs = swarming_config.get('fuzzing_session_duration')
-  docker_image = instance_spec['docker_image'] or ''
-  return swarming_pb2.NewTaskRequest(
+    execution_timeout_secs = swarming_config.get('fuzz_task_duration')
+  new_task_request = swarming_pb2.NewTaskRequest(
       name=_get_task_name(),
       priority=priority,
       realm=swarming_realm,
@@ -86,7 +92,7 @@ def _get_new_task_spec(command: str, job_name: str,
           swarming_pb2.TaskSlice(
               expiration_secs=expiration_secs,
               properties=swarming_pb2.TaskProperties(
-                  command=[command],
+                  command=[startup_command],
                   dimensions=[
                       swarming_pb2.StringPair(key='os', value=job.platform),
                       swarming_pb2.StringPair(key='pool', value=swarming_pool)
@@ -99,11 +105,15 @@ def _get_new_task_spec(command: str, job_name: str,
                   env=[
                       swarming_pb2.StringPair(key='UWORKER', value='True'),
                       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),
-                      swarming_pb2.StringPair(
-                          key='DOCKER_IMAGE', value=docker_image)
                   ],
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
+  docker_image = instance_spec.get('docker_image')
+  if docker_image:
+    new_task_request.task_slices[0].properties.env.append(
+        swarming_pb2.StringPair(key='DOCKER_IMAGE', value=docker_image))
+
+  return new_task_request
 
 
 def push_swarming_task(command, download_url, job_type):
@@ -121,4 +131,5 @@ def push_swarming_task(command, download_url, job_type):
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  utils.post_url(url=url, data=task_spec.SerializeToString(), headers=headers)
+  utils.post_url(
+      url=url, data=json_format.MessageToJson(task_spec), headers=headers)
