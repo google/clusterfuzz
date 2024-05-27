@@ -37,4 +37,4 @@ mapping:
 swarming_server: 'server-name'
 swarming_pool: 'pool-name'
 swarming_realm: 'realm-name'
-fuzzing_session_duration: 86400
+fuzz_task_duration: 12345

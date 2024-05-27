@@ -33,7 +33,7 @@ from clusterfuzz._internal.system import environment
 Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
 
 
-class _Mode(enum.Enum):
+class Mode(enum.Enum):
   """The execution mode of `uworker_main` tasks in a bot process."""
 
   # `uworker_main` tasks are executed on Cloud Batch.
@@ -64,8 +64,8 @@ def _get_execution_mode(utask_module, job_type):
   """Determines whether this task in executed on swarming or batch."""
   command = task_utils.get_command_from_module(utask_module.__name__)
   if swarming.is_swarming_task(command, job_type):
-    return _Mode.SWARMING
-  return _Mode.BATCH
+    return Mode.SWARMING
+  return Mode.BATCH
 
 
 class _MetricRecorder(contextlib.AbstractContextManager):
@@ -89,7 +89,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   def set_task_details(self,
                        utask_module,
                        job_type: str,
-                       execution_mode: _Mode,
+                       execution_mode: Mode,
                        platform: str,
                        preprocess_start_time: Optional[Timestamp] = None):
     """Sets task details that might not be known at instantation time.
@@ -153,7 +153,7 @@ def ensure_uworker_env_type_safety(uworker_env):
 
 
 def _preprocess(utask_module, task_argument, job_type, uworker_env,
-                recorder: _MetricRecorder, execution_mode: _Mode):
+                recorder: _MetricRecorder, execution_mode: Mode):
   """Shared logic for preprocessing between preprocess_no_io and the I/O
   tworker_preprocess."""
   ensure_uworker_env_type_safety(uworker_env)
@@ -199,7 +199,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   serialized output."""
   with _MetricRecorder(_Subtask.PREPROCESS) as recorder:
     uworker_input = _preprocess(utask_module, task_argument, job_type,
-                                uworker_env, recorder, _Mode.QUEUE)
+                                uworker_env, recorder, Mode.QUEUE)
     if not uworker_input:
       return None
 
@@ -217,7 +217,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
 
-    recorder.set_task_details(utask_module, uworker_input.job_type, _Mode.QUEUE,
+    recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
                               environment.platform(),
                               uworker_input.preprocess_start_time)
 
@@ -243,7 +243,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
 
-    recorder.set_task_details(utask_module, uworker_input.job_type, _Mode.QUEUE,
+    recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
                               environment.platform(),
                               uworker_input.preprocess_start_time)
 
