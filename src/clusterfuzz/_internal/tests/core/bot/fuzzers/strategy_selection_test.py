@@ -18,7 +18,7 @@ import unittest
 from google.cloud import ndb
 
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
-from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.system import environment
@@ -89,7 +89,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     data.append(strategy2)
     ndb.put_multi(data)
 
-    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+    distribution = fuzz_task_knobs.get_strategy_distribution_from_ndb()
 
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
@@ -134,7 +134,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     data.append(strategy1)
     ndb.put_multi(data)
 
-    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+    distribution = fuzz_task_knobs.get_strategy_distribution_from_ndb()
 
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
@@ -222,7 +222,7 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     data.append(strategy3)
     ndb.put_multi(data)
 
-    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+    distribution = fuzz_task_knobs.get_strategy_distribution_from_ndb()
 
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
@@ -267,7 +267,7 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     data.append(strategy1)
     ndb.put_multi(data)
 
-    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+    distribution = fuzz_task_knobs.get_strategy_distribution_from_ndb()
 
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)

@@ -1217,7 +1217,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.base.utils.random_element_from_list',
         'clusterfuzz._internal.base.utils.random_number',
         'clusterfuzz._internal.bot.fuzzers.engine_common.current_timestamp',
-        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.pick_gestures',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task_knobs.pick_gestures',
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
         'clusterfuzz._internal.build_management.revisions.get_component_list',

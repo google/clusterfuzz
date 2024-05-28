@@ -353,6 +353,7 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
   data_handler.update_progression_completion_metadata(
       testcase, max_revision, message=f'fixed in range r{testcase.fixed}')
   _write_to_bigquery(testcase, min_revision, max_revision)
+  bisection.request_bisection(testcase)
 
 
 def _store_testcase_for_regression_testing(
