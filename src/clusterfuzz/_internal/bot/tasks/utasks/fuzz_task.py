@@ -36,6 +36,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -44,10 +45,8 @@ from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import fuzzer_selection
-from clusterfuzz._internal.fuzzing import gesture_handler
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -64,18 +63,9 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 from clusterfuzz.stacktraces.__init__ import CrashInfo
 
-SelectionMethod = collections.namedtuple('SelectionMethod',
-                                         'method_name probability')
-
-DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
-MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
-SELECTION_METHOD_DISTRIBUTION = [
-    SelectionMethod('default', .7),
-    SelectionMethod('multi_armed_bandit', .3)
-]
 THREAD_WAIT_TIMEOUT = 1
 
 
@@ -102,31 +92,10 @@ Context = collections.namedtuple('Context', [
     'timeout_multiplier', 'test_timeout', 'thread_wait_timeout',
     'data_directory'
 ])
-Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 
 GenerateBlackboxTestcasesResult = collections.namedtuple(
     'GenerateBlackboxTestcasesResult',
     ['success', 'testcase_file_paths', 'fuzzer_metadata'])
-
-
-def do_multiarmed_bandit_strategy_selection(uworker_env):
-  """Set multi-armed bandit strategy selection during preprocessing. Set
-  multi-armed bandit strategy selection distribution as an environment variable
-  so we can access it in launcher."""
-  # TODO: Remove environment variable once fuzzing engine refactor is
-  # complete.
-  if not environment.get_value(
-      'USE_BANDIT_STRATEGY_SELECTION', env=uworker_env):
-    return
-  selection_method = utils.random_weighted_choice(SELECTION_METHOD_DISTRIBUTION,
-                                                  'probability')
-  environment.set_value('STRATEGY_SELECTION_METHOD',
-                        selection_method.method_name, uworker_env)
-  distribution = get_strategy_distribution_from_ndb()
-  if not distribution:
-    return
-  environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution,
-                        uworker_env)
 
 
 def has_standard_build():
@@ -663,133 +632,11 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
           generated_testcase_string)
 
 
-def pick_gestures(test_timeout):
-  """Return a list of random gestures."""
-  if not environment.get_value('ENABLE_GESTURES', True):
-    # Gestures disabled.
-    return []
-
-  # Probability of choosing gestures.
-  if utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY):
-    return []
-
-  gesture_count = utils.random_number(1, MAX_GESTURES)
-  gestures = gesture_handler.get_gestures(gesture_count)
-  if not gestures:
-    return []
-
-  # Pick a random trigger time to run the gesture at.
-  min_gesture_time = int(
-      utils.random_element_from_list([0.25, 0.50, 0.50, 0.50]) * test_timeout)
-  max_gesture_time = test_timeout - 1
-  gesture_time = utils.random_number(min_gesture_time, max_gesture_time)
-
-  gestures.append('Trigger:%d' % gesture_time)
-  return gestures
-
-
-def pick_redzone():
-  """Return a random size for redzone."""
-  thread_multiplier = environment.get_value('THREAD_MULTIPLIER', 1)
-
-  if thread_multiplier == 1:
-    redzone_list = [
-        Redzone(16, 1.0),
-        Redzone(32, 1.0),
-        Redzone(64, 0.5),
-        Redzone(128, 0.5),
-        Redzone(256, 0.25),
-        Redzone(512, 0.25),
-    ]
-  else:
-    # For beefier boxes, prioritize using bigger redzones.
-    redzone_list = [
-        Redzone(16, 0.25),
-        Redzone(32, 0.25),
-        Redzone(64, 0.50),
-        Redzone(128, 0.50),
-        Redzone(256, 1.0),
-        Redzone(512, 1.0),
-    ]
-
-  return utils.random_weighted_choice(redzone_list).size
-
-
-def pick_ubsan_disabled(job_type):
-  """Choose whether to disable UBSan in an ASan+UBSan build."""
-  # This is only applicable in an ASan build.
-  memory_tool_name = environment.get_memory_tool_name(job_type)
-  if memory_tool_name not in ['ASAN', 'HWASAN']:
-    return False
-
-  # Check if UBSan is enabled in this ASan build. If not, can't disable it.
-  if not environment.get_value('UBSAN'):
-    return False
-
-  return not utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY)
-
-
-def pick_timeout_multiplier():
-  """Return a random testcase timeout multiplier and adjust timeout."""
-  fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
-  custom_timeout_multipliers = environment.get_value(
-      'CUSTOM_TIMEOUT_MULTIPLIERS')
-  timeout_multiplier = 1.0
-
-  use_multiplier = not utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY)
-  if (use_multiplier and not fuzz_test_timeout and
-      not custom_timeout_multipliers):
-    timeout_multiplier = utils.random_element_from_list([0.5, 1.5, 2.0, 3.0])
-  elif use_multiplier and custom_timeout_multipliers:
-    # Since they are explicitly set in the job definition, it is fine to use
-    # custom timeout multipliers even in the case where FUZZ_TEST_TIMEOUT is
-    # set.
-    timeout_multiplier = utils.random_element_from_list(
-        custom_timeout_multipliers)
-
-  return timeout_multiplier
-
-
 def set_test_timeout(timeout, multipler):
   """Set the test timeout based on a timeout value and multiplier."""
   test_timeout = int(timeout * multipler)
   environment.set_value('TEST_TIMEOUT', test_timeout)
   return test_timeout
-
-
-def pick_window_argument():
-  """Return a window argument with random size and x,y position."""
-  default_window_argument = environment.get_value('WINDOW_ARG', '')
-  window_argument_change_chance = not utils.random_number(
-      0, DEFAULT_CHOOSE_PROBABILITY)
-
-  window_argument = ''
-  if window_argument_change_chance:
-    window_argument = default_window_argument
-    if window_argument:
-      width = utils.random_number(
-          100, utils.random_element_from_list([256, 1280, 2048]))
-      height = utils.random_number(
-          100, utils.random_element_from_list([256, 1024, 1536]))
-      left = utils.random_number(0, width)
-      top = utils.random_number(0, height)
-
-      window_argument = window_argument.replace('$WIDTH', str(width))
-      window_argument = window_argument.replace('$HEIGHT', str(height))
-      window_argument = window_argument.replace('$LEFT', str(left))
-      window_argument = window_argument.replace('$TOP', str(top))
-
-  # FIXME: Random seed is currently passed along to the next job
-  # via WINDOW_ARG. Rename it without breaking existing tests.
-  random_seed_argument = environment.get_value('RANDOM_SEED')
-  if random_seed_argument:
-    if window_argument:
-      window_argument += ' '
-    seed = utils.random_number(-2147483648, 2147483647)
-    window_argument += '%s=%d' % (random_seed_argument.strip(), seed)
-
-  environment.set_value('WINDOW_ARG', window_argument)
-  return window_argument
 
 
 def truncate_fuzzer_output(output, limit):
@@ -1228,19 +1075,6 @@ def process_crashes(crashes, context):
   return new_crash_count, known_crash_count, processed_groups
 
 
-def get_strategy_distribution_from_ndb():
-  """Queries and returns the distribution stored in the ndb table."""
-  query = data_types.FuzzStrategyProbability.query()
-  distribution = []
-  for strategy_entry in list(ndb_utils.get_all_from_query(query)):
-    distribution.append({
-        'strategy_name': strategy_entry.strategy_name,
-        'probability': strategy_entry.probability,
-        'engine': strategy_entry.engine
-    })
-  return distribution
-
-
 def _get_issue_metadata_from_environment(variable_name):
   """Get issue metadata from environment."""
   values = str(environment.get_value_string(variable_name, '')).split(',')
@@ -1330,10 +1164,10 @@ class FuzzingSession:
     self.uworker_input = uworker_input
 
     # Set up randomly selected fuzzing parameters.
-    self.redzone = pick_redzone()
-    self.disable_ubsan = pick_ubsan_disabled(self.job_type)
-    self.timeout_multiplier = pick_timeout_multiplier()
-    self.window_argument = pick_window_argument()
+    self.redzone = fuzz_task_knobs.pick_redzone()
+    self.disable_ubsan = fuzz_task_knobs.pick_ubsan_disabled(self.job_type)
+    self.timeout_multiplier = fuzz_task_knobs.pick_timeout_multiplier()
+    self.window_argument = fuzz_task_knobs.pick_window_argument()
     self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
 
     # Set up during run().
@@ -1666,8 +1500,8 @@ class FuzzingSession:
       testcases_metadata[testcase_file_path] = {}
 
       # Pick up a gesture to run on the testcase.
-      testcases_metadata[testcase_file_path]['gestures'] = pick_gestures(
-          test_timeout)
+      testcases_metadata[testcase_file_path]['gestures'] = (
+          fuzz_task_knobs.pick_gestures(test_timeout))
 
     # Prepare selecting trials in main loop below.
     trial_selector = trials.Trials()
@@ -2071,7 +1905,7 @@ def _preprocess_get_fuzz_target(fuzzer_name, job_type):
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
-  do_multiarmed_bandit_strategy_selection(uworker_env)
+  fuzz_task_knobs.do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   fuzz_target = _preprocess_get_fuzz_target(fuzzer_name, job_type)

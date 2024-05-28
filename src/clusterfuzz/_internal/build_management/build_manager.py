@@ -631,7 +631,8 @@ class RegularBuild(Build):
                target_weights=None,
                build_prefix='',
                fuzz_targets=None):
-    super().__init__(base_build_dir, revision, build_prefix)
+    super().__init__(
+        base_build_dir, revision, build_prefix, fuzz_targets=fuzz_targets)
     self.build_url = build_url
 
     if build_prefix:
