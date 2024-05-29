@@ -970,8 +970,7 @@ def set_bot_environment():
   os.environ['DATA_BUNDLES_DIR'] = os.path.join(inputs_dir, 'data-bundles')
   os.environ['FUZZ_INPUTS'] = os.path.join(inputs_dir, 'fuzzer-testcases')
   os.environ['FUZZ_INPUTS_MEMORY'] = os.environ['FUZZ_INPUTS']
-  os.environ['FUZZ_INPUTS_DISK'] = os.path.join(inputs_dir,
-                                                'fuzzer-testcases-disk')
+  os.environ['FUZZ_INPUTS_DISK'] = os.path.join(inputs_dir, 'disk')
   os.environ['FUZZ_DATA'] = os.path.join(inputs_dir,
                                          'fuzzer-common-data-bundles')
   os.environ['IMAGES_DIR'] = os.path.join(inputs_dir, 'images')
