@@ -43,7 +43,7 @@ class Mode(enum.Enum):
   QUEUE = 'queue'
 
   # `uworker_main` tasks are executed on swarming.
-  SWARMING = "swarming"
+  SWARMING = 'swarming'
 
 
 class _Subtask(enum.Enum):
