@@ -323,11 +323,11 @@ class FuzzTest(fake_fs_unittest.TestCase):
         additional_args=[
             '-arg=1',
             '-timeout=123',
-            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-wd/MCF',
         ],
         artifact_prefix=None,
         merge_timeout=1800.0,
-        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+        tmp_dir='/fuzz-inputs/temp-9001/merge-wd')
 
     mock_merge_calls[1].assert_called_with(
         mock.ANY, [
@@ -338,11 +338,11 @@ class FuzzTest(fake_fs_unittest.TestCase):
         additional_args=[
             '-arg=1',
             '-timeout=123',
-            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-wd/MCF',
         ],
         artifact_prefix=None,
         merge_timeout=1800.0,
-        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+        tmp_dir='/fuzz-inputs/temp-9001/merge-wd')
 
     self.assertDictEqual({
         'actual_duration': 2,

@@ -1,7 +1,7 @@
 Dictionary: 76 entries
 INFO: Seed: 2753157015
 INFO: Loaded 2 modules   (398408 guards): 17127 [0x7f0c73ae87a0, 0x7f0c73af933c), 381281 [0x3988ba0, 0x3afd124),
-INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new
 INFO:     1185 files found in /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/pdf_xml_fuzzer
 INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 741802 bytes
 INFO: seed corpus: files: 1183 min: 1b max: 741802b total: 6507658b rss: 56Mb
