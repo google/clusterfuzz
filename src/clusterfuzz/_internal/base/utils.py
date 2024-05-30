@@ -131,8 +131,7 @@ def fetch_url(url):
 def post_url(url: str, data: str, headers: dict) -> str:
   """Post the provided data and headers to the provided url.
   The request is retried `URL_REQUEST_RETRIES` times.
-  To avoid blocking the application, a post timeout is applied using the
-  environment variable `URL_BLOCKING_OPERATIONS_TIMEOUT`.
+  To avoid blocking the application, a post timeout of 60 seconds is applied.
   Args:
     url: the url to post to.
     data: request data.
@@ -141,10 +140,8 @@ def post_url(url: str, data: str, headers: dict) -> str:
     the contents of the response, in unicode.
   Raises:
     raises an `HTTPError`, if one occurred."""
-  operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
 
-  response = requests.post(
-      url, data=data, headers=headers, timeout=operations_timeout)
+  response = requests.post(url, data=data, headers=headers, timeout=60)
   response.raise_for_status()
   return response.text
 
