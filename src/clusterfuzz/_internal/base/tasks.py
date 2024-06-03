@@ -122,6 +122,11 @@ def default_queue_suffix():
   return queue_suffix_for_platform(environment.platform())
 
 
+def generic_android_queue(prefix=JOBS_PREFIX):
+  """Get the generic 'android' queue that is not tied to a specific device."""
+  return prefix + queue_suffix_for_platform(environment.platform())
+
+
 def regular_queue(prefix=JOBS_PREFIX):
   """Get the regular jobs queue."""
   return prefix + default_queue_suffix()
@@ -188,6 +193,21 @@ def get_regular_task(queue=None):
     task = get_task_from_message(messages[0])
     if task:
       return task
+
+
+def get_android_regular_task():
+  """Get an android regular task."""
+  if not environment.get_value('CF_ALLOWS_LISTENING_GENERIC_QUEUE') or \
+  not environment.get_value('QUEUE_OVERRIDE'):
+    return get_regular_task()
+
+  # We first try to grab a task on the regular default queue, which is the
+  # device specific subqueue.
+  task = get_regular_task(queue=regular_queue())
+  if not task:
+    # We then try the generic queue.
+    task = get_regular_task(queue=generic_android_queue())
+  return task
 
 
 def get_machine_template_for_queue(queue_name):
@@ -316,7 +336,10 @@ def get_task():
       if task:
         return task
 
-    task = get_regular_task()
+    if environment.is_android():
+      task = get_android_regular_task()
+    else:
+      task = get_regular_task()
     if task:
       # Log the task details for debug purposes.
       logs.log(f'Got task with cmd {task.command} args {task.argument} '

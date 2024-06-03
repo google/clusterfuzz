@@ -82,3 +82,24 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
     return True
 
   return False
+
+
+def should_schedule_on_generic_queue(testcase_platform_id, current_platform_id):
+  """Whether the testcase should be scheduled on the generic queue or the
+  default queue."""
+  if not environment.get_value('QUEUE_OVERRIDE'):
+    return False
+
+  testcase_fields = testcase_platform_id.split(':')
+  current_platform_fields = current_platform_id.split(':')
+
+  if len(testcase_fields) != 3 or len(current_platform_fields) != 3:
+    return False
+
+  testcase_codename = testcase_fields[1].split('_')
+  current_platform_codename = current_platform_fields.split('_')
+
+  if len(testcase_codename) != 2 or len(current_platform_codename) != 2:
+    return False
+
+  return testcase_codename[0] != testcase_codename[1]
