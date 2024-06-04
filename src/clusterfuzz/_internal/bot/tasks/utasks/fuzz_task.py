@@ -1121,13 +1121,13 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
   additional_processing_time = engine_impl.fuzz_additional_processing_timeout(
       options)
-  fuzz_test_timeout -= additional_processing_time
-  if fuzz_test_timeout <= 0:
+  adjusted_fuzz_test_timeout = fuzz_test_timeout - additional_processing_time
+  if adjusted_fuzz_test_timeout <= 0:
     raise FuzzTaskError(f'Invalid engine timeout: '
                         f'{fuzz_test_timeout} - {additional_processing_time}')
 
   result = engine_impl.fuzz(target_path, options, testcase_directory,
-                            fuzz_test_timeout)
+                            adjusted_fuzz_test_timeout)
 
   logs.log('Used strategies.', strategies=options.strategies)
   for strategy, value in options.strategies.items():
