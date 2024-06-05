@@ -28,7 +28,8 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 # Add this so some badly written code doesn't cause a test failure.
 # TODO(https://github.com/google/clusterfuzz/issues/4016): Fix this.
-from clusterfuzz._internal.bot.tasks.utasks import fuzz_task  # pylint: disable=unused-import
+from clusterfuzz._internal.bot.tasks.utasks import \
+    fuzz_task  # pylint: disable=unused-import
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
