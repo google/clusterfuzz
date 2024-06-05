@@ -283,7 +283,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
           time_executed=2.0,
           timed_out=False)
 
-    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     self.mock.fuzz.side_effect = mock_fuzz
     self.mock.merge.side_effect = mock_merge
 
