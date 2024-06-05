@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 antlr4-python3-runtime = "==4.7.2"
 bcrypt = "==4.1.2"
+certifi = "==2024.2.2"
 cffi = "==1.15.1"
 charset-normalizer = "==3.3.2"
 cryptography = "==37.0.4"
