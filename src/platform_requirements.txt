@@ -1,16 +1,2 @@
-grpcio==1.62.2
+grpcio==1.49.0
 protobuf==3.20.3
-grpcio = "==1.62.2"
-psutil = "5.9.4"
-markupsafe = "2.1.5"
-protobuf = "3.20.3"
-cryptography = "==37.0.4"
-pyyaml = "==6.0.0"
-bcrypt = "4.1.2"
-cffi = "==1.15.1"
-lazy-object-proxy= "==1.9.0"
-pynacl = "==1.5.0"
-wrapt = "==1.16.0"
-google-crc32c = "==1.5.0"
-typed-ast = "==1.5.5"
-charset-normalizer = "==3.3.2"
