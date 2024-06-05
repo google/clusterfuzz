@@ -1,7 +1,7 @@
 Dictionary: 9 entries
 INFO: Seed: 3427065834
 INFO: Loaded 2 modules   (398467 guards): 17127 [0x7fc4488667a0, 0x7fc44887733c), 381340 [0x398aaa0, 0x3aff110),
-INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
 INFO:      652 files found in /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/pdf_codec_gif_fuzzer
 INFO: seed corpus: files: 651 min: 1b max: 686513b total: 7972929b rss: 56Mb
 #64 pulse  cov: 1390 ft: 1144 corp: 63/1237b exec/s: 16 rss: 525Mb

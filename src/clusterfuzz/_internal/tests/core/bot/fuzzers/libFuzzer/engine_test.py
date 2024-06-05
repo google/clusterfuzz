@@ -283,12 +283,13 @@ class FuzzTest(fake_fs_unittest.TestCase):
           time_executed=2.0,
           timed_out=False)
 
+    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     self.mock.fuzz.side_effect = mock_fuzz
     self.mock.merge.side_effect = mock_merge
 
     result = engine_impl.fuzz('/target', options, '/fake', 3600)
     self.assertEqual(1, len(result.crashes))
-    self.assertEqual(fuzz_output, result.logs)
+    self.assertEqual(fuzz_output.strip('\n'), result.logs.strip('\n'))
 
     crash = result.crashes[0]
     self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',

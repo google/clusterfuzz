@@ -44,7 +44,7 @@ if [[ -z "$DISABLE_MOUNTS" ]]; then
 
   # mkfs.ext4 seems to remove the previous allocation, so do it again.
   fallocate -l 8GiB $FUZZER_TESTCASES_DISK_FILE
-  mount -o loop $FUZZER_TESTCASES_DISK_FILE $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/disk
+  mount -o loop $FUZZER_TESTCASES_DISK_FILE $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/ft-disk
 fi
 
 chown -R $USER:$USER $INSTALL_DIRECTORY

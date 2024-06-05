@@ -1,12 +1,12 @@
-Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer -dict=/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer.dict -timeout=25 -rss_limit_mb=2048 -max_len=5754 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2650 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/subset
+Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer -dict=/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer.dict -timeout=25 -rss_limit_mb=2048 -max_len=5754 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2650 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/subset
 Bot: clusterfuzz-linux-pre-0186
 Time ran: 1704.800115
 
 Dictionary: 14 entries
 INFO: Seed: 3272961086
 INFO: Loaded 2 modules   (398435 guards): 17127 [0x7f5deb44b7a0, 0x7f5deb45c33c), 381308 [0x3989ba0, 0x3afe190),
-INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new
-INFO:      100 files found in /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/subset
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new
+INFO:      100 files found in /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/subset
 INFO: seed corpus: files: 100 min: 4b max: 569518b total: 1582520b rss: 58Mb
 #32	pulse  cov: 1829 ft: 1660 corp: 31/1417b exec/s: 10 rss: 261Mb
 #64	pulse  cov: 2085 ft: 3078 corp: 63/8100b exec/s: 16 rss: 261Mb
