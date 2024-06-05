@@ -14,11 +14,12 @@
 """Handler for showing the testcase detail page."""
 
 import datetime
-import flask
 import html
+import re
+
+import flask
 import jinja2
 import markupsafe
-import re
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import revisions
