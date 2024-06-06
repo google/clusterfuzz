@@ -8,7 +8,6 @@ antlr4-python3-runtime = "==4.7.2"
 bcrypt = "==4.1.2"
 certifi = "==2024.2.2"
 cffi = "==1.15.1"
-charset-normalizer = "==3.3.2"
 cryptography = "==37.0.4"
 future = "==0.17.1"
 google-api-python-client = "==2.24.0"
@@ -44,6 +43,7 @@ wrapt = "==1.16.0"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
 [dev-packages]
+charset-normalizer = "==3.3.2"
 firebase-admin = "==2.16.0"
 Flask = "==2.2.2"
 google-cloud-firestore = "==1.9.2"
