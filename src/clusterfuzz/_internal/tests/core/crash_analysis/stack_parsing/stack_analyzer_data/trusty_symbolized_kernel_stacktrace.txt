@@ -1,4 +1,4 @@
-+-- Logcat excerpt: Trusted App crash stacktrace --+      
++-- Logcat excerpt: Trusted App crash stacktrace --+
 
 panic notifier - trusty version Project: cloudripper-fuzz-test-debug, Build: 9445778, Built: 10:17:59 Dec 30 2022
 data fault writing to 0x***, PC at 0x***(0x***)
@@ -42,8 +42,8 @@ INFO: Seed: 1041537715
 INFO: Loaded 9 modules   (28673 inline 8-bit counters): 17670 [0x7036f9db30, 0x7036fa2036), 1479 [0x703b7a6690, 0x703b7a6c57), 18 [0x70337752e0, 0x70337752f2), 7048 [0x703ad88de8, 0x703ad8a970), 155 [0x703b7753b8, 0x703b775453), 1528 [0x703b428a68, 0x703b429060), 388 [0x703b7f27d8, 0x703b7f295c), 262 [0x703ac6a048, 0x703ac6a14e), 125 [0x5fb4681030, 0x5fb46810ad), 
 INFO: Loaded 9 PC tables (28673 PCs): 17670 [0x7036fa2038,0x7036fe7098), 1479 [0x703b7a6c58,0x703b7ac8c8), 18 [0x70337752f8,0x7033775418), 7048 [0x703ad8a970,0x703ada61f0), 155 [0x703b775458,0x703b775e08), 1528 [0x703b429060,0x703b42efe0), 388 [0x703b7f2960,0x703b7f41a0), 262 [0x703ac6a150,0x703ac6b1b0), 125 [0x5fb46810b0,0x5fb4681880), 
 INFO: 65536 Extra Counters
-INFO:        0 files found in /data/fuzz/bot/inputs/fuzzer-testcases-disk/temp-134505/new
-INFO:        0 files found in /data/fuzz/bot/inputs/fuzzer-testcases-disk/temp-134505/mutations
+INFO:        0 files found in /data/fuzz/bot/inputs/ft-disk/temp-134505/new
+INFO:        0 files found in /data/fuzz/bot/inputs/ft-disk/temp-134505/mutations
 INFO:       50 files found in /data/fuzz/bot/inputs/data-bundles/trusty_keymaster_fuzzer
 INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
 INFO: seed corpus: files: 50 min: 12b max: 702b total: 8568b rss: 32Mb
