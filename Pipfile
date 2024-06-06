@@ -12,7 +12,7 @@ psutil = "==5.9.4"
 
 [dev-packages]
 Fabric = "==1.14.1"
-grpcio-tools = "==1.48.2"
+grpcio-tools = "==1.49.1"
 gunicorn = "*"
 isort = "*"
 nodeenv = "==1.0.0"
