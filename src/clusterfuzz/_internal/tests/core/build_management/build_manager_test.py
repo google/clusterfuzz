@@ -26,6 +26,10 @@ from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
+# Add this so some badly written code doesn't cause a test failure.
+# TODO(https://github.com/google/clusterfuzz/issues/4016): Fix this.
+from clusterfuzz._internal.bot.tasks.utasks import \
+    fuzz_task  # pylint: disable=unused-import
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
@@ -1639,7 +1643,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/revisions',
         fuzz_target=None,
         trusted=True)
-    self.assertCountEqual(build.fuzz_targets, [])
+    self.assertCountEqual(build.fuzz_targets, ['target1', 'target2', 'target3'])
 
   def test_setup_nonfuzz(self):
     """Tests setting up a build during a non-fuzz task."""
@@ -1668,7 +1672,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/revisions',
         fuzz_target=None,
         trusted=True)
-    self.assertEqual(build.fuzz_targets, [])
+    self.assertEqual(build.fuzz_targets, ['target1', 'target2', 'target3'])
 
   def test_delete(self):
     """Test deleting this build."""
