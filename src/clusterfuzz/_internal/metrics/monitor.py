@@ -108,7 +108,12 @@ class _FlusherThread(threading.Thread):
         if time_series:
           create_time_series(project_path, time_series)
       except Exception:
-        logs.log_error('Failed to flush metrics.')
+        if environment.is_android():
+          # FIXME: This exception is extremely common on Android. We are already
+          # aware of the problem, don't make more noise about it.
+          logs.log_warn('Failed to flush metrics.')
+        else:
+          logs.log_error('Failed to flush metrics.')
 
   def stop(self):
     self.stop_event.set()
