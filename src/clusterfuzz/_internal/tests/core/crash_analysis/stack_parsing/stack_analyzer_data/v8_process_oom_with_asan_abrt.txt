@@ -5,8 +5,8 @@ INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed:727896638
 INFO: Loaded 10 modules   (1011042 inline 8-bit counters): 27425 [0xecbcafa0, 0xecbd1ac1), 3259 [0xef1d9667, 0xef1da322), 45879 [0xed39aac7, 0xed3a5dfe), 69626 [0xedef82f7, 0xedf092f1), 20525 [0xee2c9067, 0xee2ce094), 73045 [0xef062b47, 0xef07489c), 4065 [0xf7efe5e7, 0xf7eff5c8), 2526 [0xf7e68397, 0xf7e68d75), 761637 [0xf7702007, 0xf77bbf2c), 3055 [0x5682a528, 0x5682b117),
 INFO: Loaded 10 PC tables (1011042 PCs): 27425 [0xecbd1ac4,0xecc073cc), 3259 [0xef1da324,0xef1e08fc), 45879 [0xed3a5e00,0xed3ff7b8), 69626 [0xedf092f4,0xedf912c4), 20525 [0xee2ce094,0xee2f61fc), 73045 [0xef07489c,0xef103344), 4065 [0xf7eff5c8,0xf7f074d0), 2526 [0xf7e68d78,0xf7e6dc68), 761637 [0xf77bbf2c,0xf7d8b854), 3055 [0x5682b118,0x56831090),
-INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp-417/new
-INFO:      100 files found in /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp-417/subset
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-417/new
+INFO:      100 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-417/subset
 INFO: seed corpus: files: 100 min: 13b max: 471b total: 14969b rss: 141Mb
 #185 INITED cov: 30926 ft: 87008 corp: 100/14969b exec/s: 15 rss: 274Mb
 #187 NEW    cov: 30926 ft: 87048 corp: 101/15073b lim: 471 exec/s: 15 rss: 274Mb L: 104/471 MS: 1 CrossOver-

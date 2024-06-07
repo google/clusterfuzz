@@ -288,7 +288,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
 
     result = engine_impl.fuzz('/target', options, '/fake', 3600)
     self.assertEqual(1, len(result.crashes))
-    self.assertEqual(fuzz_output.strip('\n'), result.logs.strip('\n'))
+    self.assertEqual(fuzz_output, result.logs)
 
     crash = result.crashes[0]
     self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
@@ -323,11 +323,11 @@ class FuzzTest(fake_fs_unittest.TestCase):
         additional_args=[
             '-arg=1',
             '-timeout=123',
-            '-merge_control_file=/fuzz-inputs/temp-9001/merge-wd/MCF',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
         ],
         artifact_prefix=None,
         merge_timeout=1800.0,
-        tmp_dir='/fuzz-inputs/temp-9001/merge-wd')
+        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
 
     mock_merge_calls[1].assert_called_with(
         mock.ANY, [
@@ -338,11 +338,11 @@ class FuzzTest(fake_fs_unittest.TestCase):
         additional_args=[
             '-arg=1',
             '-timeout=123',
-            '-merge_control_file=/fuzz-inputs/temp-9001/merge-wd/MCF',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
         ],
         artifact_prefix=None,
         merge_timeout=1800.0,
-        tmp_dir='/fuzz-inputs/temp-9001/merge-wd')
+        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
 
     self.assertDictEqual({
         'actual_duration': 2,
