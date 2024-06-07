@@ -17,8 +17,9 @@ import datetime
 import html
 import re
 
-from flask import request
+import flask
 import jinja2
+import markupsafe
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import revisions
@@ -297,7 +298,7 @@ def convert_to_lines(raw_stacktrace, crash_state_lines, crash_type):
   raw_lines = raw_stacktrace.splitlines()
 
   frames = get_stack_frames(crash_state_lines)
-  escaped_frames = [jinja2.escape(f) for f in frames]
+  escaped_frames = [markupsafe.escape(f) for f in frames]
   combined_frames = frames + escaped_frames
 
   # Certain crash types have their own customized frames that are not related to
@@ -628,7 +629,7 @@ class DeprecatedHandler(base_handler.Handler):
 
   def get(self):
     """Serve the redirect to the current test case detail page."""
-    testcase_id = request.args.get('key')
+    testcase_id = flask.request.args.get('key')
     if not testcase_id:
       raise helpers.EarlyExitError('No testcase key provided.', 400)
 
@@ -642,5 +643,5 @@ class RefreshHandler(base_handler.Handler):
   @handler.oauth
   def post(self):
     """Serve the testcase detail JSON."""
-    testcase_id = request.get('testcaseId')
+    testcase_id = flask.request.get('testcaseId')
     return self.render_json(get_testcase_detail_by_id(testcase_id))
