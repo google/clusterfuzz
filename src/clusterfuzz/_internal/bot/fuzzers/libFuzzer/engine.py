@@ -509,7 +509,7 @@ class Engine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
-    merge_tmp_dir = self._create_temp_corpus_dir('merge-wd')
+    merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
     result = runner.merge(
         [output_dir] + input_dirs,
