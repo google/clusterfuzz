@@ -116,6 +116,8 @@ def queue_suffix_for_platform(platform):
 def default_queue_suffix():
   """Get the queue suffix for the current platform."""
   queue_override = environment.get_value('QUEUE_OVERRIDE')
+  logs.log(f'QUEUE_OVERRIDE is [{queue_override}]. '
+           f'Platform is {environment.platform()}')
   if queue_override:
     return queue_suffix_for_platform(queue_override)
 
