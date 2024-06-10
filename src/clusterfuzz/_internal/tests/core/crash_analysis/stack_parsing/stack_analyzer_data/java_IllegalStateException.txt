@@ -3,7 +3,7 @@ Aflplusplus: a252943236b12c080248747bee06c9c5084b871e
 
 Return code: 1
 
-Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_java-example_ca0c2183f04969f980c82599d6a9432269cc0a5a/revisions/ExampleValueProfileFuzzer -timeout=25 -rss_limit_mb=2560 -fork=2 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=5580 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-429/new /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-429/mutations /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/java-example_ExampleValueProfileFuzzer
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_java-example_ca0c2183f04969f980c82599d6a9432269cc0a5a/revisions/ExampleValueProfileFuzzer -timeout=25 -rss_limit_mb=2560 -fork=2 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=5580 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp-429/new /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp-429/mutations /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/java-example_ExampleValueProfileFuzzer
 Bot: oss-fuzz-linux-zone4-worker-java-example-dp56
 Time ran: 285.50702118873596
 
