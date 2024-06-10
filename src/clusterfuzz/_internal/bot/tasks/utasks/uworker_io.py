@@ -19,8 +19,9 @@ from typing import TypeVar
 import uuid
 
 from google.cloud import ndb
-from google.cloud.datastore_v1.proto import entity_pb2
+from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
+from  google.protobuf import any_pb2
 import google.protobuf.message
 
 from clusterfuzz._internal.base import task_utils
@@ -170,13 +171,25 @@ def download_and_deserialize_uworker_output(
 
 def entity_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
   """Helper function to convert entity to protobuf format."""
-  return model._entity_to_protobuf(entity)  # pylint: disable=protected-access
+  #_entity_to_protobuf returns google.cloud.datastore_v1.types.Entity
+  ndb_proto = model._entity_to_protobuf(entity)  # pylint: disable=protected-access
+  return entity_to_any_message(ndb_proto)
 
+def db_entity_to_entity_message(entity):
+  any_entity_message = entity_to_any_message(entity)
+  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)  # pylint: disable=protected-access
+  return entity
+
+
+def entity_to_any_message(entity_proto):
+  any_entity_message = any_pb2.Any()
+  any_entity_message.Pack(entity_proto._pb)
+  return any_entity_message
 
 T = TypeVar('T', bound=ndb.Model)
 
 
-def entity_from_protobuf(entity_proto: entity_pb2.Entity,
+def entity_from_protobuf(entity_proto: any_pb2.Any,
                          model_type: Type[T]) -> T:
   """Converts `entity_proto` to the `ndb.Model` of type `model_type` it encodes.
 
@@ -184,7 +197,9 @@ def entity_from_protobuf(entity_proto: entity_pb2.Entity,
     AssertionError: if `entity_proto` does not encode a model of type
     `model_type`
   """
-  entity = model._entity_from_protobuf(entity_proto)  # pylint: disable=protected-access
+  entity = entity_pb2.Entity()
+  entity_proto.Unpack(entity._pb)
+  entity = model._entity_from_protobuf(entity)  # pylint: disable=protected-access
   assert isinstance(entity, model_type)
   return entity
 
