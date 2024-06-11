@@ -29,9 +29,9 @@ try:
 except (ImportError, RuntimeError):
   monitoring_v3 = None
 
+from google.api import monitored_resource_pb2
 from google.api_core import exceptions
 from google.api_core import retry
-from google.api import monitored_resource_pb2
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -82,7 +82,7 @@ class _FlusherThread(threading.Thread):
   def run(self):
     """Run the flusher thread."""
     create_time_series = _retry_wrap(_monitoring_v3_client.create_time_series)
-    project_path = _monitoring_v3_client.project_path(
+    project_path = _monitoring_v3_client.project_path(  # pylint: disable=no-member
         utils.get_application_id())
 
     while True:
@@ -94,7 +94,7 @@ class _FlusherThread(threading.Thread):
         end_time = time.time()
         for metric, labels, start_time, value in _metrics_store.iter_values():
           if (metric.metric_kind ==
-              monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE):
+              monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE):  # pylint: disable=no-member
             start_time = end_time
 
           series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
@@ -193,7 +193,7 @@ class StringField(_Field):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.LabelDescriptor.ValueType.STRING
+    return monitoring_v3.enums.LabelDescriptor.ValueType.STRING  # pylint: disable=no-member
 
 
 class BooleanField(_Field):
@@ -201,7 +201,7 @@ class BooleanField(_Field):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.LabelDescriptor.ValueType.BOOL
+    return monitoring_v3.enums.LabelDescriptor.ValueType.BOOL  # pylint: disable=no-member
 
 
 class IntegerField(_Field):
@@ -209,7 +209,7 @@ class IntegerField(_Field):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.LabelDescriptor.ValueType.INT64
+    return monitoring_v3.enums.LabelDescriptor.ValueType.INT64  # pylint: disable=no-member
 
 
 class Metric:
@@ -294,11 +294,11 @@ class _CounterMetric(Metric):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64
+    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64  # pylint: disable=no-member
 
   @property
   def metric_kind(self):
-    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE
+    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
 
   @property
   def default_value(self):
@@ -320,11 +320,11 @@ class _GaugeMetric(Metric):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64
+    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64  # pylint: disable=no-member
 
   @property
   def metric_kind(self):
-    return monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE
+    return monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
 
   @property
   def default_value(self):
@@ -435,11 +435,11 @@ class _CumulativeDistributionMetric(Metric):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.MetricDescriptor.ValueType.DISTRIBUTION
+    return monitoring_v3.enums.MetricDescriptor.ValueType.DISTRIBUTION  # pylint: disable=no-member
 
   @property
   def metric_kind(self):
-    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE
+    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
 
   @property
   def default_value(self):
