@@ -32,7 +32,7 @@ BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
 BUILTIN_FUZZERS = ['afl', 'libFuzzer']
 
 # Time to look back to find a corpus backup that is marked public.
-CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 30
+CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 90
 
 # Marker to indicate end of crash stacktrace. Anything after that is excluded
 # from being stored as part of crash stacktrace (e.g. merge content, etc).
