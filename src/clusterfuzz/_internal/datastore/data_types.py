@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+y# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
 BUILTIN_FUZZERS = ['afl', 'libFuzzer']
 
 # Time to look back to find a corpus backup that is marked public.
-CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 30
+CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 90
 
 # Marker to indicate end of crash stacktrace. Anything after that is excluded
 # from being stored as part of crash stacktrace (e.g. merge content, etc).
