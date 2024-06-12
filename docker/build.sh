@@ -19,6 +19,7 @@ IMAGES=(
   gcr.io/clusterfuzz-images/chromium/base
   gcr.io/clusterfuzz-images/chromium/builder
   gcr.io/clusterfuzz-images/chromium/high-end
+  gcr.io/clusterfuzz-images/chromium/tester
   gcr.io/clusterfuzz-images/chromium/tests-syncer
   gcr.io/clusterfuzz-images/oss-fuzz/base
   gcr.io/clusterfuzz-images/oss-fuzz/host
