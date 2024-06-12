@@ -1,10 +1,10 @@
-Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-440717/boringssl_read_pem_fuzzer -max_len=512 -rss_limit_mb=2048 -timeout=25 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2350 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_read_pem_fuzzer
+Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-440717/boringssl_read_pem_fuzzer -max_len=512 -rss_limit_mb=2048 -timeout=25 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2350 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_read_pem_fuzzer
 Bot: clusterfuzz-linux-pre-0288
 Time ran: 2351.079993
 
 INFO: Seed: 2680343045
 INFO: Loaded 0 modules (0 guards):
-Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new
+Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new
 Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_read_pem_fuzzer
 #0  READ units: 297
 #297  INITED cov: 323 bits: 417 indir: 23 corp: 141/14618b exec/s: 0 rss: 67Mb

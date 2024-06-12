@@ -3,7 +3,7 @@ python  /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libFuzzer/launche
 [Crash Revision] r406546
 [Environment] MSAN_OPTIONS = print_stats=1:symbolize=1:coverage=0
 
-Command: [/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-msan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-406546/skia_pathop_fuzzer, -max_len=512, -timeout=300, -rss_limit_mb=3000, -max_total_time=3250, -print_final_stats=1, /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new, /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer]
+Command: [/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-msan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-406546/skia_pathop_fuzzer, -max_len=512, -timeout=300, -rss_limit_mb=3000, -max_total_time=3250, -print_final_stats=1, /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new, /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer]
 Bot: clusterfuzz-linux-pre-0506
 Time ran: 18.475050
 
