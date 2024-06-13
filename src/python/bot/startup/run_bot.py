@@ -61,7 +61,7 @@ class _Monitor:
     self.start_time = self.time_module.time()
 
   def __exit__(self, exc_type, value, trackback):
-    if not environment.get_value('LOG_TASK_TIMES'):
+    if not environment.get_value('LOG_TASK_TIMES', True):
       return
     duration = self.time_module.time() - self.start_time
     monitoring_metrics.TASK_TOTAL_RUN_TIME.increment_by(
@@ -243,6 +243,7 @@ def main():
 
 if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')
+  environment.set_value('LOG_TASK_TIMES', True)
 
   try:
     with ndb_init.context():
@@ -255,6 +256,6 @@ if __name__ == '__main__':
     exit_code = 1
 
   monitor.stop()
-
+p
   # Prevent python GIL deadlocks on shutdown. See https://crbug.com/744680.
   os._exit(exit_code)  # pylint: disable=protected-access
