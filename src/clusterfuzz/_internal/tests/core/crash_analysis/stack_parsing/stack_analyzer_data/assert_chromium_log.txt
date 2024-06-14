@@ -1,10 +1,10 @@
-Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-428862/base_json_correctness_fuzzer', '-max_len=9683', '-timeout=3595', '-rss_limit_mb=1024', '-max_total_time=2350', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_correctness_fuzzer']
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-428862/base_json_correctness_fuzzer', '-max_len=9683', '-timeout=3595', '-rss_limit_mb=1024', '-max_total_time=2350', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_correctness_fuzzer']
 Bot: clusterfuzz-linux-pre-0381
 Time ran: 0.165543
 
 INFO: Seed: 2687657031
 INFO: Loaded 0 modules (0 guards):
-Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/ft-disk/temp/new
+Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp/new
 Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_correctness_fuzzer
 #0	READ units: 413
 #413	INITED cov: 987 bits: 2488 indir: 33 corp: 317/58Kb exec/s: 0 rss: 67Mb
