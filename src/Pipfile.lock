@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "02ba77423a6dad814678c2c9dce8c480415ec456047b7e627f98fb4256eefd9e"
+            "sha256": "0e5e3b1d484cf75e7137882874239d1ab4bf300ee43308029fdea03477c9773f"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -303,11 +303,11 @@
         },
         "google-cloud-ndb": {
             "hashes": [
-                "sha256:3d6c8866681dc280ad9f90a6f5b556d324e4b29173d0b63ddf6b8e19655fec1a",
-                "sha256:a6a2f6c58bd14febb92c0e569ca6a4e1d14c4a70935c28f3681e33c67402428f"
+                "sha256:39f5a81afa426b3acb81bcc696c84253bba81908cef40dd9fb730b6708d0ffaa",
+                "sha256:e849b48c984f31616e99e1fcc797d1deb1d883a6f38f58f77768b814fb84b57e"
             ],
             "index": "pypi",
-            "version": "==2.3.1"
+            "version": "==2.2.1"
         },
         "google-cloud-profiler": {
             "hashes": [
