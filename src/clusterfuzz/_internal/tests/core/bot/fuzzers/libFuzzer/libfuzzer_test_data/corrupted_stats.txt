@@ -1,11 +1,11 @@
-Command: 'c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-599761\mediasource_MP3_pipeline_integration_fuzzer.exe' -timeout=25 -rss_limit_mb=2048 '-artifact_prefix=c:\clusterfuzz\bot\inputs\fuzzer-testcases/' -max_total_time=2650 -print_final_stats=1 'c:\clusterfuzz\bot\inputs\ft-disk\temp\new' 'c:\clusterfuzz\bot\inputs\data-bundles\global\mediasource_MP3_pipeline_integration_fuzzer'
+Command: 'c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-599761\mediasource_MP3_pipeline_integration_fuzzer.exe' -timeout=25 -rss_limit_mb=2048 '-artifact_prefix=c:\clusterfuzz\bot\inputs\fuzzer-testcases/' -max_total_time=2650 -print_final_stats=1 'c:\clusterfuzz\bot\inputs\disk\temp\new' 'c:\clusterfuzz\bot\inputs\data-bundles\global\mediasource_MP3_pipeline_integration_fuzzer'
 Bot: clusterfuzz-windows-zone2-pre-w93p
 Time ran: 29.046000
 
 INFO: Seed: 1776138335
 INFO: Loaded 1 modules   (685270 inline 8-bit counters): 685270 [00007FF72FB8CE48, 00007FF72FC3431E),
 INFO: Loaded 1 PC tables (685270 PCs): 685270 [00007FF72ED0F248,00007FF72F783FA8),
-INFO:        0 files found in c:\clusterfuzz\bot\inputs\ft-disk\temp\new
+INFO:        0 files found in c:\clusterfuzz\bot\inputs\disk\temp\new
 INFO:     4060 files found in c:\clusterfuzz\bot\inputs\data-bundles\global\mediasource_MP3_pipeline_integration_fuzzer
 INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 1048576 bytes
 INFO: seed corpus: files: 4060 min: 1b max: 1048576b total: 205545310b rss: 93Mb

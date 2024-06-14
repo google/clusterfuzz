@@ -1,4 +1,4 @@
-disk/temp-1028899/mutations /usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/inputs/ft-disk/temp-1028899/subset
+disk/temp-1028899/mutations /usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/inputs/disk/temp-1028899/subset
 Bot: http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/android-mspector-linuxworkstation.kir.corp.google.com-localhost#46191;lkl/android-mspector-linuxworkstation.kir.corp.google.com-localhost:46191;
 Time ran: 453.0651717185974
 
