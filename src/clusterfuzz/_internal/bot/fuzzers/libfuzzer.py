@@ -29,7 +29,6 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
-from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
@@ -61,11 +60,6 @@ MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                         r'(.*(crash|oom|timeout|leak)-.*)')
-
-# List of all strategies that affect LD_PRELOAD.
-MUTATOR_STRATEGIES = [
-    strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
-]
 
 # pylint: disable=no-member
 
@@ -1332,50 +1326,6 @@ def is_linux_asan():
           environment.get_value('MEMORY_TOOL') != 'ASAN')
 
 
-def use_peach_mutator(extra_env, grammar):
-  """Decide whether or not to use peach mutator, and set up all of the
-  environment variables necessary to do so."""
-  # TODO(mpherman): Include architecture info in job definition and exclude
-  # i386.
-  if environment.is_lib() or not is_linux_asan():
-    return False
-
-  if not grammar:
-    return False
-
-  pit_path = pits.get_path(grammar)
-
-  if not pit_path:
-    return False
-
-  # Set title and pit environment variables
-  extra_env['PIT_FILENAME'] = pit_path
-  extra_env['PIT_TITLE'] = grammar
-
-  # Extract zip of peach mutator code.
-  peach_dir = os.path.join(environment.get_platform_resources_directory(),
-                           'peach')
-  unzipped = os.path.join(peach_dir, 'mutator')
-  source = os.path.join(peach_dir, 'peach_mutator.zip')
-
-  with archive.open(source) as reader:
-    reader.extract_all(unzipped, trusted=True)
-
-  # Set LD_PRELOAD.
-  peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')
-  extra_env['LD_PRELOAD'] = peach_path
-
-  # Set Python path.
-  new_path = [
-      os.path.join(unzipped, 'peach_mutator', 'src'),
-      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'),
-  ] + sys.path
-
-  extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
-
-  return True
-
-
 def is_sha1_hash(possible_hash):
   """Returns True if |possible_hash| looks like a valid sha1 hash."""
   if len(possible_hash) != 40:
@@ -1398,10 +1348,6 @@ def move_mergeable_units(merge_directory, corpus_directory):
       continue
     dest_path = os.path.join(corpus_directory, unit_name)
     shell.move(unit_path, dest_path)
-
-
-def has_existing_mutator_strategy(fuzzing_strategy):
-  return any(strategy in fuzzing_strategy for strategy in MUTATOR_STRATEGIES)
 
 
 def pick_strategies(strategy_pool,
@@ -1451,11 +1397,6 @@ def pick_strategies(strategy_pool,
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
-  if (not has_existing_mutator_strategy(fuzzing_strategies) and
-      strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-      use_peach_mutator(extra_env, grammar)):
-    fuzzing_strategies.append(
-        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
   if (environment.platform() == 'LINUX' and utils.is_oss_fuzz() and
       strategy_pool.do_strategy(strategy.USE_EXTRA_SANITIZERS_STRATEGY)):

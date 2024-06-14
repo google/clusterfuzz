@@ -36,8 +36,6 @@ RANDOM_MAX_LENGTH_STRATEGY = Strategy(
     name='random_max_len', probability=0.15, manually_enable=False)
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
-PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
-    name='peach_grammar_mutation', probability=0.90, manually_enable=True)
 USE_EXTRA_SANITIZERS_STRATEGY = Strategy(
     name='extra_sanitizers', probability=0.10, manually_enable=False)
 
@@ -49,7 +47,6 @@ LIBFUZZER_STRATEGY_LIST = [
     VALUE_PROFILE_STRATEGY,
     FORK_STRATEGY,
     CORPUS_SUBSET_STRATEGY,
-    PEACH_GRAMMAR_MUTATION_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,
 ]
 
@@ -67,13 +64,11 @@ AFL_STRATEGY_LIST = [
 LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE = [
     CORPUS_SUBSET_STRATEGY,
     FORK_STRATEGY,
-    PEACH_GRAMMAR_MUTATION_STRATEGY,
 ]
 
 LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
     'corpus_subset': int,
     'fork': int,
-    'peach_grammar_mutation': str
 }
 
 LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
