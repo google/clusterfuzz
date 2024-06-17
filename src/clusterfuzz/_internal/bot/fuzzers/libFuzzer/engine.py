@@ -109,7 +109,6 @@ class Engine(engine.Engine):
     """
     del build_dir
     arguments = fuzzer.get_arguments(target_path)
-    grammar = fuzzer.get_grammar(target_path)
     extra_env = fuzzer.get_extra_env(target_path)
 
     if self.do_strategies:
@@ -121,7 +120,7 @@ class Engine(engine.Engine):
       strategy_pool = strategy_selection.StrategyPool()
 
     strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
-                                              corpus_dir, arguments, grammar)
+                                              corpus_dir, arguments)
     if (strategy.USE_EXTRA_SANITIZERS_STRATEGY.name in
         strategy_info.fuzzing_strategies):
       environment.set_value('USE_EXTRA_SANITIZERS', True)
