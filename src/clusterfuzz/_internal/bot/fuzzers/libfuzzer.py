@@ -21,7 +21,6 @@ import random
 import re
 import shutil
 import string
-import sys
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -33,7 +32,6 @@ from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.platforms.fuchsia import undercoat
-from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import minijail
 from clusterfuzz._internal.system import new_process
@@ -1350,11 +1348,8 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def pick_strategies(strategy_pool,
-                    fuzzer_path,
-                    corpus_directory,
-                    existing_arguments,
-                    grammar=None):
+def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
+                    existing_arguments):
   """Pick strategies."""
   fuzzing_strategies = []
   arguments = fuzzer_options.FuzzerArguments({})
