@@ -381,7 +381,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_corpus_subset': 0,
         'strategy_extra_sanitizers': 0,
         'strategy_fork': 0,
-        'strategy_peach_grammar_mutation': '',
         'strategy_random_max_len': 0,
         'strategy_selection_method': 'default',
         'strategy_value_profile': 0,

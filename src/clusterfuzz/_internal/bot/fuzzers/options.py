@@ -173,10 +173,6 @@ class FuzzerOptions:
     """Return a list of HWSAN_OPTIONS overrides."""
     return self._get_option_section('hwasan')
 
-  def get_grammar_options(self):
-    """Return a list og grammar options"""
-    return self._get_option_section('grammar')
-
 
 def get_fuzz_target_options(fuzz_target_path):
   """Return a FuzzerOptions for the given target, or None if it does not
