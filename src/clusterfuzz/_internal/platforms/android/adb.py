@@ -111,8 +111,7 @@ def create_directory_if_needed(device_directory):
 def directory_exists(directory_path):
   """Return whether a directory exists or not."""
   expected = '0'
-  result = run_shell_command(
-      '\'test -d "%s"; echo $?\'' % directory_path)
+  result = run_shell_command('\'test -d "%s"; echo $?\'' % directory_path)
   return result == expected
 
 
@@ -203,8 +202,7 @@ def factory_reset():
 def file_exists(file_path):
   """Return whether a file exists or not."""
   expected = '0'
-  result = run_shell_command(
-      '\'test -f "%s"; echo $?\'' % file_path)
+  result = run_shell_command('\'test -f "%s"; echo $?\'' % file_path)
   return result == expected
 
 
