@@ -13,6 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DEPLOYMENT_ZIP="linux3.zip"
+if [[$CLUSTERFUZZ_STAGE == "candidate" ]]; then
+    DEPLOYMENT_ZIP="linux3-candidate.zip"
+fi
+export DEPLOYMENT_ZIP
+export RUN_CMD="python${PYTHON_INTERPRETER_VERSION} $PYTHON_RUN_CMD"
+
+#Assert pipenv install --system works
+mv /usr/local/bin/pip${PYTHON_INTERPRETER_VERSION} /usr/local/bin/pip && \
+    pipenv install --deploy --system
+
 source /data/setup_common.sh
 source /data/setup_clusterfuzz.sh
 
