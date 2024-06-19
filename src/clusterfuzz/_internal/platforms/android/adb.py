@@ -82,14 +82,13 @@ def copy_local_directory_to_remote(local_directory, remote_directory):
   """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
   if os.listdir(local_directory):
-    run_command(['push', '%s/.' % local_directory, remote_directory], True,
-                True)
+    run_command(['push', '%s/.' % local_directory, remote_directory], True)
 
 
 def copy_local_file_to_remote(local_file_path, remote_file_path):
   """Copies local file to a device file."""
   create_directory_if_needed(os.path.dirname(remote_file_path))
-  run_command(['push', local_file_path, remote_file_path], True, True)
+  run_command(['push', local_file_path, remote_file_path], True)
 
 
 def copy_remote_directory_to_local(remote_directory, local_directory):
@@ -112,13 +111,11 @@ def create_directory_if_needed(device_directory):
 def directory_exists(directory_path):
   """Return whether a directory exists or not."""
   expected = '0'
-  result = run_shell_command(
-      '\'test -d "%s"; echo $?\'' % directory_path, log_error=False)
+  result = run_shell_command('\'test -d "%s"; echo $?\'' % directory_path)
   return result == expected
 
 
-def execute_command(cmd, timeout=None, log_error=True,
-                    on_cuttlefish_host=False):
+def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
   """Spawns a subprocess to run the given shell command."""
   if on_cuttlefish_host and environment.is_android_cuttlefish():
     # Auto accept key fingerprint for ssh command.
@@ -147,13 +144,11 @@ def execute_command(cmd, timeout=None, log_error=True,
       output_dest.close()
       if output:
         so.append(output)
-    except OSError as _:
+    except OSError:
       logs.log_warn('Failed to retrieve stdout from: %s' % cmd)
     if pipe.returncode:
-      if log_error:
-        logs.log_warn(
-            '%s returned %d error code.' % (cmd, pipe.returncode),
-            output=output)
+      logs.log_warn(
+          '%s returned %d error code.' % (cmd, pipe.returncode), output=output)
 
   thread = threading.Thread(target=run)
   thread.start()
@@ -207,8 +202,7 @@ def factory_reset():
 def file_exists(file_path):
   """Return whether a file exists or not."""
   expected = '0'
-  result = run_shell_command(
-      '\'test -f "%s"; echo $?\'' % file_path, log_error=False)
+  result = run_shell_command('\'test -f "%s"; echo $?\'' % file_path)
   return result == expected
 
 
@@ -673,11 +667,7 @@ def run_as_root():
   wait_for_device()
 
 
-def run_command(cmd,
-                log_output=False,
-                log_error=True,
-                timeout=None,
-                recover=True):
+def run_command(cmd, log_output=False, timeout=None, recover=True):
   """Run a command in adb shell."""
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
@@ -686,7 +676,7 @@ def run_command(cmd,
   if not timeout:
     timeout = ADB_TIMEOUT
 
-  output = execute_command(get_adb_command_line(cmd), timeout, log_error)
+  output = execute_command(get_adb_command_line(cmd), timeout)
   if not recover:
     if log_output:
       logs.log('Output: (%s)' % output)
@@ -702,7 +692,7 @@ def run_command(cmd,
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.
       # Continue execution and validate output next for |None| condition.
-      output = execute_command(get_adb_command_line(cmd), timeout, log_error)
+      output = execute_command(get_adb_command_line(cmd), timeout)
     else:
       output = DEVICE_HANG_STRING
 
@@ -714,16 +704,13 @@ def run_command(cmd,
 
     # Wait until we've booted and try the command again.
     wait_until_fully_booted()
-    output = execute_command(get_adb_command_line(cmd), timeout, log_error)
+    output = execute_command(get_adb_command_line(cmd), timeout)
 
-  if log_output:
-    logs.log('Output: (%s)' % output)
   return output
 
 
 def run_shell_command(cmd,
                       log_output=False,
-                      log_error=True,
                       root=False,
                       timeout=None,
                       recover=True):
@@ -748,14 +735,10 @@ def run_shell_command(cmd,
     full_cmd = 'shell {}'.format(cmd)
 
   return run_command(
-      full_cmd,
-      log_output=log_output,
-      log_error=log_error,
-      timeout=timeout,
-      recover=recover)
+      full_cmd, log_output=log_output, timeout=timeout, recover=recover)
 
 
-def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
+def run_fastboot_command(cmd, log_output=True, timeout=None):
   """Run a command in fastboot shell."""
   if environment.is_android_cuttlefish():
     # We can't run fastboot commands on Android cuttlefish instances.
@@ -768,7 +751,7 @@ def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   if not timeout:
     timeout = ADB_TIMEOUT
 
-  output = execute_command(get_fastboot_command_line(cmd), timeout, log_error)
+  output = execute_command(get_fastboot_command_line(cmd), timeout)
   return output
 
 
@@ -820,17 +803,17 @@ def wait_until_fully_booted():
 
   def boot_completed():
     expected = '1'
-    result = run_shell_command('getprop sys.boot_completed', log_error=False)
+    result = run_shell_command('getprop sys.boot_completed')
     return result == expected
 
   def drive_ready():
     expected = '0'
-    result = run_shell_command('\'test -d "/"; echo $?\'', log_error=False)
+    result = run_shell_command('\'test -d "/"; echo $?\'')
     return result == expected
 
   def package_manager_ready():
     expected = 'package:/system/framework/framework-res.apk'
-    result = run_shell_command('pm path android', log_error=False)
+    result = run_shell_command('pm path android')
     if not result:
       return False
 
