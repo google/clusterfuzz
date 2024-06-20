@@ -97,9 +97,6 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-<<<<<<< HEAD
-    target_zip_name = platform_name + '-3.zip'
-=======
     if python3:
       if stage=="prod":
         target_zip_name = platform_name + '-3.zip'
@@ -107,7 +104,6 @@ def package(revision,
         target_zip_name = platform_name + '-3-candidate.zip'
     else:
       target_zip_name = platform_name + '.zip'
->>>>>>> 5f3d71a3 (Editing package command to take stage as an argument)
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)

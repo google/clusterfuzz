@@ -92,7 +92,8 @@ def _deploy_app_prod(project,
                      yaml_paths,
                      package_zip_paths,
                      deploy_appengine=True,
-                     test_deployment=False):
+                     test_deployment=False,
+                     stage='prod'):
   """Deploy app in production."""
   if deploy_appengine:
     services = _get_services(yaml_paths)
@@ -116,7 +117,8 @@ def _deploy_app_prod(project,
     _deploy_manifest(
         deployment_bucket,
         constants.PACKAGE_TARGET_MANIFEST_PATH,
-        test_deployment=test_deployment)
+        test_deployment=test_deployment,
+        stage=stage)
 
 
 def _deploy_app_staging(project, yaml_paths):
@@ -227,8 +229,16 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
                                                 os.path.basename(zip_path)))
 
 
-def _deploy_manifest(bucket_name, manifest_path, test_deployment=False):
+def _deploy_manifest(bucket_name, manifest_path, test_deployment=False, stage='prod'):
   """Deploy source manifest to GCS."""
+  if sys.version_info.major == 3:
+    if stage=='prod':
+      manifest_suffix = '.3'
+    else:
+      manifest_suffix = '.3-candidate'
+  else:
+    manifest_suffix = ''
+
   if test_deployment:
     common.execute(f'gsutil cp {manifest_path} '
                    f'gs://{bucket_name}/test-deployment/'
@@ -390,7 +400,9 @@ def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
                             deploy_k8s=True,
-                            test_deployment=False):
+                            python3=True,
+                            test_deployment=False,
+                            stage='prod'):
   """Helper for production deployment."""
   config = local_config.Config()
   deployment_bucket = config.get('project.deployment.bucket')
@@ -418,7 +430,8 @@ def _prod_deployment_helper(config_dir,
       yaml_paths,
       package_zip_paths,
       deploy_appengine=deploy_appengine,
-      test_deployment=test_deployment)
+      test_deployment=test_deployment,
+      stage=stage)
 
   if deploy_appengine:
     common.execute(
@@ -525,11 +538,17 @@ def execute(args):
     deploy_k8s = False
     deploy_zips = True
 
+  stage = args.stage
+  if args.stage == 'candidate':
+    stage='candidate'
+
+  is_python3 = sys.version_info.major == 3
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
-          package.package(revision, platform_name=platform_name))
+          package.package(
+              revision, platform_name=platform_name, python3=is_python3, stage=stage))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -553,7 +572,9 @@ def execute(args):
         package_zip_paths,
         deploy_appengine,
         deploy_k8s,
-        test_deployment=test_deployment)
+        python3=is_python3,
+        test_deployment=test_deployment,
+        stage=stage)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
