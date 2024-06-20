@@ -34,18 +34,6 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
-SYZKALLER_TEMPLATE = """MAX_FUZZ_THREADS = 1
-MAX_TESTCASES = 1
-FUZZ_TEST_TIMEOUT = 10800
-TEST_TIMEOUT = 120
-WARMUP_TIMEOUT = 120
-BAD_BUILD_CHECK = False
-THREAD_ALIVE_CHECK_INTERVAL = 1
-REPORT_OOMS_AND_HANGS = True
-ENABLE_GESTURES = False
-THREAD_DELAY = 30.0
-"""
-
 AFL_TEMPLATE = """MAX_FUZZ_THREADS = 1
 MAX_TESTCASES = 2
 FUZZ_TEST_TIMEOUT = 8400
@@ -140,7 +128,6 @@ TEMPLATES = {
     'honggfuzz': HONGGFUZZ_TEMPLATE,
     'googlefuzztest': GOOGLEFUZZTEST_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
-    'syzkaller': SYZKALLER_TEMPLATE,
     'prune': PRUNE_TEMPLATE,
 }
 
@@ -278,16 +265,6 @@ class HonggfuzzDefaults(BaseBuiltinFuzzerDefaults):
     self.key_id = 1339
 
 
-class SyzkallerDefaults(BaseBuiltinFuzzerDefaults):
-  """Default values for syzkaller."""
-
-  def __init__(self):
-    super().__init__()
-    # Override empty values from parent.
-    self.name = 'syzkaller'
-    self.key_id = 1340
-
-
 class GoogleFuzzTestDefaults(BaseBuiltinFuzzerDefaults):
   """Default values for googlefuzztest."""
 
@@ -326,7 +303,6 @@ def setup_fuzzers(non_dry_run):
       LibFuzzerDefaults(),
       HonggfuzzDefaults(),
       GoogleFuzzTestDefaults(),
-      SyzkallerDefaults(),
       CentipedeDefaults(),
   ]:
     fuzzer = data_types.Fuzzer.query(
