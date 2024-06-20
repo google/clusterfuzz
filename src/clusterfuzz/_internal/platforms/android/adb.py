@@ -405,7 +405,7 @@ def reboot():
   run_command('reboot')
 
 
-def start_cuttlefish_device(use_kernel=False):
+def start_cuttlefish_device():
   """Start the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
@@ -415,13 +415,16 @@ def start_cuttlefish_device(use_kernel=False):
                                            DEFAULT_DEVICE_MEMORY_MB)
   # @TODO(https://github.com/google/clusterfuzz/issues/3777): Enable sandboxing
   launch_cvd_command_line = (
-      f'{launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
-      '--report_anonymous_usage_stats=Y --enable_sandbox=false --resume=false')
-  if use_kernel:
-    kernel_path = os.path.join(cvd_dir, 'bzImage')
-    initramfs_path = os.path.join(cvd_dir, 'initramfs.img')
-    launch_cvd_command_line += (
-        f' --kernel_path={kernel_path} --initramfs_path={initramfs_path}')
+      f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
+      '-report_anonymous_usage_stats Y')
+  execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
+
+
+def stop_cuttlefish_device():
+  """Stops the cuttlefish device."""
+  cvd_dir = environment.get_value('CVD_DIR')
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
 
   execute_command(
       launch_cvd_command_line,

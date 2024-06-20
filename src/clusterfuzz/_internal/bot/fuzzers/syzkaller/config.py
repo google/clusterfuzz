@@ -26,8 +26,7 @@ def generate(serial,
              reproduce=True,
              syzhub_address=None,
              syzhub_client=None,
-             syzhub_key=None,
-             on_cuttlefish=False):
+             syzhub_key=None):
   """Generates syzkaller config file.
 
   Args:
@@ -59,11 +58,6 @@ def generate(serial,
   data['type'] = 'adb'
   data['procs'] = 1
   data['cover'] = kcov
-
-  if on_cuttlefish:
-    data['target'] = 'linux/amd64'
-    data['disable_syscalls'] = ['openat$vhost_vsock']
-    data['sandbox'] = 'none'
 
   if syzhub_address and syzhub_client and syzhub_key:
     data['hub_addr'] = syzhub_address

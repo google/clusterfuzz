@@ -1128,11 +1128,6 @@ def is_android_emulator():
   return 'ANDROID_EMULATOR' in get_platform_group()
 
 
-def is_android_kernel(plt=None):
-  """Return True if we are on android kernel platform groups."""
-  return 'ANDROID_KERNEL' in (plt or get_platform_group())
-
-
 def is_android_real_device():
   """Return True if we are on a real android device."""
   return base_platform(platform()) == 'ANDROID'

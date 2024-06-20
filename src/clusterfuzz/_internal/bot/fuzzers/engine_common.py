@@ -273,7 +273,7 @@ def find_fuzzer_path(build_directory, fuzzer_name):
     # Fuchsia targets are not on disk.
     return fuzzer_name
 
-  if environment.is_android_kernel():
+  if environment.platform() == 'ANDROID_KERNEL':
     return os.path.join(build_directory, 'syzkaller', 'bin', 'syz-manager')
 
   # TODO(ochang): This is necessary for legacy testcases, which include the
