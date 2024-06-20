@@ -131,8 +131,7 @@ class Engine(engine.Engine):
     if os.path.isfile(source_file):
       shutil.copy(source_file, destination_file)
 
-  def fuzz(self, target_path, options, unused_reproducers_dir=None,
-           max_time=0) -> engine.FuzzResult:
+  def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
     """Run a fuzz session.
 
     Args:
