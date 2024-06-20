@@ -867,7 +867,7 @@ def minimize_gestures(test_runner, testcase):
         deadline=test_runner.deadline,
         cleanup_function=process_handler.cleanup_stale_processes,
         single_thread_cleanup_interval=test_runner.cleanup_interval,
-        progress_report_function=functools.partial(logs.log))
+        progress_report_function=functools.partial(logs.info))
     gestures = gesture_minimizer.minimize(gestures)
 
   logs.info(f'Minimized gestures: {str(gestures)}')
@@ -905,7 +905,7 @@ def minimize_file_list(test_runner, file_list, input_directory, main_file):
       deadline=test_runner.deadline,
       cleanup_function=process_handler.cleanup_stale_processes,
       single_thread_cleanup_interval=test_runner.cleanup_interval,
-      progress_report_function=functools.partial(logs.log))
+      progress_report_function=functools.partial(logs.info))
   file_list = file_list_minimizer.minimize(file_list)
 
   if fixed_testcase_file_path not in file_list:
@@ -955,7 +955,7 @@ def minimize_arguments(test_runner, app_arguments):
       deadline=test_runner.deadline,
       cleanup_function=process_handler.cleanup_stale_processes,
       single_thread_cleanup_interval=test_runner.cleanup_interval,
-      progress_report_function=functools.partial(logs.log))
+      progress_report_function=functools.partial(logs.info))
   reduced_args = argument_minimizer.minimize(app_arguments.split())
   reduced_arg_string = test_runner.get_argument_string(reduced_args)
 
@@ -1283,7 +1283,7 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
       delete_temp_files=delete_temp_files,
       tokenizer=tokenize,
       token_combiner=combine_tokens,
-      progress_report_function=functools.partial(logs.log))
+      progress_report_function=functools.partial(logs.info))
   return current_minimizer.minimize(file_path)
 
 
@@ -1309,7 +1309,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
       delete_temp_files=delete_temp_files,
       tokenizer=tokenizer.tokenize,
       token_combiner=tokenizer.combine,
-      progress_report_function=functools.partial(logs.log))
+      progress_report_function=functools.partial(logs.info))
 
   # Some tokens can't be removed until other have, so do 2 passes.
   try:
@@ -1678,7 +1678,7 @@ def do_line_minimization(test_function, get_temp_file, data, deadline, threads,
       single_thread_cleanup_interval=cleanup_interval,
       get_temp_file=get_temp_file,
       delete_temp_files=delete_temp_files,
-      progress_report_function=functools.partial(logs.log))
+      progress_report_function=functools.partial(logs.info))
   return current_minimizer.minimize(data)
 
 
@@ -1693,7 +1693,7 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       single_thread_cleanup_interval=cleanup_interval,
       get_temp_file=get_temp_file,
       delete_temp_files=delete_temp_files,
-      progress_report_function=functools.partial(logs.log))
+      progress_report_function=functools.partial(logs.info))
   try:
     return current_minimizer.minimize(data)
   except minimizer_errors.AntlrDecodeError:

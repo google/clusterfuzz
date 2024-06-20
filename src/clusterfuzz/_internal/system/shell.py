@@ -457,7 +457,7 @@ def get_tempfile(prefix='', suffix=''):
 def remove_directory(directory, recreate=False, ignore_errors=False):
   """Removes a directory tree."""
   # Log errors as warnings if |ignore_errors| is set.
-  log_error_func = logs.log_warn if ignore_errors else logs.log_error
+  log_error_func = logs.warn if ignore_errors else logs.error
 
   def clear_read_only(func, path, _):
     """Clear the read-only bit and reattempt the removal again.

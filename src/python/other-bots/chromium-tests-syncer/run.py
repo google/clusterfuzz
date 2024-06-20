@@ -84,7 +84,8 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     # Un-pack testcase.
     try:
-      setup.unpack_testcase(testcase)
+      testcase_download_url = setup.get_signed_testcase_download_url(testcase)
+      setup.unpack_testcase(testcase, testcase_download_url)
     except Exception:
       logs.error('Failed to unpack testcase %d.' % testcase.key.id())
       continue

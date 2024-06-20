@@ -888,12 +888,10 @@ def update_testcase_comment(testcase, task_state, message=None):
   # the testcase key might not available yet (i.e. for new testcase).
   if message:
     log_func = (
-        logs.log_error
-        if task_state == data_types.TaskState.ERROR else logs.log)
-    log_func('{message} (testcase {testcase_id}, job {job_type}).'.format(
-        message=message,
-        testcase_id=testcase.key.id(),
-        job_type=testcase.job_type))
+        logs.error
+        if task_state == data_types.TaskState.ERROR else logs.info)
+    log_func(
+        f'{message} (testcase {testcase.key.id()}, job {testcase.job_type}).')
 
 
 def get_open_testcase_id_iterator():
