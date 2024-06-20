@@ -32,8 +32,7 @@ TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 
 BASE_FUZZ_TIMEOUT = (
-    launcher.AflRunnerCommon.SIGTERM_WAIT_TIME +
-    launcher.AflRunnerCommon.AFL_CLEAN_EXIT_TIME)
+    launcher.AflRunnerCommon.SIGTERM_WAIT_TIME + launcher.AFL_CLEAN_EXIT_TIME)
 FUZZ_TIMEOUT = 5 + BASE_FUZZ_TIMEOUT
 LONG_FUZZ_TIMEOUT = 90 + BASE_FUZZ_TIMEOUT
 
