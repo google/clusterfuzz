@@ -536,7 +536,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertCountEqual(job.templates, ['engine_asan', 'centipede', 'prune'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'centipede'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
