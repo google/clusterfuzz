@@ -298,7 +298,7 @@ def get_debug_props_and_values():
 
 def initialize_device():
   """Prepares android device for app install."""
-  if environment.is_engine_fuzzer_job() or environment.is_kernel_fuzzer_job():
+  if environment.is_engine_fuzzer_job():
     # These steps are not applicable to libFuzzer and syzkaller jobs and can
     # brick a device on trying to configure device build settings.
     return

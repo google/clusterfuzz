@@ -21,7 +21,7 @@ from . import engine
 
 _initialized = False
 
-ENGINES = fuzzing.PUBLIC_ENGINES
+ENGINES = fuzzing.ENGINES
 
 
 def _initialize():
