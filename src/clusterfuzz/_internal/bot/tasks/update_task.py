@@ -39,11 +39,17 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
+CLUSTERFUZZ_STAGE = os.environ['CLUSTERFUZZ_STAGE']
+
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
-MANIFEST_FILENAME = 'clusterfuzz-source.manifest.3'
 
+REMOTE_MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
+if sys.version_info.major == 3:
+  REMOTE_MANIFEST_FILENAME += '.3'
+if CLUSTERFUZZ_STAGE == 'candidate':
+  REMOTE_MANIFEST_FILENAME += '-candidate'
 
 def _rename_dll_for_update(absolute_filepath):
   """Rename a DLL to allow for updates."""
@@ -59,7 +65,12 @@ def _platform_deployment_filename():
       'Darwin': 'macos'
   }
 
-  base_filename = platform_mappings[platform.system()] + '-3'
+  base_filename = platform_mappings[platform.system()]
+  if sys.version_info.major == 3:
+    base_filename += '-3'
+  if CLUSTERFUZZ_STAGE == 'candidate':
+    base_filename += '-candidate'
+
   return base_filename + '.zip'
 
 
@@ -81,7 +92,7 @@ def get_source_url():
 
 def get_source_manifest_url():
   """Return the source manifest URL."""
-  return _deployment_file_url(MANIFEST_FILENAME)
+  return _deployment_file_url(REMOTE_MANIFEST_FILENAME)
 
 
 def clear_old_files(directory, extracted_file_set):
