@@ -276,6 +276,8 @@ def main():
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
+  parser_deploy.add_argument(
+      '--stage', '-s', choices=['prod', 'candidate'])
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
