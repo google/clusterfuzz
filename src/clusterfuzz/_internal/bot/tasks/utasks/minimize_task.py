@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+x# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -874,15 +874,19 @@ def minimize_gestures(test_runner, testcase):
   return gestures
 
 
+def _get_random_temporary_file(no_modifications=False):
+  return get_temporary_file(
+      testcase_file_path, no_modifications=no_modifications)
+
+
 def minimize_main_file(test_runner, testcase_file_path, data):
   """Minimize the main test case file."""
   if not can_minimize_file(testcase_file_path):
     return data
 
-  get_random_file = functools.partial(get_temporary_file, testcase_file_path)
   data = (
       minimize_file(testcase_file_path, test_runner.test_with_file,
-                    get_random_file, data, test_runner.deadline,
+                    get_random_temporary_file, data, test_runner.deadline,
                     test_runner.threads, test_runner.cleanup_interval))
 
   logs.log('Minimized main test file.')
