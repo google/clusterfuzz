@@ -70,7 +70,9 @@ def _get_files(path):
 def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
-            platform_name=None):
+            platform_name=None,
+            stage='prod',
+            python3=False):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
@@ -95,7 +97,17 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
+<<<<<<< HEAD
     target_zip_name = platform_name + '-3.zip'
+=======
+    if python3:
+      if stage=="prod":
+        target_zip_name = platform_name + '-3.zip'
+      else:
+        target_zip_name = platform_name + '-3-candidate.zip'
+    else:
+      target_zip_name = platform_name + '.zip'
+>>>>>>> 5f3d71a3 (Editing package command to take stage as an argument)
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)
@@ -136,11 +148,15 @@ def package(revision,
 
 
 def execute(args):
+  stage = 'prod'
+  if args.stage == 'candidate':
+    stage = 'candidate'
   if args.platform == 'all':
     for platform_name in list(constants.PLATFORMS.keys()):
       package(
           revision=common.compute_staging_revision(),
-          platform_name=platform_name)
+          platform_name=platform_name,
+          stage=stage)
   else:
     package(
-        revision=common.compute_staging_revision(), platform_name=args.platform)
+        revision=common.compute_staging_revision(), platform_name=args.platform, stage=stage)

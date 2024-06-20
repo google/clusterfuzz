@@ -259,6 +259,8 @@ def main():
       'package', help='Package clusterfuzz with a staging revision')
   parser_package.add_argument(
       '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
+  parser_package.add_argument(
+      '-s', '--stage', choices=['prod', 'candidate'])
 
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
