@@ -66,3 +66,12 @@ resources:
     type: queue.jinja
   - name: ml-jobs-linux
     type: queue.jinja
+
+  # These queues can be used if you deploy corresponding bots
+  - name: jobs-linux-rhel8
+    type: queue.jinja
+  - name: jobs-linux-fedora35
+    type: queue.jinja
+  - name: jobs-linux-fedora36
+    type: queue.jinja
+

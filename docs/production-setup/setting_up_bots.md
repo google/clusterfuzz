@@ -35,6 +35,15 @@ are much cheaper and perform almost as well. You still need some regular
 bots (non-preemptibles) to execute other tasks, such as the tasks that run after
 a crash is discovered (minimization, regression, etc).
 
+#### Other Distributions
+
+By default the fuzzing bots run Ubuntu.  Other variants are available.  See the
+corresponding options in code (commented out by default) for `LINUX_RHEL8` and
+`LINUX_FEDORA36`.  Currently, you will need to build your own container images
+and make them available, updating the gce/clusters.yaml file appropriately with
+the appropriate registry information.
+
+
 ### Windows
 
 Windows is a supported platform for fuzzing. The only [sanitizer] supported on
