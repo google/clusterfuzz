@@ -62,11 +62,11 @@ def _end_process(terminate_function, process_result):
   process_result.timed_out = True
 
 
-def _wait_process(process,
-                  timeout,
-                  input_data=None,
-                  terminate_before_kill=False,
-                  terminate_wait_time=None):
+def wait_process(process,
+                 timeout,
+                 input_data=None,
+                 terminate_before_kill=False,
+                 terminate_wait_time=None):
   """Waits until either the process exits or times out.
 
   Args:
@@ -358,7 +358,7 @@ class ProcessRunner:
                    stdin=subprocess.PIPE,
                    stdout=subprocess.PIPE,
                    stderr=subprocess.STDOUT,
-                   **popen_args):
+                   **popen_args) -> ProcessResult:
     """Runs the executable.
 
     Blocks the caller until the process exits.
@@ -400,7 +400,7 @@ class ProcessRunner:
       return ProcessResult(process.command, process.poll(), output,
                            time.time() - start_time, False)
 
-    result = _wait_process(
+    result = wait_process(
         process,
         timeout=timeout,
         input_data=input_data,
@@ -414,7 +414,7 @@ class ProcessRunner:
 class UnicodeProcessRunnerMixin:
   """Mixin for process runner subclasses to output unicode output."""
 
-  def run_and_wait(self, *args, **kwargs):  # pylint: disable=arguments-differ
+  def run_and_wait(self, *args, **kwargs) -> ProcessResult:  # pylint: disable=arguments-differ
     """Overridden run_and_wait which always decodes the output."""
     result = ProcessRunner.run_and_wait(self, *args, **kwargs)
     if result.output is not None:

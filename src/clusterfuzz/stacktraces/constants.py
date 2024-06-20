@@ -143,7 +143,7 @@ KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
 KASAN_CRASH_TYPE_ADDRESS_RANGE_REGEX = re.compile(
     r'KASAN: (.*?) (in|on) range \[([a-z0-9]+)-([a-z0-9]+)\]')
 KASAN_CRASH_TYPE_FUNCTION_REGEX = re.compile(
-    r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)/([\w]+)')
+    r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)\/([\w]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
 KERNEL_PANIC = re.compile(r'Kernel panic - not syncing: (.*)')
 LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
