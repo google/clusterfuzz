@@ -248,7 +248,6 @@ class Handler(base_handler.Handler):
                     for engine in fuzzing.ENGINES
                 },
                 'isChromium': utils.is_chromium(),
-                'sandboxedJobs': data_types.INTERNAL_SANDBOXED_JOB_TYPES,
                 'csrfToken': form.generate_csrf_token(),
                 'isExternalUser': not is_privileged_or_domain_user,
                 'uploadInfo': gcs.prepare_blob_upload()._asdict(),
