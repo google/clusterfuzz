@@ -207,8 +207,8 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
               time_executed=result.time_executed,
               output=f.read(),
           )
-      except FileNotFoundError as e:
-        logs.info('Reproducer log was not found. Rerunning syz-crush', e)
+      except FileNotFoundError:
+        logs.info('Reproducer log was not found. Rerunning syz-crush')
         continue
 
     logs.info(f'Failed to reproduce crash after {retry_count} attempts.')

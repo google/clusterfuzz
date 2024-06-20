@@ -506,7 +506,7 @@ class Build(BaseBuild):
 
     elapsed_time = time.time() - start_time
     elapsed_mins = elapsed_time / 60.
-    log_func = logs.warn if elapsed_time > UNPACK_TIME_LIMIT else logs.info
+    log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
     log_func(f'Build took {elapsed_mins:0.02f} minutes to unpack.')
 
     return True

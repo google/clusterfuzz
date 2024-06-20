@@ -888,8 +888,7 @@ def update_testcase_comment(testcase, task_state, message=None):
   # the testcase key might not available yet (i.e. for new testcase).
   if message:
     log_func = (
-        logs.error
-        if task_state == data_types.TaskState.ERROR else logs.info)
+        logs.error if task_state == data_types.TaskState.ERROR else logs.info)
     log_func(
         f'{message} (testcase {testcase.key.id()}, job {testcase.job_type}).')
 
