@@ -119,7 +119,8 @@ class Handler:
 
     zip_path = package.package(
         revision=butler_common.compute_staging_revision(),
-        platform_name='windows')
+        platform_name='windows',
+        stage='prod')
     remote_zip_path = (
         f'{self.clusterfuzz_parent_path}\\{self.staging_source_filename}')
     api.put(zip_path, remote_zip_path)
