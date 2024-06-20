@@ -71,6 +71,7 @@ def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
             platform_name=None,
+            stage='prod',
             python3=False):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
@@ -97,7 +98,10 @@ def package(revision,
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
     if python3:
-      target_zip_name = platform_name + '-3.zip'
+      if stage=="prod":
+        target_zip_name = platform_name + '-3.zip'
+      else:
+        target_zip_name = platform_name + '-3-candidate.zip'
     else:
       target_zip_name = platform_name + '.zip'
 
@@ -140,11 +144,15 @@ def package(revision,
 
 
 def execute(args):
+  stage = 'prod'
+  if args.stage == 'candidate':
+    stage = 'candidate'
   if args.platform == 'all':
     for platform_name in list(constants.PLATFORMS.keys()):
       package(
           revision=common.compute_staging_revision(),
-          platform_name=platform_name)
+          platform_name=platform_name,
+          stage=stage)
   else:
     package(
-        revision=common.compute_staging_revision(), platform_name=args.platform)
+        revision=common.compute_staging_revision(), platform_name=args.platform, stage=stage)
