@@ -49,10 +49,8 @@ SANITIZER_WEIGHTS = {
 }
 
 ENGINE_WEIGHTS = {
-    'afl': 1.0,
-    'centipede': 1.0,
-    'googlefuzztest': 0.1,
     'libFuzzer': 1.0,
+    'afl': 1.0,
     'honggfuzz': 0.2,
 }
 
