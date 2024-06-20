@@ -164,8 +164,7 @@ class Engine(engine.Engine):
       target_path: str,  # pylint: disable=unused-argument
       input_path: str,
       arguments: List[str],  # pylint: disable=unused-argument
-      max_time: int,
-  ) -> engine.ReproduceResult:
+      max_time: int) -> engine.ReproduceResult:
     """Reproduce a crash given an input.
        Example: ./syz-crush -config my.cfg -infinite=false -restart_time=20s
         crash-qemu-1-1455745459265726910
@@ -180,25 +179,12 @@ class Engine(engine.Engine):
       A ReproduceResult.
     """
     binary_dir = self.prepare_binary_path()
-    syzcrush_runner = runner.get_runner(
+    syzkaller_runner = runner.get_runner(
         os.path.join(binary_dir, constants.SYZ_CRUSH))
-    syzcrush_args = (
-        runner.get_config() +
-        ['-infinite=false', f'-restart_time={REPRO_TIME}s', input_path])
-
-    result = syzcrush_runner.repro(max_time, repro_args=syzcrush_args)
-
-    if result.return_code:
-      # TODO: upload minimized output to clusterfuzz bucket. Fix #2525
-      self.minimize_testcase(
-          target_path=None,
-          arguments=None,
-          input_path=input_path,
-          output_path=None,
-          max_time=None,
-      )
-
-    return result
+    repro_args = runner.get_config()
+    repro_args.extend(
+        ['-infinite=false', '-restart_time={}s'.format(REPRO_TIME), input_path])
+    return syzkaller_runner.repro(max_time, repro_args=repro_args)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       unused_reproducers_dir, unused_max_time):
@@ -218,17 +204,9 @@ class Engine(engine.Engine):
     """
     raise NotImplementedError
 
-  def minimize_testcase(
-      self,
-      target_path,  # pylint: disable=unused-argument
-      arguments,  # pylint: disable=unused-argument
-      input_path: str,
-      output_path,  # pylint: disable=unused-argument
-      max_time,  # pylint: disable=unused-argument
-  ) -> engine.ReproduceResult:
+  def minimize_testcase(self, target_path, arguments, input_path, output_path,
+                        max_time):
     """Optional (but recommended): Minimize a testcase.
-    Example: ./bin/syz-repro -config ./{config file}
-      {syzkaller workdir}/crashes/{crash hash}/{execution.log}
 
     Args:
       target_path: Path to the target.
@@ -240,12 +218,7 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    binary_dir = self.prepare_binary_path()
-    syzrepro_runner = runner.get_runner(
-        os.path.join(binary_dir, constants.SYZ_REPRO))
-    syzrepro_args = runner.get_config() + [input_path]
-
-    return syzrepro_runner.minimize(syzrepro_args)
+    raise NotImplementedError
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.

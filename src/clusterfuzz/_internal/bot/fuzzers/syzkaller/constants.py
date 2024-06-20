@@ -16,6 +16,5 @@ Should not have any dependencies.
 """
 
 SYZ_CRUSH = 'syz-crush'
-SYZ_REPRO = 'syz-repro'
 
 CLEAN_EXIT_SECS = 10
