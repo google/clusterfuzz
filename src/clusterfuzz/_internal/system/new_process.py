@@ -57,7 +57,7 @@ def _end_process(terminate_function, process_result):
   try:
     terminate_function()
   except OSError:
-    logs.log('Process already killed.')
+    logs.info('Process already killed.')
 
   process_result.timed_out = True
 
@@ -126,19 +126,19 @@ def kill_process_tree(root_pid):
     parent = psutil.Process(root_pid)
     children = parent.children(recursive=True)
   except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-    logs.log_warn('Failed to find or access process.')
+    logs.warning('Failed to find or access process.')
     return
 
   for child in children:
     try:
       child.kill()
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-      logs.log_warn('Failed to kill process child.')
+      logs.warning('Failed to kill process child.')
 
   try:
     parent.kill()
   except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-    logs.log_warn('Failed to kill process.')
+    logs.warning('Failed to kill process.')
 
 
 class ChildProcess:
@@ -209,7 +209,7 @@ class ChildProcess:
     try:
       self._popen.terminate()
     except OSError:
-      logs.log_warn('Failed to terminate process.')
+      logs.warning('Failed to terminate process.')
 
 
 class ProcessResult:

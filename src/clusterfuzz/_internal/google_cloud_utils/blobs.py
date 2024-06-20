@@ -247,6 +247,6 @@ def get_blob_signed_upload_url():
   storage.write_data('', gcs_path)
   if not storage.get(gcs_path):
     raise BlobsError(f'Failed to create blob under: {gcs_path}')
-  logs.log(f'created blob with gcs_path: {gcs_path}')
+  logs.info(f'created blob with gcs_path: {gcs_path}')
   signed_upload_url = storage.get_signed_upload_url(gcs_path)
   return blob_name, signed_upload_url

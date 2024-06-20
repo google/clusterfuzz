@@ -96,7 +96,7 @@ class Engine(engine.Engine):
     # Bail out if AFL returns a nonzero status code.
     if fuzz_result.return_code:
       target = engine_common.get_project_qualified_fuzzer_name(target_path)
-      logs.log_error(
+      logs.error(
           f'afl: engine encountered an error (target={target})',
           engine_output=fuzz_result.output)
       return engine.FuzzResult(fuzzing_logs, command, [], {}, time_executed)

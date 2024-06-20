@@ -108,7 +108,7 @@ def _upload_kernel_coverage_data(kcov_path, kernel_bid):
   gcs_url = (f'gs://{bucket_name}/syzkaller/{formatted_date}/{kernel_bid}/'
              f'{identifier}')
   if storage.copy_file_to(kcov_path, gcs_url):
-    logs.log(f'Copied kcov data to {gcs_url}.')
+    logs.info(f'Copied kcov data to {gcs_url}.')
 
 
 class LoopingTimer(threading.Timer):
@@ -158,7 +158,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       if (local_address.ip == LOCAL_HOST and
           connection.status == psutil.CONN_LISTEN):
         self._port = local_address.port
-        logs.log(f'Syzkaller listening at: http://localhost:{self._port}')
+        logs.info(f'Syzkaller listening at: http://localhost:{self._port}')
         return self._port
 
     # No connection found
@@ -181,7 +181,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
           to run for.
       repro_args: A sequence of arguments to be passed to the executable.
     """
-    logs.log('Running Syzkaller (syz-crush) against testcase.')
+    logs.info('Running Syzkaller (syz-crush) against testcase.')
     additional_args = repro_args.copy()
 
     for retry_count in range(REPRO_RETRY_MAX):
@@ -200,7 +200,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       try:
         reproducer_log_path = os.path.join(log_dir, f'reproducer{log_index}')
         with open(reproducer_log_path) as f:
-          logs.log('Successfully reproduced crash.')
+          logs.info('Successfully reproduced crash.')
           return engine.ReproduceResult(
               command=result.command,
               return_code=1,
@@ -208,10 +208,10 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
               output=f.read(),
           )
       except FileNotFoundError as e:
-        logs.log('Reproducer log was not found. Rerunning syz-crush', e)
+        logs.info('Reproducer log was not found. Rerunning syz-crush', e)
         continue
 
-    logs.log(f'Failed to reproduce crash after {retry_count} attempts.')
+    logs.info(f'Failed to reproduce crash after {retry_count} attempts.')
     return engine.ReproduceResult(
         command=result.command,
         return_code=0,
@@ -224,15 +224,15 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     Args:
       minimize_args: list of arguments to be passed to syz-repro.
     """
-    logs.log('Running Syzkaller Minimization (syz-repro) against testcase.')
+    logs.info('Running Syzkaller Minimization (syz-repro) against testcase.')
     additional_args = minimize_args.copy()
     result = self.run_and_wait(additional_args)
 
     if result.return_code:
-      logs.log('Successfully minimized crash.')
+      logs.info('Successfully minimized crash.')
     else:
-      logs.log('Failed to minimize crash.')
-    logs.log('Syzkaller minimize testcase stopped.')
+      logs.info('Failed to minimize crash.')
+    logs.info('Syzkaller minimize testcase stopped.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -242,24 +242,24 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
     port = self.get_port(pid)
     if port is None:
-      logs.log_warn('Could not find Syzkaller port')
+      logs.warning('Could not find Syzkaller port')
       return
 
     try:
       rawcover = requests.get(
           f'http://localhost:{port}/rawcover', timeout=GET_TIMEOUT_SECONDS).text
     except requests.exceptions.RequestException:
-      logs.log_warn('Connection to Syzkaller Failed')
+      logs.warning('Connection to Syzkaller Failed')
       return
 
     if not rawcover or rawcover.startswith('coverage is not ready'):
-      logs.log_warn('Syzkaller rawcover not yet loaded')
+      logs.warning('Syzkaller rawcover not yet loaded')
       return
 
     file_path = get_cover_file_path()
     with open(file_path, 'w+') as f:
       f.write(rawcover)
-      logs.log(f'Writing syzkaller rawcover to {file_path}')
+      logs.info(f'Writing syzkaller rawcover to {file_path}')
 
   def run_and_loop(self, *args, timeout=None,
                    **kwargs) -> new_process.ProcessResult:
@@ -277,7 +277,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     """
     process = self.run(*args, **kwargs)
     pid = process.popen.pid
-    logs.log(f'Syzkaller pid = {pid}')
+    logs.info(f'Syzkaller pid = {pid}')
 
     looping_timer = LoopingTimer(
         RAWCOVER_RETRIEVE_INTERVAL,
@@ -347,14 +347,14 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       engine.FuzzResult
     """
 
-    logs.log('Running Syzkaller.')
+    logs.info('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
 
     # Save kernel_bid for later in case the device is down.
     _, kernel_bid = kernel_utils.get_kernel_hash_and_build_id()
 
     fuzz_result = self.run_and_loop(additional_args, timeout=fuzz_timeout)
-    logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(
+    logs.info('Syzkaller stopped, fuzzing timed out: {}'.format(
         fuzz_result.time_executed))
 
     fuzz_logs = (fuzz_result.output or '') + '\n'

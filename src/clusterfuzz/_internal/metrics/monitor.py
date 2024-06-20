@@ -101,10 +101,10 @@ class _FlusherThread(threading.Thread):
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           # Log the TimeSeries object details for debug purposes.
-          logs.log(f'{utils.current_date_time()} - Monitor_TimeSeries - '
-                   f'metric_kind : {series.metric_kind}, '
-                   f'start_time : {series.points[-1].interval.start_time}, '
-                   f' end_time : {series.points[-1].interval.end_time} ')
+          logs.info(f'{utils.current_date_time()} - Monitor_TimeSeries - '
+                    f'metric_kind : {series.metric_kind}, '
+                    f'start_time : {series.points[-1].interval.start_time}, '
+                    f' end_time : {series.points[-1].interval.end_time} ')
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
@@ -117,9 +117,9 @@ class _FlusherThread(threading.Thread):
         if environment.is_android():
           # FIXME: This exception is extremely common on Android. We are already
           # aware of the problem, don't make more noise about it.
-          logs.log_warn('Failed to flush metrics.')
+          logs.warning('Failed to flush metrics.')
         else:
-          logs.log_error('Failed to flush metrics.')
+          logs.error('Failed to flush metrics.')
 
   def stop(self):
     self.stop_event.set()

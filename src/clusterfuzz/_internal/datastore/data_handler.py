@@ -229,10 +229,10 @@ def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
     try:
       storage.upload_signed_url(
           unicode_stacktrace.encode('utf-8'), signed_upload_url)
-      logs.log('Uploaded stacktrace using signed url.')
+      logs.info('Uploaded stacktrace using signed url.')
     except Exception:
       print("uplaod failed")
-      logs.log_error('Unable to upload crash stacktrace to signed url.')
+      logs.error('Unable to upload crash stacktrace to signed url.')
       return unicode_stacktrace[(-1 * data_types.STACKTRACE_LENGTH_LIMIT):]
 
     return '%s%s' % (data_types.BLOBSTORE_STACK_PREFIX, blob_name)
@@ -246,7 +246,7 @@ def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
     with open(tmp_stacktrace_file, 'rb') as handle:
       key = blobs.write_blob(handle)
   except Exception:
-    logs.log_error('Unable to write crash stacktrace to temporary file.')
+    logs.error('Unable to write crash stacktrace to temporary file.')
     shell.remove_file(tmp_stacktrace_file)
     return unicode_stacktrace[(-1 * data_types.STACKTRACE_LENGTH_LIMIT):]
 
@@ -632,8 +632,7 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
     with open(tmp_stacktrace_file) as handle:
       result = handle.read()
   except:
-    logs.log_error(
-        'Unable to read stacktrace for testcase %d.' % testcase.key.id())
+    logs.error('Unable to read stacktrace for testcase %d.' % testcase.key.id())
     result = ''
 
   shell.remove_file(tmp_stacktrace_file)
@@ -679,8 +678,8 @@ def handle_duplicate_entry(testcase):
     testcase.status = 'Duplicate'
     testcase.duplicate_of = existing_testcase_id
     testcase.put()
-    logs.log('Marking testcase %d as duplicate of testcase %d.' %
-             (testcase_id, existing_testcase_id))
+    logs.info('Marking testcase %d as duplicate of testcase %d.' %
+              (testcase_id, existing_testcase_id))
 
   elif (not existing_testcase.bug_information and
         not testcase.one_time_crasher_flag):
@@ -695,8 +694,8 @@ def handle_duplicate_entry(testcase):
     existing_testcase.status = 'Duplicate'
     existing_testcase.duplicate_of = testcase_id
     existing_testcase.put()
-    logs.log('Marking testcase %d as duplicate of testcase %d.' %
-             (existing_testcase_id, testcase_id))
+    logs.info('Marking testcase %d as duplicate of testcase %d.' %
+              (existing_testcase_id, testcase_id))
 
 
 def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
@@ -811,10 +810,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Get testcase id from newly created testcase.
   testcase_id = testcase.key.id()
-  logs.log(('Created new testcase %d (reproducible:%s, security:%s).\n'
-            'crash_type: %s\ncrash_state:\n%s\n') %
-           (testcase_id, not testcase.one_time_crasher_flag,
-            testcase.security_flag, testcase.crash_type, testcase.crash_state))
+  logs.info(('Created new testcase %d (reproducible:%s, security:%s).\n'
+             'crash_type: %s\ncrash_state:\n%s\n') %
+            (testcase_id, not testcase.one_time_crasher_flag,
+             testcase.security_flag, testcase.crash_type, testcase.crash_state))
 
   # Update global blacklist to avoid finding this leak again (if needed).
   is_lsan_enabled = environment.get_value('LSAN')
@@ -877,7 +876,7 @@ def update_testcase_comment(testcase, task_state, message=None):
 
   # Truncate if too long.
   if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
-    logs.log_error(
+    logs.error(
         'Testcase comments truncated (testcase {testcase_id}, job {job_type}).'.
         format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
     testcase.comments = testcase.comments[
@@ -962,13 +961,13 @@ def add_build_metadata(job_type,
   build.put()
 
   if is_bad_build:
-    logs.log_error(
+    logs.error(
         'Bad build %s.' % job_type,
         revision=crash_revision,
         job_type=job_type,
         output=console_output)
   else:
-    logs.log(
+    logs.info(
         'Good build %s.' % job_type, revision=crash_revision, job_type=job_type)
   return build
 
@@ -1072,7 +1071,7 @@ def update_task_status(task_name, status, expiry_interval=None):
   if expiry_interval is None:
     expiry_interval = environment.get_value('TASK_LEASE_SECONDS')
     if expiry_interval is None:
-      logs.log_error('expiry_interval is None and TASK_LEASE_SECONDS not set.')
+      logs.error('expiry_interval is None and TASK_LEASE_SECONDS not set.')
 
   def _try_update_status():
     """Try update metadata."""
@@ -1101,7 +1100,7 @@ def update_task_status(task_name, status, expiry_interval=None):
       # We need to update the status under all circumstances.
       # Failing to update 'completed' status causes another bot
       # that picked up this job to bail out.
-      logs.log_error('Unable to update %s task metadata. Retrying.' % task_name)
+      logs.error('Unable to update %s task metadata. Retrying.' % task_name)
       time.sleep(utils.random_number(1, failure_wait_interval))
 
 
@@ -1143,7 +1142,7 @@ def update_heartbeat(force_update=False):
     persistent_cache.set_value(
         HEARTBEAT_LAST_UPDATE_KEY, time.time(), persist_across_reboots=True)
   except:
-    logs.log_error('Unable to update heartbeat.')
+    logs.error('Unable to update heartbeat.')
     return 0
 
   return 1
@@ -1612,7 +1611,7 @@ def record_fuzz_target(engine_name, binary_name, job_type):
   key_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, binary_name)
 
-  logs.log(
+  logs.info(
       'Recorded use of fuzz target %s.' % key_name,
       project=project,
       engine=engine_name,
@@ -1648,7 +1647,7 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   # putting an expiration on them.
   binaries = [binary for binary in binaries if binary]
   if not binaries:
-    logs.log_error('Expected binaries.')
+    logs.error('Expected binaries.')
     return None
 
   project = get_project_name(job_type)

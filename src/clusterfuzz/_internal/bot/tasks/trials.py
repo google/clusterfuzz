@@ -71,7 +71,7 @@ class Trials:
         self.trials[config['app_args']] = AppArgs(config['probability'],
                                                   config.get('contradicts', []))
     except Exception as e:
-      logs.log_warn('Unable to parse config file: %s' % str(e))
+      logs.warning('Unable to parse config file: %s' % str(e))
       return
 
   def setup_additional_args_for_app(self, shuffle=True):

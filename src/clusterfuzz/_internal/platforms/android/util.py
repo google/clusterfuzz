@@ -30,7 +30,7 @@ def get_device_path(local_path):
 def get_local_path(device_path):
   """Returns local path for the given device path."""
   if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
-    logs.log_error('Bad device path: ' + device_path)
+    logs.error('Bad device path: ' + device_path)
     return None
 
   root_directory = environment.get_root_directory()

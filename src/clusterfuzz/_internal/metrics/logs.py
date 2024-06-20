@@ -240,8 +240,7 @@ def update_entry_with_exc(entry, exc_info):
   if not exc_info:
     return
 
-  error = exc_info[1]
-  error_extras = getattr(error, 'extras', {})
+  error_extras = getattr(exc_info[1], 'extras', {})
   entry['task_payload'] = (
       entry.get('task_payload') or error_extras.pop('task_payload', None))
   entry['extras'].update(error_extras)
@@ -558,17 +557,17 @@ def emit(level, message, exc_info=None, **extras):
       })
 
 
-def log(message, level=logging.INFO, **extras):
+def info(message, level=logging.INFO, **extras):
   """Logs the message to a given log file."""
-  emit(level, message, **extras)
+  emit(logging.INFO, message, **extras)
 
 
-def log_warn(message, **extras):
+def warning(message, **extras):
   """Logs the warning message."""
   emit(logging.WARN, message, exc_info=sys.exc_info(), **extras)
 
 
-def log_error(message, **extras):
+def error(message, **extras):
   """Logs the error in the error log file."""
   exception = extras.pop('exception', None)
   if exception:
@@ -587,6 +586,6 @@ def log_fatal_and_exit(message, **extras):
   emit(logging.CRITICAL, message, exc_info=sys.exc_info(), **extras)
   _increment_error_count()
   if wait_before_exit:
-    log('Waiting for %d seconds before exit.' % wait_before_exit)
+    info('Waiting for %d seconds before exit.' % wait_before_exit)
     time.sleep(wait_before_exit)
   sys.exit(-1)
