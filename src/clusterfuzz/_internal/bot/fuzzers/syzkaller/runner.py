@@ -19,7 +19,6 @@ import re
 import tempfile
 import threading
 import time
-from typing import List
 
 import requests
 
@@ -38,11 +37,7 @@ GET_TIMEOUT_SECONDS = 120
 
 LOCAL_HOST = '127.0.0.1'
 RAWCOVER_RETRIEVE_INTERVAL = 180  # retrieve rawcover every 180 seconds
-
-REPRO_RETRY_MAX = 10
-REPRODUCE_DONE_PATTERN = re.compile(r'all done. reproduced (\d+) crashes')
-REPRODUCE_LOG_LOCATION_PATTERN = re.compile(
-    r'saving crash (.*)? with index (\d+) in (.*)?')
+REPRODUCE_REGEX = re.compile(r'reproduced (\d+) crashes')
 
 
 def get_work_dir():
@@ -169,12 +164,15 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
     return path
 
-  def _crash_was_reproducible(self, output: str) -> bool:
-    search = REPRODUCE_DONE_PATTERN.search(output)
-    return search and int(search.group(1)) != 0
+  def _crash_was_reproducible(self, output):
+    reproducible = False
+    if 'all done.' in output:
+      search = REPRODUCE_REGEX.search(output)
+      if search and search.group(1) and search.group(1) > '0':
+        reproducible = True
+    return int(reproducible)
 
-  def repro(self, repro_timeout: int,
-            repro_args: List[str]) -> engine.ReproduceResult:
+  def repro(self, repro_timeout, repro_args):
     """This is where crash repro'ing is done.
     Args:
       repro_timeout: The maximum time in seconds that repro job is allowed
@@ -183,41 +181,16 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     """
     logs.log('Running Syzkaller testcase.')
     additional_args = copy.copy(repro_args)
+    result = self.run_and_wait(additional_args, timeout=repro_timeout)
+    result.return_code = self._crash_was_reproducible(result.output)
 
-    for retry_count in range(REPRO_RETRY_MAX):
-      result = self.run_and_wait(additional_args, timeout=repro_timeout)
-      log_location = re.search(REPRODUCE_LOG_LOCATION_PATTERN, result.output)
-
-      # syz-crush stopped before capturing crash output
-      if not log_location:
-        continue
-
-      # syz-crush did not reproduce any crash
-      if not self._crash_was_reproducible(result.output):
-        continue
-
-      _type, log_index, log_dir = log_location.groups()  # pylint: disable=invalid-name
-      try:
-        reproducer_log_path = os.path.join(log_dir, f'reproducer{log_index}')
-        with open(reproducer_log_path) as f:
-          logs.log('Successfully reproduced crash.')
-          return engine.ReproduceResult(
-              command=result.command,
-              return_code=1,
-              time_executed=result.time_executed,
-              output=f.read(),
-          )
-      except FileNotFoundError as e:
-        logs.log('Reproducer log was not found. Rerunning syz-crush', e)
-        continue
-
-    logs.log(f'Failed to reproduce crash after {retry_count} attempts.')
-    return engine.ReproduceResult(
-        command=result.command,
-        return_code=0,
-        time_executed=result.time_executed,
-        output=result.output,
-    )
+    if result.return_code:
+      logs.log('Successfully reproduced crash.')
+    else:
+      logs.log('Failed to reproduce crash.')
+    logs.log('Syzkaller repro testcase stopped.')
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def save_rawcover_output(self, pid: int):
     """Find syzkaller port and write rawcover data to a file."""

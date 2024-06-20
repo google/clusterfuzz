@@ -15,7 +15,6 @@
 
 import os
 import shutil
-from typing import List
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -159,12 +158,7 @@ class Engine(engine.Engine):
     self.save_corpus(runner.get_work_dir(), options.corpus_dir)
     return fuzz_result
 
-  def reproduce(
-      self,
-      target_path: str,  # pylint: disable=unused-argument
-      input_path: str,
-      arguments: List[str],  # pylint: disable=unused-argument
-      max_time: int) -> engine.ReproduceResult:
+  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
        Example: ./syz-crush -config my.cfg -infinite=false -restart_time=20s
         crash-qemu-1-1455745459265726910
@@ -180,11 +174,14 @@ class Engine(engine.Engine):
     """
     binary_dir = self.prepare_binary_path()
     syzkaller_runner = runner.get_runner(
-        os.path.join(binary_dir, constants.SYZ_CRUSH))
+        os.path.join(binary_dir, constants.SYZ_REPRO))
     repro_args = runner.get_config()
     repro_args.extend(
         ['-infinite=false', '-restart_time={}s'.format(REPRO_TIME), input_path])
-    return syzkaller_runner.repro(max_time, repro_args=repro_args)
+    result = syzkaller_runner.repro(max_time, repro_args=repro_args)
+
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       unused_reproducers_dir, unused_max_time):
