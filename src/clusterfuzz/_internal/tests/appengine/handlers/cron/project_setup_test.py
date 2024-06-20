@@ -539,12 +539,14 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertCountEqual(job.templates, ['engine_asan', 'centipede'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
+        'gs://clusterfuzz-builds-centipede/lib1/lib1-none-([0-9]+).zip\n'
         'PROJECT_NAME = lib1\n'
         'SUMMARY_PREFIX = lib1\n'
         'MANAGED = True\n'
+        'EXTRA_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds-centipede/lib1/lib1-address-([0-9]+).zip\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib1/lib1-address-%s.srcmap.json\n'
+        'clusterfuzz-builds-centipede/lib1/lib1-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib1-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
