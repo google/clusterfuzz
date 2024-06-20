@@ -584,6 +584,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     centipede = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'centipede').get()
     self.assertCountEqual(centipede.jobs, [
+        'centipede_asan_lib1',
         'centipede_asan_lib9',
     ])
 
