@@ -289,7 +289,7 @@ def uncaught_exception_handler(exception_type, exception_value,
     raise RuntimeError('Loop in uncaught_exception_handler')
   _is_already_handling_uncaught = True
 
-  # Use emit since log_error needs sys.exc_info() to return this function's
+  # Use emit since error needs sys.exc_info() to return this function's
   # arguments to call init properly.
   # Don't worry about emit() throwing an Exception, python will let us know
   # about that exception as well as the original one.
@@ -533,7 +533,7 @@ def emit(level, message, exc_info=None, **extras):
       # we generate one. We don't create an exception here and then format it,
       # as that will not include frames below this emit() call. We do [:-2] on
       # the stacktrace to exclude emit() and the logging function below it (e.g.
-      # log_error).
+      # error).
       message = (
           message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
               traceback.format_stack()[:-2]) + 'LogError: ' + message)

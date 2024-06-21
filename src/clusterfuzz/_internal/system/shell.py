@@ -502,7 +502,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     #    existed.
     if not os.path.ismount(directory) or os.listdir(directory):
       # Directory could not be cleared. Bail out.
-      log_error_func('Failed to clear directory %s.' % directory)
+      log_error_func(f'Failed to clear directory {directory}.')
       return False
 
     return True
@@ -513,7 +513,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
   try:
     os.makedirs(directory)
   except:
-    log_error_func('Unable to re-create directory %s.' % directory)
+    log_error_func(f'Unable to re-create directory {directory}.')
     return False
 
   return True
