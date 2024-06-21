@@ -13,6 +13,7 @@
 # limitations under the License.
 """Initial datastore setup."""
 
+from google.api import metric_pb2
 from google.api_core import exceptions
 from google.cloud import monitoring_v3
 
@@ -369,24 +370,26 @@ def setup_metrics(non_dry_run):
   """Set up metrics."""
   client = monitoring_v3.MetricServiceClient()
   project_name = utils.get_application_id()
-  project_path = client.project_path(project_name)
+  project_path = client.common_project_path(project_name)
 
   for name in dir(monitoring_metrics):
     metric = getattr(monitoring_metrics, name)
     if not isinstance(metric, monitor.Metric):
       continue
 
-    descriptor = monitoring_v3.types.MetricDescriptor()  # pylint: disable=no-member
+    descriptor = metric_pb2.MetricDescriptor()
     metric.monitoring_v3_metric_descriptor(descriptor)
 
     if non_dry_run:
       print('Creating metric', descriptor)
       try:
-        client.create_metric_descriptor(project_path, descriptor)
+        client.create_metric_descriptor(
+            name=project_path, metric_descriptor=descriptor)
       except exceptions.AlreadyExists:
         client.delete_metric_descriptor(name=project_path +
-                                        '/metricDescriptors/' + descriptor.type)
-        client.create_metric_descriptor(project_path, descriptor)
+                                        '/metricDescriptors/' + name)
+        client.create_metric_descriptor(
+            name=project_path, metric_descriptor=descriptor)
     else:
       print('Skip creating metric', descriptor, '(dry-run mode)')
 
