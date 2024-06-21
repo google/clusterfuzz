@@ -162,9 +162,7 @@ def get_temp_dir(use_fuzz_inputs_disk=True):
     prefix = environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir())
   else:
     prefix = tempfile.gettempdir()
-  temp_directory = os.path.join(
-      prefix,
-      temp_dirname)
+  temp_directory = os.path.join(prefix, temp_dirname)
   shell.create_directory(temp_directory)
   return temp_directory
 

@@ -194,7 +194,8 @@ class Engine(engine.Engine):
     """Create a temporary directory suitable for putting into the TMPDIR
     environment variable, which practically speaking sometimes needs to be
     shortish."""
-    new_temp_dir = os.path.join(fuzzer_utils.get_temp_dir(use_fuzz_inputs_disk=False), name)
+    new_temp_dir = os.path.join(
+        fuzzer_utils.get_temp_dir(use_fuzz_inputs_disk=False), name)
     engine_common.recreate_directory(new_temp_dir)
     return new_temp_dir
 
