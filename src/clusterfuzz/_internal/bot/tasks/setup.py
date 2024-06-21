@@ -168,7 +168,7 @@ def prepare_environment_for_testcase(testcase):
     environment.set_value('FUZZ_TARGET', fuzz_target)
 
 
-def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
   """Error handler for setup_testcase that is called by uworker_postprocess."""
   # Get the testcase again because it is too hard to set the testcase for
   # partially migrated tasks.
@@ -192,7 +192,7 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):  # pyli
 
 
 ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP: handle_setup_testcase_error,  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP: handle_setup_testcase_error,
 })
 
 
@@ -226,7 +226,7 @@ def preprocess_setup_testcase(testcase,
       testcase.put()
       raise
   else:
-    setup_input = uworker_msg_pb2.SetupInput()  # pylint: disable=no-member
+    setup_input = uworker_msg_pb2.SetupInput()
   setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
   if environment.get_value('LSAN'):
     setup_input.global_blacklisted_functions.extend(
@@ -245,7 +245,7 @@ def preprocess_setup_testcase(testcase,
 
 
 def setup_testcase(testcase: data_types.Testcase, job_type: str,
-                   setup_input: uworker_msg_pb2.SetupInput):  # pylint: disable=no-member
+                   setup_input: uworker_msg_pb2.SetupInput):
   """Sets up the testcase and needed dependencies like fuzzer, data bundle,
   etc."""
   testcase_id = testcase.key.id()
@@ -253,12 +253,11 @@ def setup_testcase(testcase: data_types.Testcase, job_type: str,
   # Only include uworker_input for callers that aren't deserializing the output
   # and thus, uworker_io is not adding the input to.
   # TODO(metzman): Remove the input when the consolidation is complete.
-  uworker_error_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
-      testcase_id=str(testcase_id),
-      job_type=job_type)
-  uworker_error_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
+  uworker_error_input = uworker_msg_pb2.Input(
+      testcase_id=str(testcase_id), job_type=job_type)
+  uworker_error_output = uworker_msg_pb2.Output(
       uworker_input=uworker_error_input,
-      error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)  # pylint: disable=no-member
+      error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
   testcase_setup_error_result = (None, None, uworker_error_output)
 
@@ -471,7 +470,7 @@ def _prepare_update_data_bundle(fuzzer, data_bundle):
 
 def update_data_bundle(
     fuzzer: data_types.Fuzzer,
-    data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:  # pylint: disable=no-member
+    data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:
   """Updates a data bundle to the latest version."""
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
@@ -563,7 +562,7 @@ def preprocess_get_data_bundles(data_bundle_name, setup_input):
 
 
 def preprocess_update_fuzzer_and_data_bundles(
-    fuzzer_name: str) -> uworker_msg_pb2.SetupInput:  # pylint: disable=no-member
+    fuzzer_name: str) -> uworker_msg_pb2.SetupInput:
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
   uworker_main. Returns a SetupInput object."""
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
@@ -571,9 +570,8 @@ def preprocess_update_fuzzer_and_data_bundles(
     logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError
 
-  update_input = uworker_msg_pb2.SetupInput(  # pylint: disable=no-member
-      fuzzer_name=fuzzer_name,
-      fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+  update_input = uworker_msg_pb2.SetupInput(
+      fuzzer_name=fuzzer_name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
   preprocess_get_data_bundles(fuzzer.data_bundle_name, update_input)
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
@@ -587,10 +585,8 @@ def preprocess_update_fuzzer_and_data_bundles(
   return update_input
 
 
-def _update_fuzzer(
-    update_input: uworker_msg_pb2.SetupInput,  # pylint: disable=no-member
-    fuzzer_directory: str,
-    version_file: str) -> bool:
+def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput,
+                   fuzzer_directory: str, version_file: str) -> bool:
   """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
@@ -651,7 +647,7 @@ def _update_fuzzer(
   return True
 
 
-def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):  # pylint: disable=no-member
+def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
   logs.log('Setting up data bundles.')
@@ -665,7 +661,7 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):  # pylint: d
 
 
 def update_fuzzer_and_data_bundles(
-    update_input: uworker_msg_pb2.SetupInput) -> Optional[data_types.Fuzzer]:  # pylint: disable=no-member
+    update_input: uworker_msg_pb2.SetupInput) -> Optional[data_types.Fuzzer]:
   """Updates the fuzzer specified by |update_input| and its data bundles."""
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)

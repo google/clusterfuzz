@@ -74,7 +74,7 @@ def handle_analyze_no_revisions_list_error(output):
 
 
 def setup_build(testcase: data_types.Testcase,
-                bad_revisions) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
+                bad_revisions) -> Optional[uworker_msg_pb2.Output]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -85,13 +85,13 @@ def setup_build(testcase: data_types.Testcase,
     revision_list = build_manager.get_revisions_list(
         build_bucket_path, bad_revisions, testcase=testcase)
     if not revision_list:
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
+      return uworker_msg_pb2.Output(
+          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
+      return uworker_msg_pb2.Output(
+          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
@@ -126,7 +126,7 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 def setup_testcase_and_build(
     testcase, job_type, setup_input,
-    bad_revisions) -> (Optional[str], Optional[uworker_msg_pb2.Output]):  # pylint: disable=no-member
+    bad_revisions) -> (Optional[str], Optional[uworker_msg_pb2.Output]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
@@ -297,7 +297,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
   analyze_task_input = get_analyze_task_input()
-  uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+  uworker_input = uworker_msg_pb2.Input(
       testcase_upload_metadata=uworker_io.entity_to_protobuf(
           testcase_upload_metadata),
       testcase=uworker_io.entity_to_protobuf(testcase),
@@ -312,15 +312,15 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 
 def get_analyze_task_input():
-  return uworker_msg_pb2.AnalyzeTaskInput(  # pylint: disable=no-member
+  return uworker_msg_pb2.AnalyzeTaskInput(
       bad_revisions=build_manager.get_job_bad_revisions())
 
 
 def _build_task_output(
-    testcase: data_types.Testcase) -> uworker_msg_pb2.AnalyzeTaskOutput:  # pylint: disable=no-member
+    testcase: data_types.Testcase) -> uworker_msg_pb2.AnalyzeTaskOutput:
   """Copies the testcase updated fields to analyze_task_output to be updated in
   postprocess."""
-  analyze_task_output = uworker_msg_pb2.AnalyzeTaskOutput()  # pylint: disable=no-member
+  analyze_task_output = uworker_msg_pb2.AnalyzeTaskOutput()
   analyze_task_output.crash_revision = int(testcase.crash_revision)
   analyze_task_output.absolute_path = testcase.absolute_path
   analyze_task_output.minimized_arguments = testcase.minimized_arguments
@@ -391,9 +391,9 @@ def utask_main(uworker_input):
   analyze_task_output.crash_stacktrace = testcase.crash_stacktrace
 
   if not crashed:
-    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+    return uworker_msg_pb2.Output(
         analyze_task_output=analyze_task_output,
-        error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
         test_timeout=test_timeout)
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, uworker_input.job_type,
@@ -406,9 +406,9 @@ def utask_main(uworker_input):
     # in untrusted.
     data_handler.close_invalid_uploaded_testcase(
         testcase, testcase_upload_metadata, 'Irrelevant')
-    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+    return uworker_msg_pb2.Output(
         analyze_task_output=analyze_task_output,
-        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
@@ -417,7 +417,7 @@ def utask_main(uworker_input):
   fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
       fuzz_target)
 
-  return uworker_msg_pb2.Output(  # pylint: disable=no-member
+  return uworker_msg_pb2.Output(
       analyze_task_output=analyze_task_output,
       test_timeout=test_timeout,
       crash_time=crash_time,
@@ -455,13 +455,13 @@ def handle_build_setup_error(output):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
         handle_build_setup_error,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
         handle_noncrash,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX:  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX:
         handle_analyze_no_revision_index,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
         handle_analyze_no_revisions_list_error,
 }).compose_with(
     setup.ERROR_HANDLER,
@@ -518,7 +518,7 @@ def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   _update_testcase(output)
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
