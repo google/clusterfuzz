@@ -63,14 +63,6 @@ HEARTBEAT_WAIT_INTERVAL = 10 * 60
 # Android device heartbeat wait interval.
 ANDROID_HEARTBEAT_WAIT_INTERVAL = 60
 
-# FIXME: Move this to configuration.
-# List of internal sandboxed data types. This gives a warning on testcase
-# uploads on unsandboxed job types.
-INTERNAL_SANDBOXED_JOB_TYPES = [
-    'linux_asan_chrome_media', 'linux_asan_chrome_mp',
-    'linux_asan_chrome_v8_arm', 'mac_asan_chrome', 'windows_asan_chrome'
-]
-
 # Time to wait after a report is marked fixed and before filing another similar
 # one (hours).
 MIN_ELAPSED_TIME_SINCE_FIXED = 2 * 24

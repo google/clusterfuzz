@@ -155,12 +155,14 @@ def get_supporting_file(fuzz_target_path, extension_or_suffix):
   return base_fuzz_target_path + extension_or_suffix
 
 
-def get_temp_dir():
+def get_temp_dir(use_fuzz_inputs_disk=True):
   """Return the temp dir."""
   temp_dirname = 'temp-' + str(os.getpid())
-  temp_directory = os.path.join(
-      environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir()),
-      temp_dirname)
+  if use_fuzz_inputs_disk:
+    prefix = environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir())
+  else:
+    prefix = tempfile.gettempdir()
+  temp_directory = os.path.join(prefix, temp_dirname)
   shell.create_directory(temp_directory)
   return temp_directory
 
