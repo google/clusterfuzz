@@ -334,7 +334,7 @@ class Runner:
 
       custom_rss_limit = libfuzzer_arguments.get(
           'rss_limit_mb', constructor=int)
-      if custom_rss_limit and custom_rss_limit < rss_limit:
+      if custom_rss_limit:
         rss_limit = custom_rss_limit
 
       custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
