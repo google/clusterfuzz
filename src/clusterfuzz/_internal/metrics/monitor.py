@@ -101,10 +101,14 @@ class _FlusherThread(threading.Thread):
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           # Log the TimeSeries object details for debug purposes.
-          logs.log(f'{utils.current_date_time()} - Monitor_TimeSeries - '
-                   f'metric_kind : {series.metric_kind}, '
-                   f'start_time : {series.points[-1].interval.start_time}, '
-                   f' end_time : {series.points[-1].interval.end_time} ')
+          metric_st_sec = series.points[-1].interval.start_time.seconds
+          metric_st_ns = series.points[-1].interval.start_time.nanos
+          metric_et_sec = series.points[-1].interval.end_time.seconds
+          metric_et_ns = series.points[-1].interval.end_time.nanos
+          logs.log(f'Monitor_TimeSeries - '
+                   f'metric_kind: {series.metric_kind}, '
+                   f'start_time: {metric_st_sec}.{metric_st_ns}, '
+                   f'end_time: {metric_et_sec}.{metric_et_ns}')
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
