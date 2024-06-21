@@ -106,9 +106,9 @@ class _FlusherThread(threading.Thread):
           metric_et_sec = series.points[-1].interval.end_time.seconds
           metric_et_ns = series.points[-1].interval.end_time.nanos
           logs.info(f'Monitor_TimeSeries - '
-                   f'metric_kind: {series.metric_kind}, '
-                   f'start_time: {metric_st_sec}.{metric_st_ns}, '
-                   f'end_time: {metric_et_sec}.{metric_et_ns}')
+                    f'metric_kind: {series.metric_kind}, '
+                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
+                    f'end_time: {metric_et_sec}.{metric_et_ns}')
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
