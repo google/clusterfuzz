@@ -190,6 +190,14 @@ class Engine(engine.Engine):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
+  def _create_temp_dir(self, name):
+    """Create a temporary directory suitable for putting into the TMPDIR
+    environment variable, which practically speaking sometimes needs to be
+    shortish."""
+    new_temp_dir = os.path.join(fuzzer_utils.get_temp_dir(use_fuzz_inputs_disk=False), name)
+    engine_common.recreate_directory(new_temp_dir)
+    return new_temp_dir
+
   def _create_merge_corpus_dir(self):
     """Create merge corpus directory."""
     return self._create_temp_corpus_dir('merge-corpus')
@@ -508,15 +516,19 @@ class Engine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
-    merge_tmp_dir = self._create_temp_corpus_dir('merge-wd')
+    merge_tmp_dir = self._create_temp_dir('merge-wd')
 
-    result = runner.merge(
-        [output_dir] + input_dirs,
-        merge_timeout=max_time,
-        tmp_dir=merge_tmp_dir,
-        additional_args=arguments,
-        artifact_prefix=reproducers_dir,
-        merge_control_file=getattr(self, '_merge_control_file', None))
+    try:
+      result = runner.merge(
+          [output_dir] + input_dirs,
+          merge_timeout=max_time,
+          tmp_dir=merge_tmp_dir,
+          additional_args=arguments,
+          artifact_prefix=reproducers_dir,
+          merge_control_file=getattr(self, '_merge_control_file', None))
+    finally:
+      # Deletes the directory to relinquish space
+      engine_common.recreate_directory(merge_tmp_dir)
 
     logs.log('Merge completed.', fuzzer_output=result.output)
     if result.timed_out:
