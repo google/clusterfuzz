@@ -54,7 +54,7 @@ def _low_disk_space_threshold():
 def copy_file(source_file_path, destination_file_path):
   """Faster version of shutil.copy with buffer size."""
   if not os.path.exists(source_file_path):
-    logs.log_error('Source file %s for copy not found.' % source_file_path)
+    logs.error('Source file %s for copy not found.' % source_file_path)
     return False
 
   error_occurred = False
@@ -70,8 +70,8 @@ def copy_file(source_file_path, destination_file_path):
   error_occurred |= not os.path.exists(destination_file_path)
 
   if error_occurred:
-    logs.log_warn('Failed to copy source file %s to destination file %s.' %
-                  (source_file_path, destination_file_path))
+    logs.warning('Failed to copy source file %s to destination file %s.' %
+                 (source_file_path, destination_file_path))
     return False
 
   return True
@@ -132,7 +132,7 @@ def clear_data_directories_on_low_disk_space():
   if free_disk_space >= _low_disk_space_threshold():
     return
 
-  logs.log_warn(
+  logs.warning(
       'Low disk space detected, clearing all data directories to free up space.'
   )
   clear_data_directories()
@@ -204,7 +204,7 @@ def clear_system_temp_directory():
 
     for name in dirs:
       _delete_object(os.path.join(root, name), os.rmdir)
-  logs.log('Cleared system temp directory: %s' % _system_temp_dir)
+  logs.info('Cleared system temp directory: %s' % _system_temp_dir)
 
 
 def clear_testcase_directories():
@@ -239,7 +239,7 @@ def close_open_file_handles_if_needed(path):
     file_handle_id = match.group(2).decode('utf-8')
     file_path = match.group(3).decode('utf-8')
 
-    logs.log(
+    logs.info(
         'Closing file handle id %s for path %s.' % (file_handle_id, file_path))
     execute_command('%s -accepteula -c %s -p %s -y' %
                     (handle_executable_path, file_handle_id, process_id))
@@ -261,7 +261,7 @@ def create_directory(directory, create_intermediates=False, recreate=False):
     else:
       os.mkdir(directory)
   except:
-    logs.log_error('Unable to create directory %s.' % directory)
+    logs.error('Unable to create directory %s.' % directory)
     return False
 
   return True
@@ -278,7 +278,7 @@ def execute_command(shell_command):
         stderr=subprocess.PIPE)
     output, _ = process_handle.communicate()
   except:
-    logs.log_error('Error while executing command %s.' % shell_command)
+    logs.error('Error while executing command %s.' % shell_command)
     return ''
 
   return output
@@ -340,7 +340,7 @@ def get_free_disk_space(path='/'):
     return None
 
   if psutil is None:
-    logs.log_error(
+    logs.error(
         'Attempted to get free disk space, but \'psutil\' was not found.')
     return None
   return psutil.disk_usage(path).free
@@ -388,7 +388,7 @@ def move(src, dst):
     shutil.move(src, dst)
     return True
   except shutil.Error:
-    logs.log_error('Failed to move %s to %s' % (src, dst))
+    logs.error('Failed to move %s to %s' % (src, dst))
     return False
 
 
@@ -403,8 +403,8 @@ def remove_empty_files(root_path):
       try:
         os.remove(path)
       except:
-        logs.log_error('Unable to remove the empty file: %s (%s).' %
-                       (path, sys.exc_info()[0]))
+        logs.error('Unable to remove the empty file: %s (%s).' %
+                   (path, sys.exc_info()[0]))
 
 
 def remove_empty_directories(path):
@@ -425,7 +425,7 @@ def remove_empty_directories(path):
     try:
       os.rmdir(path)
     except:
-      logs.log_error('Unable to remove empty folder %s.' % path)
+      logs.error('Unable to remove empty folder %s.' % path)
 
 
 def remove_file(file_path):
@@ -457,7 +457,7 @@ def get_tempfile(prefix='', suffix=''):
 def remove_directory(directory, recreate=False, ignore_errors=False):
   """Removes a directory tree."""
   # Log errors as warnings if |ignore_errors| is set.
-  log_error_func = logs.log_warn if ignore_errors else logs.log_error
+  log_error_func = logs.warning if ignore_errors else logs.error
 
   def clear_read_only(func, path, _):
     """Clear the read-only bit and reattempt the removal again.
@@ -476,7 +476,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
       # errors are expected in cases when mounts are used.
       error_message = str(sys.exc_info()[1])
       if 'Device or resource busy' not in error_message:
-        logs.log_warn(
+        logs.warning(
             'Failed to remove directory %s failed because %s with %s failed. %s'
             % (directory, func, path, error_message))
 
@@ -502,7 +502,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     #    existed.
     if not os.path.ismount(directory) or os.listdir(directory):
       # Directory could not be cleared. Bail out.
-      log_error_func('Failed to clear directory %s.' % directory)
+      log_error_func(f'Failed to clear directory {directory}.')
       return False
 
     return True
@@ -513,7 +513,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
   try:
     os.makedirs(directory)
   except:
-    log_error_func('Unable to re-create directory %s.' % directory)
+    log_error_func(f'Unable to re-create directory {directory}.')
     return False
 
   return True

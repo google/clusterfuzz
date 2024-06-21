@@ -27,12 +27,12 @@ def send(to_email, subject, html_content):
   """Send email."""
   sendgrid_api_key = db_config.get_value('sendgrid_api_key')
   if not sendgrid_api_key:
-    logs.log_warn('Skipping email as SendGrid API key is not set in config.')
+    logs.warning('Skipping email as SendGrid API key is not set in config.')
     return
 
   from_email = db_config.get_value('sendgrid_sender')
   if not from_email:
-    logs.log_warn('Skipping email as SendGrid sender is not set in config.')
+    logs.warning('Skipping email as SendGrid sender is not set in config.')
     return
 
   message = Mail(
@@ -43,10 +43,10 @@ def send(to_email, subject, html_content):
   try:
     sg = SendGridAPIClient(sendgrid_api_key)
     response = sg.send(message)
-    logs.log(
+    logs.info(
         'Sent email to %s.' % to_email,
         status_code=response.status_code,
         body=response.body,
         headers=response.headers)
   except Exception:
-    logs.log_error('Failed to send email to %s.' % to_email)
+    logs.error('Failed to send email to %s.' % to_email)

@@ -26,7 +26,7 @@ class FuzzerTest(builtin_test.BaseEngineFuzzerTest):
   def setUp(self):
     super().setUp()
     helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_warn',
+        'clusterfuzz._internal.metrics.logs.warning',
     ])
 
   def _test_passed(self):

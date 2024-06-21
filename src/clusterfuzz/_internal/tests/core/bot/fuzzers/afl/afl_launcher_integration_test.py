@@ -40,14 +40,14 @@ def get_fuzz_timeout(fuzz_time):
 
 
 def no_errors(f):
-  """Decorator that asserts neither metrics.logs.log_error nor
+  """Decorator that asserts neither metrics.logs.error nor
   metrics.logs.log_fatal_and_exit were called."""
 
   def call_f(self, *args, **kwargs):
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
     result = f(self, *args, **kwargs)
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
     return result
 
   return call_f
@@ -151,10 +151,10 @@ class BaseLauncherTest(unittest.TestCase):
   def _test_abnormal_return_code(self):
     """Test that abnormal return codes from single runs of the fuzz target (eg:
     not 0 or 1, which is ASAN's return code for errors) are logged."""
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
     testcase_path = setup_testcase_and_corpus(self, 'crash', 'empty_corpus')
     run_launcher(testcase_path, 'return_code_255')
-    self.mock.log_error.assert_called_with(
+    self.mock.error.assert_called_with(
         'AFL target exited with abnormal exit code: 255.',
         output='ERROR: returning 255\n')
 

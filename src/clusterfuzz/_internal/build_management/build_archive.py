@@ -278,7 +278,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     target_path = self.to_archive_path(fuzz_target)
     deps_file = f'{target_path}.runtime_deps'
     if not self.file_exists(deps_file):
-      logs.log_warn(f'runtime_deps file not found for {target_path}')
+      logs.warning(f'runtime_deps file not found for {target_path}')
       return super().get_target_dependencies(fuzz_target)
 
     res = []

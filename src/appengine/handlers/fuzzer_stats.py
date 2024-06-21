@@ -166,7 +166,7 @@ def _get_fuzzer_or_engine(name):
 
 def _do_bigquery_query(query):
   """Return results from BigQuery."""
-  logs.log(query)
+  logs.info(query)
   client = big_query.Client()
 
   try:
@@ -192,7 +192,7 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
 
     return result
   except yaml.parser.ParserError:
-    logs.log_error('Failed to parse stats column descriptions.')
+    logs.error('Failed to parse stats column descriptions.')
     return {}
 
 
@@ -296,13 +296,13 @@ def build_results(fuzzer, jobs, group_by, date_start, date_end):
     raise helpers.EarlyExitError('Missing end date.', 400)
 
   if datetime_end < utils.utcnow().date():
-    logs.log('Building results for older stats %s %s %s %s %s.' %
-             (fuzzer, jobs, group_by, date_start, date_end))
+    logs.info('Building results for older stats %s %s %s %s %s.' %
+              (fuzzer, jobs, group_by, date_start, date_end))
 
     return _build_old_results(fuzzer, jobs, group_by, date_start, date_end)
 
-  logs.log('Building results for stats including today %s %s %s %s %s.' %
-           (fuzzer, jobs, group_by, date_start, date_end))
+  logs.info('Building results for stats including today %s %s %s %s %s.' %
+            (fuzzer, jobs, group_by, date_start, date_end))
 
   return _build_todays_results(fuzzer, jobs, group_by, date_start, date_end)
 
@@ -519,8 +519,8 @@ class PreloadHandler(base_handler.Handler):
         build_results(fuzzer, job_filter, group_by, date_start, date_end)
       except Exception as e:
         if 'No stats.' not in repr(e):
-          logs.log_error('Failed to preload %s %s %s %s %s.' %
-                         (fuzzer, job_filter, group_by, date_start, date_end))
+          logs.error('Failed to preload %s %s %s %s %s.' %
+                     (fuzzer, job_filter, group_by, date_start, date_end))
 
       if not job_filter:
         # Group by job only makes sense for queries that do not specify job.
@@ -529,8 +529,8 @@ class PreloadHandler(base_handler.Handler):
           build_results(fuzzer, job_filter, group_by, date_start, date_end)
         except Exception as e:
           if 'No stats.' not in repr(e):
-            logs.log_error('Failed to preload %s %s %s %s %s.' %
-                           (fuzzer, job_filter, group_by, date_start, date_end))
+            logs.error('Failed to preload %s %s %s %s %s.' %
+                       (fuzzer, job_filter, group_by, date_start, date_end))
 
 
 class RefreshCacheHandler(base_handler.Handler):

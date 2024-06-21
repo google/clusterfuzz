@@ -138,7 +138,7 @@ class Memcache:
       _redis_client().set(
           json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
     except redis.RedisError:
-      logs.log_error('Failed to store key in cache.', key=key, value=value)
+      logs.error('Failed to store key in cache.', key=key, value=value)
 
   @local_noop
   @if_redis_available
@@ -148,7 +148,7 @@ class Memcache:
     try:
       value_raw = _redis_client().get(json.dumps(key))
     except redis.RedisError:
-      logs.log_error('Failed to retrieve key from cache.', key=key)
+      logs.error('Failed to retrieve key from cache.', key=key)
       return None
 
     if value_raw is None:

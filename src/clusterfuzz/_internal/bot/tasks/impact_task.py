@@ -126,12 +126,12 @@ def get_component_impacts_from_url(component_name,
                                    job_type,
                                    platform=None):
   """Gets component impact string using the build information url."""
-  logs.log('Getting component impacts from URL. Component name %s, '
-           'regression range %s, job type %s, platform %s.' %
-           (component_name, regression_range, str(job_type), str(platform)))
+  logs.info('Getting component impacts from URL. Component name %s, '
+            'regression range %s, job type %s, platform %s.' %
+            (component_name, regression_range, str(job_type), str(platform)))
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
-  logs.log('Start and end revision %s, %s' % (start_revision, end_revision))
+  logs.info('Start and end revision %s, %s' % (start_revision, end_revision))
   if not end_revision:
     return Impacts()
 
@@ -142,7 +142,7 @@ def get_component_impacts_from_url(component_name,
   found_impacts = {}
   for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
-    logs.log('Considering impacts for %s.' % (build))
+    logs.info('Considering impacts for %s.' % (build))
     # TODO(yuanjunh): bypass for now but remove it after ES is enabled.
     if build == 'extended_stable' and not mapping:
       found_impacts[build] = Impact()
@@ -154,15 +154,15 @@ def get_component_impacts_from_url(component_name,
     if not mapping:
       return Impacts()
     chromium_revision = mapping['revision']
-    logs.log('Chromium revision is %s.' % (chromium_revision))
+    logs.info('Chromium revision is %s.' % (chromium_revision))
     component_revision = get_component_information_by_name(
         chromium_revision, component_name)
-    logs.log('Component revision is %s.' % (component_revision))
+    logs.info('Component revision is %s.' % (component_revision))
     if not component_revision:
       return Impacts()
     branched_from = revisions.revision_to_branched_from(
         component_revision['url'], component_revision['rev'])
-    logs.log('Branched from revision is %s.' % (branched_from))
+    logs.info('Branched from revision is %s.' % (branched_from))
     if not branched_from:
       # This is a head revision, not branched.
       branched_from = component_revision['rev']
@@ -170,7 +170,7 @@ def get_component_impacts_from_url(component_name,
         'revision': branched_from,
         'version': mapping['version']
     }, start_revision, end_revision, build == 'canary')
-    logs.log('Resulting impact is %s.' % (str(impact)))
+    logs.info('Resulting impact is %s.' % (str(impact)))
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'],
                  found_impacts['extended_stable'], found_impacts['canary'])
@@ -178,8 +178,8 @@ def get_component_impacts_from_url(component_name,
 
 def get_impacts_from_url(regression_range, job_type, platform=None):
   """Gets impact string using the build information url."""
-  logs.log('Get component impacts from URL: range %s, '
-           'job type %s.' % (regression_range, str(job_type)))
+  logs.info('Get component impacts from URL: range %s, '
+            'job type %s.' % (regression_range, str(job_type)))
   component_name = data_handler.get_component_name(job_type)
   if component_name:
     return get_component_impacts_from_url(component_name, regression_range,
@@ -187,17 +187,17 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
 
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
-  logs.log('Proceeding to calculate impacts as non-component based on '
-           'range %s-%s' % (str(start_revision), str(end_revision)))
+  logs.info('Proceeding to calculate impacts as non-component based on '
+            'range %s-%s' % (str(start_revision), str(end_revision)))
   if not end_revision:
     return Impacts()
 
-  logs.log(f'Gathering build to revision mappings for {platform}')
+  logs.info(f'Gathering build to revision mappings for {platform}')
   build_revision_mappings = build_info.get_build_to_revision_mappings(platform)
   if not build_revision_mappings:
     return Impacts()
 
-  logs.log('Calculating impacts from URL')
+  logs.info('Calculating impacts from URL')
   extended_stable = get_impact(
       build_revision_mappings.get('extended_stable'), start_revision,
       end_revision)
@@ -307,7 +307,7 @@ def execute_task(testcase_id, job_type):
                                          'Not applicable for custom binaries')
     return
 
-  logs.log('Preparing to calculate impact.')
+  logs.info('Preparing to calculate impact.')
   # Formerly ClusterFuzz had buckets containing builds for stable,
   # beta and dev builds, and attempted reproduction on them. That had
   # the advantage that we would test against the exact thing shipped on each
@@ -322,7 +322,7 @@ def execute_task(testcase_id, job_type):
         'task finishes')
     return
 
-  logs.log('Calculating impact from URL.')
+  logs.info('Calculating impact from URL.')
   impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
   testcase = data_handler.get_testcase_by_id(testcase_id)
   set_testcase_with_impacts(testcase, impacts)

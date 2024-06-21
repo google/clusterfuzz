@@ -111,7 +111,7 @@ def utask_main(uworker_input):
   try:
     build_manager.setup_build()
   except errors.BuildNotFoundError:
-    logs.log_warn('Matching build not found.')
+    logs.warning('Matching build not found.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
@@ -142,7 +142,7 @@ def utask_main(uworker_input):
         use_gestures=use_gestures,
         compare_crash=False)
   except testcase_manager.TargetNotFoundError:
-    logs.log_warn('Could not find target in build, probably does not exist.')
+    logs.warning('Could not find target in build, probably does not exist.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 

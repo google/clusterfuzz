@@ -118,12 +118,12 @@ def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
 
   if len(values) > 1:
     extra = ','.join(values[1:])
-    logs.log_error(
+    logs.error(
         f'google_issue_tracker: ignoring additional severity labels: [{extra}]')
 
   value = values[0]
   severity = _get_severity_from_label_value(value)
-  logs.log(
+  logs.info(
       f'google_issue_tracker: severity label = {value}, field = {severity}')
   return severity
 
@@ -191,8 +191,8 @@ class Issue(issue_tracker.Issue):
       if ct.isnumeric():
         component_path = self._issue_tracker._get_relative_component_path(ct)
         if not component_path:
-          logs.log_warn('google_issue_tracker: Component ID %s did not return '
-                        'a component path' % ct)
+          logs.warning('google_issue_tracker: Component ID %s did not return '
+                       'a component path' % ct)
           continue
         component_paths.add(component_path)
       else:
@@ -210,24 +210,24 @@ class Issue(issue_tracker.Issue):
           if v in allowed_values:
             filtered_values.append(v)
           else:
-            logs.log('google_issue_tracker: Value %s for CustomFieldId %s was '
-                     'not in allowed values' % (v, custom_field_id))
+            logs.info('google_issue_tracker: Value %s for CustomFieldId %s was '
+                      'not in allowed values' % (v, custom_field_id))
         break
     return filtered_values
 
   def _filter_labels(self):
     """Filters out and logs labels that are not hotlist IDs."""
-    logs.log(
+    logs.info(
         'google_issue_tracker: Labels before filtering: %s' % list(self.labels))
     labels_to_remove = []
     for label in self.labels:
       if not label.isnumeric():
-        logs.log_warn('google_issue_tracker: Label %s was not a hotlist ID. '
-                      'Removing it.' % label)
+        logs.warning('google_issue_tracker: Label %s was not a hotlist ID. '
+                     'Removing it.' % label)
         labels_to_remove.append(label)
     for remove_label in labels_to_remove:
       self.labels.remove(remove_label)
-    logs.log(
+    logs.info(
         'google_issue_tracker: Labels after filtering: %s' % list(self.labels))
 
   def _reset_tracking(self):
@@ -241,15 +241,15 @@ class Issue(issue_tracker.Issue):
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
     if extension_fields.get('_ext_collaborators'):
-      logs.log('google_issue_tracker: In apply_extension_fields for '
-               'collaborators: %s' % extension_fields['_ext_collaborators'])
+      logs.info('google_issue_tracker: In apply_extension_fields for '
+                'collaborators: %s' % extension_fields['_ext_collaborators'])
       self._changed.add('_ext_collaborators')
       for collaborator in extension_fields['_ext_collaborators']:
         self._collaborators.add(collaborator)
 
     if extension_fields.get('_ext_issue_access_limit'):
-      logs.log('google_issue_tracker: In apply_extension_fields for IAL: %s' %
-               extension_fields['_ext_issue_access_limit'])
+      logs.info('google_issue_tracker: In apply_extension_fields for IAL: %s' %
+                extension_fields['_ext_issue_access_limit'])
       self._changed.add('_issue_access_limit')
       self._issue_access_limit = extension_fields['_ext_issue_access_limit']
 
@@ -326,7 +326,7 @@ class Issue(issue_tracker.Issue):
                                                issueId=str(self.id),
                                                pageSize=1,
                                                sortBy='ASC'))
-      logs.log('google_issue_tracker: is_new: %s' % result)
+      logs.info('google_issue_tracker: is_new: %s' % result)
       if 'issueUpdates' not in result:
         return self._body
       if len(result['issueUpdates']) < 1:
@@ -555,8 +555,8 @@ class Issue(issue_tracker.Issue):
         # as on the issue.
         existing_tags = self._get_component_tags()
         if not set(values).issubset(set(existing_tags)):
-          logs.log('google_issue_tracker: Going to add these components to '
-                   'component tags: %s' % values)
+          logs.info('google_issue_tracker: Going to add these components to '
+                    'component tags: %s' % values)
           custom_field_entries.append({
               'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
               'repeatedEnumValue': {
@@ -598,16 +598,16 @@ class Issue(issue_tracker.Issue):
       }
     result = self._data
     if added or removed or new_comment:
-      logs.log('google_issue_tracker: modify update_body: %s' % update_body)
+      logs.info('google_issue_tracker: modify update_body: %s' % update_body)
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
-      logs.log('google_issue_tracker: modify result: %s' % result)
+      logs.info('google_issue_tracker: modify result: %s' % result)
       # Do not use results from modify call, it could contain obfuscated emails
       # See crbug/323736910. Do a seperate get issue call.
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().get(issueId=str(self.id)))
-      logs.log('google_issue_tracker: get after modify result: %s' % result)
+      logs.info('google_issue_tracker: get after modify result: %s' % result)
 
     # Make sure self.labels contains only hotlist IDs.
     self._filter_labels()
@@ -616,8 +616,8 @@ class Issue(issue_tracker.Issue):
     # TODO(ochang): Investigate batching.
     added_hotlists = self.labels.added
     removed_hotlists = self.labels.removed
-    logs.log('google_issue_tracker: added_hotlists: %s' % added_hotlists)
-    logs.log('google_issue_tracker: removed_hotlists: %s' % removed_hotlists)
+    logs.info('google_issue_tracker: added_hotlists: %s' % added_hotlists)
+    logs.info('google_issue_tracker: removed_hotlists: %s' % removed_hotlists)
     for hotlist in added_hotlists:
       self.issue_tracker._execute(
           self.issue_tracker.client.hotlists().createEntries(
@@ -636,7 +636,7 @@ class Issue(issue_tracker.Issue):
   def save(self, new_comment=None, notify=True):
     """Saves the issue."""
     if self._is_new:
-      logs.log('google_issue_tracker: Creating new issue..')
+      logs.info('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-')
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
       self._data['issueState']['type'] = issue_type
@@ -663,7 +663,7 @@ class Issue(issue_tracker.Issue):
         })
       if list(self.components):
         component_paths = self._get_component_paths(self.components)
-        logs.log(
+        logs.info(
             'google_issue_tracker: In save. Going to add these components to '
             'component tags: %s' % component_paths)
         custom_field_entries.append({
@@ -707,14 +707,14 @@ class Issue(issue_tracker.Issue):
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
-      logs.log('google_issue_tracker: result of create: %s' % result)
+      logs.info('google_issue_tracker: result of create: %s' % result)
       self._is_new = False
     else:
-      logs.log('google_issue_tracker: Updating issue..')
+      logs.info('google_issue_tracker: Updating issue..')
       result = self._update_issue(new_comment=new_comment, notify=notify)
     self._reset_tracking()
     self._data = result
-    logs.log('google_issue_tracker: self._data: %s' % self._data)
+    logs.info('google_issue_tracker: self._data: %s' % self._data)
 
 
 class Action(issue_tracker.Action):
@@ -926,7 +926,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
         return None
-      logs.log_error('Failed to retrieve component.', component_id=component_id)
+      logs.error('Failed to retrieve component.', component_id=component_id)
       return None
 
     if component['componentId'] == str(self._default_component_id):
@@ -944,12 +944,12 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Gets the issue with the given ID."""
     try:
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
-      logs.log('google_issue_tracker: get_issue. issue: %s' % issue)
+      logs.info('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
         return None
-      logs.log_error('Failed to retrieve issue.', issue_id=issue_id)
+      logs.error('Failed to retrieve issue.', issue_id=issue_id)
       return None
 
   def find_issues(self, keywords=None, only_open=None):
@@ -961,7 +961,7 @@ class IssueTracker(issue_tracker.IssueTracker):
       if "issues" not in issues:
         return
       for issue in issues['issues']:
-        logs.log('google_issue_tracker: find_issues. issue: %s' % issue)
+        logs.info('google_issue_tracker: find_issues. issue: %s' % issue)
         yield Issue(issue, False, self)
       page_token = issues.get('nextPageToken')
       if not page_token:

@@ -43,7 +43,7 @@ def _read_json(url):
   try:
     result = json.loads(data)
   except Exception as e:
-    logs.log_warn(
+    logs.warning(
         'Empty or malformed code coverage JSON (%s): %s.' % (url, str(e)))
 
   return result
@@ -79,7 +79,7 @@ def _coverage_information(summary_path, name, report_info):
     cov_info.edges_total = total_stats['regions']['count']
     return cov_info
   except KeyError:
-    logs.log_error('Malformed code coverage for %s.' % name)
+    logs.error('Malformed code coverage for %s.' % name)
     return None
 
 
@@ -88,7 +88,7 @@ def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
   fuzzer_name = data_types.fuzz_target_project_qualified_name(
       project_name, _basename(fuzzer))
   fuzzer_info_path = storage.get_cloud_storage_file_path(bucket, fuzzer)
-  logs.log(
+  logs.info(
       'Processing fuzzer stats for %s (%s).' % (fuzzer_name, fuzzer_info_path))
   return _coverage_information(fuzzer_info_path, fuzzer_name, project_info)
 
@@ -96,18 +96,18 @@ def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
 def _process_project_stats(project_info, project_name):
   """Processes coverage stats for a single project."""
   summary_path = project_info['report_summary_path']
-  logs.log('Processing total stats for %s project (%s).' % (project_name,
-                                                            summary_path))
+  logs.info('Processing total stats for %s project (%s).' % (project_name,
+                                                             summary_path))
   return _coverage_information(summary_path, project_name, project_info)
 
 
 def _process_project(project_name, latest_project_info_url, bucket):
   """Collects coverage information for all fuzz targets in the given project and
   the total stats for the project."""
-  logs.log('Processing coverage for %s project.' % project_name)
+  logs.info('Processing coverage for %s project.' % project_name)
   report_info = _read_json(latest_project_info_url)
   if not report_info:
-    logs.log_warn('Skipping code coverage for %s project.' % project_name)
+    logs.warning('Skipping code coverage for %s project.' % project_name)
     return
 
   # Iterate through report_info['fuzzer_stats_dir'] and prepare
@@ -120,8 +120,8 @@ def _process_project(project_name, latest_project_info_url, bucket):
     if fuzzer_stats:
       entities.append(fuzzer_stats)
 
-  logs.log('Processed coverage for %d targets in %s project.' % (len(entities),
-                                                                 project_name))
+  logs.info('Processed coverage for %d targets in %s project.' % (len(entities),
+                                                                  project_name))
 
   # Prepare CoverageInformation entity for the total project stats.
   project_stats = _process_project_stats(report_info, project_name)
@@ -146,13 +146,13 @@ def main():
   """Collects the latest code coverage stats and links to reports."""
   # The task is supposed to be super reliable and never fail. If anything goes
   # wrong, we just fail with the exception going straight into StackDriver.
-  logs.log('FuzzerCoverage task started.')
+  logs.info('FuzzerCoverage task started.')
   bucket = local_config.ProjectConfig().get('coverage.reports.bucket')
   if not bucket:
-    logs.log_error(
+    logs.error(
         'Coverage bucket is not specified. Skipping FuzzerCoverage task.')
     return False
 
   collect_fuzzer_coverage(bucket)
-  logs.log('FuzzerCoverage task finished successfully.')
+  logs.info('FuzzerCoverage task finished successfully.')
   return True

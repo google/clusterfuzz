@@ -80,10 +80,9 @@ def _handle_rsync_result(gsutil_result, max_errors):
   if gsutil_result.return_code == 0:
     sync_succeeded = True
   else:
-    logs.log_warn(
-        'gsutil rsync got non-zero:\n'
-        'Command: %s\n'
-        'Output: %s\n' % (gsutil_result.command, gsutil_result.output))
+    logs.warning('gsutil rsync got non-zero:\n'
+                 'Command: %s\n'
+                 'Output: %s\n' % (gsutil_result.command, gsutil_result.output))
     sync_succeeded = _rsync_errors_below_threshold(gsutil_result, max_errors)
 
   return sync_succeeded and not gsutil_result.timed_out
@@ -120,7 +119,7 @@ def legalize_filenames(file_paths):
     except OSError:
       failed_to_move_files.append((file_path, new_file_path))
   if failed_to_move_files:
-    logs.log_error(
+    logs.error(
         'Failed to rename files.', failed_to_move_files=failed_to_move_files)
 
   return legally_named
@@ -321,8 +320,8 @@ class FuzzTargetCorpus(GcsCorpus):
 
     num_files = _count_corpus_files(directory)
     if self._log_results:
-      logs.log('%d corpus files uploaded for %s.' %
-               (num_files, self._project_qualified_target_name))
+      logs.info('%d corpus files uploaded for %s.' %
+                (num_files, self._project_qualified_target_name))
 
     return result
 
@@ -354,8 +353,8 @@ class FuzzTargetCorpus(GcsCorpus):
 
     num_files = _count_corpus_files(directory)
     if self._log_results:
-      logs.log('%d corpus files downloaded for %s.' %
-               (num_files, self._project_qualified_target_name))
+      logs.info('%d corpus files downloaded for %s.' %
+                (num_files, self._project_qualified_target_name))
 
     return result
 
@@ -405,7 +404,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       urls_to_delete.append(self._filenames_to_delete_urls_mapping[filename])
 
     storage.delete_signed_urls(urls_to_delete)
-    logs.log(f'{results.count(True)} corpus files uploaded.')
+    logs.info(f'{results.count(True)} corpus files uploaded.')
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
@@ -422,7 +421,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
                                 regressions_dir)
 
     num_files = _count_corpus_files(directory)
-    logs.log(f'{num_files} corpus files downloaded.')
+    logs.info(f'{num_files} corpus files downloaded.')
     return True
 
   def _sync_corpus_to_disk(self, corpus, directory):
@@ -442,9 +441,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     del timeout
     num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
     if len(file_paths) > num_upload_urls:
-      logs.log_error(
-          f'Cannot upload {len(file_paths)} filepaths, only have '
-          f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
+      logs.error(f'Cannot upload {len(file_paths)} filepaths, only have '
+                 f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
       file_paths = file_paths[:num_upload_urls]
 
     results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
@@ -485,9 +483,9 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
   Returns:
     The backup GCS url, or None on failure.
   """
-  logs.log(f'Backing up corpus {corpus} {directory}')
+  logs.info(f'Backing up corpus {corpus} {directory}')
   if not dated_backup_signed_url:
-    logs.log('No backup url provided, skipping corpus backup.')
+    logs.info('No backup url provided, skipping corpus backup.')
     return False
 
   timestamp = str(utils.utcnow().date())
@@ -506,7 +504,7 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
         return False
   except Exception as ex:
     backup_succeeded = False
-    logs.log_error(
+    logs.error(
         f'backup_corpus failed: {ex}\n',
         directory=directory,
         backup_archive_path=backup_archive_path)

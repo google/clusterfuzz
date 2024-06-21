@@ -150,7 +150,7 @@ def copy_directory_to_worker(host_directory, worker_directory, replace=False):
       worker_file_path = os.path.join(
           worker_directory, os.path.relpath(file_path, host_directory))
       if not copy_file_to_worker(file_path, worker_file_path):
-        logs.log_warn('Failed to copy %s to worker.' % file_path)
+        logs.warning('Failed to copy %s to worker.' % file_path)
         return False
 
   return True
@@ -172,7 +172,7 @@ def copy_directory_from_worker(worker_directory, host_directory, replace=False):
     # Be careful with the path provided by the worker here. We want to make sure
     # we're only writing files to |host_directory| and not outside it.
     if not is_directory_parent(host_file_path, host_directory):
-      logs.log_warn('copy_directory_from_worker: Attempt to escape |host_dir|.')
+      logs.warning('copy_directory_from_worker: Attempt to escape |host_dir|.')
       return False
 
     host_file_directory = os.path.dirname(host_file_path)
@@ -180,7 +180,7 @@ def copy_directory_from_worker(worker_directory, host_directory, replace=False):
       os.makedirs(host_file_directory)
 
     if not copy_file_from_worker(worker_file_path, host_file_path):
-      logs.log_warn('Failed to copy %s from worker.' % worker_file_path)
+      logs.warning('Failed to copy %s from worker.' % worker_file_path)
       return False
 
   return True

@@ -73,7 +73,7 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.'
         'symbolize_stacktrace',
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
     os.environ['JOB_NAME'] = TEST_JOB_NAME
 

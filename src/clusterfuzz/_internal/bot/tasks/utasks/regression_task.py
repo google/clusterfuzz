@@ -117,7 +117,7 @@ def _testcase_reproduces_in_revision(
     log_message = 'Testing r%d' % revision
     if min_revision is not None and max_revision is not None:
       log_message += ' (current range %d:%d)' % (min_revision, max_revision)
-    logs.log(log_message)
+    logs.info(log_message)
 
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
@@ -131,7 +131,7 @@ def _testcase_reproduces_in_revision(
   regression_task_output.build_data_list.append(build_data)
   if build_data.is_bad_build:
     error_message = f'Bad build at r{revision}. Skipping'
-    logs.log_error(error_message)
+    logs.error(error_message)
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         regression_task_output=regression_task_output,
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR)  # pylint: disable=no-member
@@ -227,7 +227,7 @@ def found_regression_near_extreme_revisions(
   # builds near the min revision, and they were all bad.
   error_message = ('Tried too many builds near the min revision, and they were'
                    f' all bad. Bad build at r{revision_list[min_index]}')
-  logs.log_error(error_message)
+  logs.error(error_message)
   return uworker_msg_pb2.Output(  # pylint: disable=no-member
       regression_task_output=regression_task_output,
       error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)  # pylint: disable=no-member
@@ -422,7 +422,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if testcase.regression:
-    logs.log_error(
+    logs.error(
         f'Regression range is already set as {testcase.regression}, skip.')
     return None
 

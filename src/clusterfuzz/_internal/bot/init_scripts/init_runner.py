@@ -53,4 +53,4 @@ def run():
         testcase_run=False,
         ignore_children=True)
   except Exception:
-    logs.log_error('Failed to execute platform initialization script.')
+    logs.error('Failed to execute platform initialization script.')

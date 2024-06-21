@@ -77,8 +77,8 @@ def update_mappings_for_job(job, mappings):
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_name).get()
     if not fuzzer:
-      logs.log_error('An unknown fuzzer %s was selected for job %s.' %
-                     (fuzzer_name, job.name))
+      logs.error('An unknown fuzzer %s was selected for job %s.' % (fuzzer_name,
+                                                                    job.name))
       continue
 
     fuzzer.jobs.append(job.name)
@@ -162,8 +162,8 @@ def get_fuzz_target_weights():
   weights = {}
   for fuzz_target, target_job in zip(fuzz_targets, target_jobs):
     if not fuzz_target:
-      logs.log_error('Skipping weight assignment for fuzz target '
-                     f'{target_job.fuzz_target_name}.')
+      logs.error('Skipping weight assignment for fuzz target '
+                 f'{target_job.fuzz_target_name}.')
       continue
 
     weights[fuzz_target.binary] = target_job.weight

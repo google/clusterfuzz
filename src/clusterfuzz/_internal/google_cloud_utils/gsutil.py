@@ -43,8 +43,8 @@ def _get_gsutil_path():
     if gsutil_absolute_path:
       return gsutil_absolute_path
 
-    logs.log_error('Cannot locate gsutil in PATH, set GSUTIL_PATH to directory '
-                   'containing gsutil binary.')
+    logs.error('Cannot locate gsutil in PATH, set GSUTIL_PATH to directory '
+               'containing gsutil binary.')
     return None
 
   gsutil_absolute_path = os.path.join(gsutil_directory, gsutil_executable)
@@ -143,9 +143,9 @@ class GSUtilRunner:
     command = ['cp', _filter_path(gcs_url), file_path]
     result = self.run_gsutil(command, timeout=timeout)
     if result.return_code:
-      logs.log_error('GSUtilRunner.download_file failed:\nCommand: %s\n'
-                     'Url: %s\n'
-                     'Output %s' % (result.command, gcs_url, result.output))
+      logs.error('GSUtilRunner.download_file failed:\nCommand: %s\n'
+                 'Url: %s\n'
+                 'Output %s' % (result.command, gcs_url, result.output))
 
     return result.return_code == 0
 
@@ -173,9 +173,9 @@ class GSUtilRunner:
 
     # Check result of command execution, log output if command failed.
     if result.return_code:
-      logs.log_error('GSUtilRunner.upload_file failed:\nCommand: %s\n'
-                     'Filename: %s\n'
-                     'Output: %s' % (result.command, file_path, result.output))
+      logs.error('GSUtilRunner.upload_file failed:\nCommand: %s\n'
+                 'Filename: %s\n'
+                 'Output: %s' % (result.command, file_path, result.output))
 
     return result.return_code == 0
 
@@ -204,7 +204,7 @@ class GSUtilRunner:
 
     # Check result of command execution, log output if command failed.
     if result.return_code:
-      logs.log_error(
+      logs.error(
           'GSUtilRunner.upload_files_to_url failed:\nCommand: %s\n'
           'Filenames:%s\n'
           'Output: %s' % (result.command, filenames_buffer, result.output))

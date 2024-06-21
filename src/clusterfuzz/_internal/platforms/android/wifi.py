@@ -80,7 +80,7 @@ def configure(force_enable=False):
   else:
     config = db_config.get()
     if not config.wifi_ssid:
-      logs.log('No wifi ssid is set, skipping wifi config.')
+      logs.info('No wifi ssid is set, skipping wifi config.')
       return
     wifi_ssid = config.wifi_ssid
     wifi_password = config.wifi_password or ''
@@ -97,4 +97,4 @@ def configure(force_enable=False):
           password=shlex.quote(wifi_password),
           call_path=WIFI_UTIL_CALL_PATH))
   if 'result=true' not in output:
-    logs.log_warn('Failed to connect to wifi.', output=output)
+    logs.warning('Failed to connect to wifi.', output=output)

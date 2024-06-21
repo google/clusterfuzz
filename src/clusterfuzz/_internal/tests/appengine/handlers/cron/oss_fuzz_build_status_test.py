@@ -68,7 +68,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'clusterfuzz._internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker',
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
         'requests.get',
     ])
 
@@ -510,7 +510,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.mock.get.side_effect = _mock_requests_get
     oss_fuzz_build_status.main()
-    self.mock.log_error.assert_has_calls([
+    self.mock.error.assert_has_calls([
         mock.call('proj0 has not been built in fuzzing config for 2 days.'),
         mock.call('proj1 has not been built in coverage config for 2 days.')
     ])

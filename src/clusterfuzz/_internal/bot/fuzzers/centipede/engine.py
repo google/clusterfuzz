@@ -136,7 +136,7 @@ class Engine(engine.Engine):
     if target_binaries.unsanitized is None:
       # Assuming the only binary is always sanitized (e.g., from Chrome).
       arguments[constants.BINARY_FLAGNAME] = str(target_binaries.sanitized)
-      logs.log_warn('Unable to find unsanitized target binary.')
+      logs.warning('Unable to find unsanitized target binary.')
     else:
       arguments[constants.BINARY_FLAGNAME] = str(target_binaries.unsanitized)
       arguments[constants.EXTRA_BINARIES_FLAGNAME] = str(
@@ -320,7 +320,7 @@ class Engine(engine.Engine):
     max_time -= result.time_executed
 
     if result.timed_out or max_time < 0:
-      logs.log_warn(
+      logs.warning(
           ('Corpus minimization timed out: Failed to generate Centipede corpus '
            'file'),
           fuzzer_output=result.output)
@@ -336,7 +336,7 @@ class Engine(engine.Engine):
     max_time -= result.time_executed
 
     if result.timed_out or max_time < 0:
-      logs.log_warn(
+      logs.warning(
           'Corpus minimization timed out: Failed to distill',
           fuzzer_output=result.output)
       raise TimeoutError('Minimization corpus timed out.')
@@ -357,7 +357,7 @@ class Engine(engine.Engine):
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
 
     if result.timed_out or max_time < 0:
-      logs.log_warn(
+      logs.warning(
           ('Corpus minimization timed out: Failed to generate output corpus '
            'files'),
           fuzzer_output=result.output)
@@ -378,11 +378,11 @@ class Engine(engine.Engine):
   def _get_smallest_crasher(self, workdir_path):
     """Returns the path to the smallest crash in Centipede's |workdir_path|."""
     if not os.path.isdir(workdir_path):
-      logs.log_error(f'Work directory does not exist: {workdir_path}')
+      logs.error(f'Work directory does not exist: {workdir_path}')
       return None
     crashes_path = os.path.join(workdir_path, 'crashes')
     if not os.path.isdir(crashes_path):
-      logs.log_error(f'Crashes directory does not exist: {crashes_path}')
+      logs.error(f'Crashes directory does not exist: {crashes_path}')
       return None
 
     testcases = [
@@ -391,7 +391,7 @@ class Engine(engine.Engine):
         if os.path.isfile(os.path.join(crashes_path, t))
     ]
     if not testcases:
-      logs.log_error(f'No crash testcases under: {crashes_path}')
+      logs.error(f'No crash testcases under: {crashes_path}')
       return None
 
     minimum_testcase = min(testcases, key=os.path.getsize)
@@ -422,7 +422,7 @@ class Engine(engine.Engine):
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     if result.timed_out:
-      logs.log_warn(
+      logs.warning(
           'Testcase minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
     minimum_testcase = self._get_smallest_crasher(workdir)

@@ -88,13 +88,13 @@ def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
   from clusterfuzz._internal.google_cloud_utils import batch
 
-  logs.log('Attempting to combine batch tasks.')
+  logs.info('Attempting to combine batch tasks.')
   utask_mains = taskslib.get_utask_mains()
   if not utask_mains:
-    logs.log('No utask mains.')
+    logs.info('No utask mains.')
     return
 
-  logs.log(f'Combining {len(utask_mains)} batch tasks.')
+  logs.info(f'Combining {len(utask_mains)} batch tasks.')
 
   batch_tasks = []
   with lease_all_tasks(utask_mains):
@@ -148,18 +148,18 @@ def task_loop():
       exception_occurred = True
       clean_exit = e.code == 0
       if not clean_exit and not isinstance(e, untrusted.HostError):
-        logs.log_error('SystemExit occurred while working on task.')
+        logs.error('SystemExit occurred while working on task.')
 
       stacktrace = traceback.format_exc()
     except commands.AlreadyRunningError:
       exception_occurred = False
     except task_utils.UworkerMsgParseError:
-      logs.log_error('Task cannot be retried because of utask parse error.')
+      logs.error('Task cannot be retried because of utask parse error.')
       task.dont_retry()
       exception_occurred = True
       stacktrace = traceback.format_exc()
     except Exception:
-      logs.log_error('Error occurred while working on task.')
+      logs.error('Error occurred while working on task.')
       exception_occurred = True
       stacktrace = traceback.format_exc()
 
@@ -224,14 +224,14 @@ def main():
     if should_terminate:
       return
 
-    logs.log_error(
+    logs.error(
         'Task exited with exception (payload="%s").' % task_payload,
         error_stacktrace=error_stacktrace)
 
     should_hang = errors.error_in_list(error_stacktrace,
                                        errors.BOT_ERROR_HANG_LIST)
     if should_hang:
-      logs.log('Start hanging forever.')
+      logs.info('Start hanging forever.')
       while True:
         # Sleep to avoid consuming 100% of CPU.
         time.sleep(60)

@@ -64,7 +64,7 @@ class BaseUTask(BaseTask):
     if uworker_output is None:
       return
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
-    logs.log('Utask local: done.')
+    logs.info('Utask local: done.')
 
   def preprocess(self, task_argument, job_type, uworker_env):
     """Executes preprocessing."""
@@ -120,33 +120,33 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask."""
-    logs.log('Executing utask.')
+    logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
     if not (self.is_execution_remote() and
             batch.is_remote_task(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
-    logs.log('Preprocessing utask.')
+    logs.info('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)
     if download_url is None:
       return
 
-    logs.log('Queueing utask for remote execution.', download_url=download_url)
+    logs.info('Queueing utask for remote execution.', download_url=download_url)
     tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,
                                        uworker_env)
     if not result:
-      logs.log_error('Nothing returned from preprocess.')
+      logs.error('Nothing returned from preprocess.')
       return None
 
     download_url, _ = result
     if not download_url:
-      logs.log_error('No download_url returned from preprocess.')
+      logs.error('No download_url returned from preprocess.')
       return None
-    logs.log('Utask: done with preprocess.')
+    logs.info('Utask: done with preprocess.')
     return download_url
 
 

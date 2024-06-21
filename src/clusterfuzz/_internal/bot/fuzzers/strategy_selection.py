@@ -93,8 +93,8 @@ def generate_default_strategy_pool(strategy_list, use_generator):
     if do_strategy(value):
       pool.add_strategy(value)
 
-  logs.log('Strategy pool was generated according to default parameters. '
-           'Chosen strategies: ' + ', '.join(pool.strategy_names))
+  logs.info('Strategy pool was generated according to default parameters. '
+            'Chosen strategies: ' + ', '.join(pool.strategy_names))
   return pool
 
 
@@ -127,8 +127,8 @@ def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
   ]
 
   if not distribution_tuples:
-    logs.log_warn('Tried to generate a weighted strategy pool, but do not have '
-                  'strategy probabilities for %s fuzzing engine.' % engine_name)
+    logs.warning('Tried to generate a weighted strategy pool, but do not have '
+                 'strategy probabilities for %s fuzzing engine.' % engine_name)
     return generate_default_strategy_pool(strategy_list, use_generator)
 
   strategy_selection = utils.random_weighted_choice(distribution_tuples,
@@ -151,6 +151,6 @@ def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
     if do_strategy(value):
       pool.add_strategy(value)
 
-  logs.log('Strategy pool was generated according to weighted distribution. '
-           'Chosen strategies: ' + ', '.join(pool.strategy_names))
+  logs.info('Strategy pool was generated according to weighted distribution. '
+            'Chosen strategies: ' + ', '.join(pool.strategy_names))
   return pool

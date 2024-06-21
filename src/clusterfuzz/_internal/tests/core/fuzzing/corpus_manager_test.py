@@ -399,7 +399,7 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
   def test_logs_errors(self):
     """Test that errors are logged when we fail to rename a file."""
     test_helpers.patch(
-        self, ['shutil.move', 'clusterfuzz._internal.metrics.logs.log_error'])
+        self, ['shutil.move', 'clusterfuzz._internal.metrics.logs.error'])
 
     def mock_move(*args, **kwargs):  # pylint: disable=unused-argument
       raise OSError
@@ -410,5 +410,5 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
     failed_to_move_files = [(self.FILE_PATH,
                              os.path.join(self.DIRECTORY, self.FILE_SHA1SUM))]
 
-    self.mock.log_error.assert_called_with(
+    self.mock.error.assert_called_with(
         'Failed to rename files.', failed_to_move_files=failed_to_move_files)
