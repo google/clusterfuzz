@@ -19,9 +19,8 @@ from typing import TypeVar
 import uuid
 
 from google.cloud import ndb
-from google.cloud.datastore_v1.types import entity as entity_pb2
+from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model
-from google.protobuf import any_pb2
 import google.protobuf.message
 
 from clusterfuzz._internal.base import task_utils
@@ -78,9 +77,9 @@ def upload_uworker_input(uworker_input: bytes, gcs_path: str):
 
 
 def deserialize_uworker_input(
-    serialized_uworker_input: bytes) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
+    serialized_uworker_input: bytes) -> uworker_msg_pb2.Input:
   """Deserializes input for the untrusted part of a task."""
-  uworker_input_proto = uworker_msg_pb2.Input()  # pylint: disable=no-member
+  uworker_input_proto = uworker_msg_pb2.Input()
   try:
     uworker_input_proto.ParseFromString(serialized_uworker_input)
   except google.protobuf.message.DecodeError:
@@ -89,13 +88,13 @@ def deserialize_uworker_input(
   return uworker_input_proto
 
 
-def serialize_uworker_input(uworker_input: uworker_msg_pb2.Input) -> bytes:  # pylint: disable=no-member
+def serialize_uworker_input(uworker_input: uworker_msg_pb2.Input) -> bytes:
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
   return uworker_input.SerializeToString()
 
 
 def serialize_and_upload_uworker_input(
-    uworker_input: uworker_msg_pb2.Input) -> Tuple[str, str]:  # pylint: disable=no-member
+    uworker_input: uworker_msg_pb2.Input) -> Tuple[str, str]:
   """Serializes input for the untrusted portion of a task."""
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
@@ -114,7 +113,7 @@ def serialize_and_upload_uworker_input(
 
 
 def download_and_deserialize_uworker_input(
-    uworker_input_download_url: str) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
+    uworker_input_download_url: str) -> uworker_msg_pb2.Input:
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
@@ -122,14 +121,14 @@ def download_and_deserialize_uworker_input(
 
 
 def serialize_uworker_output(
-    uworker_output_obj: uworker_msg_pb2.Output) -> bytes:  # pylint: disable=no-member
+    uworker_output_obj: uworker_msg_pb2.Output) -> bytes:
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
   return uworker_output_obj.SerializeToString()
 
 
-def deserialize_uworker_output(serialized: bytes) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
-  output = uworker_msg_pb2.Output()  # pylint: disable=no-member
+def deserialize_uworker_output(serialized: bytes) -> uworker_msg_pb2.Output:
+  output = uworker_msg_pb2.Output()
   try:
     output.ParseFromString(serialized)
   except google.protobuf.message.DecodeError:
@@ -138,16 +137,15 @@ def deserialize_uworker_output(serialized: bytes) -> uworker_msg_pb2.Output:  # 
   return output
 
 
-def serialize_and_upload_uworker_output(
-    uworker_output: uworker_msg_pb2.Output,  # pylint: disable=no-member
-    upload_url: str):
+def serialize_and_upload_uworker_output(uworker_output: uworker_msg_pb2.Output,
+                                        upload_url: str):
   """Serializes |uworker_output| and uploads it to |upload_url."""
   serialized_uworker_output = uworker_output.SerializeToString()
   storage.upload_signed_url(serialized_uworker_output, upload_url)
 
 
 def download_input_based_on_output_url(
-    output_url: str) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
+    output_url: str) -> uworker_msg_pb2.Input:
   input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
   if serialized_uworker_input is None:
@@ -156,7 +154,7 @@ def download_input_based_on_output_url(
 
 
 def download_and_deserialize_uworker_output(
-    output_url: str) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
+    output_url: str) -> uworker_msg_pb2.Output:
   """Downloads and deserializes uworker output."""
   serialized_uworker_output = storage.read_data(output_url)
 
@@ -172,36 +170,22 @@ def download_and_deserialize_uworker_output(
 
 def entity_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
   """Helper function to convert entity to protobuf format."""
-  #_entity_to_protobuf returns google.cloud.datastore_v1.types.Entity
-  ndb_proto = model._entity_to_protobuf(entity)  # pylint: disable=protected-access
-  return entity_to_any_message(ndb_proto)
-
-
-def db_entity_to_entity_message(entity):
-  any_entity_message = entity_to_any_message(entity)
-  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)  # pylint: disable=no-member
-
-
-def entity_to_any_message(entity_proto):
-  any_entity_message = any_pb2.Any()  # pylint: disable=no-member
-  any_entity_message.Pack(entity_proto._pb)  # pylint: disable=protected-access
-  return any_entity_message  # pylint: disable=protected-access
+  return model._entity_to_protobuf(entity)  # pylint: disable=protected-access
 
 
 T = TypeVar('T', bound=ndb.Model)
 
 
-def entity_from_protobuf(entity_proto: any_pb2.Any, model_type: Type[T]) -> T:  # pylint: disable=no-member
+def entity_from_protobuf(entity_proto: entity_pb2.Entity,
+                         model_type: Type[T]) -> T:
   """Converts `entity_proto` to the `ndb.Model` of type `model_type` it encodes.
 
   Raises:
     AssertionError: if `entity_proto` does not encode a model of type
     `model_type`
   """
-  entity = entity_pb2.Entity()
-  entity_proto.Unpack(entity._pb)  # pylint: disable=protected-access
-  entity = model._entity_from_protobuf(entity)  # pylint: disable=protected-access
-  assert isinstance(entity, model_type)  # pylint: disable=protected-access
+  entity = model._entity_from_protobuf(entity_proto)  # pylint: disable=protected-access
+  assert isinstance(entity, model_type)
   return entity
 
 
