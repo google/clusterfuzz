@@ -64,13 +64,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
   old_crash_stacktrace = data_handler.get_stacktrace(testcase)
-  return uworker_msg_pb2.Input(
+  return uworker_msg_pb2.Input(  # pylint: disable=no-member
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
       testcase=uworker_io.entity_to_protobuf(testcase),
-      symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(
+      symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(  # pylint: disable=no-member
           old_crash_stacktrace=old_crash_stacktrace))
 
 
@@ -179,9 +179,9 @@ def utask_main(uworker_input):
   if (not symbolized_builds or
       (not build_manager.check_app_path() and
        not build_manager.check_app_path('APP_PATH_DEBUG'))):
-    return uworker_msg_pb2.Output(
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message='Build setup failed',
-        error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
+        error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
   # Increase malloc_context_size to get all stack frames. Default is 30.
   environment.reset_current_memory_tool_options(
@@ -199,7 +199,7 @@ def utask_main(uworker_input):
       get_symbolized_stacktraces(testcase_file_path, testcase,
                                  old_crash_stacktrace, sym_crash_state))
 
-  symbolize_task_output = uworker_msg_pb2.SymbolizeTaskOutput(
+  symbolize_task_output = uworker_msg_pb2.SymbolizeTaskOutput(  # pylint: disable=no-member
       crash_type=testcase.crash_type,
       crash_address=sym_crash_address,
       crash_state=sym_crash_state,
@@ -218,7 +218,7 @@ def utask_main(uworker_input):
 
   # Cleanup symbolized builds which are space-heavy.
   symbolized_builds.delete()
-  return uworker_msg_pb2.Output(symbolize_task_output=symbolize_task_output)
+  return uworker_msg_pb2.Output(symbolize_task_output=symbolize_task_output)  # pylint: disable=no-member
 
 
 def get_symbolized_stacktraces(testcase_file_path, testcase,
@@ -308,7 +308,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:
+    uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:  # pylint: disable=no-member
         handle_build_setup_error,
 }).compose_with(
     setup.ERROR_HANDLER,
@@ -318,7 +318,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
 
