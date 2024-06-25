@@ -1,0 +1,348 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This file is based on https://source.chromium.org/chromium/infra/infra/+/main:luci/appengine/swarming/proto/api_v2/swarming.proto
+// This includes necessary messages to construct a NewTaskRequest
+syntax = "proto3";
+
+package swarming.v2;
+
+// Messages
+
+// Represents a mapping of string to a string.
+//
+// If the StringPair is itself repeated inside another message, the list
+// must be sorted by key and the keys must be unique. 
+message StringPair {
+  string key = 1;
+  string value = 2;
+}
+
+// Represents a mapping of string to a list of strings.
+//
+// If the StringListPair is itself repeated inside another message, the list
+// must be sorted by key and the keys must be unique.
+message StringListPair {
+  string key = 1;
+  // All the values for this key. values must be sorted. Human readable.
+  //
+  // This string should make sense to a user in the context of 'key'.
+  repeated string value = 2;
+}
+
+// This is a [Digest][build.bazel.remote.execution.v2.Digest] of a blob on
+// RBE-CAS. See the explanations at the original definition.
+// pylint: disable=line-too-long
+// https://github.com/bazelbuild/remote-apis/blob/77cfb44a88577a7ade5dd2400425f6d50469ec6d/build/bazel/remote/execution/v2/remote_execution.proto#L753-L791
+message Digest {
+  string hash = 1;
+  int64 size_bytes = 2;
+}
+
+message CASReference {
+  // Full name of RBE-CAS instance. `projects/{project_id}/instances/{instance}`.
+  // e.g. projects/chromium-swarm/instances/default_instance
+  string cas_instance = 1;
+  // CAS Digest consists of hash and size bytes.
+  Digest digest = 2;
+}
+
+message CipdPackage {
+  // A CIPD package to install in the run dir before task execution."""
+  // A template of a full CIPD package name, e.g.
+  // "infra/tools/authutil/${platform}"
+  // See also cipd.ALL_PARAMS.
+  string package_name = 1;
+  // Valid package version for all packages matched by package name.
+  string version = 2;
+  // Path to dir, relative to the root dir, where to install the package.
+  // If empty, the package will be installed a the root of the mapped directory.
+  // If file names in the package and in the isolate clash, it will cause a
+  // failure.
+  string path = 3;
+}
+
+// Defines CIPD packages to install in task run directory.
+message CipdInput {
+  // URL of the CIPD server. Must start with "https://" or "http://".
+  // This field or its subfields are optional if default cipd client is defined
+  // in the server config.
+  string server = 1;
+
+  // CIPD package of CIPD client to use.
+  // client_package.version is required.
+  // This field is optional is default value is defined in the server config.
+  // client_package.path must be empty.
+  CipdPackage client_package = 2;
+
+  // List of CIPD packages to install.
+  repeated CipdPackage packages = 3;
+}
+
+// Describes a named cache that should be present on the bot.
+//
+// A CacheEntry in a task specified that the task prefers the cache to be present
+// on the bot. A symlink to the cache directory is created at <run_dir>/|path|.
+// If cache is not present on the machine, the directory is empty.
+// If the tasks makes any changes to the contents of the cache directory, they
+// are persisted on the machine. If another task runs on the same machine and
+// requests the same named cache, even if mapped to a different path, it will see
+// the changes.
+message CacheEntry {
+  // Unique name of the cache. Required. Length is limited to 4096.
+  string name = 1;
+  // Relative path to the directory that will be linked to the named cache.
+  // Required.
+  // A path cannot be shared among multiple caches or CIPD installations.
+  // A task will fail if a file/dir with the same name already exists.
+  string path = 2;
+}
+
+// Defines the type of "sandbox" to run the task process in.
+//
+// Unimplemented.
+message Containment {
+  enum ContainmentType {
+    // Historical value, not specified. Containment may or may not be used.
+    NOT_SPECIFIED = 0;
+    // No containment, the default for now.
+    NONE = 1;
+    // Use the containment appropriate on the platform.
+    AUTO = 2;
+    // Use Job Object on Windows. Will fail if used on other platforms.
+    JOB_OBJECT = 3;
+  }
+
+  // Lowers the priority of the task process when started. Doesn't require
+  // containment. This gives the bot a chance to survive when the task starts an
+  // overwhelming number of children processes.
+  bool lower_priority = 1;
+
+  // Defines the type of containment used.
+  ContainmentType containment_type = 2;
+
+  // The values below require a form of containment to be enforced.
+
+  // Limits the number of concurrent active processes.
+  int64 limit_processes = 3;
+  // Limits the total amount of memory allocated by processes.
+  int64 limit_total_committed_memory = 4;
+}
+
+// Important metadata about a particular task.
+message TaskProperties {
+  // Specifies named caches to map into the working directory. These caches
+  // outlives the task, which can then be reused by tasks later used on this bot
+  // that request the same named cache.
+  repeated CacheEntry caches = 1;
+  // CIPD packages to install. These packages are meant to be software that is
+  // needed (a dependency) to the task being run. Unlike isolated files, the CIPD
+  // packages do not expire from the server.
+  CipdInput cipd_input = 2;
+  // Command to run. This has priority over a command specified in the isolated
+  // files.
+  repeated string command = 3;
+  // Relative working directory to start the 'command' in, defaults to the root
+  // mapped directory or what is provided in the isolated file, if any.
+  string relative_cwd = 4;
+  // Dimensions are what is used to determine which bot can run the task. The
+  // bot must have all the matching dimensions, even for repeated keys with
+  // multiple different values. It is a logical AND, all values must match.
+  //
+  // It should have been a StringListPair but this would be a breaking change.
+  repeated StringPair dimensions = 5;
+  // Environment variables to set when running the task.
+  repeated StringPair env = 6;
+  // Swarming-root relative paths to prepend to a given environment variable.
+  //
+  // These allow you to put certain subdirectories of the task into PATH,
+  // PYTHONPATH, or other PATH-like environment variables. The order of
+  // operations is:
+  //   * Turn slashes into native-platform slashes.
+  //   * Make the path absolute
+  //   * Prepend it to the current value of the envvar using the os-native list
+  //     separator (i.e. `;` on windows, `:` on POSIX).
+  //
+  // Each envvar can have multiple paths to prepend. They will be prepended in
+  // the order seen here.
+  //
+  // For example, if env_prefixes was:
+  //   [("PATH", ["foo", "bar"]),
+  //    ("CUSTOMPATH", ["custom"])]
+  //
+  // The task would see:
+  //   PATH=/path/to/swarming/rundir/foo:/path/to/swarming/rundir/bar:$PATH
+  //   CUSTOMPATH=/path/to/swarming/rundir/custom
+  //
+  // The path should always be specified here with forward-slashes, and it must
+  // not attempt to escape the swarming root (i.e. must not contain `..`).
+  //
+  // These are applied AFTER evaluating `env` entries.
+  repeated StringListPair env_prefixes = 7;
+  // Maximum number of seconds the task can run before its process is forcibly
+  // terminated and the task results in TIMED_OUT.
+  int32 execution_timeout_secs = 8;
+  // Number of second to give the child process after a SIGTERM before sending a
+  // SIGKILL. See doc/Bot.md#timeout-handling
+  int32 grace_period_secs = 9;
+  // True if the task does not access any service through the network and is
+  // believed to be 100% reproducible with the same outcome. In the case of a
+  // successful task, previous results will be reused if possible.
+  bool idempotent = 10;
+  // Digest of the input root uploaded to RBE-CAS.
+  // This MUST be digest of [build.bazel.remote.execution.v2.Directory].
+  CASReference cas_input_root = 11;
+  // Maximum number of seconds the task may be silent (no output to stdout nor
+  // stderr) before it is considered hung and it forcibly terminated early and
+  // the task results in TIMED_OUT.
+  int32 io_timeout_secs = 12;
+  // Paths in the working directory to archive back.
+  repeated string outputs = 13;
+  // Secret bytes to provide to the task. Cannot be retrieved back.
+  bytes secret_bytes = 14;
+  // Containment of the task processes.
+  Containment containment = 15;
+}
+
+// Defines a possible task execution for a task request to be run on the
+// Swarming infrastructure.
+//
+// This is one of the possible fallback on a task request.
+message TaskSlice {
+  // The property of the task to try to run.
+  //
+  // If there is no bot that can serve this properties.dimensions when this task
+  // slice is enqueued, it is immediately denied. This can trigger if:
+  // - There is no bot with these dimensions currently known.
+  // - Bots that could run this task are either all dead or quarantined.
+  // Swarming considers a bot dead if it hasn't pinged in the last N minutes
+  // (currently 10 minutes).
+  TaskProperties properties = 1;
+  // Maximum of seconds the task slice may stay PENDING.
+  //
+  // If this task request slice is not scheduled after waiting this long, the
+  // next one will be processed. If this slice is the last one, the task state
+  // will be set to EXPIRED.
+  int32 expiration_secs = 2;
+  // When a task is scheduled and there are currently no bots available to run
+  // the task, the TaskSlice can either be PENDING, or be denied immediately.
+  // When denied, the next TaskSlice is enqueued, and if there's no following
+  // TaskSlice, the task state is set to NO_RESOURCE. This should normally be
+  // set to False to avoid unnecessary waiting.
+  bool wait_for_capacity = 3;
+}
+
+// Swarming:ResultDB integration configuration for a task.
+// See NewTaskRequest.resultdb for more details.
+message ResultDBCfg {
+  // If True and this task is not deduplicated, create
+  // "task-{swarming_hostname}-{run_id}" invocation for this task,
+  // provide its update token to the task subprocess via LUCI_CONTEXT
+  // and finalize the invocation when the task is done.
+  // If the task is deduplicated, then TaskResult.invocation_name will be the
+  // invocation name of the original task.
+  // Swarming:ResultDB integration is off by default, but it may change in the
+  // future.
+  bool enable = 1;
+}
+
+// Description of a new task request as described by the client.
+// This message is used to create a new task.
+message NewTaskRequest {
+  // DEPRECATED. Use task_slices[0].expiration_secs.
+  int32 expiration_secs = 1;
+  // Task name for display purpose.
+  string name = 2;
+  // Parent Swarming run ID of the process requesting this task. This is to tell
+  // the server about reentrancy: when a task creates children Swarming tasks, so
+  // that the tree of tasks can be presented in the UI; the parent task will list
+  // all the children tasks that were triggered.
+  string parent_task_id = 3;
+  // Task priority, the lower the more important.
+  int32 priority = 4;
+  // DEPRECATED. Use task_slices[0].properties.
+  TaskProperties properties = 5;
+  // Slice of TaskSlice, along their scheduling parameters. Cannot be used at the
+  // same time as properties and expiration_secs.
+  //
+  // This defines all the various possible task execution for a task request to
+  // be run on the Swarming infrastructure. They are processed in order, and it
+  // is guaranteed that at most one of these will be processed.
+  repeated TaskSlice task_slices = 6;
+  // Tags are 'key:value' strings that describes what the task is about. This can
+  // later be leveraged to search for kinds of tasks per tag.
+  repeated string tags = 7;
+  // User on which behalf this task is run, if relevant. Not validated.
+  string user = 8;
+
+  // Defines what OAuth2 credentials the task uses when calling other services.
+  //
+  // Possible values are:
+  //   - 'none': do not use a task service account at all, this is the default.
+  //   - 'bot': use bot's own account, works only if bots authenticate with
+  //       OAuth2.
+  //   - <some email>: use this specific service account if it is allowed in the
+  //       pool (via 'allowed_service_account' pools.cfg setting) and configured
+  //       in the token server's service_accounts.cfg.
+  //
+  // Note that the service account name is specified outside of task properties,
+  // and thus it is possible to have two tasks with different service accounts,
+  // but identical properties hash (so one can be deduped). If this is unsuitable
+  // use 'idempotent=False' or include a service account name in properties
+  // separately.
+  string service_account = 9;
+
+  // Full topic name to post task state updates to, e.g.
+  // "projects/<id>/topics/<id>".
+  string pubsub_topic = 10;
+  // Secret string to put into "auth_token" attribute of PubSub message.
+  string pubsub_auth_token = 11;
+  // Will be but into "userdata" fields of PubSub message.
+  string pubsub_userdata = 12;
+
+  // Only evaluate the task, as if we were going to schedule it, but don't
+  // actually schedule it. This will return the TaskRequest, but without
+  // a task_id.
+  bool evaluate_only = 13;
+
+  // Controls the application of the pool's TaskTemplate to the creation of this
+  // task. By default this will automatically select the pool's preference for
+  // template, but you can also instruct swarming to prefer/prevent the
+  // application of canary templates, as well as skipping the template
+  // altogether.
+  enum PoolTaskTemplateField {
+    AUTO = 0;
+    CANARY_PREFER = 1;
+    CANARY_NEVER = 2;
+    SKIP = 3;
+  }
+  PoolTaskTemplateField pool_task_template = 14;
+
+  // Maximum delay between bot pings before the bot is considered dead
+  // while running a task.
+  int32 bot_ping_tolerance_secs = 15;
+
+  // This is used to make new task request idempotent in best effort.
+  // If new request has request_uuid field, it checks memcache before scheduling
+  // actual task to check there is already the task triggered by same request
+  // previously.
+  string request_uuid = 16;
+
+  // Configuration of Swarming:ResultDB integration.
+  ResultDBCfg resultdb = 17;
+
+  // Task realm.
+  // See api/swarming.proto for more details.
+  string realm = 18;
+}
