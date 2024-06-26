@@ -251,6 +251,10 @@ def update_source_code():
 
     try:
       # Make sure we can override files without prior write permission
+      extracted_path = reader.extract(
+          file.name, cf_source_root_parent_dir, trusted=True)
+      os.chmod(extracted_path, 0o755)
+    except PermissionError:
       os.chmod(absolute_filepath, 0o755)
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
