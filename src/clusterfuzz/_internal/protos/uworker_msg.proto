@@ -14,11 +14,11 @@
 
 syntax = "proto3";
 
-import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 message SetupInput {
-  optional google.datastore.v1.Entity fuzzer = 1;
+  optional google.protobuf.Any fuzzer = 1;
   optional string fuzzer_name = 2;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
@@ -40,13 +40,13 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
   // TODO(metzman): Merge this with input's fuzz_target.
-  optional google.datastore.v1.Entity fuzz_target = 4;
+  optional google.protobuf.Any fuzz_target = 4;
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
 }
 
 message DataBundleCorpus {
-  optional google.datastore.v1.Entity data_bundle = 1;
+  optional google.protobuf.Any data_bundle = 1;
   optional string gcs_url = 2;
   repeated string corpus_urls = 3;
 }
@@ -86,14 +86,14 @@ message ProgressionTaskInput {
 }
 
 message CrossPollinateFuzzerProto{
-  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional google.protobuf.Any fuzz_target = 1;
   optional string backup_bucket_name = 2;
   optional string corpus_engine_name = 3;
 }
 
 message CorpusPruningTaskInput {
   // TODO(metzman): Merge this with Input's fuzz_target.
-  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional google.protobuf.Any fuzz_target = 1;
   optional bool last_execution_failed = 2;
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
   optional FuzzTargetCorpus corpus = 4;
@@ -108,8 +108,8 @@ message CorpusPruningTaskInput {
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
-  optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  optional google.protobuf.Any testcase = 1;
+  optional google.protobuf.Any testcase_upload_metadata = 2;
   optional string testcase_id = 3;
   map<string, string> uworker_env = 4;
   optional string job_type = 6;
@@ -128,7 +128,7 @@ message Input {
   optional string module_name = 18;
   optional google.protobuf.Timestamp preprocess_start_time = 19;
   repeated string global_blacklisted_functions = 20;
-  optional google.datastore.v1.Entity fuzz_target = 21;
+  optional google.protobuf.Any fuzz_target = 21;
 }
 
 message VariantTaskInput {
