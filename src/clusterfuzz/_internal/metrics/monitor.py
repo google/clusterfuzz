@@ -96,20 +96,20 @@ class _FlusherThread(threading.Thread):
         time_series = []
         end_time = time.time()
         for metric, labels, start_time, value in _metrics_store.iter_values():
-          if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE
-             ):  # pylint: disable=no-member
+          if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+             ):
             start_time = end_time
 
-          series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
+          series = monitoring_v3.types.metric.TimeSeries()  # pylint: disable=no-member
           logs.log(f'monitor iter: {metric}, {start_time}, {self}, '
                    f'{metric.metric_kind}, {end_time}')
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           # Log the TimeSeries object details for debug purposes.
-          metric_st_sec = series.points[-1].interval.start_time.seconds
-          metric_st_ns = series.points[-1].interval.start_time.nanos
-          metric_et_sec = series.points[-1].interval.end_time.seconds
-          metric_et_ns = series.points[-1].interval.end_time.nanos
+          metric_st_sec = series.points[-1].interval.start_time.second
+          metric_st_ns = series.points[-1].interval.start_time.nanosecond
+          metric_et_sec = series.points[-1].interval.end_time.second
+          metric_et_ns = series.points[-1].interval.end_time.nanosecond
           logs.log(f'Monitor_TimeSeries - '
                    f'metric_kind: {series.metric_kind}, '
                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
@@ -122,12 +122,13 @@ class _FlusherThread(threading.Thread):
 
         if time_series:
           create_time_series(name=project_path, time_series=time_series)
-      except Exception:
+      except Exception as e:
         if environment.is_android():
           # FIXME: This exception is extremely common on Android. We are already
           # aware of the problem, don't make more noise about it.
           logs.log_warn('Failed to flush metrics.')
         else:
+          logs.log_error(e)
           logs.log_error('Failed to flush metrics.')
 
   def stop(self):
@@ -348,7 +349,7 @@ class _GaugeMetric(Metric):
 
   @property
   def metric_kind(self):
-    return metric_pb2.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
+    return metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
 
   @property
   def default_value(self):

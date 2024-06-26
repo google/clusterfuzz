@@ -158,7 +158,7 @@ class MonitorTest(unittest.TestCase):
     ], result.buckets)
 
 
-@unittest.skip('Skip this because it\'s only used by metzman for debugging.')
+#@unittest.skip('Skip this because it\'s only used by metzman for debugging.')
 class JonathanDebugTest(unittest.TestCase):
   """Sets up the flusher thread so we can debug it."""
 
