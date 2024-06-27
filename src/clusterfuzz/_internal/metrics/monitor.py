@@ -29,12 +29,8 @@ try:
 except (ImportError, RuntimeError):
   monitoring_v3 = None
 
-from google.api import label_pb2
-from google.api import metric_pb2
-from google.api import monitored_resource_pb2
 from google.api_core import exceptions
 from google.api_core import retry
-from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -85,7 +81,7 @@ class _FlusherThread(threading.Thread):
   def run(self):
     """Run the flusher thread."""
     create_time_series = _retry_wrap(_monitoring_v3_client.create_time_series)
-    project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
+    project_path = _monitoring_v3_client.project_path(
         utils.get_application_id())
 
     while True:
@@ -96,20 +92,18 @@ class _FlusherThread(threading.Thread):
         time_series = []
         end_time = time.time()
         for metric, labels, start_time, value in _metrics_store.iter_values():
-          if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
-             ):
+          if (metric.metric_kind ==
+              monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE):
             start_time = end_time
 
-          series = monitoring_v3.types.metric.TimeSeries()  # pylint: disable=no-member
-          logs.log(f'monitor iter: {metric}, {start_time}, {self}, '
-                   f'{metric.metric_kind}, {end_time}')
+          series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           # Log the TimeSeries object details for debug purposes.
-          metric_st_sec = series.points[-1].interval.start_time.second
-          metric_st_ns = series.points[-1].interval.start_time.nanosecond
-          metric_et_sec = series.points[-1].interval.end_time.second
-          metric_et_ns = series.points[-1].interval.end_time.nanosecond
+          metric_st_sec = series.points[-1].interval.start_time.seconds
+          metric_st_ns = series.points[-1].interval.start_time.nanos
+          metric_et_sec = series.points[-1].interval.end_time.seconds
+          metric_et_ns = series.points[-1].interval.end_time.nanos
           logs.log(f'Monitor_TimeSeries - '
                    f'metric_kind: {series.metric_kind}, '
                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
@@ -117,18 +111,17 @@ class _FlusherThread(threading.Thread):
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-            create_time_series(name=project_path, time_series=time_series)
+            create_time_series(project_path, time_series)
             time_series = []
 
         if time_series:
-          create_time_series(name=project_path, time_series=time_series)
-      except Exception as e:
+          create_time_series(project_path, time_series)
+      except Exception:
         if environment.is_android():
           # FIXME: This exception is extremely common on Android. We are already
           # aware of the problem, don't make more noise about it.
           logs.log_warn('Failed to flush metrics.')
         else:
-          logs.log_error(e)
           logs.log_error('Failed to flush metrics.')
 
   def stop(self):
@@ -213,7 +206,7 @@ class StringField(_Field):
 
   @property
   def value_type(self):
-    return label_pb2.LabelDescriptor.ValueType.STRING  # pylint: disable=no-member
+    return monitoring_v3.enums.LabelDescriptor.ValueType.STRING
 
 
 class BooleanField(_Field):
@@ -221,7 +214,7 @@ class BooleanField(_Field):
 
   @property
   def value_type(self):
-    return label_pb2.LabelDescriptor.ValueType.BOOL  # pylint: disable=no-member
+    return monitoring_v3.enums.LabelDescriptor.ValueType.BOOL
 
 
 class IntegerField(_Field):
@@ -229,7 +222,7 @@ class IntegerField(_Field):
 
   @property
   def value_type(self):
-    return label_pb2.LabelDescriptor.ValueType.INT64  # pylint: disable=no-member
+    return monitoring_v3.enums.LabelDescriptor.ValueType.INT64
 
 
 class Metric:
@@ -301,15 +294,10 @@ class Metric:
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    interval = monitoring_v3.types.TimeInterval()
-    point = monitoring_v3.types.Point(interval=interval)
-
-    _time_to_timestamp(point.interval, 'start_time', start_time)
-    _time_to_timestamp(point.interval, 'end_time', end_time)
+    point = time_series.points.add()
+    _time_to_timestamp(point.interval.start_time, start_time)
+    _time_to_timestamp(point.interval.end_time, end_time)
     self._set_value(point.value, value)
-    # Need to do this after setting interval because the values are copied to
-    # time_series.
-    time_series.points.append(point)
 
     return time_series
 
@@ -319,11 +307,11 @@ class _CounterMetric(Metric):
 
   @property
   def value_type(self):
-    return metric_pb2.MetricDescriptor.ValueType.INT64  # pylint: disable=no-member
+    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64
 
   @property
   def metric_kind(self):
-    return metric_pb2.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
+    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE
 
   @property
   def default_value(self):
@@ -345,11 +333,11 @@ class _GaugeMetric(Metric):
 
   @property
   def value_type(self):
-    return metric_pb2.MetricDescriptor.ValueType.INT64  # pylint: disable=no-member
+    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64
 
   @property
   def metric_kind(self):
-    return metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+    return monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE
 
   @property
   def default_value(self):
@@ -460,11 +448,11 @@ class _CumulativeDistributionMetric(Metric):
 
   @property
   def value_type(self):
-    return metric_pb2.MetricDescriptor.ValueType.DISTRIBUTION  # pylint: disable=no-member
+    return monitoring_v3.enums.MetricDescriptor.ValueType.DISTRIBUTION
 
   @property
   def metric_kind(self):
-    return metric_pb2.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
+    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE
 
   @property
   def default_value(self):
@@ -516,7 +504,7 @@ def stub_unavailable(module):
 def _initialize_monitored_resource():
   """Monitored resources."""
   global _monitored_resource
-  _monitored_resource = monitored_resource_pb2.MonitoredResource()  # pylint: disable=no-member
+  _monitored_resource = monitoring_v3.types.MonitoredResource()  # pylint: disable=no-member
 
   # TODO(ochang): Use generic_node when that is available.
   _monitored_resource.type = 'gce_instance'
@@ -537,12 +525,10 @@ def _initialize_monitored_resource():
     _monitored_resource.labels['zone'] = 'us-central1-f'
 
 
-def _time_to_timestamp(interval, attr, time_seconds):
+def _time_to_timestamp(timestamp, time_seconds):
   """Convert result of time.time() to Timestamp."""
-  seconds = int(time_seconds)
-  nanos = int((time_seconds - seconds) * 10**9)
-  timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)  # pylint: disable=no-member
-  setattr(interval, attr, timestamp)
+  timestamp.seconds = int(time_seconds)
+  timestamp.nanos = int((time_seconds - timestamp.seconds) * 10**9)
 
 
 def initialize():
