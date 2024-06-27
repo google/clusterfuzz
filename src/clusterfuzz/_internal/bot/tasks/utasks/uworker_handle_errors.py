@@ -20,7 +20,7 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 
 # A handler takes an output object with its `error_type` set, and does whatever
 # it wants with it.
-ErrorHandler = Callable[[uworker_msg_pb2.Output], None]  # pylint: disable=no-member
+ErrorHandler = Callable[[uworker_msg_pb2.Output], None]
 
 # Must use string type because of protobuf enum shenanigans.
 HandlerDict = Dict['uworker_msg_pb2.ErrorType', ErrorHandler]
@@ -62,11 +62,11 @@ class CompositeErrorHandler:
 
     return self
 
-  def is_handled(self, error_type: uworker_msg_pb2.ErrorType) -> bool:  # pylint: disable=no-member
+  def is_handled(self, error_type: uworker_msg_pb2.ErrorType) -> bool:
     """Returns whether the given error type is handled by this instance."""
     return error_type in self._handlers
 
-  def handle(self, output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+  def handle(self, output: uworker_msg_pb2.Output):
     """Handles the given `output`, delegating to underlying handlers.
 
     Raises:
@@ -86,5 +86,5 @@ def noop_handler(*args, **kwargs):
 
 # A composite error handler for `UNHANDLED` errors, that ignores such errors.
 UNHANDLED_ERROR_HANDLER = CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.UNHANDLED: noop_handler,  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.UNHANDLED: noop_handler,
 })

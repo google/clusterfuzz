@@ -558,11 +558,11 @@ def _get_gcs_url(bucket_name, bucket_path, suffix=''):
 
 
 def get_proto_data_bundle_corpus(
-    data_bundle) -> uworker_msg_pb2.DataBundleCorpus:  # pylint: disable=no-member
+    data_bundle) -> uworker_msg_pb2.DataBundleCorpus:
   """Returns a data bundle corpus that can be used by uworkers or trusted
   workers to download the data bundle files using the fastest means available to
   them."""
-  data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()  # pylint: disable=no-member
+  data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()
   data_bundle_corpus.gcs_url = data_handler.get_data_bundle_bucket_url(
       data_bundle.name)
   data_bundle_corpus.data_bundle.CopyFrom(
@@ -607,7 +607,7 @@ def get_proto_corpus(bucket_name,
 
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
-  corpus = uworker_msg_pb2.Corpus(  # pylint: disable=no-member
+  corpus = uworker_msg_pb2.Corpus(
       corpus_urls=corpus_urls,
       upload_urls=upload_urls,
       gcs_url=gcs_url,
@@ -642,7 +642,7 @@ def get_fuzz_target_corpus(engine,
                            include_delete_urls=False,
                            max_upload_urls=10000):
   """Copies the corpus from gcs to disk. Can run on uworker."""
-  fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()  # pylint: disable=no-member
+  fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_target_name, quarantine)
   corpus = get_proto_corpus(

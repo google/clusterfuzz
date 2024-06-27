@@ -1126,7 +1126,7 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
 
 
 def check_for_bad_build(job_type: str,
-                        crash_revision: int) -> uworker_msg_pb2.BuildData:  # pylint: disable=no-member
+                        crash_revision: int) -> uworker_msg_pb2.BuildData:
   """
   Checks whether the target binary fails to execute at the given revision.
 
@@ -1146,7 +1146,7 @@ def check_for_bad_build(job_type: str,
   if not environment.get_value('BAD_BUILD_CHECK'):
     # should_ignore_crash_result set to True because build metadata does not
     # need to be updated in this case.
-    return uworker_msg_pb2.BuildData(  # pylint: disable=no-member
+    return uworker_msg_pb2.BuildData(
         revision=crash_revision,
         is_bad_build=False,
         should_ignore_crash_result=True,
@@ -1212,14 +1212,14 @@ def check_for_bad_build(job_type: str,
         'Bad bot environment detected, exiting.',
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
-  return uworker_msg_pb2.BuildData(  # pylint: disable=no-member
+  return uworker_msg_pb2.BuildData(
       revision=crash_revision,
       is_bad_build=is_bad_build,
       should_ignore_crash_result=crash_result.should_ignore(),
       build_run_console_output=build_run_console_output)
 
 
-def update_build_metadata(job_type: str, build_data: uworker_msg_pb2.BuildData):  # pylint: disable=no-member
+def update_build_metadata(job_type: str, build_data: uworker_msg_pb2.BuildData):
   """
   Updates the corresponding build metadata.
 

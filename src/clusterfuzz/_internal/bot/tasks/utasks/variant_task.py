@@ -74,10 +74,10 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   setup_input = setup.preprocess_setup_testcase(
       testcase, uworker_env, with_deps=False)
-  variant_input = uworker_msg_pb2.VariantTaskInput(  # pylint: disable=no-member
+  variant_input = uworker_msg_pb2.VariantTaskInput(
       original_job_type=original_job_type)
 
-  uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+  uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
       testcase=uworker_io.entity_to_protobuf(testcase),
       uworker_env=uworker_env,
@@ -112,8 +112,8 @@ def utask_main(uworker_input):
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_msg_pb2.Output(  # pylint: disable=no-member
-        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+    return uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
@@ -143,8 +143,8 @@ def utask_main(uworker_input):
         compare_crash=False)
   except testcase_manager.TargetNotFoundError:
     logs.log_warn('Could not find target in build, probably does not exist.')
-    return uworker_msg_pb2.Output(  # pylint: disable=no-member
-        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+    return uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   if result.is_crash() and not result.should_ignore():
     crash_state = result.get_state()
@@ -178,7 +178,7 @@ def utask_main(uworker_input):
     crash_stacktrace_output = 'No crash occurred.'
 
   # Regular case of variant analysis.
-  variant_task_output = uworker_msg_pb2.VariantTaskOutput()  # pylint: disable=no-member
+  variant_task_output = uworker_msg_pb2.VariantTaskOutput()
   variant_task_output.status = status
   variant_task_output.revision = int(revision)
   if crash_type is not None:
@@ -189,7 +189,7 @@ def utask_main(uworker_input):
   variant_task_output.is_similar = bool(is_similar)
   variant_task_output.platform = environment.platform().lower()
 
-  return uworker_msg_pb2.Output(  # pylint: disable=no-member
+  return uworker_msg_pb2.Output(
       variant_task_output=variant_task_output,
       crash_stacktrace_output=crash_stacktrace_output)
 
@@ -202,7 +202,7 @@ def handle_build_setup_error(output):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,
 }).compose_with(
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
     setup.ERROR_HANDLER,
@@ -211,7 +211,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
 
