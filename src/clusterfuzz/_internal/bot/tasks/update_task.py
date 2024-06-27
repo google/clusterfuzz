@@ -250,11 +250,15 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
+      # Make sure we can override files without prior write permission
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
-      mode = file.mode
-      mode |= 0o440
-      os.chmod(extracted_path, mode)
+      os.chmod(extracted_path, 0o755)
+    except PermissionError:
+      os.chmod(absolute_filepath, 0o755)
+      extracted_path = reader.extract(
+          file.name, cf_source_root_parent_dir, trusted=True)
+      os.chmod(extracted_path, 0o755)
     except:
       error_occurred = True
       logs.log_error(f'Failed to extract file {file.name} from source archive.')

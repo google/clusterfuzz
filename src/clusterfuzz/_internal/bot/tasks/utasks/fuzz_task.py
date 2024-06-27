@@ -655,11 +655,11 @@ def truncate_fuzzer_output(output, limit):
 
 
 def convert_groups_to_crashes(
-    groups: List[CrashGroup]) -> List[uworker_msg_pb2.CrashInfo]:
+    groups: List[CrashGroup]) -> List[uworker_msg_pb2.CrashInfo]:  # pylint: disable=no-member
   """Converts groups to crashes (in an array of uworker_msg_pb2.CrashInfo) for
   JobRun."""
   return [
-      uworker_msg_pb2.CrashInfo(
+      uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
           is_new=group.is_new(),
           count=len(group.crashes),
           crash_type=group.main_crash.crash_type,
@@ -669,7 +669,7 @@ def convert_groups_to_crashes(
 
 
 def convert_crashes_to_dicts(
-    crashes: List[uworker_msg_pb2.CrashInfo]) -> List[Dict[str, Any]]:
+    crashes: List[uworker_msg_pb2.CrashInfo]) -> List[Dict[str, Any]]:  # pylint: disable=no-member
   """Converts crashes to groups (in an array of dicts) for JobRun."""
   return [{
       'is_new': crash_info.is_new,
@@ -725,7 +725,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 
   logs.log('Started storing results from fuzzer run.')
 
-  fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()
+  fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()  # pylint: disable=no-member
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
       sample_testcase_file = sample_testcase_file_handle.read()
@@ -1185,7 +1185,7 @@ class FuzzingSession:
       self.fuzz_target = None
 
     self.gcs_corpus = None
-    self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
+    self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1627,8 +1627,8 @@ class FuzzingSession:
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1656,15 +1656,15 @@ class FuzzingSession:
             engine_impl.name, fuzz_target_name, self.job_type)
 
       if not self.fuzz_target:
-        return uworker_msg_pb2.Output(
+        return uworker_msg_pb2.Output(  # pylint: disable=no-member
             fuzz_task_output=self.fuzz_task_output,
-            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)
+            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)  # pylint: disable=no-member
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1686,8 +1686,8 @@ class FuzzingSession:
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
     if build_data.is_bad_build:
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
@@ -1695,8 +1695,8 @@ class FuzzingSession:
     if not self.data_directory:
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
 
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
@@ -1713,8 +1713,8 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
     logs.log('Finished processing test cases.')
 
@@ -1779,7 +1779,7 @@ class FuzzingSession:
       job_run_crashes = convert_groups_to_crashes(processed_groups)
       self.fuzz_task_output.job_run_crashes.extend(job_run_crashes)
 
-    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
+    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
@@ -1860,13 +1860,13 @@ def handle_fuzz_no_fuzz_target_selected(output):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
+    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:  # pylint: disable=no-member
         handle_fuzz_build_setup_failure,
-    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:
+    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:  # pylint: disable=no-member
         handle_fuzz_data_bundle_setup_failure,
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:  # pylint: disable=no-member
         handle_fuzz_no_fuzzer,
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:  # pylint: disable=no-member
         handle_fuzz_no_fuzz_target_selected,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
@@ -1909,7 +1909,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   fuzz_target = _preprocess_get_fuzz_target(fuzzer_name, job_type)
-  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()  # pylint: disable=no-member
   if fuzz_target:
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
@@ -1921,7 +1921,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
-  return uworker_msg_pb2.Input(
+  return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,
       fuzzer_name=fuzzer_name,
@@ -1942,7 +1942,7 @@ def save_fuzz_targets(output):
 
 
 def utask_postprocess(output):
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
 
