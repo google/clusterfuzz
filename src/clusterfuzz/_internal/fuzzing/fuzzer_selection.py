@@ -141,11 +141,14 @@ def get_fuzz_task_payload(platform=None):
   jobs_selection = environment.get_value('HOST_JOB_SELECTION')
   if jobs_selection:
     jobs = get_job_list(jobs_selection)
-    selected_mappings = [x for x in mappings if x.job in jobs]
+    selected_mappings = [entity for entity in mappings if entity.job in jobs]
   else:
     selected_mappings = mappings
 
   logs.log(f'Selected mappings: {selected_mappings}')
+
+  if not selected_mappings:
+    return None, None
 
   selection = utils.random_weighted_choice(
       selected_mappings, weight_attribute='actual_weight')
