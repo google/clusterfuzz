@@ -182,6 +182,7 @@ def get_fuzz_target_weights():
 
   return weights
 
+
 def get_job_list(jobs_str):
   if jobs_str:
     jobs_list = [job.strip() for job in jobs_str.split(",")] if jobs_str else []
