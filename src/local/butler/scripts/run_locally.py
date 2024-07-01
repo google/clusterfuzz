@@ -13,20 +13,14 @@
 # limitations under the License.
 """Build attributes of every testcase."""
 
-import datetime
-import sys
 import os
 
-from clusterfuzz._internal.base import tasks
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.system import environment
-# from local.butler.run_bot
 
-def execute(args):
+
+def execute():
   """Build keywords."""
   environment.set_bot_environment()
-  # analyze 5121608552873984
-  os.environ['USE_TEST_DEPLOYMENT']='1'
+  os.environ['USE_TEST_DEPLOYMENT'] = '1'
   update_task.update_source_code()
-  pass
