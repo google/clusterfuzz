@@ -70,8 +70,7 @@ def _get_files(path):
 def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
-            platform_name=None,
-            python3=False):
+            platform_name=None):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
@@ -96,10 +95,7 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-    if python3:
-      target_zip_name = platform_name + '-3.zip'
-    else:
-      target_zip_name = platform_name + '.zip'
+    target_zip_name = platform_name + '-3.zip'
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)
