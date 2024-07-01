@@ -136,8 +136,8 @@ def get_fuzz_task_payload(platform=None):
     return None, None
 
   logs.log(f'Mappings: {mappings}')
-  # The environment variable contains the list of jobs seperated by comma
-  # E.g: "libfuzzer_asan_android_host, afl_asan_android_host, ..."
+  # The environment variable containing a list of comma-separated jobs.
+  # E.g: "libfuzzer_asan_android_host,afl_asan_android_host,..."
   jobs_selection = environment.get_value('HOST_JOB_SELECTION')
   if jobs_selection:
     jobs = get_job_list(jobs_selection)
@@ -188,8 +188,6 @@ def get_fuzz_target_weights():
 
 def get_job_list(jobs_str):
   if jobs_str:
-    jobs_list = [job.strip() for job in jobs_str.split(",")] if jobs_str else []
-
-    return jobs_list
+    return [job.strip() for job in jobs_str.split(",")]
 
   return []
