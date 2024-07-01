@@ -37,7 +37,6 @@ from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import monitor
@@ -402,7 +401,8 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(crash.is_valid())
 
     fuzzed_key = 'fuzzed_key'
-    crash.archive_testcase_in_blobstore(uworker_msg_pb2.BlobUploadUrl(key=fuzzed_key))
+    crash.archive_testcase_in_blobstore(
+        uworker_msg_pb2.BlobUploadUrl(key=fuzzed_key))
     self.assertTrue(crash.is_archived())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
@@ -479,9 +479,8 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
     self.assertTrue(group.should_create_testcase(None))
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout,
-                                                      upload_urls)
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
 
     self.assertEqual(self.crashes[0], group.main_crash)
 
@@ -494,8 +493,8 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout, upload_urls)
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
     self.assertFalse(group.should_create_testcase(self.reproducible_testcase))
 
   def test_reproducible_crash(self):
@@ -506,8 +505,8 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout, upload_urls)
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
     self.assertTrue(group.should_create_testcase(self.unreproducible_testcase))
     self.assertFalse(group.one_time_crasher_flag)
 
@@ -522,9 +521,8 @@ class CrashGroupTest(unittest.TestCase):
     self.assertFalse(group.should_create_testcase(self.unreproducible_testcase))
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout,
-                                                      upload_urls)
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
     self.assertTrue(group.one_time_crasher_flag)
 
 
@@ -579,12 +577,17 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = [self.crashes[2]]
 
     self.assertEqual((self.crashes[2], False),
-                     fuzz_task.find_main_crash(self.crashes, 'test', 99, _get_upload_urls()))
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99,
+                                               _get_upload_urls()))
 
-    self.assertEqual(self.crashes[0].archive_testcase_in_blobstore.call_count, 1)
-    self.assertEqual(self.crashes[1].archive_testcase_in_blobstore.call_count, 1)
-    self.assertEqual(self.crashes[2].archive_testcase_in_blobstore.call_count, 1)
-    self.assertEqual(self.crashes[3].archive_testcase_in_blobstore.call_count, 0)
+    self.assertEqual(self.crashes[0].archive_testcase_in_blobstore.call_count,
+                     1)
+    self.assertEqual(self.crashes[1].archive_testcase_in_blobstore.call_count,
+                     1)
+    self.assertEqual(self.crashes[2].archive_testcase_in_blobstore.call_count,
+                     1)
+    self.assertEqual(self.crashes[3].archive_testcase_in_blobstore.call_count,
+                     0)
 
     # Calls for self.crashes[1] and self.crashes[2].
     self.assertEqual(2, self.mock.test_for_reproducibility.call_count)
@@ -596,10 +599,9 @@ class FindMainCrashTest(unittest.TestCase):
     self.crashes[0].is_valid.return_value = False
     self.reproducible_crashes = []
 
-    result = fuzz_task.find_main_crash(
-      self.crashes, 'test', 99, _get_upload_urls())
-    self.assertEqual((self.crashes[1], True),
-                     result)
+    result = fuzz_task.find_main_crash(self.crashes, 'test', 99,
+                                       _get_upload_urls())
+    self.assertEqual((self.crashes[1], True), result)
 
     # TODO(metzman): Figure out what weirdness is causing this not to work
     # properly.
@@ -616,7 +618,8 @@ class FindMainCrashTest(unittest.TestCase):
       c.is_valid.return_value = False
     self.reproducible_crashes = []
 
-    result = fuzz_task.find_main_crash(self.crashes, 'test', 99, _get_upload_urls())
+    result = fuzz_task.find_main_crash(self.crashes, 'test', 99,
+                                       _get_upload_urls())
     self.assertEqual((None, None), result)
 
     # TODO(metzman): Figure out what weirdness is causing this not to work
@@ -678,20 +681,13 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     with open('/stack_file_path', 'w') as f:
       f.write('unsym')
-
-    crash = fuzz_task.Crash.from_testcase_manager_crash(
-        testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], ['ges'],
-                               '/stack_file_path'))
-    return crash
-
     return uworker_msg_pb2.FuzzTaskCrash(
-      file_path='dir/path-http-name',
-      crash_time=123,
-      return_code=11,
-      resource_list=['res'],
-      gestures=['ges'],
-      unsymbolized_crash_stacktrace='unsym'
-      )
+        file_path='dir/path-http-name',
+        crash_time=123,
+        return_code=11,
+        resource_list=['res'],
+        gestures=['ges'],
+        unsymbolized_crash_stacktrace='unsym')
 
   def test_existing_unreproducible_testcase(self):
     """Test existing unreproducible testcase."""
@@ -734,8 +730,9 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
-            data_directory='/data',),
-      upload_urls=_get_upload_urls_from_proto())
+            data_directory='/data',
+        ),
+        upload_urls=_get_upload_urls_from_proto())
 
     self.assertEqual(1, len(groups))
     self.assertEqual(2, len(groups[0].crashes))
@@ -807,7 +804,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             timeout_multiplier=1,
             test_timeout=2,
             data_directory='/data'),
-      upload_urls=upload_urls)
+        upload_urls=upload_urls)
 
     self.assertEqual(5, len(groups))
     self.assertEqual([
@@ -823,7 +820,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     # TODO(metzman): Make this test use the postprocess function as well so we
     # can test more functionality that was deleted in this PR.
-
 
 
 class WriteCrashToBigQueryTest(unittest.TestCase):
@@ -907,7 +903,8 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {}
     output = self._create_output()
     uworker_input = _create_uworker_input(job='job')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output, 'engine_binary')
+    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
+                                         'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -930,18 +927,20 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
             self._json('job', 'linux', 'c3', False, None), 'key:bot:99:2')
     ])
 
-
   def _create_output(self, platform='linux', crash_revision='1234'):
-    fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput(crash_revision=crash_revision)
-    output = uworker_msg_pb2.Output(bot_name='bot', platform_id=platform, fuzz_task_output=fuzz_task_output)
+    fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput(
+        crash_revision=crash_revision)
+    output = uworker_msg_pb2.Output(
+        bot_name='bot', platform_id=platform, fuzz_task_output=fuzz_task_output)
     return output
 
   def test_succeed(self):
     """Test writing succeeds."""
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
     output = self._create_output()
-    uworker_input = _create_uworker_input(job='job', platform='platform')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output, 'engine_binary')
+    uworker_input = _create_uworker_input()
+    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
+                                         'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -968,9 +967,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     """Test ChromeOS platform is written in stats."""
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
     output = self._create_output()
-    uworker_input = _create_uworker_input(
-      job='job_chromeos', platform='platform')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output, 'engine_binary')
+    uworker_input = _create_uworker_input(job='job_chromeos')
+    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
+                                         'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1000,8 +999,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     """Test writing raising an exception."""
     self.client.insert.side_effect = Exception('error')
     output = self._create_output()
-    uworker_input = _create_uworker_input(job='job', platform='platform')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output, 'engine_binary')
+    uworker_input = _create_uworker_input()
+    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
+                                         'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1538,12 +1538,17 @@ class PickFuzzTargetTest(unittest.TestCase):
     self.assertIsNone(fuzz_task._pick_fuzz_target())
 
 
-def _create_uworker_input(job='job', platform='platform', project_name='some_project', fuzzer_name='engine'):
+def _create_uworker_input(job='job',
+                          project_name='some_project',
+                          fuzzer_name='engine'):
   uworker_env = {'PROJECT_NAME': project_name}
-  return uworker_msg_pb2.Input(job_type=job, fuzzer_name=fuzzer_name, uworker_env=uworker_env)
+  return uworker_msg_pb2.Input(
+      job_type=job, fuzzer_name=fuzzer_name, uworker_env=uworker_env)
+
 
 def _get_upload_urls():
   return fuzz_task.UploadUrlCollection([uworker_msg_pb2.BlobUploadUrl()] * 1000)
+
 
 def _get_upload_urls_from_proto():
   return [uworker_msg_pb2.BlobUploadUrl(key='uuid')] * 1000

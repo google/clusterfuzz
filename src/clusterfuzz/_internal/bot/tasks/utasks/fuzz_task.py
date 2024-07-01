@@ -62,6 +62,8 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
+# pylint: disable=no-member
+
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_NEW_CORPUS_FILES = 500
@@ -970,8 +972,7 @@ def get_engine(context):
   return ''
 
 
-def write_crashes_to_big_query(group,
-                               uworker_input: uworker_msg_pb2.Input,
+def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
                                output: uworker_msg_pb2.Output,
                                fully_qualified_fuzzer_name):
   """Write a group of crashes to BigQuery."""
@@ -1124,15 +1125,14 @@ def process_crashes(crashes, context,
     )
     crash_groups.append(group_proto)
 
-    logs.log(
-        f'Process the crash group (file={group.main_crash.filename}, '
-        f'fuzzed_key={group.main_crash.fuzzed_key}, '
-        f'return code={group.main_crash.return_code}, '
-        f'crash time={group.main_crash.crash_time}, '
-        f'crash type={group.main_crash.crash_type}, '
-        f'crash state={group.main_crash.crash_state}, '
-        f'security flag={group.main_crash.security_flag}, '
-        f'crash stacktrace={group.main_crash.crash_stacktrace})')
+    logs.log(f'Process the crash group (file={group.main_crash.filename}, '
+             f'fuzzed_key={group.main_crash.fuzzed_key}, '
+             f'return code={group.main_crash.return_code}, '
+             f'crash time={group.main_crash.crash_time}, '
+             f'crash type={group.main_crash.crash_type}, '
+             f'crash state={group.main_crash.crash_state}, '
+             f'security flag={group.main_crash.security_flag}, '
+             f'crash stacktrace={group.main_crash.crash_stacktrace})')
   return crash_groups
 
 
