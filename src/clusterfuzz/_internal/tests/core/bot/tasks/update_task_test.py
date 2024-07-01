@@ -13,7 +13,6 @@
 # limitations under the License.
 """update_task tests."""
 import os
-import sys
 import tempfile
 import unittest
 import zipfile
