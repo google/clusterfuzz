@@ -131,6 +131,11 @@ def get_remote_source_revision(source_manifest_url):
 def get_newer_source_revision():
   """Returns the latest source revision if there is an update, or None if the
   current source is up to date."""
+
+  if platform.system() == 'Darwin':
+    # TODO(https://github.com/google/clusterfuzz/issues/4059): Get rid of this
+    # when Mac updating is fixed.
+    return None
   if (environment.get_value('LOCAL_SRC') or
       environment.get_value('LOCAL_DEVELOPMENT')):
     logs.log('Using local source, skipping source code update.')
