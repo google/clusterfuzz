@@ -303,7 +303,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
     flags = runner.get_libfuzzer_flags()
     expected_custom_flags = [
-        '-timeout=5', '-rss_limit_mb=2560', '-max_len=1337', '-detect_leaks=0',
+        '-timeout=5', '-rss_limit_mb=31337', '-max_len=1337', '-detect_leaks=0',
         '-use_value_profile=1'
     ]
     self.assertCountEqual(flags, expected_custom_flags)

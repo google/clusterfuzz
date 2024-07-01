@@ -137,10 +137,6 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'exception_count',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'slow_unit_count',
     'type': 'INTEGER'
 }, {
@@ -325,10 +321,6 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'strategy_peach_grammar_mutation',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
     'name': 'corpus_rss_mb',
     'type': 'INTEGER'
 }, {
@@ -358,10 +350,6 @@ _LIBFUZZER_SCHEMA = [{
 }, {
     'mode': 'NULLABLE',
     'name': 'seed_corpus_rss',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'exception_count',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',

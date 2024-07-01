@@ -19,6 +19,7 @@ IMAGES=(
   gcr.io/clusterfuzz-images/chromium/base
   gcr.io/clusterfuzz-images/chromium/builder
   gcr.io/clusterfuzz-images/chromium/high-end
+  gcr.io/clusterfuzz-images/chromium/tester
   gcr.io/clusterfuzz-images/chromium/tests-syncer
   gcr.io/clusterfuzz-images/oss-fuzz/base
   gcr.io/clusterfuzz-images/oss-fuzz/host
@@ -34,7 +35,7 @@ function docker_push {
   docker push $image:$stamp
 }
 
-GIT_HASH=$1
+GIT_HASH=`git rev-parse HEAD | head -c7`
 stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
   docker build -t $image ${image#gcr.io/clusterfuzz-images/}

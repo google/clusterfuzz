@@ -36,6 +36,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -44,10 +45,8 @@ from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import fuzzer_selection
-from clusterfuzz._internal.fuzzing import gesture_handler
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -63,18 +62,9 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
-SelectionMethod = collections.namedtuple('SelectionMethod',
-                                         'method_name probability')
-
-DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
-MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
-SELECTION_METHOD_DISTRIBUTION = [
-    SelectionMethod('default', .7),
-    SelectionMethod('multi_armed_bandit', .3)
-]
 THREAD_WAIT_TIMEOUT = 1
 MAX_CRASHES_UPLOADED = 64
 
@@ -101,31 +91,10 @@ Context = collections.namedtuple('Context', [
     'window_argument', 'fuzzer_metadata', 'testcases_metadata',
     'timeout_multiplier', 'test_timeout', 'data_directory'
 ])
-Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 
 GenerateBlackboxTestcasesResult = collections.namedtuple(
     'GenerateBlackboxTestcasesResult',
     ['success', 'testcase_file_paths', 'fuzzer_metadata'])
-
-
-def do_multiarmed_bandit_strategy_selection(uworker_env):
-  """Set multi-armed bandit strategy selection during preprocessing. Set
-  multi-armed bandit strategy selection distribution as an environment variable
-  so we can access it in launcher."""
-  # TODO: Remove environment variable once fuzzing engine refactor is
-  # complete.
-  if not environment.get_value(
-      'USE_BANDIT_STRATEGY_SELECTION', env=uworker_env):
-    return
-  selection_method = utils.random_weighted_choice(SELECTION_METHOD_DISTRIBUTION,
-                                                  'probability')
-  environment.set_value('STRATEGY_SELECTION_METHOD',
-                        selection_method.method_name, uworker_env)
-  distribution = get_strategy_distribution_from_ndb()
-  if not distribution:
-    return
-  environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution,
-                        uworker_env)
 
 
 def has_standard_build():
@@ -580,9 +549,8 @@ class GcsCorpus:
     result = already_synced or self._sync_to_disk(self._corpus_directory)
     self._synced_files.clear()
     self._synced_files.update(self._walk())
-
-    logs.log('%d corpus files for target %s synced to disk.' % (len(
-        self._synced_files), self._project_qualified_target_name))
+    logs.log(f'{len(self._synced_files)} corpus files for target '
+             f'{self._project_qualified_target_name} synced to disk.')
 
     # On success of rsync, update the last sync file with current timestamp.
     if result and self._synced_files and not already_synced:
@@ -688,133 +656,11 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
           generated_testcase_string)
 
 
-def pick_gestures(test_timeout):
-  """Return a list of random gestures."""
-  if not environment.get_value('ENABLE_GESTURES', True):
-    # Gestures disabled.
-    return []
-
-  # Probability of choosing gestures.
-  if utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY):
-    return []
-
-  gesture_count = utils.random_number(1, MAX_GESTURES)
-  gestures = gesture_handler.get_gestures(gesture_count)
-  if not gestures:
-    return []
-
-  # Pick a random trigger time to run the gesture at.
-  min_gesture_time = int(
-      utils.random_element_from_list([0.25, 0.50, 0.50, 0.50]) * test_timeout)
-  max_gesture_time = test_timeout - 1
-  gesture_time = utils.random_number(min_gesture_time, max_gesture_time)
-
-  gestures.append('Trigger:%d' % gesture_time)
-  return gestures
-
-
-def pick_redzone():
-  """Return a random size for redzone."""
-  thread_multiplier = environment.get_value('THREAD_MULTIPLIER', 1)
-
-  if thread_multiplier == 1:
-    redzone_list = [
-        Redzone(16, 1.0),
-        Redzone(32, 1.0),
-        Redzone(64, 0.5),
-        Redzone(128, 0.5),
-        Redzone(256, 0.25),
-        Redzone(512, 0.25),
-    ]
-  else:
-    # For beefier boxes, prioritize using bigger redzones.
-    redzone_list = [
-        Redzone(16, 0.25),
-        Redzone(32, 0.25),
-        Redzone(64, 0.50),
-        Redzone(128, 0.50),
-        Redzone(256, 1.0),
-        Redzone(512, 1.0),
-    ]
-
-  return utils.random_weighted_choice(redzone_list).size
-
-
-def pick_ubsan_disabled(job_type):
-  """Choose whether to disable UBSan in an ASan+UBSan build."""
-  # This is only applicable in an ASan build.
-  memory_tool_name = environment.get_memory_tool_name(job_type)
-  if memory_tool_name not in ['ASAN', 'HWASAN']:
-    return False
-
-  # Check if UBSan is enabled in this ASan build. If not, can't disable it.
-  if not environment.get_value('UBSAN'):
-    return False
-
-  return not utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY)
-
-
-def pick_timeout_multiplier():
-  """Return a random testcase timeout multiplier and adjust timeout."""
-  fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
-  custom_timeout_multipliers = environment.get_value(
-      'CUSTOM_TIMEOUT_MULTIPLIERS')
-  timeout_multiplier = 1.0
-
-  use_multiplier = not utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY)
-  if (use_multiplier and not fuzz_test_timeout and
-      not custom_timeout_multipliers):
-    timeout_multiplier = utils.random_element_from_list([0.5, 1.5, 2.0, 3.0])
-  elif use_multiplier and custom_timeout_multipliers:
-    # Since they are explicitly set in the job definition, it is fine to use
-    # custom timeout multipliers even in the case where FUZZ_TEST_TIMEOUT is
-    # set.
-    timeout_multiplier = utils.random_element_from_list(
-        custom_timeout_multipliers)
-
-  return timeout_multiplier
-
-
 def set_test_timeout(timeout, multipler):
   """Set the test timeout based on a timeout value and multiplier."""
   test_timeout = int(timeout * multipler)
   environment.set_value('TEST_TIMEOUT', test_timeout)
   return test_timeout
-
-
-def pick_window_argument():
-  """Return a window argument with random size and x,y position."""
-  default_window_argument = environment.get_value('WINDOW_ARG', '')
-  window_argument_change_chance = not utils.random_number(
-      0, DEFAULT_CHOOSE_PROBABILITY)
-
-  window_argument = ''
-  if window_argument_change_chance:
-    window_argument = default_window_argument
-    if window_argument:
-      width = utils.random_number(
-          100, utils.random_element_from_list([256, 1280, 2048]))
-      height = utils.random_number(
-          100, utils.random_element_from_list([256, 1024, 1536]))
-      left = utils.random_number(0, width)
-      top = utils.random_number(0, height)
-
-      window_argument = window_argument.replace('$WIDTH', str(width))
-      window_argument = window_argument.replace('$HEIGHT', str(height))
-      window_argument = window_argument.replace('$LEFT', str(left))
-      window_argument = window_argument.replace('$TOP', str(top))
-
-  # FIXME: Random seed is currently passed along to the next job
-  # via WINDOW_ARG. Rename it without breaking existing tests.
-  random_seed_argument = environment.get_value('RANDOM_SEED')
-  if random_seed_argument:
-    if window_argument:
-      window_argument += ' '
-    seed = utils.random_number(-2147483648, 2147483647)
-    window_argument += '%s=%d' % (random_seed_argument.strip(), seed)
-
-  environment.set_value('WINDOW_ARG', window_argument)
-  return window_argument
 
 
 def truncate_fuzzer_output(output, limit):
@@ -877,7 +723,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 
   logs.log('Started storing results from fuzzer run.')
 
-  fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()
+  fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()  # pylint: disable=no-member
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
       sample_testcase_file = sample_testcase_file_handle.read()
@@ -1194,8 +1040,8 @@ def write_crashes_to_big_query(group,
 
     for error in errors:
       logs.log_error(
-          ('Ignoring error writing the crash (%s) to BigQuery.' %
-           group.crashes[error['index']].crash_type),
+          ('Ignoring error writing the crash '
+           f'({group.crashes[error["index"]].crash_type}) to BigQuery.'),
           exception=Exception(error))
   except Exception:
     logs.log_error('Ignoring error writing a group of crashes to BigQuery')
@@ -1279,33 +1125,15 @@ def process_crashes(crashes, context,
     crash_groups.append(group_proto)
 
     logs.log(
-        'Process the crash group (file=%s, '
-        'fuzzed_key=%s, '
-        'return code=%s, '
-        'crash time=%d, '
-        'crash type=%s, '
-        'crash state=%s, '
-        'security flag=%s, '
-        'crash stacktrace=%s)' %
-        (group.main_crash.filename, group.main_crash.fuzzed_key,
-         group.main_crash.return_code, group.main_crash.crash_time,
-         group.main_crash.crash_type, group.main_crash.crash_state,
-         group.main_crash.security_flag, group.main_crash.crash_stacktrace))
-
+        f'Process the crash group (file={group.main_crash.filename}, '
+        f'fuzzed_key={group.main_crash.fuzzed_key}, '
+        f'return code={group.main_crash.return_code}, '
+        f'crash time={group.main_crash.crash_time}, '
+        f'crash type={group.main_crash.crash_type}, '
+        f'crash state={group.main_crash.crash_state}, '
+        f'security flag={group.main_crash.security_flag}, '
+        f'crash stacktrace={group.main_crash.crash_stacktrace})')
   return crash_groups
-
-
-def get_strategy_distribution_from_ndb():
-  """Queries and returns the distribution stored in the ndb table."""
-  query = data_types.FuzzStrategyProbability.query()
-  distribution = []
-  for strategy_entry in list(ndb_utils.get_all_from_query(query)):
-    distribution.append({
-        'strategy_name': strategy_entry.strategy_name,
-        'probability': strategy_entry.probability,
-        'engine': strategy_entry.engine
-    })
-  return distribution
 
 
 def _get_issue_metadata_from_environment(variable_name):
@@ -1354,13 +1182,13 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
   additional_processing_time = engine_impl.fuzz_additional_processing_timeout(
       options)
-  fuzz_test_timeout -= additional_processing_time
-  if fuzz_test_timeout <= 0:
+  adjusted_fuzz_test_timeout = fuzz_test_timeout - additional_processing_time
+  if adjusted_fuzz_test_timeout <= 0:
     raise FuzzTaskError(f'Invalid engine timeout: '
                         f'{fuzz_test_timeout} - {additional_processing_time}')
 
   result = engine_impl.fuzz(target_path, options, testcase_directory,
-                            fuzz_test_timeout)
+                            adjusted_fuzz_test_timeout)
 
   logs.log('Used strategies.', strategies=options.strategies)
   for strategy, value in options.strategies.items():
@@ -1397,10 +1225,10 @@ class FuzzingSession:
     self.uworker_input = uworker_input
 
     # Set up randomly selected fuzzing parameters.
-    self.redzone = pick_redzone()
-    self.disable_ubsan = pick_ubsan_disabled(self.job_type)
-    self.timeout_multiplier = pick_timeout_multiplier()
-    self.window_argument = pick_window_argument()
+    self.redzone = fuzz_task_knobs.pick_redzone()
+    self.disable_ubsan = fuzz_task_knobs.pick_ubsan_disabled(self.job_type)
+    self.timeout_multiplier = fuzz_task_knobs.pick_timeout_multiplier()
+    self.window_argument = fuzz_task_knobs.pick_window_argument()
     self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
 
     # Set up during run().
@@ -1418,7 +1246,7 @@ class FuzzingSession:
       self.fuzz_target = None
 
     self.gcs_corpus = None
-    self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
+    self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1733,8 +1561,8 @@ class FuzzingSession:
       testcases_metadata[testcase_file_path] = {}
 
       # Pick up a gesture to run on the testcase.
-      testcases_metadata[testcase_file_path]['gestures'] = pick_gestures(
-          test_timeout)
+      testcases_metadata[testcase_file_path]['gestures'] = (
+          fuzz_task_knobs.pick_gestures(test_timeout))
 
     # Prepare selecting trials in main loop below.
     trial_selector = trials.Trials()
@@ -1860,8 +1688,8 @@ class FuzzingSession:
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1889,15 +1717,15 @@ class FuzzingSession:
             engine_impl.name, fuzz_target_name, self.job_type)
 
       if not self.fuzz_target:
-        return uworker_msg_pb2.Output(
+        return uworker_msg_pb2.Output(  # pylint: disable=no-member
             fuzz_task_output=self.fuzz_task_output,
-            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)
+            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)  # pylint: disable=no-member
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1919,8 +1747,8 @@ class FuzzingSession:
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
     if build_data.is_bad_build:
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
@@ -1928,8 +1756,8 @@ class FuzzingSession:
     if not self.data_directory:
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
@@ -1947,8 +1775,8 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
     logs.log('Finished processing test cases.')
 
@@ -2011,7 +1839,7 @@ class FuzzingSession:
     self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
-    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
+    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
@@ -2092,13 +1920,13 @@ def handle_fuzz_no_fuzz_target_selected(output):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
+    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:  # pylint: disable=no-member
         handle_fuzz_build_setup_failure,
-    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:
+    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:  # pylint: disable=no-member
         handle_fuzz_data_bundle_setup_failure,
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:  # pylint: disable=no-member
         handle_fuzz_no_fuzzer,
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:  # pylint: disable=no-member
         handle_fuzz_no_fuzz_target_selected,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
@@ -2137,11 +1965,11 @@ def _preprocess_get_fuzz_target(fuzzer_name, job_type):
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
-  do_multiarmed_bandit_strategy_selection(uworker_env)
+  fuzz_task_knobs.do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   fuzz_target = _preprocess_get_fuzz_target(fuzzer_name, job_type)
-  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()  # pylint: disable=no-member
   if fuzz_target:
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
@@ -2158,7 +1986,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
-  return uworker_msg_pb2.Input(
+  return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,
       fuzzer_name=fuzzer_name,
@@ -2179,7 +2007,7 @@ def save_fuzz_targets(output):
 
 
 def utask_postprocess(output):
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
 

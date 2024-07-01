@@ -36,7 +36,6 @@ SpecificationMatch = collections.namedtuple('SpecificationMatch',
 DEFAULT_MULTIPLIER = 30.0  # Used for blackbox and jobs that are not yet run.
 DEFAULT_SANITIZER_WEIGHT = 0.1
 DEFAULT_ENGINE_WEIGHT = 1.0
-TARGET_COUNT_WEIGHT_CAP = 100.0
 
 SANITIZER_BASE_WEIGHT = 0.1
 
@@ -50,8 +49,10 @@ SANITIZER_WEIGHTS = {
 }
 
 ENGINE_WEIGHTS = {
-    'libFuzzer': 1.0,
     'afl': 1.0,
+    'centipede': 1.0,
+    'googlefuzztest': 0.5,
+    'libFuzzer': 1.0,
     'honggfuzz': 0.2,
 }
 
@@ -380,7 +381,6 @@ def update_job_weights():
       # the default weight in that case to allow for recovery.
       if targets_count and targets_count.count:
         multiplier = targets_count.count
-        multiplier = min(multiplier, TARGET_COUNT_WEIGHT_CAP)
 
     update_job_weight(job.name, multiplier)
 

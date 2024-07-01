@@ -116,6 +116,8 @@ def queue_suffix_for_platform(platform):
 def default_queue_suffix():
   """Get the queue suffix for the current platform."""
   queue_override = environment.get_value('QUEUE_OVERRIDE')
+  logs.log(f'QUEUE_OVERRIDE is [{queue_override}]. '
+           f'Platform is {environment.platform()}')
   if queue_override:
     return queue_suffix_for_platform(queue_override)
 
@@ -318,7 +320,12 @@ def get_task():
 
     task = get_regular_task()
     if task:
+      # Log the task details for debug purposes.
+      logs.log(f'Got task with cmd {task.command} args {task.argument} '
+               f'job {task.job} from {regular_queue()} queue.')
       return task
+
+  logs.log(f'Could not get task from {regular_queue()}. Fuzzing.')
 
   task = get_fuzz_task()
   if not task:

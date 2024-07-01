@@ -334,7 +334,7 @@ class Runner:
 
       custom_rss_limit = libfuzzer_arguments.get(
           'rss_limit_mb', constructor=int)
-      if custom_rss_limit and custom_rss_limit < rss_limit:
+      if custom_rss_limit:
         rss_limit = custom_rss_limit
 
       custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
@@ -548,7 +548,7 @@ def _fill_cross_pollination_stats(stats, output):
   if not stats:
     return
 
-  statistics = uworker_msg_pb2.CrossPollinationStatistics(
+  statistics = uworker_msg_pb2.CrossPollinationStatistics(  # pylint: disable=no-member
       project_qualified_name=stats.project_qualified_name,
       sources=stats.sources,
       initial_corpus_size=stats.initial_corpus_size,
@@ -759,7 +759,7 @@ def _upload_corpus_crashes_zip(context, result, corpus_crashes_blob_name,
   os.remove(zip_filename)
 
 
-def _process_corpus_crashes(output: uworker_msg_pb2.Output):
+def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
   if not output.corpus_pruning_task_output.crashes:
     return
@@ -870,7 +870,7 @@ def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name):
 
 def _get_cross_pollinate_fuzzers(
     engine_name: str, current_fuzzer_name: str
-) -> List[uworker_msg_pb2.CrossPollinateFuzzerProto]:
+) -> List[uworker_msg_pb2.CrossPollinateFuzzerProto]:  # pylint: disable=no-member
   """Return a list of fuzzer objects to use for cross pollination."""
   cross_pollinate_fuzzers = []
 
@@ -892,7 +892,7 @@ def _get_cross_pollinate_fuzzers(
                                              engine_name)
 
     cross_pollinate_fuzzers.append(
-        uworker_msg_pb2.CrossPollinateFuzzerProto(
+        uworker_msg_pb2.CrossPollinateFuzzerProto(  # pylint: disable=no-member
             fuzz_target=uworker_io.entity_to_protobuf(target),
             backup_bucket_name=backup_bucket_name,
             corpus_engine_name=corpus_engine_name,
@@ -952,7 +952,7 @@ def _save_coverage_information(output):
 
 def _extract_coverage_information(context, result):
   """Extracts and stores the coverage information in a proto."""
-  coverage_info = uworker_msg_pb2.CoverageInformation()
+  coverage_info = uworker_msg_pb2.CoverageInformation()  # pylint: disable=no-member
   coverage_info.project_name = context.fuzz_target.project_qualified_name()
   timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
   timestamp.FromDatetime(result.coverage_info.date)
@@ -976,7 +976,7 @@ def _extract_coverage_information(context, result):
 def _extract_corpus_crashes(result):
   """Extracts the corpus crashes as a list of CrashInfo from the result."""
   return [
-      uworker_msg_pb2.CrashInfo(
+      uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
           crash_type=crash.crash_type,
           crash_state=crash.crash_state,
           security_flag=crash.security_flag,
@@ -997,8 +997,8 @@ def utask_main(uworker_input):
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     error_message = f'Failed to set up fuzzer {fuzz_target.engine}.'
     logs.log_error(error_message)
-    return uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED)
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED)  # pylint: disable=no-member
 
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers_from_protos(
       uworker_input.corpus_pruning_task_input.cross_pollinate_fuzzers)
@@ -1017,8 +1017,8 @@ def utask_main(uworker_input):
         context, result,
         uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
         uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
-    uworker_output = uworker_msg_pb2.Output(
-        corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(
+    uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
+        corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(  # pylint: disable=no-member
             coverage_info=_extract_coverage_information(context, result),
             fuzzer_binary_name=result.fuzzer_binary_name,
             crash_revision=result.revision,
@@ -1031,15 +1031,15 @@ def utask_main(uworker_input):
     # TODO(metzman): Don't catch every exception, it makes testing almost
     # impossible.
     logs.log_error(f'Corpus pruning failed: {e}')
-    uworker_output = uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.CORPUS_PRUNING_ERROR)
+    uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.CORPUS_PRUNING_ERROR)  # pylint: disable=no-member
   finally:
     context.cleanup()
 
   return uworker_output
 
 
-def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):
+def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'
                f'{output.uworker_input.job_type}')
   data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
@@ -1111,7 +1111,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   (corpus_crashes_blob_name,
    corpus_crashes_upload_url) = blobs.get_blob_signed_upload_url()
 
-  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
+  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(  # pylint: disable=no-member
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
@@ -1127,7 +1127,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     setup_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
-  return uworker_msg_pb2.Input(
+  return uworker_msg_pb2.Input(  # pylint: disable=no-member
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
@@ -1136,9 +1136,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:
+    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:  # pylint: disable=no-member
         uworker_handle_errors.noop_handler,
-    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_ERROR:
+    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_ERROR:  # pylint: disable=no-member
         handle_corpus_pruning_failures,
 })
 
@@ -1165,7 +1165,7 @@ def _update_latest_backup(output):
 
 def utask_postprocess(output):
   """Trusted: Handles errors and writes anything needed to the db."""
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
   task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'

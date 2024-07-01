@@ -631,7 +631,8 @@ class RegularBuild(Build):
                target_weights=None,
                build_prefix='',
                fuzz_targets=None):
-    super().__init__(base_build_dir, revision, build_prefix)
+    super().__init__(
+        base_build_dir, revision, build_prefix, fuzz_targets=fuzz_targets)
     self.build_url = build_url
 
     if build_prefix:
@@ -671,6 +672,15 @@ class RegularBuild(Build):
     self._post_setup_success(update_revision=build_update)
 
     return True
+
+
+class SplitTargetBuild(RegularBuild):
+  """Represents a split target build."""
+
+  def _pick_fuzz_target(self, fuzz_targets, target_weights):
+    """Selects the already selected fuzz target for fuzzing."""
+    return set_random_fuzz_target_for_fuzzing_if_needed(
+        list(fuzz_targets), target_weights)
 
 
 class FuchsiaBuild(RegularBuild):
@@ -1143,7 +1153,10 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
     revision = _get_latest_revision([fuzz_target_bucket_path])
 
   return setup_regular_build(
-      revision, bucket_path=fuzz_target_bucket_path, fuzz_targets=targets_list)
+      revision,
+      bucket_path=fuzz_target_bucket_path,
+      target_weights=target_weights,
+      fuzz_targets=targets_list)
 
 
 def _get_latest_revision(bucket_paths):
@@ -1233,6 +1246,8 @@ def setup_regular_build(revision,
   elif (environment.is_android_cuttlefish() and
         environment.is_kernel_fuzzer_job()):
     build_class = CuttlefishKernelBuild
+  elif get_bucket_path('FUZZ_TARGET_BUILD_BUCKET_PATH'):
+    build_class = SplitTargetBuild
 
   result = None
   build = build_class(

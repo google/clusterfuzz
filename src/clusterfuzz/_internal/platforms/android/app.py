@@ -39,7 +39,7 @@ PACKAGE_OPTIMIZATION_TIMEOUT = 30 * 60
 def disable_packages_that_crash_with_gestures():
   """Disable known packages that crash on gesture fuzzing."""
   for package in PACKAGES_THAT_CRASH_WITH_GESTURES:
-    adb.run_shell_command(['pm', 'disable-user', package], log_error=False)
+    adb.run_shell_command(['pm', 'disable-user', package])
 
 
 def get_launch_command(app_args, testcase_path, testcase_file_url):
