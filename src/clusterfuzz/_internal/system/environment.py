@@ -666,11 +666,6 @@ def is_honggfuzz_job(job_name=None):
   return get_engine_for_job(job_name) == 'honggfuzz'
 
 
-def is_kernel_fuzzer_job(job_name=None):
-  """Return True if the current job uses syzkaller."""
-  return get_engine_for_job(job_name) == 'syzkaller'
-
-
 def is_centipede_fuzzer_job(job_name=None):
   """Return True if the current job uses Centipede."""
   return get_engine_for_job(job_name) == 'centipede'
@@ -1126,11 +1121,6 @@ def is_android_cuttlefish(plt=None):
 def is_android_emulator():
   """Return True if we are on android emulator platform."""
   return 'ANDROID_EMULATOR' in get_platform_group()
-
-
-def is_android_kernel(plt=None):
-  """Return True if we are on android kernel platform groups."""
-  return 'ANDROID_KERNEL' in (plt or get_platform_group())
 
 
 def is_android_real_device():

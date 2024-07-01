@@ -19,12 +19,9 @@ from clusterfuzz._internal import fuzzing
 from clusterfuzz.fuzz import engine
 
 
-def run(include_private=True, include_lowercase=False):
+def run(include_lowercase=False):
   """Initialise builtin fuzzing engines."""
-  if include_private:
-    engines = fuzzing.ENGINES
-  else:
-    engines = fuzzing.PUBLIC_ENGINES
+  engines = fuzzing.ENGINES
 
   for engine_name in engines:
     mod = importlib.import_module(

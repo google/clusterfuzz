@@ -84,7 +84,6 @@ PLATFORMS = [
     'MAC',
     'WINDOWS',
     'FUCHSIA',
-    'ANDROID_KERNEL',
     'ANDROID_AUTO',
 ]
 

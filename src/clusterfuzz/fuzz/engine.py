@@ -60,7 +60,7 @@ class FuzzResult:
 
 
 class ReproduceResult:
-  """Results from running syz-crush, syz-repro against a testcase."""
+  """Results from running a testcase against a target."""
 
   def __init__(self, command, return_code, time_executed, output):
     self.command = command

@@ -21,14 +21,14 @@ from . import engine
 
 _initialized = False
 
-ENGINES = fuzzing.PUBLIC_ENGINES
+ENGINES = fuzzing.ENGINES
 
 
 def _initialize():
   """Initialize the engine implementations."""
   global _initialized
 
-  init.run(include_private=False, include_lowercase=True)
+  init.run(include_lowercase=True)
   _initialized = True
 
 
