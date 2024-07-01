@@ -213,6 +213,7 @@ def update_source_code():
     return
 
   src_directory = os.path.join(root_directory, 'src')
+  third_party_directory = os.path.join(src_directory, 'third_party')
   error_occurred = False
   normalized_file_set = set()
   for file in reader.list_members():
@@ -255,13 +256,15 @@ def update_source_code():
           file.name, cf_source_root_parent_dir, trusted=True)
       os.chmod(extracted_path, 0o755)
     except PermissionError:
+      logs.log_info('Attempted to unzip {} in {}, failed. Setting +w on {}',
+                    file.name, cf_source_root_parent_dir, absolute_filepath)
       os.chmod(absolute_filepath, 0o755)
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
       os.chmod(extracted_path, 0o755)
-    except:
+    except Exception as e:
       error_occurred = True
-      logs.log_error(f'Failed to extract file {file.name} from source archive.')
+      logs.log_error(f'Failed to extract file {file.name} from source archive. Exception = ', e)
 
   reader.close()
 
