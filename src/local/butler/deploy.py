@@ -229,19 +229,14 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
 
 def _deploy_manifest(bucket_name, manifest_path, test_deployment=False):
   """Deploy source manifest to GCS."""
-  if sys.version_info.major == 3:
-    manifest_suffix = '.3'
-  else:
-    manifest_suffix = ''
-
   if test_deployment:
     common.execute(f'gsutil cp {manifest_path} '
                    f'gs://{bucket_name}/test-deployment/'
-                   f'clusterfuzz-source.manifest{manifest_suffix}')
+                   f'clusterfuzz-source.manifest.3')
   else:
     common.execute(f'gsutil cp {manifest_path} '
                    f'gs://{bucket_name}/'
-                   f'clusterfuzz-source.manifest{manifest_suffix}')
+                   f'clusterfuzz-source.manifest.3')
 
 
 def _update_deployment_manager(project, name, config_path):
@@ -376,7 +371,7 @@ def is_diff_origin_master():
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
 
-def _staging_deployment_helper(python3=True):
+def _staging_deployment_helper():
   """Helper for staging deployment."""
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
@@ -384,11 +379,7 @@ def _staging_deployment_helper(python3=True):
   print('Deploying %s to staging.' % project)
   deployment_config = config.sub_config('deployment')
 
-  if python3:
-    path = 'staging3'
-  else:
-    path = 'staging'
-
+  path = 'staging3'
   yaml_paths = deployment_config.get_absolute_path(path)
 
   _deploy_app_staging(project, yaml_paths)
@@ -399,7 +390,6 @@ def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
                             deploy_k8s=True,
-                            python3=True,
                             test_deployment=False):
   """Helper for production deployment."""
   config = local_config.Config()
@@ -410,10 +400,7 @@ def _prod_deployment_helper(config_dir,
   project = gae_config.get('application_id')
 
   print('Deploying %s to prod.' % project)
-  if python3:
-    path = 'prod3'
-  else:
-    path = 'prod'
+  path = 'prod3'
 
   yaml_paths = gae_deployment.get_absolute_path(path, default=[])
   if not yaml_paths:
@@ -538,13 +525,11 @@ def execute(args):
     deploy_k8s = False
     deploy_zips = True
 
-  is_python3 = sys.version_info.major == 3
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
-          package.package(
-              revision, platform_name=platform_name, python3=is_python3))
+          package.package(revision, platform_name=platform_name))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -561,14 +546,13 @@ def execute(args):
     sys.exit(1)
 
   if args.staging:
-    _staging_deployment_helper(python3=is_python3)
+    _staging_deployment_helper()
   else:
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
         deploy_appengine,
         deploy_k8s,
-        python3=is_python3,
         test_deployment=test_deployment)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:

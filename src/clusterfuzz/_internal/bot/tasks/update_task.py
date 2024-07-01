@@ -42,9 +42,7 @@ from clusterfuzz._internal.system import shell
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
-MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
-if sys.version_info.major == 3:
-  MANIFEST_FILENAME += '.3'
+MANIFEST_FILENAME = 'clusterfuzz-source.manifest.3'
 
 
 def _rename_dll_for_update(absolute_filepath):
@@ -61,10 +59,7 @@ def _platform_deployment_filename():
       'Darwin': 'macos'
   }
 
-  base_filename = platform_mappings[platform.system()]
-  if sys.version_info.major == 3:
-    base_filename += '-3'
-
+  base_filename = platform_mappings[platform.system()] + '-3'
   return base_filename + '.zip'
 
 

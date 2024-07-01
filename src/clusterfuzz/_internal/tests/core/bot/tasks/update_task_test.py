@@ -13,7 +13,6 @@
 # limitations under the License.
 """update_task tests."""
 import os
-import sys
 import tempfile
 import unittest
 import zipfile
@@ -96,11 +95,7 @@ class GetNewerSourceRevisionTest(unittest.TestCase):
     os.environ['ROOT_DIR'] = 'root_dir'
     os.environ['BOT_TMPDIR'] = 'bot_tmpdir'
     os.environ['FAIL_RETRIES'] = '1'
-
-    if sys.version_info.major == 3:
-      self.manifest_suffix = '.3'
-    else:
-      self.manifest_suffix = ''
+    self.manifest_suffix = '.3'
 
   def test_no_local_revision(self):
     """Test no local revision."""
@@ -151,12 +146,8 @@ class GetUrlsTest(unittest.TestCase):
     helpers.patch(self, [
         'platform.system',
     ])
-    if sys.version_info.major == 3:
-      self.manifest_suffix = '.3'
-      self.deployment_suffix = '-3'
-    else:
-      self.manifest_suffix = ''
-      self.deployment_suffix = ''
+    self.manifest_suffix = '.3'
+    self.deployment_suffix = '-3'
 
   def test_get_source_manifest_url(self):
     """Test get_source_manifest_url."""
