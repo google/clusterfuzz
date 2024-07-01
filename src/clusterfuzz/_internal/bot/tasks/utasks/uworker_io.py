@@ -212,6 +212,4 @@ def check_handling_testcase_safe(testcase):
   if testcase.trusted:
     return
   if not environment.get_value('UNTRUSTED_UTASK'):
-    # TODO(https://b.corp.google.com/issues/328691756): Change this to
-    # log_fatal_and_exit once we are handling untrusted tasks properly.
-    logs.log_warn(f'Cannot handle {testcase.key.id()} in trusted task.')
+    logs.log_fatal_and_exit(f'Cannot handle {testcase.key.id()} in trusted task.')
