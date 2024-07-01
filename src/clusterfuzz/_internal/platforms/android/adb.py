@@ -420,18 +420,6 @@ def start_cuttlefish_device():
   execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
 
-def stop_cuttlefish_device():
-  """Stops the cuttlefish device."""
-  cvd_dir = environment.get_value('CVD_DIR')
-  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
-  stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
-
-  execute_command(
-      launch_cvd_command_line,
-      timeout=LAUNCH_CVD_TIMEOUT,
-      on_cuttlefish_host=True)
-
-
 def copy_images_to_cuttlefish():
   """Copy and Combine cvd host package and OTA images."""
   image_directory = environment.get_value('IMAGES_DIR')
