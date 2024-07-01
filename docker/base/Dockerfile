@@ -97,12 +97,19 @@ RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db
     tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
 
-# Install Python 3.
+# Install Python 3.7
 RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
     cd /tmp/Python-3.7.7 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.7.7
 RUN pip3.7 --no-cache-dir install pipenv==2022.8.5
+
+# Install Python3.11
+RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-3.11.4 && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
+    rm -rf /tmp/Python-3.11.4
+RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
 # Install Node.js
 COPY setup_19.x /data
@@ -131,7 +138,8 @@ ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
 ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
-ENV DEPLOYMENT_ZIP "linux-3.zip"
+ENV PYTHON_RUN_CMD = "$ROOT_DIR/src/python/bot/startup/run.py"
+#ENV DEPLOYMENT_ZIP "linux-3.zip"
 
 # Passwordless sudo (needed for AFL launcher).
 RUN groupadd nopwsudo && \
@@ -148,9 +156,11 @@ ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
 COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
-RUN cd /data && \
-    # Make pip3.7 the default so that pipenv install --system works.
-    mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
-    pipenv install --deploy --system
+#Moving this to start.sh so we can choose interpreter version at runtime
+RUN cd /data
+#RUN cd /data && \
+#    # Make pip3.7 the default so that pipenv install --system works.
+#    mv /usr/local/bin/pip${PYTHON_INTERPRETER_VERSION} /usr/local/bin/pip && \
+#    pipenv install --deploy --system
 
 CMD ["bash", "-ex", "/data/start.sh"]
