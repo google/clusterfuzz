@@ -250,7 +250,7 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      # Make sure we can override files without prior write permission
+      # Make sure we can override files without prior write permission.
       target_destination = os.path.join(cf_source_root_parent_dir, file.name)
       try:
         os.chmod(target_destination, 0o755)
