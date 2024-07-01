@@ -263,7 +263,7 @@ class Crash:
     """Return the reason why the crash is invalid."""
     filter_functional_bugs = environment.get_value('FILTER_FUNCTIONAL_BUGS')
     if filter_functional_bugs and not self.security_flag:
-      return 'Functional crash is ignored: %s' % self.crash_state
+      return f'Functional crash is ignored: {self.crash_state}'
 
     if self.should_be_ignored:
       return ('False crash: %s\n\n---%s\n\n---%s' %
@@ -271,7 +271,7 @@ class Crash:
                self.crash_stacktrace))
 
     if self.is_archived() and not self.fuzzed_key:
-      return 'Unable to store testcase in blobstore: %s' % self.crash_state
+      return f'Unable to store testcase in blobstore: {self.crash_state}'
 
     if not self.crash_state or not self.crash_type:
       return 'Empty crash state or type'
@@ -302,7 +302,7 @@ class Crash:
     )
 
 
-def find_main_crash(crashes, full_fuzzer_name, test_timeout,
+def find_main_crash(crashes: List[Crash], full_fuzzer_name: str, test_timeout: int,
                     upload_urls: UploadUrlCollection):
   """Find the first reproducible crash or the first valid crash. And return the
     crash and the one_time_crasher_flag."""
@@ -952,7 +952,7 @@ def filter_crashes(crashes: List[Crash]) -> List[Crash]:
   filtered = []
 
   for crash in crashes:
-    if not crash.is_valid():
+    if not crash.is_valid:
       logs.log(
           (f'Ignore crash (reason={crash.get_error()}, '
            f'type={crash.crash_type}, state={crash.crash_state})'),
@@ -1081,7 +1081,7 @@ def _update_testcase_variant_if_needed(group, crash_revision, job_type):
   variant.put()
 
 
-def process_crashes(crashes, context,
+def process_crashes(crashes: List[Crash], context: Context,
                     upload_urls) -> List[uworker_msg_pb2.FuzzTaskCrashGroup]:
   """Process a list of crashes."""
 
@@ -1106,7 +1106,7 @@ def process_crashes(crashes, context,
     # Archiving testcase to blobstore might fail for all crashes within this
     # group.
     if not group.main_crash:
-      logs.log('Unable to store testcase in blobstore: %s' %
+      logs.log('Unable to store testcase in blobstore: %s'
                group.crashes[0].crash_state)
       continue
 
@@ -1792,10 +1792,9 @@ class FuzzingSession:
 
     logs.log(f'Raw crash count: {len(crashes)}')
 
-    project_name = environment.get_value('PROJECT_NAME')
-
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
+    project_name = environment.get_value('PROJECT_NAME')
     crash_groups = process_crashes(
         crashes=crashes,
         context=Context(

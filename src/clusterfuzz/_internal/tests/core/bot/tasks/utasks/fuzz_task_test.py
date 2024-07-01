@@ -764,14 +764,14 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     r2_stacktrace = 'r2\ncf::fuzzing_strategies: value_profile\n'
 
     crashes = [
-        self._make_crash('r1', state='reproducible1'),
-        self._make_crash(r2_stacktrace, state='reproducible1'),
-        self._make_crash('r3', state='reproducible1'),
-        self._make_crash('r4', state='reproducible2'),
-        self._make_crash('u1', state='unreproducible1'),
-        self._make_crash('u2', state='unreproducible2'),
-        self._make_crash('u3', state='unreproducible2'),
-        self._make_crash('u4', state='unreproducible3')
+        self._make_crash_obj('r1', state='reproducible1'),
+        self._make_crash_obj(r2_stacktrace, state='reproducible1'),
+        self._make_crash_obj('r3', state='reproducible1'),
+        self._make_crash_obj('r4', state='reproducible2'),
+        self._make_crash_obj('u1', state='unreproducible1'),
+        self._make_crash_obj('u2', state='unreproducible2'),
+        self._make_crash_obj('u3', state='unreproducible2'),
+        self._make_crash_obj('u4', state='unreproducible3')
     ]
 
     self.mock.test_for_reproducibility.side_effect = [
@@ -870,6 +870,16 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         timeout_multiplier=1.0,
         test_timeout=5,
         data_directory='data')
+
+  def _make_crash(self, state):
+    crash = mock.Mock(
+        crash_type='type',
+        crash_state=state,
+        crash_time=111,
+        security_flag=True,
+        key='key')
+    return crash
+
 
   def _make_crash(self, state):
     crash = mock.Mock(
