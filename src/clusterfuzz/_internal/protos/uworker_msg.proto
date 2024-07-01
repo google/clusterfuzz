@@ -209,6 +209,7 @@ message FuzzTaskCrash {
   repeated string crash_categories = 17;
   optional string key = 18;
   repeated string crash_frames = 19;
+  optional bool is_valid = 20;
 }
 
 message FuzzContext {

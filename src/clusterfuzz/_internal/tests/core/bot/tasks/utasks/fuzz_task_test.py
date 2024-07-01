@@ -681,13 +681,39 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     with open('/stack_file_path', 'w') as f:
       f.write('unsym')
-    return uworker_msg_pb2.FuzzTaskCrash(
-        file_path='dir/path-http-name',
-        crash_time=123,
-        return_code=11,
-        resource_list=['res'],
-        gestures=['ges'],
-        unsymbolized_crash_stacktrace='unsym')
+
+    crash = fuzz_task.Crash.from_testcase_manager_crash(
+        testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], ['ges'],
+                               '/stack_file_path'))
+    return crash
+
+  # def _make_crash(self, trace, state='state'):
+  #   """Make crash."""
+  #   self.mock.get_real_revision.return_value = 'this.is.fake.ver'
+
+  #   self.mock.get_command_line_for_application.return_value = 'cmd'
+  #   dummy_state = stacktraces.CrashInfo()
+  #   dummy_state.crash_type = 'type'
+  #   dummy_state.crash_address = 'address'
+  #   dummy_state.crash_state = state
+  #   dummy_state.crash_stacktrace = 'orig_trace'
+  #   dummy_state.crash_frames = ['frame 1', 'frame 2']
+  #   self.mock.get_crash_data.return_value = dummy_state
+  #   self.mock.get_crash_stacktrace_output.return_value = trace
+  #   self.mock.get_unsymbolized_crash_stacktrace.return_value = trace
+  #   self.mock.is_security_issue.return_value = True
+  #   self.mock.ignore_stacktrace.return_value = False
+
+  #   with open('/stack_file_path', 'w') as f:
+  #     f.write('unsym')
+  #   return uworker_msg_pb2.FuzzTaskCrash(
+  #       file_path='dir/path-http-name',
+  #       crash_time=123,
+  #       return_code=11,
+  #       resource_list=['res'],
+  #       gestures=['ges'],
+  #       is_valid=True,
+  #       unsymbolized_crash_stacktrace='unsym')
 
   def test_existing_unreproducible_testcase(self):
     """Test existing unreproducible testcase."""
@@ -764,14 +790,14 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     r2_stacktrace = 'r2\ncf::fuzzing_strategies: value_profile\n'
 
     crashes = [
-        self._make_crash_obj('r1', state='reproducible1'),
-        self._make_crash_obj(r2_stacktrace, state='reproducible1'),
-        self._make_crash_obj('r3', state='reproducible1'),
-        self._make_crash_obj('r4', state='reproducible2'),
-        self._make_crash_obj('u1', state='unreproducible1'),
-        self._make_crash_obj('u2', state='unreproducible2'),
-        self._make_crash_obj('u3', state='unreproducible2'),
-        self._make_crash_obj('u4', state='unreproducible3')
+        self._make_crash('r1', state='reproducible1'),
+        self._make_crash(r2_stacktrace, state='reproducible1'),
+        self._make_crash('r3', state='reproducible1'),
+        self._make_crash('r4', state='reproducible2'),
+        self._make_crash('u1', state='unreproducible1'),
+        self._make_crash('u2', state='unreproducible2'),
+        self._make_crash('u3', state='unreproducible2'),
+        self._make_crash('u4', state='unreproducible3')
     ]
 
     self.mock.test_for_reproducibility.side_effect = [
@@ -879,7 +905,6 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         security_flag=True,
         key='key')
     return crash
-
 
   def _make_crash(self, state):
     crash = mock.Mock(

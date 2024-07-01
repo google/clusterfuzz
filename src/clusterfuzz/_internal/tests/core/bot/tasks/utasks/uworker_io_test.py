@@ -320,8 +320,7 @@ class RoundTripTest(unittest.TestCase):
             crash_revision=crash_revision, crash_groups=crash_groups))
     serialized = uworker_io.serialize_uworker_output(output)
     deserialized = uworker_io.deserialize_uworker_output(serialized)
-    self.assertEqual(deserialized.fuzz_task_output.crash_groups,
-                     crash_groups)
+    self.assertEqual(deserialized.fuzz_task_output.crash_groups, crash_groups)
 
     self.assertEqual(deserialized.fuzz_task_output.crash_revision,
                      crash_revision)

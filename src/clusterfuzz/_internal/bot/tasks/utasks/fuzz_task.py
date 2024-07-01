@@ -299,11 +299,12 @@ class Crash:
         key=self.key,
         should_be_ignored=self.should_be_ignored,
         crash_frames=self.crash_frames,
+        is_valid=self.is_valid(),
     )
 
 
-def find_main_crash(crashes: List[Crash], full_fuzzer_name: str, test_timeout: int,
-                    upload_urls: UploadUrlCollection):
+def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
+                    test_timeout: int, upload_urls: UploadUrlCollection):
   """Find the first reproducible crash or the first valid crash. And return the
     crash and the one_time_crasher_flag."""
   for crash in crashes:
@@ -952,7 +953,7 @@ def filter_crashes(crashes: List[Crash]) -> List[Crash]:
   filtered = []
 
   for crash in crashes:
-    if not crash.is_valid:
+    if not crash.is_valid():
       logs.log(
           (f'Ignore crash (reason={crash.get_error()}, '
            f'type={crash.crash_type}, state={crash.crash_state})'),
@@ -1106,7 +1107,7 @@ def process_crashes(crashes: List[Crash], context: Context,
     # Archiving testcase to blobstore might fail for all crashes within this
     # group.
     if not group.main_crash:
-      logs.log('Unable to store testcase in blobstore: %s'
+      logs.log('Unable to store testcase in blobstore: %s' %
                group.crashes[0].crash_state)
       continue
 
