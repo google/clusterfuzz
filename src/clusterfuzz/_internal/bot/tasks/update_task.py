@@ -213,7 +213,6 @@ def update_source_code():
     return
 
   src_directory = os.path.join(root_directory, 'src')
-  third_party_directory = os.path.join(src_directory, 'third_party')
   error_occurred = False
   normalized_file_set = set()
   for file in reader.list_members():
@@ -260,10 +259,9 @@ def update_source_code():
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
       os.chmod(extracted_path, 0o755)
-      assert(extracted_path == target_destination)
-    except Exception as e:
+    except Exception:
       error_occurred = True
-      logs.log_error(f'Failed to extract file {file.name} from source archive. Exception = ', e)
+      logs.log_error(f'Failed to extract file {file.name} from source archive.')
 
   reader.close()
 
