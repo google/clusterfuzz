@@ -279,8 +279,10 @@ class Crash:
     return None
 
   def to_proto(self):
+    """Converts this object to a proto."""
     is_valid = self.is_valid()
     crash = uworker_msg_pb2.FuzzTaskCrash()
+    crash.is_valid = is_valid
     crash.file_path = self.file_path
     crash.crash_time = self.crash_time
     crash.return_code = self.return_code
@@ -294,7 +296,6 @@ class Crash:
     crash.crash_type = self.crash_type
     crash.crash_address = self.crash_address
     crash.crash_state = self.crash_state
-    crash.is_valid = is_valid
     crash.crash_stacktrace = self.crash_stacktrace
     crash.crash_categories = self.crash_categories
     crash.security_flag = self.security_flag
@@ -347,8 +348,8 @@ class CrashGroup:
   """Represent a group of identical crashes. The key is
       (crash_type, crash_state, security_flag)."""
 
-  def __init__(self,
-               crashes: List[Crash], context, upload_urls: UploadUrlCollection):
+  def __init__(self, crashes: List[Crash], context,
+               upload_urls: UploadUrlCollection):
     for c in crashes:
       assert crashes[0].crash_type == c.crash_type
       assert crashes[0].crash_state == c.crash_state
