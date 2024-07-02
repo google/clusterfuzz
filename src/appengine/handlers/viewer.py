@@ -48,13 +48,13 @@ class Handler(base_handler.Handler):
         raise helpers.AccessDeniedError()
 
     blob_size = blobs.get_blob_size(key)
-    if blob_size > MAX_ALLOWED_CONTENT_SIZE:
-      raise helpers.EarlyExitError('Content exceeds max allowed size.', 400)
+    if blob_size:
+      if blob_size > MAX_ALLOWED_CONTENT_SIZE:
+        raise helpers.EarlyExitError('Content exceeds max allowed size.', 400)
 
     # TODO(mbarbella): Workaround for an issue in the Cloud Storage API. Remove
     # once it is fixed properly upstream:
     # https://github.com/googleapis/google-cloud-python/issues/6572
-    if blob_size:
       try:
         content = blobs.read_key(key).decode('utf-8', errors='replace')
       except Exception:

@@ -42,9 +42,7 @@ from clusterfuzz._internal.system import shell
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
-MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
-if sys.version_info.major == 3:
-  MANIFEST_FILENAME += '.3'
+MANIFEST_FILENAME = 'clusterfuzz-source.manifest.3'
 
 
 def _rename_dll_for_update(absolute_filepath):
@@ -61,10 +59,7 @@ def _platform_deployment_filename():
       'Darwin': 'macos'
   }
 
-  base_filename = platform_mappings[platform.system()]
-  if sys.version_info.major == 3:
-    base_filename += '-3'
-
+  base_filename = platform_mappings[platform.system()] + '-3'
   return base_filename + '.zip'
 
 
@@ -255,16 +250,16 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      # Make sure we can override files without prior write permission
+      # Make sure we can override files without prior write permission.
+      target_destination = os.path.join(cf_source_root_parent_dir, file.name)
+      try:
+        os.chmod(target_destination, 0o755)
+      except FileNotFoundError:
+        pass
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
       os.chmod(extracted_path, 0o755)
-    except PermissionError:
-      os.chmod(absolute_filepath, 0o755)
-      extracted_path = reader.extract(
-          file.name, cf_source_root_parent_dir, trusted=True)
-      os.chmod(extracted_path, 0o755)
-    except:
+    except Exception:
       error_occurred = True
       logs.log_error(f'Failed to extract file {file.name} from source archive.')
 
