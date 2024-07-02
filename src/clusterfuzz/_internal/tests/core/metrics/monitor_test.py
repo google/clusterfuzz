@@ -157,6 +157,21 @@ class MonitorTest(unittest.TestCase):
         2,
     ], result.buckets)
 
+  def test_gauge_metric_success(self):
+    """Test gauge metric success."""
+    self.assertIsInstance(
+        monitor.GaugeMetric('g', 'desc', field_spec=None), monitor._GaugeMetric)
+
+  def test_gauge_metric_failure(self):
+    """Test gauge metric failure."""
+    self.mock.check_module_loaded.return_value = False
+    gauge = monitor.GaugeMetric(
+        'g', 'desc', field_spec=[
+            monitor.StringField('name'),
+        ])
+    gauge.set(5)
+    self.assertIsInstance(gauge, monitor._MockMetric)
+
 
 @unittest.skip('Skip this because it\'s only used by metzman for debugging.')
 class JonathanDebugTest(unittest.TestCase):

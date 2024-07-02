@@ -116,8 +116,8 @@ class _FlusherThread(threading.Thread):
                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
                    f'end_time: {metric_et_sec}.{metric_et_ns}')
 
-          if (series.metric_kind ==
-              metric_pb2.MetricDescriptor.MetricKind.GAUGE):
+          if (series.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+             ):
             gauge_series.append(series)
           else:
             time_series.append(series)
@@ -132,7 +132,6 @@ class _FlusherThread(threading.Thread):
           time_series.extend(gauge_series)
           create_time_series(name=project_path, time_series=time_series)
       except Exception as e:
-
         if environment.is_android():
           # FIXME: This exception is extremely common on Android. We are already
           # aware of the problem, don't make more noise about it.
