@@ -284,6 +284,8 @@ def uworker_main(input_download_url) -> None:
 
     logs.log('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
+    uworker_output.bot_name = environment.get_value('BOT_NAME', '')
+    uworker_output.platform_id = environment.get_platform_id()
     uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                    uworker_output_upload_url)
     logs.log('Finished uworker_main.')
