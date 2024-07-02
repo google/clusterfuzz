@@ -56,14 +56,14 @@ def _execute_insert_request(request):
         # Already exists.
         return True
 
-      logs.log_error('Failed to insert table/dataset.')
+      logs.error('Failed to insert table/dataset.')
       return False
     except httplib2.HttpLib2Error:
       # Transport error.
       time.sleep(random.uniform(0, (1 << i) * RETRY_SLEEP_TIME))
       continue
 
-  logs.log_error('Failed to insert table/dataset.')
+  logs.error('Failed to insert table/dataset.')
   return False
 
 
@@ -172,32 +172,31 @@ def _load_data(fuzzer):
       }
 
       try:
-        logs.log("Uploading job to BigQuery.", job_body=job_body)
+        logs.info("Uploading job to BigQuery.", job_body=job_body)
 
         request = bigquery.jobs().insert(projectId=project_id, body=job_body)  # pylint: disable=no-member
         load_response = request.execute(num_retries=NUM_RETRIES)
         job_id = load_response['jobReference']['jobId']
-        logs.log(f'Load job id: {job_id}')
+        logs.info(f'Load job id: {job_id}')
 
         response = _poll_completion(bigquery, project_id, job_id)
-        logs.log('Completed load: %s' % response)
+        logs.info('Completed load: %s' % response)
         errors = response['status'].get('errors')
         if errors:
-          logs.log_error(
-              f'Failed load for {job_id} with errors: {str(errors)})')
+          logs.error(f'Failed load for {job_id} with errors: {str(errors)})')
         else:
           # Successful write. Subsequent writes should be WRITE_APPEND.
           first_write = False
       except Exception as e:
         # Log exception here as otherwise it gets lost in the thread pool
         # worker.
-        logs.log_error(f'Failed to load: {str(e)}')
+        logs.error(f'Failed to load: {str(e)}')
 
 
 def main():
   """Load bigquery stats from GCS."""
   if not big_query.get_bucket():
-    logs.log_error('Loading stats to BigQuery failed: missing bucket name.')
+    logs.error('Loading stats to BigQuery failed: missing bucket name.')
     return False
 
   thread_pool = ThreadPoolExecutor(max_workers=NUM_THREADS)
@@ -205,9 +204,9 @@ def main():
   # Retrieve list of fuzzers before iterating them, since the query can expire
   # as we create the load jobs.
   for fuzzer in list(data_types.Fuzzer.query()):
-    logs.log('Loading stats to BigQuery for %s.' % fuzzer.name)
+    logs.info('Loading stats to BigQuery for %s.' % fuzzer.name)
     thread_pool.submit(_load_data, fuzzer.name)
 
   thread_pool.shutdown(wait=True)
-  logs.log('Load big query task finished successfully.')
+  logs.info('Load big query task finished successfully.')
   return True

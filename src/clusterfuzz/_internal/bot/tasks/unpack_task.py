@@ -33,7 +33,7 @@ def execute_task(metadata_id, job_type):
   """Unpack a bundled testcase archive and create analyze jobs for each item."""
   metadata = ndb.Key(data_types.BundledArchiveMetadata, int(metadata_id)).get()
   if not metadata:
-    logs.log_error('Invalid bundle metadata id %s.' % metadata_id)
+    logs.error('Invalid bundle metadata id %s.' % metadata_id)
     return
 
   bot_name = environment.get_value('BOT_NAME')
@@ -41,12 +41,12 @@ def execute_task(metadata_id, job_type):
       data_types.TestcaseUploadMetadata.blobstore_key ==
       metadata.blobstore_key).get()
   if not upload_metadata:
-    logs.log_error('Invalid upload metadata key %s.' % metadata.blobstore_key)
+    logs.error('Invalid upload metadata key %s.' % metadata.blobstore_key)
     return
 
   job = data_types.Job.query(data_types.Job.name == metadata.job_type).get()
   if not job:
-    logs.log_error('Invalid job_type %s.' % metadata.job_type)
+    logs.error('Invalid job_type %s.' % metadata.job_type)
     return
 
   # Update the upload metadata with this bot name.
@@ -60,7 +60,7 @@ def execute_task(metadata_id, job_type):
   # Retrieve multi-testcase archive.
   archive_path = os.path.join(testcases_directory, metadata.archive_filename)
   if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
-    logs.log_error('Could not retrieve archive for bundle %d.' % metadata_id)
+    logs.error('Could not retrieve archive for bundle %d.' % metadata_id)
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
@@ -68,7 +68,7 @@ def execute_task(metadata_id, job_type):
     with archive.open(archive_path) as reader:
       reader.extract_all(testcases_directory)
   except:
-    logs.log_error('Could not unpack archive for bundle %d.' % metadata_id)
+    logs.error('Could not unpack archive for bundle %d.' % metadata_id)
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
@@ -96,7 +96,7 @@ def execute_task(metadata_id, job_type):
       blob_key = None
 
     if not blob_key:
-      logs.log_error(
+      logs.error(
           'Could not write testcase %s to blobstore.' % absolute_file_path)
       continue
 

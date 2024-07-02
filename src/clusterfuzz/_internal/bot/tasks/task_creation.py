@@ -202,7 +202,7 @@ def create_variant_tasks_if_needed(testcase):
     variant.status = data_types.TestcaseVariantStatus.PENDING
     variant.put()
     num_variant_tasks += 1
-  logs.log(f'Number of variant tasks: {num_variant_tasks}.')
+  logs.info(f'Number of variant tasks: {num_variant_tasks}.')
 
 
 def create_symbolize_task_if_needed(testcase):

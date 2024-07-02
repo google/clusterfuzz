@@ -162,7 +162,7 @@ def get_current_user():
   try:
     decoded_claims = decode_claims(get_session_cookie())
   except AuthError:
-    logs.log_warn('Invalid session cookie.')
+    logs.warning('Invalid session cookie.')
     return None
 
   allowed_firebase_providers = local_config.ProjectConfig().get(
@@ -171,7 +171,7 @@ def get_current_user():
   sign_in_provider = firebase_info.get('sign_in_provider')
 
   if sign_in_provider not in allowed_firebase_providers:
-    logs.log_error(f'Firebase provider {sign_in_provider} is not enabled.')
+    logs.error(f'Firebase provider {sign_in_provider} is not enabled.')
     return None
 
   # Per https://docs.github.com/en/authentication/

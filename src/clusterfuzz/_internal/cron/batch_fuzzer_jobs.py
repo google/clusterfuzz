@@ -59,5 +59,5 @@ def batch_fuzzer_jobs():
 def main():
   """Batches FuzzerJobs."""
   batch_fuzzer_jobs()
-  logs.log('Batch fuzzer jobs succeeded.')
+  logs.info('Batch fuzzer jobs succeeded.')
   return True

@@ -26,7 +26,7 @@ def main():
   """Periodically gathers new results from Predator requests."""
   subscription = db_config.get_value('predator_result_topic')
   if not subscription:
-    logs.log('No Predator subscription configured. Aborting.')
+    logs.info('No Predator subscription configured. Aborting.')
     return False
 
   client = pubsub.PubSubClient()
@@ -37,13 +37,13 @@ def main():
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
-      logs.log('Testcase %s no longer exists.' % str(testcase_id))
+      logs.info('Testcase %s no longer exists.' % str(testcase_id))
       continue
 
     testcase.set_metadata('predator_result', message, update_testcase=False)
     testcase.delete_metadata('blame_pending', update_testcase=False)
     testcase.put()
-    logs.log('Set predator result for testcase %d.' % testcase.key.id())
+    logs.info('Set predator result for testcase %d.' % testcase.key.id())
 
-  logs.log('Finished processing predator results. %d total.' % len(messages))
+  logs.info('Finished processing predator results. %d total.' % len(messages))
   return True

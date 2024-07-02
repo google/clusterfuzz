@@ -73,23 +73,23 @@ def get_value(key, default_value=None, constructor=None):
     with open(value_path, 'rb') as f:
       value_str = f.read()
   except OSError:
-    logs.log_error('Failed to read %s from persistent cache.' % key)
+    logs.error('Failed to read %s from persistent cache.' % key)
     return default_value
 
   try:
     value = json_utils.loads(value_str)
   except Exception:
-    logs.log_warn('Non-serializable value read from cache key %s: "%s"' %
-                  (key, value_str))
+    logs.warning('Non-serializable value read from cache key %s: "%s"' %
+                 (key, value_str))
     return default_value
 
   if constructor:
     try:
       value = constructor(value)
     except Exception:
-      logs.log_warn('Failed to construct value "%s" using %s '
-                    'and key "%s" in persistent cache. Using default value %s.'
-                    % (value, constructor, key, default_value))
+      logs.warning('Failed to construct value "%s" using %s '
+                   'and key "%s" in persistent cache. Using default value %s.' %
+                   (value, constructor, key, default_value))
       return default_value
 
   return value
@@ -112,7 +112,7 @@ def set_value(key, value, persist_across_reboots=False):
   try:
     value_str = json_utils.dumps(value)
   except Exception:
-    logs.log_error(
+    logs.error(
         'Non-serializable value stored to cache key %s: "%s"' % (key, value))
     return
 
@@ -120,7 +120,7 @@ def set_value(key, value, persist_across_reboots=False):
     with open(value_path, 'wb') as f:
       f.write(value_str.encode())
   except OSError:
-    logs.log_error('Failed to write %s to persistent cache.' % key)
+    logs.error('Failed to write %s to persistent cache.' % key)
 
   if not persist_across_reboots:
     return
@@ -132,5 +132,5 @@ def set_value(key, value, persist_across_reboots=False):
   try:
     open(persist_value_path, 'wb').close()
   except OSError:
-    logs.log_error(
+    logs.error(
         'Failed to write presistent metadata file for cache key %s' % key)
