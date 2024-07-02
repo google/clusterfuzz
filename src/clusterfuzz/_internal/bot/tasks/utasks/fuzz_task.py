@@ -289,7 +289,8 @@ class Crash:
     crash.resource_list.extend(self.resource_list)
     crash.gestures.extend(self.gestures)
     crash.arguments = self.arguments
-    crash.fuzzing_strategies.extend(self.fuzzing_strategies)
+    if self.fuzzing_strategies:
+      crash.fuzzing_strategies.extend(self.fuzzing_strategies)
     crash.http_flag = self.http_flag
     crash.application_command_line = self.application_command_line
     crash.unsymbolized_crash_stacktrace = self.unsymbolized_crash_stacktrace
