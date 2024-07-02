@@ -286,10 +286,11 @@ class Crash:
     crash.file_path = self.file_path
     crash.crash_time = self.crash_time
     crash.return_code = self.return_code
-    crash.resource_list = self.resource_list
-    crash.gestures = self.gestures
+    crash.resource_list.extend(self.resource_list)
+    crash.gestures.extend(self.gestures)
     crash.arguments = self.arguments
-    crash.fuzzing_strategies = self.fuzzing_strategies
+    if self.fuzzing_strategies:
+      crash.fuzzing_strategies.extend(self.fuzzing_strategies)
     crash.http_flag = self.http_flag
     crash.application_command_line = self.application_command_line
     crash.unsymbolized_crash_stacktrace = self.unsymbolized_crash_stacktrace
@@ -297,11 +298,11 @@ class Crash:
     crash.crash_address = self.crash_address
     crash.crash_state = self.crash_state
     crash.crash_stacktrace = self.crash_stacktrace
-    crash.crash_categories = self.crash_categories
+    crash.crash_categories.extend(self.crash_categories)
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
-    crash.crash_frames = self.crash_frames
+    crash.crash_frames.extend(self.crash_frames)
     return crash
 
 
