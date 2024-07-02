@@ -35,6 +35,12 @@ message SymbolizeTaskInput {
   optional string old_crash_stacktrace = 1;
 }
 
+// TODO: refactor other instances to use this structured message.
+message BlobUploadUrl {
+  optional string key = 1;
+  optional string url = 2;
+}
+
 message FuzzTaskInput {
   optional string sample_testcase_upload_key = 1;
   optional string sample_testcase_upload_url = 2;
@@ -43,6 +49,7 @@ message FuzzTaskInput {
   optional google.protobuf.Any fuzz_target = 4;
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
+  repeated BlobUploadUrl crash_upload_urls = 7;
 }
 
 message DataBundleCorpus {
@@ -63,7 +70,6 @@ message Corpus {
   optional string gcs_url = 3;
   repeated string upload_urls = 4;
 }
-
 
 message MinimizeTaskInput {
   optional string testcase_upload_url = 1;
@@ -183,19 +189,58 @@ message StoreFuzzerRunResultsOutput {
   optional bool uploaded_sample_testcase = 4;
 }
 
+message FuzzTaskCrash {
+  optional string file_path = 1;
+  optional float crash_time = 2;
+  optional int32 return_code = 3;
+  repeated string resource_list = 4;
+  repeated string gestures = 5;
+  optional string arguments = 6;
+  repeated string fuzzing_strategies = 7;
+  optional bool security_flag = 8;
+  optional bool should_be_ignored = 9;
+  optional bool http_flag = 10;
+  optional string application_command_line = 11;
+  optional string unsymbolized_crash_stacktrace = 12;
+  optional string crash_type = 13;
+  optional string crash_address = 14;
+  optional string crash_state = 15;
+  optional string crash_stacktrace = 16;
+  repeated string crash_categories = 17;
+  optional string key = 18;
+  repeated string crash_frames = 19;
+  optional bool is_valid = 20;
+}
+
+message FuzzContext {
+  optional int32 redzone = 1;
+  optional bool disable_ubsan = 2;
+  optional string window_argument = 3;
+  optional float timeout_multiplier = 4;
+  optional int32 test_timeout = 5;
+  map<string, string> fuzzer_metadata = 6;
+}
+
+message FuzzTaskCrashGroup {
+  optional FuzzContext context = 1;
+  repeated FuzzTaskCrash crashes = 2;
+  optional FuzzTaskCrash main_crash = 3;
+  optional bool one_time_crasher_flag = 4;
+}
+
 message FuzzTaskOutput {
+  // TODO(metzman): Remove this since tworkers should know what this is based on
+  // the input.
   optional string fully_qualified_fuzzer_name = 1;
   optional string crash_revision = 2;
   optional float job_run_timestamp = 3;
-  optional int64 new_crash_count = 4;
-  optional int64 known_crash_count = 5;
   optional int64 testcases_executed = 6;
-  repeated CrashInfo job_run_crashes = 7;
   optional StoreFuzzerRunResultsOutput fuzzer_run_results = 8;
   optional int32 new_targets_count = 9;
   optional int32 fuzzer_revision = 10;
   repeated string fuzz_targets = 11;
   repeated string testcase_run_jsons = 12;
+  repeated FuzzTaskCrashGroup crash_groups = 13;
 }
 
 message MinimizeTaskOutput {
@@ -335,6 +380,9 @@ message Output {
   optional float test_timeout = 5;
   optional float crash_time = 6;
   optional string crash_stacktrace_output = 7;
+  optional string bot_name = 18;
+  optional string platform_id = 19;
+
   optional AnalyzeTaskOutput analyze_task_output = 8;
   optional FuzzTaskOutput fuzz_task_output = 9;
   optional MinimizeTaskOutput minimize_task_output = 10;
