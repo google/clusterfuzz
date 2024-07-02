@@ -279,6 +279,7 @@ class Crash:
     return None
 
   def to_proto(self):
+    is_valid = self.is_valid()
     return uworker_msg_pb2.FuzzTaskCrash(
         file_path=self.file_path,
         crash_time=self.crash_time,
@@ -293,13 +294,13 @@ class Crash:
         crash_type=self.crash_type,
         crash_address=self.crash_address,
         crash_state=self.crash_state,
+        is_valid=is_valid,
         crash_stacktrace=self.crash_stacktrace,
         crash_categories=self.crash_categories,
         security_flag=self.security_flag,
         key=self.key,
         should_be_ignored=self.should_be_ignored,
         crash_frames=self.crash_frames,
-        is_valid=self.is_valid(),
     )
 
 
