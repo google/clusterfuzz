@@ -18,7 +18,6 @@ import os
 import pathlib
 import re
 import shutil
-from typing import Optional
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -41,35 +40,8 @@ class CentipedeError(Exception):
   """Base exception class."""
 
 
-def _find_llvm_symbolizer() -> Optional[str]:
-  """Locates llvm-symbolizer."""
-  # llvm-symbolizer should be in both BUILD_DIR or EXTRA_BUILD_DIR.
-  build_dir = environment.get_value('BUILD_DIR', fuzzer_utils.EXTRA_BUILD_DIR)
-  llvm_symbolizer_path = os.path.join(build_dir, 'llvm-symbolizer')
-  if os.path.isfile(llvm_symbolizer_path):
-    return llvm_symbolizer_path
-  logs.log_warn('Unable to find llvm-symbolizer at BUILD_DIR or '
-                f'EXTRA_BUILD_DIR: {llvm_symbolizer_path}')
-
-  llvm_symbolizer_path = environment.get_llvm_symbolizer_path()
-  if llvm_symbolizer_path and os.path.isfile(llvm_symbolizer_path):
-    return llvm_symbolizer_path
-  logs.log_warn('Unable to find llvm-symbolizer at: '
-                f'{environment.get_llvm_symbolizer_path()}')
-  return None
-
-
-def _add_llvm_symbolizer():
-  """Adds llvm-symbolizer to PATH."""
-  llvm_symbolizer_path = _find_llvm_symbolizer()
-  if llvm_symbolizer_path is not None:
-    # Copy it to /bin to ensure Centipede can use it.
-    shutil.copy(llvm_symbolizer_path, '/bin/')
-
-
 def _get_runner(target_path):
   """Gets the Centipede runner."""
-  _add_llvm_symbolizer()
   centipede_path = pathlib.Path(target_path).parent / 'centipede'
   if not centipede_path.exists():
     raise CentipedeError('Centipede not found in build')
