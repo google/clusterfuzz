@@ -145,7 +145,7 @@ class BaseLauncherTest(unittest.TestCase):
     def mocked_log(message, **kwargs):  # pylint: disable=unused-argument
       self.logged_messages.append(message)
 
-    self.mock.log.side_effect = mocked_log
+    self.mock.info.side_effect = mocked_log
     self.mock.getpid.return_value = 1337
 
   def _test_abnormal_return_code(self):
