@@ -30,7 +30,7 @@ spec:
             imagePullPolicy: Always
             env:
             - name: RUN_CMD
-              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py load_bigquery_stats"
+              value: "python3.11 $ROOT_DIR/src/python/bot/startup/run_cron.py load_bigquery_stats"
             - name: IS_K8S_ENV
               value: "true"
             - name: DISABLE_MOUNTS

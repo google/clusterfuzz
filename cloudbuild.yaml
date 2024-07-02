@@ -28,7 +28,7 @@ steps:
     mv tmp/.git .git
     rm -rf tmp
 - name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['pipenv', 'sync', '--dev', '--python=3.7']
+  args: ['pipenv', 'sync', '--dev', '--python=3.11']
   env:
     - PIPENV_VENV_IN_PROJECT=1
 - name: 'gcr.io/clusterfuzz-images/ci'
