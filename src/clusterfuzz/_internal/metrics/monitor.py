@@ -116,8 +116,8 @@ class _FlusherThread(threading.Thread):
                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
                    f'end_time: {metric_et_sec}.{metric_et_ns}')
 
-          if (series.metric_kind ==
-              metric_pb2.MetricDescriptor.MetricKind.GAUGE):
+          if (series.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+             ):
             gauge_series.append(series)
           else:
             time_series.append(series)
