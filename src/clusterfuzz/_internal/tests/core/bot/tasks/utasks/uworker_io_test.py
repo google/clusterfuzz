@@ -306,23 +306,22 @@ class RoundTripTest(unittest.TestCase):
     deserialized properly."""
     crash_revision = '1337'
 
-    crashes = [
-        uworker_msg_pb2.CrashInfo(
-            is_new=False,
-            count=1,
-            crash_type='Abort',
-            crash_state='NULL',
-            security_flag=True,
-        )
+    crash_groups = [
+        uworker_msg_pb2.FuzzTaskCrashGroup(crashes=[
+            uworker_msg_pb2.FuzzTaskCrash(
+                crash_type='Abort',
+                crash_state='NULL',
+                security_flag=True,
+            )
+        ])
     ]
     output = uworker_msg_pb2.Output(
         fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
-            crash_revision=crash_revision, job_run_crashes=crashes))
+            crash_revision=crash_revision, crash_groups=crash_groups))
     serialized = uworker_io.serialize_uworker_output(output)
     deserialized = uworker_io.deserialize_uworker_output(serialized)
-    self.assertEqual(len(deserialized.fuzz_task_output.job_run_crashes), 1)
-    self.assertEqual(deserialized.fuzz_task_output.job_run_crashes[0],
-                     crashes[0])
+    self.assertEqual(deserialized.fuzz_task_output.crash_groups, crash_groups)
+
     self.assertEqual(deserialized.fuzz_task_output.crash_revision,
                      crash_revision)
 

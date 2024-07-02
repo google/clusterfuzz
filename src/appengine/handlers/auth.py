@@ -36,7 +36,7 @@ class Handler(base_handler.Handler):
     target_url = request.url.replace(auth.auth_domain(),
                                      auth.real_auth_domain(), 1)
     logging.info('Forwarding auth request to: %s', target_url)
-    response = requests.get(target_url)
+    response = requests.get(target_url, timeout=60)
     gzip_response = gzip.compress(response.text.encode('utf-8'))
     flask_response = Response(
         gzip_response,
