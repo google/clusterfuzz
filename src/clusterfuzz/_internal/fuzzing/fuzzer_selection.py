@@ -135,8 +135,23 @@ def get_fuzz_task_payload(platform=None):
   if not mappings:
     return None, None
 
+  logs.log(f'Mappings: {mappings}')
+  # The environment variable containing a list of comma-separated jobs.
+  # E.g: "libfuzzer_asan_android_host,afl_asan_android_host,..."
+  jobs_selection = environment.get_value('HOST_JOB_SELECTION')
+  if jobs_selection:
+    jobs = get_job_list(jobs_selection)
+    selected_mappings = [entity for entity in mappings if entity.job in jobs]
+  else:
+    selected_mappings = mappings
+
+  logs.log(f'Selected mappings: {selected_mappings}')
+
+  if not selected_mappings:
+    return None, None
+
   selection = utils.random_weighted_choice(
-      mappings, weight_attribute='actual_weight')
+      selected_mappings, weight_attribute='actual_weight')
   return selection.fuzzer, selection.job
 
 
@@ -169,3 +184,10 @@ def get_fuzz_target_weights():
     weights[fuzz_target.binary] = target_job.weight
 
   return weights
+
+
+def get_job_list(jobs_str):
+  if jobs_str:
+    return [job.strip() for job in jobs_str.split(",")]
+
+  return []
