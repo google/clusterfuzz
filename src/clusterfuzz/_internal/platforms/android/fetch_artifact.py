@@ -73,7 +73,7 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
     logs.log_error(
         'Artifact unreachable with name %s, target %s and build id %s.' %
         (name, target, bid))
-    return False
+    return None
 
   # Lucky us, we always have the size.
   size = int(artifact['size'])
@@ -244,7 +244,7 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
   if not artifacts:
     logs.log_error('Artifact could not be fetched for target %s, build id %s.' %
                    (target, bid))
-    return False
+    return None
 
   regex = re.compile(regex)
   result = []

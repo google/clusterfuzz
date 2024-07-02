@@ -366,6 +366,8 @@ class Runner:
       return
 
     asan_options = environment.get_memory_tool_options('ASAN_OPTIONS')
+    if not asan_options:
+      return
     asan_options.update(overrides)
     environment.set_memory_tool_options('ASAN_OPTIONS', asan_options)
 

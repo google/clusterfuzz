@@ -639,7 +639,7 @@ def terminate_processes_matching_cmd_line(match_strings,
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
       continue
 
-    if any(x in process_path for x in match_strings):
+    if any(x in process_path for x in match_strings if x):
       if not any([x in process_path for x in exclude_strings]):
         terminate_process(process_info['pid'], kill)
 
