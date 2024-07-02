@@ -55,16 +55,16 @@ def _fetch_releases_from_chromiumdash(platform, channel=None):
 
   build_info = utils.fetch_url(query_url)
   if not build_info:
-    logs.log_error('Failed to fetch build info from %s' % query_url)
+    logs.error('Failed to fetch build info from %s' % query_url)
     return []
 
   try:
     build_info_json = json.loads(build_info)
     if not build_info_json:
-      logs.log_error('Empty response from %s' % query_url)
+      logs.error('Empty response from %s' % query_url)
       return []
   except Exception:
-    logs.log_error('Malformed response from %s' % query_url)
+    logs.error('Malformed response from %s' % query_url)
     return []
 
   return build_info_json

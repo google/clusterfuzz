@@ -101,8 +101,8 @@ class _FlusherThread(threading.Thread):
             start_time = end_time
 
           series = monitoring_v3.types.metric.TimeSeries()  # pylint: disable=no-member
-          logs.log(f'monitor iter: {metric}, {start_time}, {self}, '
-                   f'{metric.metric_kind}, {end_time}')
+          logs.info(f'monitor iter: {metric}, {start_time}, {self}, '
+                    f'{metric.metric_kind}, {end_time}')
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           # Log the TimeSeries object details for debug purposes.
@@ -110,10 +110,10 @@ class _FlusherThread(threading.Thread):
           metric_st_ns = series.points[-1].interval.start_time.nanosecond
           metric_et_sec = series.points[-1].interval.end_time.second
           metric_et_ns = series.points[-1].interval.end_time.nanosecond
-          logs.log(f'Monitor_TimeSeries - '
-                   f'metric_kind: {series.metric_kind}, '
-                   f'start_time: {metric_st_sec}.{metric_st_ns}, '
-                   f'end_time: {metric_et_sec}.{metric_et_ns}')
+          logs.info(f'Monitor_TimeSeries - '
+                    f'metric_kind: {series.metric_kind}, '
+                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
+                    f'end_time: {metric_et_sec}.{metric_et_ns}')
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
@@ -122,14 +122,13 @@ class _FlusherThread(threading.Thread):
 
         if time_series:
           create_time_series(name=project_path, time_series=time_series)
-      except Exception as e:
+      except Exception:
         if environment.is_android():
           # FIXME: This exception is extremely common on Android. We are already
           # aware of the problem, don't make more noise about it.
-          logs.log_warn('Failed to flush metrics.')
+          logs.warning('Failed to flush metrics.')
         else:
-          logs.log_error(e)
-          logs.log_error('Failed to flush metrics.')
+          logs.error('Failed to flush metrics.')
 
   def stop(self):
     self.stop_event.set()

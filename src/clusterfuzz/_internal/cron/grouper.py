@@ -58,7 +58,7 @@ class TestcaseAttributes:
 
 def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
   """Combine two testcases into a group."""
-  logs.log(
+  logs.info(
       'Grouping testcase 1 '
       '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
       'and testcase 2 '
@@ -131,7 +131,7 @@ def _group_testcases_based_on_variants(testcase_map):
   if not enable:
     return
 
-  logs.log('Grouping based on variant analysis.')
+  logs.info('Grouping based on variant analysis.')
   grouping_candidates = collections.defaultdict(list)
   project_num_testcases = collections.defaultdict(int)
   # Phase 1: collect all grouping candidates.
@@ -210,11 +210,12 @@ def _group_testcases_based_on_variants(testcase_map):
     for (testcase_1_id, testcase_2_id) in candidate_list:
       if (testcase_1_id in project_ignore_testcases or
           testcase_2_id in project_ignore_testcases):
-        logs.log('VARIANT ANALYSIS (Pruning): Anomalous match: (id1=%s, '
-                 'matched_count1=%d) matched with (id2=%d, matched_count2=%d), '
-                 'threshold=%.2f.' %
-                 (testcase_1_id, project_counter[testcase_1_id], testcase_2_id,
-                  project_counter[testcase_2_id], threshold))
+        logs.info(
+            'VARIANT ANALYSIS (Pruning): Anomalous match: (id1=%s, '
+            'matched_count1=%d) matched with (id2=%d, matched_count2=%d), '
+            'threshold=%.2f.' % (testcase_1_id, project_counter[testcase_1_id],
+                                 testcase_2_id, project_counter[testcase_2_id],
+                                 threshold))
         continue
 
       testcase_1 = testcase_map[testcase_1_id]
@@ -222,11 +223,11 @@ def _group_testcases_based_on_variants(testcase_map):
 
       if (matches_top_crash(testcase_1, top_crashes_by_project_and_platform) or
           matches_top_crash(testcase_2, top_crashes_by_project_and_platform)):
-        logs.log(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
-                 'is a top crash, skipping.')
+        logs.info(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
+                  'is a top crash, skipping.')
         continue
 
-      logs.log(
+      logs.info(
           'VARIANT ANALYSIS: Grouping testcase 1 '
           '(id=%s, '
           'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s) '
@@ -242,7 +243,7 @@ def _group_testcases_based_on_variants(testcase_map):
 
 def _group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
-  logs.log('Grouping based on same issues.')
+  logs.info('Grouping based on same issues.')
   for testcase_1_id, testcase_1 in testcase_map.items():
     for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
@@ -271,7 +272,7 @@ def _group_testcases_with_same_issues(testcase_map):
 
 def _group_testcases_with_similar_states(testcase_map):
   """Group testcases with similar looking crash states."""
-  logs.log('Grouping based on similar states.')
+  logs.info('Grouping based on similar states.')
   for testcase_1_id, testcase_1 in testcase_map.items():
     for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
@@ -374,9 +375,9 @@ def _shrink_large_groups_if_needed(testcase_map):
       if testcase_entity.bug_information:
         continue
 
-      logs.log_warn(('Deleting testcase {testcase_id} due to overflowing group '
-                     '{group_id}.').format(
-                         testcase_id=testcase.id, group_id=testcase.group_id))
+      logs.warning(('Deleting testcase {testcase_id} due to overflowing group '
+                    '{group_id}.').format(
+                        testcase_id=testcase.id, group_id=testcase.group_id))
       testcase_entity.key.delete()
 
 
@@ -396,7 +397,7 @@ def group_testcases():
     # Remove duplicates early on to avoid large groups.
     if (not testcase.bug_information and not testcase.uploader_email and
         _has_testcase_with_same_params(testcase, testcase_map)):
-      logs.log('Deleting duplicate testcase %d.' % testcase_id)
+      logs.info('Deleting duplicate testcase %d.' % testcase_id)
       testcase.key.delete()
       continue
 
@@ -426,13 +427,12 @@ def group_testcases():
           issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
               testcase)
         except ValueError:
-          logs.log_error('Couldn\'t get issue tracker for issue.')
+          logs.error('Couldn\'t get issue tracker for issue.')
           del testcase_map[testcase_id]
           continue
 
         if not issue_tracker:
-          logs.log_error(
-              'Unable to access issue tracker for issue %d.' % issue_id)
+          logs.error('Unable to access issue tracker for issue %d.' % issue_id)
           testcase_attributes.issue_id = issue_id
           continue
 
@@ -443,7 +443,7 @@ def group_testcases():
         except:
           # If we are unable to access the issue, then we can't determine
           # the original issue id. Assume that it is the same as issue id.
-          logs.log_error(
+          logs.error(
               'Unable to determine original issue for issue %d.' % issue_id)
           testcase_attributes.issue_id = issue_id
           continue
@@ -519,5 +519,5 @@ def group_testcases():
     testcase.group_id = updated_group_id
     testcase.is_leader = updated_is_leader
     testcase.put()
-    logs.log(
+    logs.info(
         'Updated testcase %d group to %d.' % (testcase_id, updated_group_id))

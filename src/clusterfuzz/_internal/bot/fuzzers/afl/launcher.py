@@ -263,7 +263,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     """Copy the first crash found by AFL. Before calling super method
     copy the crashes directory from device to local.
     """
-    logs.log('Copying crash directory from device to local.')
+    logs.info('Copying crash directory from device to local.')
 
     # Copy the crashes dir from device to local.
     local_directory = os.path.join(self.instance_directory, 'crashes')
@@ -602,7 +602,7 @@ class AflRunnerCommon:
       expected_return_codes += additional_return_codes
 
     if result.return_code not in expected_return_codes:
-      logs.log_error(
+      logs.error(
           f'AFL target exited with abnormal exit code: {result.return_code}.',
           output=result.output)
 
@@ -767,13 +767,13 @@ class AflRunnerCommon:
     (calculated using |max_total_time|).
     """
     if max_total_time <= 0:
-      logs.log_error('Tried fuzzing for {} seconds. Not retrying'.format(
+      logs.error('Tried fuzzing for {} seconds. Not retrying'.format(
           self.initial_max_total_time))
 
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
-      logs.log_error(
+      logs.error(
           'Tried to retry fuzzing {} times. Fuzzer is likely broken'.format(
               num_retries))
 
@@ -810,7 +810,7 @@ class AflRunnerCommon:
         message_format = (
             'Seconds spent fuzzing: {seconds}, ' + log_message_format)
 
-        logs.log(
+        logs.info(
             message_format.format(
                 erroring_filename, seconds=get_time_spent_fuzzing()))
 
@@ -965,7 +965,7 @@ class AflRunnerCommon:
           num_first_testcase_hangs += 1
           if (num_first_testcase_hangs >
               self.MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER):
-            logs.log_warn('First testcase hangs when not deferring.')
+            logs.warning('First testcase hangs when not deferring.')
 
           elif (num_first_testcase_hangs ==
                 self.MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER):
@@ -988,7 +988,7 @@ class AflRunnerCommon:
 
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
-      logs.log_error(
+      logs.error(
           ('Afl exited with a non-zero exitcode: %s. Cannot recover.' %
            fuzz_result.return_code),
           engine_output=fuzz_result.output)
@@ -1014,15 +1014,15 @@ class AflRunnerCommon:
         constants.NO_AFFINITY_ENV_VAR)
 
     if current_no_affinity_value is not None:
-      logs.log_warn(('Already tried fixing CPU bind error\n'
-                     '$AFL_NO_AFFINITY: %s\n'
-                     'Not retrying.') % current_no_affinity_value)
+      logs.warning(('Already tried fixing CPU bind error\n'
+                    '$AFL_NO_AFFINITY: %s\n'
+                    'Not retrying.') % current_no_affinity_value)
 
       return False  # return False so this error is considered unhandled.
 
     # Log that this happened so someone can investigate/remediate the zombies
     # and then try fuzzing again, this time telling AFL not to bind.
-    logs.log_error(
+    logs.error(
         'CPU binding error encountered by afl-fuzz\n'
         'Check bot: %s for zombies\n'
         'Trying again with AFL_NO_AFFINITY=1' % BOT_NAME,
@@ -1108,18 +1108,18 @@ class AflRunnerCommon:
     if not os.path.exists(self.showmap_output_path):
       if not self.showmap_no_output_logged:
         self.showmap_no_output_logged = True
-        logs.log_error(('afl-showmap didn\'t output any coverage for '
-                        'file {file_path} ({file_size} bytes).\n'
-                        'Command: {command}\n'
-                        'Return code: {return_code}\n'
-                        'Time executed: {time_executed}\n'
-                        'Output: {output}').format(
-                            file_path=input_file_path,
-                            file_size=os.path.getsize(input_file_path),
-                            command=showmap_result.command,
-                            return_code=showmap_result.return_code,
-                            time_executed=showmap_result.time_executed,
-                            output=showmap_result.output))
+        logs.error(('afl-showmap didn\'t output any coverage for '
+                    'file {file_path} ({file_size} bytes).\n'
+                    'Command: {command}\n'
+                    'Return code: {return_code}\n'
+                    'Time executed: {time_executed}\n'
+                    'Output: {output}').format(
+                        file_path=input_file_path,
+                        file_size=os.path.getsize(input_file_path),
+                        command=showmap_result.command,
+                        return_code=showmap_result.return_code,
+                        time_executed=showmap_result.time_executed,
+                        output=showmap_result.output))
       return None, True
 
     showmap_output = engine_common.read_data_from_file(self.showmap_output_path)
@@ -1127,7 +1127,7 @@ class AflRunnerCommon:
 
   def merge_corpus(self):
     """Merge new testcases into the input corpus."""
-    logs.log('Merging corpus.')
+    logs.info('Merging corpus.')
     # Don't tell the fuzz target to write its stderr to the same file written
     # to during fuzzing. The target won't write its stderr anywhere.
     try:
@@ -1147,7 +1147,7 @@ class AflRunnerCommon:
     for file_path in shell.get_files_list(input_dir):
       file_features, timed_out = self.get_file_features(file_path, showmap_args)
       if timed_out:
-        logs.log_warn('Timed out in merge while processing initial corpus.')
+        logs.warning('Timed out in merge while processing initial corpus.')
         return 0
 
       if file_features is None:
@@ -1172,7 +1172,7 @@ class AflRunnerCommon:
 
       file_features, timed_out = self.get_file_features(file_path, showmap_args)
       if timed_out:
-        logs.log_warn('Timed out in merge while processing output.')
+        logs.warning('Timed out in merge while processing output.')
         break
 
       if file_features is None:
@@ -1208,7 +1208,7 @@ class AflRunnerCommon:
 
     if new_units_generated:
       new_units_added = self.merge_corpus()
-      logs.log('Merge completed successfully.')
+      logs.info('Merge completed successfully.')
 
     # Get corpus size after merge. This removes the duplicate units that were
     # created during this fuzzing session.
@@ -1324,8 +1324,8 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                                                     filename)
 
     if not os.path.exists(intput_file_showmap_results_file):
-      logs.log_error('Cannot merge corpus. Most likely reason is AFL_MAP_SIZE'
-                     'required is very large for fuzzing target.')
+      logs.error('Cannot merge corpus. Most likely reason is AFL_MAP_SIZE'
+                 'required is very large for fuzzing target.')
 
       return None, False
 
@@ -1723,11 +1723,11 @@ def main(argv):
 
   # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
-    logs.log(
+    logs.info(
         'New units added to corpus: %d.' % new_units_added,
         stats=stats_getter.stats)
   else:
-    logs.log('No new units found.', stats=stats_getter.stats)
+    logs.info('No new units found.', stats=stats_getter.stats)
 
 
 if __name__ == '__main__':

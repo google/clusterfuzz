@@ -105,7 +105,7 @@ FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
     ],
 )
 
-# Global log_error count.
+# Global error count.
 LOG_ERROR_COUNT = monitor.CounterMetric(
     'errors/count',
     description='Error count.',

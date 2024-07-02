@@ -64,12 +64,12 @@ def beat(previous_state, log_filename):
         continue
 
       process_id = process.pid
-      logs.log(
+      logs.info(
           'Killing stale bot (pid %d) which seems to have stuck.' % process_id)
       try:
         process_handler.terminate_root_and_child_processes(process_id)
       except Exception:
-        logs.log_error('Failed to terminate stale bot processes.')
+        logs.error('Failed to terminate stale bot processes.')
 
     # Minor cleanup to avoid disk space issues on bot restart.
     process_handler.terminate_stale_application_instances()
@@ -111,7 +111,7 @@ def main():
   try:
     sys.stdout.write(str(beat(previous_state, log_filename)))
   except Exception:
-    logs.log_error('Failed to beat.')
+    logs.error('Failed to beat.')
 
   time.sleep(data_types.HEARTBEAT_WAIT_INTERVAL)
 

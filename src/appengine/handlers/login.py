@@ -78,7 +78,7 @@ class LogoutHandler(base_handler.Handler):
       auth.revoke_session_cookie(auth.get_session_cookie())
     except auth.AuthError:
       # Even if the revoke failed, remove the cookie.
-      logs.log_error('Failed to revoke session cookie.')
+      logs.error('Failed to revoke session cookie.')
 
     response = self.redirect(request.get('dest', DEFAULT_REDIRECT))
     response.delete_cookie('session')
