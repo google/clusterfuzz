@@ -280,28 +280,28 @@ class Crash:
 
   def to_proto(self):
     is_valid = self.is_valid()
-    return uworker_msg_pb2.FuzzTaskCrash(
-        file_path=self.file_path,
-        crash_time=self.crash_time,
-        return_code=self.return_code,
-        resource_list=self.resource_list,
-        gestures=self.gestures,
-        arguments=self.arguments,
-        fuzzing_strategies=self.fuzzing_strategies,
-        http_flag=self.http_flag,
-        application_command_line=self.application_command_line,
-        unsymbolized_crash_stacktrace=self.unsymbolized_crash_stacktrace,
-        crash_type=self.crash_type,
-        crash_address=self.crash_address,
-        crash_state=self.crash_state,
-        is_valid=is_valid,
-        crash_stacktrace=self.crash_stacktrace,
-        crash_categories=self.crash_categories,
-        security_flag=self.security_flag,
-        key=self.key,
-        should_be_ignored=self.should_be_ignored,
-        crash_frames=self.crash_frames,
-    )
+    crash = uworker_msg_pb2.FuzzTaskCrash()
+    crash.file_path = self.file_path
+    crash.crash_time = self.crash_time
+    crash.return_code = self.return_code
+    crash.resource_list = self.resource_list
+    crash.gestures = self.gestures
+    crash.arguments = self.arguments
+    crash.fuzzing_strategies = self.fuzzing_strategies
+    crash.http_flag = self.http_flag
+    crash.application_command_line = self.application_command_line
+    crash.unsymbolized_crash_stacktrace = self.unsymbolized_crash_stacktrace
+    crash.crash_type = self.crash_type
+    crash.crash_address = self.crash_address
+    crash.crash_state = self.crash_state
+    crash.is_valid = is_valid
+    crash.crash_stacktrace = self.crash_stacktrace
+    crash.crash_categories = self.crash_categories
+    crash.security_flag = self.security_flag
+    crash.key = self.key
+    crash.should_be_ignored = self.should_be_ignored
+    crash.crash_frames = self.crash_frames
+    return crash
 
 
 def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
@@ -347,7 +347,8 @@ class CrashGroup:
   """Represent a group of identical crashes. The key is
       (crash_type, crash_state, security_flag)."""
 
-  def __init__(self, crashes, context, upload_urls: UploadUrlCollection):
+  def __init__(self,
+               crashes: List[Crash], context, upload_urls: UploadUrlCollection):
     for c in crashes:
       assert crashes[0].crash_type == c.crash_type
       assert crashes[0].crash_state == c.crash_state
@@ -1121,8 +1122,8 @@ def process_crashes(crashes: List[Crash], context: Context,
             test_timeout=int(context.test_timeout),
             fuzzer_metadata=context.fuzzer_metadata,
         ),
-        crashes=[c.to_proto() for c in group.crashes],
         main_crash=group.main_crash.to_proto(),
+        crashes=[c.to_proto() for c in group.crashes],
         one_time_crasher_flag=group.one_time_crasher_flag,
     )
     crash_groups.append(group_proto)
