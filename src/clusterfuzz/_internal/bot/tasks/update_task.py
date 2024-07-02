@@ -42,9 +42,7 @@ from clusterfuzz._internal.system import shell
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
-MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
-if sys.version_info.major == 3:
-  MANIFEST_FILENAME += '.3'
+MANIFEST_FILENAME = 'clusterfuzz-source.manifest.3'
 
 
 def _rename_dll_for_update(absolute_filepath):
@@ -61,10 +59,7 @@ def _platform_deployment_filename():
       'Darwin': 'macos'
   }
 
-  base_filename = platform_mappings[platform.system()]
-  if sys.version_info.major == 3:
-    base_filename += '-3'
-
+  base_filename = platform_mappings[platform.system()] + '-3'
   return base_filename + '.zip'
 
 
@@ -131,6 +126,11 @@ def get_remote_source_revision(source_manifest_url):
 def get_newer_source_revision():
   """Returns the latest source revision if there is an update, or None if the
   current source is up to date."""
+
+  if platform.system() == 'Darwin':
+    # TODO(https://github.com/google/clusterfuzz/issues/4059): Get rid of this
+    # when Mac updating is fixed.
+    return None
   if (environment.get_value('LOCAL_SRC') or
       environment.get_value('LOCAL_DEVELOPMENT')):
     logs.info('Using local source, skipping source code update.')
@@ -250,12 +250,16 @@ def update_source_code():
                  'version.' % absolute_filepath)
 
     try:
+      # Make sure we can override files without prior write permission.
+      target_destination = os.path.join(cf_source_root_parent_dir, file.name)
+      try:
+        os.chmod(target_destination, 0o755)
+      except FileNotFoundError:
+        pass
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
-      mode = file.mode
-      mode |= 0o440
-      os.chmod(extracted_path, mode)
-    except:
+      os.chmod(extracted_path, 0o755)
+    except Exception:
       error_occurred = True
       logs.error(f'Failed to extract file {file.name} from source archive.')
 

@@ -70,9 +70,10 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
       buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
   artifact = execute_request_with_retries(artifact_query)
   if artifact is None:
-    logs.error('Artifact unreachable with name %s, target %s and build id %s.' %
-               (name, target, bid))
-    return False
+    logs.error(
+        f'Artifact unreachable with name {name}, target {target} '
+        f'and build id {bid}.')
+    return None
 
   # Lucky us, we always have the size.
   size = int(artifact['size'])
@@ -240,9 +241,9 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
   artifacts = get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest')
   if not artifacts:
-    logs.error('Artifact could not be fetched for target %s, build id %s.' %
-               (target, bid))
-    return False
+    logs.error(f'Artifact could not be fetched for target {target}, '
+               f'build id {bid}.')
+    return None
 
   regex = re.compile(regex)
   result = []

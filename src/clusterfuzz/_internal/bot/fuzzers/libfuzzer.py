@@ -501,7 +501,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                           timeout=None,
                           additional_args=None):
     """Run a single testcase."""
-    #TODO(eep): Are all these copy.copy() calls still necessary?
+    # TODO(eep): Are all these copy.copy() calls still necessary?
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
@@ -906,9 +906,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     loop = stack_symbolizer.SymbolizationLoop()
     ta_stacktrace = loop.process_trusty_stacktrace(ta_stacktrace)
 
-    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
-      \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
-        ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
+    return ('+-- Logcat excerpt: Trusted App crash stacktrace --+'
+            f'\n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
   def _extract_mte_stacktrace_from_logcat(self, logcat):
     """Finds and returns the MTE stacktrace from a logcat."""
@@ -946,9 +945,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     logcat = android.logger.log_output()
     mte_stacktrace = self._extract_mte_stacktrace_from_logcat(logcat)
 
-    return '+-- Logcat excerpt: MTE crash stacktrace --+\
-      \n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
-        mte_stacktrace=mte_stacktrace, output=output, logcat_output=logcat)
+    return ('+-- Logcat excerpt: MTE crash stacktrace --+'
+            f'\n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
   def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
@@ -962,8 +960,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if environment.is_android() and android.settings.is_mte_build():
       return self._add_mte_stacktrace_if_needed(output)
 
-    return '{output}\n\nLogcat:\n{logcat_output}'.format(
-        output=output, logcat_output=android.logger.log_output())
+    return f'{output}\n\nLogcat:\n{android.logger.log_output()}'
 
   @contextlib.contextmanager
   def _device_file(self, file_path):
