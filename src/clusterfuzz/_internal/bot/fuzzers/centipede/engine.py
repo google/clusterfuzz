@@ -42,7 +42,7 @@ class CentipedeError(Exception):
 
 
 def _find_llvm_symbolizer() -> Optional[str]:
-  """Locate llvm-symbolizer from various sources."""
+  """Locates llvm-symbolizer."""
   # llvm-symbolizer should be in both BUILD_DIR or EXTRA_BUILD_DIR.
   build_dir = environment.get_value('BUILD_DIR', fuzzer_utils.EXTRA_BUILD_DIR)
   llvm_symbolizer_path = os.path.join(build_dir, 'llvm-symbolizer')
@@ -60,7 +60,7 @@ def _find_llvm_symbolizer() -> Optional[str]:
 
 
 def _add_llvm_symbolizer():
-  """Add llvm-symbolizer to PATH."""
+  """Adds llvm-symbolizer to PATH."""
   llvm_symbolizer_path = _find_llvm_symbolizer()
   if llvm_symbolizer_path is not None:
     # Copy it to /bin to ensure Centipede can use it.
