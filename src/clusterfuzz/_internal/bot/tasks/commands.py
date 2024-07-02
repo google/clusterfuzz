@@ -73,6 +73,19 @@ class AlreadyRunningError(Error):
   """Exception raised for a task that is already running on another bot."""
 
 
+def get_queue_for_testcase(testcase_platform_id, current_platform_id):
+  """Gets the queue where to schedule the task on. Returns None if the default
+  regular queue should be used.
+  """
+  if environment.is_android(testcase_platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+    if android.util.should_schedule_on_generic_queue(testcase_platform_id,
+                                                     current_platform_id):
+      return tasks.generic_android_queue()
+  return None
+
+
 def cleanup_task_state():
   """Cleans state before and after a task is executed."""
   # Cleanup stale processes.
@@ -339,10 +352,16 @@ def process_command_impl(task_name,
             logs.log('Testcase %d platform (%s) does not match with ours\
                  (%s), exiting' % (testcase.key.id(), testcase_platform_id,
                                    current_platform_id))
+            # If this happens on android, we need to make sure we're not
+            # scheduling this task on a subqueue, since we know the current
+            # platform doesn't match.
+            queue = get_queue_for_testcase(testcase_platform_id,
+                                           current_platform_id)
             tasks.add_task(
                 task_name,
                 task_argument,
                 job_name,
+                queue=queue,
                 wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
             return None
 
