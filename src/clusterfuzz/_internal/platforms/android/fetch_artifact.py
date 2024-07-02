@@ -70,9 +70,8 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
       buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
   artifact = execute_request_with_retries(artifact_query)
   if artifact is None:
-    logs.error(
-        f'Artifact unreachable with name {name}, target {target} '
-        f'and build id {bid}.')
+    logs.error(f'Artifact unreachable with name {name}, target {target} '
+               f'and build id {bid}.')
     return None
 
   # Lucky us, we always have the size.

@@ -433,7 +433,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.system.process_handler.'
         'terminate_stale_application_instances',
         'clusterfuzz.fuzz.engine.get',
-        'clusterfuzz._internal.metrics.logs.log',
+        'clusterfuzz._internal.metrics.logs.info',
     ])
 
     os.environ['CRASH_RETRIES'] = '3'

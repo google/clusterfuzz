@@ -1845,16 +1845,10 @@ class FuzzingSession:
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
     postprocess_store_fuzzer_run_results(uworker_output)
-<<<<<<< HEAD
-    crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
     logs.info('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
-=======
-    logs.log('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
-             f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
->>>>>>> master
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,

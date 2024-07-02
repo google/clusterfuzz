@@ -134,7 +134,7 @@ class BaseLauncherTest(unittest.TestCase):
 
     # Make it easy to assert if things were logged.
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log', 'os.getpid',
+        'clusterfuzz._internal.metrics.logs.info', 'os.getpid',
         'clusterfuzz._internal.bot.fuzzers.afl.launcher.rand_cmplog_level',
         'clusterfuzz._internal.bot.fuzzers.afl.launcher.rand_schedule'
     ])

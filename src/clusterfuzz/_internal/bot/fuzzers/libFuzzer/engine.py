@@ -518,7 +518,7 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_dir('merge-wd')
-    logs.log('Starting merge with timeout %d.' % max_time)
+    logs.info(f'Starting merge with timeout {max_time}.')
 
     try:
       result = runner.merge(
