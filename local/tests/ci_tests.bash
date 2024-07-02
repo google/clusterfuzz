@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=gcr.io/clusterfuzz-images/ci
+IMAGE=gcr.io/clusterfuzz-images/ci:bc696af-202407021946
 
 docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
