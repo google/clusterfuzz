@@ -379,28 +379,26 @@ class CrashGroup:
 
     self.newly_created_testcase = None
 
+  def should_create_testcase(self, existing_testcase):
+    """Return true if this crash should create a testcase."""
+    if not existing_testcase:
+      # No existing testcase, should create a new one.
+      return True
 
-def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
-                            existing_testcase):
-  """Return true if this crash should create a testcase."""
-  if not existing_testcase:
-    # No existing testcase, should create a new one.
-    return True
+    if not existing_testcase.one_time_crasher_flag:
+      # Existing testcase is reproducible, don't need to create another one.
+      return False
 
-  if not existing_testcase.one_time_crasher_flag:
-    # Existing testcase is reproducible, don't need to create another one.
+    if not self.one_time_crasher_flag:
+      # Current testcase is reproducible, where existing one is not. Should
+      # create a new one.
+      return True
+
+    # Both current and existing testcases are unreproducible, shouldn't create
+    # a new testcase.
+    # TODO(aarya): We should probably update last tested stacktrace in existing
+    # testcase without any race conditions.
     return False
-
-  if not group.one_time_crasher_flag:
-    # Current testcase is reproducible, where existing one is not. Should
-    # create a new one.
-    return True
-
-  # Both current and existing testcases are unreproducible, shouldn't create
-  # a new testcase.
-  # TODO(aarya): We should probably update last tested stacktrace in existing
-  # testcase without any race conditions.
-  return False
 
 
 class _TrackFuzzTime:
@@ -838,7 +836,7 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
         group.crashes[0].security_flag,
         fuzz_target=fully_qualified_fuzzer_name)
 
-    if _should_create_testcase(group, existing_testcase):
+    if group.should_create_testcase(existing_testcase):
       group.newly_created_testcase = create_testcase(
           group=group,
           uworker_input=uworker_input,

@@ -470,23 +470,23 @@ class CrashGroupTest(unittest.TestCase):
     return testcase
 
   def test_no_existing_testcase(self):
-    """Tests that is_new=True and _should_create_testcase returns True when
-        there's no existing testcase."""
+    """is_new=True and should_create_testcase=True when there's no existing
+        testcase."""
     self.mock.find_testcase.return_value = None
     self.mock.find_main_crash.return_value = self.crashes[0], True
 
     upload_urls = _get_upload_urls()
     group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
-    self.assertTrue(fuzz_task._should_create_testcase(group, None))
+    self.assertTrue(group.should_create_testcase(None))
     self.mock.find_main_crash.assert_called_once_with(
         self.crashes, 'test', self.context.test_timeout, upload_urls)
 
     self.assertEqual(self.crashes[0], group.main_crash)
 
   def test_has_existing_reproducible_testcase(self):
-    """Tests that should_create_testcase returns False when there's an existing
-      reproducible testcase."""
+    """should_create_testcase=False when there's an existing reproducible
+      testcase."""
     self.mock.find_main_crash.return_value = (self.crashes[0], True)
 
     upload_urls = _get_upload_urls()
@@ -495,10 +495,7 @@ class CrashGroupTest(unittest.TestCase):
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
         self.crashes, 'test', self.context.test_timeout, upload_urls)
-    # TODO(metzman): Replace group in calls to _should_create_testcase with a
-    # proto group.
-    self.assertFalse(
-        fuzz_task._should_create_testcase(group, self.reproducible_testcase))
+    self.assertFalse(group.should_create_testcase(self.reproducible_testcase))
 
   def test_reproducible_crash(self):
     """should_create_testcase=True when the group is reproducible."""
@@ -510,8 +507,7 @@ class CrashGroupTest(unittest.TestCase):
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
         self.crashes, 'test', self.context.test_timeout, upload_urls)
-    self.assertTrue(
-        fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
+    self.assertTrue(group.should_create_testcase(self.unreproducible_testcase))
     self.assertFalse(group.one_time_crasher_flag)
 
   def test_has_existing_unreproducible_testcase(self):
@@ -522,8 +518,7 @@ class CrashGroupTest(unittest.TestCase):
     upload_urls = _get_upload_urls()
     group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
-    self.assertFalse(
-        fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
+    self.assertFalse(group.should_create_testcase(self.unreproducible_testcase))
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
