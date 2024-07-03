@@ -135,7 +135,7 @@ def get_fuzz_task_payload(platform=None):
   if not mappings:
     return None, None
 
-  logs.log(f'Mappings: {mappings}.')
+  logs.info(f'Mappings: {mappings}.')
   selected_mappings = mappings
   # The environment variable containing a list of comma-separated jobs.
   # E.g: "libfuzzer_asan_android_host,afl_asan_android_host,..."
@@ -144,7 +144,7 @@ def get_fuzz_task_payload(platform=None):
     jobs = get_job_list(jobs_selection)
     selected_mappings = [entity for entity in mappings if entity.job in jobs]
 
-  logs.log(f'Selected mappings: {selected_mappings}.')
+  logs.info(f'Selected mappings: {selected_mappings}.')
 
   if not selected_mappings:
     return None, None
