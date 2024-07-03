@@ -1867,6 +1867,12 @@ class FuzzingSession:
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
+    upload_job_run_stats(
+        fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
+        fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
+        fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
+        fuzz_task_output.testcases_executed, fuzz_task_output.crash_groups)
+
     if not environment.is_engine_fuzzer_job():
       return
 
