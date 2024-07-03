@@ -209,6 +209,9 @@ message FuzzTaskCrash {
   repeated string crash_categories = 17;
   optional string key = 18;
   optional bool is_valid = 20;
+  optional string fuzzed_key = 21;
+  optional string absolute_path = 22;
+  optional bool archive_filename = 23;
 }
 
 message FuzzContext {
