@@ -854,13 +854,8 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
     try:
       file_handle = open(zip_path, 'rb')
     except OSError:
-<<<<<<< HEAD
       logs.error('Unable to open testcase archive %s.' % zip_path)
-      return None, None, None
-=======
-      logs.log_error('Unable to open testcase archive %s.' % zip_path)
       return None, None, None, None
->>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
 
     archived = True
     absolute_filename = testcase_path[base_len:]
