@@ -369,25 +369,21 @@ class CrashGroup:
 
 def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
                             existing_testcase):
-  """Return true if this crash should create a testcase."""
+  """Returns True if this crash should create a testcase."""
   if not existing_testcase:
-    # No existing testcase, should create a new one.
     return True
 
   if not existing_testcase.one_time_crasher_flag:
     # Existing testcase is reproducible, don't need to create another one.
     return False
 
-  if not group.one_time_crasher_flag:
-    # Current testcase is reproducible, where existing one is not. Should
-    # create a new one.
-    return True
-
-  # Both current and existing testcases are unreproducible, shouldn't create
-  # a new testcase.
   # TODO(aarya): We should probably update last tested stacktrace in existing
   # testcase without any race conditions.
-  return False
+
+  # Should create a new testcase if this one is reproducible but existing one is
+  # not. Otherwise, this one isn't reproducible either so don't create a new
+  # one.
+  return not group.one_time_crasher_flag
 
 
 class _TrackFuzzTime:
