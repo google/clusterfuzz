@@ -61,14 +61,12 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
-
-# pylint: disable=no-member
+from clusterfuzz.stacktraces.__init__ import CrashInfo
 
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_NEW_CORPUS_FILES = 500
 THREAD_WAIT_TIMEOUT = 1
-MAX_CRASHES_UPLOADED = 64
 
 
 class FuzzTaskError(Exception):
@@ -91,7 +89,8 @@ Context = collections.namedtuple('Context', [
     'project_name', 'bot_name', 'job_type', 'fuzz_target', 'redzone',
     'disable_ubsan', 'platform_id', 'crash_revision', 'fuzzer_name',
     'window_argument', 'fuzzer_metadata', 'testcases_metadata',
-    'timeout_multiplier', 'test_timeout', 'data_directory'
+    'timeout_multiplier', 'test_timeout', 'thread_wait_timeout',
+    'data_directory'
 ])
 
 GenerateBlackboxTestcasesResult = collections.namedtuple(
@@ -109,25 +108,6 @@ def get_unsymbolized_crash_stacktrace(stack_file_path):
   """Read unsymbolized crash stacktrace."""
   with open(stack_file_path, 'rb') as f:
     return utils.decode_to_unicode(f.read())
-
-
-class NoMoreUploadUrlsError(Exception):
-  """Error for when we run out upload urls."""
-
-
-class UploadUrlCollection:
-  """Upload URLs collection."""
-
-  def __init__(self, upload_urls: List[uworker_msg_pb2.BlobUploadUrl]):
-    self.upload_urls = upload_urls
-
-  def get(self) -> uworker_msg_pb2.BlobUploadUrl:
-    if not self.upload_urls:
-      raise NoMoreUploadUrlsError
-
-    url = self.upload_urls[0]
-    self.upload_urls = self.upload_urls[1:]
-    return url
 
 
 class Crash:
@@ -186,7 +166,6 @@ class Crash:
         unsymbolized_crash_stacktrace=utils.decode_to_unicode(crash.stacktrace),
         arguments=' '.join(crash.reproduce_args),
         application_command_line='',  # TODO(ochang): Write actual command line.
-        http_flag=False,
         fuzzing_strategies=fuzzing_strategies)
 
   def __init__(self,
@@ -211,6 +190,7 @@ class Crash:
     self.security_flag = False
     self.should_be_ignored = False
 
+    self.filename = os.path.basename(file_path)
     self.http_flag = http_flag
     self.application_command_line = application_command_line
     self.unsymbolized_crash_stacktrace = unsymbolized_crash_stacktrace
@@ -233,27 +213,22 @@ class Crash:
     self.crash_frames = state.frames
     self.crash_info = None
 
-  @property
-  def filename(self):
-    return os.path.basename(self.file_path)
-
   def is_archived(self):
-    """Return true if archive_testcase_in_blobstore(..) was performed."""
+    """Return true if archive_testcase_in_blobstore(..) was
+      performed."""
     return hasattr(self, 'fuzzed_key')
 
-  def archive_testcase_in_blobstore(self,
-                                    upload_url: uworker_msg_pb2.BlobUploadUrl):
+  def archive_testcase_in_blobstore(self):
     """Calling setup.archive_testcase_and_dependencies_in_gcs(..)
       and hydrate certain attributes. We single out this method because it's
       expensive and we want to do it at the very last minute."""
     if self.is_archived():
       return
 
-    if upload_url.key:
-      self.fuzzed_key = upload_url.key
-    (self.archived, self.absolute_path, self.archive_filename) = (
-        setup.archive_testcase_and_dependencies_in_gcs(
-            self.resource_list, self.file_path, upload_url.url))
+    (self.fuzzed_key, self.archived, self.absolute_path,
+     self.archive_filename) = (
+         setup.archive_testcase_and_dependencies_in_gcs(self.resource_list,
+                                                        self.file_path))
 
   def is_valid(self):
     """Return true if the crash is valid for processing."""
@@ -263,7 +238,7 @@ class Crash:
     """Return the reason why the crash is invalid."""
     filter_functional_bugs = environment.get_value('FILTER_FUNCTIONAL_BUGS')
     if filter_functional_bugs and not self.security_flag:
-      return f'Functional crash is ignored: {self.crash_state}'
+      return 'Functional crash is ignored: %s' % self.crash_state
 
     if self.should_be_ignored:
       return ('False crash: %s\n\n---%s\n\n---%s' %
@@ -271,45 +246,20 @@ class Crash:
                self.crash_stacktrace))
 
     if self.is_archived() and not self.fuzzed_key:
-      return f'Unable to store testcase in blobstore: {self.crash_state}'
+      return 'Unable to store testcase in blobstore: %s' % self.crash_state
 
     if not self.crash_state or not self.crash_type:
       return 'Empty crash state or type'
 
     return None
 
-  def to_proto(self):
-    return uworker_msg_pb2.FuzzTaskCrash(
-        file_path=self.file_path,
-        crash_time=self.crash_time,
-        return_code=self.return_code,
-        resource_list=self.resource_list,
-        gestures=self.gestures,
-        arguments=self.arguments,
-        fuzzing_strategies=self.fuzzing_strategies,
-        http_flag=self.http_flag,
-        application_command_line=self.application_command_line,
-        unsymbolized_crash_stacktrace=self.unsymbolized_crash_stacktrace,
-        crash_type=self.crash_type,
-        crash_address=self.crash_address,
-        crash_state=self.crash_state,
-        crash_stacktrace=self.crash_stacktrace,
-        crash_categories=self.crash_categories,
-        security_flag=self.security_flag,
-        key=self.key,
-        should_be_ignored=self.should_be_ignored,
-        crash_frames=self.crash_frames,
-        is_valid=self.is_valid(),
-    )
 
-
-def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
-                    test_timeout: int, upload_urls: UploadUrlCollection):
-  """Find the first reproducible crash or the first valid crash. And return the
-    crash and the one_time_crasher_flag."""
+def find_main_crash(crashes, full_fuzzer_name, test_timeout):
+  """Find the first reproducible crash or the first valid crash.
+    And return the crash and the one_time_crasher_flag."""
   for crash in crashes:
     # Archiving testcase to blobstore when we need to because it's expensive.
-    crash.archive_testcase_in_blobstore(upload_urls.get())
+    crash.archive_testcase_in_blobstore()
 
     # We need to check again if the crash is valid. In other words, we check
     # if archiving to blobstore succeeded.
@@ -346,7 +296,7 @@ class CrashGroup:
   """Represent a group of identical crashes. The key is
       (crash_type, crash_state, security_flag)."""
 
-  def __init__(self, crashes, context, upload_urls: UploadUrlCollection):
+  def __init__(self, crashes, context):
     for c in crashes:
       assert crashes[0].crash_type == c.crash_type
       assert crashes[0].crash_state == c.crash_state
@@ -359,17 +309,35 @@ class CrashGroup:
       fully_qualified_fuzzer_name = context.fuzzer_name
 
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, fully_qualified_fuzzer_name, context.test_timeout, upload_urls)
+        crashes, fully_qualified_fuzzer_name, context.test_timeout)
 
     self.newly_created_testcase = None
 
-  def should_create_testcase(self, existing_testcase):
+    # Getting existing_testcase after finding the main crash is important.
+    # Because finding the main crash can take a long time; it tests
+    # reproducibility on every crash.
+    #
+    # Getting existing testcase at the last possible moment helps avoid race
+    # condition among different machines. One machine might finish first and
+    # prevent other machines from creating identical testcases.
+    self.existing_testcase = data_handler.find_testcase(
+        context.project_name,
+        crashes[0].crash_type,
+        crashes[0].crash_state,
+        crashes[0].security_flag,
+        fuzz_target=fully_qualified_fuzzer_name)
+
+  def is_new(self):
+    """Return true if there's no existing testcase."""
+    return not self.existing_testcase
+
+  def should_create_testcase(self):
     """Return true if this crash should create a testcase."""
-    if not existing_testcase:
+    if not self.existing_testcase:
       # No existing testcase, should create a new one.
       return True
 
-    if not existing_testcase.one_time_crasher_flag:
+    if not self.existing_testcase.one_time_crasher_flag:
       # Existing testcase is reproducible, don't need to create another one.
       return False
 
@@ -383,6 +351,11 @@ class CrashGroup:
     # TODO(aarya): We should probably update last tested stacktrace in existing
     # testcase without any race conditions.
     return False
+
+  def has_existing_reproducible_testcase(self):
+    """Return true if this crash has a reproducible testcase."""
+    return (self.existing_testcase and
+            not self.existing_testcase.one_time_crasher_flag)
 
 
 class _TrackFuzzTime:
@@ -681,6 +654,32 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
+def convert_groups_to_crashes(
+    groups: List[CrashGroup]) -> List[uworker_msg_pb2.CrashInfo]:  # pylint: disable=no-member
+  """Converts groups to crashes (in an array of uworker_msg_pb2.CrashInfo) for
+  JobRun."""
+  return [
+      uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
+          is_new=group.is_new(),
+          count=len(group.crashes),
+          crash_type=group.main_crash.crash_type,
+          crash_state=group.main_crash.crash_state,
+          security_flag=group.main_crash.security_flag) for group in groups
+  ]
+
+
+def convert_crashes_to_dicts(
+    crashes: List[uworker_msg_pb2.CrashInfo]) -> List[Dict[str, Any]]:  # pylint: disable=no-member
+  """Converts crashes to groups (in an array of dicts) for JobRun."""
+  return [{
+      'is_new': crash_info.is_new,
+      'count': crash_info.count,
+      'crash_type': crash_info.crash_type,
+      'crash_state': crash_info.crash_state,
+      'security_flag': crash_info.security_flag,
+  } for crash_info in crashes]
+
+
 def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
                          timestamp: float, new_crash_count: int,
                          known_crash_count: int, testcases_executed: int,
@@ -787,83 +786,6 @@ def postprocess_store_fuzzer_run_results(output):
   logs.info('Finished storing results from fuzzer run.')
 
 
-def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
-                                uworker_output: uworker_msg_pb2.Output):
-  """Postprocess process_crashes"""
-  processed_groups = []
-  crash_groups_for_stats = []
-  new_crash_count = 0
-  known_crash_count = 0
-
-  fuzz_task_output = uworker_output.fuzz_task_output
-  fuzz_target = None
-  if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-    fuzz_target = uworker_io.entity_from_protobuf(
-        uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
-
-    fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
-  else:
-    fully_qualified_fuzzer_name = uworker_input.fuzzer_name
-
-  for group in fuzz_task_output.crash_groups:
-    # Getting existing_testcase after finding the main crash is important.
-    # Because finding the main crash can take a long time; it tests
-    # reproducibility on every crash.
-    #
-    # Getting existing testcase at the last possible moment helps avoid race
-    # condition among different machines. One machine might finish first and
-    # prevent other machines from creating identical testcases.
-    existing_testcase = data_handler.find_testcase(
-        uworker_input.uworker_env.get('PROJECT_NAME'),
-        group.crashes[0].crash_type,
-        group.crashes[0].crash_state,
-        group.crashes[0].security_flag,
-        fuzz_target=fully_qualified_fuzzer_name)
-
-    if group.should_create_testcase(existing_testcase):
-      group.newly_created_testcase = create_testcase(
-          group=group,
-          uworker_input=uworker_input,
-          uworker_output=uworker_output,
-          fully_qualified_fuzzer_name=fully_qualified_fuzzer_name)
-    else:
-      _update_testcase_variant_if_needed(group, fuzz_task_output.crash_revision,
-                                         uworker_input.job_type)
-
-    write_crashes_to_big_query(group, uworker_input, uworker_output,
-                               fully_qualified_fuzzer_name)
-
-    if not existing_testcase:  # New testcase
-      new_crash_count += 1
-      known_crash_count += len(group.crashes) - 1
-    else:
-      known_crash_count += len(group.crashes)
-
-    processed_groups.append(group)
-    crash_groups_for_stats = {
-        'is_new': not bool(existing_testcase),
-        'count': len(group.crashes),
-        'crash_type': group.main_crash.crash_type,
-        'crash_state': group.main_crash.crash_state,
-        'security_flag': group.main_crash.security_flag,
-    }
-
-    # Artificial delay to throttle appengine updates.
-    time.sleep(1)
-
-  upload_job_run_stats(fully_qualified_fuzzer_name, uworker_input.job_type,
-                       fuzz_task_output.crash_revision,
-                       fuzz_task_output.job_run_timestamp, new_crash_count,
-                       known_crash_count, fuzz_task_output.testcases_executed,
-                       crash_groups_for_stats)
-
-  logs.info(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
-            f'known crashes: {known_crash_count}, '
-            f'processed groups: {processed_groups}')
-
-  return new_crash_count, known_crash_count, processed_groups
-
-
 def get_regression(one_time_crasher_flag):
   """Get the right regression value."""
   if one_time_crasher_flag or build_manager.is_custom_binary():
@@ -876,22 +798,24 @@ def get_fixed_or_minimized_key(one_time_crasher_flag):
   return 'NA' if one_time_crasher_flag else ''
 
 
-def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout):
+def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout,
+                                    thread_wait_timeout):
   """Get testcase timeout multiplier."""
   testcase_timeout_multiplier = timeout_multiplier
-  if timeout_multiplier > 1 and (crash.crash_time + THREAD_WAIT_TIMEOUT) < (
+  if timeout_multiplier > 1 and (crash.crash_time + thread_wait_timeout) < (
       test_timeout / timeout_multiplier):
     testcase_timeout_multiplier = 1.0
 
   return testcase_timeout_multiplier
 
 
-def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
-                    uworker_input: uworker_msg_pb2.Input,
-                    uworker_output: uworker_msg_pb2.Output,
-                    fully_qualified_fuzzer_name: str):
+def create_testcase(group, context):
   """Create a testcase based on crash."""
   crash = group.main_crash
+  fully_qualified_fuzzer_name = get_fully_qualified_fuzzer_name(context)
+
+  # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on the
+  # job when we start doing untrusted fuzzing.
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key,
@@ -899,38 +823,45 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       regression=get_regression(group.one_time_crasher_flag),
       fixed=get_fixed_or_minimized_key(group.one_time_crasher_flag),
       one_time_crasher_flag=group.one_time_crasher_flag,
-      crash_revision=uworker_output.fuzz_target_output.crash_revision,
+      crash_revision=context.crash_revision,
       comment='Fuzzer %s generated testcase crashed in %d seconds (r%d)' %
-      (fully_qualified_fuzzer_name, crash.crash_time,
-       uworker_output.fuzz_target_output.crash_revision),
+      (fully_qualified_fuzzer_name, crash.crash_time, context.crash_revision),
       absolute_path=crash.absolute_path,
-      fuzzer_name=uworker_input.fuzzer_name,
+      fuzzer_name=context.fuzzer_name,
       fully_qualified_fuzzer_name=fully_qualified_fuzzer_name,
-      job_type=uworker_input.job_type,
+      job_type=context.job_type,
       archived=crash.archived,
       archive_filename=crash.archive_filename,
       http_flag=crash.http_flag,
-      gestures=list(crash.gestures),
-      redzone=group.context.redzone,
-      disable_ubsan=group.context.disable_ubsan,
-      window_argument=group.context.window_argument,
+      gestures=crash.gestures,
+      redzone=context.redzone,
+      disable_ubsan=context.disable_ubsan,
+      window_argument=context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
-          group.context.timeout_multiplier, crash, group.context.test_timeout),
+          context.timeout_multiplier, crash, context.test_timeout,
+          context.thread_wait_timeout),
       minimized_arguments=crash.arguments,
       trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
-  if group.context.fuzzer_metadata:
-    for key, value in group.context.fuzzer_metadata.items():
+  if context.fuzzer_metadata:
+    for key, value in context.fuzzer_metadata.items():
       testcase.set_metadata(key, value, update_testcase=False)
 
     testcase.put()
 
   if crash.fuzzing_strategies:
     testcase.set_metadata(
-        'fuzzing_strategies',
-        list(crash.fuzzing_strategies),
-        update_testcase=True)
+        'fuzzing_strategies', crash.fuzzing_strategies, update_testcase=True)
+
+  # If there is one, record the original file this testcase was mutated from.
+  if (crash.file_path in context.testcases_metadata and
+      'original_file_path' in context.testcases_metadata[crash.file_path] and
+      context.testcases_metadata[crash.file_path]['original_file_path']):
+    testcase_relative_path = utils.get_normalized_relative_path(
+        context.testcases_metadata[crash.file_path]['original_file_path'],
+        context.data_directory)
+    testcase.set_metadata('original_file_path', testcase_relative_path)
 
   # Track that app args appended by trials are required.
   trial_app_args = environment.get_value('TRIAL_APP_ARGS')
@@ -948,7 +879,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   return testcase
 
 
-def filter_crashes(crashes: List[Crash]) -> List[Crash]:
+def filter_crashes(crashes: List[CrashInfo]) -> List[CrashInfo]:
   """Filter crashes based on is_valid()."""
   filtered = []
 
@@ -973,9 +904,15 @@ def get_engine(context):
   return ''
 
 
-def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
-                               output: uworker_msg_pb2.Output,
-                               fully_qualified_fuzzer_name):
+def get_fully_qualified_fuzzer_name(context):
+  """Get the fully qualified fuzzer name."""
+  if context.fuzz_target:
+    return context.fuzz_target.fully_qualified_name()
+
+  return context.fuzzer_name
+
+
+def write_crashes_to_big_query(group, context):
   """Write a group of crashes to BigQuery."""
   created_at = int(time.time())
 
@@ -983,10 +920,10 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
   # linux platform for this. We cannot change platform_id in testcase as
   # otherwise linux bots can no longer lease those testcase. So, just change
   # this value in crash stats. This helps cleanup task put correct OS label.
-  if environment.is_chromeos_job(uworker_input.job_type):
+  if environment.is_chromeos_job(context.job_type):
     actual_platform = 'chrome'
   else:
-    actual_platform = output.platform_id
+    actual_platform = context.platform_id
 
   # Write to a specific partition.
   table_id = ('crashes$%s' % (
@@ -995,7 +932,7 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
   client = big_query.Client(dataset_id='main', table_id=table_id)
 
   insert_id_prefix = ':'.join(
-      [group.crashes[0].key, output.bot_name,
+      [group.crashes[0].key, context.bot_name,
        str(created_at)])
 
   rows = []
@@ -1012,13 +949,13 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
                 'created_at': created_at,
                 'platform': actual_platform,
                 'crash_time_in_ms': int(crash.crash_time * 1000),
-                'parent_fuzzer_name': uworker_input.fuzzer_name,
-                'fuzzer_name': fully_qualified_fuzzer_name,
-                'job_type': uworker_input.job_type,
+                'parent_fuzzer_name': get_engine(context),
+                'fuzzer_name': get_fully_qualified_fuzzer_name(context),
+                'job_type': context.job_type,
                 'security_flag': crash.security_flag,
-                'project': uworker_input.uworker_env.get('PROJECT_NAME', ''),
+                'project': context.project_name,
                 'reproducible_flag': not group.one_time_crasher_flag,
-                'revision': str(output.fuzz_task_output.crash_revision),
+                'revision': str(context.crash_revision),
                 'new_flag': group.is_new() and crash == group.main_crash,
                 'testcase_id': created_testcase_id
             },
@@ -1051,13 +988,13 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
         row_count, {'success': False})
 
 
-def _update_testcase_variant_if_needed(group, crash_revision, job_type):
+def _update_testcase_variant_if_needed(group, context):
   """Update testcase variant if this is not already covered by existing testcase
   variant on this job."""
   assert group.existing_testcase
 
   variant = data_handler.get_or_create_testcase_variant(
-      group.existing_testcase.key.id(), job_type)
+      group.existing_testcase.key.id(), context.job_type)
   if not variant or variant.status == data_types.TestcaseVariantStatus.PENDING:
     # Either no variant created yet since minimization hasn't finished OR
     # variant analysis is not yet finished. Wait in both cases, since we
@@ -1074,7 +1011,7 @@ def _update_testcase_variant_if_needed(group, crash_revision, job_type):
     variant.status = data_types.TestcaseVariantStatus.FLAKY
   else:
     variant.status = data_types.TestcaseVariantStatus.REPRODUCIBLE
-  variant.revision = crash_revision
+  variant.revision = context.crash_revision
   variant.crash_type = group.main_crash.crash_type
   variant.crash_state = group.main_crash.crash_state
   variant.security_flag = group.main_crash.security_flag
@@ -1082,27 +1019,21 @@ def _update_testcase_variant_if_needed(group, crash_revision, job_type):
   variant.put()
 
 
-def process_crashes(crashes: List[Crash], context: Context,
-                    upload_urls) -> List[uworker_msg_pb2.FuzzTaskCrashGroup]:
+def process_crashes(crashes, context):
   """Process a list of crashes."""
+  processed_groups = []
+  new_crash_count = 0
+  known_crash_count = 0
 
   def key_fn(crash):
     return crash.key
-
-  crash_groups = []
 
   # Filter invalid crashes.
   crashes = filter_crashes(crashes)
   group_of_crashes = itertools.groupby(sorted(crashes, key=key_fn), key_fn)
 
-  upload_urls = UploadUrlCollection(upload_urls)
   for _, grouped_crashes in group_of_crashes:
-    try:
-      group = CrashGroup(list(grouped_crashes), context, upload_urls)
-    except NoMoreUploadUrlsError:
-      # Ignore the remaining crashes.
-      logs.log_error('Ran out of crash upload URLs.')
-      break
+    group = CrashGroup(list(grouped_crashes), context)
 
     # Archiving testcase to blobstore might fail for all crashes within this
     # group.
@@ -1111,6 +1042,7 @@ def process_crashes(crashes: List[Crash], context: Context,
                 group.crashes[0].crash_state)
       continue
 
+<<<<<<< HEAD
     group_proto = uworker_msg_pb2.FuzzTaskCrashGroup(
         context=uworker_msg_pb2.FuzzContext(
             redzone=context.redzone,
@@ -1135,6 +1067,39 @@ def process_crashes(crashes: List[Crash], context: Context,
               f'security flag={group.main_crash.security_flag}, '
               f'crash stacktrace={group.main_crash.crash_stacktrace})')
   return crash_groups
+=======
+    logs.log(f'Process the crash group (file={group.main_crash.filename}, '
+             f'fuzzed_key={group.main_crash.fuzzed_key}, '
+             f'return code={group.main_crash.return_code}, '
+             f'crash time={group.main_crash.crash_time}, '
+             f'crash type={group.main_crash.crash_type}, '
+             f'crash state={group.main_crash.crash_state}, '
+             f'security flag={group.main_crash.security_flag}, '
+             f'crash stacktrace={group.main_crash.crash_stacktrace})')
+
+    if group.should_create_testcase():
+      group.newly_created_testcase = create_testcase(
+          group=group, context=context)
+    else:
+      _update_testcase_variant_if_needed(group, context)
+
+    write_crashes_to_big_query(group, context)
+
+    if group.is_new():
+      new_crash_count += 1
+      known_crash_count += len(group.crashes) - 1
+    else:
+      known_crash_count += len(group.crashes)
+    processed_groups.append(group)
+
+    # Artificial delay to throttle appengine updates.
+    time.sleep(1)
+
+  logs.log('Finished processing crashes.')
+  logs.log(f'New crashes: {new_crash_count}, known crashes: {known_crash_count}'
+           f', processed groups: {processed_groups}')
+  return new_crash_count, known_crash_count, processed_groups
+>>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
 
 
 def _get_issue_metadata_from_environment(variable_name):
@@ -1759,7 +1724,6 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
 
-    engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -1792,10 +1756,11 @@ class FuzzingSession:
 
     logs.info(f'Raw crash count: {len(crashes)}')
 
+    project_name = environment.get_value('PROJECT_NAME')
+
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
-    project_name = environment.get_value('PROJECT_NAME')
-    crash_groups = process_crashes(
+    new_crash_count, known_crash_count, processed_groups = process_crashes(
         crashes=crashes,
         context=Context(
             project_name=project_name,
@@ -1812,8 +1777,8 @@ class FuzzingSession:
             testcases_metadata=testcases_metadata,
             timeout_multiplier=self.timeout_multiplier,
             test_timeout=self.test_timeout,
-            data_directory=self.data_directory),
-        upload_urls=list(self.uworker_input.fuzz_task_input.crash_upload_urls))
+            thread_wait_timeout=THREAD_WAIT_TIMEOUT,
+            data_directory=self.data_directory))
 
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
@@ -1828,15 +1793,17 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-    # TODO(metzman): Remove this since the tworkers should know what this is
-    # based on the input.
     self.fuzz_task_output.fully_qualified_fuzzer_name = (
         self.fully_qualified_fuzzer_name)
     self.fuzz_task_output.crash_revision = str(crash_revision)
     self.fuzz_task_output.job_run_timestamp = time.time()
+    self.fuzz_task_output.new_crash_count = new_crash_count
+    self.fuzz_task_output.known_crash_count = known_crash_count
     self.fuzz_task_output.testcases_executed = testcases_executed
     self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
-    self.fuzz_task_output.crash_groups.extend(crash_groups)
+    if processed_groups:
+      job_run_crashes = convert_groups_to_crashes(processed_groups)
+      self.fuzz_task_output.job_run_crashes.extend(job_run_crashes)
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
@@ -1845,19 +1812,26 @@ class FuzzingSession:
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
     postprocess_store_fuzzer_run_results(uworker_output)
+<<<<<<< HEAD
     logs.info('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
+=======
+    crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
+    logs.log('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
+             f'{fuzz_task_output.fully_qualified_fuzzer_name}')
+>>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
-        fuzz_task_output.testcases_executed, fuzz_task_output.crash_groups)
+        fuzz_task_output.testcases_executed, crash_groups)
 
     if not environment.is_engine_fuzzer_job():
       return
 
+    uworker_input = uworker_output.uworker_input
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if not fuzz_task_output.fuzz_targets:
       new_targets_count = 0
@@ -1972,11 +1946,6 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   if fuzz_target:
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
-
-  for _ in range(MAX_CRASHES_UPLOADED):
-    url = fuzz_task_input.crash_upload_urls.add()
-    url.key = blobs.generate_new_blob_name()
-    url.url = blobs.get_signed_upload_url(url.key)
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
 
