@@ -782,10 +782,8 @@ def get_fuzzer_directory(fuzzer_name):
   return fuzzer_directory
 
 
-def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
-                                             upload_url: str):
-  """Archive testcase and its dependencies, and store in blobstore. Returns
-  whether it is archived, the absolute_filename, and the zip_filename."""
+def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
+  """Archive testcase and its dependencies, and store in blobstore."""
   if not os.path.exists(testcase_path):
     logs.error('Unable to find testcase %s.' % testcase_path)
     return None, None, None
@@ -814,8 +812,13 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     try:
       file_handle = open(testcase_path, 'rb')
     except OSError:
+<<<<<<< HEAD
       logs.error('Unable to open testcase %s.' % testcase_path)
       return None, None, None
+=======
+      logs.log_error('Unable to open testcase %s.' % testcase_path)
+      return None, None, None, None
+>>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
   else:
     # If there are resources, create an archive.
 
@@ -856,20 +859,22 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     try:
       file_handle = open(zip_path, 'rb')
     except OSError:
+<<<<<<< HEAD
       logs.error('Unable to open testcase archive %s.' % zip_path)
       return None, None, None
+=======
+      logs.log_error('Unable to open testcase archive %s.' % zip_path)
+      return None, None, None, None
+>>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
 
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  if not storage.upload_signed_url(file_handle, upload_url):
-    logs.log_error('Failed to upload testcase.')
-    return None, None, None
-
+  fuzzed_key = blobs.write_blob(file_handle)
   file_handle.close()
 
   # Don't need the archive after writing testcase to blobstore.
   if zip_path:
     shell.remove_file(zip_path)
 
-  return archived, absolute_filename, zip_filename
+  return fuzzed_key, archived, absolute_filename, zip_filename

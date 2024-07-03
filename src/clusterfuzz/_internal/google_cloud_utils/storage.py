@@ -335,7 +335,6 @@ class GcsProvider(StorageProvider):
         blob.upload_from_string(data_or_fileobj)
       else:
         blob.upload_from_file(data_or_fileobj)
-
     except google.cloud.exceptions.GoogleCloudError:
       logs.warning('Failed to write cloud storage file %s.' % remote_path)
       raise
