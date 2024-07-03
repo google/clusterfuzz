@@ -14,9 +14,9 @@
 """Helper module for fuzz_task crashes"""
 import os
 
-from clusterfuzz._internal.protos import uworker_msg_pb2
-from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
 def get_unsymbolized_crash_stacktrace(stack_file_path):
@@ -365,4 +365,3 @@ def process_crashes(crashes: List[Crash], context: Context,
               f'security flag={group.main_crash.security_flag}, '
               f'crash stacktrace={group.main_crash.crash_stacktrace})')
   return crash_groups
-

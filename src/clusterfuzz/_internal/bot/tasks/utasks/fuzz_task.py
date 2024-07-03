@@ -97,7 +97,6 @@ def has_standard_build():
   return not bool(environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'))
 
 
-
 class _TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
 
@@ -793,7 +792,7 @@ def _update_testcase_variant_if_needed(group, crash_revision, job_type):
   variant.security_flag = group.main_crash.security_flag
   variant.is_similar = True
   variant.put()
-  
+
 
 def _get_issue_metadata_from_environment(variable_name):
   """Get issue metadata from environment."""
