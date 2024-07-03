@@ -232,9 +232,6 @@ class Crash:
     # self.crash_info gets populated in create_testcase; save what we need.
     self.crash_frames = state.frames
     self.crash_info = None
-    self.fuzzed_key = None
-    self.absolute_path = None
-    self.archive_filename = None
 
   @property
   def filename(self):
@@ -242,7 +239,7 @@ class Crash:
 
   def is_archived(self):
     """Return true if archive_testcase_in_blobstore(..) was performed."""
-    return self.fuzzed_key is not None
+    return hasattr(self, 'fuzzed_key')
 
   def archive_testcase_in_blobstore(self,
                                     upload_url: uworker_msg_pb2.BlobUploadUrl):
@@ -253,10 +250,8 @@ class Crash:
       return
 
     if upload_url.key:
-      # TODO(metzman): Figure out if we need this check and if we can get rid of
-      # the archived return value.
       self.fuzzed_key = upload_url.key
-    (_, self.absolute_path, self.archive_filename) = (
+    (self.archived, self.absolute_path, self.archive_filename) = (
         setup.archive_testcase_and_dependencies_in_gcs(
             self.resource_list, self.file_path, upload_url.url))
 
@@ -307,10 +302,6 @@ class Crash:
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
-    if self.fuzzed_key:
-      crash.fuzzed_key = self.fuzzed_key
-      crash.absolute_path = self.absolute_path
-      crash.archive_filename = self.archive_filename
     return crash
 
 
@@ -907,7 +898,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   crash = group.main_crash
   testcase_id = data_handler.store_testcase(
       crash=crash,
-      fuzzed_keys=crash.fuzzed_key or None,
+      fuzzed_keys=crash.fuzzed_key,
       minimized_keys=get_fixed_or_minimized_key(group.one_time_crasher_flag),
       regression=get_regression(group.one_time_crasher_flag),
       fixed=get_fixed_or_minimized_key(group.one_time_crasher_flag),
@@ -920,7 +911,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       fuzzer_name=uworker_input.fuzzer_name,
       fully_qualified_fuzzer_name=fully_qualified_fuzzer_name,
       job_type=uworker_input.job_type,
-      archived=bool(crash.fuzzed_key),
+      archived=crash.archived,
       archive_filename=crash.archive_filename,
       http_flag=crash.http_flag,
       gestures=list(crash.gestures),
@@ -1355,7 +1346,7 @@ class FuzzingSession:
 
     # Make sure we have a file to execute for the fuzzer.
     if not fuzzer.executable_path:
-      logs.error(f'Fuzzer {fuzzer_name} does not have an executable path.')
+      logs.error('Fuzzer %s does not have an executable path.' % fuzzer_name)
       return error_return_value
 
     # Get the fuzzer executable and chdir to its base directory. This helps to
