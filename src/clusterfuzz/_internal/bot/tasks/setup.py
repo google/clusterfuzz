@@ -856,14 +856,14 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     try:
       file_handle = open(zip_path, 'rb')
     except OSError:
-      logs.error(f'Unable to open testcase archive {zip_path}.')
+      logs.error('Unable to open testcase archive %s.' % zip_path)
       return None, None, None
 
     archived = True
     absolute_filename = testcase_path[base_len:]
 
   if not storage.upload_signed_url(file_handle, upload_url):
-    logs.error('Failed to upload testcase.')
+    logs.log_error('Failed to upload testcase.')
     return None, None, None
 
   file_handle.close()

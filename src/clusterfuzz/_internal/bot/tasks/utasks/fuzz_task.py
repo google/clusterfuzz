@@ -1117,7 +1117,7 @@ def process_crashes(crashes: List[Crash], context: Context,
       group = CrashGroup(list(grouped_crashes), context, upload_urls)
     except NoMoreUploadUrlsError:
       # Ignore the remaining crashes.
-      logs.error('Ran out of crash upload URLs.')
+      logs.log_error('Ran out of crash upload URLs.')
       break
 
     # Archiving testcase to blobstore might fail for all crashes within this
