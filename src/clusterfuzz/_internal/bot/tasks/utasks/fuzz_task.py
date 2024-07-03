@@ -37,6 +37,7 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
+from clusterfuzz._internal.bot.tasks.utasks import track_fuzz_time
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -390,85 +391,6 @@ def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   return False
 
 
-class _TrackFuzzTime:
-  """Track the actual fuzzing time (e.g. excluding preparing binary)."""
-
-  def __init__(self, fuzzer_name, job_type, time_module=time):
-    self.fuzzer_name = fuzzer_name
-    self.job_type = job_type
-    self.time = time_module
-
-  def __enter__(self):
-    self.start_time = self.time.time()
-    self.timeout = False
-    return self
-
-  def __exit__(self, exc_type, value, traceback):
-    duration = self.time.time() - self.start_time
-    monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
-            'fuzzer': self.fuzzer_name,
-            'timeout': self.timeout
-        })
-    monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
-            'job': self.job_type,
-            'timeout': self.timeout
-        })
-
-
-def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
-                             expected_testcase_count, return_code):
-  """Track fuzzer run result"""
-  if expected_testcase_count > 0:
-    ratio = float(generated_testcase_count) / expected_testcase_count
-    monitoring_metrics.FUZZER_TESTCASE_COUNT_RATIO.add(ratio,
-                                                       {'fuzzer': fuzzer_name})
-
-  def clamp(val, minimum, maximum):
-    return max(minimum, min(maximum, val))
-
-  # Clamp return code to max, min int 32-bit, otherwise it can get detected as
-  # type long and we will exception out in infra_libs parsing pipeline.
-  min_int32 = -(2**31)
-  max_int32 = 2**31 - 1
-
-  return_code = int(clamp(return_code, min_int32, max_int32))
-
-  monitoring_metrics.FUZZER_RETURN_CODE_COUNT.increment({
-      'fuzzer': fuzzer_name,
-      'return_code': return_code,
-  })
-
-
-def _track_build_run_result(job_type, _, is_bad_build):
-  """Track build run result."""
-  # FIXME: Add support for |crash_revision| as part of state.
-  monitoring_metrics.JOB_BAD_BUILD_COUNT.increment({
-      'job': job_type,
-      'bad_build': is_bad_build
-  })
-
-
-def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
-                               known_crash_count):
-  """Track testcase run result."""
-  monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
-      known_crash_count, {
-          'fuzzer': fuzzer,
-      })
-  monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
-      new_crash_count, {
-          'fuzzer': fuzzer,
-      })
-  monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(known_crash_count, {
-      'job': job_type,
-  })
-  monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(new_crash_count, {
-      'job': job_type,
-  })
-
-
 def _last_sync_time(sync_file_path):
   """Read and parse the last sync file for the GCS corpus."""
   if not os.path.exists(sync_file_path):
@@ -697,8 +619,8 @@ def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
                                 known_crash_count, groups)
   fuzzer_stats.upload_stats([job_run])
 
-  _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
-                             known_crash_count)
+  track_fuzz_time.track_testcase_run_result(fuzzer_name, job_type,
+                                            new_crash_count, known_crash_count)
 
 
 def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
@@ -1431,8 +1353,9 @@ class FuzzingSession:
     if fuzzer_run_results:
       self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
-      _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
-                               testcase_count, fuzzer_return_code)
+      track_fuzz_time.track_fuzzer_run_result(
+          fuzzer_name, generated_testcase_count, testcase_count,
+          fuzzer_return_code)
 
     # Make sure that there are testcases generated. If not, set the error flag.
     success = bool(testcase_file_paths)
@@ -1624,8 +1547,8 @@ class FuzzingSession:
 
         time.sleep(thread_delay)
 
-      with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
-                          job_type) as tracker:
+      with track_fuzz_time.TrackFuzzTime(self.fully_qualified_fuzzer_name,
+                                         job_type) as tracker:
         tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
       # Allow for some time to finish processing before terminating the
@@ -1749,8 +1672,8 @@ class FuzzingSession:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
     # postprocess.
     testcase_manager.update_build_metadata(self.job_type, build_data)
-    _track_build_run_result(self.job_type, crash_revision,
-                            build_data.is_bad_build)
+    track_fuzz_time.track_build_run_result(self.job_type, crash_revision,
+                                           build_data.is_bad_build)
     if build_data.is_bad_build:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
@@ -1881,18 +1804,19 @@ def _upload_testcase_run_jsons(testcase_run_jsons):
 
 
 def handle_fuzz_build_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
-                           FuzzErrorCode.BUILD_SETUP_FAILED)
+  track_fuzz_time.track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0,
+                                          0, FuzzErrorCode.BUILD_SETUP_FAILED)
 
 
 def handle_fuzz_data_bundle_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
-                           FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
+  track_fuzz_time.track_fuzzer_run_result(
+      output.uworker_input.fuzzer_name, 0, 0,
+      FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
 
 def handle_fuzz_no_fuzzer(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
-                           FuzzErrorCode.FUZZER_SETUP_FAILED)
+  track_fuzz_time.track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0,
+                                          0, FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
 def utask_main(uworker_input):
