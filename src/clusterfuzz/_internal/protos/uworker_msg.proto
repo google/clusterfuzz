@@ -208,8 +208,10 @@ message FuzzTaskCrash {
   optional string crash_stacktrace = 16;
   repeated string crash_categories = 17;
   optional string key = 18;
-  repeated string crash_frames = 19;
   optional bool is_valid = 20;
+  optional string fuzzed_key = 21;
+  optional string absolute_path = 22;
+  optional string archive_filename = 23;
 }
 
 message FuzzContext {
@@ -378,7 +380,6 @@ message Output {
   // nonutasks.
   optional Input uworker_input = 4;
   optional float test_timeout = 5;
-  optional float crash_time = 6;
   optional string crash_stacktrace_output = 7;
   optional string bot_name = 18;
   optional string platform_id = 19;
