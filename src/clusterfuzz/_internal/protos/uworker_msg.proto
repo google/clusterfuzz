@@ -208,7 +208,6 @@ message FuzzTaskCrash {
   optional string crash_stacktrace = 16;
   repeated string crash_categories = 17;
   optional string key = 18;
-  repeated string crash_frames = 19;
   optional bool is_valid = 20;
 }
 

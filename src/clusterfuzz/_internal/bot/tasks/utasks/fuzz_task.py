@@ -229,7 +229,7 @@ class Crash:
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
-    # self.crash_infoo gets populated in create_testcase; save what we need.
+    # self.crash_info gets populated in create_testcase; save what we need.
     self.crash_frames = state.frames
     self.crash_info = None
 
@@ -302,20 +302,7 @@ class Crash:
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
-    crash_frames = _filter_crash_frames_for_proto(self.crash_frames)
-    crash.crash_frames.extend(crash_frames)
     return crash
-
-
-def _filter_crash_frames_for_proto(crash_frames):
-  filtered_frames = []
-  for frame in crash_frames:
-    if frame is None:
-      continue
-    if not isinstance(frame, str):
-      logs.error(f'{frame} is of type: {type(frame)}')
-    filtered_frames.append(frame)
-  return filtered_frames
 
 
 def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
