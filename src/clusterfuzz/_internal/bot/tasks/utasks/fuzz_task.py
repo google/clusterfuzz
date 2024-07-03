@@ -822,7 +822,7 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
         fuzz_target=fully_qualified_fuzzer_name)
 
     if _should_create_testcase(group, existing_testcase):
-      newly_created_testcase = create_testcase(
+      group.newly_created_testcase = create_testcase(
           group=group,
           uworker_input=uworker_input,
           uworker_output=uworker_output,
@@ -831,10 +831,8 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
       _update_testcase_variant_if_needed(group, existing_testcase,
                                          fuzz_task_output.crash_revision,
                                          uworker_input.job_type)
-      newly_created_testcase = None
 
-    write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
-                               uworker_input, uworker_output,
+    write_crashes_to_big_query(group, uworker_input, uworker_output,
                                fully_qualified_fuzzer_name)
 
     if not existing_testcase:
@@ -977,11 +975,11 @@ def get_engine(context):
   return ''
 
 
-def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
-                               uworker_input: uworker_msg_pb2.Input,
+def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
                                output: uworker_msg_pb2.Output,
                                fully_qualified_fuzzer_name):
   """Write a group of crashes to BigQuery."""
+  created_at = int(time.time())
 
   # Many of ChromeOS fuzz targets run on Linux bots, so we incorrectly set the
   # linux platform for this. We cannot change platform_id in testcase as
@@ -993,9 +991,8 @@ def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
     actual_platform = output.platform_id
 
   # Write to a specific partition.
-  created_at = int(time.time())
-  timestamp = datetime.datetime.utcfromtimestamp(created_at).strftime('%Y%m%d')
-  table_id = f'crashes${timestamp}'
+  table_id = ('crashes$%s' % (
+      datetime.datetime.utcfromtimestamp(created_at).strftime('%Y%m%d')))
 
   client = big_query.Client(dataset_id='main', table_id=table_id)
 
@@ -1006,42 +1003,28 @@ def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
   rows = []
   for index, crash in enumerate(group.crashes):
     created_testcase_id = None
-    if crash == group.main_crash and newly_created_testcase:
-      created_testcase_id = str(newly_created_testcase.key.id())
+    if crash == group.main_crash and group.newly_created_testcase:
+      created_testcase_id = str(group.newly_created_testcase.key.id())
 
     rows.append(
         big_query.Insert(
             row={
-                'crash_type':
-                    crash.crash_type,
-                'crash_state':
-                    crash.crash_state,
-                'created_at':
-                    created_at,
-                'platform':
-                    actual_platform,
-                'crash_time_in_ms':
-                    int(crash.crash_time * 1000),
-                'parent_fuzzer_name':
-                    uworker_input.fuzzer_name,
-                'fuzzer_name':
-                    fully_qualified_fuzzer_name,
-                'job_type':
-                    uworker_input.job_type,
-                'security_flag':
-                    crash.security_flag,
-                'project':
-                    uworker_input.uworker_env.get('PROJECT_NAME', ''),
-                'reproducible_flag':
-                    not group.one_time_crasher_flag,
-                'revision':
-                    str(output.fuzz_task_output.crash_revision),
-                'new_flag':
-                    not existing_testcase and crash == group.main_crash,
-                'testcase_id':
-                    created_testcase_id
+                'crash_type': crash.crash_type,
+                'crash_state': crash.crash_state,
+                'created_at': created_at,
+                'platform': actual_platform,
+                'crash_time_in_ms': int(crash.crash_time * 1000),
+                'parent_fuzzer_name': uworker_input.fuzzer_name,
+                'fuzzer_name': fully_qualified_fuzzer_name,
+                'job_type': uworker_input.job_type,
+                'security_flag': crash.security_flag,
+                'project': uworker_input.uworker_env.get('PROJECT_NAME', ''),
+                'reproducible_flag': not group.one_time_crasher_flag,
+                'revision': str(output.fuzz_task_output.crash_revision),
+                'new_flag': group.is_new() and crash == group.main_crash,
+                'testcase_id': created_testcase_id
             },
-            insert_id=f'{insert_id_prefix}:{index}'))
+            insert_id='%s:%s' % (insert_id_prefix, index)))
 
   row_count = len(rows)
 
