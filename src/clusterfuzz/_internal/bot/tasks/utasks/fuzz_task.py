@@ -873,9 +873,9 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
                        known_crash_count, fuzz_task_output.testcases_executed,
                        crash_groups_for_stats)
 
-  logs.info(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
-            f'known crashes: {known_crash_count}, '
-            f'processed groups: {processed_groups}')
+  logs.log(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
+           f'known crashes: {known_crash_count}, '
+           f'processed groups: {processed_groups}')
 
   return new_crash_count, known_crash_count, processed_groups
 
