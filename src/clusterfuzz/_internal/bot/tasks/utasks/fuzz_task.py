@@ -302,8 +302,20 @@ class Crash:
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
-    crash.crash_frames.extend(self.crash_frames)
+    crash_frames = _filter_crash_frames_for_proto(self.crash_frames)
+    crash.crash_frames.extend(crash_frames)
     return crash
+
+
+def _filter_crash_frames_for_proto(crash_frames):
+  filtered_frames = []
+  for frame in crash_frames:
+    if frame is None:
+      continue
+    if not isinstance(frame, str):
+      logs.error(f'{frame} is of type: {type(frame)}')
+    filtered_frames.append(frame)
+  return filtered_frames
 
 
 def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
