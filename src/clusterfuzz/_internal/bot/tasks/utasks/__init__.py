@@ -36,18 +36,18 @@ class _Mode(enum.Enum):
   """The execution mode of `uworker_main` tasks in a bot process."""
 
   # `uworker_main` tasks are executed on Cloud Batch.
-  BATCH = "batch"
+  BATCH = 'batch'
 
   # `uworker_main` tasks are executed on bots via a Pub/Sub queue.
-  QUEUE = "queue"
+  QUEUE = 'queue'
 
 
 class _Subtask(enum.Enum):
   """Parts of a task that may be executed on separate machines."""
 
-  PREPROCESS = "preprocess"
-  UWORKER_MAIN = "uworker_main"
-  POSTPROCESS = "postprocess"
+  PREPROCESS = 'preprocess'
+  UWORKER_MAIN = 'uworker_main'
+  POSTPROCESS = 'postprocess'
 
 
 def _timestamp_now() -> Timestamp:
