@@ -1287,7 +1287,7 @@ class StackParser:
         # Update address from the first stack frame unless we already have
         # more detailed information from KASan.
         if state.frame_count == 1 and not state.is_kasan:
-          state.crash_address = f'0x{android_kernel_match.group(1)}'
+          state.crash_address = '0x%s' % android_kernel_match.group(1)
         continue
 
       # Android kernel stack frame without address
