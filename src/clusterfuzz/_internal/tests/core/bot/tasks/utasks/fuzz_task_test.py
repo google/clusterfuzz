@@ -359,7 +359,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(should_be_ignored, crash.should_be_ignored)
     self.mock.ignore_stacktrace.assert_called_once_with('orig_trace')
 
-    self.assertFalse(hasattr(crash, 'fuzzed_key'))
+    self.assertFalse(crash.fuzzed_key)
     return crash
 
   def _test_validity_and_get_functional_crash(self):
@@ -408,7 +408,6 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(crash.is_valid())
 
     self.assertEqual(fuzzed_key, crash.fuzzed_key)
-    self.assertTrue(crash.archived)
     self.assertEqual('absolute_path', crash.absolute_path)
     self.assertEqual('archive_filename', crash.archive_filename)
 
