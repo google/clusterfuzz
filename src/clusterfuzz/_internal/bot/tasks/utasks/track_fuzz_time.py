@@ -17,20 +17,21 @@ import time
 from clusterfuzz._internal.metrics import monitoring_metrics
 
 
-class _TrackFuzzTime:
+class TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
 
-  def __init__(self, fuzzer_name, job_type):
+  def __init__(self, fuzzer_name, job_type, time_module=time):
     self.fuzzer_name = fuzzer_name
     self.job_type = job_type
+    self.time = time_module
 
   def __enter__(self):
-    self.start_time = time.time()
+    self.start_time = self.time.time()
     self.timeout = False
     return self
 
   def __exit__(self, exc_type, value, traceback):
-    duration = time.time() - self.start_time
+    duration = self.time.time() - self.start_time
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'fuzzer': self.fuzzer_name,
@@ -67,7 +68,7 @@ def track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
   })
 
 
-def _track_build_run_result(job_type, _, is_bad_build):
+def track_build_run_result(job_type, _, is_bad_build):
   """Track build run result."""
   # FIXME: Add support for |crash_revision| as part of state.
   monitoring_metrics.JOB_BAD_BUILD_COUNT.increment({
@@ -76,8 +77,8 @@ def _track_build_run_result(job_type, _, is_bad_build):
   })
 
 
-def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
-                               known_crash_count):
+def track_testcase_run_result(fuzzer, job_type, new_crash_count,
+                              known_crash_count):
   """Track testcase run result."""
   monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
       known_crash_count, {
