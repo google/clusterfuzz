@@ -1069,11 +1069,10 @@ def process_crashes(crashes, context):
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
-  logs.log('Finished processing crashes.')
-  logs.log(f'New crashes: {new_crash_count}, known crashes: {known_crash_count}'
-           f', processed groups: {processed_groups}')
+  logs.info('Finished processing crashes.')
+  logs.info(f'New crashes: {new_crash_count}, known crashes: '
+            f'{known_crash_count}, processed groups: {processed_groups}')
   return new_crash_count, known_crash_count, processed_groups
->>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
 
 
 def _get_issue_metadata_from_environment(variable_name):
