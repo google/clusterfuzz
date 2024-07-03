@@ -220,6 +220,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   """Executes the postprocess step on the trusted (t)worker (in this case it is
   the same bot as the uworker)."""
+  logs.info('Starting postprocess on trusted worker.')
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.QUEUE) as recorder:
     uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
 
@@ -306,6 +307,7 @@ def uworker_bot_main():
 
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
+  logs.info('Starting postprocess untrusted worker.')
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.BATCH) as recorder:
     uworker_output = uworker_io.download_and_deserialize_uworker_output(
         output_download_url)
