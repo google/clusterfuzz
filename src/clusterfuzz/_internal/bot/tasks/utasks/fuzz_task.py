@@ -1042,22 +1042,6 @@ def process_crashes(crashes, context):
                 group.crashes[0].crash_state)
       continue
 
-<<<<<<< HEAD
-    group_proto = uworker_msg_pb2.FuzzTaskCrashGroup(
-        context=uworker_msg_pb2.FuzzContext(
-            redzone=context.redzone,
-            disable_ubsan=context.disable_ubsan,
-            window_argument=context.window_argument,
-            timeout_multiplier=context.timeout_multiplier,
-            test_timeout=int(context.test_timeout),
-            fuzzer_metadata=context.fuzzer_metadata,
-        ),
-        crashes=[c.to_proto() for c in group.crashes],
-        main_crash=group.main_crash.to_proto(),
-        one_time_crasher_flag=group.one_time_crasher_flag,
-    )
-    crash_groups.append(group_proto)
-
     logs.info(f'Process the crash group (file={group.main_crash.filename}, '
               f'fuzzed_key={group.main_crash.fuzzed_key}, '
               f'return code={group.main_crash.return_code}, '
@@ -1066,16 +1050,6 @@ def process_crashes(crashes, context):
               f'crash state={group.main_crash.crash_state}, '
               f'security flag={group.main_crash.security_flag}, '
               f'crash stacktrace={group.main_crash.crash_stacktrace})')
-  return crash_groups
-=======
-    logs.log(f'Process the crash group (file={group.main_crash.filename}, '
-             f'fuzzed_key={group.main_crash.fuzzed_key}, '
-             f'return code={group.main_crash.return_code}, '
-             f'crash time={group.main_crash.crash_time}, '
-             f'crash type={group.main_crash.crash_type}, '
-             f'crash state={group.main_crash.crash_state}, '
-             f'security flag={group.main_crash.security_flag}, '
-             f'crash stacktrace={group.main_crash.crash_stacktrace})')
 
     if group.should_create_testcase():
       group.newly_created_testcase = create_testcase(
@@ -1812,16 +1786,9 @@ class FuzzingSession:
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
     postprocess_store_fuzzer_run_results(uworker_output)
-<<<<<<< HEAD
+    crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
     logs.info('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
-    uworker_input = uworker_output.uworker_input
-    postprocess_process_crashes(uworker_input, uworker_output)
-=======
-    crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
-    logs.log('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
-             f'{fuzz_task_output.fully_qualified_fuzzer_name}')
->>>>>>> parent of 4a17b2f8 (Make fuzz crashes uworker safe (#4000))
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
