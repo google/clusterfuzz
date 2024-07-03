@@ -832,7 +832,8 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
           uworker_output=uworker_output,
           fully_qualified_fuzzer_name=fully_qualified_fuzzer_name)
     else:
-      _update_testcase_variant_if_needed(group, fuzz_task_output.crash_revision,
+      _update_testcase_variant_if_needed(group, existing_testcase,
+                                         fuzz_task_output.crash_revision,
                                          uworker_input.job_type)
 
     write_crashes_to_big_query(group, uworker_input, uworker_output,
@@ -1056,13 +1057,13 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
         row_count, {'success': False})
 
 
-def _update_testcase_variant_if_needed(group, crash_revision, job_type):
+def _update_testcase_variant_if_needed(group, existing_testcase, crash_revision,
+                                       job_type):
   """Update testcase variant if this is not already covered by existing testcase
   variant on this job."""
-  assert group.existing_testcase
 
   variant = data_handler.get_or_create_testcase_variant(
-      group.existing_testcase.key.id(), job_type)
+      existing_testcase.key.id(), job_type)
   if not variant or variant.status == data_types.TestcaseVariantStatus.PENDING:
     # Either no variant created yet since minimization hasn't finished OR
     # variant analysis is not yet finished. Wait in both cases, since we
