@@ -158,7 +158,7 @@ class UworkerMainTest(unittest.TestCase):
         uworker_input)
 
     uworker_output = {
-        'crash_time': 70.1,
+        'bot_name': 'mybotname',
     }
     self.module.utask_main.return_value = uworker_msg_pb2.Output(
         **uworker_output)
