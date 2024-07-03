@@ -942,8 +942,10 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {}
     output = self._create_output()
     uworker_input = _create_uworker_input(job='job')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    # TODO(metzman): Use correct type of group.
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -978,8 +980,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
     output = self._create_output()
     uworker_input = _create_uworker_input()
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1007,8 +1010,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
     output = self._create_output()
     uworker_input = _create_uworker_input(job='job_chromeos')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1039,8 +1043,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.side_effect = Exception('error')
     output = self._create_output()
     uworker_input = _create_uworker_input()
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True

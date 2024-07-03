@@ -41,7 +41,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
-from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
+from clusterfuzz._internal.crash_analysis import crash_result
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -378,25 +378,21 @@ class CrashGroup:
 
 def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
                             existing_testcase):
-  """Return true if this crash should create a testcase."""
+  """Returns True if this crash should create a testcase."""
   if not existing_testcase:
-    # No existing testcase, should create a new one.
     return True
 
   if not existing_testcase.one_time_crasher_flag:
     # Existing testcase is reproducible, don't need to create another one.
     return False
 
-  if not group.one_time_crasher_flag:
-    # Current testcase is reproducible, where existing one is not. Should
-    # create a new one.
-    return True
-
-  # Both current and existing testcases are unreproducible, shouldn't create
-  # a new testcase.
   # TODO(aarya): We should probably update last tested stacktrace in existing
   # testcase without any race conditions.
-  return False
+
+  # Should create a new testcase if this one is reproducible but existing one is
+  # not. Otherwise, this one isn't reproducible either so don't create a new
+  # one.
+  return not group.one_time_crasher_flag
 
 
 class _TrackFuzzTime:
@@ -835,16 +831,19 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
         fuzz_target=fully_qualified_fuzzer_name)
 
     if _should_create_testcase(group, existing_testcase):
-      group.newly_created_testcase = create_testcase(
+      newly_created_testcase = create_testcase(
           group=group,
           uworker_input=uworker_input,
           uworker_output=uworker_output,
           fully_qualified_fuzzer_name=fully_qualified_fuzzer_name)
     else:
-      _update_testcase_variant_if_needed(group, fuzz_task_output.crash_revision,
+      _update_testcase_variant_if_needed(group, existing_testcase,
+                                         fuzz_task_output.crash_revision,
                                          uworker_input.job_type)
+      newly_created_testcase = None
 
-    write_crashes_to_big_query(group, uworker_input, uworker_output,
+    write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
+                               uworker_input, uworker_output,
                                fully_qualified_fuzzer_name)
 
     if not existing_testcase:
@@ -987,11 +986,11 @@ def get_engine(context):
   return ''
 
 
-def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
+def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
+                               uworker_input: uworker_msg_pb2.Input,
                                output: uworker_msg_pb2.Output,
                                fully_qualified_fuzzer_name):
   """Write a group of crashes to BigQuery."""
-  created_at = int(time.time())
 
   # Many of ChromeOS fuzz targets run on Linux bots, so we incorrectly set the
   # linux platform for this. We cannot change platform_id in testcase as
@@ -1003,8 +1002,9 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
     actual_platform = output.platform_id
 
   # Write to a specific partition.
-  table_id = ('crashes$%s' % (
-      datetime.datetime.utcfromtimestamp(created_at).strftime('%Y%m%d')))
+  created_at = int(time.time())
+  timestamp = datetime.datetime.utcfromtimestamp(created_at).strftime('%Y%m%d')
+  table_id = f'crashes${timestamp}'
 
   client = big_query.Client(dataset_id='main', table_id=table_id)
 
@@ -1015,28 +1015,42 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
   rows = []
   for index, crash in enumerate(group.crashes):
     created_testcase_id = None
-    if crash == group.main_crash and group.newly_created_testcase:
-      created_testcase_id = str(group.newly_created_testcase.key.id())
+    if crash == group.main_crash and newly_created_testcase:
+      created_testcase_id = str(newly_created_testcase.key.id())
 
     rows.append(
         big_query.Insert(
             row={
-                'crash_type': crash.crash_type,
-                'crash_state': crash.crash_state,
-                'created_at': created_at,
-                'platform': actual_platform,
-                'crash_time_in_ms': int(crash.crash_time * 1000),
-                'parent_fuzzer_name': uworker_input.fuzzer_name,
-                'fuzzer_name': fully_qualified_fuzzer_name,
-                'job_type': uworker_input.job_type,
-                'security_flag': crash.security_flag,
-                'project': uworker_input.uworker_env.get('PROJECT_NAME', ''),
-                'reproducible_flag': not group.one_time_crasher_flag,
-                'revision': str(output.fuzz_task_output.crash_revision),
-                'new_flag': group.is_new() and crash == group.main_crash,
-                'testcase_id': created_testcase_id
+                'crash_type':
+                    crash.crash_type,
+                'crash_state':
+                    crash.crash_state,
+                'created_at':
+                    created_at,
+                'platform':
+                    actual_platform,
+                'crash_time_in_ms':
+                    int(crash.crash_time * 1000),
+                'parent_fuzzer_name':
+                    uworker_input.fuzzer_name,
+                'fuzzer_name':
+                    fully_qualified_fuzzer_name,
+                'job_type':
+                    uworker_input.job_type,
+                'security_flag':
+                    crash.security_flag,
+                'project':
+                    uworker_input.uworker_env.get('PROJECT_NAME', ''),
+                'reproducible_flag':
+                    not group.one_time_crasher_flag,
+                'revision':
+                    str(output.fuzz_task_output.crash_revision),
+                'new_flag':
+                    not existing_testcase and crash == group.main_crash,
+                'testcase_id':
+                    created_testcase_id
             },
-            insert_id='%s:%s' % (insert_id_prefix, index)))
+            insert_id=f'{insert_id_prefix}:{index}'))
 
   row_count = len(rows)
 
@@ -1065,13 +1079,13 @@ def write_crashes_to_big_query(group, uworker_input: uworker_msg_pb2.Input,
         row_count, {'success': False})
 
 
-def _update_testcase_variant_if_needed(group, crash_revision, job_type):
+def _update_testcase_variant_if_needed(group, existing_testcase, crash_revision,
+                                       job_type):
   """Update testcase variant if this is not already covered by existing testcase
   variant on this job."""
-  assert group.existing_testcase
 
   variant = data_handler.get_or_create_testcase_variant(
-      group.existing_testcase.key.id(), job_type)
+      existing_testcase.key.id(), job_type)
   if not variant or variant.status == data_types.TestcaseVariantStatus.PENDING:
     # Either no variant created yet since minimization hasn't finished OR
     # variant analysis is not yet finished. Wait in both cases, since we
@@ -1497,9 +1511,10 @@ class FuzzingSession:
       # testcases, and stats.
       log_time = datetime.datetime.utcfromtimestamp(
           float(testcase_run.timestamp))
-      crash_result = CrashResult(return_code, result.time_executed, result.logs)
+      crash_result_obj = crash_result.CrashResult(
+          return_code, result.time_executed, result.logs)
       log = testcase_manager.prepare_log_for_upload(
-          crash_result.get_stacktrace(), return_code)
+          crash_result_obj.get_stacktrace(), return_code)
       testcase_manager.upload_log(log, log_time)
 
       for crash in result.crashes:

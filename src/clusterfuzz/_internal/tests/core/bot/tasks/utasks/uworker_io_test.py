@@ -186,10 +186,10 @@ class RoundTripTest(unittest.TestCase):
 
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
-    crash_time = 1
+    bot_name = 'the-bot-name'
     output = uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
-    output.crash_time = crash_time
+    output.bot_name = bot_name
 
     # Create a version of upload_signed_url that will "upload" the data to a
     # known file on disk that we can read back.
@@ -234,7 +234,7 @@ class RoundTripTest(unittest.TestCase):
             uworker_io.download_and_deserialize_uworker_output(self.FAKE_URL))
 
     # Test that the rest of the output was (de)serialized correctly.
-    self.assertEqual(downloaded_output.crash_time, 1)
+    self.assertEqual(downloaded_output.bot_name, bot_name)
     self.assertEqual(downloaded_output.error_type,
                      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     self.assertEqual(downloaded_output.uworker_input.testcase_id,
