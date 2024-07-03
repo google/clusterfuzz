@@ -41,7 +41,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
-from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
+from clusterfuzz._internal.crash_analysis import crash_result
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -1488,9 +1488,10 @@ class FuzzingSession:
       # testcases, and stats.
       log_time = datetime.datetime.utcfromtimestamp(
           float(testcase_run.timestamp))
-      crash_result = CrashResult(return_code, result.time_executed, result.logs)
+      crash_result_obj = crash_result.CrashResult(
+          return_code, result.time_executed, result.logs)
       log = testcase_manager.prepare_log_for_upload(
-          crash_result.get_stacktrace(), return_code)
+          crash_result_obj.get_stacktrace(), return_code)
       testcase_manager.upload_log(log, log_time)
 
       for crash in result.crashes:
