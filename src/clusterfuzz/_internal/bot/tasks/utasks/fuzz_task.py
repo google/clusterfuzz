@@ -849,7 +849,7 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     write_crashes_to_big_query(group, uworker_input, uworker_output,
                                fully_qualified_fuzzer_name)
 
-    if not existing_testcase:
+    if not existing_testcase:  # New testcase
       new_crash_count += 1
       known_crash_count += len(group.crashes) - 1
     else:
