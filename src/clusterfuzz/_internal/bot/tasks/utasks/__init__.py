@@ -36,18 +36,18 @@ class _Mode(enum.Enum):
   """The execution mode of `uworker_main` tasks in a bot process."""
 
   # `uworker_main` tasks are executed on Cloud Batch.
-  BATCH = "batch"
+  BATCH = 'batch'
 
   # `uworker_main` tasks are executed on bots via a Pub/Sub queue.
-  QUEUE = "queue"
+  QUEUE = 'queue'
 
 
 class _Subtask(enum.Enum):
   """Parts of a task that may be executed on separate machines."""
 
-  PREPROCESS = "preprocess"
-  UWORKER_MAIN = "uworker_main"
-  POSTPROCESS = "postprocess"
+  PREPROCESS = 'preprocess'
+  UWORKER_MAIN = 'uworker_main'
+  POSTPROCESS = 'postprocess'
 
 
 def _timestamp_now() -> Timestamp:
@@ -220,6 +220,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   """Executes the postprocess step on the trusted (t)worker (in this case it is
   the same bot as the uworker)."""
+  logs.info('Starting postprocess on trusted worker.')
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.QUEUE) as recorder:
     uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
 
@@ -306,6 +307,7 @@ def uworker_bot_main():
 
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
+  logs.info('Starting postprocess untrusted worker.')
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.BATCH) as recorder:
     uworker_output = uworker_io.download_and_deserialize_uworker_output(
         output_download_url)
