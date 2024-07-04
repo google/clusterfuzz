@@ -309,7 +309,9 @@ class Crash:
     crash.should_be_ignored = self.should_be_ignored
     if self.fuzzed_key:
       crash.fuzzed_key = self.fuzzed_key
+    if self.absolute_path:
       crash.absolute_path = self.absolute_path
+    if self.archive_filename:
       crash.archive_filename = self.archive_filename
     return crash
 
@@ -905,6 +907,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
                     fully_qualified_fuzzer_name: str):
   """Create a testcase based on crash."""
   crash = group.main_crash
+  comment = (f'Fuzzer {fully_qualified_fuzzer_name} generated testcase '
+             f'crashed in {crash.crash_time} seconds (r{crash.crash_revision})')
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key or None,
@@ -912,10 +916,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       regression=get_regression(group.one_time_crasher_flag),
       fixed=get_fixed_or_minimized_key(group.one_time_crasher_flag),
       one_time_crasher_flag=group.one_time_crasher_flag,
-      crash_revision=uworker_output.fuzz_target_output.crash_revision,
-      comment='Fuzzer %s generated testcase crashed in %d seconds (r%d)' %
-      (fully_qualified_fuzzer_name, crash.crash_time,
-       uworker_output.fuzz_target_output.crash_revision),
+      crash_revision=uworker_output.fuzz_task_output.crash_revision,
+      comment=comment,
       absolute_path=crash.absolute_path,
       fuzzer_name=uworker_input.fuzzer_name,
       fully_qualified_fuzzer_name=fully_qualified_fuzzer_name,
