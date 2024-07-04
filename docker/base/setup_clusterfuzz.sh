@@ -25,7 +25,7 @@ if [[ -z "$LOCAL_SRC" ]]; then
     rm -rf clusterfuzz
   fi
 
-  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP .
+  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $DEPLOYMENT_ZIP 
   unzip -q -o $DEPLOYMENT_ZIP
 fi
 
