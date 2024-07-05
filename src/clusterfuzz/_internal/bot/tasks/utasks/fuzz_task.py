@@ -309,9 +309,7 @@ class Crash:
     crash.should_be_ignored = self.should_be_ignored
     if self.fuzzed_key:
       crash.fuzzed_key = self.fuzzed_key
-    if self.absolute_path:
       crash.absolute_path = self.absolute_path
-    if self.archive_filename:
       crash.archive_filename = self.archive_filename
     return crash
 
