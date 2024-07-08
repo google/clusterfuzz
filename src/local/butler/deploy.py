@@ -233,22 +233,22 @@ def _deploy_manifest(bucket_name, manifest_path, test_deployment=False, release=
   """Deploy source manifest to GCS."""
   if sys.version_info.major == 3:
     if release == 'prod':
-      manifest_suffix = '.3'
+      manifest_suffix = '3'
     else:
-      manifest_suffix = '.3-candidate'
+      manifest_suffix = '3-candidate'
   else:
     manifest_suffix = ''
 
-  manifest_path += manifest_suffix
+  remote_manifest_path = f'clusterfuzz-source.manifest.{manifest_suffix}'
 
   if test_deployment:
     common.execute(f'gsutil cp {manifest_path} '
                    f'gs://{bucket_name}/test-deployment/'
-                   f'clusterfuzz-source.manifest.3')
+                   f'{remote_manifest_path}')
   else:
     common.execute(f'gsutil cp {manifest_path} '
                    f'gs://{bucket_name}/'
-                   f'clusterfuzz-source.manifest.3')
+                   f'{remote_manifest_path}')
 
 
 def _update_deployment_manager(project, name, config_path):
