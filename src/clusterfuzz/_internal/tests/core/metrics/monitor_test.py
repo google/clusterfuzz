@@ -16,6 +16,8 @@
 
 import os
 import unittest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -171,6 +173,37 @@ class MonitorTest(unittest.TestCase):
         ])
     gauge.set(5)
     self.assertIsInstance(gauge, monitor._MockMetric)
+
+
+class TestFlusherThread(unittest.TestCase):
+
+  @patch(
+      'clusterfuzz._internal.metrics.monitor.monitoring_v3.MetricServiceClient.create_time_series'
+  )
+  def test_flush(self, mock_create_time_series):
+    """Sets up the flusher thread and mocks create_time_series."""
+    monitor.credentials._use_anonymous_credentials = lambda: False
+    monitor._monitoring_v3_client = monitor.monitoring_v3.MetricServiceClient(
+        credentials=monitor.credentials.get_default()[0])
+    monitor._flusher_thread = monitor._FlusherThread()
+    monitor.FLUSH_INTERVAL_SECONDS = 1
+    monitoring_metrics.HOST_INCONSISTENT_COUNT.increment()
+    monitoring_metrics.BOT_COUNT.set(1, {'revision': '1'})
+    monitoring_metrics.HOST_INCONSISTENT_COUNT.increment()
+    monitor.utils.get_application_id = lambda: 'google.com:clusterfuzz'
+    os.environ['BOT_NAME'] = 'bot-1'
+    monitor._initialize_monitored_resource()
+    monitor._monitored_resource.labels['zone'] = 'us-central1-b'
+
+    monitor._flusher_thread.start()
+    while not mock_create_time_series.called:
+      pass
+    else:
+      monitor._flusher_thread.stop()
+    time_series = mock_create_time_series.mock_calls[0][2]['time_series']
+    for i in range(1, len(time_series)):
+      self.assertLessEqual(time_series[i - 1].points[0].interval.start_time,
+                           time_series[i].points[0].interval.start_time)
 
 
 @unittest.skip('Skip this because it\'s only used by metzman for debugging.')

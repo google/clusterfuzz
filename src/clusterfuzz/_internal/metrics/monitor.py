@@ -94,7 +94,6 @@ class _FlusherThread(threading.Thread):
           return
 
         time_series = []
-        gauge_series = []
         end_time = time.time()
         for metric, labels, start_time, value in _metrics_store.iter_values():
           if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
@@ -115,21 +114,25 @@ class _FlusherThread(threading.Thread):
                    f'metric_kind: {series.metric_kind}, '
                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
                    f'end_time: {metric_et_sec}.{metric_et_ns}')
-
-          if (series.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
-             ):
-            gauge_series.append(series)
-          else:
-            time_series.append(series)
+          time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-            time_series.extend(gauge_series)
+            time_series.sort(
+                key=lambda ts: (
+                    ts.points[-1].interval.start_time.second,
+                    ts.points[-1].interval.start_time.nanosecond
+                )
+            )
             create_time_series(name=project_path, time_series=time_series)
-            gauge_series = []
             time_series = []
 
         if time_series:
-          time_series.extend(gauge_series)
+          time_series.sort(
+              key=lambda ts: (
+                  ts.points[-1].interval.start_time.second,
+                  ts.points[-1].interval.start_time.nanosecond
+              )
+          )
           create_time_series(name=project_path, time_series=time_series)
       except Exception:
         if environment.is_android():
