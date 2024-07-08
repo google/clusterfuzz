@@ -72,7 +72,7 @@ def package(revision,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
             platform_name=None,
             release='prod',
-            python3=False):
+            python3=True):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
