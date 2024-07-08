@@ -14,7 +14,7 @@
 # limitations under the License.
 
 DEPLOYMENT_ZIP="linux3.zip"
-if [[$CLUSTERFUZZ_STAGE == "candidate" ]]; then
+if [[$CLUSTERFUZZ_RELEASE == "candidate" ]]; then
     DEPLOYMENT_ZIP="linux3-candidate.zip"
 fi
 export DEPLOYMENT_ZIP

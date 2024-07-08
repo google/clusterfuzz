@@ -39,7 +39,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
-CLUSTERFUZZ_STAGE = os.environ['CLUSTERFUZZ_STAGE']
+CLUSTERFUZZ_RELEASE = os.getenv['CLUSTERFUZZ_STAGE']
 
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
@@ -48,7 +48,7 @@ TESTS_UPDATE_INTERVAL_DAYS = 1
 REMOTE_MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
 if sys.version_info.major == 3:
   REMOTE_MANIFEST_FILENAME += '.3'
-if CLUSTERFUZZ_STAGE == 'candidate':
+if CLUSTERFUZZ_RELEASE == 'candidate':
   REMOTE_MANIFEST_FILENAME += '-candidate'
 
 def _rename_dll_for_update(absolute_filepath):
@@ -68,7 +68,7 @@ def _platform_deployment_filename():
   base_filename = platform_mappings[platform.system()]
   if sys.version_info.major == 3:
     base_filename += '-3'
-  if CLUSTERFUZZ_STAGE == 'candidate':
+  if CLUSTERFUZZ_RELEASE == 'candidate':
     base_filename += '-candidate'
 
   return base_filename + '.zip'
