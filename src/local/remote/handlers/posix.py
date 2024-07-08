@@ -131,7 +131,7 @@ class Handler:
     local_zip_path = package.package(
         revision=butler_common.compute_staging_revision(),
         platform_name=self.platform,
-        stage='prod')
+        release='prod')
     self._copy_staging_archive_from_local_to_remote(local_zip_path)
 
     self._run(f'cd {self.clusterfuzz_parent_path} && '

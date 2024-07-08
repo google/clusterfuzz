@@ -260,7 +260,7 @@ def main():
   parser_package.add_argument(
       '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
   parser_package.add_argument(
-      '-s', '--stage', choices=['prod', 'candidate'])
+      '-r', '--release', choices=['prod', 'candidate'])
 
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
@@ -277,7 +277,7 @@ def main():
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
   parser_deploy.add_argument(
-      '--stage', '-s', choices=['prod', 'candidate'])
+      '--release', '-r', choices=['prod', 'candidate'])
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')

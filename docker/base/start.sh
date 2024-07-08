@@ -20,7 +20,7 @@ fi
 export DEPLOYMENT_ZIP
 export RUN_CMD="python${PYTHON_INTERPRETER_VERSION} $PYTHON_RUN_CMD"
 
-#Assert pipenv install --system works
+# Assert pipenv install --system works
 mv /usr/local/bin/pip${PYTHON_INTERPRETER_VERSION} /usr/local/bin/pip && \
     pipenv install --deploy --system
 

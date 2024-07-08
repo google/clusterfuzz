@@ -138,7 +138,7 @@ ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
 ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
-ENV PYTHON_RUN_CMD = "$ROOT_DIR/src/python/bot/startup/run.py"
+ENV PYTHON_RUN_CMD "$ROOT_DIR/src/python/bot/startup/run.py"
 #ENV DEPLOYMENT_ZIP "linux-3.zip"
 
 # Passwordless sudo (needed for AFL launcher).
@@ -156,11 +156,5 @@ ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
 COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
-#Moving this to start.sh so we can choose interpreter version at runtime
-RUN cd /data
-#RUN cd /data && \
-#    # Make pip3.7 the default so that pipenv install --system works.
-#    mv /usr/local/bin/pip${PYTHON_INTERPRETER_VERSION} /usr/local/bin/pip && \
-#    pipenv install --deploy --system
 
 CMD ["bash", "-ex", "/data/start.sh"]
