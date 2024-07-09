@@ -225,7 +225,7 @@ class Crash:
     self.security_flag = crash_analyzer.is_security_issue(
         self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
     self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
-                             self.security_flag)
+                             self.security_flag)  # pylint: disable=attribute-defined-outside-init
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
