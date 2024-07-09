@@ -252,17 +252,10 @@ class FuzzerStatsTest(unittest.TestCase):
     ]
     groups[0].is_new.return_value = False
     groups[1].is_new.return_value = True
-    self.maxDiff = None
-    crash_groups_for_stats = [{
-        'is_new': True,
-        'count': len(group.crashes),
-        'crash_type': group.main_crash.crash_type,
-        'crash_state': group.main_crash.crash_state,
-        'security_flag': group.main_crash.security_flag,
-    } for group in groups]
-
+    crashes = fuzz_task.convert_groups_to_crashes(groups)
+    job_run_crashes = fuzz_task.convert_crashes_to_dicts(crashes)
     fuzz_task.upload_job_run_stats('fuzzer', 'job', 123, 1472846341.017923, 1,
-                                   2, 1337, crash_groups_for_stats)
+                                   2, 1337, job_run_crashes)
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':
@@ -283,7 +276,7 @@ class FuzzerStatsTest(unittest.TestCase):
             1337,
         'crashes': [
             {
-                'is_new': True,
+                'is_new': False,
                 'count': 2,
                 'crash_type': 't1',
                 'crash_state': 's1',
