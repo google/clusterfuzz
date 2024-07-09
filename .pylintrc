@@ -22,7 +22,6 @@ disable=
   import-error,
   import-outside-toplevel,
   locally-disabled,
-  misplaced-comparison-constant,
   no-self-use,
   relative-import,
   similarities,
