@@ -36,7 +36,6 @@ disable=
   consider-using-with,
   raise-missing-from,
   super-with-arguments,
-  use-a-generator,
   consider-using-generator,
   consider-using-f-string,  # Too many legacy usages.
   unspecified-encoding  # Too many legacy usage.
