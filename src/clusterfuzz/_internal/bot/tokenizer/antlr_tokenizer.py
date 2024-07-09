@@ -19,7 +19,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.minimizer import errors
 
 
-class AntlrTokenizer(object):
+class AntlrTokenizer:
   """Tokenizer. Takes an Antlr Lexer created using
   $ antlr4 -Dlanguage=Pythonn <AntlrGrammar.g4>
   and allows user to tokenize files using that grammar."""
