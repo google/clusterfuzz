@@ -97,6 +97,8 @@ class AflConfig:
     self.additional_afl_arguments = []
     self.additional_env_vars = {}
     self.num_persistent_executions = constants.MAX_PERSISTENT_EXECUTIONS
+    self.dict_path = None
+    self._executable_path = None
 
   @classmethod
   def from_target_path(cls, target_path):
@@ -542,6 +544,7 @@ class AflRunnerCommon:
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
+    self._executable_path = None
 
   @property
   def stderr_file_path(self):
