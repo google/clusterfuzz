@@ -229,7 +229,10 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
                                                 os.path.basename(zip_path)))
 
 
-def _deploy_manifest(bucket_name, manifest_path, test_deployment=False, release='prod'):
+def _deploy_manifest(bucket_name,
+                     manifest_path,
+                     test_deployment=False,
+                     release='prod'):
   """Deploy source manifest to GCS."""
   if sys.version_info.major == 3:
     if release == 'prod':
@@ -402,7 +405,6 @@ def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
                             deploy_k8s=True,
-                            python3=True,
                             test_deployment=False,
                             release='prod'):
   """Helper for production deployment."""
@@ -542,17 +544,16 @@ def execute(args):
 
   release = args.release
   if args.release == 'candidate':
-    release='candidate'
+    release = 'candidate'
   else:
     release = 'prod'
 
-  is_python3 = sys.version_info.major == 3
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
           package.package(
-              revision, platform_name=platform_name, python3=is_python3, release=release))
+              revision, platform_name=platform_name, release=release))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -576,7 +577,6 @@ def execute(args):
         package_zip_paths,
         deploy_appengine,
         deploy_k8s,
-        python3=is_python3,
         test_deployment=test_deployment,
         release=release)
 

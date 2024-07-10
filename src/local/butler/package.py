@@ -71,8 +71,7 @@ def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
             platform_name=None,
-            release='prod',
-            python3=True):
+            release='prod'):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
@@ -97,13 +96,10 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-    if python3:
-      if release == 'prod':
-        target_zip_name = platform_name + '-3.zip'
-      else:
-        target_zip_name = platform_name + '-3-candidate.zip'
+    if release == 'prod':
+      target_zip_name = platform_name + '-3.zip'
     else:
-      target_zip_name = platform_name + '.zip'
+      target_zip_name = platform_name + '-3-candidate.zip'
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)
@@ -144,6 +140,7 @@ def package(revision,
 
 
 def execute(args):
+  """Execute the butler package command."""
   release = 'prod'
   if args.release == 'candidate':
     release = 'candidate'
@@ -155,4 +152,6 @@ def execute(args):
           release=release)
   else:
     package(
-        revision=common.compute_staging_revision(), platform_name=args.platform, release=release)
+        revision=common.compute_staging_revision(),
+        platform_name=args.platform,
+        release=release)
