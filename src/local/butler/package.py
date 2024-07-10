@@ -98,7 +98,7 @@ def package(revision,
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
     if python3:
-      if release=="prod":
+      if release == 'prod':
         target_zip_name = platform_name + '-3.zip'
       else:
         target_zip_name = platform_name + '-3-candidate.zip'
