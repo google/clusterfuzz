@@ -553,7 +553,9 @@ def emit(level, message, exc_info=None, **extras):
               'path': path_name,
               'line': line_number,
               'method': method_name
-          }
+          },
+          'release': os.environ.get('CLUSTERFUZZ_STAGE', 'prod'),
+          'docker_image': os.environ.get('IMAGE', '')
       })
 
 
