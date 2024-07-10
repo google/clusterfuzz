@@ -40,6 +40,8 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
 CLUSTERFUZZ_RELEASE = os.getenv['CLUSTERFUZZ_RELEASE']
+if CLUSTERFUZZ_RELEASE == None:
+  CLUSTERFUZZ_RELEASE = 'prod'
 
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
