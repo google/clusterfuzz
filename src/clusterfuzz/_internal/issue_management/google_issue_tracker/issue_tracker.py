@@ -686,8 +686,14 @@ class Issue(issue_tracker.Issue):
       # Make sure self.labels contains only hotlist IDs.
       self._filter_labels()
 
-      if self.component_id:
-        self._data['issueState']['componentId'] = int(self.component_id)
+      # Best effort setting on componentId from list of components.
+      # Set the componentId to the first encountered numeric component
+      # in the component list.
+      for component in list(self.components):
+        if component.isnumeric():
+          self._data['issueState']['componentId'] = int(component)
+          break
+
       ccs = list(self._ccs)
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
