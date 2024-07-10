@@ -1,0 +1,120 @@
+# 
+# Based on https://github.com/google/clusterfuzz/tree/master/docker/base
+# and modified to create an alternative fuzzing container based on Fedora 36
+#
+
+FROM registry.fedoraproject.org/fedora:36
+
+MAINTAINER Dave Baker <dbaker@redhat.com>
+
+# Define the custom queue name (versus "LINUX" for regular ubuntu fuzzing bot)
+ENV QUEUE_OVERRIDE LINUX_FEDORA36
+
+RUN mkdir /data
+WORKDIR /data
+
+
+RUN set -x && \
+    rpm -e vim-minimal                                                                && \
+    dnf -y install --setopt=skip_missing_names_on_install=False                          \
+                   curl wget make vim-enhanced less findutils iputils net-tools procps-ng     \
+                   binutils which gdb-headless sudo bzip2 bzip2-devel libffi-devel openssl-devel gcc gcc-c++ zlib-devel  \
+                   readline socat ncurses-devel sqlite-libs sqlite-devel sqlite python3 unzip xz xz-devel xz-libs        \
+                   lua-devel e2fsprogs && \
+    # needed for f36, not f35
+    dnf -y install util-linux && \
+    # patchelf available as fedora package; no need to compile from source
+    dnf -y install patchelf   && \
+    dnf -y update             && \
+    dnf clean all             && \
+    rm -rf /var/cache/yum
+
+
+# Install OpenJDK 15 for Jazzer (Java fuzzer).
+# Copied from gcr.io/oss-fuzz-base/base-runner.
+ENV JAVA_HOME=/usr/lib/jvm/java-15-openjdk-amd64
+ENV JVM_LD_LIBRARY_PATH=$JAVA_HOME/lib/server
+ENV PATH=$PATH:$JAVA_HOME/bin
+RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db48ee2/7/GPL/openjdk-15.0.2_linux-x64_bin.tar.gz -O /tmp/openjdk-15.0.2_linux-x64_bin.tar.gz && \
+    cd /tmp && \
+    mkdir -p $JAVA_HOME && \
+    tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
+    rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
+
+
+# Install Python 3.
+ARG PYVER=3.7.13
+RUN curl -sS https://www.python.org/ftp/python/$PYVER/Python-$PYVER.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-$PYVER && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
+    rm -rf /tmp/Python-$PYVER
+
+# Note - this pip install need to be a separate RUN command, not && chained from the last set
+RUN pip3.7 install pipenv psutil
+
+
+
+# Update for RHEL/Fedora from https://cloud.google.com/sdk/docs/downloads-interactive
+RUN curl https://sdk.cloud.google.com > /tmp/install-sdk && \
+    bash /tmp/install-sdk --disable-prompts --install-dir=/opt && \
+    rm -f /tmp/install-sdk && \
+    find /opt/google-cloud-sdk/bin -type f -exec ln -s {} /usr/bin/ \;
+
+
+
+
+# See: https://cloud.google.com/logging/docs/agent/logging/installation which refers to 
+# using Ops Agent instead.  This Ops Agent, as well as the previous script called
+# "add-logging-agent-repo.sh" works on RHEL but not Fedora.
+#
+# Accordingly, the "google-fluentd" component is not installed, and a dummy placeholder
+# copied down to avoid the initialization scripts to fail due to it being missing.
+#
+RUN mkdir /etc/init.d && echo "echo true" > /etc/init.d/google-fluentd && chmod a+rx /etc/init.d/google-fluentd
+
+# COPY clusterfuzz-fluentd.conf /etc/google-fluentd/config.d/clusterfuzz.conf
+
+
+# Common environment variables.
+ENV USER=clusterfuzz
+ENV INSTALL_DIRECTORY /mnt/scratch0
+ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
+ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
+ENV UPDATE_WEB_TESTS True
+ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
+ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
+ENV DEPLOYMENT_ZIP "linux-3.zip"
+
+# Passwordless sudo (needed for AFL launcher).
+RUN groupadd nopwsudo && \
+    echo "%nopwsudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/mysudoers
+
+# Make sure GSUtil uses the GCE service account.
+RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
+
+VOLUME $INSTALL_DIRECTORY
+WORKDIR $INSTALL_DIRECTORY
+
+
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+
+# Note - Pipefile.local has been dropped from the COPY command so we can better handle minor variances
+# - before building the container image, copy the Pipfile in to the working directory
+#
+# COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
+#
+COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile /data/
+RUN cd /data && \
+    # Make pip3.7 the default so that pipenv install --system works.
+    ln -s $( which pip3.7 )  /usr/local/bin/pip   && \
+    pipenv --python=/usr/local/bin/python3.7 install
+    # Install tensorflow here as it's not included in the Pipfile due to
+    # strict python version requirements.
+RUN cd /data && \
+    pip install tensorflow==2.3.1
+
+
+CMD ["bash", "-ex", "/data/start.sh"]
+
