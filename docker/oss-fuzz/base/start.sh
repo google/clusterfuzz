@@ -16,4 +16,10 @@
 source /data/setup_common.sh
 source /data/setup_clusterfuzz.sh
 
+DEPLOYMENT_ZIP="linux3.zip"
+if [[$CLUSTERFUZZ_RELEASE == "candidate" ]]; then
+    DEPLOYMENT_ZIP="linux3-candidate.zip"
+fi
+export DEPLOYMENT_ZIP
+
 bash -ex /data/start_clusterfuzz.sh

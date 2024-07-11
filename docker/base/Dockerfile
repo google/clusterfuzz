@@ -151,5 +151,5 @@ RUN cd /data && \
     # Make pip3.7 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
     pipenv install --deploy --system
-    
+
 CMD ["bash", "-ex", "/data/start.sh"]

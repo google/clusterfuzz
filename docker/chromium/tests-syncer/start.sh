@@ -18,4 +18,10 @@ source /data/setup_depot_tools.sh
 source /data/setup_gerrit.sh
 source /data/setup_clusterfuzz.sh
 
+DEPLOYMENT_ZIP="linux3.zip"
+if [[$CLUSTERFUZZ_RELEASE == "candidate" ]]; then
+    DEPLOYMENT_ZIP="linux3-candidate.zip"
+fi
+export DEPLOYMENT_ZIP
+
 bash -ex /data/start_clusterfuzz.sh
