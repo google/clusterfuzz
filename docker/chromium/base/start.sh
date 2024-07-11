@@ -19,7 +19,7 @@ if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
     DEPLOYMENT_ZIP="linux-3-candidate.zip"
 fi
 
-if [ -n $USE_TEST_DEPLOYMENT ]; then
+if [ ! -z $USE_TEST_DEPLOYMENT ]; then
     DEPLOYMENT_ZIP="test-deployment/$DEPLOYMENT_ZIP"
 fi
 
