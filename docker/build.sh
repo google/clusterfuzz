@@ -15,28 +15,29 @@
 
 IMAGES=(
   gcr.io/clusterfuzz-images/base
-  gcr.io/clusterfuzz-images/high-end
+  #gcr.io/clusterfuzz-images/high-end
   gcr.io/clusterfuzz-images/chromium/base
-  gcr.io/clusterfuzz-images/chromium/builder
-  gcr.io/clusterfuzz-images/chromium/high-end
+  #gcr.io/clusterfuzz-images/chromium/builder
+  #gcr.io/clusterfuzz-images/chromium/high-end
   gcr.io/clusterfuzz-images/chromium/tester
-  gcr.io/clusterfuzz-images/chromium/tests-syncer
-  gcr.io/clusterfuzz-images/oss-fuzz/base
-  gcr.io/clusterfuzz-images/oss-fuzz/host
-  gcr.io/clusterfuzz-images/oss-fuzz/host-high-end
-  gcr.io/clusterfuzz-images/oss-fuzz/worker
-  gcr.io/clusterfuzz-images/ci
-  gcr.io/clusterfuzz-images/utask-main-scheduler
-  gcr.io/clusterfuzz-images/fuchsia
+  #gcr.io/clusterfuzz-images/chromium/tests-syncer
+  #gcr.io/clusterfuzz-images/oss-fuzz/base
+  #gcr.io/clusterfuzz-images/oss-fuzz/host
+  #gcr.io/clusterfuzz-images/oss-fuzz/host-high-end
+  #gcr.io/clusterfuzz-images/oss-fuzz/worker
+  #gcr.io/clusterfuzz-images/ci
+  #gcr.io/clusterfuzz-images/utask-main-scheduler
+  #gcr.io/clusterfuzz-images/fuchsia
 )
 
 function docker_push {
-  docker push $image
+  #docker push $image
   docker push $image:$stamp
 }
 
 GIT_HASH=`git rev-parse HEAD | head -c7`
-stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
+#stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
+stamp=vguidi_progrollout_v0
 for image in "${IMAGES[@]}"; do
   docker build -t $image ${image#gcr.io/clusterfuzz-images/}
   docker tag $image $image:$stamp
