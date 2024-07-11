@@ -16,7 +16,7 @@
 
 DEPLOYMENT_ZIP="linux3.zip"
 if [[$CLUSTERFUZZ_RELEASE == "candidate" ]]; then
-    DEPLOYMENT_ZIP="linux3-candidate.zip"
+    DEPLOYMENT_ZIP="linux-3-candidate.zip"
 fi
 export DEPLOYMENT_ZIP
 
