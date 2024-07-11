@@ -18,6 +18,8 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
+CLUSTERFUZZ_FILE=clusterfuzz_package.zip
+
 # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
 if [[ -z "$LOCAL_SRC" ]]; then
   # Set up ClusterFuzz
@@ -25,8 +27,10 @@ if [[ -z "$LOCAL_SRC" ]]; then
     rm -rf clusterfuzz
   fi
 
-  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP .
-  unzip -q -o $DEPLOYMENT_ZIP
+  # DEPLOYMENT_ZIP might be test-deployment/linux-3.zip, so we do not extract DEPLOYMENT_ZIP directly
+
+  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
+  unzip -q -o $CLUSTERFUZZ_FILE
 fi
 
 # Some configurations (e.g. hosts) run many instances of ClusterFuzz. Don't

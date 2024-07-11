@@ -15,9 +15,14 @@
 
 
 DEPLOYMENT_ZIP="linux-3.zip"
-if [[$CLUSTERFUZZ_RELEASE == "candidate" ]]; then
+if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
     DEPLOYMENT_ZIP="linux-3-candidate.zip"
 fi
+
+if [ -n $USE_TEST_DEPLOYMENT ]; then
+    DEPLOYMENT_ZIP="test-deployment/$DEPLOYMENT_ZIP"
+fi
+
 export DEPLOYMENT_ZIP
 
 source /data/setup.sh
