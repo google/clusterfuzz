@@ -20,10 +20,5 @@ ENV NUM_WORKERS_PER_HOST 16
 ENV DISABLE_MOUNTS True
 ENV TRUSTED_HOST True
 
-DEPLOYMENT_ZIP="linux3.zip"
-if [[$CLUSTERFUZZ_RELEASE == "candidate" ]]; then
-    DEPLOYMENT_ZIP="linux3-candidate.zip"
-fi
-export DEPLOYMENT_ZIP
 
 ENV RUN_CMD "python3.7 /data/start_host.py"
