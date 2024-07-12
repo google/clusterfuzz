@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 
 import os
+import queue
 import unittest
 from unittest.mock import patch
 
@@ -189,15 +190,22 @@ class TestFlusherThread(unittest.TestCase):
     monitoring_metrics.HOST_INCONSISTENT_COUNT.increment()
     os.environ['BOT_NAME'] = 'bot-1'
 
-    monitor._flusher_thread.start()
+    call_queue = queue.Queue()
     mock_create_time_series = mock_client.return_value.create_time_series
-    while not mock_create_time_series.called:
-      pass
+
+    mock_create_time_series.side_effect = (
+        lambda **kwargs: call_queue.put(kwargs))
+
+    monitor._flusher_thread.start()
+    try:
+      args = call_queue.get(timeout=10)
+      time_series = args['time_series']
+      for i in range(1, len(time_series)):
+        self.assertLessEqual(time_series[i - 1].points[0].interval.start_time,
+                             time_series[i].points[0].interval.start_time)
+    except queue.Empty:
+      self.fail("Queue timed out, no arguments received from mocked method")
     monitor._flusher_thread.stop()
-    time_series = mock_create_time_series.mock_calls[0][2]['time_series']
-    for i in range(1, len(time_series)):
-      self.assertLessEqual(time_series[i - 1].points[0].interval.start_time,
-                           time_series[i].points[0].interval.start_time)
 
 
 @unittest.skip('Skip this because it\'s only used by metzman for debugging.')
