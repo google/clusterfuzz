@@ -581,7 +581,7 @@ def _get_region(bot_name):
   except errors.BadConfigError:
     return 'unknown'
 
-  for pattern in regions.get('patterns'):
+  for pattern in regions.get('patterns', []):
     if re.match(pattern['pattern'], bot_name):
       return pattern['name']
 
