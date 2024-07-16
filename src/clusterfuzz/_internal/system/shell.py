@@ -261,6 +261,13 @@ def create_directory(directory, create_intermediates=False, recreate=False):
     else:
       os.mkdir(directory)
   except:
+    dfh = subprocess.run(
+        "df -h", shell=True, capture_output=True, check=False, text=True)
+    dfhi = subprocess.run(
+        "df -hi", shell=True, capture_output=True, check=False, text=True)
+    logs.info(
+        f"DEBUG:\nDisk Free(h) :\n{dfh.stdout}\nDisk Free(hi):\n{dfhi.stdout}")
+
     logs.error('Unable to create directory %s.' % directory)
     return False
 

@@ -1407,7 +1407,7 @@ def should_ignore_line_for_crash_processing(line, state):
     return True
 
   if len(line) > 1024**2:
-    logs.error('Line is too long for a stacktrace.')
+    logs.error(f"Line is too long for a stacktrace:\n{line}")
     return True
 
   return False

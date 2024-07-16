@@ -24,6 +24,7 @@ import sys
 import yaml
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.metrics import logs
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -355,6 +356,7 @@ def get_llvm_symbolizer_path():
         stderr=subprocess.DEVNULL)
     if return_code == 0:
       # llvm-symbolize works, return it.
+      logs.info(f"Debug: Environment Symbolizer Path :- {llvm_symbolizer_path}")
       return llvm_symbolizer_path
 
   # Either
@@ -365,10 +367,12 @@ def get_llvm_symbolizer_path():
 
   # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
+    logs.info(f"Debug: None Symbolizer Path :- {llvm_symbolizer_path}")
     return None
 
   # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
+  logs.info(f"Debug: Default Symbolizer Path :- {llvm_symbolizer_path}")
   return llvm_symbolizer_path
 
 
