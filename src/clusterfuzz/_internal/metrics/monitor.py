@@ -74,6 +74,10 @@ class _MockMetric:
     return self._mock_method
 
 
+def _time_series_sort_key(ts):
+  return ts.points[-1].interval.start_time
+
+
 class _FlusherThread(threading.Thread):
   """Flusher thread."""
 
@@ -81,9 +85,6 @@ class _FlusherThread(threading.Thread):
     super().__init__()
     self.daemon = True
     self.stop_event = threading.Event()
-
-  def time_series_sort_key(self, ts):
-    return ts.points[-1].interval.start_time
 
   def run(self):
     """Run the flusher thread."""
@@ -120,12 +121,12 @@ class _FlusherThread(threading.Thread):
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-            time_series.sort(key=self.time_series_sort_key)
+            time_series.sort(key=_time_series_sort_key)
             create_time_series(name=project_path, time_series=time_series)
             time_series = []
 
         if time_series:
-          time_series.sort(key=self.time_series_sort_key)
+          time_series.sort(key=_time_series_sort_key)
           create_time_series(name=project_path, time_series=time_series)
       except Exception:
         if environment.is_android():
