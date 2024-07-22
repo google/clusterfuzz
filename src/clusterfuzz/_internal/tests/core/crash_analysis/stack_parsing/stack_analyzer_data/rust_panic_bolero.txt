@@ -1,0 +1,73 @@
+Running: data/c02bcba7f1fcfe93e49f979806ec575c8f439c2b4f69b0272c6846ade67c878d
+test failed; shrinking input...
+======================== Test Failure ========================
+Input:
+1234
+Error:
+panicked at 'assertion failed: *i != 1234', src/lib.rs:13:56
+   0: std::panicking::rust_panic_with_hook
+             at /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:695
+   1: std::panicking::begin_panic_handler::{{closure}}
+             at /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:580
+   2: std::sys_common::backtrace::__rust_end_short_backtrace
+             at /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/sys_common/backtrace.rs:150
+   3: rust_begin_unwind
+             at /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:578
+   4: core::panicking::panic_fmt
+             at /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/panicking.rs:67
+   5: core::panicking::panic
+             at /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/panicking.rs:117
+   6: finite_wasm::bolero_test_2::{{closure}}
+             at /home/casm/finite-wasm/src/lib.rs:13
+==============================================================
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==3740==ERROR: AddressSanitizer: ABRT on unknown address 0x053900000e9c (pc 0x7ff6b5f1b18b bp 0x7ff6b2dfdd00 sp 0x7ff6b2dfd9b0 T1)
+    #0 0x7ff6b5f1b18b in raise /build/glibc-eX1tMB/glibc-2.31/sysdeps/unix/sysv/linux/raise.c:51:1
+    #1 0x7ff6b5efa858 in abort /build/glibc-eX1tMB/glibc-2.31/stdlib/abort.c:79:7
+    #2 0x556933b589f6 in std::sys::unix::abort_internal::h1bcf881e3e6f862f /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/sys/unix/mod.rs:350:14
+    #3 0x556932525106 in std::process::abort::h96a864b26eb4d7f5 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/process.rs:2184:5
+    #4 0x556932764075 in _$LT$bolero_libfuzzer..fuzzer..LibFuzzerEngine$u20$as$u20$bolero_engine..Engine$LT$T$GT$$GT$::run::_$u7b$$u7b$closure$u7d$$u7d$::h8d488ce0be39dc23 /home/casm/bolero/bolero-libfuzzer/src/lib.rs:77:21
+    #5 0x556932d8da4e in core::ops::function::impls::_$LT$impl$u20$core..ops..function..FnMut$LT$A$GT$$u20$for$u20$$RF$mut$u20$F$GT$::call_mut::h557eb96908525a00 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/ops/function.rs:298:13
+    #6 0x556932d8da4e in LLVMFuzzerTestOneInput /home/casm/bolero/bolero-libfuzzer/src/lib.rs:136:9
+    #7 0x556932da24c4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long)
+    #8 0x556932d96f3b in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long)
+    #9 0x556932d9aaf6 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long))
+    #10 0x556932d8ddb2 in LLVMFuzzerStartTest
+    #11 0x5569326dc81a in bolero_libfuzzer::fuzzer::start::h280075808fdebbaf /home/casm/bolero/bolero-libfuzzer/src/lib.rs:126:13
+    #12 0x5569327f031e in _$LT$bolero_libfuzzer..fuzzer..LibFuzzerEngine$u20$as$u20$bolero_engine..Engine$LT$T$GT$$GT$::run::hd8a97c7b103dd1cd /home/casm/bolero/bolero-libfuzzer/src/lib.rs:56:13
+    #13 0x5569327f031e in bolero::TestTarget$LT$G$C$E$C$bolero..BorrowedInput$GT$::for_each::h9d2bd9591c3f66d4 /home/casm/bolero/bolero/src/lib.rs:430:9
+    #14 0x5569327f031e in finite_wasm::bolero_test_2::h554146968d04a395 /home/casm/finite-wasm/src/lib.rs:13:5
+    #15 0x5569326e8b28 in finite_wasm::bolero_test_2::_$u7b$$u7b$closure$u7d$$u7d$::h7ec24efb87d62b2f /home/casm/finite-wasm/src/lib.rs:12:20
+    #16 0x5569326e8b28 in core::ops::function::FnOnce::call_once::hfeaa8706d9e5ab6f /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/ops/function.rs:250:5
+    #17 0x55693324489e in core::ops::function::FnOnce::call_once::hafae920b9cfffa5c /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/ops/function.rs:250:5
+    #18 0x55693324489e in test::__rust_begin_short_backtrace::h4dab7d6a08f0d362 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/test/src/lib.rs:655:18
+    #19 0x55693320f80b in test::run_test::_$u7b$$u7b$closure$u7d$$u7d$::h5777daa7f3526fb4 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/test/src/lib.rs:646:30
+    #20 0x55693320f80b in core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hd95ab3f789a2e622 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/ops/function.rs:250:5
+    #21 0x5569332439d5 in _$LT$alloc..boxed..Box$LT$F$C$A$GT$$u20$as$u20$core..ops..function..FnOnce$LT$Args$GT$$GT$::call_once::h9b5ece2761ae65f4 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/alloc/src/boxed.rs:1973:9
+    #22 0x5569332439d5 in _$LT$core..panic..unwind_safe..AssertUnwindSafe$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$$LP$$RP$$GT$$GT$::call_once::h548d7ffd73c811c0 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/panic/unwind_safe.rs:271:9
+    #23 0x5569332439d5 in std::panicking::try::do_call::h854a5228fe1e95dc /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:485:40
+    #24 0x5569332439d5 in std::panicking::try::hb9b581309100ec61 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:449:19
+    #25 0x5569332439d5 in std::panic::catch_unwind::hfa310295f4e4548a /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panic.rs:140:14
+    #26 0x5569332439d5 in test::run_test_in_process::h611ba57bef59388b /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/test/src/lib.rs:678:27
+    #27 0x5569332439d5 in test::run_test::run_test_inner::_$u7b$$u7b$closure$u7d$$u7d$::h02b437db2c35fa59 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/test/src/lib.rs:572:39
+    #28 0x556933209884 in test::run_test::run_test_inner::_$u7b$$u7b$closure$u7d$$u7d$::hac022141ed6ee1cc /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/test/src/lib.rs:599:37
+    #29 0x556933209884 in std::sys_common::backtrace::__rust_begin_short_backtrace::hc0afb33717ef09ec /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/sys_common/backtrace.rs:134:18
+    #30 0x55693320f990 in std::thread::Builder::spawn_unchecked_::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::h59a380c33e5b9be7 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/thread/mod.rs:526:17
+    #31 0x55693320f990 in _$LT$core..panic..unwind_safe..AssertUnwindSafe$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$$LP$$RP$$GT$$GT$::call_once::h282a80e3214c5689 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/panic/unwind_safe.rs:271:9
+    #32 0x55693320f990 in std::panicking::try::do_call::hb39b3e6aa0172571 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:485:40
+    #33 0x55693320f990 in std::panicking::try::h8b8c5d101d34c1ef /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panicking.rs:449:19
+    #34 0x55693320f990 in std::panic::catch_unwind::hf0a845ca5c4da7bb /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/panic.rs:140:14
+    #35 0x55693320f990 in std::thread::Builder::spawn_unchecked_::_$u7b$$u7b$closure$u7d$$u7d$::hfae47c41df4c0a9d /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/thread/mod.rs:525:30
+    #36 0x55693320f990 in core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hfd3e682bad8fc5a8 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/core/src/ops/function.rs:250:5
+    #37 0x556933b57394 in _$LT$alloc..boxed..Box$LT$F$C$A$GT$$u20$as$u20$core..ops..function..FnOnce$LT$Args$GT$$GT$::call_once::ha1f2224656a778fb /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/alloc/src/boxed.rs:1973:9
+    #38 0x556933b57394 in _$LT$alloc..boxed..Box$LT$F$C$A$GT$$u20$as$u20$core..ops..function..FnOnce$LT$Args$GT$$GT$::call_once::haa29ed9703f354b7 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/alloc/src/boxed.rs:1973:9
+    #39 0x556933b57394 in std::sys::unix::thread::Thread::new::thread_start::h33b6dae3e3692197 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/sys/unix/thread.rs:108:17
+    #40 0x7ff6b6225608 in start_thread /build/glibc-eX1tMB/glibc-2.31/nptl/pthread_create.c:477:8
+    #41 0x7ff6b5ff7292 in clone /build/glibc-eX1tMB/glibc-2.31/sysdeps/unix/sysv/linux/x86_64/clone.S:95
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x4618b) (BuildId: 099b9225bcb0d019d9d60884be583eb31bb5f44e)
+Thread T1 (bolero_test_2) created by T0 here:
+    #0 0x5569325a866a in pthread_create /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_interceptors.cpp:208:3
+    #1 0x556933b571fe in std::sys::unix::thread::Thread::new::h9adad2e2616280b9 /rustc/90c541806f23a127002de5b4038be731ba1458ca/library/std/src/sys/unix/thread.rs:87:19
+==3740==ABORTING
