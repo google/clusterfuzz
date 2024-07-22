@@ -141,17 +141,14 @@ def package(revision,
 
 def execute(args):
   """Execute the butler package command."""
-  release = 'prod'
-  if args.release == 'candidate':
-    release = 'candidate'
   if args.platform == 'all':
     for platform_name in list(constants.PLATFORMS.keys()):
       package(
           revision=common.compute_staging_revision(),
           platform_name=platform_name,
-          release=release)
+          release=args.release)
   else:
     package(
         revision=common.compute_staging_revision(),
         platform_name=args.platform,
-        release=release)
+        release=args.release)

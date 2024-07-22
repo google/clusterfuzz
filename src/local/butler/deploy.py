@@ -542,18 +542,12 @@ def execute(args):
     deploy_k8s = False
     deploy_zips = True
 
-  release = args.release
-  if args.release == 'candidate':
-    release = 'candidate'
-  else:
-    release = 'prod'
-
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
           package.package(
-              revision, platform_name=platform_name, release=release))
+              revision, platform_name=platform_name, release=args.release))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
