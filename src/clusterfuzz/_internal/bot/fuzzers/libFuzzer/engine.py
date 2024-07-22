@@ -308,7 +308,7 @@ class Engine(engine.Engine):
       # Minijail returns 1 if the exit code is nonzero.
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
-      logs.error(
+      logs.info(
           ENGINE_ERROR_MESSAGE + f' (target={project_qualified_fuzzer_name}).',
           engine_output=fuzz_result.output)
 
