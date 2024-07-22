@@ -39,39 +39,14 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
-CLUSTERFUZZ_RELEASE = os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
-
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
-
-REMOTE_MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
-if sys.version_info.major == 3:
-  REMOTE_MANIFEST_FILENAME += '.3'
-if CLUSTERFUZZ_RELEASE == 'candidate':
-  REMOTE_MANIFEST_FILENAME += '-candidate'
 
 
 def _rename_dll_for_update(absolute_filepath):
   """Rename a DLL to allow for updates."""
   backup_filepath = absolute_filepath + '.bak.' + str(int(time.time()))
   os.rename(absolute_filepath, backup_filepath)
-
-
-def _platform_deployment_filename():
-  """Return the platform deployment filename."""
-  platform_mappings = {
-      'Linux': 'linux',
-      'Windows': 'windows',
-      'Darwin': 'macos'
-  }
-
-  base_filename = platform_mappings[platform.system()]
-  if sys.version_info.major == 3:
-    base_filename += '-3'
-  if CLUSTERFUZZ_RELEASE == 'candidate':
-    base_filename += '-candidate'
-
-  return base_filename + '.zip'
 
 
 def _deployment_file_url(filename):
@@ -87,12 +62,21 @@ def _deployment_file_url(filename):
 
 def get_source_url():
   """Return the source URL."""
-  return _deployment_file_url(_platform_deployment_filename())
+  release = utils.get_clusterfuzz_release()
+  platform_name = platform.system()
+  platform_mappings = {
+      'Linux': 'linux',
+      'Windows': 'windows',
+      'Darwin': 'macos'
+  }
+  platform_name= platform_mappings[platform_name]
+  return _deployment_file_url(utils.get_platform_deployment_filename(platform_name, release))
 
 
 def get_source_manifest_url():
   """Return the source manifest URL."""
-  return _deployment_file_url(REMOTE_MANIFEST_FILENAME)
+  release = utils.get_clusterfuzz_release()
+  return _deployment_file_url(utils.get_remote_manifest_filename(release))
 
 
 def clear_old_files(directory, extracted_file_set):

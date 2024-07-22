@@ -227,6 +227,38 @@ def get_application_id():
 
   return app_id
 
+def get_clusterfuzz_release():
+  return os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
+
+def _get_manifest_release_suffix(release):
+  suffix = ''
+  if sys.version_info.major == 3:
+    suffix += '.3'
+  if release == 'candidate':
+    suffix += '-candidate'
+  return suffix
+
+
+def _get_deployment_zip_release_suffix(release):
+  suffix = ''
+  if sys.version_info.major == 3:
+    suffix += '-3'
+  if release == 'candidate':
+    suffix += '-candidate'
+  return suffix
+
+
+def get_platform_deployment_filename(platform, release):
+  """Return the platform deployment filename."""
+  # Expects linux, macos or windows
+  base_filename = platform 
+  release_filename_suffix = _get_deployment_zip_release_suffix(release)
+  return f'{base_filename}{release_filename_suffix}.zip'
+
+
+def get_remote_manifest_filename(release):
+  return f'clusterfuzz-source.manifest{_get_manifest_release_suffix(release)}'
+
 
 def service_account_email():
   """Get the service account name."""

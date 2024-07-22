@@ -18,6 +18,7 @@ import re
 import sys
 import zipfile
 
+from clusterfuzz._internal.base import utils
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
@@ -96,10 +97,7 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-    if release == 'prod':
-      target_zip_name = platform_name + '-3.zip'
-    else:
-      target_zip_name = platform_name + '-3-candidate.zip'
+    target_zip_name = utils.get_platform_deployment_filename(platform_name, release)
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)

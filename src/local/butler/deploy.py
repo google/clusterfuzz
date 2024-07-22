@@ -27,6 +27,7 @@ from local.butler import appengine
 from local.butler import common
 from local.butler import constants
 from local.butler import package
+from clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.system import environment
 
@@ -234,15 +235,7 @@ def _deploy_manifest(bucket_name,
                      test_deployment=False,
                      release='prod'):
   """Deploy source manifest to GCS."""
-  if sys.version_info.major == 3:
-    if release == 'prod':
-      manifest_suffix = '3'
-    else:
-      manifest_suffix = '3-candidate'
-  else:
-    manifest_suffix = ''
-
-  remote_manifest_path = f'clusterfuzz-source.manifest.{manifest_suffix}'
+  remote_manifest_path = utils.get_remote_manifest_filename(release)
 
   if test_deployment:
     common.execute(f'gsutil cp {manifest_path} '
@@ -572,7 +565,7 @@ def execute(args):
         deploy_appengine,
         deploy_k8s,
         test_deployment=test_deployment,
-        release=release)
+        release=args.release)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
