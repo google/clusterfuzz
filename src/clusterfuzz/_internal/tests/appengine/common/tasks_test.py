@@ -381,3 +381,59 @@ class ExternalTasksTest(unittest.TestCase):
     messages = self.client.pull_from_subscription(
         self.subscription, max_messages=1)
     self.assertEqual(0, len(messages))
+
+
+@test_utils.integration
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
+class GetTaskAndroidTest(unittest.TestCase):
+  """GetTask tests."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.persistent_cache.get_value',
+        'clusterfuzz._internal.base.persistent_cache.set_value',
+        'clusterfuzz._internal.base.utils.utcnow',
+        'time.sleep',
+    ])
+
+    self.mock.get_value.return_value = None
+    self.mock.sleep.return_value = None
+    data_types.Job(name='job').put()
+
+    client = pubsub.PubSubClient()
+    topic = pubsub.topic_name('test-clusterfuzz', 'jobs-android')
+    client.create_topic(topic)
+    client.create_subscription(
+        pubsub.subscription_name('test-clusterfuzz', 'jobs-android'), topic)
+
+    topic = pubsub.topic_name('test-clusterfuzz', 'jobs-android-pixel8')
+    client.create_topic(topic)
+    client.create_subscription(
+        pubsub.subscription_name('test-clusterfuzz', 'jobs-android-pixel8'),
+        topic)
+
+    self.mock.utcnow.return_value = test_utils.CURRENT_TIME.replace(
+        microsecond=0)
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+
+  def test_device_specific_task(self):
+    """Test that device specific tasks are correctly scheduled and pulled."""
+    environment.set_value('QUEUE_OVERRIDE', 'ANDROID:PIXEL8')
+    tasks.add_task('test', 'normal', 'job', wait_time=0)
+    task = tasks.get_task()
+    self.assertEqual('test', task.command)
+    self.assertEqual('normal', task.argument)
+    self.assertEqual('job', task.job)
+    self.assertEqual('test normal job', task.payload())
+
+  def test_generic_task_is_pulled(self):
+    """Test that generic tasks are pulled when QUEUE_OVERRIDE is set."""
+    environment.set_value('CF_ALLOWS_LISTENING_GENERIC_QUEUE', 1)
+    environment.set_value('QUEUE_OVERRIDE', 'ANDROID:PIXEL8')
+    tasks.add_task('test', 'normal', 'job', queue='jobs-android', wait_time=0)
+    task = tasks.get_task()
+    self.assertEqual('test', task.command)
+    self.assertEqual('normal', task.argument)
+    self.assertEqual('job', task.job)
+    self.assertEqual('test normal job', task.payload())
