@@ -1026,9 +1026,10 @@ def get_build_urls_list(bucket_path, reverse=True):
       with open(keys_file_path, 'w') as f:
         for path in storage.list_blobs(base_url):
           f.write(path + '\n')
-
-    content = utils.read_data_from_file(
-        keys_file_path, eval_data=False).decode('utf-8')
+    data = utils.read_data_from_file(keys_file_path, eval_data=False)
+    if not data:
+      return []
+    content = data.decode('utf-8')
     if not content:
       return []
 
