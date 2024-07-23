@@ -151,14 +151,14 @@ def get_newer_source_revision():
     logs.info('No manifest found. Forcing an update.')
     return source_version
 
-  logs.info('Local source code version: %s.' % local_source_version)
-  logs.info('Remote source code version: %s.' % source_version)
+  logs.info(f'Local source code version: {local_source_version}.')
+  logs.info(f'Remote source code version: {source_version}.')
   if local_source_version >= source_version:
     logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
     return None
 
-  logs.info(f'New source code: {source_version}')
+  logs.info(f'New source code: {source_version} (updated from {local_source_version}, on release {utils.get_clusterfuzz_release()})')
   return source_version
 
 
@@ -271,7 +271,7 @@ def update_source_code():
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
-  logs.info('Source code updated to %s.' % source_version)
+  logs.info(f'Source code updated to {source_version} (release = {utils.get_clusterfuzz_release()}).')
 
 
 def update_tests_if_needed():
