@@ -151,8 +151,8 @@ def get_newer_source_revision():
     logs.info('No manifest found. Forcing an update.')
     return source_version
 
-  logs.info(f'Local source code version: {local_source_version}.')
-  logs.info(f'Remote source code version: {source_version}.')
+  logs.info(f'Local source code version: {local_source_version}, on release {utils.get_clusterfuzz_release()}.')
+  logs.info(f'Remote source code version: {source_version}, on release {utils.get_clusterfuzz_release()}.')
   if local_source_version >= source_version:
     logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
