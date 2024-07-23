@@ -31,7 +31,7 @@ IMAGES=(
 )
 
 function docker_push {
-  #docker push $image
+  docker push $image
   docker push $image:$stamp
 }
 
