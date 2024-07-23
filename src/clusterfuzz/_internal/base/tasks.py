@@ -143,6 +143,15 @@ def default_queue():
   return regular_queue()
 
 
+def default_android_queue():
+  """Get the generic 'android' queue that is not tied to a specific device."""
+  # Note: environment.platform() is not used as it could return different
+  # values based on the devices.
+  # E.g: Pixel 8 it is 'ANDROID_MTE' for Pixel 5 it is 'ANDROID_DEP'
+  # TODO: Update this when b/347727208 is fixed
+  return JOBS_PREFIX + queue_suffix_for_platform('ANDROID')
+
+
 def get_command_override():
   """Get command override task."""
   command_override = environment.get_value('COMMAND_OVERRIDE', '').strip()
@@ -324,6 +333,16 @@ def get_task():
       logs.info(f'Got task with cmd {task.command} args {task.argument} '
                 f'job {task.job} from {regular_queue()} queue.')
       return task
+
+    if environment.is_android():
+      logs.info(f'Could not get task from {regular_queue()}. Trying from'
+                f'default android queue {default_android_queue()}.')
+      task = get_regular_task(default_android_queue())
+      if task:
+        # Log the task details for debug purposes.
+        logs.info(f'Got task with cmd {task.command} args {task.argument} '
+                  f'job {task.job} from {default_android_queue()} queue.')
+        return task
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 

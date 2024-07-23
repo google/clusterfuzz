@@ -1056,12 +1056,13 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
     return
 
   timestamp = str(utils.utcnow().date())
+  engine_name = environment.get_value('CORPUS_FUZZER_NAME_OVERRIDE',
+                                      fuzz_target.engine)
   dated_backup_gcs_url = corpus_manager.gcs_url_for_backup_file(
-      backup_bucket_name, fuzz_target.engine,
-      fuzz_target.project_qualified_name(), timestamp)
+      backup_bucket_name, engine_name, fuzz_target.project_qualified_name(),
+      timestamp)
   latest_backup_gcs_url = corpus_manager.gcs_url_for_backup_file(
-      backup_bucket_name, fuzz_target.engine,
-      fuzz_target.project_qualified_name(),
+      backup_bucket_name, engine_name, fuzz_target.project_qualified_name(),
       corpus_manager.LATEST_BACKUP_TIMESTAMP)
 
   dated_backup_signed_url = storage.get_signed_upload_url(dated_backup_gcs_url)
