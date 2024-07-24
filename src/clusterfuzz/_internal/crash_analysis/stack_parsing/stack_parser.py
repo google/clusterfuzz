@@ -43,8 +43,8 @@ def format_address_to_dec(address, base=16):
     except Exception:
       continue
 
-  logs.log_warn('Error formatting address %s to decimal int64 in bases %s.' %
-                (str(address), str(try_bases)))
+  logs.warning('Error formatting address %s to decimal int64 in bases %s.' %
+               (str(address), str(try_bases)))
   return None
 
 

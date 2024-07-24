@@ -373,7 +373,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
   def _push_corpora_from_host_to_target(self, corpus_directories):
     # Push corpus directories to the device.
     self._clear_all_target_corpora()
-    logs.log('Push corpora from host to target.')
+    logs.info('Push corpora from host to target.')
     for corpus_dir in corpus_directories:
       undercoat.put_data(self.handle, self.executable_path, corpus_dir,
                          'data/corpus')
@@ -382,7 +382,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     """Pull corpus directories from device to host."""
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
-    logs.log('Fuzzer ran; pulling down corpus')
+    logs.info('Fuzzer ran; pulling down corpus')
     new_corpus_files_target = self._new_corpus_dir_target(
         corpus_directories) + '/*'
     undercoat.get_data(self.handle, self.executable_path,
@@ -391,7 +391,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
   def _clear_all_target_corpora(self):
     """Clears out all the corpora on the target."""
-    logs.log('Clearing corpora on target')
+    logs.info('Clearing corpora on target')
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
@@ -501,7 +501,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                           timeout=None,
                           additional_args=None):
     """Run a single testcase."""
-    #TODO(eep): Are all these copy.copy() calls still necessary?
+    # TODO(eep): Are all these copy.copy() calls still necessary?
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
@@ -829,7 +829,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   def _get_local_path(self, device_path):
     """Return local path for the given device path."""
     if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
-      logs.log_error('Bad device path: ' + device_path)
+      logs.error('Bad device path: ' + device_path)
       return None
 
     root_directory = environment.get_root_directory()
@@ -906,9 +906,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     loop = stack_symbolizer.SymbolizationLoop()
     ta_stacktrace = loop.process_trusty_stacktrace(ta_stacktrace)
 
-    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
-      \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
-        ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
+    return ('+-- Logcat excerpt: Trusted App crash stacktrace --+'
+            f'\n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
   def _extract_mte_stacktrace_from_logcat(self, logcat):
     """Finds and returns the MTE stacktrace from a logcat."""
@@ -946,9 +945,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     logcat = android.logger.log_output()
     mte_stacktrace = self._extract_mte_stacktrace_from_logcat(logcat)
 
-    return '+-- Logcat excerpt: MTE crash stacktrace --+\
-      \n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
-        mte_stacktrace=mte_stacktrace, output=output, logcat_output=logcat)
+    return ('+-- Logcat excerpt: MTE crash stacktrace --+'
+            f'\n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
   def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
@@ -962,8 +960,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if environment.is_android() and android.settings.is_mte_build():
       return self._add_mte_stacktrace_if_needed(output)
 
-    return '{output}\n\nLogcat:\n{logcat_output}'.format(
-        output=output, logcat_output=android.logger.log_output())
+    return f'{output}\n\nLogcat:\n{android.logger.log_output()}'
 
   @contextlib.contextmanager
   def _device_file(self, file_path):
@@ -1280,7 +1277,7 @@ def parse_log_stats(log_lines):
     value = match.group(2)
     if not value.isdigit():
       # We do not expect any non-numeric stats from libFuzzer, skip those.
-      logs.log_error('Corrupted stats reported by libFuzzer: "%s".' % line)
+      logs.error('Corrupted stats reported by libFuzzer: "%s".' % line)
       continue
 
     value = int(value)

@@ -627,8 +627,7 @@ class StackParser:
             break
 
         if state.crash_type == 'UNKNOWN':
-          logs.log_error(
-              'Unknown UBSan crash type: {reason}'.format(reason=reason))
+          logs.error('Unknown UBSan crash type: {reason}'.format(reason=reason))
 
         state.crash_address = ''
         state.crash_state = ''
@@ -1408,7 +1407,7 @@ def should_ignore_line_for_crash_processing(line, state):
     return True
 
   if len(line) > 1024**2:
-    logs.log_error('Line is too long for a stacktrace.')
+    logs.error('Line is too long for a stacktrace.')
     return True
 
   return False

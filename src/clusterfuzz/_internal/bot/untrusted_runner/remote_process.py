@@ -56,7 +56,7 @@ def run_and_wait(request, _):
   protobuf_utils.get_protobuf_field(args, request, 'input_data')
   protobuf_utils.get_protobuf_field(args, request, 'max_stdout_len')
 
-  logs.log('Running command: %s' % process_runner.get_command())
+  logs.info('Running command: %s' % process_runner.get_command())
 
   return untrusted_runner_pb2.RunAndWaitResponse(  # pylint: disable=no-member
       result=process_result_to_proto(process_runner.run_and_wait(**args)))

@@ -66,9 +66,9 @@ def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
     return False
 
   if real_file_path != absolute_file_path:
-    logs.log_error('Directory traversal attempted while unpacking archive %s '
-                   '(file path=%s, actual file path=%s). Aborting.' %
-                   (archive_name, absolute_file_path, real_file_path))
+    logs.error('Directory traversal attempted while unpacking archive %s '
+               '(file path=%s, actual file path=%s). Aborting.' %
+               (archive_name, absolute_file_path, real_file_path))
     return True
   return False
 
@@ -171,8 +171,8 @@ class ArchiveReader(abc.ABC):
       # Keep heartbeat happy by updating with our progress.
       archive_file_unpack_count += 1
       if archive_file_unpack_count % 1000 == 0:
-        logs.log('Unpacked %d/%d.' % (archive_file_unpack_count,
-                                      archive_file_total_count))
+        logs.info('Unpacked %d/%d.' % (archive_file_unpack_count,
+                                       archive_file_total_count))
 
     return not error_occurred
 
@@ -364,8 +364,8 @@ class ZipArchiveReader(ArchiveReader):
       return extracted_path
     except Exception as e:
       # In case of errors, we try to extract whatever we can without errors.
-      logs.log_warn('An error occured while extracting %s from the archive: %s.'
-                    % (member, repr(e)))
+      logs.warning('An error occured while extracting %s from the archive: %s.'
+                   % (member, repr(e)))
       return None
 
 

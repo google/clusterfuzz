@@ -82,7 +82,7 @@ def wrap(retries,
 
       if (exception is None or
           is_exception_type(exception)) and num_try < tries:
-        logs.log(
+        logs.info(
             'Retrying on %s failed with %s. Retrying again.' %
             (function_with_type, sys.exc_info()[1]),
             num=num_try,
@@ -94,7 +94,7 @@ def wrap(retries,
           'function': function,
           'is_succeeded': False
       })
-      logs.log_error(
+      logs.error(
           'Retrying on %s failed with %s. Raise.' % (function_with_type,
                                                      sys.exc_info()[1]),
           total=tries)

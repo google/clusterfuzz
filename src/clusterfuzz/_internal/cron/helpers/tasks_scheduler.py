@@ -23,7 +23,7 @@ from clusterfuzz._internal.metrics import logs
 def schedule(task):
   """Creates tasks for open reproducible testcases."""
   if task == 'impact' and not utils.is_chromium():
-    logs.log_warn('Not creating impact tasks outside of Chrome.')
+    logs.warning('Not creating impact tasks outside of Chrome.')
     return
 
   testcase_ids = []
@@ -41,7 +41,7 @@ def schedule(task):
             queue=tasks.queue_for_testcase(testcase))
         testcase_ids.append(testcase_id)
       except Exception:
-        logs.log_error(f'Failed to create task for {testcase_id}')
+        logs.error(f'Failed to create task for {testcase_id}')
 
-  logs.log(
+  logs.info(
       'Created progression tasks for testcases.', testcase_ids=testcase_ids)
