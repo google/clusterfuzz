@@ -14,4 +14,3 @@
 FROM gcr.io/clusterfuzz-images/chromium/base
 
 ENV USE_TEST_DEPLOYMENT True
-ENV DEPLOYMENT_ZIP "test-deployment/linux-3.zip"
