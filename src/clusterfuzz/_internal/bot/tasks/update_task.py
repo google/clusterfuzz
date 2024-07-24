@@ -42,25 +42,11 @@ from clusterfuzz._internal.system import shell
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
-MANIFEST_FILENAME = 'clusterfuzz-source.manifest.3'
-
 
 def _rename_dll_for_update(absolute_filepath):
   """Rename a DLL to allow for updates."""
   backup_filepath = absolute_filepath + '.bak.' + str(int(time.time()))
   os.rename(absolute_filepath, backup_filepath)
-
-
-def _platform_deployment_filename():
-  """Return the platform deployment filename."""
-  platform_mappings = {
-      'Linux': 'linux',
-      'Windows': 'windows',
-      'Darwin': 'macos'
-  }
-
-  base_filename = platform_mappings[platform.system()] + '-3'
-  return base_filename + '.zip'
 
 
 def _deployment_file_url(filename):
@@ -76,12 +62,21 @@ def _deployment_file_url(filename):
 
 def get_source_url():
   """Return the source URL."""
-  return _deployment_file_url(_platform_deployment_filename())
+  release = utils.get_clusterfuzz_release()
+  platform_name = platform.system()
+  platform_mappings = {
+      'Linux': 'linux',
+      'Windows': 'windows',
+      'Darwin': 'macos'
+  }
+  platform_name= platform_mappings[platform_name]
+  return _deployment_file_url(utils.get_platform_deployment_filename(platform_name, release))
 
 
 def get_source_manifest_url():
   """Return the source manifest URL."""
-  return _deployment_file_url(MANIFEST_FILENAME)
+  release = utils.get_clusterfuzz_release()
+  return _deployment_file_url(utils.get_remote_manifest_filename(release))
 
 
 def clear_old_files(directory, extracted_file_set):
@@ -156,14 +151,14 @@ def get_newer_source_revision():
     logs.info('No manifest found. Forcing an update.')
     return source_version
 
-  logs.info('Local source code version: %s.' % local_source_version)
-  logs.info('Remote source code version: %s.' % source_version)
+  logs.info(f'Local source code version: {local_source_version}, on release {utils.get_clusterfuzz_release()}.')
+  logs.info(f'Remote source code version: {source_version}, on release {utils.get_clusterfuzz_release()}.')
   if local_source_version >= source_version:
     logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
     return None
 
-  logs.info(f'New source code: {source_version}')
+  logs.info(f'New source code: {source_version} (updated from {local_source_version}, on release {utils.get_clusterfuzz_release()})')
   return source_version
 
 
@@ -276,7 +271,7 @@ def update_source_code():
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
-  logs.info('Source code updated to %s.' % source_version)
+  logs.info(f'Source code updated to {source_version} (release = {utils.get_clusterfuzz_release()}).')
 
 
 def update_tests_if_needed():
