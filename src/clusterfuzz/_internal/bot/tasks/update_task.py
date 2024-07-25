@@ -87,6 +87,7 @@ def clear_old_files(directory, extracted_file_set):
     for filename in filenames:
       file_path = os.path.join(root_directory, filename)
       if file_path not in extracted_file_set:
+        logs.info(f'File not found in extracted file set, removing: {file_path}')
         shell.remove_file(file_path)
 
   shell.remove_empty_directories(directory)
@@ -230,6 +231,8 @@ def update_source_code():
       continue
 
     normalized_file_set.add(absolute_filepath)
+    logs.info(f'Added to normalized_file_set: {absolute_filepath}')
+
     try:
       file_extension = os.path.splitext(filename)[1]
 
