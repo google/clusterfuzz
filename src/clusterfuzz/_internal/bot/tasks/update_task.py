@@ -235,18 +235,16 @@ def update_source_code():
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
       logs.info(f'New absolute filepath = {absolute_filepath}')
 
+    # current behavior: absolute and relative paths are equal for a path that does not exist locally
+    # therefore, the file gets added to the manifest set if it exists in zip and not locally
+    # therefore, we only skip if the file EXISTS locally and is a symlink
+
     real_filepath = os.path.realpath(absolute_filepath)
-    try:
-      if not os.path.samefile(real_filepath, absolute_filepath):
-        logs.info(
-            f'realpath/abs mismatch: {absolute_filepath} != {real_filepath}'
-        )
-        continue
-    except FileNotFoundError:
-      pass
-      # this function checks if both paths exist and refer to the same block devide/inode
-      # if the file does not exist in the current running bot, might as well delete it
-      # therefore, do not append it to the normalized file set
+    if os.path.exists(absolute_filepath) and not os.path.samefile(real_filepath, absolute_filepath):
+      logs.info(
+          f'realpath/abs mismatch: {absolute_filepath} != {real_filepath}'
+      )
+      continue
 
     normalized_file_set.add(absolute_filepath)
     logs.info(f'Added to normalized_file_set: {absolute_filepath}')
