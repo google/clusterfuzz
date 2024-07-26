@@ -82,7 +82,7 @@ def _create_time_series(name: str, time_series: List[_TimeSeries]):
   Adds retries and logging.
   """
   try:
-    _monitoring_v3_client.create_time_series(name, time_series)
+    _monitoring_v3_client.create_time_series(name=name, time_series=time_series)
   except Exception as e:
     logs.warning(f'Error uploading time series: {e}')
 
