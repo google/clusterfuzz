@@ -51,6 +51,12 @@ INITIAL_DELAY_SECONDS = 16
 MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
 MAX_TIME_SERIES_PER_CALL = 200
 
+# Since `monitoring_v3` is only conditionally imported, pylint complains about
+# any accesses to its members. Define type aliases here once and for all, for
+# use below.
+_TimeInterval = monitoring_v3.types.TimeInterval  # pylint: disable=no-member
+_Point = monitoring_v3.types.Point  # pylint: disable=no-member
+
 _retry_wrap = retry.Retry(
     predicate=retry.if_exception_type((
         exceptions.Aborted,
@@ -300,8 +306,8 @@ class Metric:
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    interval = monitoring_v3.types.TimeInterval()
-    point = monitoring_v3.types.Point(interval=interval)
+    interval = _TimeInterval()
+    point = _Point(interval=interval)
 
     _time_to_timestamp(point.interval, 'start_time', start_time)
     _time_to_timestamp(point.interval, 'end_time', end_time)

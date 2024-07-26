@@ -227,8 +227,10 @@ def get_application_id():
 
   return app_id
 
+
 def get_clusterfuzz_release():
   return os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
+
 
 def _get_manifest_release_suffix(release):
   suffix = ''
@@ -251,7 +253,7 @@ def _get_deployment_zip_release_suffix(release):
 def get_platform_deployment_filename(platform, release):
   """Return the platform deployment filename."""
   # Expects linux, macos or windows.
-  base_filename = platform 
+  base_filename = platform
   release_filename_suffix = _get_deployment_zip_release_suffix(release)
   return f'{base_filename}{release_filename_suffix}.zip'
 
