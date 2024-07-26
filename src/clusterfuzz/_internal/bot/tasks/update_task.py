@@ -230,12 +230,12 @@ def update_source_code():
 
     if os.path.altsep:
       logs.info(
-          'altsep is not None. Old absolute_filepath = {absolute_filepath}'
+          f'altsep is not None. Old absolute_filepath = {absolute_filepath}'
       )
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
-      logs.info('New absolute filepath = {absolute_filepath}')
+      logs.info(f'New absolute filepath = {absolute_filepath}')
 
-    if os.path.realpath(absolute_filepath) != absolute_filepath:
+    if not os.path.samefile(absolute_filepath, absolute_filepath):
       real_filepath = os.path.realpath(absolute_filepath)
       logs.info(
           f'realpath/abs mismatch: {absolute_filepath} != {real_filepath}'
