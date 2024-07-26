@@ -87,7 +87,8 @@ def clear_old_files(directory, extracted_file_set):
     for filename in filenames:
       file_path = os.path.join(root_directory, filename)
       if file_path not in extracted_file_set:
-        logs.info(f'File not found in extracted file set, removing: {file_path}')
+        logs.info(
+            f'File not found in extracted file set, removing: {file_path}')
         shell.remove_file(file_path)
 
   shell.remove_empty_directories(directory)
@@ -223,11 +224,22 @@ def update_source_code():
     if filename == 'adb':
       continue
 
+    logs.info(f'filename = {filename}')
     absolute_filepath = os.path.join(cf_source_root_parent_dir, file.name)
+    logs.info(f'absolute_filepath = {absolute_filepath}')
+
     if os.path.altsep:
+      logs.info(
+          'altsep is not None. Old absolute_filepath = {absolute_filepath}'
+      )
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
+      logs.info('New absolute filepath = {absolute_filepath}')
 
     if os.path.realpath(absolute_filepath) != absolute_filepath:
+      real_filepath = os.path.realpath(absolute_filepath)
+      logs.info(
+          f'realpath/abs mismatch: {absolute_filepath} != {real_filepath}'
+      )
       continue
 
     normalized_file_set.add(absolute_filepath)
