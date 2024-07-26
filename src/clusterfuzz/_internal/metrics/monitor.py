@@ -77,10 +77,14 @@ else:
     maximum=MAXIMUM_DELAY_SECONDS,
     deadline=RETRY_DEADLINE_SECONDS)
 def _create_time_series(name: str, time_series: List[_TimeSeries]):
+  """Wraps `create_time_series()` from the monitoring client.
+
+  Adds retries and logging.
+  """
   try:
     _monitoring_v3_client.create_time_series(name, time_series)
   except Exception as e:
-    logs.warn('Error uploading time series: {e}')
+    logs.warning(f'Error uploading time series: {e}')
 
 
 class _MockMetric:
@@ -121,11 +125,6 @@ class _FlusherThread(threading.Thread):
           series = _TimeSeries()
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
-          # Log the TimeSeries object details for debug purposes.
-          metric_st_sec = series.points[-1].interval.start_time.second
-          metric_st_ns = series.points[-1].interval.start_time.nanosecond
-          metric_et_sec = series.points[-1].interval.end_time.second
-          metric_et_ns = series.points[-1].interval.end_time.nanosecond
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
