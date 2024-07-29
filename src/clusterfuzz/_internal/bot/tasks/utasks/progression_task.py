@@ -315,7 +315,16 @@ def _testcase_reproduces_in_revision(
   """Tests to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""
-  build_manager.setup_build(revision)
+  try:
+    build_manager.setup_build(revision)
+  except errors.BuildNotFoundError as e:
+    # Build no longer exists, so we need to mark this testcase as invalid.
+    error_message = f'Build not found at r{e.revision}'
+    return None, uworker_msg_pb2.Output(
+        error_message=error_message,
+        progression_task_output=progression_task_output,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
+
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
     error_message = f'Build setup failed at r{revision}'
