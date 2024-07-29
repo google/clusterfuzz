@@ -69,8 +69,9 @@ def get_source_url():
       'Windows': 'windows',
       'Darwin': 'macos'
   }
-  platform_name= platform_mappings[platform_name]
-  return _deployment_file_url(utils.get_platform_deployment_filename(platform_name, release))
+  platform_name = platform_mappings[platform_name]
+  return _deployment_file_url(
+      utils.get_platform_deployment_filename(platform_name, release))
 
 
 def get_source_manifest_url():
@@ -151,14 +152,18 @@ def get_newer_source_revision():
     logs.info('No manifest found. Forcing an update.')
     return source_version
 
-  logs.info(f'Local source code version: {local_source_version}, on release {utils.get_clusterfuzz_release()}.')
-  logs.info(f'Remote source code version: {source_version}, on release {utils.get_clusterfuzz_release()}.')
+  logs.info(f'Local source code version: {local_source_version}, ' +
+            f'on release {utils.get_clusterfuzz_release()}.')
+  logs.info(f'Remote source code version: {source_version}, ' +
+            f'on release {utils.get_clusterfuzz_release()}.')
   if local_source_version >= source_version:
     logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
     return None
 
-  logs.info(f'New source code: {source_version} (updated from {local_source_version}, on release {utils.get_clusterfuzz_release()})')
+  logs.info(f'New source code: {source_version} ' +
+            f'(updated from {local_source_version}, ' +
+            f'on release {utils.get_clusterfuzz_release()})')
   return source_version
 
 
@@ -221,7 +226,10 @@ def update_source_code():
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
-    if os.path.realpath(absolute_filepath) != absolute_filepath:
+    real_path = os.path.realpath(absolute_filepath)
+    if real_path != absolute_filepath:
+      logs.info('Mismatch between absolute and real filepath. '
+                f'Not adding on normalized set: {real_path}')
       continue
 
     normalized_file_set.add(absolute_filepath)
@@ -271,7 +279,8 @@ def update_source_code():
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
-  logs.info(f'Source code updated to {source_version} (release = {utils.get_clusterfuzz_release()}).')
+  logs.info(f'Source code updated to {source_version} ' +
+            f'(release = {utils.get_clusterfuzz_release()}).')
 
 
 def update_tests_if_needed():
