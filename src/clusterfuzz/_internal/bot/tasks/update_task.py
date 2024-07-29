@@ -226,7 +226,10 @@ def update_source_code():
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
-    if os.path.realpath(absolute_filepath) != absolute_filepath:
+    real_path = os.path.realpath(absolute_filepath)
+    if real_path != absolute_filepath:
+      logs.info(f'Mismatch between absolute and real filepath. ' +
+                'Not adding on normalized set: {real_path}')
       continue
 
     normalized_file_set.add(absolute_filepath)
