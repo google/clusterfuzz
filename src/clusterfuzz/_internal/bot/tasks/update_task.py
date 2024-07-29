@@ -239,12 +239,13 @@ def update_source_code():
     # therefore, the file gets added to the manifest set if it exists in zip and not locally
     # therefore, we only skip if the file EXISTS locally and is a symlink
 
-    real_filepath = os.path.realpath(absolute_filepath)
-    if os.path.exists(absolute_filepath) and not os.path.samefile(real_filepath, absolute_filepath):
-      logs.info(
-          f'realpath/abs mismatch: {absolute_filepath} != {real_filepath}'
-      )
-      continue
+    #real_filepath = os.path.realpath(absolute_filepath)
+    # Commenting this out to see if anything breaks in update task
+    # if os.path.exists(absolute_filepath) and not os.path.samefile(real_filepath, absolute_filepath):
+    #   logs.info(
+    #       f'realpath/abs mismatch: {absolute_filepath} != {real_filepath}'
+    #   )
+    #   continue
 
     normalized_file_set.add(absolute_filepath)
     logs.info(f'Added to normalized_file_set: {absolute_filepath}')
