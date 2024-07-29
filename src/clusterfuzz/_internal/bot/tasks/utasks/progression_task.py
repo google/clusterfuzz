@@ -321,10 +321,10 @@ def _testcase_reproduces_in_revision(
   except errors.BuildNotFoundError as e:
     # Build no longer exists, so we need to mark this testcase as invalid.
     error_message = f'Build not found at r{e.revision}'
-    return None, uworker_msg_pb2.Output(
+    return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message=error_message,
         progression_task_output=progression_task_output,
-        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)  # pylint: disable=no-member
 
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
