@@ -228,8 +228,8 @@ def update_source_code():
 
     real_path = os.path.realpath(absolute_filepath)
     if real_path != absolute_filepath:
-      logs.info(f'Mismatch between absolute and real filepath. ' +
-                'Not adding on normalized set: {real_path}')
+      logs.info('Mismatch between absolute and real filepath. '
+                f'Not adding on normalized set: {real_path}')
       continue
 
     normalized_file_set.add(absolute_filepath)
