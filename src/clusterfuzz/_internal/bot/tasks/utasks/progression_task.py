@@ -17,6 +17,7 @@ import time
 from typing import List
 
 from clusterfuzz._internal.base import bisection
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
