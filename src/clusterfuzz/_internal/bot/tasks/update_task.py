@@ -224,16 +224,10 @@ def update_source_code():
     if filename == 'adb':
       continue
 
-    logs.info(f'filename = {filename}')
     absolute_filepath = os.path.join(cf_source_root_parent_dir, file.name)
-    logs.info(f'absolute_filepath = {absolute_filepath}')
 
     if os.path.altsep:
-      logs.info(
-          f'altsep is not None. Old absolute_filepath = {absolute_filepath}'
-      )
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
-      logs.info(f'New absolute filepath = {absolute_filepath}')
 
     # current behavior: absolute and relative paths are equal for a path that does not exist locally
     # therefore, the file gets added to the manifest set if it exists in zip and not locally
@@ -248,7 +242,6 @@ def update_source_code():
     #   continue
 
     normalized_file_set.add(absolute_filepath)
-    logs.info(f'Added to normalized_file_set: {absolute_filepath}')
 
     try:
       file_extension = os.path.splitext(filename)[1]
