@@ -1,16 +1,9 @@
 {
   "include": [
-    "src/clusterfuzz/_internal/bot/tasks/utasks/progression_task.py"
-  ],
-  "exclude": [
-    "**/__pycache__",
-    "src/appengine",
-    "src/local",
-    "src/python",
-    "src/clusterfuzz/_internal/tests",
-    "src/third_party"
+    "src/clusterfuzz"
   ],
   "ignore": [
+    "src/clusterfuzz/_internal/tests",
     "src/third_party"
   ],
   "executionEnvironments": [{
