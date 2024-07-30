@@ -311,8 +311,8 @@ class Metric:
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    interval = monitoring_v3.types.TimeInterval()
-    point = monitoring_v3.types.Point(interval=interval)
+    interval = _TimeInterval()
+    point = _Point(interval=interval)
 
     _time_to_timestamp(point.interval, 'start_time', start_time)
     _time_to_timestamp(point.interval, 'end_time', end_time)
