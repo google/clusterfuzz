@@ -279,7 +279,7 @@ def update_source_code():
   os.remove(temp_archive)
   logs.info(f'Source code updated to {source_version} ' +
             f'(release = {utils.get_clusterfuzz_release()}).')
-  
+
 
 def update_tests_if_needed():
   """Updates layout tests every day."""
