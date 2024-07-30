@@ -58,7 +58,7 @@ MAX_TIME_SERIES_PER_CALL = 200
 if monitoring_v3 is not None:
   _TimeInterval = monitoring_v3.types.TimeInterval  # pylint: disable=no-member
   _Point = monitoring_v3.types.Point  # pylint: disable=no-member
-  _TimeSeries = monitoring_v3.types.metric.TimeSeries  # pylint: disable=no-member
+  _TimeSeries = monitoring_v3.types.TimeSeries  # pylint: disable=no-member
 else:
   _TimeInterval = None
   _Point = None
