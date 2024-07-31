@@ -20,6 +20,7 @@ import re
 import socket
 import subprocess
 import sys
+from typing import Optional
 
 import yaml
 
