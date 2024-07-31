@@ -600,9 +600,9 @@ def get_ubsan_disabled_options():
   }
 
 
-def get_value_string(environment_variable, default_value=None):
-  """Get environment variable (as a string)."""
-  return os.getenv(environment_variable, default_value)
+def get_value_raw(var: str, default: Optional[str] = None) -> Optional[str]:
+  """Returns environment variable `var` directly, without evaluating it."""
+  return os.environ.get(var, default)
 
 
 def get_value(environment_variable, default_value=None, env=None):
