@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: schedule-upload-reports-tasks
+  namespace: default
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          containers:
+          - env:
+            - name: RUN_CMD
+              value: python3.11 $ROOT_DIR/src/python/bot/startup/run_cron.py schedule_upload_reports_tasks
+            - name: IS_K8S_ENV
+              value: "true"
+            - name: DISABLE_MOUNTS
+              value: "true"
+            image: gcr.io/clusterfuzz-images/base:vguidi_py311_testing_v1
+            imagePullPolicy: Always
+            name: schedule-upload-reports-tasks
+          restartPolicy: OnFailure
+  schedule: 0 */3 * * *
+  successfulJobsHistoryLimit: 3
