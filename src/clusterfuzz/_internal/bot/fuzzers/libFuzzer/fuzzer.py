@@ -16,6 +16,7 @@ import psutil
 
 from clusterfuzz._internal.bot.fuzzers import builtin
 from clusterfuzz._internal.bot.fuzzers import options
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 
 
@@ -44,7 +45,10 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
   if timeout is None or timeout > constants.DEFAULT_TIMEOUT_LIMIT:
     arguments[constants.TIMEOUT_FLAGNAME] = constants.DEFAULT_TIMEOUT_LIMIT
 
-  if not rss_limit_mb:
+  if not rss_limit_mb and utils.is_chromium():
+    # TODO(metzman/alhijazi): Monitor if we are crashing the bots.
+    arguments[constants.RSS_LIMIT_FLAGNAME] = 0
+  elif not rss_limit_mb:
     arguments[constants.RSS_LIMIT_FLAGNAME] = constants.DEFAULT_RSS_LIMIT_MB
   else:
     # psutil gives the total amount of memory in bytes, but we're only dealing
@@ -56,6 +60,9 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
     # allocated on the machine.
     if rss_limit_mb > max_memory_limit_mb:
       arguments[constants.RSS_LIMIT_FLAGNAME] = max_memory_limit_mb
+
+
+
 
   return arguments
 
