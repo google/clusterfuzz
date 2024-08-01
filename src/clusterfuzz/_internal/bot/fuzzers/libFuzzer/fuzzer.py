@@ -14,9 +14,9 @@
 """libFuzzer fuzzer."""
 import psutil
 
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import builtin
 from clusterfuzz._internal.bot.fuzzers import options
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 
 
@@ -60,9 +60,6 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
     # allocated on the machine.
     if rss_limit_mb > max_memory_limit_mb:
       arguments[constants.RSS_LIMIT_FLAGNAME] = max_memory_limit_mb
-
-
-
 
   return arguments
 
