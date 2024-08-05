@@ -883,24 +883,6 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         one_time_crasher_flag=False,
         newly_created_testcase=newly_created_testcase)
 
-  def _create_context(self, job_type, platform_id):
-    return fuzz_task.Context(
-        project_name='some_project',
-        bot_name='bot',
-        job_type=job_type,
-        fuzz_target=data_types.FuzzTarget(engine='engine', binary='binary'),
-        redzone=32,
-        disable_ubsan=False,
-        platform_id=platform_id,
-        crash_revision=1234,
-        fuzzer_name='engine',
-        window_argument='windows_args',
-        fuzzer_metadata={},
-        testcases_metadata={},
-        timeout_multiplier=1.0,
-        test_timeout=5,
-        data_directory='data')
-
   def _make_crash(self, state):
     crash = mock.Mock(
         crash_type='type',
