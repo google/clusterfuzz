@@ -116,6 +116,7 @@ class IntegrationTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     os.environ['BUILD_DIR'] = str(self.test_paths.data)
     os.environ['JOB_NAME'] = 'centipede_asan_job'
+    self.test_paths = None
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""

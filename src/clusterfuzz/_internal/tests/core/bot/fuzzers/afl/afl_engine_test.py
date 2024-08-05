@@ -54,6 +54,9 @@ class EngineTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     afl_launcher_integration_test.dont_use_strategies(self)
     environment.set_value('BUILD_DIR', DATA_DIRECTORY)
+    self.temp_dir = None
+    self.default_corpus_directory = None
+    self.output_directory = None
 
   def test_fuzz(self):
     """Test for fuzz."""

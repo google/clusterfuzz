@@ -198,6 +198,9 @@ class CronTest(unittest.TestCase):
 class PostTest(unittest.TestCase):
   """Test post wrapper"""
 
+  def setUp(self):
+    self.app = None
+
   def test_post_json_json(self):
     """Post JSON and receive JSON."""
     flaskapp = flask.Flask('testflask')
@@ -232,6 +235,9 @@ class PostTest(unittest.TestCase):
 class GetTest(unittest.TestCase):
   """Test get wrapper."""
 
+  def setUp(self):
+    self.app = None
+
   def test_get_json(self):
     """Get and receive JSON."""
     flaskapp = flask.Flask('testflask')
@@ -261,6 +267,7 @@ class CheckUserAccessTest(unittest.TestCase):
         'libs.access.has_access',
         'libs.helpers.get_user_email',
     ])
+    self.app = None
 
   def test_with_needs_privilege_access(self):
     """Test with needs_previlege_access."""
@@ -311,6 +318,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
     test_helpers.patch(self, [
         'libs.access.check_access_and_get_testcase',
     ])
+    self.app = None
 
   def test_no_testcase_id(self):
     """Test no testcase id."""
@@ -373,6 +381,7 @@ class CheckAdminAccessTest(unittest.TestCase):
     test_helpers.patch(self, [
         'libs.auth.is_current_user_admin',
     ])
+    self.app = None
 
   def test_allowed(self):
     """Test allowing admin."""
@@ -406,6 +415,7 @@ class CheckAdminAccessIfOssFuzzTest(unittest.TestCase):
     ])
     test_helpers.patch_environ(self)
     self.mock.is_oss_fuzz.return_value = False
+    self.app = None
 
   def test_allowed_internal(self):
     """Test allowing non-admin and admin in internal."""
@@ -457,6 +467,7 @@ class AllowOAuthTest(unittest.TestCase):
     self.app = webtest.TestApp(flaskapp)
     test_helpers.patch_environ(self)
     os.environ['AUTH_DOMAIN'] = 'localhost'
+    self.app = None
 
   def test_success(self):
     """Test setting environ and header properly."""
@@ -620,6 +631,7 @@ class AllowedCorsHandlerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.config.local_config._load_yaml_file',
     ])
+    self.app = None
 
     self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access
 

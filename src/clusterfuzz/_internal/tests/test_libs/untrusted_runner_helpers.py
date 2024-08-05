@@ -202,6 +202,7 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     test_utils.setup_pubsub('test-clusterfuzz')
     test_utils.create_pubsub_topic(pubsub.PubSubClient(), 'test-clusterfuzz',
                                    'jobs-project-linux')
+    self.fuzzer_name = None
 
   def tearDown(self):
     shutil.rmtree(self.tmp_dir)

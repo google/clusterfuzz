@@ -396,6 +396,7 @@ class QueryTest(unittest.TestCase):
     self.jobs.getQueryResults.return_value = self.get_query_results
 
     self.mock.get_api_client.return_value = underlying
+    self.count = None
 
   def _make_resp(self, page_token, is_complete, total_row, count=1):
     """Make response."""

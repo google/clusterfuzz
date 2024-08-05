@@ -131,6 +131,7 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
     os.environ['FAIL_RETRIES'] = '1'
     dont_use_strategies(self)
+    self.temp_dir = None
 
     # Make it easy to assert if things were logged.
     test_helpers.patch(self, [
