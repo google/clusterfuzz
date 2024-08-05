@@ -29,6 +29,7 @@ disable=
   ungrouped-imports,
   unsubscriptable-object,
   wrong-import-position,
+  wrong-import-order,
   # FIXME: To be removed. Leftovers from Python 3 migration.
   consider-using-with,
   raise-missing-from,
