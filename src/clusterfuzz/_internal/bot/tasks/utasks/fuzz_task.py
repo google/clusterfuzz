@@ -734,7 +734,6 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
       sample_testcase_file = sample_testcase_file_handle.read()
-      fuzzer_run_results_output.uploaded_sample_testcase = True
       storage.upload_signed_url(sample_testcase_file,
                                 fuzz_task_input.sample_testcase_upload_url)
 
