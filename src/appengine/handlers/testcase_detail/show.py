@@ -242,25 +242,6 @@ class Line:
     }
 
 
-class Gap:
-  """Represent a gap in a previewed stacktrace."""
-
-  def __init__(self, size):
-    self.size = size
-
-  def __str__(self):
-    return 'Gap(%d)' % self.size
-
-  def __eq__(self, other):
-    return hash(self) == hash(other)
-
-  def __hash__(self):
-    return hash(self.__str__())
-
-  def to_dict(self):
-    return {'type': 'Gap', 'size': self.size}
-
-
 def _is_line_important(line_content, frames):
   """Check if the line contains a frame; it means the line is
      important."""
