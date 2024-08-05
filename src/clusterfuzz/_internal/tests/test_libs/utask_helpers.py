@@ -81,6 +81,7 @@ class UtaskIntegrationTest(unittest.TestCase):
     shell.remove_directory(fuzz_inputs, recreate=True)
     os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(
         os.path.join(ROOT_DIR, 'configs', 'test'))
+    self.temp_dir = None
 
   def execute(self, utask_module, task_argument, job_type, uworker_env):
     executor = task_types.UTaskLocalExecutor(utask_module)

@@ -76,6 +76,10 @@ class LibFuzzerOptions(engine.FuzzOptions):
 class Engine(engine.Engine):
   """LibFuzzer engine implementation."""
 
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._merge_control_file = None
+
   @property
   def name(self):
     return 'libFuzzer'

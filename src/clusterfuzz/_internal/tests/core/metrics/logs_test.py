@@ -27,6 +27,9 @@ from clusterfuzz._internal.tests.test_libs import helpers
 class GetSourceLocationTest(unittest.TestCase):
   """Test get_source_location."""
 
+  def setUp(self):
+    self.statement_line = None
+
   def _nested(self):
     self.statement_line = inspect.currentframe().f_lineno + 1
     return logs.get_source_location()
