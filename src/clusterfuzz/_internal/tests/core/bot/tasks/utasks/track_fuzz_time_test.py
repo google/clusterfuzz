@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper module for fuzz_task that tracks fuzzing time."""
+"""Tests for track_fuzz_time a helper module for fuzz_task that tracks fuzzing
+time."""
 
 import unittest
 
@@ -20,6 +21,7 @@ from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
 
 from clusterfuzz._internal.bot.tasks.utasks import track_fuzz_time
+
 
 class TrackFuzzerRunResultTest(unittest.TestCase):
   """Test track_fuzzer_run_result."""
