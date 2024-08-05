@@ -44,7 +44,7 @@ class EngineTest(unittest.TestCase):
 
   def run(self, *args, **kwargs):
     with tempfile.TemporaryDirectory() as temp_dir:
-      self.temp_dir = temp_dir
+      self.temp_dir = temp_dir  # pylint: disable=attribute-defined-outside-init
       self.default_corpus_directory = os.path.join(self.temp_dir, 'corpus')
       self.output_directory = os.path.join(self.temp_dir, 'output')
       os.mkdir(self.output_directory)
