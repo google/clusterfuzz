@@ -177,8 +177,8 @@ def filter_file_list(file_list):
     filtered_file_list.append(file_path)
 
   if len(filtered_file_list) != len(file_list):
-    logs.log('Filtered file list (%s) from (%s).' % (str(filtered_file_list),
-                                                     str(file_list)))
+    logs.info('Filtered file list (%s) from (%s).' % (str(filtered_file_list),
+                                                      str(file_list)))
 
   return filtered_file_list
 
@@ -226,6 +226,40 @@ def get_application_id():
     app_id = app_id[psep + 1:]
 
   return app_id
+
+
+def get_clusterfuzz_release():
+  return os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
+
+
+def _get_manifest_release_suffix(release):
+  suffix = ''
+  if sys.version_info.major == 3:
+    suffix += '.3'
+  if release == 'candidate':
+    suffix += '-candidate'
+  return suffix
+
+
+def _get_deployment_zip_release_suffix(release):
+  suffix = ''
+  if sys.version_info.major == 3:
+    suffix += '-3'
+  if release == 'candidate':
+    suffix += '-candidate'
+  return suffix
+
+
+def get_platform_deployment_filename(platform, release):
+  """Return the platform deployment filename."""
+  # Expects linux, macos or windows.
+  base_filename = platform
+  release_filename_suffix = _get_deployment_zip_release_suffix(release)
+  return f'{base_filename}{release_filename_suffix}.zip'
+
+
+def get_remote_manifest_filename(release):
+  return f'clusterfuzz-source.manifest{_get_manifest_release_suffix(release)}'
 
 
 def service_account_email():
@@ -317,7 +351,7 @@ def get_file_contents_with_fatal_error_on_failure(path):
       data = file_handle.read()
     return data
   except OSError:
-    logs.log_error('Unable to read file `%s\'' % path)
+    logs.error('Unable to read file `%s\'' % path)
 
   raise errors.BadStateError
 
@@ -361,7 +395,7 @@ def get_process_ids(process_id, recursive=True):
     return []
 
   except (psutil.AccessDenied, OSError):
-    logs.log_warn('Failed to get process children.')
+    logs.warning('Failed to get process children.')
     return []
 
   return pids
@@ -450,7 +484,7 @@ def is_binary_file(file_path, bytes_to_read=1024):
     with open(file_path, 'rb') as file_handle:
       data = file_handle.read(bytes_to_read)
   except:
-    logs.log_error('Could not read file %s in is_binary_file.' % file_path)
+    logs.error('Could not read file %s in is_binary_file.' % file_path)
     return None
 
   binary_data = [char for char in data if char not in text_characters]
@@ -571,12 +605,12 @@ def read_data_from_file(file_path, eval_data=True, default=None):
         file_content = file_handle.read()
     except:
       file_content = None
-      logs.log_warn('Error occurred while reading %s, retrying.' % file_path)
+      logs.warning('Error occurred while reading %s, retrying.' % file_path)
       time.sleep(random.uniform(1, failure_wait_interval))
       continue
 
   if file_content is None:
-    logs.log_error('Failed to read data from file %s.' % file_path)
+    logs.error('Failed to read data from file %s.' % file_path)
     return None
 
   if not eval_data:
@@ -800,14 +834,14 @@ def write_data_to_file(content, file_path, append=False):
     except OSError:
       # An EnvironmentError signals a problem writing the file. Retry in case
       # it was a spurious error.
-      logs.log_warn('Error occurred while writing %s, retrying.' % file_path)
+      logs.warning('Error occurred while writing %s, retrying.' % file_path)
       time.sleep(random.uniform(1, failure_wait_interval))
       continue
 
     # Successfully written data file.
     return
 
-  logs.log_error('Failed to write data to file %s.' % file_path)
+  logs.error('Failed to write data to file %s.' % file_path)
 
 
 @memoize.wrap(memoize.FifoInMemory(1))

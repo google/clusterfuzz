@@ -84,9 +84,10 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     # Un-pack testcase.
     try:
-      setup.unpack_testcase(testcase)
+      testcase_download_url = setup.get_signed_testcase_download_url(testcase)
+      setup.unpack_testcase(testcase, testcase_download_url)
     except Exception:
-      logs.log_error('Failed to unpack testcase %d.' % testcase.key.id())
+      logs.error('Failed to unpack testcase %d.' % testcase.key.id())
       continue
 
     # Move this to our crash testcases directory.
@@ -135,7 +136,7 @@ def unpack_crash_testcases(crash_testcases_directory):
 
 def clone_git_repository(tests_directory, name, repo_url):
   """Clone a git repo."""
-  logs.log('Syncing %s tests.' % name)
+  logs.info('Syncing %s tests.' % name)
 
   directory = os.path.join(tests_directory, name)
   if not os.path.exists(directory):
@@ -150,7 +151,7 @@ def clone_git_repository(tests_directory, name, repo_url):
 
 def checkout_svn_repository(tests_directory, name, repo_url):
   """Checkout a SVN repo."""
-  logs.log('Syncing %s tests.' % name)
+  logs.info('Syncing %s tests.' % name)
 
   directory = os.path.join(tests_directory, name)
   if not os.path.exists(directory):
@@ -223,13 +224,13 @@ def main():
   shell.create_directory(tests_directory)
 
   # Sync old crash tests.
-  logs.log('Syncing old crash tests.')
+  logs.info('Syncing old crash tests.')
   crash_testcases_directory = os.path.join(tests_directory, 'CrashTests')
   shell.create_directory(crash_testcases_directory)
   unpack_crash_testcases(crash_testcases_directory)
 
   # Sync web tests.
-  logs.log('Syncing web tests.')
+  logs.info('Syncing web tests.')
   src_directory = os.path.join(tests_directory, 'src')
   gclient_file_path = os.path.join(tests_directory, '.gclient')
   if not os.path.exists(gclient_file_path):
@@ -270,7 +271,7 @@ def main():
   create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
 
   # Upload tests archive to google cloud storage.
-  logs.log('Uploading tests archive to cloud.')
+  logs.info('Uploading tests archive to cloud.')
   tests_archive_local = os.path.join(tests_directory, tests_archive_name)
   tests_archive_remote = 'gs://{bucket_name}/{archive_name}'.format(
       bucket_name=tests_archive_bucket, archive_name=tests_archive_name)
@@ -316,7 +317,7 @@ def main():
   subprocess.check_call(
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
 
-  logs.log('Completed cycle, sleeping for %s seconds.' % sync_interval)
+  logs.info('Completed cycle, sleeping for %s seconds.' % sync_interval)
   time.sleep(sync_interval)
 
 
@@ -333,5 +334,5 @@ if __name__ == '__main__':
       with ndb_init.context():
         main()
     except Exception:
-      logs.log_error('Failed to sync tests.')
+      logs.error('Failed to sync tests.')
       time.sleep(fail_wait)

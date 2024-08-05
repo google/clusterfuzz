@@ -18,6 +18,7 @@ import re
 import sys
 import zipfile
 
+from clusterfuzz._internal.base import utils
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
@@ -71,7 +72,7 @@ def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
             platform_name=None,
-            python3=False):
+            release='prod'):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
@@ -96,10 +97,7 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-    if python3:
-      target_zip_name = platform_name + '-3.zip'
-    else:
-      target_zip_name = platform_name + '.zip'
+    target_zip_name = utils.get_platform_deployment_filename(platform_name, release)
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)
@@ -140,11 +138,15 @@ def package(revision,
 
 
 def execute(args):
+  """Execute the butler package command."""
   if args.platform == 'all':
     for platform_name in list(constants.PLATFORMS.keys()):
       package(
           revision=common.compute_staging_revision(),
-          platform_name=platform_name)
+          platform_name=platform_name,
+          release=args.release)
   else:
     package(
-        revision=common.compute_staging_revision(), platform_name=args.platform)
+        revision=common.compute_staging_revision(),
+        platform_name=args.platform,
+        release=args.release)

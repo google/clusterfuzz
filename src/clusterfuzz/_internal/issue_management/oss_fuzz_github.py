@@ -95,10 +95,10 @@ def _get_repo(testcase, access):
   repo_url = data_handler.get_value_from_job_definition(testcase.job_type,
                                                         'MAIN_REPO', '')
   if not repo_url:
-    logs.log('Unable to fetch the MAIN_REPO URL from job definition.')
+    logs.info('Unable to fetch the MAIN_REPO URL from job definition.')
     return None
   if not repo_url.startswith(GITHUB_PREFIX):
-    logs.log(f'MAIN REPO is not a GitHub url: {repo_url}.')
+    logs.info(f'MAIN REPO is not a GitHub url: {repo_url}.')
     return None
   repo_name = repo_url[len(GITHUB_PREFIX):]
   if repo_url.endswith(GIT_SUFFIX):
@@ -107,8 +107,8 @@ def _get_repo(testcase, access):
   try:
     target_repo = access.get_repo(repo_name)
   except github.UnknownObjectException:
-    logs.log_error(f'Unable to locate GitHub repository '
-                   f'named {repo_name} from URL: {repo_url}.')
+    logs.error(f'Unable to locate GitHub repository '
+               f'named {repo_name} from URL: {repo_url}.')
     target_repo = None
   return target_repo
 
@@ -117,7 +117,7 @@ def _find_existing_issue(repo, issue_title):
   """Checking if there is an existing open issue under the same name"""
   for issue in repo.get_issues():
     if issue.title == issue_title:
-      logs.log(f'Issue ({issue_title}) already exists in Repo ({repo.id}).')
+      logs.info(f'Issue ({issue_title}) already exists in Repo ({repo.id}).')
       return issue
   return None
 
@@ -142,21 +142,21 @@ def file_issue(testcase):
     return
 
   if testcase.github_repo_id and testcase.github_issue_num:
-    logs.log('Issue already filed under'
-             f'issue number {testcase.github_issue_num} in '
-             f'Repo {testcase.github_repo_id}.')
+    logs.info('Issue already filed under'
+              f'issue number {testcase.github_issue_num} in '
+              f'Repo {testcase.github_repo_id}.')
     return
 
   access_token = _get_access_token()
 
   repo = _get_repo(testcase, access_token)
   if not repo:
-    logs.log('Unable to file issues to the main repo of the project')
+    logs.info('Unable to file issues to the main repo of the project')
     return
 
   if not repo.has_issues:
-    logs.log_warn('Unable to file issues to the main repo: '
-                  'Repo has disabled issues.')
+    logs.warning('Unable to file issues to the main repo: '
+                 'Repo has disabled issues.')
     return
 
   issue = _post_issue(repo, testcase)
@@ -175,18 +175,18 @@ def _get_issue(testcase, access):
   try:
     repo = access.get_repo(repo_id)
   except github.UnknownObjectException:
-    logs.log_error(f'Unable to locate the GitHub repository id {repo_id}.')
+    logs.error(f'Unable to locate the GitHub repository id {repo_id}.')
     return None
 
   if not repo.has_issues:
-    logs.log_warn('Unable to close issues of the main repo: '
-                  'Repo has disabled issues.')
+    logs.warning('Unable to close issues of the main repo: '
+                 'Repo has disabled issues.')
     return None
 
   try:
     target_issue = repo.get_issue(issue_num)
   except github.UnknownObjectException:
-    logs.log_error(f'Unable to locate the GitHub issue number {issue_num}.')
+    logs.error(f'Unable to locate the GitHub issue number {issue_num}.')
     target_issue = None
   return target_issue
 
@@ -207,17 +207,17 @@ def close_issue(testcase):
 
   issue = _get_issue(testcase, access_token)
   if not issue:
-    logs.log_error('Unable to locate and close the issue.')
+    logs.error('Unable to locate and close the issue.')
     return
   if issue.state == 'closed':
-    logs.log(f'issue number {testcase.github_issue_num} '
-             f'in GitHub repository {testcase.github_repo_id} '
-             'is already closed.')
+    logs.info(f'issue number {testcase.github_issue_num} '
+              f'in GitHub repository {testcase.github_repo_id} '
+              'is already closed.')
     return
 
   _close_issue_with_comment(testcase, issue)
-  logs.log(f'Closed issue number {testcase.github_issue_num} '
-           f'in GitHub repository {testcase.github_repo_id}.')
+  logs.info(f'Closed issue number {testcase.github_issue_num} '
+            f'in GitHub repository {testcase.github_repo_id}.')
 
 
 def get_my_issues():

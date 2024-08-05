@@ -51,7 +51,7 @@ SANITIZER_WEIGHTS = {
 ENGINE_WEIGHTS = {
     'afl': 1.0,
     'centipede': 1.0,
-    'googlefuzztest': 0.1,
+    'googlefuzztest': 0.5,
     'libFuzzer': 1.0,
     'honggfuzz': 0.2,
 }
@@ -278,8 +278,8 @@ def update_weight_for_target(fuzz_target_name, job, match):
     return
 
   weight = match.new_weight
-  logs.log('Adjusted weight to %f for target %s and job %s (%s).' %
-           (weight, fuzz_target_name, job, match.reason))
+  logs.info('Adjusted weight to %f for target %s and job %s (%s).' %
+            (weight, fuzz_target_name, job, match.reason))
 
   target_job.weight = weight
   target_job.put()
@@ -333,7 +333,7 @@ def update_target_weights_for_engine(client, engine, specifications):
 
     update_weight_for_target(fuzzer, job, match)
 
-  logs.log('Weight adjustments complete for engine %s.' % engine)
+  logs.info('Weight adjustments complete for engine %s.' % engine)
 
 
 def store_current_weights_in_bigquery():
@@ -394,5 +394,5 @@ def main():
   update_job_weights()
 
   store_current_weights_in_bigquery()
-  logs.log('Fuzzer and job weights succeeded.')
+  logs.info('Fuzzer and job weights succeeded.')
   return True

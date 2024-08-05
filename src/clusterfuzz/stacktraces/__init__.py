@@ -627,8 +627,7 @@ class StackParser:
             break
 
         if state.crash_type == 'UNKNOWN':
-          logs.log_error(
-              'Unknown UBSan crash type: {reason}'.format(reason=reason))
+          logs.error('Unknown UBSan crash type: {reason}'.format(reason=reason))
 
         state.crash_address = ''
         state.crash_state = ''
@@ -1288,7 +1287,7 @@ class StackParser:
         # Update address from the first stack frame unless we already have
         # more detailed information from KASan.
         if state.frame_count == 1 and not state.is_kasan:
-          state.crash_address = '0x%s' % android_kernel_match.group(1)
+          state.crash_address = f'0x{android_kernel_match.group(1)}'
         continue
 
       # Android kernel stack frame without address
@@ -1408,7 +1407,7 @@ def should_ignore_line_for_crash_processing(line, state):
     return True
 
   if len(line) > 1024**2:
-    logs.log_error('Line is too long for a stacktrace.')
+    logs.error('Line is too long for a stacktrace.')
     return True
 
   return False

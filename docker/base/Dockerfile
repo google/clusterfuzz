@@ -97,7 +97,7 @@ RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db
     tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
 
-# Install Python 3.
+# Install Python 3.7
 RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
     cd /tmp/Python-3.7.7 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
@@ -131,7 +131,6 @@ ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
 ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
-ENV DEPLOYMENT_ZIP "linux-3.zip"
 
 # Passwordless sudo (needed for AFL launcher).
 RUN groupadd nopwsudo && \

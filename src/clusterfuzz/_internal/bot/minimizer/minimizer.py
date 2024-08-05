@@ -126,7 +126,7 @@ class TestQueue:
       for thread in threads:
         thread.start()
 
-      while any([thread.is_alive() for thread in threads]):
+      while any(thread.is_alive() for thread in threads):
         if self.deadline_check:
           self.deadline_check(cleanup_function=self._cleanup)
 
@@ -559,8 +559,8 @@ class Minimizer:
       # that had been done up to that point.
       testcase = error.testcase
     except errors.TokenizationFailureError:
-      logs.log('Tokenized data did not match original data. Defaulting to line'
-               'minimization.')
+      logs.info('Tokenized data did not match original data. Defaulting to line'
+                'minimization.')
       # In situation where the tokenizer does not work, we still want to use
       # the token combiner. This will not change the data unless
       # token combiner changes the data such as appending extra data to the

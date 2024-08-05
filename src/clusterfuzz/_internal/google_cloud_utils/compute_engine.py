@@ -64,8 +64,8 @@ def _do_operation_with_retries(operation, project, zone, wait_for_completion):
       _wait_for_operation(response, project, zone)
       return True
     except Exception:
-      logs.log_error('Failed to wait for Compute Engine operation. '
-                     'Original response is %s.' % str(response))
+      logs.error('Failed to wait for Compute Engine operation. '
+                 'Original response is %s.' % str(response))
       time.sleep(SLEEP_TIME)
       continue
 
@@ -108,8 +108,8 @@ def _execute_api_call_with_retries(api_func):
     else:
       uri = 'unknown'
 
-    logs.log_error('Compute engine API call "%s" failed with exception:\n%s' %
-                   (uri, last_exception))
+    logs.error('Compute engine API call "%s" failed with exception:\n%s' %
+               (uri, last_exception))
     return None
 
   return response
@@ -132,7 +132,7 @@ def _get_metadata_and_fingerprint(instance_name, project, zone):
   """Return the metadata values and fingerprint for the given instance."""
   instance_info = _get_instance_info(instance_name, project, zone)
   if not instance_info:
-    logs.log_error('Failed to fetch instance metadata')
+    logs.error('Failed to fetch instance metadata')
     return None, None
 
   fingerprint = instance_info['metadata']['fingerprint']
@@ -146,7 +146,7 @@ def _wait_for_operation(response, project, zone):
     return
 
   if 'kind' not in response or response['kind'] != 'compute#operation':
-    logs.log_error('Compute api response not an operation.')
+    logs.error('Compute api response not an operation.')
     return
 
   api = _get_api()
@@ -159,7 +159,7 @@ def _wait_for_operation(response, project, zone):
     response = _execute_api_call_with_retries(operation_func)
 
     if 'status' not in response:
-      logs.log_error('Invalid compute engine operation %s.' % str(operation))
+      logs.error('Invalid compute engine operation %s.' % str(operation))
       return
 
     if response['status'] == 'DONE':
@@ -167,7 +167,7 @@ def _wait_for_operation(response, project, zone):
 
     time.sleep(POLL_INTERVAL)
 
-  logs.log_error('Compute engine operation %s timed out.' % str(operation))
+  logs.error('Compute engine operation %s timed out.' % str(operation))
 
 
 def add_metadata(instance_name, project, zone, key, value, wait_for_completion):
@@ -241,7 +241,7 @@ def recreate_instance_with_disks(instance_name,
   # Bail out if we don't have a valid instance information.
   if (not instance_info or 'disks' not in instance_info or
       not instance_info['disks']):
-    logs.log_error(
+    logs.error(
         'Failed to get disk info from existing instance, bailing on instance '
         'recreation.')
     return False
@@ -259,7 +259,7 @@ def recreate_instance_with_disks(instance_name,
   # Delete the instance.
   if not _do_instance_operation(
       'delete', instance_name, project, zone, wait_for_completion=True):
-    logs.log_error('Failed to delete instance.')
+    logs.error('Failed to delete instance.')
     return False
 
   # Get existing disks information, and recreate.
@@ -272,7 +272,7 @@ def recreate_instance_with_disks(instance_name,
     disk_info_func = api.disks().get(disk=disk_name, project=project, zone=zone)
     disk_info = _execute_api_call_with_retries(disk_info_func)
     if 'sourceImage' not in disk_info or 'sizeGb' not in disk_info:
-      logs.log_error(
+      logs.error(
           'Failed to get source image and size from existing disk, bailing on '
           'instance recreation.')
       return False
@@ -282,7 +282,7 @@ def recreate_instance_with_disks(instance_name,
 
     # Recreate the disk.
     if not delete_disk(disk_name, project, zone, wait_for_completion=True):
-      logs.log_error('Failed to delete disk.')
+      logs.error('Failed to delete disk.')
       return False
 
     if not create_disk(
@@ -292,7 +292,7 @@ def recreate_instance_with_disks(instance_name,
         project,
         zone,
         wait_for_completion=True):
-      logs.log_error('Failed to recreate disk.')
+      logs.error('Failed to recreate disk.')
       return False
 
   # Recreate the instance with the exact same configurations, but not

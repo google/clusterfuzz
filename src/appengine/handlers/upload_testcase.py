@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler that uploads a testcase"""
 
+# pylint: disable=wrong-import-order
 import ast
 import datetime
 import io
@@ -248,7 +249,6 @@ class Handler(base_handler.Handler):
                     for engine in fuzzing.ENGINES
                 },
                 'isChromium': utils.is_chromium(),
-                'sandboxedJobs': data_types.INTERNAL_SANDBOXED_JOB_TYPES,
                 'csrfToken': form.generate_csrf_token(),
                 'isExternalUser': not is_privileged_or_domain_user,
                 'uploadInfo': gcs.prepare_blob_upload()._asdict(),
@@ -393,7 +393,8 @@ class UploadHandlerCommon:
 
     if (not trusted_agreement_signed and
         task_utils.is_remotely_executing_utasks() and
-        (platform_id != 'Linux' or job.platform.lower() != 'linux')):
+        ((platform_id and platform_id != 'Linux') or
+         job.platform.lower() != 'linux')):
       # Trusted agreement was not signed even though the job has privileges and
       # there are other jobs that don't have privileges.
       raise helpers.EarlyExitError(

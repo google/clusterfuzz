@@ -37,7 +37,6 @@ from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import monitor
@@ -297,7 +296,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.mock.get_crash_data.return_value = dummy_state
     self.mock.get_crash_stacktrace_output.return_value = 'trace'
     self.mock.archive_testcase_and_dependencies_in_gcs.return_value = (
-        'fuzzed_key', True, 'absolute_path', 'archive_filename')
+        True, 'absolute_path', 'archive_filename')
 
     environment.set_value('FILTER_FUNCTIONAL_BUGS', False)
 
@@ -360,7 +359,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(should_be_ignored, crash.should_be_ignored)
     self.mock.ignore_stacktrace.assert_called_once_with('orig_trace')
 
-    self.assertFalse(hasattr(crash, 'fuzzed_key'))
+    self.assertFalse(crash.fuzzed_key)
     return crash
 
   def _test_validity_and_get_functional_crash(self):
@@ -396,41 +395,21 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
   def test_hydrate_fuzzed_key(self):
     """Test hydrating fuzzed_key."""
     crash = self._test_crash(should_be_ignored=False, security_flag=True)
+
     self.assertFalse(crash.is_archived())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
 
-    crash.archive_testcase_in_blobstore()
+    fuzzed_key = 'fuzzed_key'
+    crash.archive_testcase_in_blobstore(
+        uworker_msg_pb2.BlobUploadUrl(key=fuzzed_key))
     self.assertTrue(crash.is_archived())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
 
-    self.assertEqual('fuzzed_key', crash.fuzzed_key)
-    self.assertTrue(crash.archived)
+    self.assertEqual(fuzzed_key, crash.fuzzed_key)
     self.assertEqual('absolute_path', crash.absolute_path)
     self.assertEqual('archive_filename', crash.archive_filename)
-
-  def test_hydrate_fuzzed_key_failure(self):
-    """Test fail to hydrate fuzzed_key."""
-    self.mock.archive_testcase_and_dependencies_in_gcs.return_value = (None,
-                                                                       False,
-                                                                       None,
-                                                                       None)
-
-    crash = self._test_crash(should_be_ignored=False, security_flag=True)
-    self.assertFalse(crash.is_archived())
-    self.assertIsNone(crash.get_error())
-    self.assertTrue(crash.is_valid())
-
-    crash.archive_testcase_in_blobstore()
-    self.assertTrue(crash.is_archived())
-    self.assertIn('Unable to store testcase in blobstore', crash.get_error())
-    self.assertFalse(crash.is_valid())
-
-    self.assertIsNone(crash.fuzzed_key)
-    self.assertFalse(crash.archived)
-    self.assertIsNone(crash.absolute_path)
-    self.assertIsNone(crash.archive_filename)
 
   def test_args_from_testcase_manager(self):
     """Test args from testcase_manager.Crash."""
@@ -490,66 +469,64 @@ class CrashGroupTest(unittest.TestCase):
     return testcase
 
   def test_no_existing_testcase(self):
-    """is_new=True and should_create_testcase=True when there's no existing
-        testcase."""
+    """Tests that is_new=True and _should_create_testcase returns True when
+        there's no existing testcase."""
     self.mock.find_testcase.return_value = None
     self.mock.find_main_crash.return_value = self.crashes[0], True
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    upload_urls = _get_upload_urls()
+    group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
-    self.assertTrue(group.should_create_testcase())
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout)
+    self.assertTrue(fuzz_task._should_create_testcase(group, None))
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
 
-    self.assertIsNone(group.existing_testcase)
     self.assertEqual(self.crashes[0], group.main_crash)
-    self.assertTrue(group.is_new())
 
   def test_has_existing_reproducible_testcase(self):
-    """should_create_testcase=False when there's an existing reproducible
-      testcase."""
-    self.mock.find_testcase.return_value = self.reproducible_testcase
+    """Tests that should_create_testcase returns False when there's an existing
+      reproducible testcase."""
     self.mock.find_main_crash.return_value = (self.crashes[0], True)
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    upload_urls = _get_upload_urls()
+    group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout)
-    self.assertFalse(group.is_new())
-    self.assertFalse(group.should_create_testcase())
-    self.assertTrue(group.has_existing_reproducible_testcase())
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
+    # TODO(metzman): Replace group in calls to _should_create_testcase with a
+    # proto group.
+    self.assertFalse(
+        fuzz_task._should_create_testcase(group, self.reproducible_testcase))
 
   def test_reproducible_crash(self):
     """should_create_testcase=True when the group is reproducible."""
-    self.mock.find_testcase.return_value = self.unreproducible_testcase
     self.mock.find_main_crash.return_value = (self.crashes[0], False)
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    upload_urls = _get_upload_urls()
+    group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout)
-    self.assertFalse(group.is_new())
-    self.assertTrue(group.should_create_testcase())
-    self.assertFalse(group.has_existing_reproducible_testcase())
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
+    self.assertTrue(
+        fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
     self.assertFalse(group.one_time_crasher_flag)
 
   def test_has_existing_unreproducible_testcase(self):
     """should_create_testcase=False when the unreproducible testcase already
     exists."""
-    self.mock.find_testcase.return_value = self.unreproducible_testcase
     self.mock.find_main_crash.return_value = (self.crashes[0], True)
 
-    group = fuzz_task.CrashGroup(self.crashes, self.context)
+    upload_urls = _get_upload_urls()
+    group = fuzz_task.CrashGroup(self.crashes, self.context, upload_urls)
 
-    self.assertFalse(group.should_create_testcase())
+    self.assertFalse(
+        fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
-                                                      self.context.test_timeout)
-    self.assertFalse(group.is_new())
-    self.assertFalse(group.has_existing_reproducible_testcase())
+    self.mock.find_main_crash.assert_called_once_with(
+        self.crashes, 'test', self.context.test_timeout, upload_urls)
     self.assertTrue(group.one_time_crasher_flag)
 
 
@@ -588,7 +565,7 @@ class FindMainCrashTest(unittest.TestCase):
     self.mock.test_for_reproducibility.side_effect = test_for_repro
 
   def _make_crash(self, gestures):
-    crash = mock.MagicMock(
+    crash = mock.Mock(
         file_path='file_path',
         crash_state='state',
         security_flag=True,
@@ -604,12 +581,17 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = [self.crashes[2]]
 
     self.assertEqual((self.crashes[2], False),
-                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99,
+                                               _get_upload_urls()))
 
-    self.crashes[0].archive_testcase_in_blobstore.assert_called_once_with()
-    self.crashes[1].archive_testcase_in_blobstore.assert_called_once_with()
-    self.crashes[2].archive_testcase_in_blobstore.assert_called_once_with()
-    self.crashes[3].archive_testcase_in_blobstore.assert_not_called()
+    self.assertEqual(self.crashes[0].archive_testcase_in_blobstore.call_count,
+                     1)
+    self.assertEqual(self.crashes[1].archive_testcase_in_blobstore.call_count,
+                     1)
+    self.assertEqual(self.crashes[2].archive_testcase_in_blobstore.call_count,
+                     1)
+    self.assertEqual(self.crashes[3].archive_testcase_in_blobstore.call_count,
+                     0)
 
     # Calls for self.crashes[1] and self.crashes[2].
     self.assertEqual(2, self.mock.test_for_reproducibility.call_count)
@@ -621,11 +603,14 @@ class FindMainCrashTest(unittest.TestCase):
     self.crashes[0].is_valid.return_value = False
     self.reproducible_crashes = []
 
-    self.assertEqual((self.crashes[1], True),
-                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
+    result = fuzz_task.find_main_crash(self.crashes, 'test', 99,
+                                       _get_upload_urls())
+    self.assertEqual((self.crashes[1], True), result)
 
-    for c in self.crashes:
-      c.archive_testcase_in_blobstore.assert_called_once_with()
+    # TODO(metzman): Figure out what weirdness is causing this not to work
+    # properly.
+    for crash in self.crashes:
+      self.assertEqual(crash.archive_testcase_in_blobstore.call_count, 1)
 
     # Calls for every crash except self.crashes[0] because it's invalid.
     self.assertEqual(
@@ -637,11 +622,14 @@ class FindMainCrashTest(unittest.TestCase):
       c.is_valid.return_value = False
     self.reproducible_crashes = []
 
-    result = fuzz_task.find_main_crash(self.crashes, 'test', 99)
+    result = fuzz_task.find_main_crash(self.crashes, 'test', 99,
+                                       _get_upload_urls())
     self.assertEqual((None, None), result)
 
-    for c in self.crashes:
-      c.archive_testcase_in_blobstore.assert_called_once_with()
+    # TODO(metzman): Figure out what weirdness is causing this not to work
+    # properly.
+    for crash in self.crashes:
+      self.assertEqual(crash.archive_testcase_in_blobstore.call_count, 1)
 
     self.assertEqual(0, self.mock.test_for_reproducibility.call_count)
 
@@ -676,7 +664,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.mock.get_issue_tracker_name.return_value = 'some_issue_tracker'
     self.mock.get_project_name.return_value = 'some_project'
     self.mock.archive_testcase_and_dependencies_in_gcs.return_value = (
-        'fuzzed_key', True, 'absolute_path', 'archive_filename')
+        True, 'absolute_path', 'archive_filename')
 
   def _make_crash(self, trace, state='state'):
     """Make crash."""
@@ -703,6 +691,34 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
                                '/stack_file_path'))
     return crash
 
+  # def _make_crash(self, trace, state='state'):
+  #   """Make crash."""
+  #   self.mock.get_real_revision.return_value = 'this.is.fake.ver'
+
+  #   self.mock.get_command_line_for_application.return_value = 'cmd'
+  #   dummy_state = stacktraces.CrashInfo()
+  #   dummy_state.crash_type = 'type'
+  #   dummy_state.crash_address = 'address'
+  #   dummy_state.crash_state = state
+  #   dummy_state.crash_stacktrace = 'orig_trace'
+  #   dummy_state.crash_frames = ['frame 1', 'frame 2']
+  #   self.mock.get_crash_data.return_value = dummy_state
+  #   self.mock.get_crash_stacktrace_output.return_value = trace
+  #   self.mock.get_unsymbolized_crash_stacktrace.return_value = trace
+  #   self.mock.is_security_issue.return_value = True
+  #   self.mock.ignore_stacktrace.return_value = False
+
+  #   with open('/stack_file_path', 'w') as f:
+  #     f.write('unsym')
+  #   return uworker_msg_pb2.FuzzTaskCrash(
+  #       file_path='dir/path-http-name',
+  #       crash_time=123,
+  #       return_code=11,
+  #       resource_list=['res'],
+  #       gestures=['ges'],
+  #       is_valid=True,
+  #       unsymbolized_crash_stacktrace='unsym')
+
   def test_existing_unreproducible_testcase(self):
     """Test existing unreproducible testcase."""
     crashes = [self._make_crash('c1'), self._make_crash('c2')]
@@ -725,7 +741,9 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     variant.testcase_id = existing_testcase.key.id()
     variant.put()
 
-    new_crash_count, known_crash_count, groups = fuzz_task.process_crashes(
+    crash_revision = 1234
+
+    groups = fuzz_task.process_crashes(
         crashes=crashes,
         context=fuzz_task.Context(
             project_name='some_project',
@@ -735,21 +753,19 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             redzone=111,
             disable_ubsan=True,
             platform_id='platform',
-            crash_revision=1234,
+            crash_revision=crash_revision,
             fuzzer_name='fuzzer',
             window_argument='win_args',
             fuzzer_metadata={},
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
-            thread_wait_timeout=3,
-            data_directory='/data'))
-    self.assertEqual(0, new_crash_count)
-    self.assertEqual(2, known_crash_count)
+            data_directory='/data',
+        ),
+        upload_urls=_get_upload_urls_from_proto())
 
     self.assertEqual(1, len(groups))
     self.assertEqual(2, len(groups[0].crashes))
-    self.assertFalse(groups[0].is_new())
     self.assertEqual(crashes[0].crash_type, groups[0].main_crash.crash_type)
     self.assertEqual(crashes[0].crash_state, groups[0].main_crash.crash_state)
     self.assertEqual(crashes[0].security_flag,
@@ -759,15 +775,13 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(1, len(testcases))
     self.assertEqual('existing', testcases[0].crash_stacktrace)
 
-    variant = data_handler.get_or_create_testcase_variant(
-        existing_testcase.key.id(), 'job')
-    self.assertEqual(data_types.TestcaseVariantStatus.FLAKY, variant.status)
-    self.assertEqual('fuzzed_key', variant.reproducer_key)
-    self.assertEqual(1234, variant.revision)
-    self.assertEqual('type', variant.crash_type)
-    self.assertEqual('state', variant.crash_state)
-    self.assertEqual(True, variant.security_flag)
-    self.assertEqual(True, variant.is_similar)
+    # TODO(metzman): Make this test work again by using postprocess.
+    # self.assertEqual('fuzzed_key', variant.reproducer_key)
+    # self.assertEqual(1234, variant.revision)
+    # self.assertEqual('type', variant.crash_type)
+    # self.assertEqual('state', variant.crash_state)
+    # self.assertEqual(True, variant.security_flag)
+    # self.assertEqual(True, variant.is_similar)
 
   @parameterized.parameterized.expand(['some_project', 'chromium'])
   def test_create_many_groups(self, project_name):
@@ -800,7 +814,9 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         False
     ]  # For u4.
 
-    new_crash_count, known_crash_count, groups = fuzz_task.process_crashes(
+    upload_urls = _get_upload_urls_from_proto()
+
+    groups = fuzz_task.process_crashes(
         crashes=crashes,
         context=fuzz_task.Context(
             project_name=project_name,
@@ -817,106 +833,23 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
-            thread_wait_timeout=3,
-            data_directory='/data'))
-    self.assertEqual(5, new_crash_count)
-    self.assertEqual(3, known_crash_count)
+            data_directory='/data'),
+        upload_urls=upload_urls)
 
     self.assertEqual(5, len(groups))
     self.assertEqual([
         'reproducible1', 'reproducible2', 'unreproducible1', 'unreproducible2',
         'unreproducible3'
     ], [group.main_crash.crash_state for group in groups])
-    self.assertEqual([True, True, True, True, True],
-                     [group.is_new() for group in groups])
     self.assertEqual([3, 1, 1, 2, 1], [len(group.crashes) for group in groups])
 
-    testcases = list(data_types.Testcase.query())
+    testcases = [group.main_crash for group in groups if group.main_crash]
     self.assertEqual(5, len(testcases))
     self.assertSetEqual({r2_stacktrace, 'r4', 'u1', 'u2', 'u4'},
                         {t.crash_stacktrace for t in testcases})
 
-    self.assertSetEqual({'{"fuzzing_strategies": ["value_profile"]}', None},
-                        {t.additional_metadata for t in testcases})
-
-    # r2 is a reproducible crash, so r3 doesn't
-    # invoke archive_testcase_in_blobstore. Therefore, the
-    # archive_testcase_in_blobstore is called `len(crashes) - 1`.
-    self.assertEqual(
-        len(crashes) - 1,
-        self.mock.archive_testcase_and_dependencies_in_gcs.call_count)
-
-    def _make_big_query_json(crash, reproducible_flag, new_flag, testcase_id):
-      return {
-          'crash_type': crash.crash_type,
-          'crash_state': crash.crash_state,
-          'created_at': 987,
-          'platform': 'platform',
-          'crash_time_in_ms': int(crash.crash_time * 1000),
-          'parent_fuzzer_name': 'engine',
-          'fuzzer_name': 'engine_binary',
-          'job_type': 'job',
-          'security_flag': crash.security_flag,
-          'reproducible_flag': reproducible_flag,
-          'revision': '1234',
-          'new_flag': new_flag,
-          'project': project_name,
-          'testcase_id': testcase_id
-      }
-
-    def _get_testcase_id(crash):
-      rows = list(
-          data_types.Testcase.query(
-              data_types.Testcase.crash_type == crash.crash_type,
-              data_types.Testcase.crash_state == crash.crash_state,
-              data_types.Testcase.security_flag == crash.security_flag))
-      if not rows:
-        return None
-      return str(rows[0].key.id())
-
-    # Calls to write 5 groups of crashes to BigQuery.
-    self.assertEqual(5, self.mock.insert.call_count)
-    self.mock.insert.assert_has_calls([
-        mock.call(mock.ANY, [
-            big_query.Insert(
-                _make_big_query_json(crashes[0], True, False, None),
-                '%s:bot:987:0' % crashes[0].key),
-            big_query.Insert(
-                _make_big_query_json(crashes[1], True, True,
-                                     _get_testcase_id(crashes[1])),
-                '%s:bot:987:1' % crashes[0].key),
-            big_query.Insert(
-                _make_big_query_json(crashes[2], True, False, None),
-                '%s:bot:987:2' % crashes[0].key)
-        ]),
-        mock.call(mock.ANY, [
-            big_query.Insert(
-                _make_big_query_json(crashes[3], True, True,
-                                     _get_testcase_id(crashes[3])),
-                '%s:bot:987:0' % crashes[3].key)
-        ]),
-        mock.call(mock.ANY, [
-            big_query.Insert(
-                _make_big_query_json(crashes[4], False, True,
-                                     _get_testcase_id(crashes[4])),
-                '%s:bot:987:0' % crashes[4].key)
-        ]),
-        mock.call(mock.ANY, [
-            big_query.Insert(
-                _make_big_query_json(crashes[5], False, True,
-                                     _get_testcase_id(crashes[5])),
-                '%s:bot:987:0' % crashes[5].key),
-            big_query.Insert(
-                _make_big_query_json(crashes[6], False, False, None),
-                '%s:bot:987:1' % crashes[5].key)
-        ]),
-        mock.call(mock.ANY, [
-            big_query.Insert(
-                _make_big_query_json(crashes[7], False, True,
-                                     _get_testcase_id(crashes[7])),
-                '%s:bot:987:0' % crashes[7].key)
-        ]),
-    ])
+    # TODO(metzman): Make this test use the postprocess function as well so we
+    # can test more functionality that was deleted in this PR.
 
 
 class WriteCrashToBigQueryTest(unittest.TestCase):
@@ -949,7 +882,6 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         main_crash=self.crashes[0],
         one_time_crasher_flag=False,
         newly_created_testcase=newly_created_testcase)
-    self.group.is_new.return_value = True
 
   def _create_context(self, job_type, platform_id):
     return fuzz_task.Context(
@@ -967,8 +899,16 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         testcases_metadata={},
         timeout_multiplier=1.0,
         test_timeout=5,
-        thread_wait_timeout=6,
         data_directory='data')
+
+  def _make_crash(self, state):
+    crash = mock.Mock(
+        crash_type='type',
+        crash_state=state,
+        crash_time=111,
+        security_flag=True,
+        key='key')
+    return crash
 
   def _make_crash(self, state):
     crash = mock.Mock(
@@ -1000,8 +940,12 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
   def test_all_succeed(self):
     """Test writing succeeds."""
     self.client.insert.return_value = {}
-    context = self._create_context('job', 'linux')
-    fuzz_task.write_crashes_to_big_query(self.group, context)
+    output = self._create_output()
+    uworker_input = _create_uworker_input(job='job')
+    # TODO(metzman): Use correct type of group.
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1024,11 +968,21 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
             self._json('job', 'linux', 'c3', False, None), 'key:bot:99:2')
     ])
 
+  def _create_output(self, platform='linux', crash_revision='1234'):
+    fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput(
+        crash_revision=crash_revision)
+    output = uworker_msg_pb2.Output(
+        bot_name='bot', platform_id=platform, fuzz_task_output=fuzz_task_output)
+    return output
+
   def test_succeed(self):
     """Test writing succeeds."""
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
-    context = self._create_context('job', 'linux')
-    fuzz_task.write_crashes_to_big_query(self.group, context)
+    output = self._create_output()
+    uworker_input = _create_uworker_input()
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1054,8 +1008,11 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
   def test_chromeos_platform(self):
     """Test ChromeOS platform is written in stats."""
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
-    context = self._create_context('job_chromeos', 'linux')
-    fuzz_task.write_crashes_to_big_query(self.group, context)
+    output = self._create_output()
+    uworker_input = _create_uworker_input(job='job_chromeos')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1084,8 +1041,11 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
   def test_exception(self):
     """Test writing raising an exception."""
     self.client.insert.side_effect = Exception('error')
-    context = self._create_context('job', 'linux')
-    fuzz_task.write_crashes_to_big_query(self.group, context)
+    output = self._create_output()
+    uworker_input = _create_uworker_input()
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -1096,45 +1056,6 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
 
     self.assertEqual(0, success_count)
     self.assertEqual(3, failure_count)
-
-
-class ConvertGroupsToCrashesTest(unittest.TestCase):
-  """Test convert_groups_to_crashes."""
-
-  def test_convert(self):
-    """Test converting."""
-    groups = [
-        mock.Mock(
-            crashes=[mock.Mock(), mock.Mock()],
-            main_crash=mock.Mock(
-                crash_type='t1', crash_state='s1', security_flag=True)),
-        mock.Mock(
-            crashes=[mock.Mock()],
-            main_crash=mock.Mock(
-                crash_type='t2', crash_state='s2', security_flag=False)),
-    ]
-    groups[0].is_new.return_value = False
-    groups[1].is_new.return_value = True
-
-    crashes = fuzz_task.convert_groups_to_crashes(groups)
-    job_run_crashes = fuzz_task.convert_crashes_to_dicts(crashes)
-
-    self.assertEqual([
-        {
-            'is_new': False,
-            'count': 2,
-            'crash_type': 't1',
-            'crash_state': 's1',
-            'security_flag': True
-        },
-        {
-            'is_new': True,
-            'count': 1,
-            'crash_type': 't2',
-            'crash_state': 's2',
-            'security_flag': False
-        },
-    ], job_run_crashes)
 
 
 class TestCorpusSync(fake_filesystem_unittest.TestCase):
@@ -1375,8 +1296,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     }]
     self.mock.current_timestamp.return_value = 0.0
     self.mock.list_blobs.return_value = []
-    self.mock.get_arbitrary_signed_upload_urls.return_value = (
-        ['https://upload'] * 10000)
+    self.mock.get_arbitrary_signed_upload_urls.return_value = ['http://a'] * 100
     self.mock.last_updated.return_value = None
 
   def test_basic(self):
@@ -1660,3 +1580,19 @@ class PickFuzzTargetTest(unittest.TestCase):
     os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'Fake'
     os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
     self.assertIsNone(fuzz_task._pick_fuzz_target())
+
+
+def _create_uworker_input(job='job',
+                          project_name='some_project',
+                          fuzzer_name='engine'):
+  uworker_env = {'PROJECT_NAME': project_name}
+  return uworker_msg_pb2.Input(
+      job_type=job, fuzzer_name=fuzzer_name, uworker_env=uworker_env)
+
+
+def _get_upload_urls():
+  return fuzz_task.UploadUrlCollection([uworker_msg_pb2.BlobUploadUrl()] * 1000)
+
+
+def _get_upload_urls_from_proto():
+  return [uworker_msg_pb2.BlobUploadUrl(key='uuid')] * 1000

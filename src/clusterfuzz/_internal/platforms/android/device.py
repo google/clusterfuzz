@@ -92,22 +92,22 @@ def add_test_accounts_if_needed():
   wifi.configure(force_enable=True)
 
   if not app.is_installed(ADD_TEST_ACCOUNT_PKG_NAME):
-    logs.log('Installing helper apk for adding test account.')
+    logs.info('Installing helper apk for adding test account.')
     android_directory = environment.get_platform_resources_directory()
     add_test_account_apk_path = os.path.join(android_directory,
                                              ADD_TEST_ACCOUNT_APK_NAME)
     app.install(add_test_account_apk_path)
 
-  logs.log('Trying to add test account.')
+  logs.info('Trying to add test account.')
   output = adb.run_shell_command(
       'am instrument -e account %s -e password %s -w %s' %
       (test_account_email, test_account_password, ADD_TEST_ACCOUNT_CALL_PATH),
       timeout=ADD_TEST_ACCOUNT_TIMEOUT)
   if not output or test_account_email not in output:
-    logs.log('Failed to add test account, probably due to wifi issues.')
+    logs.info('Failed to add test account, probably due to wifi issues.')
     return
 
-  logs.log('Test account added successfully.')
+  logs.info('Test account added successfully.')
   persistent_cache.set_value(constants.LAST_TEST_ACCOUNT_CHECK_KEY, time.time())
 
 
@@ -194,7 +194,7 @@ def configure_system_build_properties():
   old_md5 = persistent_cache.get_value(constants.BUILD_PROP_MD5_KEY)
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   if current_md5 is None:
-    logs.log_error('Unable to find %s on device.' % BUILD_PROP_PATH)
+    logs.error('Unable to find %s on device.' % BUILD_PROP_PATH)
     return
   if old_md5 == current_md5:
     return
@@ -204,7 +204,7 @@ def configure_system_build_properties():
   old_build_prop_path = os.path.join(bot_tmp_directory, 'old.prop')
   adb.run_command(['pull', BUILD_PROP_PATH, old_build_prop_path])
   if not os.path.exists(old_build_prop_path):
-    logs.log_error('Unable to fetch %s from device.' % BUILD_PROP_PATH)
+    logs.error('Unable to fetch %s from device.' % BUILD_PROP_PATH)
     return
 
   # Write new build.prop.
@@ -246,7 +246,7 @@ def configure_system_build_properties():
       adb.run_shell_command(['rm', policy_file.strip()])
 
   # Push new build.prop and backup to device.
-  logs.log('Pushing new build properties file on device.')
+  logs.info('Pushing new build properties file on device.')
   adb.run_command(['push', '-p', old_build_prop_path, BUILD_PROP_BACKUP_PATH])
   adb.run_command(['push', '-p', new_build_prop_path, BUILD_PROP_PATH])
   adb.run_shell_command(['chmod', '644', BUILD_PROP_PATH])
@@ -262,7 +262,7 @@ def get_debug_props_and_values():
   debug_props_and_values_list = []
   enable_debug_checks = environment.get_value('ENABLE_DEBUG_CHECKS', False)
 
-  logs.log('Debug flags set to %s.' % str(enable_debug_checks))
+  logs.info('Debug flags set to %s.' % str(enable_debug_checks))
 
   # Keep system and applications level asserts disabled since these can lead to
   # potential battery depletion issues.
@@ -298,7 +298,7 @@ def get_debug_props_and_values():
 
 def initialize_device():
   """Prepares android device for app install."""
-  if environment.is_engine_fuzzer_job() or environment.is_kernel_fuzzer_job():
+  if environment.is_engine_fuzzer_job():
     # These steps are not applicable to libFuzzer and syzkaller jobs and can
     # brick a device on trying to configure device build settings.
     return
@@ -374,12 +374,11 @@ def install_application_if_needed(apk_path, force_update):
     app.install(apk_path)
 
     if not app.is_installed(package_name):
-      logs.log_error(
-          'Package %s was not installed successfully.' % package_name)
+      logs.error('Package %s was not installed successfully.' % package_name)
       return
 
-    logs.log('Package %s is successfully installed using apk %s.' %
-             (package_name, apk_path))
+    logs.info('Package %s is successfully installed using apk %s.' %
+              (package_name, apk_path))
 
   app.reset()
 
@@ -412,7 +411,7 @@ def push_testcases_to_device():
   local_testcases_directory = environment.get_value('FUZZ_INPUTS')
   if not os.listdir(local_testcases_directory):
     # Directory is empty, nothing to push.
-    logs.log('No testcases to copy to device, skipping.')
+    logs.info('No testcases to copy to device, skipping.')
     return
 
   adb.copy_local_directory_to_remote(local_testcases_directory,
@@ -427,7 +426,7 @@ def reboot():
   logger.clear_log()
 
   # Reboot.
-  logs.log('Rebooting device.')
+  logs.info('Rebooting device.')
   adb.reboot()
 
   # Wait for boot to complete.

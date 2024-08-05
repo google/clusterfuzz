@@ -374,15 +374,8 @@
         window.location.href = '?upload=true&' + window.query.compute(
             this.uploadParams, this.paramKeys);
       }
-
-      showWarning(job) {
-        if (!job) { return false; }
-        let secureJobs = new Set(this.fieldValues.sandboxedJobs);
-        return this.fieldValues.isChromium && !secureJobs.has(job);
-      }
     }
 
     customElements.define(UploadFormSimplified.is, UploadFormSimplified);
   </script>
 </dom-module>
-

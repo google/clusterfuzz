@@ -95,7 +95,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     """Handle a GET request."""
     absolute_path = get_absolute_testcase_file(self.path)
     if not absolute_path:
-      logs.log_warn(f"Could not find an absolute path for {self.path}.")
+      logs.warning(f"Could not find an absolute path for {self.path}.")
       self.send_response(404)
       self.end_headers()
       return
@@ -152,12 +152,12 @@ def start():
   if not port_is_open(http_host, http_port_1):
     start_server_thread(http_host, http_port_1)
   else:
-    logs.log_warn(
+    logs.warning(
         f"HTTP_PORT_1 ({http_port_1}) already open, not starting server thread."
     )
   if not port_is_open(http_host, http_port_2):
     start_server_thread(http_host, http_port_2)
   else:
-    logs.log_warn(
+    logs.warning(
         f"HTTP_PORT_2 ({http_port_2}) already open, not starting server thread."
     )

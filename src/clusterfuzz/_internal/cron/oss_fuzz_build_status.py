@@ -127,7 +127,7 @@ def get_build_time(build):
   # supported by Python.
   stripped_timestamp = TIMESTAMP_PATTERN.match(build['finish_time'])
   if not stripped_timestamp:
-    logs.log_error(
+    logs.error(
         'Invalid timestamp %s for %s.' % (build['finish_time'], build['name']))
     return None
 
@@ -137,8 +137,8 @@ def get_build_time(build):
 
 def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
   """File a new bug for a build failure."""
-  logs.log('Filing bug for new build failure (project=%s, build_type=%s, '
-           'build_id=%s).' % (project_name, build_type, build_id))
+  logs.info('Filing bug for new build failure (project=%s, build_type=%s, '
+            'build_id=%s).' % (project_name, build_type, build_id))
 
   issue = issue_tracker.new_issue()
   issue.title = '{project_name}: {build_type} build failure'.format(
@@ -157,8 +157,8 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
 
 def close_bug(issue_tracker, issue_id, project_name):
   """Close a build failure bug."""
-  logs.log('Closing build failure bug (project=%s, issue_id=%s).' %
-           (project_name, issue_id))
+  logs.info('Closing build failure bug (project=%s, issue_id=%s).' %
+            (project_name, issue_id))
 
   issue = issue_tracker.get_original_issue(issue_id)
   issue.status = 'Verified'
@@ -200,9 +200,9 @@ def _close_fixed_builds(projects, build_type):
       continue
 
     if build_failure.last_checked_timestamp >= get_build_time(build):
-      logs.log_error('Latest successful build time for %s in %s config is '
-                     'older than or equal to last failure time.' %
-                     (project_name, build_type))
+      logs.error('Latest successful build time for %s in %s config is '
+                 'older than or equal to last failure time.' % (project_name,
+                                                                build_type))
       continue
 
     if build_failure.issue_id is not None:
@@ -252,7 +252,7 @@ def _process_failures(projects, build_type):
       if build_failure.issue_id is None:
         oss_fuzz_project = _get_oss_fuzz_project(project_name)
         if not oss_fuzz_project:
-          logs.log(
+          logs.info(
               'Project %s is disabled, skipping bug filing.' % project_name)
           continue
 
@@ -278,8 +278,8 @@ def _check_last_get_build_time(projects, build_type):
     time_since_last_build = utils.utcnow() - get_build_time(build)
     if time_since_last_build >= NO_BUILDS_THRESHOLD:
       # Something likely went wrong with the build infrastructure, log errors.
-      logs.log_error('%s has not been built in %s config for %d days.' %
-                     (project_name, build_type, time_since_last_build.days))
+      logs.error('%s has not been built in %s config for %d days.' %
+                 (project_name, build_type, time_since_last_build.days))
 
 
 def main():
@@ -298,5 +298,5 @@ def main():
     _close_fixed_builds(projects, build_type)
     _process_failures(projects, build_type)
 
-  logs.log('OSS fuzz apply ccs succeeded.')
+  logs.info('OSS fuzz apply ccs succeeded.')
   return True

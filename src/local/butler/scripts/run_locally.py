@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,11 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Constants that are meaningful to syzkaller.
-Should not have any dependencies.
-"""
+"""Executes update task locally, so we can run it through a debugger."""
 
-SYZ_CRUSH = 'syz-crush'
-SYZ_REPRO = 'syz-repro'
+import os
 
-CLEAN_EXIT_SECS = 10
+from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.system import environment
+
+
+def execute():
+  """Build keywords."""
+  environment.set_bot_environment()
+  os.environ['USE_TEST_DEPLOYMENT'] = '1'
+  update_task.update_source_code()

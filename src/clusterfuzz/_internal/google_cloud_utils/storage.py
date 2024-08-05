@@ -201,7 +201,7 @@ class GcsProvider(StorageProvider):
     try:
       client.buckets().insert(project=project_id, body=request_body).execute()
     except HttpError as e:
-      logs.log_warn('Failed to create bucket %s: %s' % (name, e))
+      logs.warning('Failed to create bucket %s: %s' % (name, e))
       raise
 
     return True
@@ -259,8 +259,8 @@ class GcsProvider(StorageProvider):
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy cloud storage file %s to local file %s.' %
-                    (remote_path, local_path))
+      logs.warning('Failed to copy cloud storage file %s to local file %s.' %
+                   (remote_path, local_path))
       raise
 
     return True
@@ -281,8 +281,8 @@ class GcsProvider(StorageProvider):
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
-                    (local_path_or_handle, remote_path))
+      logs.warning('Failed to copy local file %s to cloud storage file %s.' %
+                   (local_path_or_handle, remote_path))
       raise
 
     return True
@@ -299,8 +299,8 @@ class GcsProvider(StorageProvider):
       target_bucket = client.bucket(target_bucket_name)
       source_bucket.copy_blob(source_blob, target_bucket, target_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy cloud storage file %s to cloud storage '
-                    'file %s.' % (remote_source, remote_target))
+      logs.warning('Failed to copy cloud storage file %s to cloud storage '
+                   'file %s.' % (remote_source, remote_target))
       raise
 
     return True
@@ -318,7 +318,7 @@ class GcsProvider(StorageProvider):
       if e.code == 404:
         return None
 
-      logs.log_warn('Failed to read cloud storage file %s.' % remote_path)
+      logs.warning('Failed to read cloud storage file %s.' % remote_path)
       raise
 
   def write_data(self, data_or_fileobj, remote_path, metadata=None):
@@ -335,8 +335,9 @@ class GcsProvider(StorageProvider):
         blob.upload_from_string(data_or_fileobj)
       else:
         blob.upload_from_file(data_or_fileobj)
+
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
+      logs.warning('Failed to write cloud storage file %s.' % remote_path)
       raise
 
     return True
@@ -357,7 +358,7 @@ class GcsProvider(StorageProvider):
             data = data.encode()
           blob_writer.write(data)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
+      logs.warning('Failed to write cloud storage file %s.' % remote_path)
       raise
 
     return True
@@ -384,7 +385,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       bucket.delete_blob(path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to delete cloud storage file %s.' % remote_path)
+      logs.warning('Failed to delete cloud storage file %s.' % remote_path)
       raise
 
     return True
@@ -717,7 +718,7 @@ class GcsBlobInfo:
     try:
       return GcsBlobInfo(blobs_bucket(), key)
     except Exception:
-      logs.log_error('Failed to get blob from key %s.' % key)
+      logs.error('Failed to get blob from key %s.' % key)
       return None
 
   @staticmethod
@@ -798,7 +799,7 @@ def _get_error_reason(http_error):
     data = json.loads(http_error.content.decode('utf-8'))
     return data['error']['message']
   except (ValueError, KeyError):
-    logs.log_error('Failed to decode error content: %s' % http_error.content)
+    logs.error('Failed to decode error content: %s' % http_error.content)
 
   return None
 
@@ -849,7 +850,7 @@ def get_bucket_iam_policy(storage, bucket_name):
   try:
     iam_policy = storage.buckets().getIamPolicy(bucket=bucket_name).execute()
   except HttpError as e:
-    logs.log_error('Failed to get IAM policies for %s: %s' % (bucket_name, e))
+    logs.error('Failed to get IAM policies for %s: %s' % (bucket_name, e))
     return None
 
   return iam_policy
@@ -878,13 +879,13 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
     error_reason = _get_error_reason(e)
     if error_reason == 'Invalid argument':
       # Expected error for non-Google emails or groups. Warn about these.
-      logs.log_warn('Invalid Google email or group being added to bucket %s.' %
-                    bucket_name)
+      logs.warning('Invalid Google email or group being added to bucket %s.' %
+                   bucket_name)
     elif error_reason and 'is of type "group"' in error_reason:
-      logs.log_warn('Failed to set IAM policy for %s bucket for a group: %s.' %
-                    (bucket_name, error_reason))
+      logs.warning('Failed to set IAM policy for %s bucket for a group: %s.' %
+                   (bucket_name, error_reason))
     else:
-      logs.log_error('Failed to set IAM policies for bucket %s.' % bucket_name)
+      logs.error('Failed to set IAM policies for bucket %s.' % bucket_name)
 
   return None
 
@@ -950,7 +951,7 @@ def copy_file_to(local_file_path_or_handle,
   """Copy local file to a cloud storage path."""
   if (isinstance(local_file_path_or_handle, str) and
       not os.path.exists(local_file_path_or_handle)):
-    logs.log_error('Local file %s not found.' % local_file_path_or_handle)
+    logs.error('Local file %s not found.' % local_file_path_or_handle)
     return False
 
   return _provider().copy_file_to(
@@ -988,8 +989,8 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     return bool(_provider().get(cloud_storage_file_path))
   except HttpError:
     if not ignore_errors:
-      logs.log_error('Failed when trying to find cloud storage file %s.' %
-                     cloud_storage_file_path)
+      logs.error('Failed when trying to find cloud storage file %s.' %
+                 cloud_storage_file_path)
 
     return False
 
@@ -1147,7 +1148,7 @@ def uworker_input_bucket():
   # TODO(metzman): Use local config.
   bucket = environment.get_value('UWORKER_INPUT_BUCKET')
   if not bucket:
-    logs.log_error('UWORKER_INPUT_BUCKET is not defined.')
+    logs.error('UWORKER_INPUT_BUCKET is not defined.')
   return bucket
 
 
@@ -1162,7 +1163,7 @@ def uworker_output_bucket():
   # TODO(metzman): Use local config.
   bucket = environment.get_value('UWORKER_OUTPUT_BUCKET')
   if not bucket:
-    logs.log_error('UWORKER_OUTPUT_BUCKET is not defined.')
+    logs.error('UWORKER_OUTPUT_BUCKET is not defined.')
   return bucket
 
 
@@ -1260,11 +1261,11 @@ def _error_tolerant_delete_signed_url(url):
 def upload_signed_urls(signed_urls, files):
   if not signed_urls:
     return []
-  logs.log('Uploading URLs.')
+  logs.info('Uploading URLs.')
   with _pool() as pool:
     result = list(
         pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
-  logs.log('Done uploading URLs.')
+  logs.info('Done uploading URLs.')
   return result
 
 
@@ -1283,22 +1284,22 @@ def download_signed_urls(signed_urls, directory):
       os.path.join(directory, f'{basename}-{idx}')
       for idx in range(len(signed_urls))
   ]
-  logs.log('Downloading URLs.')
+  logs.info('Downloading URLs.')
   with _pool() as pool:
     result = list(
         pool.map(_error_tolerant_download_signed_url_to_file,
                  zip(signed_urls, filepaths)))
-  logs.log('Done downloading URLs.')
+  logs.info('Done downloading URLs.')
   return result
 
 
 def delete_signed_urls(urls):
   if not urls:
     return []
-  logs.log('Deleting URLs.')
+  logs.info('Deleting URLs.')
   with _pool() as pool:
     result = list(pool.map(_error_tolerant_delete_signed_url, urls))
-  logs.log('Done deleting URLs.')
+  logs.info('Done deleting URLs.')
   return result
 
 
@@ -1314,11 +1315,11 @@ def _sign_urls_for_existing_file(corpus_element_url,
 
 
 def sign_urls_for_existing_files(urls, include_delete_urls):
-  logs.log('Signing URLs for existing files.')
+  logs.info('Signing URLs for existing files.')
   result = [
       _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
   ]
-  logs.log('Done signing URLs for existing files.')
+  logs.info('Done signing URLs for existing files.')
   return result
 
 
@@ -1348,7 +1349,7 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
     raise ValueError(f'UUID collision found {str(unique_id)}')
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
-  logs.log('Signing URLs for arbitrary uploads.')
+  logs.info('Signing URLs for arbitrary uploads.')
   result = [get_signed_upload_url(url) for url in urls]
-  logs.log('Done signing URLs for arbitrary uploads.')
+  logs.info('Done signing URLs for arbitrary uploads.')
   return result

@@ -50,7 +50,7 @@ def main():
         serial=device_serial) and environment.is_android_cuttlefish():
       android.adb.connect_to_cuttlefish_device()
       state = android.adb.get_device_state()
-    logs.log('Android device %s state: %s' % (device_serial, state))
+    logs.info('Android device %s state: %s' % (device_serial, state))
 
     monitoring_metrics.ANDROID_UPTIME.increment_by(
         int(state == 'device'), {

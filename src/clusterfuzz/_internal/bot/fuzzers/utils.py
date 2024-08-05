@@ -32,7 +32,6 @@ EXTRA_BUILD_DIR = '__extra_build'
 
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
-  # TODO(hzawawy): Handle syzkaller case.
   if '@' in file_path:
     # GFT targets often have periods in the name that get misinterpreted as an
     # extension.
@@ -70,7 +69,7 @@ def is_fuzz_target_local(file_path, file_handle=None):
 
   if os.path.exists(file_path) and not stat.S_ISREG(os.stat(file_path).st_mode):
     # Don't read special files (eg: /dev/urandom).
-    logs.log_warn('Tried to read from non-regular file: %s.' % file_path)
+    logs.warning('Tried to read from non-regular file: %s.' % file_path)
     return False
 
   # Use already provided file handle or open the file.
@@ -155,12 +154,14 @@ def get_supporting_file(fuzz_target_path, extension_or_suffix):
   return base_fuzz_target_path + extension_or_suffix
 
 
-def get_temp_dir():
+def get_temp_dir(use_fuzz_inputs_disk=True):
   """Return the temp dir."""
   temp_dirname = 'temp-' + str(os.getpid())
-  temp_directory = os.path.join(
-      environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir()),
-      temp_dirname)
+  if use_fuzz_inputs_disk:
+    prefix = environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir())
+  else:
+    prefix = tempfile.gettempdir()
+  temp_directory = os.path.join(prefix, temp_dirname)
   shell.create_directory(temp_directory)
   return temp_directory
 

@@ -42,30 +42,11 @@ from clusterfuzz._internal.system import shell
 TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
-MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
-if sys.version_info.major == 3:
-  MANIFEST_FILENAME += '.3'
-
 
 def _rename_dll_for_update(absolute_filepath):
   """Rename a DLL to allow for updates."""
   backup_filepath = absolute_filepath + '.bak.' + str(int(time.time()))
   os.rename(absolute_filepath, backup_filepath)
-
-
-def _platform_deployment_filename():
-  """Return the platform deployment filename."""
-  platform_mappings = {
-      'Linux': 'linux',
-      'Windows': 'windows',
-      'Darwin': 'macos'
-  }
-
-  base_filename = platform_mappings[platform.system()]
-  if sys.version_info.major == 3:
-    base_filename += '-3'
-
-  return base_filename + '.zip'
 
 
 def _deployment_file_url(filename):
@@ -81,12 +62,22 @@ def _deployment_file_url(filename):
 
 def get_source_url():
   """Return the source URL."""
-  return _deployment_file_url(_platform_deployment_filename())
+  release = utils.get_clusterfuzz_release()
+  platform_name = platform.system()
+  platform_mappings = {
+      'Linux': 'linux',
+      'Windows': 'windows',
+      'Darwin': 'macos'
+  }
+  platform_name = platform_mappings[platform_name]
+  return _deployment_file_url(
+      utils.get_platform_deployment_filename(platform_name, release))
 
 
 def get_source_manifest_url():
   """Return the source manifest URL."""
-  return _deployment_file_url(MANIFEST_FILENAME)
+  release = utils.get_clusterfuzz_release()
+  return _deployment_file_url(utils.get_remote_manifest_filename(release))
 
 
 def clear_old_files(directory, extracted_file_set):
@@ -131,9 +122,14 @@ def get_remote_source_revision(source_manifest_url):
 def get_newer_source_revision():
   """Returns the latest source revision if there is an update, or None if the
   current source is up to date."""
+
+  if platform.system() == 'Darwin':
+    # TODO(https://github.com/google/clusterfuzz/issues/4059): Get rid of this
+    # when Mac updating is fixed.
+    return None
   if (environment.get_value('LOCAL_SRC') or
       environment.get_value('LOCAL_DEVELOPMENT')):
-    logs.log('Using local source, skipping source code update.')
+    logs.info('Using local source, skipping source code update.')
     return None
 
   root_directory = environment.get_value('ROOT_DIR')
@@ -141,35 +137,39 @@ def get_newer_source_revision():
   source_manifest_url = get_source_manifest_url()
   if (not get_source_url() or not source_manifest_url or not temp_directory or
       not root_directory):
-    logs.log('Skipping source code update.')
+    logs.info('Skipping source code update.')
     return None
 
-  logs.log('Checking source code for updates.')
+  logs.info('Checking source code for updates.')
   try:
     source_version = get_remote_source_revision(source_manifest_url)
   except Exception:
-    logs.log_error('Error occurred while checking source version.')
+    logs.error('Error occurred while checking source version.')
     return None
 
   local_source_version = get_local_source_revision()
   if not local_source_version:
-    logs.log('No manifest found. Forcing an update.')
+    logs.info('No manifest found. Forcing an update.')
     return source_version
 
-  logs.log('Local source code version: %s.' % local_source_version)
-  logs.log('Remote source code version: %s.' % source_version)
+  logs.info(f'Local source code version: {local_source_version}, ' +
+            f'on release {utils.get_clusterfuzz_release()}.')
+  logs.info(f'Remote source code version: {source_version}, ' +
+            f'on release {utils.get_clusterfuzz_release()}.')
   if local_source_version >= source_version:
-    logs.log('Remote souce code <= local source code. No update.')
+    logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
     return None
 
-  logs.log(f'New source code: {source_version}')
+  logs.info(f'New source code: {source_version} ' +
+            f'(updated from {local_source_version}, ' +
+            f'on release {utils.get_clusterfuzz_release()})')
   return source_version
 
 
 def run_platform_init_scripts():
   """Run platform specific initialization scripts."""
-  logs.log('Running platform initialization scripts.')
+  logs.info('Running platform initialization scripts.')
 
   plt = environment.platform()
   if environment.is_android():
@@ -187,7 +187,7 @@ def run_platform_init_scripts():
   else:
     raise RuntimeError('Unsupported platform')
 
-  logs.log('Completed running platform initialization scripts.')
+  logs.info('Completed running platform initialization scripts.')
 
 
 def update_source_code():
@@ -203,13 +203,13 @@ def update_source_code():
   try:
     storage.copy_file_from(get_source_url(), temp_archive)
   except Exception:
-    logs.log_error('Could not retrieve source code archive from url.')
+    logs.error('Could not retrieve source code archive from url.')
     return
 
   try:
     reader = archive.open(temp_archive)
   except Exception:
-    logs.log_error('Bad zip file.')
+    logs.error('Bad zip file.')
     return
 
   src_directory = os.path.join(root_directory, 'src')
@@ -226,7 +226,10 @@ def update_source_code():
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
-    if os.path.realpath(absolute_filepath) != absolute_filepath:
+    real_path = os.path.realpath(absolute_filepath)
+    if real_path != absolute_filepath:
+      logs.info('Mismatch between absolute and real filepath. '
+                f'Not adding on normalized set: {real_path}')
       continue
 
     normalized_file_set.add(absolute_filepath)
@@ -246,18 +249,22 @@ def update_source_code():
           os.path.exists(absolute_filepath)):
         _rename_dll_for_update(absolute_filepath)
     except Exception:
-      logs.log_error('Failed to remove or move %s before extracting new '
-                     'version.' % absolute_filepath)
+      logs.error('Failed to remove or move %s before extracting new '
+                 'version.' % absolute_filepath)
 
     try:
+      # Make sure we can override files without prior write permission.
+      target_destination = os.path.join(cf_source_root_parent_dir, file.name)
+      try:
+        os.chmod(target_destination, 0o755)
+      except FileNotFoundError:
+        pass
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
-      mode = file.mode
-      mode |= 0o440
-      os.chmod(extracted_path, mode)
-    except:
+      os.chmod(extracted_path, 0o755)
+    except Exception:
       error_occurred = True
-      logs.log_error(f'Failed to extract file {file.name} from source archive.')
+      logs.error(f'Failed to extract file {file.name} from source archive.')
 
   reader.close()
 
@@ -272,7 +279,8 @@ def update_source_code():
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
-  logs.log('Source code updated to %s.' % source_version)
+  logs.info(f'Source code updated to {source_version} ' +
+            f'(release = {utils.get_clusterfuzz_release()}).')
 
 
 def update_tests_if_needed():
@@ -302,7 +310,7 @@ def update_tests_if_needed():
       last_modified_time, days=TESTS_UPDATE_INTERVAL_DAYS)):
     return
 
-  logs.log('Updating layout tests.')
+  logs.info('Updating layout tests.')
   tasks.track_task_start(
       tasks.Task('update_tests', '', ''), expected_task_duration)
 
@@ -317,7 +325,7 @@ def update_tests_if_needed():
       error_occured = False
       break
     except:
-      logs.log_error(
+      logs.error(
           'Could not retrieve and unpack layout tests archive. Retrying.')
       error_occured = True
 
@@ -345,7 +353,7 @@ def run():
     if not environment.is_uworker():
       update_tests_if_needed()
   except Exception:
-    logs.log_error('Error occurred while running update task.')
+    logs.error('Error occurred while running update task.')
 
   # Even if there is an exception in one of the other steps, we want to try to
   # update the source. If for some reason the source code update fails, it is
@@ -362,4 +370,4 @@ def run():
     # Run platform specific initialization scripts.
     run_platform_init_scripts()
   except Exception:
-    logs.log_error('Error occurred while running update task.')
+    logs.error('Error occurred while running update task.')
