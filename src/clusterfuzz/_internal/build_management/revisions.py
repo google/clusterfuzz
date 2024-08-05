@@ -86,7 +86,7 @@ def _clank_revision_file_to_revisions_dict(content):
     component_revision_mappings[component] = revision
 
   if not component_revision_mappings:
-    logs.log_error('Failed to get component revision mappings for clank.')
+    logs.error('Failed to get component revision mappings for clank.')
     return None
 
   chromium_revision = component_revision_mappings['chromium_revision']
@@ -95,7 +95,7 @@ def _clank_revision_file_to_revisions_dict(content):
   # Initialize revisions dictionary with chromium repo.
   revisions_dict = get_component_revisions_dict(chromium_revision, None)
   if revisions_dict is None:
-    logs.log_error(
+    logs.error(
         'Failed to get chromium component revisions.',
         chromium_revision=chromium_revision,
         clank_revision=clank_revision)
@@ -241,12 +241,12 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
   query_url = '%s?%s' % (CRREV_NUMBERING_URL, query_string)
   url_content = _get_url_content(query_url)
   if url_content is None:
-    logs.log_error('Failed to fetch git hash from url: ' + query_url)
+    logs.error('Failed to fetch git hash from url: ' + query_url)
     return None
 
   result_dict = _to_dict(url_content)
   if result_dict is None:
-    logs.log_error('Failed to parse git hash from url: ' + query_url)
+    logs.error('Failed to parse git hash from url: ' + query_url)
     return None
 
   return result_dict['git_sha']
@@ -283,7 +283,7 @@ def deps_to_revisions_dict(content):
   if not deps_dict:
     # |deps| variable is required. If it does not exist, we should raise an
     # exception.
-    logs.log_error('Deps format has changed, code needs fixing.')
+    logs.error('Deps format has changed, code needs fixing.')
     return None
   _add_components_from_dict(deps_dict, vars_dict, revisions_dict)
 
@@ -393,8 +393,7 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
   revision_vars_url = revision_vars_url_format % revision
   url_content = _get_url_content(revision_vars_url)
   if not url_content:
-    logs.log_error(
-        'Failed to get component revisions from %s.' % revision_vars_url)
+    logs.error('Failed to get component revisions from %s.' % revision_vars_url)
     return None
 
   # Parse as per DEPS format.
@@ -413,7 +412,7 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
   # Default case: parse content as yaml.
   revisions_dict = _to_dict(url_content)
   if revisions_dict is None:
-    logs.log_error(
+    logs.error(
         'Failed to parse component revisions from %s.' % revision_vars_url)
     return None
 
@@ -462,8 +461,8 @@ def get_component_range_list(start_revision,
       continue
 
     if key not in start_component_revisions_dict:
-      logs.log_warn('Key %s not found in start revision %s for job %s.' %
-                    (key, start_revision, job_type))
+      logs.warning('Key %s not found in start revision %s for job %s.' %
+                   (key, start_revision, job_type))
       continue
 
     start_component_revision_dict = start_component_revisions_dict[key]
@@ -537,7 +536,7 @@ def convert_revision_to_integer(revision):
     return int(revision)
 
   error = 'Unknown revision pattern: %s' % revision
-  logs.log_error(error)
+  logs.error(error)
   raise ValueError(error)
 
 
@@ -601,7 +600,7 @@ def get_first_revision_in_list(revision_list):
 
   # No revision >= |MIN_REVISION| was found, store the error and just return
   # first revision.
-  logs.log_error('Unable to find a revision >= MIN_REVISION.')
+  logs.error('Unable to find a revision >= MIN_REVISION.')
   return first_revision
 
 
@@ -651,7 +650,7 @@ def needs_update(revision_file, revision):
       with open(revision_file) as file_handle:
         current_revision = file_handle.read()
     except:
-      logs.log_error(
+      logs.error(
           'Error occurred while reading revision file %s.' % revision_file)
       time.sleep(utils.random_number(1, failure_wait_interval))
       continue
@@ -669,7 +668,7 @@ def needs_update(revision_file, revision):
   # An error has occurred and we have failed to read revision file
   # despite several retries. So, don't bother updating the data
   # bundle as it will probably fail as well.
-  logs.log_error('Failed to read revision file, exiting.')
+  logs.error('Failed to read revision file, exiting.')
   return False
 
 
@@ -679,8 +678,7 @@ def write_revision_to_revision_file(revision_file, revision):
     with open(revision_file, 'wb') as file_handle:
       file_handle.write(str(revision).encode('utf-8'))
   except:
-    logs.log_error(
-        "Could not save revision to revision file '%s'" % revision_file)
+    logs.error("Could not save revision to revision file '%s'" % revision_file)
 
 
 def revision_pattern_from_build_bucket_path(bucket_path):
@@ -701,14 +699,14 @@ def revision_to_branched_from(uri, revision):
   url_content = '\n'.join(url_content.splitlines()[1:])
   result = _to_dict(url_content)
   if not result:
-    logs.log_error("Unable to retrieve and parse url: %s" % full_uri)
+    logs.error("Unable to retrieve and parse url: %s" % full_uri)
     return None
   msg = result.get('message', None)
   if not msg:
-    logs.log_error("%s JSON had no 'message'" % full_uri)
+    logs.error("%s JSON had no 'message'" % full_uri)
     return None
   m = FIND_BRANCHED_FROM.search(msg)
   if not m:
-    logs.log_error("%s JSON message lacked Cr-Branched-From" % full_uri)
+    logs.error("%s JSON message lacked Cr-Branched-From" % full_uri)
     return None
   return m.group(1)

@@ -122,7 +122,7 @@ def utask_main(uworker_input):
   if environment.tool_matches('ASAN', job_type) and testcase.security_flag:
     redzone = MAX_REDZONE
     while redzone >= MIN_REDZONE:
-      logs.log(f'Trying to reproduce crash with ASAN redzone size {redzone}.')
+      logs.info(f'Trying to reproduce crash with ASAN redzone size {redzone}.')
 
       environment.reset_current_memory_tool_options(
           redzone_size=testcase.redzone, disable_ubsan=testcase.disable_ubsan)
@@ -140,27 +140,28 @@ def utask_main(uworker_input):
         security_flag = crash_result.is_security_issue()
 
         if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
-          logs.log(
+          logs.info(
               f'Skipping crash with ASAN redzone size {redzone}: ' +
               'stack trace should be ignored.',
               stacktrace=state.crash_stacktrace)
         elif security_flag != testcase.security_flag:
-          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
-                   f'mismatched security flag: old = {testcase.security_flag}, '
-                   f'new = {security_flag}')
+          logs.info(
+              f'Skipping crash with ASAN redzone size {redzone}: ' +
+              f'mismatched security flag: old = {testcase.security_flag}, '
+              f'new = {security_flag}')
         elif state.crash_type != testcase.crash_type:
-          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
-                   f'mismatched crash type: old = {testcase.crash_type}, '
-                   f'new = {state.crash_type}')
+          logs.info(f'Skipping crash with ASAN redzone size {redzone}: ' +
+                    f'mismatched crash type: old = {testcase.crash_type}, '
+                    f'new = {state.crash_type}')
         elif state.crash_state == sym_crash_state:
-          logs.log(f'Skipping crash with ASAN redzone size {redzone}: ' +
-                   f'same crash state = {sym_crash_state}')
+          logs.info(f'Skipping crash with ASAN redzone size {redzone}: ' +
+                    f'same crash state = {sym_crash_state}')
         else:
-          logs.log(f'Using crash with larger ASAN redzone size {redzone}: ' +
-                   f'old crash address = {sym_crash_address}, ' +
-                   f'new crash address = {state.crash_address}, ' +
-                   f'old crash state = {sym_crash_state}, ' +
-                   f'new crash state = {state.crash_state}')
+          logs.info(f'Using crash with larger ASAN redzone size {redzone}: ' +
+                    f'old crash address = {sym_crash_address}, ' +
+                    f'new crash address = {state.crash_address}, ' +
+                    f'old crash state = {sym_crash_state}, ' +
+                    f'new crash state = {state.crash_state}')
 
           sym_crash_address = state.crash_address
           sym_crash_state = state.crash_state

@@ -36,18 +36,18 @@ class _Mode(enum.Enum):
   """The execution mode of `uworker_main` tasks in a bot process."""
 
   # `uworker_main` tasks are executed on Cloud Batch.
-  BATCH = "batch"
+  BATCH = 'batch'
 
   # `uworker_main` tasks are executed on bots via a Pub/Sub queue.
-  QUEUE = "queue"
+  QUEUE = 'queue'
 
 
 class _Subtask(enum.Enum):
   """Parts of a task that may be executed on separate machines."""
 
-  PREPROCESS = "preprocess"
-  UWORKER_MAIN = "uworker_main"
-  POSTPROCESS = "postprocess"
+  PREPROCESS = 'preprocess'
+  UWORKER_MAIN = 'uworker_main'
+  POSTPROCESS = 'postprocess'
 
 
 def _timestamp_now() -> Timestamp:
@@ -149,14 +149,14 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env,
 
   recorder.set_task_details(utask_module, job_type, environment.platform())
 
-  logs.log('Starting utask_preprocess: %s.' % utask_module)
+  logs.info('Starting utask_preprocess: %s.' % utask_module)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
-    logs.log_error('No uworker_input returned from preprocess')
+    logs.error('No uworker_input returned from preprocess')
     return None
 
-  logs.log('Preprocess finished.')
+  logs.info('Preprocess finished.')
 
   task_payload = environment.get_value('TASK_PAYLOAD')
   if task_payload:
@@ -177,7 +177,7 @@ def _start_web_server_if_needed(job_type):
   try:
     http_server.start()
   except Exception:
-    logs.log_error('Failed to start web server, skipping.')
+    logs.error('Failed to start web server, skipping.')
 
 
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
@@ -197,7 +197,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
   with _MetricRecorder(_Subtask.UWORKER_MAIN, _Mode.QUEUE) as recorder:
-    logs.log('Starting utask_main: %s.' % utask_module)
+    logs.info('Starting utask_main: %s.' % utask_module)
     uworker_input = uworker_io.deserialize_uworker_input(
         serialized_uworker_input)
 
@@ -220,6 +220,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   """Executes the postprocess step on the trusted (t)worker (in this case it is
   the same bot as the uworker)."""
+  logs.info('Starting postprocess on trusted worker.')
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.QUEUE) as recorder:
     uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
 
@@ -274,7 +275,7 @@ def uworker_main(input_download_url) -> None:
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
 
-    logs.log('Starting HTTP server.')
+    logs.info('Starting HTTP server.')
     _start_web_server_if_needed(uworker_input.job_type)
 
     utask_module = get_utask_module(uworker_input.module_name)
@@ -282,13 +283,11 @@ def uworker_main(input_download_url) -> None:
                               environment.platform(),
                               uworker_input.preprocess_start_time)
 
-    logs.log('Starting utask_main: %s.' % utask_module)
+    logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
-    uworker_output.bot_name = environment.get_value('BOT_NAME', '')
-    uworker_output.platform_id = environment.get_platform_id()
     uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                    uworker_output_upload_url)
-    logs.log('Finished uworker_main.')
+    logs.info('Finished uworker_main.')
     return True
 
 
@@ -298,7 +297,7 @@ def get_utask_module(module_name):
 
 def uworker_bot_main():
   """The entrypoint for a uworker."""
-  logs.log('Starting utask_main on untrusted worker.')
+  logs.info('Starting utask_main on untrusted worker.')
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
   uworker_main(input_download_url)
   return 0
@@ -306,6 +305,7 @@ def uworker_bot_main():
 
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
+  logs.info('Starting postprocess untrusted worker.')
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.BATCH) as recorder:
     uworker_output = uworker_io.download_and_deserialize_uworker_output(
         output_download_url)

@@ -44,7 +44,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.'
-        'symbolize_stacktrace', 'clusterfuzz._internal.metrics.logs.log_error',
+        'symbolize_stacktrace', 'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.platforms.android.kernel_utils.'
         'get_kernel_prefix_and_full_hash'
     ])
@@ -3202,7 +3202,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-    self.mock.log_error.assert_called_once_with(
+    self.mock.error.assert_called_once_with(
         'Unknown UBSan crash type: '
         'unsupported ubsan error that needs a new signature')
 

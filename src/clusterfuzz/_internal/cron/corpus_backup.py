@@ -28,11 +28,11 @@ from clusterfuzz._internal.metrics import logs
 def _set_public_acl_if_needed(url):
   """Sets public ACL on the object with given URL, if it's not public yet."""
   if storage.get_acl(url, 'allUsers'):
-    logs.log('%s is already marked public, skipping.' % url)
+    logs.info('%s is already marked public, skipping.' % url)
     return True
 
   if not storage.set_acl(url, 'allUsers'):
-    logs.log_error('Failed to mark %s public.' % url)
+    logs.error('Failed to mark %s public.' % url)
     return False
 
   return True
@@ -49,7 +49,7 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
       target.project_qualified_name(), corpus_backup_date)
 
   if not storage.get(corpus_backup_url):
-    logs.log_warn('Failed to find corpus backup %s.' % corpus_backup_url)
+    logs.warning('Failed to find corpus backup %s.' % corpus_backup_url)
     return
 
   if not _set_public_acl_if_needed(corpus_backup_url):
@@ -61,15 +61,14 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   public_url = os.path.join(os.path.dirname(corpus_backup_url), filename)
 
   if not storage.copy_blob(corpus_backup_url, public_url):
-    logs.log_error(
-        'Failed to overwrite %s with the latest public corpus backup.' %
-        public_url)
+    logs.error('Failed to overwrite %s with the latest public corpus backup.' %
+               public_url)
     return
 
   if not _set_public_acl_if_needed(public_url):
     return
 
-  logs.log('Corpus backup %s is now marked public.' % corpus_backup_url)
+  logs.info('Corpus backup %s is now marked public.' % corpus_backup_url)
 
 
 def main():
@@ -108,6 +107,6 @@ def main():
         _make_corpus_backup_public(target, corpus_fuzzer_name_override,
                                    corpus_backup_bucket_name)
       except:
-        logs.log_error(f'Failed to make {target} corpus backup public.')
-  logs.log('Corpus backup succeeded.')
+        logs.error(f'Failed to make {target} corpus backup public.')
+  logs.info('Corpus backup succeeded.')
   return True

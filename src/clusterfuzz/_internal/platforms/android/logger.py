@@ -60,7 +60,7 @@ def filter_log_output(output):
     # {log_level}/{process_name}({process_id}): {message}
     m_line = re.match(r'^[VDIWEFS]/(.+)\(\s*(\d+)\)[:](.*)$', line)
     if not m_line:
-      logs.log('Failed to parse logcat line: %s' % line)
+      logs.info(f'Failed to parse logcat line: {line}.')
       continue
 
     process_name = m_line.group(1).strip()

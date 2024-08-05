@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for the stack analyzer module for lkl specifically."""
+"""Tests for the stack analyzer module for android specifically."""
 
 import os
 import unittest
@@ -22,26 +22,26 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'stack_analyzer_data')
-TEST_JOB_NAME = 'test_lkl'
+TEST_JOB_NAME = 'test'
 
-KERNEL_REPRO = """kernel/build u'6eeca0ea35da517952643a3b0c5b2436df4d3230'
-kernel/common-patches u'34bbf764ca33bd39922a40ca641139a9362a0812'
-kernel/configs u'89ba434b0b7624d6085f22742f01a0d8502e7025'
-kernel/cuttlefish-modules u'5375d668eb898993d0acbba27de47e2eb605b0a0'
-kernel/goldfish-modules u'f21b72a86766714b06bdc2b532ebd61b10286b26'
-kernel/hikey-modules u'33d4b7f884500689a297df156b1c0a29e1c525da'
-kernel/manifest u'c85b8efb8d71e931b400942f7716bb5ecac9b1fa'
-kernel/prebuilts/build-tools u'96755e2ffffe500011eecd81b63eeaf2d484338e'
-kernel/private/lkl u'd0fcd2ee3504f53bba1227805a8ba3828e9279aa'
-kernel/tests u'9e155c5f1646097bfa3e71017079b1caf1ba57d4'
-platform/prebuilts/boot-artifacts u'45d30d07ad284018481ebb419b5d01b5de72ed02'
-platform/prebuilts/build-tools u'167903bfd32b60bcff841422710b7cf489c84fec'
-platform/prebuilts/clang/host/linux-x86 u'c1bd0e5040ec38682f101fa6ce35e4e2c0079c0e'
-platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 u'e9c7c9eb5c3ab5d4f1f09b3ce97498fc59c3bdcd'
-platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 u'1b12660791807c225dc682addaa37d0b9468349c'
-platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8 u'71ba8516fe4039ddb00dd0976c211d28d3ff8913'
-platform/prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9 u'337ac2199f94c781e3c97baf2a0027d004d0097f'
-platform/system/tools/mkbootimg u'f59f25d67f55ea6ee879678cfa1bfdd0be5f4019'
+KERNEL_REPRO = """kernel/build u'c059b39e1caf2b96aa376582eeb93062b43d69d5'
+kernel/manifest u'75a64986ab455f8b45087b8ad54db68bcb8988f4'
+kernel/private/msm-google u'40e9b2ff3a280a8775cfcd5841e530ce78f94355'
+kernel/private/msm-google-extra/audiokernel u'112a618d5b757b0600c69f7385892b3f57ccd93e'
+kernel/private/msm-google-modules/data-kernel u'e7210f09d00c91f87b295c7a952f040c73506cc0'
+kernel/private/msm-google-modules/fts_touch u'8f6a4e9f5649deff59174ffed1d5c2af196d9f63'
+kernel/private/msm-google-modules/qca-wfi-host-cmn u'7d4b05ac12d6a1b5d5247da35ae7e370a2cba07d'
+kernel/private/msm-google-modules/qcacld u'0a077b0073c48555d0edb2b9b0510fb883181828'
+kernel/private/msm-google-modules/wlan-fw-api u'53d899727e4278f4e9fb46328d740a8fb2d9a493'
+kernel/private/tests/patchwork u'204e78fb6d905016bfc16ebe7b64547f388cfdb5'
+kernel/tests u'bfef3bb78b23cb3f3f12a6880ecafd5def3b66a5'
+platform/external/fff u'c82edb1fc60dc81bd319d9b8d0bee9f8963a6960'
+platform/external/googletest u'a037984aea3317260edd1127abb39e30e845bc94'
+platform/prebuilts/clang/host/linux-x86 u'4b1f275e6b3826c86f791ae8c4d5ec3563c2fc11'
+platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 u'961622e926a1b21382dba4dd9fe0e5fb3ee5ab7c'
+platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 u'cb7b3ac1b7fdb49474ff68761909934d1142f594'
+platform/prebuilts/misc u'15560bb32cdb9b47db48eb4865b736df9708a8fe'
+platform/tools/repohooks u'233b8010f7f5e3c544b47c68ffae781860156945'
 """
 
 
@@ -65,8 +65,8 @@ def _mock_fetch_artifact_get(bid,
 # pylint: enable=unused-argument
 
 
-class LKLStackAnalyzerTest(unittest.TestCase):
-  """LKL specific Stack analyzer tests."""
+class AndroidStackAnalyzerTest(unittest.TestCase):
+  """Android specific Stack analyzer tests."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
@@ -90,21 +90,28 @@ class LKLStackAnalyzerTest(unittest.TestCase):
     with open(os.path.join(DATA_DIRECTORY, name)) as handle:
       return handle.read()
 
-  def test_lkl_linkification(self):
-    """Test lkl linkification."""
+  def test_syzkaller_kasan_android_with_env(self):
+    """Test syzkaller kasan."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID_KERNEL')
     environment.set_bot_environment()
     self._real_read_data_from_file = utils.read_data_from_file
     test_helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.fetch_artifact.get',
+        'clusterfuzz._internal.platforms.android.kernel_utils.get_kernel_hash_and_build_id',
+        'clusterfuzz._internal.platforms.android.kernel_utils.get_kernel_name',
+        'clusterfuzz._internal.platforms.android.settings.get_product_brand',
         'clusterfuzz._internal.base.utils.write_data_to_file',
         'clusterfuzz._internal.base.utils.read_data_from_file'
     ])
     self.mock.get.side_effect = _mock_fetch_artifact_get
+    self.mock.get_kernel_hash_and_build_id.return_value = '40e9b2ff3a2', '12345'
+    self.mock.get_kernel_name.return_value = 'device_kernel'
+    self.mock.get_product_brand.return_value = 'google'
     self.mock.write_data_to_file = None
     self.mock.read_data_from_file.side_effect = self._mock_read_data_from_file
 
-    data = self._read_test_data('lkl_libfuzzer_symbolized.txt')
+    data = self._read_test_data('kasan_syzkaller_android.txt')
     expected_stack = self._read_test_data(
-        'lkl_libfuzzer_symbolized_linkified.txt')
+        'kasan_syzkaller_android_linkified.txt')
     actual_state = stack_analyzer.get_crash_data(data)
     self.assertEqual(actual_state.crash_stacktrace, expected_stack)

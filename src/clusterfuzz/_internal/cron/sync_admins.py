@@ -55,7 +55,7 @@ def update_admins(new_admins):
   existing_admin_emails = set()
   for admin in existing_admins:
     if admin.email not in new_admins:
-      logs.log('Removing admin ' + admin.email)
+      logs.info('Removing admin ' + admin.email)
       to_remove.append(admin.key)
 
     existing_admin_emails.add(admin.email)
@@ -66,7 +66,7 @@ def update_admins(new_admins):
   for admin in new_admins:
     if admin not in existing_admin_emails:
       to_add.append(data_types.Admin(id=admin, email=admin))
-      logs.log('Adding admin ' + admin)
+      logs.info('Adding admin ' + admin)
 
   ndb_utils.put_multi(to_add)
 
@@ -81,5 +81,5 @@ def main():
 
   admins = admins_from_iam_policy(policy)
   update_admins(admins)
-  logs.log('Sync admins succeeded.')
+  logs.info('Sync admins succeeded.')
   return True

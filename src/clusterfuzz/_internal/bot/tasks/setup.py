@@ -204,7 +204,7 @@ def preprocess_setup_testcase(testcase,
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
   if fuzzer_name and not with_deps:
-    logs.log(f'Skipping fuzzer preprocess: {fuzzer_name}.')
+    logs.info(f'Skipping fuzzer preprocess: {fuzzer_name}.')
   if fuzzer_name and with_deps:
     # This branch is taken when we assume fuzzer needs to be set up for a
     # testcase to be executed (i.e. when a testcase was found by a fuzzer).
@@ -213,8 +213,8 @@ def preprocess_setup_testcase(testcase,
       setup_input = preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
     except errors.InvalidFuzzerError:
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
-      logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
-                     (testcase_id, fuzzer_name))
+      logs.error('Closed testcase %d with invalid fuzzer %s.' % (testcase_id,
+                                                                 fuzzer_name))
       error_message = f'Fuzzer {fuzzer_name} no longer exists.'
       # First update comment.
       testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -356,7 +356,7 @@ def _is_testcase_minimized(testcase):
 
 
 def download_testcase(testcase_download_url, dst):
-  logs.log(f'Downloading testcase from: {testcase_download_url}')
+  logs.info(f'Downloading testcase from: {testcase_download_url}')
   return storage.download_signed_url_to_file(testcase_download_url, dst)
 
 
@@ -376,7 +376,7 @@ def unpack_testcase(testcase, testcase_download_url):
     temp_filename = testcase_file_path
 
   if not download_testcase(testcase_download_url, temp_filename):
-    logs.log(f'Couldn\'t download testcase {key} {testcase_download_url}.')
+    logs.info(f'Couldn\'t download testcase {key} {testcase_download_url}.')
     return None, testcase_file_path
 
   file_list = []
@@ -394,7 +394,7 @@ def unpack_testcase(testcase, testcase_download_url):
         break
 
     if not file_exists:
-      logs.log_error(
+      logs.error(
           'Expected file to run %s is not in archive. Base directory is %s and '
           'files in archive are [%s].' % (testcase_file_path, input_directory,
                                           ','.join(file_list)))
@@ -431,8 +431,8 @@ def _clear_old_data_bundles_if_needed():
   dirs_to_remove = sorted(
       dirs, key=os.path.getmtime, reverse=True)[_DATA_BUNDLE_CACHE_COUNT:]
   for dir_to_remove in dirs_to_remove:
-    logs.log('Removing data bundle directory to keep disk cache small: %s' %
-             dir_to_remove)
+    logs.info('Removing data bundle directory to keep disk cache small: %s' %
+              dir_to_remove)
     shell.remove_directory(dir_to_remove)
 
 
@@ -441,13 +441,13 @@ def _should_update_data_bundle(data_bundle, data_bundle_directory):
   date."""
   # Check if data bundle is up to date. If yes, skip the update.
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
-    logs.log('Data bundle was recently synced, skip.')
+    logs.info('Data bundle was recently synced, skip.')
     return False
 
   # Re-check if another bot did the sync already. If yes, skip.
   # TODO(metzman): Figure out if is this even needed without NFS?
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
-    logs.log('Another bot finished the sync, skip.')
+    logs.info('Another bot finished the sync, skip.')
     return False
 
   return True
@@ -457,13 +457,12 @@ def _prepare_update_data_bundle(fuzzer, data_bundle):
   """Create necessary directories to download the data bundle."""
   data_bundle_directory = get_data_bundle_directory(fuzzer, data_bundle)
   if not data_bundle_directory:
-    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
+    logs.error('Failed to setup data bundle %s.' % data_bundle.name)
     return None
 
   if not shell.create_directory(
       data_bundle_directory, create_intermediates=True):
-    logs.log_error(
-        'Failed to create data bundle %s directory.' % data_bundle.name)
+    logs.error('Failed to create data bundle %s directory.' % data_bundle.name)
     return None
 
   return data_bundle_directory
@@ -475,7 +474,7 @@ def update_data_bundle(
   """Updates a data bundle to the latest version."""
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
-  logs.log('Setting up data bundle %s.' % data_bundle)
+  logs.info('Setting up data bundle %s.' % data_bundle)
 
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
@@ -507,12 +506,12 @@ def update_data_bundle(
       result = result.return_code == 0
 
     if not result:
-      logs.log_error(f'Failed to sync data bundle {data_bundle.name}.')
+      logs.error(f'Failed to sync data bundle {data_bundle.name}.')
       return False
 
   # Update the testcase list file.
   testcase_manager.create_testcase_list_file(data_bundle_directory)
-  logs.log('Synced data bundle.')
+  logs.info('Synced data bundle.')
 
   #  Write last synced time in the sync file.
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
@@ -555,7 +554,7 @@ def preprocess_get_data_bundles(data_bundle_name, setup_input):
       ndb_utils.get_all_from_query(
           data_types.DataBundle.query(
               data_types.DataBundle.name == data_bundle_name)))
-  logs.log(f'Data bundles: {data_bundles}')
+  logs.info(f'Data bundles: {data_bundles}')
   setup_input.data_bundle_corpuses.extend([
       corpus_manager.get_proto_data_bundle_corpus(bundle_entity)
       for bundle_entity in data_bundles
@@ -568,7 +567,7 @@ def preprocess_update_fuzzer_and_data_bundles(
   uworker_main. Returns a SetupInput object."""
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer:
-    logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
+    logs.error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError
 
   update_input = uworker_msg_pb2.SetupInput(  # pylint: disable=no-member
@@ -601,18 +600,18 @@ def _update_fuzzer(
   if not revisions.needs_update(version_file, fuzzer.revision):
     return True
 
-  logs.log('Fuzzer update was found, updating.')
+  logs.info('Fuzzer update was found, updating.')
 
   # Clear the old fuzzer directory if it exists.
   if not shell.remove_directory(fuzzer_directory, recreate=True):
-    logs.log_error('Failed to clear fuzzer directory.')
+    logs.error('Failed to clear fuzzer directory.')
     return False
 
   # Copy the archive to local disk and unpack it.
   archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
   if not storage.download_signed_url_to_file(update_input.fuzzer_download_url,
                                              archive_path):
-    logs.log_error('Failed to copy fuzzer archive.')
+    logs.error('Failed to copy fuzzer archive.')
     return False
 
   try:
@@ -621,7 +620,7 @@ def _update_fuzzer(
   except Exception:
     error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
                      '(bad archive or unsupported format).')
-    logs.log_error(error_message)
+    logs.error(error_message)
     fuzzer_logs.upload_script_log(
         'Fatal error: ' + error_message,
         signed_upload_url=update_input.fuzzer_log_upload_url)
@@ -632,7 +631,7 @@ def _update_fuzzer(
   if not os.path.exists(fuzzer_path):
     error_message = ('Fuzzer executable %s not found. '
                      'Check fuzzer configuration.') % fuzzer.executable_path
-    logs.log_error(error_message)
+    logs.error(error_message)
     fuzzer_logs.upload_script_log(
         'Fatal error: ' + error_message,
         fuzzer_name=fuzzer_name,
@@ -647,14 +646,14 @@ def _update_fuzzer(
 
   # Save the current revision of this fuzzer in a file for later checks.
   revisions.write_revision_to_revision_file(version_file, fuzzer.revision)
-  logs.log('Updated fuzzer to revision %d.' % fuzzer.revision)
+  logs.info('Updated fuzzer to revision %d.' % fuzzer.revision)
   return True
 
 
 def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):  # pylint: disable=no-member
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
-  logs.log('Setting up data bundles.')
+  logs.info('Setting up data bundles.')
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
   for data_bundle_corpus in update_input.data_bundle_corpuses:
@@ -739,7 +738,7 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   bucket_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
   last_updated_time = storage.last_updated(bucket_url)
   if last_updated_time and last_sync_time > last_updated_time:
-    logs.log(
+    logs.info(
         'Data bundle %s has no new content from last sync.' % data_bundle.name)
     return True
 
@@ -783,13 +782,11 @@ def get_fuzzer_directory(fuzzer_name):
   return fuzzer_directory
 
 
-def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
-                                             upload_url: str):
-  """Archive testcase and its dependencies, and store in blobstore. Returns
-  whether it is archived, the absolute_filename, and the zip_filename."""
+def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
+  """Archive testcase and its dependencies, and store in blobstore."""
   if not os.path.exists(testcase_path):
-    logs.log_error('Unable to find testcase %s.' % testcase_path)
-    return None, None, None
+    logs.error('Unable to find testcase %s.' % testcase_path)
+    return None, None, None, None
 
   absolute_filename = testcase_path
   archived = False
@@ -807,7 +804,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
   # Filter out duplicates, directories, and files that do not exist.
   resource_list = utils.filter_file_list(resource_list)
 
-  logs.log('Testcase and related files :\n%s' % str(resource_list))
+  logs.info('Testcase and related files :\n%s' % str(resource_list))
 
   if len(resource_list) <= 1:
     # If this does not have any resources, just save the testcase.
@@ -815,8 +812,8 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     try:
       file_handle = open(testcase_path, 'rb')
     except OSError:
-      logs.log_error('Unable to open testcase %s.' % testcase_path)
-      return None, None, None
+      logs.error('Unable to open testcase %s.' % testcase_path)
+      return None, None, None, None
   else:
     # If there are resources, create an archive.
 
@@ -833,7 +830,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
           break
 
     base_directory = os.path.sep.join(base_directory_list)
-    logs.log('Subresource common base directory: %s' % base_directory)
+    logs.info('Subresource common base directory: %s' % base_directory)
     if base_directory:
       # Common parent directory, archive sub-paths only.
       base_len = len(base_directory) + len(os.path.sep)
@@ -857,20 +854,17 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     try:
       file_handle = open(zip_path, 'rb')
     except OSError:
-      logs.log_error('Unable to open testcase archive %s.' % zip_path)
-      return None, None, None
+      logs.error('Unable to open testcase archive %s.' % zip_path)
+      return None, None, None, None
 
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  if not storage.upload_signed_url(file_handle, upload_url):
-    logs.log_error('Failed to upload testcase.')
-    return None, None, None
-
+  fuzzed_key = blobs.write_blob(file_handle)
   file_handle.close()
 
   # Don't need the archive after writing testcase to blobstore.
   if zip_path:
     shell.remove_file(zip_path)
 
-  return archived, absolute_filename, zip_filename
+  return fuzzed_key, archived, absolute_filename, zip_filename

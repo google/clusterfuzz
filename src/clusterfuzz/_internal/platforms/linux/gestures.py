@@ -43,7 +43,7 @@ def find_windows_for_process(process_id):
 
   xdotool_path = _xdotool_path()
   if not xdotool_path:
-    logs.log_error('Xdotool not installed, cannot locate process windows.')
+    logs.error('Xdotool not installed, cannot locate process windows.')
     return []
 
   visible_windows = []
@@ -195,7 +195,7 @@ def run_gestures(gestures, process_id, process_status, start_time, timeout,
   """Run the provided interaction gestures."""
   xdotool_path = _xdotool_path()
   if not xdotool_path:
-    logs.log_error('Xdotool not installed, cannot emulate gestures.')
+    logs.error('Xdotool not installed, cannot emulate gestures.')
     return
 
   if not windows:

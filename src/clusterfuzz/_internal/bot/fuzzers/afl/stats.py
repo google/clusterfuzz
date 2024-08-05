@@ -202,8 +202,8 @@ class StatsGetter:
 
     except ZeroDivisionError:  # Fail gracefully if actual_duration is 0.
       self.stats['average_exec_per_sec'] = 0
-      logs.log_error('actual_duration is 0 in fuzzer_stats. '
-                     'average_exec_per_sec defaulting to 0.')
+      logs.error('actual_duration is 0 in fuzzer_stats. '
+                 'average_exec_per_sec defaulting to 0.')
 
     # Normalize |timeout_count| and |crash_count| to be either 0 or 1.
     for stat_variable in ['crash_count', 'timeout_count']:

@@ -128,10 +128,10 @@ def upload_to_logs(bucket_name,
   """
   if signed_upload_url:
     if storage.upload_signed_url(contents, signed_upload_url):
-      logs.log(
+      logs.info(
           'Uploaded file to logs bucket.', signed_upload_url=signed_upload_url)
     else:
-      logs.log_error(
+      logs.error(
           'Failed to write file to logs bucket.',
           signed_upload_url=signed_upload_url)
 
@@ -145,9 +145,9 @@ def upload_to_logs(bucket_name,
       file_extension=file_extension)
 
   if storage.write_data(contents, log_path):
-    logs.log('Uploaded file to logs bucket.', log_path=log_path)
+    logs.info('Uploaded file to logs bucket.', log_path=log_path)
   else:
-    logs.log_error('Failed to write file to logs bucket.', log_path=log_path)
+    logs.error('Failed to write file to logs bucket.', log_path=log_path)
 
 
 def upload_script_log(log_contents,
