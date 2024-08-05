@@ -32,7 +32,6 @@ EXTRA_BUILD_DIR = '__extra_build'
 
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
-  # TODO(hzawawy): Handle syzkaller case.
   if '@' in file_path:
     # GFT targets often have periods in the name that get misinterpreted as an
     # extension.
