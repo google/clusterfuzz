@@ -10,7 +10,6 @@ load-plugins=pylint_protobuf
 # List of checkers and warnings to disable.
 # TODO: Shrink this list to as small as possible.
 disable=
-  attribute-defined-outside-init,
   bad-option-value,
   bare-except,
   broad-except,
@@ -35,7 +34,8 @@ disable=
   raise-missing-from,
   super-with-arguments,
   consider-using-generator,
-  consider-using-f-string  # Too many legacy usages.
+  consider-using-f-string,  # Too many legacy usages.
+  unspecified-encoding  # Too many legacy usage.
 
 [BASIC]
 

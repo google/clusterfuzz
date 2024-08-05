@@ -824,25 +824,6 @@ def set_memory_tool_options(env_var, options_dict):
   set_value(env_var, join_memory_tool_options(options_dict))
 
 
-def set_environment_parameters_from_file(file_path):
-  """Set environment variables from a file."""
-  if not os.path.exists(file_path):
-    return
-
-  with open(file_path) as f:
-    file_data = f.read()
-
-  for line in file_data.splitlines():
-    if line.startswith('#') or not line.strip():
-      continue
-
-    m = re.match('([^ =]+)[ ]*=[ ]*(.*)', line)
-    if m:
-      environment_variable = m.group(1)
-      environment_variable_value = m.group(2)
-      set_value(environment_variable, environment_variable_value)
-
-
 def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
   """Checks and updates the necessary symbolizer options such as
   `external_symbolizer_path` and `symbolize_inline_frames`."""

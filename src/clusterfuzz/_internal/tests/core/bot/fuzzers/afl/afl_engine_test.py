@@ -37,6 +37,8 @@ BASE_FUZZ_TIMEOUT = (
 FUZZ_TIMEOUT = 5 + BASE_FUZZ_TIMEOUT
 LONG_FUZZ_TIMEOUT = 90 + BASE_FUZZ_TIMEOUT
 
+# pylint: disable=attribute-defined-outside-init
+
 
 @test_utils.integration
 class EngineTest(unittest.TestCase):
@@ -68,8 +70,8 @@ class EngineTest(unittest.TestCase):
     result = engine_impl.fuzz(fuzzer_path, options, self.output_directory,
                               FUZZ_TIMEOUT)
 
-    self.assertEqual('{}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
-    self.assertIn('-i{}'.format(self.default_corpus_directory), result.command)
+    self.assertEqual(f'{DATA_DIRECTORY}/afl-fuzz', result.command[0])
+    self.assertIn(f'-i{self.default_corpus_directory}', result.command)
 
     # Ensure that we've added something other than the dummy file to the corpus.
     self.assertTrue(os.listdir(self.default_corpus_directory))
