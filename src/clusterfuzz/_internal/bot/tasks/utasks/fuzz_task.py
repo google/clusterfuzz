@@ -490,9 +490,10 @@ def _last_sync_time(sync_file_path):
   try:
     last_sync_time = datetime.datetime.utcfromtimestamp(float(file_contents))
   except Exception as e:
-    logs.error(f'Malformed last sync file: "{e}".',
-               path=sync_file_path,
-               contents=file_contents)
+    logs.error(
+        f'Malformed last sync file: "{e}".',
+        path=sync_file_path,
+        contents=file_contents)
 
   return last_sync_time
 
@@ -1775,8 +1776,7 @@ class FuzzingSession:
     # because of dependencies.
     self.data_directory = setup.trusted_get_data_bundle_directory(self.fuzzer)
     if not self.data_directory:
-      logs.error(
-          f'Unable to setup data bundle {self.fuzzer.data_bundle_name}.')
+      logs.error(f'Unable to setup data bundle {self.fuzzer.data_bundle_name}.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
