@@ -228,10 +228,6 @@ class ChromeBuildArchive(DefaultBuildArchive):
   In case something goes wrong, this defaults to using the default unpacker.
   """
 
-  def __init__(self, *args, **kwargs):
-    self._root_dir = None
-    super().__init__(*args, **kwargs)
-
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
       self._root_dir = super().root_dir()
