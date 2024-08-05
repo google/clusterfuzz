@@ -23,6 +23,7 @@ import itertools
 import re
 import threading
 import time
+from typing import List
 
 try:
   from google.cloud import monitoring_v3
@@ -51,7 +52,20 @@ INITIAL_DELAY_SECONDS = 16
 MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
 MAX_TIME_SERIES_PER_CALL = 200
 
-_retry_wrap = retry.Retry(
+# Since `monitoring_v3` is only conditionally imported, pylint complains about
+# any accesses to its members. Define type aliases here once and for all, for
+# use below.
+if monitoring_v3 is not None:
+  _TimeInterval = monitoring_v3.types.TimeInterval  # pylint: disable=no-member
+  _Point = monitoring_v3.types.Point  # pylint: disable=no-member
+  _TimeSeries = monitoring_v3.types.TimeSeries  # pylint: disable=no-member
+else:
+  _TimeInterval = None
+  _Point = None
+  _TimeSeries = None
+
+
+@retry.Retry(
     predicate=retry.if_exception_type((
         exceptions.Aborted,
         exceptions.DeadlineExceeded,
@@ -62,6 +76,15 @@ _retry_wrap = retry.Retry(
     initial=INITIAL_DELAY_SECONDS,
     maximum=MAXIMUM_DELAY_SECONDS,
     deadline=RETRY_DEADLINE_SECONDS)
+def _create_time_series(name: str, time_series: List[_TimeSeries]):
+  """Wraps `create_time_series()` from the monitoring client.
+
+  Adds retries and logging.
+  """
+  try:
+    _monitoring_v3_client.create_time_series(name=name, time_series=time_series)
+  except Exception as e:
+    logs.warning(f'Error uploading time series: {e}')
 
 
 class _MockMetric:
@@ -84,7 +107,6 @@ class _FlusherThread(threading.Thread):
 
   def run(self):
     """Run the flusher thread."""
-    create_time_series = _retry_wrap(_monitoring_v3_client.create_time_series)
     project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
         utils.get_application_id())
 
@@ -100,35 +122,24 @@ class _FlusherThread(threading.Thread):
              ):
             start_time = end_time
 
-          series = monitoring_v3.types.metric.TimeSeries()  # pylint: disable=no-member
-          logs.info(f'monitor iter: {metric}, {start_time}, {self}, '
-                    f'{metric.metric_kind}, {end_time}')
+          series = _TimeSeries()
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
-          # Log the TimeSeries object details for debug purposes.
-          metric_st_sec = series.points[-1].interval.start_time.second
-          metric_st_ns = series.points[-1].interval.start_time.nanosecond
-          metric_et_sec = series.points[-1].interval.end_time.second
-          metric_et_ns = series.points[-1].interval.end_time.nanosecond
-          logs.info(f'Monitor_TimeSeries - '
-                    f'metric_kind: {series.metric_kind}, '
-                    f'start_time: {metric_st_sec}.{metric_st_ns}, '
-                    f'end_time: {metric_et_sec}.{metric_et_ns}')
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-            create_time_series(name=project_path, time_series=time_series)
+            _create_time_series(project_path, time_series)
             time_series = []
 
         if time_series:
-          create_time_series(name=project_path, time_series=time_series)
-      except Exception:
+          _create_time_series(project_path, time_series)
+      except Exception as e:
         if environment.is_android():
           # FIXME: This exception is extremely common on Android. We are already
           # aware of the problem, don't make more noise about it.
-          logs.warning('Failed to flush metrics.')
+          logs.warning(f'Failed to flush metrics: {e}')
         else:
-          logs.error('Failed to flush metrics.')
+          logs.error(f'Failed to flush metrics: {e}')
 
   def stop(self):
     self.stop_event.set()
@@ -300,8 +311,8 @@ class Metric:
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    interval = monitoring_v3.types.TimeInterval()
-    point = monitoring_v3.types.Point(interval=interval)
+    interval = _TimeInterval()
+    point = _Point(interval=interval)
 
     _time_to_timestamp(point.interval, 'start_time', start_time)
     _time_to_timestamp(point.interval, 'end_time', end_time)
