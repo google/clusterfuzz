@@ -201,7 +201,7 @@ class TestRunner:
     # Generate a unique suffix to append to files we want to ignore.
     index = 0
     file_rename_suffix = '___%d' % index
-    while any([f.endswith(file_rename_suffix) for f in files_to_rename]):
+    while any(f.endswith(file_rename_suffix) for f in files_to_rename):
       index += 1
       file_rename_suffix = '___%d' % index
 

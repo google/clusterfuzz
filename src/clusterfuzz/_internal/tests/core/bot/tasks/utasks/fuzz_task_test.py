@@ -227,7 +227,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(should_be_ignored, crash.should_be_ignored)
     self.mock.ignore_stacktrace.assert_called_once_with('orig_trace')
 
-    self.assertFalse(hasattr(crash, 'fuzzed_key'))
+    self.assertFalse(crash.fuzzed_key)
     return crash
 
   def _test_validity_and_get_functional_crash(self):
@@ -276,7 +276,6 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(crash.is_valid())
 
     self.assertEqual(fuzzed_key, crash.fuzzed_key)
-    self.assertTrue(crash.archived)
     self.assertEqual('absolute_path', crash.absolute_path)
     self.assertEqual('archive_filename', crash.archive_filename)
 
@@ -811,8 +810,10 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {}
     output = self._create_output()
     uworker_input = _create_uworker_input(job='job')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    # TODO(metzman): Use correct type of group.
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -847,8 +848,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
     output = self._create_output()
     uworker_input = _create_uworker_input()
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -876,8 +878,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.return_value = {'insertErrors': [{'index': 1}]}
     output = self._create_output()
     uworker_input = _create_uworker_input(job='job_chromeos')
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True
@@ -908,8 +911,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.client.insert.side_effect = Exception('error')
     output = self._create_output()
     uworker_input = _create_uworker_input()
-    fuzz_task.write_crashes_to_big_query(self.group, uworker_input, output,
-                                         'engine_binary')
+    fuzz_task.write_crashes_to_big_query(
+        self.group, self.group.newly_created_testcase, None, uworker_input,
+        output, 'engine_binary')
 
     success_count = monitoring_metrics.BIG_QUERY_WRITE_COUNT.get({
         'success': True

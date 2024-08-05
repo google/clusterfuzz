@@ -147,7 +147,7 @@ def find_testcase(project_name,
   if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
     culprit_engine = None
     target_without_engine = None
-    for engine in fuzzing.PUBLIC_ENGINES:
+    for engine in fuzzing.ENGINES:
       if fuzz_target.startswith(f'{engine}_'):
         culprit_engine = engine
         target_without_engine = fuzz_target[len(culprit_engine) + 1:]
@@ -156,7 +156,7 @@ def find_testcase(project_name,
       assert culprit_engine
 
     target_with_different_engines = [
-        f'{engine}_{target_without_engine}' for engine in fuzzing.PUBLIC_ENGINES
+        f'{engine}_{target_without_engine}' for engine in fuzzing.ENGINES
     ]
     query_args.append(
         data_types.Testcase.overridden_fuzzer_name.IN(

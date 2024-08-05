@@ -63,8 +63,6 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX_WITH_GPU': 'Linux (with GPU)',
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
     'ANDROID': 'Android',
-    'ANDROID_KERNEL': 'Android Kernel',
-    'ANDROID_KERNEL_X86': 'Android Kernel (X86)',
     'ANDROID_AUTO': 'Android Auto',
     'ANDROID_X86': 'Android (x86)',
     'ANDROID_EMULATOR': 'Android (Emulated)',
@@ -141,6 +139,15 @@ def default_queue():
     return high_end_queue()
 
   return regular_queue()
+
+
+def default_android_queue():
+  """Get the generic 'android' queue that is not tied to a specific device."""
+  # Note: environment.platform() is not used as it could return different
+  # values based on the devices.
+  # E.g: Pixel 8 it is 'ANDROID_MTE' for Pixel 5 it is 'ANDROID_DEP'
+  # TODO: Update this when b/347727208 is fixed
+  return JOBS_PREFIX + queue_suffix_for_platform('ANDROID')
 
 
 def get_command_override():
@@ -324,6 +331,16 @@ def get_task():
       logs.info(f'Got task with cmd {task.command} args {task.argument} '
                 f'job {task.job} from {regular_queue()} queue.')
       return task
+
+    if environment.is_android():
+      logs.info(f'Could not get task from {regular_queue()}. Trying from'
+                f'default android queue {default_android_queue()}.')
+      task = get_regular_task(default_android_queue())
+      if task:
+        # Log the task details for debug purposes.
+        logs.info(f'Got task with cmd {task.command} args {task.argument} '
+                  f'job {task.job} from {default_android_queue()} queue.')
+        return task
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 

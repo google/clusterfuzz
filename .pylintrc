@@ -22,23 +22,18 @@ disable=
   import-error,
   import-outside-toplevel,
   locally-disabled,
-  misplaced-comparison-constant,
-  multiple-imports,
   no-self-use,
   relative-import,
   similarities,
-  suppressed-message,
   ungrouped-imports,
   unsubscriptable-object,
-  useless-object-inheritance, # Remove once all bots are on Python 3.
-  useless-suppression,
-  wrong-import-order,
   wrong-import-position,
+  # TODO(https://github.com/google/clusterfuzz/issues/4138): Fix this.
+  wrong-import-order,
   # FIXME: To be removed. Leftovers from Python 3 migration.
   consider-using-with,
   raise-missing-from,
   super-with-arguments,
-  use-a-generator,
   consider-using-generator,
   consider-using-f-string,  # Too many legacy usages.
   unspecified-encoding  # Too many legacy usage.
