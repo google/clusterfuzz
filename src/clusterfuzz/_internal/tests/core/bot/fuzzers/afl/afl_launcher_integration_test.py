@@ -122,7 +122,7 @@ class BaseLauncherTest(unittest.TestCase):
 
   def run(self, *args, **kwargs):
     with tempfile.TemporaryDirectory() as temp_dir:
-      self.temp_dir = temp_dir
+      self.temp_dir = temp_dir  # pylint: disable=attribute-defined-outside-init
       super().run(*args, **kwargs)
 
   def setUp(self):
@@ -131,7 +131,6 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
     os.environ['FAIL_RETRIES'] = '1'
     dont_use_strategies(self)
-    self.temp_dir = None
 
     # Make it easy to assert if things were logged.
     test_helpers.patch(self, [

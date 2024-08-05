@@ -106,7 +106,7 @@ class IntegrationTest(unittest.TestCase):
 
   def run(self, *args, **kwargs):
     with get_test_paths() as test_paths:
-      self.test_paths = test_paths
+      self.test_paths = test_paths  # pylint: disable=attribute-defined-outside-init
       super().run(*args, **kwargs)
 
   def setUp(self):
@@ -116,7 +116,6 @@ class IntegrationTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     os.environ['BUILD_DIR'] = str(self.test_paths.data)
     os.environ['JOB_NAME'] = 'centipede_asan_job'
-    self.test_paths = None
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
