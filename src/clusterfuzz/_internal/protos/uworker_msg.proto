@@ -186,7 +186,6 @@ message StoreFuzzerRunResultsOutput {
   optional int32 fuzzer_return_code = 1;
   optional string generated_testcase_string = 2;
   optional string console_output = 3;
-  optional bool uploaded_sample_testcase = 4;
 }
 
 message FuzzTaskCrash {
