@@ -29,6 +29,7 @@ disable=
   ungrouped-imports,
   unsubscriptable-object,
   wrong-import-position,
+  # TODO(https://github.com/google/clusterfuzz/issues/4138): Fix this.
   wrong-import-order,
   # FIXME: To be removed. Leftovers from Python 3 migration.
   consider-using-with,
