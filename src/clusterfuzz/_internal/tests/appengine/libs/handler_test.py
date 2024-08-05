@@ -467,7 +467,6 @@ class AllowOAuthTest(unittest.TestCase):
     self.app = webtest.TestApp(flaskapp)
     test_helpers.patch_environ(self)
     os.environ['AUTH_DOMAIN'] = 'localhost'
-    self.app = None
 
   def test_success(self):
     """Test setting environ and header properly."""

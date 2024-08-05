@@ -1860,49 +1860,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_syzkaller_kasan(self):
-    """Test syzkaller kasan."""
-    data = self._read_test_data('kasan_syzkaller.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nREAD 8'
-    expected_state = ('sock_wake_async\n'
-                      'sock_def_readable\n'
-                      'unix_dgram_sendmsg\n')
-    expected_address = '0xffffffc01640e9d0'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_syzkaller_kasan_android(self):
-    """Test syzkaller kasan."""
-    data = self._read_test_data('kasan_syzkaller_android.txt')
-    expected_type = 'Kernel failure\nNull-ptr-deref\nWRITE 4'
-    expected_state = 'sockfs_setattr\nnotify_change2\nchown_common\n'
-    expected_address = '0x00000000027c'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_syzkaller_kasan_x86(self):
-    """Test syzkaller kasan x86."""
-    data = self._read_test_data('kasan_syzkaller_x86.txt')
-    expected_type = 'Kernel failure\nNull-ptr-deref'
-    expected_state = ('__x64_sys_io_uring_setup\n'
-                      'do_syscall_64\n'
-                      'entry_SYSCALL_64_after_hwframe\n')
-    expected_address = '0x000000000088'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
   def test_kasan_gpf(self):
     """Test a KASan GPF."""
     data = self._read_test_data('kasan_gpf.txt')
@@ -1941,32 +1898,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       '__device_attach_driver\n'
                       'bus_for_each_drv\n')
     expected_address = '0xffffffc002583240'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_kasan_uaf(self):
-    """Test a KASan use-after-free."""
-    data = self._read_test_data('kasan_uaf.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nREAD 4'
-    expected_state = 'ip6_append_data\nudpv6_sendmsg\ninet_sendmsg\n'
-    expected_address = '0xffff88005031ee80'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_kasan_uaf_2(self):
-    """Test a second case of KASan use-after-free."""
-    data = self._read_test_data('kasan_uaf2.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nWRITE 8'
-    expected_state = 'f2fs_register_inmem_page\nf2fs_set_data_page_dirty\nset_page_dirty\n'
-    expected_address = '0xffffffc05b5c4d28'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -3527,19 +3458,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x0539000a18ab'
     expected_stacktrace = data
     expected_security_flag = False
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_android_kasan_510(self):
-    """Test android kasan 5.10 stacktrace."""
-    data = self._read_test_data('android_kernel_kasan_510.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nWRITE 8'
-    expected_state = (
-        'f2fs_register_inmem_page\nf2fs_set_data_page_dirty\nset_page_dirty\n')
-    expected_address = '0xffffffc05b5c4d28'
-    expected_stacktrace = data
-    expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)

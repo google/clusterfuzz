@@ -729,51 +729,6 @@ class FuchsiaBuild(RegularBuild):
     return True
 
 
-class CuttlefishKernelBuild(RegularBuild):
-  """Represents a Android Cuttlefish kernel build."""
-
-  _IMAGE_FILES = ('bzImage', 'initramfs.img')
-
-  def setup(self):
-    """Android kernel build setup."""
-    from clusterfuzz._internal.platforms.android import adb
-
-    result = super().setup()
-    if not result:
-      return result
-
-    # Download syzkaller binary folder.
-    if not environment.get_value('SYZKALLER_BUCKET_PATH'):
-      logs.error('SYZKALLER_BUCKET_PATH is not set for syzkaller.')
-      return False
-    archive_src_path = environment.get_value('SYZKALLER_BUCKET_PATH')
-    archive_dst_path = os.path.join(self.build_dir, 'syzkaller.zip')
-    storage.copy_file_from(archive_src_path, archive_dst_path)
-
-    # Extract syzkaller binary.
-    syzkaller_path = os.path.join(self.build_dir, 'syzkaller')
-    shell.remove_directory(syzkaller_path)
-    with build_archive.open(archive_dst_path) as reader:
-      reader.unpack(build_dir=syzkaller_path)
-    shell.remove_file(archive_dst_path)
-
-    environment.set_value('VMLINUX_PATH', self.build_dir)
-
-    cvd_dir = environment.get_value('CVD_DIR')
-    adb.stop_cuttlefish_device()
-
-    for image_filename in self._IMAGE_FILES:
-      # Copy new kernel image to Cuttlefish.
-      image_src = os.path.join(self.build_dir, image_filename)
-      image_dest = os.path.join(cvd_dir, image_filename)
-      adb.copy_to_cuttlefish(image_src, image_dest)
-
-    adb.start_cuttlefish_device(use_kernel=True)
-    adb.connect_to_cuttlefish_device()
-
-    return True
-
-
 class SymbolizedBuild(Build):
   """Symbolized build."""
 
@@ -1026,9 +981,10 @@ def get_build_urls_list(bucket_path, reverse=True):
       with open(keys_file_path, 'w') as f:
         for path in storage.list_blobs(base_url):
           f.write(path + '\n')
-
-    content = utils.read_data_from_file(
-        keys_file_path, eval_data=False).decode('utf-8')
+    data = utils.read_data_from_file(keys_file_path, eval_data=False)
+    if not data:
+      return []
+    content = data.decode('utf-8')
     if not content:
       return []
 
@@ -1241,9 +1197,6 @@ def setup_regular_build(revision,
     build_class = build_setup_host.RemoteRegularBuild
   elif environment.platform() == 'FUCHSIA':
     build_class = FuchsiaBuild
-  elif (environment.is_android_cuttlefish() and
-        environment.is_kernel_fuzzer_job()):
-    build_class = CuttlefishKernelBuild
   elif get_bucket_path('FUZZ_TARGET_BUILD_BUCKET_PATH'):
     build_class = SplitTargetBuild
 

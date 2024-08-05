@@ -318,6 +318,8 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
+            'release': 'prod',
+            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
@@ -342,6 +344,8 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
+            'release': 'prod',
+            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
