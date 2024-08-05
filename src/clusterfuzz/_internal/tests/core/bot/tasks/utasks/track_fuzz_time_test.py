@@ -16,11 +16,10 @@ time."""
 
 import unittest
 
+from clusterfuzz._internal.bot.tasks.utasks import track_fuzz_time
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
-
-from clusterfuzz._internal.bot.tasks.utasks import track_fuzz_time
 
 
 class TrackFuzzerRunResultTest(unittest.TestCase):
