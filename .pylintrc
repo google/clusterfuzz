@@ -25,7 +25,6 @@ disable=
   no-self-use,
   relative-import,
   similarities,
-  suppressed-message,
   ungrouped-imports,
   unsubscriptable-object,
   wrong-import-position,
