@@ -81,32 +81,6 @@ class BuildNotFoundError(Error):
                                                        self.job_type)
 
 
-class BuildSetupError(Error):
-  """Exception type for build setup failures."""
-
-  def __init__(self, revision, job_type):
-    self.revision = revision
-    self.job_type = job_type
-    super().__init__()
-
-  def __str__(self):
-    return 'Build setup failed (revision %d, job %s).' % (self.revision,
-                                                          self.job_type)
-
-
-class BadBuildError(Error):
-  """Exception type for bad build failures."""
-
-  def __init__(self, revision, job_type):
-    self.revision = revision
-    self.job_type = job_type
-    super().__init__()
-
-  def __str__(self):
-    return 'Bad build detected (revision %d, job %s).' % (self.revision,
-                                                          self.job_type)
-
-
 class BadConfigError(Error):
   """Error thrown when configuration is bad."""
 
