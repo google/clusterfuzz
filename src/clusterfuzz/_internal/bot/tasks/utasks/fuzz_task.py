@@ -310,7 +310,7 @@ class Crash:
     if self.fuzzed_key:
       crash.fuzzed_key = self.fuzzed_key
       crash.absolute_path = self.absolute_path
-    if archive_filename:
+    if self.archive_filename:
       crash.archive_filename = self.archive_filename
     return crash
 
