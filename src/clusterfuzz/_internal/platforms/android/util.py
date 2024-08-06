@@ -81,4 +81,11 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
   if current_platform_id_fields[2] == 'm':
     return True
 
+  # Check for the trunk stable versions - Z, A, B.
+  # Source: go/release-version_trunk-stable#examples
+  # If the current version is 'Z', 'A' or 'B', run the test case
+  android_trunk_stable_versions = ['Z', 'A', 'B']
+  if current_platform_id_fields[2] in android_trunk_stable_versions:
+    return True
+
   return False
