@@ -253,13 +253,21 @@ def main():
             'finish. Good for debugging.'))
 
   subparsers.add_parser('format', help='Format changed code in current branch.')
-  subparsers.add_parser('lint', help='Lint changed code in current branch.')
+
+  parser_lint = subparsers.add_parser(
+      'lint', help='Lint changed code in current branch.')
+  parser_lint.add_argument(
+      '--type-check',
+      help='Also run the type checker on changed files.',
+      action='store_true',
+      default=False)
 
   parser_package = subparsers.add_parser(
       'package', help='Package clusterfuzz with a staging revision')
   parser_package.add_argument(
       '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
-  parser_package.add_argument('-r', '--release', choices=['prod', 'candidate'], default='prod')
+  parser_package.add_argument(
+      '-r', '--release', choices=['prod', 'candidate'], default='prod')
 
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
@@ -275,7 +283,8 @@ def main():
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
-  parser_deploy.add_argument('--release', '-r', choices=['prod', 'candidate'], default='prod')
+  parser_deploy.add_argument(
+      '--release', '-r', choices=['prod', 'candidate'], default='prod')
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')

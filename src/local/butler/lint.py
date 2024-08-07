@@ -168,7 +168,7 @@ def is_auto_generated_file(filepath):
               'grammars'))
 
 
-def execute(_):
+def execute(args):
   """Lint changed code."""
   pythonpath = os.getenv('PYTHONPATH', '')
   module_parent_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
@@ -226,10 +226,11 @@ def execute(_):
 
   py_changed_file_paths = py_changed_nontests + py_changed_tests
   if py_changed_file_paths:
-    _execute_command_and_track_error(
-        f'yapf -p -d {" ".join(py_changed_file_paths)}')
-    _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c '
-                                     f'{" ".join(py_changed_file_paths)}')
+    joined_paths = " ".join(py_changed_file_paths)
+    _execute_command_and_track_error(f'yapf -p -d {joined_paths}')
+    _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {joined_paths}')
+    if args.type_check:
+      _execute_command_and_track_error(f'pyright {joined_paths}')
 
   for file_path in py_changed_file_paths:
     py_test_init_check(file_path)
