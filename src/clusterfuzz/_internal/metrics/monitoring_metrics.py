@@ -105,7 +105,7 @@ FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
     ],
 )
 
-# Global log_error count.
+# Global error count.
 LOG_ERROR_COUNT = monitor.CounterMetric(
     'errors/count',
     description='Error count.',
@@ -153,6 +153,42 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
+    ],
+)
+
+UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
+    'utask/subtask_e2e_duration_secs',
+    description=(
+        'Time elapsed since preprocess started for this task, in ' +
+        'seconds, per subtask ("preprocess", "uworker_main" and ' +
+        '"postprocess"). Subtask "postprocess" being the last, that ' +
+        'measures total e2e task duration. Mode is either "batch" or ' +
+        '"queue" depending on whether uworker_main was scheduled and ' +
+        'executed on Cloud Batch or not, respectively.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+    ],
+)
+
+UTASK_SUBTASK_DURATION_SECS = monitor.CumulativeDistributionMetric(
+    'utask/subtask_duration_secs',
+    description=(
+        'Duration of each subtask ("preprocess", "uworker_main" and ' +
+        '"postprocess"). Mode is either "batch" or "queue" depending on ' +
+        'whether uworker_main was scheduled and executed on Cloud Batch or ' +
+        'not, respectively.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
     ],
 )
 

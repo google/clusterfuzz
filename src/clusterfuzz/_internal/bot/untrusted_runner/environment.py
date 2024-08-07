@@ -45,7 +45,6 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^PATH$',
         r'^PY_UNITTESTS$',
         r'^QUARANTINE_BUCKET$',
-        r'^SHARED_CORPUS_BUCKET$',
         r'^STRATEGY_SELECTION_DISTRIBUTION$',
         r'^STRATEGY_SELECTION_METHOD$',
         r'^TASK_NAME$',
@@ -60,9 +59,9 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
     )
 ]
 
-REBASED_ENVIRONMENT_VARIABLES = set([
+REBASED_ENVIRONMENT_VARIABLES = {
     'FUZZER_DIR',
-])
+}
 
 
 def is_forwarded_environment_variable(environment_variable):
@@ -86,7 +85,7 @@ def update_environment(env):
 
     processed_env[key] = value
 
-  request = untrusted_runner_pb2.UpdateEnvironmentRequest(env=processed_env)
+  request = untrusted_runner_pb2.UpdateEnvironmentRequest(env=processed_env)  # pylint: disable=no-member
   host.stub().UpdateEnvironment(request)
 
 
@@ -126,5 +125,5 @@ def forward_environment_variable(key, value):
 
 def reset_environment():
   """Reset environment variables."""
-  request = untrusted_runner_pb2.ResetEnvironmentRequest()
+  request = untrusted_runner_pb2.ResetEnvironmentRequest()  # pylint: disable=no-member
   host.stub().ResetEnvironment(request)

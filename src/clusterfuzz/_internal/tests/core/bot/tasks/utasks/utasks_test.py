@@ -14,12 +14,17 @@
 """Tests for uworker_io."""
 
 import os
+import time
 import unittest
 from unittest import mock
 
+from google.protobuf import timestamp_pb2
+
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -33,6 +38,7 @@ class TworkerPreprocessTest(unittest.TestCase):
   JOB_TYPE = 'libfuzzer_asan'
 
   def setUp(self):
+    monitor.metrics_store().reset_for_testing()
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
@@ -41,22 +47,63 @@ class TworkerPreprocessTest(unittest.TestCase):
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
-    self.uworker_input = uworker_io.UworkerInput(job_type='something')
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
-    module = mock.MagicMock()
-    module.utask_preprocess.return_value = self.uworker_input
-    module.__name__ = 'mock_task'
+    module = mock.MagicMock(__name__='mock_task')
+
+    uworker_input = uworker_msg_pb2.Input(job_type='something')
+    module.utask_preprocess.return_value = uworker_input
+
+    start_time_ns = time.time_ns()
+
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
                                        self.JOB_TYPE, self.UWORKER_ENV)
 
+    end_time_ns = time.time_ns()
+
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
+
     self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        self.uworker_input)
+        uworker_input)
+    self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
+                            start_time_ns)
+    self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
+                         end_time_ns)
+
+    metric_labels = {
+        'task': 'mock',
+        'job': self.JOB_TYPE,
+        'subtask': 'preprocess',
+        'mode': 'batch',
+        'platform': 'LINUX',
+    }
+
+    durations = monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
+
+    e2e_durations = monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(e2e_durations.count, 1)
+    self.assertLess(
+        e2e_durations.sum * 10**9,
+        end_time_ns - uworker_input.preprocess_start_time.ToNanoseconds())
+
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
+
+  def test_return_none(self):
+    module = mock.MagicMock(__name__='mock_task')
+    module.utask_preprocess.return_value = None
+    self.assertIsNone(
+        utasks.tworker_preprocess(module, self.TASK_ARGUMENT, self.JOB_TYPE,
+                                  self.UWORKER_ENV))
+    self.assertIsNone(
+        utasks.tworker_preprocess_no_io(module, self.TASK_ARGUMENT,
+                                        self.JOB_TYPE, self.UWORKER_ENV))
 
 
 class SetUworkerEnvTest(unittest.TestCase):
@@ -81,36 +128,133 @@ class UworkerMainTest(unittest.TestCase):
   UWORKER_OUTPUT_UPLOAD_URL = 'https://uworker_output_upload_url'
 
   def setUp(self):
+    monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
     ])
-    self.module = mock.MagicMock()
+    self.module = mock.MagicMock(__name__='tasks.analyze_task')
     self.mock.get_utask_module.return_value = self.module
-    self.uworker_input = uworker_io.UworkerInput(
-        original_job_type='original_job_type-value',
-        uworker_env=self.UWORKER_ENV,
-        uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
-    )
-    self.mock.download_and_deserialize_uworker_input.return_value = (
-        self.uworker_input)
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
+    start_time_ns = time.time_ns()
+
+    preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
+    preprocess_start_timestamp = timestamp_pb2.Timestamp()
+    preprocess_start_timestamp.FromNanoseconds(preprocess_start_time_ns)
+
+    uworker_input = uworker_msg_pb2.Input(
+        job_type='job_type-value',
+        variant_task_input=uworker_msg_pb2.VariantTaskInput(
+            original_job_type='original_job_type-value'),
+        uworker_env=self.UWORKER_ENV,
+        uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
+        preprocess_start_time=preprocess_start_timestamp,
+    )
+    self.mock.download_and_deserialize_uworker_input.return_value = (
+        uworker_input)
+
     uworker_output = {
-        'testcase': None,
         'crash_time': 70.1,
     }
-    self.module.utask_main.return_value = uworker_io.UworkerOutput(
+    self.module.utask_main.return_value = uworker_msg_pb2.Output(
         **uworker_output)
     input_download_url = 'http://input'
+
     utasks.uworker_main(input_download_url)
-    self.module.utask_main.assert_called_with(self.uworker_input)
+
+    end_time_ns = time.time_ns()
+
+    self.module.utask_main.assert_called_with(uworker_input)
+
+    metric_labels = {
+        'task': 'analyze',
+        'job': uworker_input.job_type,
+        'subtask': 'uworker_main',
+        'mode': 'batch',
+        'platform': 'LINUX',
+    }
+
+    durations = monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
+
+    e2e_durations = monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(e2e_durations.count, 1)
+    self.assertLess(e2e_durations.sum * 10**9,
+                    end_time_ns - preprocess_start_time_ns)
+    self.assertGreaterEqual(e2e_durations.sum, 42)
 
 
 class GetUtaskModuleTest(unittest.TestCase):
 
   def test_get_utask_module(self):
-    self.assertEqual(utasks.get_utask_module('analyze_task'), analyze_task)
+    module_name = 'clusterfuzz._internal.bot.tasks.utasks.analyze_task'
+    self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
+    module_name = analyze_task.__name__
+    self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
+
+
+class TworkerPostprocessTest(unittest.TestCase):
+  """Tests that tworker_postprocess works as intended."""
+
+  def setUp(self):
+    monitor.metrics_store().reset_for_testing()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
+        'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
+    ])
+
+  def test_success(self):
+    """Tests that if utask_postprocess suceeds, uworker_postprocess does too.
+    """
+    download_url = 'https://uworker_output_download_url'
+
+    start_time_ns = time.time_ns()
+
+    preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
+    preprocess_start_timestamp = timestamp_pb2.Timestamp()
+    preprocess_start_timestamp.FromNanoseconds(preprocess_start_time_ns)
+
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            job_type='foo-job',
+            preprocess_start_time=preprocess_start_timestamp),)
+    self.mock.download_and_deserialize_uworker_output.return_value = (
+        uworker_output)
+
+    module = mock.MagicMock(__name__='mock_task')
+    self.mock.get_utask_module.return_value = module
+
+    utasks.tworker_postprocess(download_url)
+    end_time_ns = time.time_ns()
+
+    self.mock.download_and_deserialize_uworker_output.assert_called_with(
+        download_url)
+    module.utask_postprocess.assert_called_with(uworker_output)
+
+    metric_labels = {
+        'task': 'mock',
+        'job': 'foo-job',
+        'subtask': 'postprocess',
+        'mode': 'batch',
+        'platform': 'LINUX',
+    }
+
+    durations = monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
+
+    e2e_durations = monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(e2e_durations.count, 1)
+    self.assertLess(e2e_durations.sum * 10**9,
+                    end_time_ns - preprocess_start_time_ns)
+    self.assertGreaterEqual(e2e_durations.sum, 42)

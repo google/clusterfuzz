@@ -17,13 +17,12 @@
 import datetime
 import unittest
 
+from clusterfuzz._internal.cron import triage
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import triage
-from src.appengine.handlers.cron.triage import Throttler
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -360,10 +359,10 @@ class FileIssueTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'libs.issue_management.issue_filer.file_issue',
-        'src.appengine.handlers.cron.triage.Throttler.should_throttle',
+        'clusterfuzz._internal.issue_management.issue_filer.file_issue',
+        'clusterfuzz._internal.cron.triage.Throttler.should_throttle',
     ])
-    self.throttler = Throttler()
+    self.throttler = triage.Throttler()
     self.mock.should_throttle.return_value = False
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
@@ -423,7 +422,6 @@ class ThrottleBugTest(unittest.TestCase):
 
   def setUp(self):
     self.testcase = test_utils.create_generic_testcase()
-    self.throttler = Throttler()
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
         'clusterfuzz._internal.datastore.data_handler.get_issue_tracker_name'
@@ -445,10 +443,12 @@ class ThrottleBugTest(unittest.TestCase):
         project_name=self.testcase.project_name,
         job_type=self.testcase.job_type,
         timestamp=datetime.datetime.now()).put()
-    self.assertFalse(self.throttler.should_throttle(self.testcase))
-    self.assertTrue(self.throttler.should_throttle(self.testcase))
-    self.assertEqual(
-        2, self.throttler._get_job_bugs_filing_max(self.testcase.job_type))
+    throttler = triage.Throttler()
+
+    self.assertFalse(throttler.should_throttle(self.testcase))
+    self.assertTrue(throttler.should_throttle(self.testcase))
+    self.assertEqual(2,
+                     throttler._get_job_bugs_filing_max(self.testcase.job_type))
 
   def test_throttle_bug_with_project_limit(self):
     """Tests the throttling bug with a project limit."""
@@ -459,11 +459,30 @@ class ThrottleBugTest(unittest.TestCase):
         project_name=testcase.project_name,
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
+    throttler = triage.Throttler()
     for _ in range(4):
-      self.assertFalse(self.throttler.should_throttle(testcase))
-    self.assertTrue(self.throttler.should_throttle(testcase))
-    self.assertEqual(
-        5, self.throttler._get_project_bugs_filing_max(testcase.job_type))
+      self.assertFalse(throttler.should_throttle(testcase))
+    self.assertTrue(throttler.should_throttle(testcase))
+    self.assertEqual(5,
+                     throttler._get_project_bugs_filing_max(testcase.job_type))
+
+  def test_throttle_bug_with_project_limit_other_projects(self):
+    """Tests the throttling bug with a project limit when other projects have
+    filed bugs not this one."""
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = 'test_project'
+    testcase.job_type = 'test_job_without_limit'
+    other_project_name = 'other_project'
+    for _ in range(10):
+      data_types.FiledBug(
+          project_name=other_project_name,
+          job_type='test_job_without_limit',
+          timestamp=datetime.datetime.now()).put()
+    throttler = triage.Throttler()
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = other_project_name
+    testcase.job_type = 'test_job_without_limit'
+    self.assertTrue(throttler.should_throttle(testcase))
 
   def test_default_limit(self):
     """Tests the throttling bug with default limit."""
@@ -476,7 +495,8 @@ class ThrottleBugTest(unittest.TestCase):
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
 
-    self.assertEqual(
-        100, self.throttler._get_project_bugs_filing_max(testcase.job_type))
+    throttler = triage.Throttler()
+    self.assertEqual(100,
+                     throttler._get_project_bugs_filing_max(testcase.job_type))
     self.assertEqual(None,
-                     self.throttler._get_job_bugs_filing_max(testcase.job_type))
+                     throttler._get_job_bugs_filing_max(testcase.job_type))

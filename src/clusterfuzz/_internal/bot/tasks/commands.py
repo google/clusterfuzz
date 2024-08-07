@@ -22,16 +22,15 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.bot.tasks import impact_task
-from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.tasks import unpack_task
-from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
+from clusterfuzz._internal.bot.tasks.utasks import symbolize_task
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
@@ -54,8 +53,7 @@ _COMMAND_MODULE_MAP = {
     'regression': regression_task,
     'symbolize': symbolize_task,
     'unpack': unpack_task,
-    'uworker_postprocess': None,
-    'upload_reports': upload_reports_task,
+    'postprocess': None,
     'uworker_main': None,
     'variant': variant_task,
 }
@@ -153,11 +151,12 @@ def set_task_payload(func):
   """Set TASK_PAYLOAD and unset TASK_PAYLOAD."""
 
   @functools.wraps(func)
-  def wrapper(task):
+  def wrapper(task_name, task_argument, job_name, *args, **kwargs):
     """Wrapper."""
-    environment.set_value('TASK_PAYLOAD', task.payload())
+    payload = tasks.construct_payload(task_name, task_argument, job_name)
+    environment.set_value('TASK_PAYLOAD', payload)
     try:
-      return func(task)
+      return func(task_name, task_argument, job_name, *args, **kwargs)
     except:  # Truly catch *all* exceptions.
       e = sys.exc_info()[1]
       e.extras = {'task_payload': environment.get_value('TASK_PAYLOAD')}
@@ -190,32 +189,40 @@ def start_web_server_if_needed():
   try:
     http_server.start()
   except Exception:
-    logs.log_error('Failed to start web server, skipping.')
+    logs.error('Failed to start web server, skipping.')
 
 
-def run_command(task_name, task_argument, job_name, uworker_env):
+def run_command(task_name,
+                task_argument,
+                job_name,
+                uworker_env,
+                preprocess=False):
   """Run the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
-    logs.log_error("Unknown command '%s'" % task_name)
-    return
+    logs.error("Unknown command '%s'" % task_name)
+    return None
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
   if should_update_task_status(task_name):
     if not data_handler.update_task_status(task_state_name,
                                            data_types.TaskState.STARTED):
-      logs.log('Another instance of "{}" already '
-               'running, exiting.'.format(task_state_name))
+      logs.info('Another instance of "{}" already '
+                'running, exiting.'.format(task_state_name))
       raise AlreadyRunningError
 
+  result = None
   try:
-    task.execute(task_argument, job_name, uworker_env)
+    if not preprocess:
+      result = task.execute(task_argument, job_name, uworker_env)
+    else:
+      result = task.preprocess(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
-    logs.log_warn('Test case %s no longer exists.' % task_argument)
+    logs.warning('Test case %s no longer exists.' % task_argument)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
     if should_update_task_status(task_name):
@@ -228,24 +235,31 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   if should_update_task_status(task_name):
     data_handler.update_task_status(task_state_name,
                                     data_types.TaskState.FINISHED)
+  return result
+
+
+def process_command(task):
+  """Figures out what to do with the given task and executes the command."""
+  logs.info(f'Executing command "{task.payload()}"')
+  if not task.payload().strip():
+    logs.error('Empty task received.')
+    return None
+
+  return process_command_impl(task.command, task.argument, task.job,
+                              task.high_end, task.is_command_override)
 
 
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
-def process_command(task):
-  """Figures out what to do with the given task and executes the command."""
-  logs.log(f'Executing command "{task.payload()}"')
-  if not task.payload().strip():
-    logs.log_error('Empty task received.')
-    return
-
+def process_command_impl(task_name,
+                         task_argument,
+                         job_name,
+                         high_end,
+                         is_command_override,
+                         preprocess=False):
+  """Implementation of process_command."""
   uworker_env = None
-  # Parse task payload.
-  task_name = task.command
-  task_argument = task.argument
-  job_name = task.job
-
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
@@ -254,46 +268,48 @@ def process_command(task):
     # Job might be removed. In that case, we don't want an exception
     # raised and causing this task to be retried by another bot.
     if not job:
-      logs.log_error("Job '%s' not found." % job_name)
-      return
+      logs.error("Job '%s' not found." % job_name)
+      return None
 
     if not job.platform:
       error_string = "No platform set for job '%s'" % job_name
-      logs.log_error(error_string)
+      logs.error(error_string)
       raise errors.BadStateError(error_string)
 
-    # A misconfiguration led to this point. Clean up the job if necessary.
-    job_queue_suffix = tasks.queue_suffix_for_platform(job.platform)
-    bot_queue_suffix = tasks.default_queue_suffix()
+    job_base_queue_suffix = tasks.queue_suffix_for_platform(
+        environment.base_platform(job.platform))
+    bot_platform = environment.platform().lower()
+    bot_base_queue_suffix = tasks.queue_suffix_for_platform(
+        environment.base_platform(bot_platform))
 
-    if job_queue_suffix != bot_queue_suffix:
+    # A misconfiguration led to this point. Clean up the job if necessary.
+    if job_base_queue_suffix != bot_base_queue_suffix:
       # This happens rarely, store this as a hard exception.
-      logs.log_error(
-          'Wrong platform for job %s: job queue [%s], bot queue [%s].' %
-          (job_name, job_queue_suffix, bot_queue_suffix))
+      logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
+                 (job_name, job_base_queue_suffix, bot_base_queue_suffix))
 
       # Try to recreate the job in the correct task queue.
       new_queue = (
-          tasks.high_end_queue() if task.high_end else tasks.regular_queue())
-      new_queue += job_queue_suffix
+          tasks.high_end_queue() if high_end else tasks.regular_queue())
+      new_queue += job_base_queue_suffix
 
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.
       # So, we don't create any new tasks in that case since it needs
       # manual intervention to fix the override anyway.
-      if not task.is_command_override:
+      if not is_command_override:
         try:
           tasks.add_task(task_name, task_argument, job_name, new_queue)
         except Exception:
           # This can happen on trying to publish on a non-existent topic, e.g.
           # a topic for a high-end bot on another platform. In this case, just
           # give up.
-          logs.log_error('Failed to fix platform and re-add task.')
+          logs.error('Failed to fix platform and re-add task.')
 
       # Add a wait interval to avoid overflowing task creation.
       failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(failure_wait_interval)
-      return
+      return None
 
     if task_name != 'fuzz':
       # Make sure that our platform id matches that of the testcase (for
@@ -303,22 +319,34 @@ def process_command(task):
       if testcase:
         current_platform_id = environment.get_platform_id()
         testcase_platform_id = testcase.platform_id
+        testcase_id = testcase.key.id()
 
-        # This indicates we are trying to run this job on the wrong platform.
-        # This can happen when you have different type of devices (e.g
-        # android) on the same platform group. In this case, we just recreate
-        # the task.
+        # This indicates we are trying to run this job on the wrong platform
+        # and potentially blocks fuzzing. See the 'subqueues' feature for
+        # more details: https://github.com/google/clusterfuzz/issues/3347
         if (task_name != 'variant' and testcase_platform_id and
             not utils.fields_match(testcase_platform_id, current_platform_id)):
-          logs.log(
-              'Testcase %d platform (%s) does not match with ours (%s), exiting'
-              % (testcase.key.id(), testcase_platform_id, current_platform_id))
-          tasks.add_task(
-              task_name,
-              task_argument,
-              job_name,
-              wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
-          return
+
+          logs.info(f'Testcase {testcase_id} platform {testcase_platform_id}\
+               does not match with ours {current_platform_id}, checking ...')
+
+          # Check if the device or branch is deprecated.
+          # If it is deprecated, try to execute on an updated platform.
+          if not (environment.is_testcase_deprecated(testcase_platform_id) and
+                  environment.can_testcase_run_on_platform(
+                      testcase_platform_id, current_platform_id)):
+            logs.info('Testcase %d platform (%s) does not match with ours\
+                 (%s), exiting' % (testcase.key.id(), testcase_platform_id,
+                                   current_platform_id))
+            tasks.add_task(
+                task_name,
+                task_argument,
+                job_name,
+                wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
+            return None
+
+          logs.info(f'Testcase {testcase_id} platform {testcase_platform_id}\
+               can run on current platform {current_platform_id}')
 
     # Some fuzzers contain additional environment variables that should be
     # set for them. Append these for tests generated by these fuzzers and for
@@ -345,7 +373,7 @@ def process_command(task):
           environment_string += '\nORIGINAL_JOB_NAME = %s\n' % job_name
           job_name = minimize_job_override
         else:
-          logs.log_error(
+          logs.error(
               'Job for minimization not found: %s.' % minimize_job_override)
           # Fallback to using own job for minimization.
 
@@ -376,18 +404,21 @@ def process_command(task):
 
     # Update environment for the job.
     uworker_env = update_environment_for_job(environment_string)
+    uworker_env['TASK_NAME'] = task_name
+    uworker_env['TASK_ARGUMENT'] = task_argument
+    uworker_env['JOB_NAME'] = job_name
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
   if not is_supported_cpu_arch_for_job():
-    logs.log(
+    logs.info(
         'Unsupported cpu architecture specified in job definition, exiting.')
     tasks.add_task(
         task_name,
         task_argument,
         job_name,
         wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
-    return
+    return None
 
   # Initial cleanup.
   cleanup_task_state()
@@ -395,7 +426,8 @@ def process_command(task):
   start_web_server_if_needed()
 
   try:
-    run_command(task_name, task_argument, job_name, uworker_env)
+    return run_command(task_name, task_argument, job_name, uworker_env,
+                       preprocess)
   finally:
     # Final clean up.
     cleanup_task_state()

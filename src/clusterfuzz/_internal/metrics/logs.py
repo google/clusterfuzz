@@ -18,6 +18,7 @@ import json
 import logging
 from logging import config
 import os
+import socket
 import sys
 import time
 import traceback
@@ -33,7 +34,7 @@ _default_extras = {}
 
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_runnging_on_k8s():
+  if _is_running_on_k8s():
     task_name = 'k8s'
   elif _is_running_on_app_engine():
     task_name = 'appengine'
@@ -59,7 +60,7 @@ def _is_running_on_app_engine():
        os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
-def _is_runnging_on_k8s():
+def _is_running_on_k8s():
   """Returns whether or not we're running on K8s."""
   return os.getenv('IS_K8S_ENV') == 'true'
 
@@ -67,6 +68,38 @@ def _is_runnging_on_k8s():
 def _console_logging_enabled():
   """Return bool on where console logging is enabled, usually for tests."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
+
+
+# TODO(pmeuleman) Revert the changeset that added these once
+# https://github.com/google/clusterfuzz/pull/3422 lands.
+def _file_logging_enabled():
+  """Return bool True when logging to files (bot/logs/*.log) is enabled.
+  This is enabled by default.
+  This is disabled if we are running in app engine or kubernetes as these have
+    their dedicated loggers, see configure_appengine() and configure_k8s().
+  """
+  return bool(os.getenv(
+      'LOG_TO_FILE',
+      'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+
+
+def _fluentd_logging_enabled():
+  """Return bool True where fluentd logging is enabled.
+  This is enabled by default.
+  This is disabled for local development and if we are running in app engine or
+    kubernetes as these have their dedicated loggers, see configure_appengine()
+    and configure_k8s()."""
+  return bool(os.getenv('LOG_TO_FLUENTD', 'True')) and not _is_local(
+  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+
+
+def _cloud_logging_enabled():
+  """Return bool True where Google Cloud Logging is enabled.
+  This is disabled for local development and if we are running in a app engine
+    or kubernetes as these have their dedicated loggers, see
+    configure_appengine() and configure_k8s()."""
+  return bool(os.getenv('LOG_TO_GCP')) and not _is_local(
+  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
 
 
 def suppress_unwanted_warnings():
@@ -129,22 +162,12 @@ def get_logging_config_dict(name):
       },
       'handlers': {
           'handler': logging_handler[name],
-          'fluentd': {
-              'class': 'clusterfuzz._internal.metrics.logs.JsonSocketHandler',
-              'level': logging.INFO,
-              'host': '127.0.0.1',
-              'port': 5170,
-          }
       },
       'loggers': {
           name: {
               'handlers': ['handler']
           }
       },
-      'root': {
-          'level': logging.INFO,
-          'handlers': ['fluentd']
-      }
   }
 
 
@@ -176,6 +199,11 @@ def format_record(record: logging.LogRecord) -> str:
       'name':
           record.name,
   }
+
+  initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
+  if initial_payload:
+    entry['actual_task_payload'] = entry['task_payload']
+    entry['task_payload'] = initial_payload
 
   entry['location'] = getattr(record, 'location', {'error': True})
   entry['extras'] = getattr(record, 'extras', {})
@@ -212,8 +240,7 @@ def update_entry_with_exc(entry, exc_info):
   if not exc_info:
     return
 
-  error = exc_info[1]
-  error_extras = getattr(error, 'extras', {})
+  error_extras = getattr(exc_info[1], 'extras', {})
   entry['task_payload'] = (
       entry.get('task_payload') or error_extras.pop('task_payload', None))
   entry['extras'].update(error_extras)
@@ -262,7 +289,7 @@ def uncaught_exception_handler(exception_type, exception_value,
     raise RuntimeError('Loop in uncaught_exception_handler')
   _is_already_handling_uncaught = True
 
-  # Use emit since log_error needs sys.exc_info() to return this function's
+  # Use emit since error needs sys.exc_info() to return this function's
   # arguments to call init properly.
   # Don't worry about emit() throwing an Exception, python will let us know
   # about that exception as well as the original one.
@@ -326,13 +353,71 @@ def configure_k8s():
   logging.getLogger().setLevel(logging.INFO)
 
 
+def configure_fluentd_logging():
+  fluentd_handler = JsonSocketHandler(
+      host='127.0.0.1',
+      port=5170,
+  )
+  fluentd_handler.setLevel(logging.INFO)
+  logging.getLogger().addHandler(fluentd_handler)
+
+
+def configure_cloud_logging():
+  """ Configure Google cloud logging, for bots not running on appengine nor k8s.
+  """
+  import google.cloud.logging
+
+  # project will default to the service account's project (likely from
+  #   GOOGLE_APPLICATION_CREDENTIALS).
+  # Some clients might need to override this to log in a specific project using
+  #   LOGGING_CLOUD_PROJECT_ID.
+  # Note that CLOUD_PROJECT_ID is not used here, as it might differ from both
+  #   the service account's project and the logging project.
+  client = google.cloud.logging.Client(
+      project=os.getenv("LOGGING_CLOUD_PROJECT_ID"))
+  labels = {
+      'compute.googleapis.com/resource_name': socket.getfqdn().lower(),
+      'bot_name': os.getenv('BOT_NAME'),
+  }
+  handler = client.get_default_handler(labels=labels)
+
+  def cloud_label_filter(record):
+    # Update the labels with additional information.
+    # Ideally we would use json_fields as done in configure_k8s(), but since
+    # src/Pipfile forces google-cloud-logging = "==1.15.0", we have fairly
+    # limited options to format the output, see:
+    #   https://github.com/googleapis/python-logging/blob/6236537b197422d3dcfff38fe7729dee7f361ca9/google/cloud/logging/handlers/handlers.py#L98 # pylint: disable=line-too-long
+    #   https://github.com/googleapis/python-logging/blob/6236537b197422d3dcfff38fe7729dee7f361ca9/google/cloud/logging/handlers/transports/background_thread.py#L233 # pylint: disable=line-too-long
+    handler.labels.update({
+        'task_payload':
+            os.getenv('TASK_PAYLOAD', 'null'),
+        'fuzz_target':
+            os.getenv('FUZZ_TARGET', 'null'),
+        'worker_bot_name':
+            os.getenv('WORKER_BOT_NAME', 'null'),
+        'extra':
+            json.dumps(
+                getattr(record, 'extras', {}), default=_handle_unserializable),
+        'location':
+            json.dumps(
+                getattr(record, 'location', {'Error': True}),
+                default=_handle_unserializable)
+    })
+    return True
+
+  handler.addFilter(cloud_label_filter)
+  handler.setLevel(logging.INFO)
+
+  logging.getLogger().addHandler(handler)
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
 
-  if _is_runnging_on_k8s():
+  if _is_running_on_k8s():
     configure_k8s()
     return
 
@@ -341,10 +426,13 @@ def configure(name, extras=None):
     return
 
   if _console_logging_enabled():
-    logging.basicConfig()
-  else:
+    logging.basicConfig(level=logging.INFO)
+  if _file_logging_enabled():
     config.dictConfig(get_logging_config_dict(name))
-
+  if _fluentd_logging_enabled():
+    configure_fluentd_logging()
+  if _cloud_logging_enabled():
+    configure_cloud_logging()
   logger = logging.getLogger(name)
   logger.setLevel(logging.INFO)
   set_logger(logger)
@@ -365,7 +453,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine() or _is_runnging_on_k8s():
+  if _is_running_on_app_engine() or _is_running_on_k8s():
     # Running on App Engine.
     set_logger(logging.getLogger())
 
@@ -445,7 +533,7 @@ def emit(level, message, exc_info=None, **extras):
       # we generate one. We don't create an exception here and then format it,
       # as that will not include frames below this emit() call. We do [:-2] on
       # the stacktrace to exclude emit() and the logging function below it (e.g.
-      # log_error).
+      # error).
       message = (
           message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
               traceback.format_stack()[:-2]) + 'LogError: ' + message)
@@ -465,21 +553,23 @@ def emit(level, message, exc_info=None, **extras):
               'path': path_name,
               'line': line_number,
               'method': method_name
-          }
+          },
+          'release': os.environ.get('CLUSTERFUZZ_RELEASE', 'prod'),
+          'docker_image': os.environ.get('DOCKER_IMAGE', '')
       })
 
 
-def log(message, level=logging.INFO, **extras):
+def info(message, **extras):
   """Logs the message to a given log file."""
-  emit(level, message, **extras)
+  emit(logging.INFO, message, **extras)
 
 
-def log_warn(message, **extras):
+def warning(message, **extras):
   """Logs the warning message."""
   emit(logging.WARN, message, exc_info=sys.exc_info(), **extras)
 
 
-def log_error(message, **extras):
+def error(message, **extras):
   """Logs the error in the error log file."""
   exception = extras.pop('exception', None)
   if exception:
@@ -498,6 +588,6 @@ def log_fatal_and_exit(message, **extras):
   emit(logging.CRITICAL, message, exc_info=sys.exc_info(), **extras)
   _increment_error_count()
   if wait_before_exit:
-    log('Waiting for %d seconds before exit.' % wait_before_exit)
+    info('Waiting for %d seconds before exit.' % wait_before_exit)
     time.sleep(wait_before_exit)
   sys.exit(-1)

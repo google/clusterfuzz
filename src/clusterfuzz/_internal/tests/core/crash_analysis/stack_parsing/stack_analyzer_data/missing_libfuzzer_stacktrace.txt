@@ -1,0 +1,57 @@
+[Environment] Build fingerprint: google/seahawk_hwasan/seahawk:12/SAG1.210927.001/7770407:userdebug/dev-keys
+[Environment] Patch level: 2021-11-05
+[Environment] Local properties file "/data/local.prop" with contents:
+None
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: /tradefed/adb shell LD_LIBRARY_PATH=/system/lib64:/system/lib64 /data/fuzz/bot/builds/android-haiku-auto_git_sc-car-release_target_hwasan_computepipe_pixel_stream_manager_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/computepipe_pixel_stream_manager_fuzzer -rss_limit_mb=2560 -timeout=90 -runs=100 /data/fuzz/bot/clusterfuzz/bot/inputs/fuzzer-testcases/tmpwevj4d00
+Time ran: 0.442828893661499
+
+Segmentation fault
+
+
+Logcat:
+--------- libc (10655):
+Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0x72ffbea193 in tid 10655 (computepipe_pix), pid 10655 (computepipe_pix)
+--------- logd (0):
+logdr: UID=1036 GID=1007 PID=10620 b tail=0 logMask=bf pid=0 start=1632754552036100000ns deadline=0ns
+--------- crash_dump64 (10658):
+obtaining output fd from tombstoned, type: kDebuggerdTombstoneProto
+--------- tombstoned (603):
+received crash request for pid 10655
+--------- crash_dump64 (10658):
+performing dump of process 10655 (target tid = 10655)
+--------- logd (0):
+logdr: UID=0 GID=0 PID=10658 n tail=0 logMask=8 pid=10655 start=0ns deadline=0ns
+logdr: UID=0 GID=0 PID=10658 n tail=0 logMask=1 pid=10655 start=0ns deadline=0ns
+--------- DEBUG (10658):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'google/seahawk_hwasan/seahawk:12/SAG1.210927.001/7770407:userdebug/dev-keys'
+Revision: '0'
+ABI: 'arm64'
+Timestamp: 2021-09-27 14:55:57.381224764+0000
+Process uptime: 0s
+Cmdline: /data/fuzz/bot/builds/android-haiku-auto_git_sc-car-release_target_hwasan_computepipe_pixel_stream_manager_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/computepipe_pixel_stream_manager_fuzzer -rss_limit_mb=2560 -timeout=90 -runs=100 /data/fuzz/bot/clusterfuzz/bot/inputs/fuzzer-testcases/tmpwevj4d00
+pid: 10655, tid: 10655, name: computepipe_pix  >>> /data/fuzz/bot/builds/android-haiku-auto_git_sc-car-release_target_hwasan_computepipe_pixel_stream_manager_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/computepipe_pixel_stream_manager_fuzzer <<<
+uid: 0
+signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0x72ffbea193
+    x0  0000007ffbea1930  x1  0000007ffbea1860  x2  0000000000000000  x3  69682d7632706d00
+    x4  0000007378f7628d  x5  0000007ffbea1881  x6  30203d20454e4f4e  x7  30203d20454e4f4e
+    x8  00000060bc42b000  x9  0000000000000001  x10 00000000ffffffdf  x11 0000000000000065
+    x12 0000000000000005  x13 0000000000000000  x14 0000007ffbea1891  x15 0000000000000000
+    x16 00000007ffbea193  x17 00000060bc410d78  x18 0000007386a14000  x19 0000007ffbea1930
+    x20 0000006b00000000  x21 0000000000000000  x22 0000007ffbea1879  x23 b4000067b000b5f8
+    x24 0000000000000000  x25 0000000000000000  x26 0000007ffbea1938  x27 b4000067b000b5f8
+    x28 0000000000000001  x29 0000007ffbea17d0
+    lr  00000060bc410db8  sp  0000007ffbea17c0  pc  00000060bc3c4fe4  pst 0000000060000000
+backtrace:
+    #0 0x0000000000033fe4 in __hwasan_check_x26_3_short_v2
+    #1 0x000000000007fdb4 in std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > >::size() const external/libcxx/include/vector:657:46
+    #2 0x000000000007fdb4 in void std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > >::__push_back_slow_path<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >&&) external/libcxx/include/vector:1618:65
+    #3 0x000000000009d868 in android::C2PlatformComponentStore::C2PlatformComponentStore(std::__1::vector<std::__1::tuple<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, C2ComponentFactory* (*)(), void (*)(C2ComponentFactory*)>, std::__1::allocator<std::__1::tuple<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, C2ComponentFactory* (*)(), void (*)(C2ComponentFactory*)> > >) frameworks/av/media/codec2/vndk/C2Store.cpp:1110:34
+    #4 0x0000000000054b74 in std::__1::__function::__value_func<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)>::__value_func(std::__1::__function::__value_func<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)> const&) external/libcxx/include/functional:1726:17
+    #5 0x0000000000054b74 in std::__1::function<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)>::function(std::__1::function<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)> const&) external/libcxx/include/functional:2266:62
+    #6 0x0000000000054b74 in std::__1::function<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)>::operator=(std::__1::function<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)> const&) external/libcxx/include/functional:2304:5
+    #7 0x0000000000054b74 in android::C2AllocatorIon::setUsageMapper(std::__1::function<c2_status_t (C2MemoryUsage, unsigned long, unsigned long*, unsigned int*, unsigned int*)> const&, unsigned long, unsigned long, unsigned long) frameworks/av/media/codec2/vndk/C2AllocatorIon.cpp:520:18
+    #8 0x0000000000053e58 in android::C2AllocationIon::C2AllocationIon(int, unsigned long, unsigned long, unsigned int, unsigned int, unsigned int) frameworks/av/media/codec2/vndk/C2AllocatorIon.cpp:470:69
+    #9 0x000000000004f3c4 in std::__1::shared_ptr<C2GraphicAllocation>::~shared_ptr() external/libcxx/include/memory:4521:9
+    #10 0x000000000004f3c4 in android::C2AllocatorBlob::priorLinearAllocation(native_handle const*, std::__1::shared_ptr<C2LinearAllocation>*) frameworks/av/media/codec2/vndk/C2AllocatorBlob.cpp:225:1

@@ -14,75 +14,384 @@
 
 syntax = "proto3";
 
-import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 
-message Json {
-  string serialized = 1;
-}
-
-message UworkerEntityWrapper {
-  google.datastore.v1.Entity entity = 1;
-  Json changed = 2;
-}
-
-message UpdateFuzzerAndDataBundlesInput {
-  optional google.datastore.v1.Entity fuzzer = 1;
+message SetupInput {
+  optional google.protobuf.Any fuzzer = 1;
   optional string fuzzer_name = 2;
-  repeated google.datastore.v1.Entity data_bundles = 3;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
+  optional string testcase_download_url = 6;
+  repeated string global_blacklisted_functions = 7;
+  repeated DataBundleCorpus data_bundle_corpuses = 8;
+}
+
+message AnalyzeTaskInput {
+  repeated int64 bad_revisions = 1;
+}
+
+message SymbolizeTaskInput {
+  optional string old_crash_stacktrace = 1;
+}
+
+// TODO: refactor other instances to use this structured message.
+message BlobUploadUrl {
+  optional string key = 1;
+  optional string url = 2;
+}
+
+message FuzzTaskInput {
+  optional string sample_testcase_upload_key = 1;
+  optional string sample_testcase_upload_url = 2;
+  optional string script_log_upload_url = 3;
+  // TODO(metzman): Merge this with input's fuzz_target.
+  optional google.protobuf.Any fuzz_target = 4;
+  optional FuzzTargetCorpus corpus = 5;
+  repeated string global_blacklisted_functions = 6;
+  repeated BlobUploadUrl crash_upload_urls = 7;
+}
+
+message DataBundleCorpus {
+  optional google.protobuf.Any data_bundle = 1;
+  optional string gcs_url = 2;
+  repeated string corpus_urls = 3;
+}
+
+message FuzzTargetCorpus {
+  optional Corpus corpus = 1;
+  optional Corpus regressions_corpus = 2;
+}
+
+message Corpus {
+  // URLs for downloading and deleting corpus elements.
+  map<string, string> corpus_urls = 1;
+  optional google.protobuf.Timestamp last_updated_time = 2;
+  optional string gcs_url = 3;
+  repeated string upload_urls = 4;
+}
+
+message MinimizeTaskInput {
+  optional string testcase_upload_url = 1;
+  optional string testcase_blob_name = 2;
+  optional string stacktrace_blob_name = 3;
+  optional string stacktrace_upload_url = 4;
+  repeated string arguments = 5;
+}
+
+message RegressionTaskInput {
+  repeated int64 bad_revisions = 1;
+}
+
+message ProgressionTaskInput {
+  optional bool custom_binary = 1;
+  repeated int64 bad_revisions = 2;
+  optional string regression_testcase_url = 3;
+  optional string blob_name = 4;
+  optional string stacktrace_upload_url = 5;
+}
+
+message CrossPollinateFuzzerProto{
+  optional google.protobuf.Any fuzz_target = 1;
+  optional string backup_bucket_name = 2;
+  optional string corpus_engine_name = 3;
+}
+
+message CorpusPruningTaskInput {
+  // TODO(metzman): Merge this with Input's fuzz_target.
+  optional google.protobuf.Any fuzz_target = 1;
+  optional bool last_execution_failed = 2;
+  repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
+  optional FuzzTargetCorpus corpus = 4;
+  optional FuzzTargetCorpus quarantine_corpus = 5;
+  optional string corpus_crashes_blob_name = 6;
+  optional string corpus_crashes_upload_url = 7;
+  optional string dated_backup_gcs_url = 8;
+  optional string latest_backup_gcs_url = 9;
+  optional string dated_backup_signed_url = 10;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
-  optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  optional google.protobuf.Any testcase = 1;
+  optional google.protobuf.Any testcase_upload_metadata = 2;
   optional string testcase_id = 3;
-  optional Json uworker_env = 4;
-  optional string testcase_download_url = 5;
+  map<string, string> uworker_env = 4;
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
-  optional google.datastore.v1.Entity variant = 8;
-  optional string original_job_type = 9;
-  optional string fuzzer_name = 10;
-  optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
-  optional string module_name = 12;
+  optional VariantTaskInput variant_task_input = 8;
+  optional string fuzzer_name = 9;
+  optional SetupInput setup_input = 10;
+  optional AnalyzeTaskInput analyze_task_input = 11;
+  optional CorpusPruningTaskInput corpus_pruning_task_input = 12;
+  optional FuzzTaskInput fuzz_task_input = 13;
+  optional MinimizeTaskInput minimize_task_input = 14;
+  optional ProgressionTaskInput progression_task_input = 15;
+  optional RegressionTaskInput regression_task_input = 16;
+  optional SymbolizeTaskInput symbolize_task_input = 17;
+  optional string module_name = 18;
+  optional google.protobuf.Timestamp preprocess_start_time = 19;
+  repeated string global_blacklisted_functions = 20;
+  optional google.protobuf.Any fuzz_target = 21;
+}
+
+message VariantTaskInput {
+  optional string original_job_type = 1;
+}
+
+message SymbolizeTaskOutput {
+  optional string crash_type = 1;
+  optional string crash_address = 2;
+  optional string crash_state = 3;
+  optional string crash_stacktrace = 4;
+  optional bool symbolized = 5;
+  optional int64 crash_revision = 6;
+  optional string build_url = 7;
+}
+
+message AnalyzeTaskOutput {
+  optional int64 crash_revision = 1;
+  optional string absolute_path = 2;
+  optional string minimized_arguments = 3;
+  optional string crash_stacktrace = 4;
+  optional bool crash_info_set = 5;
+  optional bool http_flag = 6;
+  optional string crash_type = 7;
+  optional string crash_address = 8;
+  optional string crash_state = 9;
+  optional bool security_flag = 10;
+  optional int32 security_severity = 11;
+  optional bool one_time_crasher_flag = 12;
+  optional string build_key = 13;
+  optional string build_url = 14;
+  optional string gn_args = 15;
+  optional string platform = 16;
+  optional string platform_id = 17;
+}
+
+message CrashInfo {
+  optional bool is_new = 1;
+  optional int64 count = 2;
+  optional string crash_type = 3;
+  optional string crash_state = 4;
+  optional bool security_flag = 5;
+  optional string unit_name = 6;
+  optional string crash_address = 7;
+  optional string crash_stacktrace = 8;
+}
+
+message StoreFuzzerRunResultsOutput {
+  optional int32 fuzzer_return_code = 1;
+  optional string generated_testcase_string = 2;
+  optional string console_output = 3;
+}
+
+message FuzzTaskCrash {
+  optional string file_path = 1;
+  optional float crash_time = 2;
+  optional int32 return_code = 3;
+  repeated string resource_list = 4;
+  repeated string gestures = 5;
+  optional string arguments = 6;
+  repeated string fuzzing_strategies = 7;
+  optional bool security_flag = 8;
+  optional bool should_be_ignored = 9;
+  optional bool http_flag = 10;
+  optional string application_command_line = 11;
+  optional string unsymbolized_crash_stacktrace = 12;
+  optional string crash_type = 13;
+  optional string crash_address = 14;
+  optional string crash_state = 15;
+  optional string crash_stacktrace = 16;
+  repeated string crash_categories = 17;
+  optional string key = 18;
+  optional bool is_valid = 20;
+  optional string fuzzed_key = 21;
+  optional string absolute_path = 22;
+  optional string archive_filename = 23;
+}
+
+message FuzzContext {
+  optional int32 redzone = 1;
+  optional bool disable_ubsan = 2;
+  optional string window_argument = 3;
+  optional float timeout_multiplier = 4;
+  optional int32 test_timeout = 5;
+  map<string, string> fuzzer_metadata = 6;
+}
+
+message FuzzTaskCrashGroup {
+  optional FuzzContext context = 1;
+  repeated FuzzTaskCrash crashes = 2;
+  optional FuzzTaskCrash main_crash = 3;
+  optional bool one_time_crasher_flag = 4;
 }
 
 message FuzzTaskOutput {
-  optional string fuzzer_name = 1;
+  // TODO(metzman): Remove this since tworkers should know what this is based on
+  // the input.
+  optional string fully_qualified_fuzzer_name = 1;
   optional string crash_revision = 2;
   optional float job_run_timestamp = 3;
-  optional int64 new_crash_count = 4;
-  optional int64 known_crash_count = 5;
   optional int64 testcases_executed = 6;
-  optional Json job_run_crashes = 7;
-  optional string fully_qualified_fuzzer_name = 8;
+  optional StoreFuzzerRunResultsOutput fuzzer_run_results = 8;
+  optional int32 new_targets_count = 9;
+  optional int32 fuzzer_revision = 10;
+  repeated string fuzz_targets = 11;
+  repeated string testcase_run_jsons = 12;
+  repeated FuzzTaskCrashGroup crash_groups = 13;
+}
+
+message MinimizeTaskOutput {
+  map<string, string> last_crash_result_dict = 1;
+  optional bool flaky_stack = 2;
+  optional bool security_severity_updated = 3;
+  optional int32 security_severity = 4;
+  optional int32 minimization_phase = 5;
+  repeated string gestures = 6;
+  optional string minimized_keys = 7;
+  optional string minimized_arguments = 8;
+  optional int32 archive_state = 9;
+  optional string absolute_path = 10;
+  map<string, string> memory_tool_options = 11;
+}
+
+message RegressionTaskOutput {
+  optional int64 regression_range_start = 1;
+  optional int64 regression_range_end = 2;
+  optional int64 last_regression_min = 3;
+  optional int64 last_regression_max = 4;
+  repeated BuildData build_data_list = 5;
+  optional bool is_testcase_reproducible = 6;
+}
+
+message VariantTaskOutput {
+  optional int64 status = 1;
+  optional int64 revision = 2;
+  optional string crash_type = 3;
+  optional string crash_state = 4;
+  optional bool security_flag = 5;
+  optional bool is_similar = 6;
+  optional string platform = 7;
+}
+
+message BuildData{
+  optional int64 revision = 1;
+  optional bool is_bad_build = 2;
+  optional bool should_ignore_crash_result = 3;
+  optional string build_run_console_output = 4;
+}
+
+message ProgressionTaskOutput {
+  optional int64 min_revision = 1;
+  optional int64 max_revision = 2;
+  // Set to true when latest revision or latest custom build still crash.
+  optional bool crash_on_latest = 3;
+  optional string crash_on_latest_message = 4;
+  // Information passed back to trusted worker when we crash on latest.
+  optional int64 crash_revision = 5;
+  optional string last_tested_crash_stacktrace = 6;
+  optional int64 last_progression_min = 7;
+  optional int64 last_progression_max = 8;
+  // When set to True, we delete the metadata related to: last_progression_min
+  // and last_progression_max from the testcase on postprocess.
+  optional bool clear_min_max_metadata = 9;
+  repeated BuildData build_data_list = 11;
+}
+
+
+message CrossPollinationStatistics {
+  optional string project_qualified_name = 1;
+  optional string sources = 2;
+  optional int32 initial_corpus_size = 3;
+  optional int32 corpus_size = 4;
+  optional int32 initial_edge_coverage = 5;
+  optional int32 edge_coverage = 6;
+  optional int32 initial_feature_coverage = 7;
+  optional int32 feature_coverage = 8;
+}
+
+message CoverageInformation{
+  optional string project_name = 1;
+  optional google.protobuf.Timestamp timestamp = 2;
+  optional int32 corpus_size_units = 3;
+  optional int32 corpus_size_bytes = 4;
+  optional string corpus_location = 5;
+  optional string corpus_backup_location = 6;
+  optional int32 quarantine_size_units = 7;
+  optional int32 quarantine_size_bytes = 8;
+  optional string quarantine_location = 9;
+}
+
+message CorpusPruningTaskOutput {
+  optional CrossPollinationStatistics cross_pollination_stats = 1;
+  optional CoverageInformation coverage_info = 2;
+  optional string fuzzer_binary_name = 3;
+  optional int64 crash_revision = 4;
+  repeated CrashInfo crashes = 5;
+  optional bool corpus_backup_uploaded = 6;
 }
 
 enum ErrorType {
   NO_ERROR = 0;
   ANALYZE_BUILD_SETUP = 1;
   ANALYZE_NO_CRASH = 2;
-  TESTCASE_SETUP = 3;
-  UNHANDLED = 4;
-  VARIANT_BUILD_SETUP = 5;
-  TESTCASE_SETUP_INVALID_FUZZER = 6;
+  ANALYZE_NO_REVISIONS_LIST = 3;
+  ANALYZE_NO_REVISION_INDEX = 4;
+  TESTCASE_SETUP = 5;
+  UNHANDLED = 6;
+  VARIANT_BUILD_SETUP = 7;
+  MINIMIZE_SETUP = 8;
+  FUZZ_BUILD_SETUP_FAILURE = 9;
+  FUZZ_DATA_BUNDLE_SETUP_FAILURE = 10;
+  FUZZ_NO_FUZZER = 11;
+  FUZZ_NO_FUZZ_TARGET_SELECTED = 13;
+  PROGRESSION_REVISION_LIST_ERROR = 14;
+  PROGRESSION_BUILD_NOT_FOUND = 15;
+  PROGRESSION_NO_CRASH = 16;
+  PROGRESSION_BAD_STATE_MIN_MAX = 17;
+  PROGRESSION_TIMEOUT = 18;
+  PROGRESSION_BAD_BUILD = 19;
+  PROGRESSION_BUILD_SETUP_ERROR = 20;
+  REGRESSION_REVISION_LIST_ERROR = 21;
+  REGRESSION_BUILD_NOT_FOUND = 22;
+  REGRESSION_BUILD_SETUP_ERROR = 23;
+  REGRESSION_BAD_BUILD_ERROR = 24;
+  REGRESSION_NO_CRASH = 25;
+  REGRESSION_TIMEOUT_ERROR = 26;
+  REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE = 27;
+  SYMBOLIZE_BUILD_SETUP_ERROR = 28;
+  MINIMIZE_UNREPRODUCIBLE_CRASH = 29;
+  MINIMIZE_CRASH_TOO_FLAKY = 30;
+  MINIMIZE_DEADLINE_EXCEEDED = 31;
+  MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE = 32;
+  LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE = 33;
+  LIBFUZZER_MINIMIZATION_FAILED = 34;
+  CORPUS_PRUNING_FUZZER_SETUP_FAILED = 35;
+  CORPUS_PRUNING_ERROR = 36;
 }
 
 message Output {
-  optional UworkerEntityWrapper testcase = 1;
-  optional UworkerEntityWrapper testcase_upload_metadata = 2;
-  optional UworkerEntityWrapper variant = 3;
-  optional ErrorType error = 4;
+  optional ErrorType error_type = 3;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Input uworker_input = 5;
-  optional float test_timeout = 6;
-  optional float crash_time = 7;
-  optional string crash_stacktrace_output = 8;
+  optional Input uworker_input = 4;
+  optional float test_timeout = 5;
+  optional float crash_time = 6;
+  optional string crash_stacktrace_output = 7;
+  optional string bot_name = 18;
+  optional string platform_id = 19;
+
+  optional AnalyzeTaskOutput analyze_task_output = 8;
   optional FuzzTaskOutput fuzz_task_output = 9;
-  optional string error_message = 10;
+  optional MinimizeTaskOutput minimize_task_output = 10;
+  optional RegressionTaskOutput regression_task_output = 11;
+  optional ProgressionTaskOutput progression_task_output = 12;
+  optional SymbolizeTaskOutput symbolize_task_output = 13;
+  optional VariantTaskOutput variant_task_output = 14;
+  optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
+  map<string,string> issue_metadata = 17;
+  optional string error_message = 15;
 }

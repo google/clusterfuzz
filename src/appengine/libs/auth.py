@@ -71,6 +71,7 @@ def is_current_user_admin():
 def _project_number_from_id(project_id):
   """Get the project number from project ID."""
   resource_manager = build('cloudresourcemanager', 'v1')
+  # pylint: disable=no-member
   result = resource_manager.projects().get(projectId=project_id).execute()
   if 'projectNumber' not in result:
     raise AuthError('Failed to get project number.')
@@ -83,6 +84,7 @@ def _get_iap_key(key_id):
   """Retrieves a public key from the list published by Identity-Aware Proxy,
   re-fetching the key file if necessary.
   """
+  # pylint: disable=missing-timeout
   resp = requests.get('https://www.gstatic.com/iap/verify/public_key')
   if resp.status_code != 200:
     raise AuthError('Unable to fetch IAP keys: '
@@ -160,7 +162,7 @@ def get_current_user():
   try:
     decoded_claims = decode_claims(get_session_cookie())
   except AuthError:
-    logs.log_warn('Invalid session cookie.')
+    logs.warning('Invalid session cookie.')
     return None
 
   allowed_firebase_providers = local_config.ProjectConfig().get(
@@ -169,7 +171,7 @@ def get_current_user():
   sign_in_provider = firebase_info.get('sign_in_provider')
 
   if sign_in_provider not in allowed_firebase_providers:
-    logs.log_error(f'Firebase provider {sign_in_provider} is not enabled.')
+    logs.error(f'Firebase provider {sign_in_provider} is not enabled.')
     return None
 
   # Per https://docs.github.com/en/authentication/

@@ -39,7 +39,7 @@ PACKAGE_OPTIMIZATION_TIMEOUT = 30 * 60
 def disable_packages_that_crash_with_gestures():
   """Disable known packages that crash on gesture fuzzing."""
   for package in PACKAGES_THAT_CRASH_WITH_GESTURES:
-    adb.run_shell_command(['pm', 'disable-user', package], log_error=False)
+    adb.run_shell_command(['pm', 'disable-user', package])
 
 
 def get_launch_command(app_args, testcase_path, testcase_file_url):
@@ -116,9 +116,6 @@ def reset():
   if not is_installed(package_name):
     return
 
-  # Before clearing package state, save the minidumps.
-  save_crash_minidumps(package_name)
-
   # Clean package state.
   adb.run_shell_command(['pm', 'clear', package_name])
 
@@ -128,20 +125,6 @@ def reset():
   adb.run_shell_command([
       'pm', 'grant', package_name, 'android.permission.WRITE_EXTERNAL_STORAGE'
   ])
-
-
-def save_crash_minidumps(package_name):
-  """Retain crash minidumps before app reset (chrome only)."""
-  if package_name != 'com.google.android.apps.chrome':
-    return
-
-  # Ignore errors when running this command. Adding directory list check is
-  # another adb call and since this is called frequently, we need to avoid that
-  # extra call.
-  adb.run_shell_command(
-      ['cp', '/data/data/cache/Crash\\ Reports/*', constants.CRASH_DUMPS_DIR],
-      log_error=False,
-      root=True)
 
 
 def stop():
@@ -161,7 +144,6 @@ def stop():
     cache_dirs_absolute_paths = [
         '/data/data/%s/%s' % (package_name, i) for i in CHROME_CACHE_DIRS
     ]
-    save_crash_minidumps(package_name)
     adb.run_shell_command(
         ['rm', '-rf', ' '.join(cache_dirs_absolute_paths)], root=True)
 
@@ -180,5 +162,5 @@ def wait_until_optimization_complete():
     if package_optimization_finished:
       return
 
-    logs.log('Waiting for package optimization to finish.')
+    logs.info('Waiting for package optimization to finish.')
     time.sleep(PACKAGE_OPTIMIZATION_INTERVAL)

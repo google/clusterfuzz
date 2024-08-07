@@ -22,19 +22,26 @@ from google.cloud import ndb
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @commands.set_task_payload
-def dummy(_):
+def dummy(*args, **kwargs):
   """A dummy function."""
+  del args
+  del kwargs
   return os.environ['TASK_PAYLOAD']
 
 
+def dummy_wrapper():
+  return dummy('payload', 'argument', 'jobname', False, preprocess=False)
+
+
 @commands.set_task_payload
-def dummy_exception(_):
+def dummy_exception(*args, **kwargs):
   """A dummy function."""
   raise RuntimeError(os.environ['TASK_PAYLOAD'])
 
@@ -44,12 +51,12 @@ class SetTaskPayloadTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    helpers.patch(self, ['clusterfuzz._internal.base.tasks.construct_payload'])
+    self.mock.construct_payload.return_value = 'payload something'
 
   def test_set(self):
     """Test set."""
-    task = mock.Mock()
-    task.payload.return_value = 'payload something'
-    self.assertEqual('payload something', dummy(task))
+    self.assertEqual('payload something', dummy_wrapper())
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
   def test_exc(self):
@@ -57,8 +64,9 @@ class SetTaskPayloadTest(unittest.TestCase):
     task = mock.Mock()
     task.payload.return_value = 'payload something'
     with self.assertRaises(Exception) as cm:
-      self.assertEqual('payload something', dummy_exception(task))
-    self.assertEqual('payload something', str(cm.exception))
+      self.assertEqual('payload something', dummy_exception(
+          'task', 'arg', 'job'))
+      self.assertEqual('payload something', str(cm.exception))
     self.assertEqual({'task_payload': 'payload something'}, cm.exception.extras)
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
@@ -74,9 +82,16 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.utask_main'),
         ('progression_utask_main',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
+        ('progression_utask_preprocess',
+         'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
+        ),
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
     ])
+
+    self.mock.get_signed_upload_url.return_value = 'https://upload'
 
     os.environ['BOT_NAME'] = 'bot_name'
     os.environ['TASK_LEASE_SECONDS'] = '60'
@@ -89,17 +104,22 @@ class RunCommandTest(unittest.TestCase):
     worker_output_url = '/worker-output'
     with mock.patch('clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess'
                    ) as postprocess:
-      commands.run_command('uworker_postprocess', worker_output_url, 'none', {})
+      commands.run_command('postprocess', worker_output_url, 'none', {})
     postprocess.assert_called_with(worker_output_url)
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
-    commands.run_command('fuzz', 'fuzzer', 'job', {})
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
+        uworker_msg_pb2.SetupInput())
+
+    job_name = 'libfuzzer_job'
+    os.environ['JOB_NAME'] = job_name
+    commands.run_command('fuzz', 'fuzzer', job_name, {})
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
     self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
     self.assertEqual(uworker_input.fuzzer_name, 'fuzzer')
-    self.assertEqual(uworker_input.job_type, 'job')
+    self.assertEqual(uworker_input.job_type, job_name)
 
     # Fuzz task should not create any TaskStatus entities.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -107,6 +127,9 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_progression(self):
     """Test run_command with a progression task."""
+
+    self.mock.progression_utask_preprocess.return_value = uworker_msg_pb2.Input(
+        job_type='job', testcase_id='123')
     commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
@@ -148,7 +171,8 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
-    self.mock.progression_utask_main.side_effect = errors.InvalidTestcaseError
+    self.mock.progression_utask_preprocess.side_effect = errors.InvalidTestcaseError(
+        123)
     commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
@@ -194,6 +218,8 @@ class RunCommandTest(unittest.TestCase):
         time=datetime.datetime(1970, 1, 1),
         status='started').put()
 
+    self.mock.progression_utask_preprocess.return_value = uworker_msg_pb2.Input(
+        job_type='job', testcase_id='123')
     commands.run_command('progression', '123', 'job', {})
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
 

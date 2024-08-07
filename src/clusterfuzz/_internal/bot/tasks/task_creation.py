@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common functions for task creation for test cases."""
-
 from clusterfuzz._internal.base import bisection
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -23,9 +24,9 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def mark_unreproducible_if_flaky(testcase, potentially_flaky):
+def mark_unreproducible_if_flaky(testcase, task_name,
+                                 potentially_flaky) -> None:
   """Check to see if a test case appears to be flaky."""
-  task_name = environment.get_value('TASK_NAME')
 
   # If this run does not suggest that we are flaky, clear the flag and assume
   # that we are reproducible.
@@ -77,7 +78,7 @@ def create_blame_task_if_needed(testcase):
     return
 
   # Blame is only applicable to chromium project, otherwise bail out.
-  if testcase.project_name != 'chromium':
+  if not testcase.is_chromium():
     return
 
   # We cannot run blame job for custom binaries since we don't have any context
@@ -148,6 +149,8 @@ def create_regression_task_if_needed(testcase):
 
 def create_variant_tasks_if_needed(testcase):
   """Creates a variant task if needed."""
+  # TODO(https://b.corp.google.com/issues/328691756): Allow untrusted
+  # testcases to only run untrusted variants.
   if testcase.duplicate_of:
     # If another testcase exists with same params, no need to spend cycles on
     # calculating variants again.
@@ -187,6 +190,11 @@ def create_variant_tasks_if_needed(testcase):
     if (not testcase_job_is_engine and
         job_environment.get('APP_NAME') != testcase_job_app_name):
       continue
+
+    if not testcase.trusted:
+      if (task_utils.is_remotely_executing_utasks() and
+          not task_types.is_no_privilege_workload('variant', job_type)):
+        continue
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
@@ -194,7 +202,7 @@ def create_variant_tasks_if_needed(testcase):
     variant.status = data_types.TestcaseVariantStatus.PENDING
     variant.put()
     num_variant_tasks += 1
-  logs.log(f'Number of variant tasks: {num_variant_tasks}.')
+  logs.info(f'Number of variant tasks: {num_variant_tasks}.')
 
 
 def create_symbolize_task_if_needed(testcase):
@@ -240,6 +248,23 @@ def create_tasks(testcase):
     testcase.put()
     return
 
-  # Just create the minimize task for now. Once minimization is complete, it
-  # automatically created the rest of the needed tasks.
-  create_minimize_task_if_needed(testcase)
+  if environment.is_minimization_supported():
+    # For supported environments, just create the minimize task for now.
+    # Once minimization is complete, it automatically creates the rest of the
+    # needed tasks.
+    create_minimize_task_if_needed(testcase)
+  else:
+    # Environments that don't support minimization skip directly to other
+    # tasks.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase.minimized_keys = 'NA'
+    testcase.put()
+    create_postminimize_tasks(testcase)
+
+
+def create_postminimize_tasks(testcase):
+  """Create assorted tasks needed after minimize task completes."""
+  create_impact_task_if_needed(testcase)
+  create_regression_task_if_needed(testcase)
+  create_symbolize_task_if_needed(testcase)
+  create_variant_tasks_if_needed(testcase)

@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
@@ -64,17 +65,20 @@ class LibFuzzerOptions(engine.FuzzOptions):
   """LibFuzzer engine options."""
 
   def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
-               extra_env, use_dataflow_tracing, is_mutations_run):
+               extra_env, is_mutations_run):
     super().__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
-    self.use_dataflow_tracing = use_dataflow_tracing
     self.is_mutations_run = is_mutations_run
     self.merge_back_new_testcases = True
 
 
 class Engine(engine.Engine):
   """LibFuzzer engine implementation."""
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._merge_control_file = None
 
   @property
   def name(self):
@@ -109,7 +113,6 @@ class Engine(engine.Engine):
     """
     del build_dir
     arguments = fuzzer.get_arguments(target_path)
-    grammar = fuzzer.get_grammar(target_path)
     extra_env = fuzzer.get_extra_env(target_path)
 
     if self.do_strategies:
@@ -121,7 +124,7 @@ class Engine(engine.Engine):
       strategy_pool = strategy_selection.StrategyPool()
 
     strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
-                                              corpus_dir, arguments, grammar)
+                                              corpus_dir, arguments)
     if (strategy.USE_EXTRA_SANITIZERS_STRATEGY.name in
         strategy_info.fuzzing_strategies):
       environment.set_value('USE_EXTRA_SANITIZERS', True)
@@ -143,8 +146,7 @@ class Engine(engine.Engine):
     subset_size = engine_common.random_choice(
         engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-    if (not strategy_info.use_dataflow_tracing and
-        strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
+    if (strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
         shell.get_directory_file_count(corpus_dir) > subset_size):
       # Copy |subset_size| testcases into 'subset' directory.
       corpus_subset_dir = self._create_temp_corpus_dir('subset')
@@ -156,19 +158,19 @@ class Engine(engine.Engine):
       strategy_info.additional_corpus_dirs.append(corpus_dir)
 
     # Check dict argument to make sure that it's valid.
-    dict_path = fuzzer_utils.extract_argument(
-        arguments, constants.DICT_FLAG, remove=False)
+    dict_path = arguments.get(
+        constants.DICT_FLAGNAME, default=None, constructor=str)
     if dict_path and not os.path.exists(dict_path):
-      logs.log_error(f'Invalid dict {dict_path} for {target_path}.')
-      fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
+      logs.error(f'Cannot find dict: {dict_path} for {target_path}.')
+      del arguments[constants.DICT_FLAGNAME]
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
-    dict_path = fuzzer_utils.extract_argument(
-        arguments, constants.DICT_FLAG, remove=False)
+    dict_path = arguments.get(
+        constants.DICT_FLAGNAME, default=None, constructor=str)
     if not dict_path:
       dict_path = dictionary_manager.get_default_dictionary_path(target_path)
       if os.path.exists(dict_path):
-        arguments.append(constants.DICT_FLAG + dict_path)
+        arguments[constants.DICT_FLAGNAME] = dict_path
 
     # If we have a dictionary, correct any items that are not formatted properly
     # (e.g. quote items that are missing them).
@@ -176,10 +178,10 @@ class Engine(engine.Engine):
 
     strategies = stats.process_strategies(
         strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
-    return LibFuzzerOptions(
-        corpus_dir, arguments, strategies, strategy_info.additional_corpus_dirs,
-        strategy_info.extra_env, strategy_info.use_dataflow_tracing,
-        strategy_info.is_mutations_run)
+    return LibFuzzerOptions(corpus_dir, arguments.list(), strategies,
+                            strategy_info.additional_corpus_dirs,
+                            strategy_info.extra_env,
+                            strategy_info.is_mutations_run)
 
   def _create_empty_testcase_file(self, reproducers_dir):
     """Create an empty testcase file in temporary directory."""
@@ -191,6 +193,15 @@ class Engine(engine.Engine):
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
+
+  def _create_temp_dir(self, name):
+    """Create a temporary directory suitable for putting into the TMPDIR
+    environment variable, which practically speaking sometimes needs to be
+    shortish."""
+    new_temp_dir = os.path.join(
+        fuzzer_utils.get_temp_dir(use_fuzz_inputs_disk=False), name)
+    engine_common.recreate_directory(new_temp_dir)
+    return new_temp_dir
 
   def _create_merge_corpus_dir(self):
     """Create merge corpus directory."""
@@ -204,7 +215,7 @@ class Engine(engine.Engine):
     new_units_added = shell.get_directory_file_count(new_corpus_dir)
     if not new_units_added:
       stat_overrides['new_units_added'] = 0
-      logs.log('Skipped corpus merge since no new units added by fuzzing.')
+      logs.info('Skipped corpus merge since no new units added by fuzzing.')
       return
 
     # If this times out, it's possible that we will miss some units. However, if
@@ -239,16 +250,16 @@ class Engine(engine.Engine):
 
       stat_overrides.update(result.stats)
     except (MergeError, TimeoutError) as e:
-      logs.log_warn('Merge failed.', error=repr(e))
+      logs.warning('Merge failed.', error=repr(e))
 
     stat_overrides['new_units_added'] = new_units_added
 
     # Record the stats to make them easily searchable in stackdriver.
-    logs.log('Stats calculated.', stats=stat_overrides)
+    logs.info('Stats calculated.', stats=stat_overrides)
     if new_units_added:
-      logs.log(f'New units added to corpus: {new_units_added}.')
+      logs.info(f'New units added to corpus: {new_units_added}.')
     else:
-      logs.log('No new units found.')
+      logs.info('No new units found.')
 
   def _fuzz_output_contains_trusty_kernel_panic(self, log_lines):
     for line in log_lines:
@@ -270,8 +281,8 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
+    libfuzzer.set_sanitizer_options(target_path)
     runner = libfuzzer.get_runner(target_path)
-    libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
 
     # Directory to place new units.
     if options.merge_back_new_testcases:
@@ -291,7 +302,7 @@ class Engine(engine.Engine):
         engine_common.get_project_qualified_fuzzer_name(target_path))
     dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
     if dict_error_match:
-      logs.log_error(
+      logs.error(
           'Dictionary parsing failed '
           f'(target={project_qualified_fuzzer_name}, '
           f'line={dict_error_match.group(1)}).',
@@ -301,7 +312,7 @@ class Engine(engine.Engine):
       # Minijail returns 1 if the exit code is nonzero.
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
-      logs.log_error(
+      logs.error(
           ENGINE_ERROR_MESSAGE + f' (target={project_qualified_fuzzer_name}).',
           engine_output=fuzz_result.output)
 
@@ -331,22 +342,23 @@ class Engine(engine.Engine):
         stats.parse_performance_features(log_lines, options.strategies,
                                          options.arguments))
 
+    args = fuzzer_options.FuzzerArguments.from_list(options.arguments)
     # Set some initial stat overrides.
-    timeout_limit = fuzzer_utils.extract_argument(
-        options.arguments, constants.TIMEOUT_FLAG, remove=False)
+    timeout_limit = args.get(
+        constants.TIMEOUT_FLAGNAME, default=None, constructor=int)
 
     actual_duration = int(fuzz_result.time_executed)
     fuzzing_time_percent = 100 * actual_duration / float(max_time)
     parsed_stats.update({
-        'timeout_limit': int(timeout_limit),
+        'timeout_limit': timeout_limit,
         'expected_duration': int(max_time),
         'actual_duration': actual_duration,
         'fuzzing_time_percent': fuzzing_time_percent,
     })
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
-    non_fuzz_arguments = options.arguments.copy()
-    libfuzzer.remove_fuzzing_arguments(non_fuzz_arguments, is_merge=True)
+    non_fuzz_arguments = libfuzzer.strip_fuzzing_arguments(
+        args.list(), is_merge=True)
 
     if options.merge_back_new_testcases:
       self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
@@ -356,11 +368,11 @@ class Engine(engine.Engine):
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
-      reproduce_arguments = options.arguments[:]
-      libfuzzer.remove_fuzzing_arguments(reproduce_arguments)
+      reproduce_arguments = libfuzzer.strip_fuzzing_arguments(options.arguments)
 
       # Use higher timeout for reproduction.
-      libfuzzer.fix_timeout_argument_for_reproduction(reproduce_arguments)
+      reproduce_arguments = libfuzzer.fix_timeout_argument_for_reproduction(
+          reproduce_arguments)
 
       # Write the new testcase.
       # Copy crash testcase contents into the main testcase path.
@@ -392,17 +404,16 @@ class Engine(engine.Engine):
 
     # Remove fuzzing specific arguments. This is only really needed for legacy
     # testcases, and can be removed in the distant future.
-    arguments = arguments[:]
-    libfuzzer.remove_fuzzing_arguments(arguments)
+    arguments = libfuzzer.strip_fuzzing_arguments(arguments)
+    arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
 
-    runs_argument = constants.RUNS_FLAG + str(constants.RUNS_TO_REPRODUCE)
-    arguments.append(runs_argument)
+    arguments[constants.RUNS_FLAGNAME] = int(constants.RUNS_TO_REPRODUCE)
 
     result = runner.run_single_testcase(
-        input_path, timeout=max_time, additional_args=arguments)
+        input_path, timeout=max_time, additional_args=arguments.list())
 
     if result.timed_out:
-      logs.log_warn('Reproducing timed out.', fuzzer_output=result.output)
+      logs.warning('Reproducing timed out.', fuzzer_output=result.output)
       raise TimeoutError('Reproducing timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
@@ -430,7 +441,7 @@ class Engine(engine.Engine):
     if not _is_multistep_merge_supported(target_path):
       # Fallback to the old single step merge. It does not support incremental
       # stats and provides only `edge_coverage` and `feature_coverage` stats.
-      logs.log('Old version of libFuzzer is used. Using single step merge.')
+      logs.info('Old version of libFuzzer is used. Using single step merge.')
       return self.minimize_corpus(target_path, arguments,
                                   existing_corpus_dirs + [new_corpus_dir],
                                   output_corpus_dir, reproducers_dir, max_time)
@@ -457,7 +468,7 @@ class Engine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      logs.log_error(
+      logs.error(
           'Merging new testcases timed out.', fuzzer_output=result_1.logs)
       raise TimeoutError('Merging new testcases timed out.')
 
@@ -477,7 +488,7 @@ class Engine(engine.Engine):
 
     output = result_1.logs + '\n\n' + result_2.logs
     if (merge_stats['new_edges'] < 0 or merge_stats['new_features'] < 0):
-      logs.log_error(
+      logs.error(
           'Two step merge failed.', merge_stats=merge_stats, output=output)
       merge_stats['new_edges'] = 0
       merge_stats['new_features'] = 0
@@ -510,24 +521,31 @@ class Engine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
-    merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+    merge_tmp_dir = self._create_temp_dir('merge-wd')
+    logs.info(f'Starting merge with timeout {max_time}.')
 
-    result = runner.merge(
-        [output_dir] + input_dirs,
-        merge_timeout=max_time,
-        tmp_dir=merge_tmp_dir,
-        additional_args=arguments,
-        artifact_prefix=reproducers_dir,
-        merge_control_file=getattr(self, '_merge_control_file', None))
+    try:
+      result = runner.merge(
+          [output_dir] + input_dirs,
+          merge_timeout=max_time,
+          tmp_dir=merge_tmp_dir,
+          additional_args=arguments,
+          artifact_prefix=reproducers_dir,
+          merge_control_file=getattr(self, '_merge_control_file', None))
+    finally:
+      # Deletes the directory to relinquish space
+      engine_common.recreate_directory(merge_tmp_dir)
 
+    logs.info('Merge completed.', fuzzer_output=result.output)
     if result.timed_out:
-      logs.log_error(
+      logs.error(
           'Merging new testcases timed out.', fuzzer_output=result.output)
       raise TimeoutError('Merging new testcases timed out.')
 
     if result.return_code != 0:
-      logs.log_error(
-          'Merging new testcases timed out.', fuzzer_output=result.output)
+      logs.error(
+          f'Merging new testcases failed with error code {result.return_code}',
+          fuzzer_output=result.output)
       raise MergeError('Merging new testcases failed.')
 
     merge_output = result.output
@@ -565,7 +583,7 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      logs.log_error('Minimization timed out.', fuzzer_output=result.output)
+      logs.error('Minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
@@ -599,7 +617,7 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      logs.log_error('Cleanse timed out.', fuzzer_output=result.output)
+      logs.error('Cleanse timed out.', fuzzer_output=result.output)
       raise TimeoutError('Cleanse timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,

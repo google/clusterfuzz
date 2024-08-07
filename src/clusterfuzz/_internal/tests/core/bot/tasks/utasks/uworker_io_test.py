@@ -32,69 +32,6 @@ DEFAULT_SIGNED_URL_MINUTES = 24 * 60
 # pylint: disable=protected-access
 
 
-class UworkerEntityWrapperTest(unittest.TestCase):
-  """Tests for UworkerEntityWrapper, a core part of how ndb models/data_types
-  are used by uworkers."""
-  VALUE = 1
-  NEW_VALUE = 2
-
-  def setUp(self):
-    self.underlying_entity = mock.MagicMock()
-    self.underlying_entity.a = self.VALUE
-    self.wrapped = uworker_io.UworkerEntityWrapper(self.underlying_entity)
-
-  def test_reflecting_underlying(self):
-    """Tests that UworkerEntityWrapper reflects values on the underlying
-    entity."""
-    self.assertEqual(self.wrapped.a, self.VALUE)
-
-  def test_modifying_underlying(self):
-    """Tests that UworkerEntityWrapper modifies attributes on the underlying
-    entity, and that when queried, reflects those values back."""
-    self.wrapped.a = self.NEW_VALUE
-    self.assertEqual(self.wrapped.a, self.NEW_VALUE)
-    self.assertEqual(self.underlying_entity.a, self.NEW_VALUE)
-
-    self.wrapped.b = self.NEW_VALUE
-    self.assertEqual(self.wrapped.b, self.NEW_VALUE)
-    self.assertEqual(self.underlying_entity.b, self.NEW_VALUE)
-
-    # Test with setattr to make sure we handle fanciness.
-    setattr(self.wrapped, 'c', self.NEW_VALUE)
-    self.assertEqual(self.wrapped.c, self.NEW_VALUE)
-    self.assertEqual(self.underlying_entity.c, self.NEW_VALUE)
-
-  def test_no_changes(self):
-    """Tests that UworkerEntityWrapper works when nothing is modified"""
-    self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
-    x = self.wrapped.a
-    del x
-    self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
-
-  def test_tracking_changes(self):
-    """Tests that UworkerEntityWrapper tracks attributes on the underlying
-    entity."""
-    # If a user sets an attribute we need to track that, even if nothing is
-    # actually changed.
-    self.wrapped.a = self.VALUE
-    self.wrapped.b = self.VALUE
-    setattr(self.wrapped, 'c', self.VALUE)
-    expected = {'a': self.VALUE, 'b': self.VALUE, 'c': self.VALUE}
-    self.assertEqual(self.wrapped._wrapped_changed_attributes, expected)
-
-  def test_not_adding_fields(self):
-    """Tests that UworkerEntityWrapper isn't adding fields to the
-    underlying_entity when not intended by the user."""
-    # Change the underlying entity to something that isn't MagicMock.
-    self.wrapped._entity = {}
-
-    with self.assertRaises(AttributeError):
-      self.wrapped.nonexistent  # pylint: disable=pointless-statement
-
-    with self.assertRaises(AttributeError):
-      getattr(self.wrapped, 'also_non_existent')  # pylint: disable=pointless-statement
-
-
 class TestGetUrls(unittest.TestCase):
   """Tests that functions for getting urls for uploading and downloading input
   and output work properly."""
@@ -140,26 +77,6 @@ class TestGetUrls(unittest.TestCase):
         minutes=DEFAULT_SIGNED_URL_MINUTES)
 
 
-class UworkerOutputTest(unittest.TestCase):
-  """Tests for UworkerOutput."""
-
-  def setUp(self):
-    self.output = uworker_io.UworkerOutput()
-
-  def test_error_and_testcase_behavior(self):
-    """Tests that the error and testcase attrs are handled properly,
-    in that they can be accessed with out being explicitly set
-    (defaulting to None) but don't appear in to_dict until they are
-    set."""
-    # Test that these can be accessed without an attribute error.
-    self.output.testcase  # pylint: disable=pointless-statement
-    self.output.error  # pylint: disable=pointless-statement
-    error_value = 1
-    self.output.error = error_value
-    self.assertEqual(self.output.error, error_value)
-    self.assertEqual(self.output.proto.error, error_value)
-
-
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
   """Tests round trips for serializing+deserializing as well as
@@ -201,10 +118,11 @@ class RoundTripTest(unittest.TestCase):
     """Tests that uploading and downloading input works. This means that input
     serialization and deserialization works."""
     # Create input for the uworker.
-    uworker_input = uworker_io.UworkerInput(
-        testcase=self.testcase,
+    uworker_input = uworker_msg_pb2.Input(
+        testcase=uworker_io.entity_to_protobuf(self.testcase),
         uworker_env=self.env,
-        testcase_download_url=self.FAKE_URL,
+        setup_input=uworker_msg_pb2.SetupInput(
+            testcase_download_url=self.FAKE_URL),
     )
 
     # Create a mocked version of write_data so that when we upload the uworker
@@ -242,28 +160,26 @@ class RoundTripTest(unittest.TestCase):
               self.FAKE_URL)
 
     # Test that testcase (de)serialization worked.
-    downloaded_testcase = downloaded_input.testcase
+    downloaded_testcase = uworker_io.entity_from_protobuf(
+        downloaded_input.testcase, data_types.Testcase)
     self.assertEqual(self.testcase.crash_type, downloaded_testcase.crash_type)
     self.assertEqual(self.testcase.crash_address,
                      downloaded_testcase.crash_address)
     self.assertEqual(self.testcase.crash_state, downloaded_testcase.crash_state)
     self.assertEqual(self.testcase.key.serialized(),
                      downloaded_testcase.key.serialized())
-    # Things will break horribly if we pass an unwrapped entity.
-    self.assertIsInstance(downloaded_testcase, uworker_io.UworkerEntityWrapper)
 
-    self.assertDictEqual(uworker_input.uworker_env,
-                         downloaded_input.uworker_env)
+    self.assertEqual(uworker_input.uworker_env, downloaded_input.uworker_env)
     self.assertEqual(uworker_input.uworker_output_upload_url,
                      downloaded_input.uworker_output_upload_url)
-    self.assertEqual(uworker_input.testcase_download_url,
-                     downloaded_input.testcase_download_url)
+    self.assertEqual(uworker_input.setup_input.testcase_download_url,
+                     downloaded_input.setup_input.testcase_download_url)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
     that output serialization and deserialization works."""
     # Set up a wrapped testcase and modify it as a uworker would.
-    testcase = uworker_io.UworkerEntityWrapper(self.testcase)
+    testcase = self.testcase
     testcase.regression = '1'
     testcase.timestamp = datetime.datetime.now()
     testcase.crash_type = 'new-crash_type'
@@ -271,10 +187,9 @@ class RoundTripTest(unittest.TestCase):
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
     crash_time = 1
-    output = uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+    output = uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     output.crash_time = crash_time
-    output.testcase = testcase
 
     # Create a version of upload_signed_url that will "upload" the data to a
     # known file on disk that we can read back.
@@ -308,7 +223,7 @@ class RoundTripTest(unittest.TestCase):
           return fp.read()
 
       uworker_env = {'PATH': '/blah'}
-      uworker_input = uworker_io.UworkerInput(
+      uworker_input = uworker_msg_pb2.Input(
           uworker_env=uworker_env, testcase_id='one-two')
       with mock.patch(
           download_input_based_on_output_url_name,
@@ -318,29 +233,19 @@ class RoundTripTest(unittest.TestCase):
         downloaded_output = (
             uworker_io.download_and_deserialize_uworker_output(self.FAKE_URL))
 
-        self.assertEqual(downloaded_output.testcase.regression,
-                         testcase.regression)
-        self.assertEqual(downloaded_output.testcase.crash_type,
-                         testcase.crash_type)
-        self.assertEqual(downloaded_output.testcase.timestamp,
-                         testcase.timestamp)
-
     # Test that the rest of the output was (de)serialized correctly.
-    self.assertEqual(downloaded_output.testcase.key.serialized(),
-                     self.testcase.key.serialized())
     self.assertEqual(downloaded_output.crash_time, 1)
-    self.assertEqual(downloaded_output.error,
+    self.assertEqual(downloaded_output.error_type,
                      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     self.assertEqual(downloaded_output.uworker_input.testcase_id,
                      uworker_input.testcase_id)
-    self.assertDictEqual(downloaded_output.uworker_input.uworker_env,
-                         uworker_env)
+    self.assertEqual(downloaded_output.uworker_input.uworker_env, uworker_env)
 
   def test_output_error_serialization(self):
     """Tests that errors can be returned by the tasks."""
     test_timeout = 1337
-    output = uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    output = uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
         test_timeout=test_timeout)
     serialized = uworker_io.serialize_uworker_output(output)
     processed_output = uworker_io.deserialize_uworker_output(serialized)
@@ -353,33 +258,126 @@ class RoundTripTest(unittest.TestCase):
     bundle2 = data_types.DataBundle(name='name2')
     bundle1.put()
     bundle2.put()
-    data_bundles = [bundle1, bundle2]
-    update_input = uworker_io.UpdateFuzzerAndDataBundleInput(
-        data_bundles=data_bundles)
-    uworker_input = uworker_io.UworkerInput(
-        update_fuzzer_and_data_bundles_input=update_input)
+    data_bundle_corpuses = [
+        uworker_msg_pb2.DataBundleCorpus(
+            data_bundle=uworker_io.entity_to_protobuf(bundle1)),
+        uworker_msg_pb2.DataBundleCorpus(
+            data_bundle=uworker_io.entity_to_protobuf(bundle2)),
+    ]
+    setup_input = uworker_msg_pb2.SetupInput(
+        data_bundle_corpuses=data_bundle_corpuses)
+    uworker_input = uworker_msg_pb2.Input(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
-    update_input = deserialized.update_fuzzer_and_data_bundles_input
-    self.assertEqual(update_input.data_bundles[0].name, bundle1.name)
-    self.assertEqual(update_input.data_bundles[1].name, bundle2.name)
+    setup_input = deserialized.setup_input
+    deserialized_data_bundles = [
+        uworker_io.entity_from_protobuf(bundle.data_bundle,
+                                        data_types.DataBundle)
+        for bundle in setup_input.data_bundle_corpuses
+    ]
+    self.assertEqual(deserialized_data_bundles[0].name, bundle1.name)
+    self.assertEqual(deserialized_data_bundles[1].name, bundle2.name)
+
+  def test_minimization_output_serialization(self):
+    """Tests that we can serialize and deserialize MinimizeTaskOutput."""
+    expected_last_crash_result_dict = {
+      'crash_type': 'test-use-after-free',
+      'crash_address': '0x61b00001f7d0',
+      'crash_state': 'test crash state',
+      'crash_stacktrace': 'test stacktrace --------+' \
+        '#0 0x64801a in frame0() src/test.cpp:1819:15' ,
+    }
+    expected_flaky_stack = True
+    pre_serialized_minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
+        last_crash_result_dict=expected_last_crash_result_dict,
+        flaky_stack=expected_flaky_stack)
+    uworker_output = uworker_msg_pb2.Output(
+        minimize_task_output=pre_serialized_minimize_task_output)
+    serialized = uworker_io.serialize_uworker_output(uworker_output)
+    deserialized = uworker_io.deserialize_uworker_output(serialized)
+    deserialized_minimize_task_output = deserialized.minimize_task_output
+    self.assertEqual(deserialized_minimize_task_output.last_crash_result_dict,
+                     expected_last_crash_result_dict)
+    self.assertEqual(deserialized_minimize_task_output.flaky_stack,
+                     expected_flaky_stack)
 
   def test_submessage_serialization_and_deserialization(self):
     """Tests that output messages with submessages are serialized and
     deserialized properly."""
     crash_revision = '1337'
-    crashes = [{
-        'is_new': False,
-        'count': 1,
-        'crash_type': 'Abort',
-        'crash_state': 'NULL',
-        'security_flag': True,
-    }]
-    output = uworker_io.UworkerOutput(
-        fuzz_task_output=uworker_io.FuzzTaskOutput(
-            crash_revision=crash_revision, job_run_crashes=crashes))
+
+    crash_groups = [
+        uworker_msg_pb2.FuzzTaskCrashGroup(crashes=[
+            uworker_msg_pb2.FuzzTaskCrash(
+                crash_type='Abort',
+                crash_state='NULL',
+                security_flag=True,
+            )
+        ])
+    ]
+    output = uworker_msg_pb2.Output(
+        fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
+            crash_revision=crash_revision, crash_groups=crash_groups))
     serialized = uworker_io.serialize_uworker_output(output)
     deserialized = uworker_io.deserialize_uworker_output(serialized)
-    self.assertEqual(deserialized.fuzz_task_output.job_run_crashes, crashes)
+    self.assertEqual(deserialized.fuzz_task_output.crash_groups, crash_groups)
+
     self.assertEqual(deserialized.fuzz_task_output.crash_revision,
                      crash_revision)
+
+
+class ComplexFieldsTest(unittest.TestCase):
+  """Tests handling of complex proto fields (e.g. lists and
+  submessages)."""
+
+  def test_list_initialize(self):
+    """Tests that initialization with a list works."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input.bad_revisions, [0])
+
+  def test_list_update(self):
+    """Tests that updating a list works."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    analyze_task_input.bad_revisions.extend([1])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input.bad_revisions, [0, 1])
+
+  def test_map_update(self):
+    """Tests that updating a map works."""
+    output = uworker_msg_pb2.Output(issue_metadata={'a': 'b', 'c': 'd'})
+    output.issue_metadata.clear()
+    output.issue_metadata.update({'e': 'f'})
+    wire_format = uworker_io.serialize_uworker_output(output)
+    deserialized = uworker_io.deserialize_uworker_output(wire_format)
+    self.assertEqual(deserialized.issue_metadata, {'e': 'f'})
+
+  def test_submessage_references(self):
+    """Tests that updating a submessage works both when directly reading from
+    uworker_input and from reading from it once it has been serialized and
+    deserialized."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+    uworker_input.analyze_task_input.bad_revisions.append(-1)
+    uworker_input.analyze_task_input.bad_revisions.extend([2])
+    uworker_input.analyze_task_input.bad_revisions.append(3)
+    analyze_task_input.bad_revisions.append(4)
+    self.assertEqual(analyze_task_input.bad_revisions, [0, 4])
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input.bad_revisions,
+                     [0, -1, 2, 3])
+
+  def test_unset_a_message_field(self):
+    """Tests that clearing a field works."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+
+    uworker_input.ClearField("analyze_task_input")
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertFalse(deserialized.HasField("analyze_task_input"))

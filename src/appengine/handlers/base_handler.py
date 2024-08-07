@@ -99,7 +99,7 @@ def encode_json(value):
 _JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(
         os.path.join(os.path.dirname(__file__), '..', 'templates')),
-    extensions=['jinja2.ext.autoescape'],
+    extensions=[],
     autoescape=True)
 _MENU_ITEMS = []
 
@@ -186,6 +186,7 @@ class Handler(MethodView):
 
     values['menu_items'] = _MENU_ITEMS
     values['is_oss_fuzz'] = utils.is_oss_fuzz()
+    values['is_chromium'] = utils.is_chromium()
     values['is_development'] = (
         environment.is_running_on_app_engine_development())
     values['is_logged_in'] = bool(helpers.get_user_email())

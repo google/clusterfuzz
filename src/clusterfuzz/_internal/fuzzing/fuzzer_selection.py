@@ -35,27 +35,25 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
   query = data_types.FuzzerJob.query()
   query = query.filter(data_types.FuzzerJob.fuzzer == fuzzer.name)
-  entities = ndb_utils.get_all_from_query(query)
+  fuzzer_job_entities = ndb_utils.get_all_from_query(query)
   old_mappings = {}
-  for entity in entities:
-    old_mappings[entity.job] = entity
+  for fuzzer_job in fuzzer_job_entities:
+    old_mappings[fuzzer_job.job] = fuzzer_job
 
   new_mappings = []
+  if mappings:
+    jobs = ndb_utils.get_all_from_query(data_types.Job.query().filter(
+        data_types.Job.name.IN(mappings)))
+    jobs = {job.name: job for job in jobs}
+  else:
+    jobs = {}
   for job_name in mappings:
     mapping = old_mappings.pop(job_name, None)
-    if mapping:
-      continue
-
-    job = data_types.Job.query(data_types.Job.name == job_name).get()
-    if not job:
-      logs.log_error('An unknown job %s was selected for fuzzer %s.' %
-                     (job_name, fuzzer.name))
-      continue
-
-    mapping = data_types.FuzzerJob()
+    if not mapping:
+      mapping = data_types.FuzzerJob()
     mapping.fuzzer = fuzzer.name
     mapping.job = job_name
-    mapping.platform = job.platform
+    mapping.platform = jobs[job_name].platform
     new_mappings.append(mapping)
 
   ndb_utils.put_multi(new_mappings)
@@ -64,9 +62,11 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
 def update_mappings_for_job(job, mappings):
   """Clear existing mappings for a job, and replace them."""
-  existing_fuzzers_query = data_types.Fuzzer.query(
-      data_types.Fuzzer.jobs == job.name)
-  existing_fuzzers = {fuzzer.name: fuzzer for fuzzer in existing_fuzzers_query}
+  existing_fuzzers = {
+      fuzzer.name: fuzzer
+      for fuzzer in data_types.Fuzzer.query()
+      if job.name in fuzzer.jobs
+  }
   modified_fuzzers = []
 
   for fuzzer_name in mappings:
@@ -77,8 +77,8 @@ def update_mappings_for_job(job, mappings):
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_name).get()
     if not fuzzer:
-      logs.log_error('An unknown fuzzer %s was selected for job %s.' %
-                     (fuzzer_name, job.name))
+      logs.error('An unknown fuzzer %s was selected for job %s.' % (fuzzer_name,
+                                                                    job.name))
       continue
 
     fuzzer.jobs.append(job.name)
@@ -112,23 +112,45 @@ def get_fuzz_task_payload(platform=None):
     queue_override = environment.get_value('QUEUE_OVERRIDE')
     platform = queue_override if queue_override else environment.platform()
 
-  if environment.is_local_development():
-    query = data_types.FuzzerJob.query()
-    query = query.filter(data_types.FuzzerJobs.platform == platform)
-    mappings = list(ndb_utils.get_all_from_query(query))
-  else:
+  platforms = [platform]
+  base_platform = platform.split(':')[0]
+  # Generalized queue for platforms with a base platform (e.g. ANDROID)
+  if base_platform != platform:
+    platforms.append(base_platform)
+
+  if environment.is_production():
     query = data_types.FuzzerJobs.query()
-    query = query.filter(data_types.FuzzerJobs.platform == platform)
+    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
     mappings = []
     for entity in query:
       mappings.extend(entity.fuzzer_jobs)
+  else:
+    # 'FuzzerJobs' may not exist locally because they are created by
+    # the 'batch_fuzzer_jobs' cron job
+    query = data_types.FuzzerJob.query()
+    query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
+    mappings = list(ndb_utils.get_all_from_query(query))[:1]
 
   if not mappings:
     return None, None
 
+  logs.info(f'Mappings: {mappings}.')
+  selected_mappings = mappings
+  # The environment variable containing a list of comma-separated jobs.
+  # E.g: "libfuzzer_asan_android_host,afl_asan_android_host,..."
+  jobs_selection = environment.get_value('HOST_JOB_SELECTION')
+  if jobs_selection:
+    jobs = get_job_list(jobs_selection)
+    selected_mappings = [entity for entity in mappings if entity.job in jobs]
+
+  logs.info(f'Selected mappings: {selected_mappings}.')
+
+  if not selected_mappings:
+    return None, None
+
   selection = utils.random_weighted_choice(
-      mappings, weight_attribute='actual_weight')
+      selected_mappings, weight_attribute='actual_weight')
   return selection.fuzzer, selection.job
 
 
@@ -154,10 +176,17 @@ def get_fuzz_target_weights():
   weights = {}
   for fuzz_target, target_job in zip(fuzz_targets, target_jobs):
     if not fuzz_target:
-      logs.log_error('Skipping weight assignment for fuzz target %s.' %
-                     target_job.fuzz_target_name)
+      logs.error('Skipping weight assignment for fuzz target '
+                 f'{target_job.fuzz_target_name}.')
       continue
 
     weights[fuzz_target.binary] = target_job.weight
 
   return weights
+
+
+def get_job_list(jobs_str):
+  if jobs_str:
+    return [job.strip() for job in jobs_str.split(',')]
+
+  return []

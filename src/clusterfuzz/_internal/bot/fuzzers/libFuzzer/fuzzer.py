@@ -12,20 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer fuzzer."""
+import psutil
+
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import builtin
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
-
-
-def get_grammar(fuzzer_path):
-  """Get grammar for a given fuzz target. Return none if there isn't one."""
-  fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
-  if fuzzer_options:
-    grammar = fuzzer_options.get_grammar_options()
-    if grammar:
-      return grammar.get('grammar')
-
-  return None
 
 
 def get_extra_env(fuzzer_path):
@@ -37,43 +29,37 @@ def get_extra_env(fuzzer_path):
   return None
 
 
-def get_arguments(fuzzer_path):
+def get_arguments(fuzzer_path) -> options.FuzzerArguments:
   """Get arguments for a given fuzz target."""
-  arguments = []
+  arguments = options.FuzzerArguments()
   rss_limit_mb = None
   timeout = None
 
   fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
 
   if fuzzer_options:
-    libfuzzer_arguments = fuzzer_options.get_engine_arguments('libfuzzer')
-    if libfuzzer_arguments:
-      arguments.extend(libfuzzer_arguments.list())
-      rss_limit_mb = libfuzzer_arguments.get('rss_limit_mb', constructor=int)
-      timeout = libfuzzer_arguments.get('timeout', constructor=int)
+    arguments = fuzzer_options.get_engine_arguments('libfuzzer')
+    rss_limit_mb = arguments.get('rss_limit_mb', constructor=int)
+    timeout = arguments.get('timeout', constructor=int)
 
-  if not timeout:
-    arguments.append(
-        '%s%d' % (constants.TIMEOUT_FLAG, constants.DEFAULT_TIMEOUT_LIMIT))
-  else:
-    # Custom timeout value shouldn't be greater than the default timeout
-    # limit.
-    # TODO(mmoroz): Eventually, support timeout values greater than the
-    # default.
-    if timeout > constants.DEFAULT_TIMEOUT_LIMIT:
-      arguments.remove('%s%d' % (constants.TIMEOUT_FLAG, timeout))
-      arguments.append(
-          '%s%d' % (constants.TIMEOUT_FLAG, constants.DEFAULT_TIMEOUT_LIMIT))
+  if timeout is None or timeout > constants.DEFAULT_TIMEOUT_LIMIT:
+    arguments[constants.TIMEOUT_FLAGNAME] = constants.DEFAULT_TIMEOUT_LIMIT
 
-  if not rss_limit_mb:
-    arguments.append(
-        '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
+  if not rss_limit_mb and utils.is_chromium():
+    # TODO(metzman/alhijazi): Monitor if we are crashing the bots.
+    arguments[constants.RSS_LIMIT_FLAGNAME] = 0
+  elif not rss_limit_mb:
+    arguments[constants.RSS_LIMIT_FLAGNAME] = constants.DEFAULT_RSS_LIMIT_MB
   else:
-    # Custom rss_limit_mb value shouldn't be greater than the default value.
-    if rss_limit_mb > constants.DEFAULT_RSS_LIMIT_MB:
-      arguments.remove('%s%d' % (constants.RSS_LIMIT_FLAG, rss_limit_mb))
-      arguments.append(
-          '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
+    # psutil gives the total amount of memory in bytes, but we're only dealing
+    # with options that are counting memory space in MB, so we need to do the
+    # conversion first.
+    max_memory_limit_mb = (psutil.virtual_memory().total //
+                           (1 << 20)) - constants.MEMORY_OVERHEAD
+    # Custom rss_limit_mb value shouldn't be greater than the actual memory
+    # allocated on the machine.
+    if rss_limit_mb > max_memory_limit_mb:
+      arguments[constants.RSS_LIMIT_FLAGNAME] = max_memory_limit_mb
 
   return arguments
 
@@ -83,4 +69,4 @@ class LibFuzzer(builtin.EngineFuzzer):
 
   def generate_arguments(self, fuzzer_path):
     """Generate arguments for fuzzer using .options file or default values."""
-    return ' '.join(get_arguments(fuzzer_path))
+    return ' '.join(get_arguments(fuzzer_path).list())

@@ -40,7 +40,7 @@ class GetPackageNameTest(android_helpers.AndroidTest):
   """Tests get_package_name."""
 
   def setUp(self):
-    super(GetPackageNameTest, self).setUp()
+    super().setUp()
 
     root_dir = environment.get_value('ROOT_DIR')
     self.test_apk_path = os.path.join(root_dir, 'resources', 'platform',

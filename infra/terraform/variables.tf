@@ -40,3 +40,13 @@ variable "machine_type" {
   default     = "e2-standard-2"
   description = "The machine type"
 }
+
+variable "network_auto_mode" {
+  default = "false"
+  description = "The subnet creation mode"
+}
+
+variable "network_description" {
+  default = ""
+  description = "The network description"
+}

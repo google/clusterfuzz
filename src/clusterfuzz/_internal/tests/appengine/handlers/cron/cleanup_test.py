@@ -17,12 +17,12 @@
 import datetime
 import unittest
 
+from clusterfuzz._internal.cron import cleanup
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import cleanup
-from libs.issue_management import issue_tracker_policy
 
 ISSUE_IGNORE_LABEL = 'ClusterFuzz-Ignore'
 ISSUE_INVALID_FUZZER_LABEL = 'ClusterFuzz-Invalid-Fuzzer'
@@ -73,7 +73,7 @@ class CleanupTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
-        'handlers.cron.cleanup.get_crash_occurrence_platforms',
+        'clusterfuzz._internal.cron.cleanup.get_crash_occurrence_platforms',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
     self.issue = appengine_test_utils.create_generic_issue()
@@ -1083,8 +1083,8 @@ class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
   def test(self):
     actual_projects_map = cleanup.get_jobs_and_platforms_for_project()
     expected_projects_map = {
-        'project5': cleanup.ProjectMap(set(['job5']), set(['LINUX'])),
-        'project6': cleanup.ProjectMap(set(['job6']), set(['MAC']))
+        'project5': cleanup.ProjectMap({'job5'}, {'LINUX'}),
+        'project6': cleanup.ProjectMap({'job6'}, {'MAC'})
     }
     self.assertEqual(actual_projects_map, expected_projects_map)
 
@@ -1368,6 +1368,7 @@ class UpdateComponentsTest(unittest.TestCase):
   def setUp(self):
     self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_components_added(self):
     """Ensure that we add components when applicable."""
@@ -1376,7 +1377,7 @@ class UpdateComponentsTest(unittest.TestCase):
             'suspected_components': ['A', 'B>C']
         }})
 
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('B>C', self.issue.components)
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
@@ -1392,7 +1393,7 @@ class UpdateComponentsTest(unittest.TestCase):
         labels=['Test-Predator-Auto-Components'])
     self.issue._monorail_issue.comments.append(comment)
 
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertNotIn('A', self.issue.components)
     self.assertNotIn('B>C', self.issue.components)
     self.assertNotIn('Test-Predator-Auto-Components', self.issue.labels)
@@ -1401,7 +1402,7 @@ class UpdateComponentsTest(unittest.TestCase):
     """Ensure that we don't add label when there is no component in result."""
     self.testcase.set_metadata('predator_result', {})
     self.issue.components.add('A')
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertIn('A', self.issue.components)
     self.assertNotIn('Test-Predator-Auto-Components', self.issue.labels)
 
@@ -1414,7 +1415,7 @@ class UpdateComponentsTest(unittest.TestCase):
     self.issue.components.add('A')
     self.issue.components.add('B>C')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('B>C', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1429,7 +1430,7 @@ class UpdateComponentsTest(unittest.TestCase):
                                }})
     self.issue.components.add('A>B')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertNotIn('A', self.issue.components)
     self.assertIn('A>B', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1444,7 +1445,7 @@ class UpdateComponentsTest(unittest.TestCase):
                                }})
     self.issue.components.add('A>B')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertNotIn('A', self.issue.components)
     self.assertIn('A>B', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1460,7 +1461,7 @@ class UpdateComponentsTest(unittest.TestCase):
                                }})
     self.issue.components.add('AA>B')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.testcase, self.issue)
+    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('AA>B', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1916,9 +1917,9 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'handlers.cron.cleanup._update_issue_security_severity_and_get_comment',
-        'libs.issue_management.issue_filer.update_issue_impact_labels',
-        'libs.mail.send',
+        'clusterfuzz._internal.cron.cleanup._update_issue_security_severity_and_get_comment',
+        'clusterfuzz._internal.issue_management.issue_filer.update_issue_impact_labels',
+        'clusterfuzz._internal.cron.libs.mail.send',
     ])
 
     self.issue = appengine_test_utils.create_generic_issue()

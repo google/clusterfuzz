@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler that uploads a testcase"""
 
+# pylint: disable=wrong-import-order
 import ast
 import datetime
 import io
@@ -25,6 +26,7 @@ from google.cloud import ndb
 from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -32,6 +34,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
@@ -40,7 +43,6 @@ from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
 
 MAX_RETRIES = 50
@@ -49,6 +51,8 @@ PAGE_SIZE = 20
 MORE_LIMIT = 100 - PAGE_SIZE
 UPLOAD_URL = '/upload-testcase/upload-oauth'
 MEMCACHE_TTL_IN_SECONDS = 60 * 60  # 1 hour.
+
+TRUSTED_AGREEMENT_TEXT = 'This testcase is safe to run'
 
 
 def _is_uploader_allowed(email):
@@ -136,10 +140,10 @@ def guess_input_file(uploaded_file, filename):
   """Guess the main test case file from an archive."""
   for file_pattern in RUN_FILE_PATTERNS:
     blob_reader = _read_to_bytesio(uploaded_file.gcs_path)
-    file_path_input = archive.get_first_file_matching(file_pattern, blob_reader,
-                                                      filename)
-    if file_path_input:
-      return file_path_input
+    with archive.open(filename, blob_reader) as reader:
+      file_path_input = reader.get_first_file_matching(file_pattern)
+      if file_path_input:
+        return file_path_input
 
   return None
 
@@ -245,7 +249,6 @@ class Handler(base_handler.Handler):
                     for engine in fuzzing.ENGINES
                 },
                 'isChromium': utils.is_chromium(),
-                'sandboxedJobs': data_types.INTERNAL_SANDBOXED_JOB_TYPES,
                 'csrfToken': form.generate_csrf_token(),
                 'isExternalUser': not is_privileged_or_domain_user,
                 'uploadInfo': gcs.prepare_blob_upload()._asdict(),
@@ -385,6 +388,17 @@ class UploadHandlerCommon:
     issue_labels = request.get('issue_labels')
     gestures = request.get('gestures') or '[]'
     stacktrace = request.get('stacktrace')
+    trusted_agreement_signed = request.get(
+        'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
+
+    if (not trusted_agreement_signed and
+        task_utils.is_remotely_executing_utasks() and
+        ((platform_id and platform_id != 'Linux') or
+         job.platform.lower() != 'linux')):
+      # Trusted agreement was not signed even though the job has privileges and
+      # there are other jobs that don't have privileges.
+      raise helpers.EarlyExitError(
+          'Sign the trusted job statement or upload to a trusted job.', 400)
 
     crash_data = None
     if job.is_external():
@@ -523,11 +537,14 @@ class UploadHandlerCommon:
           metadata.fuzzer_binary_name = target_name
           metadata.put()
 
+          # Use wait_time=0 to execute the task ASAP, since it is
+          # user-facing.
           tasks.add_task(
               'unpack',
               str(metadata.key.id()),
               job_type,
-              queue=tasks.queue_for_job(job_type))
+              queue=tasks.queue_for_job(job_type),
+              wait_time=0)
 
           # Create a testcase metadata object to show the user their upload.
           upload_metadata = data_types.TestcaseUploadMetadata()

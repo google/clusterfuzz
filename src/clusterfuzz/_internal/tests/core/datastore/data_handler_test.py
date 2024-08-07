@@ -26,6 +26,8 @@ from pyfakefs import fake_filesystem_unittest
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -460,6 +462,48 @@ class DataHandlerTest(unittest.TestCase):
                      data_handler.get_data_bundle_bucket_name('test'))
 
 
+class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
+  """Tests for data_handler.filter_stacktrace."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    self.limit = data_types.STACKTRACE_LENGTH_LIMIT
+    data_types.STACKTRACE_LENGTH_LIMIT = 1
+    helpers.patch_environ(self)
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url'
+    ])
+
+    def get_signed_upload_url(gcs_path):
+      return gcs_path
+
+    self.mock.get_signed_upload_url.side_effect = get_signed_upload_url
+
+  def test_filter_stack_trace_upload(self):
+    """tests data_handler.filter_stacktrace behaviour when stacktrace length
+    exceeds limit and an upload_url is provided."""
+    blob_name = blobs.generate_new_blob_name()
+    blobs_bucket = 'blobs_bucket'
+    storage._provider().create_bucket(blobs_bucket, None, None)  # pylint: disable=protected-access
+
+    gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
+    signed_upload_url = storage.get_signed_upload_url(gcs_path)
+    result = data_handler.filter_stacktrace('abcde', blob_name,
+                                            signed_upload_url)
+
+    self.assertTrue(result.startswith(data_types.BLOBSTORE_STACK_PREFIX))
+    blob_key = result.strip(data_types.BLOBSTORE_STACK_PREFIX)
+
+    resulting_stacktrace_gcs_path = storage.get_cloud_storage_file_path(
+        blobs_bucket, blob_key)
+    data = storage.read_data(resulting_stacktrace_gcs_path)
+    self.assertEqual(b'abcde', data)
+
+  def tearDown(self):
+    data_types.STACKTRACE_LENGTH_LIMIT = self.limit
+
+
 @test_utils.with_cloud_emulators('datastore')
 class AddBuildMetadataTest(unittest.TestCase):
   """Test add_build_metadata."""
@@ -846,17 +890,6 @@ class RecordFuzzTargetTest(unittest.TestCase):
     self.assertEqual('libFuzzer_child', fuzz_target.fully_qualified_name())
     self.assertEqual('child', fuzz_target.project_qualified_name())
 
-  def test_record_fuzz_target_no_binary_name(self):
-    """Test recording fuzz target with no binary."""
-    # Passing None to binary_name is an error. We shouldn't create any
-    # FuzzTargets as a result.
-    data_handler.record_fuzz_target('libFuzzer', None, 'job')
-    fuzz_target = ndb.Key(data_types.FuzzTarget, 'libFuzzer_child').get()
-    self.assertIsNone(fuzz_target)
-
-    job_mapping = ndb.Key(data_types.FuzzTargetJob, 'libFuzzer_child/job').get()
-    self.assertIsNone(job_mapping)
-
   @parameterized.parameterized.expand(['child', 'proj_child'])
   def test_record_fuzz_target_ossfuzz(self, binary_name):
     """Test that record_fuzz_target works with OSS-Fuzz projects."""
@@ -883,3 +916,42 @@ class RecordFuzzTargetTest(unittest.TestCase):
 
     self.assertEqual('libFuzzer_proj_child', fuzz_target.fully_qualified_name())
     self.assertEqual('proj_child', fuzz_target.project_qualified_name())
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestTrustedVsUntrusted(unittest.TestCase):
+  """Tests that helpers for creating testcases handle the untrusted field
+  correctly."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+    ])
+    self.job = data_types.Job(
+        name='job', environment_string='PROJECT_NAME = proj\n')
+
+  def test_user_uploaded(self):
+    """Tests that user uploaded testcases are marked as such."""
+    gestures = []
+    testcase_id = data_handler.create_user_uploaded_testcase(
+        None, None, None, None, None, None, self.job, None, None, gestures,
+        None, None, None, None, None, None, None, None, None, None, None, None,
+        None)
+    self.assertFalse(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+  def test_fuzzer_created(self):
+    """Tests that fuzzer created testcases are marked as such."""
+    crash = mock.Mock(
+        crash_type='heap-buffer-overflow',
+        crash_address='0x0',
+        crash_state='BAD',
+        crash_stacktrace='s\na\nd\n',
+        security_flag=True,
+        crash_categories=[])
+    gestures = ''
+    timeout_multiplier = 1
+    testcase_id = data_handler.store_testcase(
+        crash, None, None, None, None, None, None, None, None, gestures, None,
+        self.job.name, None, None, None, None, None, None, None,
+        timeout_multiplier, None, True)
+    self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)

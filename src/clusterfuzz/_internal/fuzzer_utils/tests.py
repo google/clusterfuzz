@@ -30,7 +30,7 @@ def create_testcase_list_file(testcase_file_paths, input_directory):
   """Store list of fuzzed testcases from fuzzer in a bot specific
   testcase list file."""
   if not testcase_file_paths:
-    logs.log_error('No testcases found, skipping list file.')
+    logs.error('No testcases found, skipping list file.')
     return
 
   bot_testcases_file_path = utils.get_bot_testcases_file_path(input_directory)

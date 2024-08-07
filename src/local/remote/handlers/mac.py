@@ -25,7 +25,7 @@ class Handler(posix.Handler):
   """Handler for managing a mac host."""
 
   def __init__(self, instance_name, *_):
-    super(Handler, self).__init__(
+    super().__init__(
         instance_name=instance_name, platform='macos', project=None, zone=None)
 
     # FIXME: Make these configurable.

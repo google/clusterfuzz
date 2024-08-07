@@ -20,18 +20,16 @@ import posixpath
 import unittest
 from unittest import mock
 
-import flask
 from google.cloud import ndb
 import googleapiclient
-import webtest
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.cron import project_setup
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import project_setup
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'project_setup_data')
 
@@ -117,10 +115,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
   def setUp(self):
     self.maxDiff = None
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/setup', view_func=project_setup.Handler.as_view('/setup'))
-    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
 
@@ -192,9 +186,9 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.build',
         'time.sleep',
         'handlers.base_handler.Handler.is_cron',
-        'handlers.cron.project_setup.get_oss_fuzz_projects',
-        'handlers.cron.service_accounts.get_or_create_service_account',
-        'handlers.cron.service_accounts.set_service_account_roles',
+        'clusterfuzz._internal.cron.project_setup.get_oss_fuzz_projects',
+        'clusterfuzz._internal.cron.service_accounts.get_or_create_service_account',
+        'clusterfuzz._internal.cron.service_accounts.set_service_account_roles',
     ])
 
     self.mock.get_or_create_service_account.side_effect = (
@@ -211,7 +205,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'build_buckets': {
                 'afl': 'clusterfuzz-builds-afl',
                 'centipede': 'clusterfuzz-builds-centipede',
-                'dataflow': 'clusterfuzz-builds-dataflow',
                 'honggfuzz': 'clusterfuzz-builds-honggfuzz',
                 'libfuzzer': 'clusterfuzz-builds',
                 'libfuzzer_i386': 'clusterfuzz-builds-i386',
@@ -294,8 +287,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib6', {
             'homepage': 'http://example6.com',
-            'sanitizers': ['address', 'dataflow', 'memory', 'undefined'],
-            'fuzzing_engines': ['libfuzzer', 'afl', 'dataflow'],
+            'sanitizers': ['address', 'memory', 'undefined'],
+            'fuzzing_engines': ['libfuzzer', 'afl'],
             'auto_ccs': 'User@example.com',
             'vendor_ccs': ['vendor1@example.com', 'vendor2@example.com'],
         }),
@@ -334,7 +327,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     mock_storage.buckets().setIamPolicy = CopyingMock()
     mock_storage.buckets().setIamPolicy.side_effect = mock_set_iam_policy
 
-    self.app.get('/setup')
+    project_setup.main()
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib1').get()
@@ -515,9 +508,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib6-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib6-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib6,Engine-libfuzzer\n'
-        'FILE_GITHUB_ISSUE = False\n'
-        'DATAFLOW_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds-dataflow/lib6/lib6-dataflow-([0-9]+).zip\n')
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib7').get()
@@ -538,6 +529,29 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib7-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib7-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib7,Engine-libfuzzer,custom\n'
+        'FILE_GITHUB_ISSUE = False\n')
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'centipede_asan_lib1').get()
+    self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib1')
+    self.assertEqual(job.platform, 'LIB1_LINUX')
+    self.assertCountEqual(job.templates, ['engine_asan', 'centipede'])
+    self.assertEqual(
+        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds-centipede/lib1/lib1-none-([0-9]+).zip\n'
+        'PROJECT_NAME = lib1\n'
+        'SUMMARY_PREFIX = lib1\n'
+        'MANAGED = True\n'
+        'EXTRA_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds-centipede/lib1/lib1-address-([0-9]+).zip\n'
+        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds-centipede/lib1/lib1-address-%s.srcmap.json\n'
+        'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
+        'CORPUS_BUCKET = lib1-corpus.clusterfuzz-external.appspot.com\n'
+        'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
+        'BACKUP_BUCKET = lib1-backup.clusterfuzz-external.appspot.com\n'
+        'AUTOMATIC_LABELS = Proj-lib1,Engine-centipede\n'
         'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
@@ -593,6 +607,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     centipede = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'centipede').get()
     self.assertCountEqual(centipede.jobs, [
+        'centipede_asan_lib1',
         'centipede_asan_lib9',
     ])
 
@@ -1082,20 +1097,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib1@serviceaccount.com']
                 }]
             },
-            bucket='test-shared-corpus-bucket'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib1@serviceaccount.com']
-                }]
-            },
             bucket='global-corpus.clusterfuzz-external.appspot.com'),
         mock.call(
             body={
@@ -1167,20 +1168,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 }]
             },
             bucket='clusterfuzz-external-deployment'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib2@serviceaccount.com']
-                }]
-            },
-            bucket='test-shared-corpus-bucket'),
         mock.call(
             body={
                 'resourceId':
@@ -1332,20 +1319,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib3@serviceaccount.com']
                 }]
             },
-            bucket='test-shared-corpus-bucket'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib3@serviceaccount.com']
-                }]
-            },
             bucket='global-corpus.clusterfuzz-external.appspot.com')
     ])
 
@@ -1368,6 +1341,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_i386_lib8'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_lib8'),
+        ('LIB1_LINUX', 'centipede', 'centipede_asan_lib1'),
         ('LIB9_LINUX', 'centipede', 'centipede_asan_lib9'),
     ])
 
@@ -1625,6 +1599,27 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         {
             'entity_kind': 1,
             'is_prefix': False,
+            'auto_cc': 1,
+            'entity_name': 'centipede_asan_lib1',
+            'email': 'primary@example.com'
+        },
+        {
+            'entity_kind': 1,
+            'is_prefix': False,
+            'auto_cc': 1,
+            'entity_name': 'centipede_asan_lib1',
+            'email': 'user@example.com'
+        },
+        {
+            'entity_kind': 1,
+            'is_prefix': False,
+            'auto_cc': 1,
+            'entity_name': 'centipede_asan_lib1',
+            'email': 'user2@googlemail.com'
+        },
+        {
+            'entity_kind': 1,
+            'is_prefix': False,
             'email': 'user@example.com',
             'entity_name': 'centipede_asan_lib9',
             'auto_cc': 1
@@ -1727,6 +1722,40 @@ def _mock_read_data(path):
         }]
     })
 
+  if 'android' in path:
+    return json.dumps({
+        'projects': [{
+            'build_path': 'gs://bucket-android/%ENGINE%/%SANITIZER%/'
+                          '%TARGET%/([0-9]+).zip',
+            'name': 'android_pixel7',
+            'fuzzing_engines': ['libfuzzer'],
+            'architectures': ['arm'],
+            'sanitizers': ['hardware'],
+            'platform': 'ANDROID',
+            'queue_id': 'pixel7'
+        }, {
+            'build_path':
+                'gs://bucket-android/a-b-android/%ENGINE%/%SANITIZER%/'
+                '%TARGET%/([0-9]+).zip',
+            'name': 'android_pixel8',
+            'fuzzing_engines': ['libfuzzer', 'afl'],
+            'architectures': ['x86_64'],
+            'sanitizers': ['address'],
+            'platform': 'ANDROID_X86',
+            'queue_id': 'pixel8'
+        }, {
+            'build_path':
+                'gs://bucket-android/a-b-android/%ENGINE%/%SANITIZER%/'
+                '%TARGET%/([0-9]+).zip',
+            'name': 'android_mte',
+            'fuzzing_engines': ['libfuzzer'],
+            'architectures': ['arm'],
+            'sanitizers': ['none'],
+            'platform': 'ANDROID_MTE',
+            'queue_id': 'pixel8'
+        }]
+    })
+
   return json.dumps({
       'projects': [
           {
@@ -1763,10 +1792,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
   def setUp(self):
     self.maxDiff = None
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/setup', view_func=project_setup.Handler.as_view('/setup'))
-    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
 
@@ -1811,7 +1836,6 @@ class GenericProjectSetupTest(unittest.TestCase):
                 'experimental_sanitizers': ['memory'],
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl',
-                    'dataflow': 'clusterfuzz-builds-dataflow',
                     'honggfuzz': 'clusterfuzz-builds-honggfuzz',
                     'googlefuzztest': 'clusterfuzz-builds-googlefuzztest',
                     'libfuzzer': 'clusterfuzz-builds',
@@ -1847,7 +1871,6 @@ class GenericProjectSetupTest(unittest.TestCase):
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl-dbg',
-                    'dataflow': 'clusterfuzz-builds-dataflow-dbg',
                     'honggfuzz': 'clusterfuzz-builds-honggfuzz-dbg',
                     'googlefuzztest': 'clusterfuzz-builds-googlefuzztest-dbg',
                     'libfuzzer': 'clusterfuzz-builds-dbg',
@@ -1870,6 +1893,36 @@ class GenericProjectSetupTest(unittest.TestCase):
                     }
                 }
             },
+            {
+                'source': 'gs://bucket-android/projects.json',
+                'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
+                'build_buckets': {
+                    'afl': 'clusterfuzz-builds-afl-android',
+                    'libfuzzer': 'clusterfuzz-builds-android',
+                    'libfuzzer_arm': 'clusterfuzz-builds-android',
+                    'no_engine': 'clusterfuzz-builds-no-engine-android',
+                },
+                'additional_vars': {
+                    'all': {
+                        'STRING_VAR': 'VAL-android',
+                        'BOOL_VAR': True,
+                        'INT_VAR': 0,
+                    },
+                    'libfuzzer': {
+                        'address': {
+                            'ASAN_VAR': 'VAL-android',
+                        },
+                        'memory': {
+                            'MSAN_VAR': 'VAL-android',
+                        }
+                    },
+                    'afl': {
+                        'address': {
+                            'ASAN_VAR': 'VAL-android',
+                        },
+                    }
+                }
+            },
         ],
     })
 
@@ -1880,7 +1933,15 @@ class GenericProjectSetupTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job."""
-    self.app.get('/setup')
+    pubsub_client = pubsub.PubSubClient()
+    self.mock.get_application_id_2.return_value = 'clusterfuzz-external'
+    app_id = utils.get_application_id()
+    unmanaged_topic_name = pubsub.topic_name(app_id, 'jobs-linux')
+    other_topic_name = pubsub.topic_name(app_id, 'other')
+    pubsub_client.create_topic(unmanaged_topic_name)
+    pubsub_client.create_topic(other_topic_name)
+    project_setup.main()
+
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b').get()
     self.assertEqual(
@@ -2024,6 +2085,115 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
 
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_hwasan_android_pixel7').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-android/libfuzzer/hardware/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-android\n', job.environment_string)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'android'],
+                          job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID:PIXEL7", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'afl_asan_android_pixel8').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-android/a-b-android/afl/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
+        'MANAGED = True\n'
+        'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_android_pixel8\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'ASAN_VAR = VAL-android\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-android\n', job.environment_string)
+    self.assertCountEqual(['afl', 'android', 'engine_asan'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID_X86:PIXEL8", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_android_pixel8').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-android/a-b-android/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'ASAN_VAR = VAL-android\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-android\n', job.environment_string)
+    self.assertCountEqual(['libfuzzer', 'android', 'engine_asan', 'prune'],
+                          job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID_X86:PIXEL8", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_nosanitizer_android_mte').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-android/a-b-android/libfuzzer/none/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-android\n', job.environment_string)
+    self.assertCountEqual(['libfuzzer', 'android', 'prune'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID_MTE:PIXEL8", job.platform)
+
+    expected_topics = [
+        'projects/clusterfuzz-external/topics/jobs-linux',
+        'projects/clusterfuzz-external/topics/other',
+        'projects/clusterfuzz-external/topics/jobs-android-pixel7',
+        'projects/clusterfuzz-external/topics/jobs-android-x86-pixel8',
+        'projects/clusterfuzz-external/topics/jobs-android-mte-pixel8',
+    ]
+    self.assertCountEqual(expected_topics,
+                          list(pubsub_client.list_topics('projects/' + app_id)))
+
+    self.assertCountEqual(
+        ['projects/clusterfuzz-external/subscriptions/jobs-android-pixel7'],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-pixel7'))
+
+    self.assertCountEqual(
+        ['projects/clusterfuzz-external/subscriptions/jobs-android-x86-pixel8'],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-x86-pixel8'))
+
+    self.assertCountEqual(
+        ['projects/clusterfuzz-external/subscriptions/jobs-android-mte-pixel8'],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-mte-pixel8'))
+
+    self.assertIsNotNone(pubsub_client.get_topic(unmanaged_topic_name))
+    self.assertIsNotNone(pubsub_client.get_topic(other_topic_name))
+
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     self.assertCountEqual([
@@ -2031,11 +2201,16 @@ class GenericProjectSetupTest(unittest.TestCase):
         'libfuzzer_asan_c-d',
         'libfuzzer_msan_a-b',
         'libfuzzer_nosanitizer_e-f',
+        'libfuzzer_nosanitizer_android_mte',
+        'libfuzzer_hwasan_android_pixel7',
+        'libfuzzer_asan_android_pixel8',
         'old_unmanaged',
     ], libfuzzer.jobs)
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
-    self.assertCountEqual([], afl.jobs)
+    self.assertCountEqual([
+        'afl_asan_android_pixel8',
+    ], afl.jobs)
 
     honggfuzz = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'honggfuzz').get()

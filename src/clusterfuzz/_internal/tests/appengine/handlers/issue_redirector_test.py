@@ -27,7 +27,7 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.issue_management.issue_tracker_utils.get_issue_url',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
         'libs.helpers.get_testcase',
         'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
     ])

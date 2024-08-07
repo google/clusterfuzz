@@ -281,7 +281,16 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
   def test_upload_signed_url(self):
     """Tests upload_signed_url."""
     contents = b'aa'
-    self.fs.create_file('/local/test-bucket/objects/a', contents=contents)
+    self.provider.create_bucket('test-bucket', None, None)
     self.provider.upload_signed_url(contents, 'gs://test-bucket/a')
     with open('/local/test-bucket/objects/a', 'rb') as fp:
       return self.assertEqual(fp.read(), contents)
+
+
+class StrToBytesTest(unittest.TestCase):
+
+  def test_str(self):
+    self.assertEqual(storage.str_to_bytes('\x00A'), b'\x00A')
+
+  def test_bytes(self):
+    self.assertEqual(storage.str_to_bytes(b'\x00A'), b'\x00A')

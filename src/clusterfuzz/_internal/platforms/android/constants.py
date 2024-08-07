@@ -15,8 +15,6 @@
 
 import re
 
-CRASH_DUMPS_DIR = '/sdcard/crash-reports'
-
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 
 DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
@@ -26,7 +24,14 @@ DEVICE_TMP_DIR = '/data/local/tmp'
 # Directory to keep fuzzing artifacts for grey-box fuzzers e.g. corpus.
 DEVICE_FUZZING_DIR = '/data/fuzz'
 
+DEVICE_MTE_DIR = '/system/lib64'
 DEVICE_SANITIZER_DIR = '/system/lib64'
+
+MTE_STACKTRACE_BEGIN = 'Build fingerprint:'
+MTE_STACKTRACE_END = 'mte-reports'
+
+TRUSTY_STACKTRACE_BEGIN = 'panic notifier - trusty version'
+TRUSTY_STACKTRACE_END = 'Built:'
 
 # The format of logcat when lowmemorykiller kills a process. See:
 # https://android.googlesource.com/platform/system/core/+/master/lmkd/lmkd.c#586
@@ -50,3 +55,22 @@ PRODUCT_TO_KERNEL = {
     'muskie': 'wahoo',
     'taimen': 'wahoo',
 }
+
+RELEASE_CONFIGURATION = 'next'
+
+DEPRECATED_DEVICE_LIST = [
+    'sailfish',  # Pixel
+    'marlin',  # Pixel XL
+    'walleye',  # Pixel 2
+    'taimen',  # Pixel 2 XL
+    'blueline',  # Pixel 3
+    'crosshatch',  # Pixel 3 XL
+    'sargo',  # Pixel 3a
+    'bonito',  # Pixel 3a XL
+    'flame',  # Pixel 4
+    'coral',  # Pixel 4 XL
+    'sunfish',  # Pixel 4a
+    'bramble',  # Pixel 4a 5G
+    'redfin',  # Pixel 5
+    'barbet',  # Pixel 5a
+]

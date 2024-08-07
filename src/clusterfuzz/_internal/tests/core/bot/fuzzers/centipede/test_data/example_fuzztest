@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "Starting watchdog thread: timeout_per_input: 25 sec; timeout_per_batch: 1127 sec; rss_limit_mb: 4096 MB"
+echo "Not using RLIMIT_AS; VmSize is 20481Gb, suspecting ASAN/MSAN/TSAN"
+
+if [ -n "$FUZZTEST_REPLAY" ]; then
+echo "# Check failed: Fake fuzz-test check failure."
+fi

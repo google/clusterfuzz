@@ -26,6 +26,7 @@ import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
@@ -85,10 +86,11 @@ class PrepareTest(fake_fs_unittest.TestCase):
         fuzzing_strategies=[
             'unknown_1', 'value_profile', 'corpus_subset_20', 'fork_2'
         ],
-        arguments=['-arg1'],
+        arguments=fuzzer_options.FuzzerArguments({
+            'arg1': 1
+        }),
         additional_corpus_dirs=['/new_corpus_dir'],
         extra_env={'extra_env': '1'},
-        use_dataflow_tracing=False,
         is_mutations_run=True)
 
   def test_prepare(self):
@@ -97,7 +99,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertEqual('/corpus_dir', options.corpus_dir)
     self.assertCountEqual([
-        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
+        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1=1',
         '-dict=/path/blah.dict'
     ], options.arguments)
     self.assertDictEqual({
@@ -108,7 +110,6 @@ class PrepareTest(fake_fs_unittest.TestCase):
     self.assertCountEqual(['/new_corpus_dir', '/corpus_dir'],
                           options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
-    self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
 
     self.mock.unpack_seed_corpus_if_needed.assert_called_with(
@@ -125,7 +126,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertCountEqual(
-        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1'],
+        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1=1'],
         options.arguments)
 
   def test_prepare_auto_add_dict(self):
@@ -137,7 +138,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertCountEqual([
-        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
+        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1=1',
         '-dict=/path/target.dict'
     ], options.arguments)
 
@@ -154,7 +155,6 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         strategies=[],
         fuzz_corpus_dirs=[],
         extra_env={},
-        use_dataflow_tracing=False,
         is_mutations_run=False)
     self.assertEqual(1800.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
@@ -168,7 +168,6 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         strategies=[],
         fuzz_corpus_dirs=[],
         extra_env={},
-        use_dataflow_tracing=False,
         is_mutations_run=True)
     self.assertEqual(2400.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
@@ -191,17 +190,21 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
   def test_max_length_strategy_with_override(self):
     """Tests max length strategy with override."""
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
-    strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
-                                              '/path/corpus', ['-max_len=100'])
-    self.assertCountEqual([], strategy_info.arguments)
+    strategy_info = libfuzzer.pick_strategies(
+        strategy_pool, '/path/target', '/path/corpus',
+        fuzzer_options.FuzzerArguments({
+            'max_len': 100
+        }))
+    self.assertCountEqual([], strategy_info.arguments.list())
 
   def test_max_length_strategy_without_override(self):
     """Tests max length strategy without override."""
     self.mock.randint.return_value = 1337
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
     strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
-                                              '/path/corpus', [])
-    self.assertCountEqual(['-max_len=1337'], strategy_info.arguments)
+                                              '/path/corpus',
+                                              fuzzer_options.FuzzerArguments())
+    self.assertCountEqual(['-max_len=1337'], strategy_info.arguments.list())
 
 
 class FuzzTest(fake_fs_unittest.TestCase):
@@ -242,7 +245,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         '-dict=blah.dict',
         '-max_len=9001',
         '-use_value_profile=1',
-    ], [], ['/corpus'], {}, False, False)
+    ], [], ['/corpus'], {}, False)
 
     with open(os.path.join(TEST_DIR, 'crash.txt'), encoding='utf-8') as f:
       fuzz_output = f.read()
@@ -285,7 +288,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
 
     result = engine_impl.fuzz('/target', options, '/fake', 3600)
     self.assertEqual(1, len(result.crashes))
-    self.assertEqual(fuzz_output, result.logs)
+    self.assertEqual(fuzz_output.strip('\n'), result.logs.strip('\n'))
 
     crash = result.crashes[0]
     self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
@@ -320,11 +323,11 @@ class FuzzTest(fake_fs_unittest.TestCase):
         additional_args=[
             '-arg=1',
             '-timeout=123',
-            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-wd/MCF',
         ],
         artifact_prefix=None,
         merge_timeout=1800.0,
-        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+        tmp_dir='/fuzz-inputs/temp-9001/merge-wd')
 
     mock_merge_calls[1].assert_called_with(
         mock.ANY, [
@@ -335,11 +338,11 @@ class FuzzTest(fake_fs_unittest.TestCase):
         additional_args=[
             '-arg=1',
             '-timeout=123',
-            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-wd/MCF',
         ],
         artifact_prefix=None,
         merge_timeout=1800.0,
-        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+        tmp_dir='/fuzz-inputs/temp-9001/merge-wd')
 
     self.assertDictEqual({
         'actual_duration': 2,
@@ -376,10 +379,8 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'startup_crash_count': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_subset': 0,
-        'strategy_dataflow_tracing': 0,
         'strategy_extra_sanitizers': 0,
         'strategy_fork': 0,
-        'strategy_peach_grammar_mutation': '',
         'strategy_random_max_len': 0,
         'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
@@ -702,13 +703,13 @@ class IntegrationTests(BaseIntegrationTest):
     """Test that we log when libFuzzer's exit code indicates it ran into an
     error."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -718,7 +719,7 @@ class IntegrationTests(BaseIntegrationTest):
     options.extra_env['EXIT_FUZZER_CODE'] = '1'
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
-    self.assertEqual(1, self.mock.log_error.call_count)
+    self.assertEqual(1, self.mock.error.call_count)
 
     self.assertEqual(1, len(results.crashes))
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
@@ -728,13 +729,13 @@ class IntegrationTests(BaseIntegrationTest):
   def test_exit_target_bug_not_logged(self, exit_code):
     """Test that we don't log when exit code indicates bug found in target."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -752,14 +753,14 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_invalid_dict(self):
     """Tests fuzzing with an invalid dictionary (ParseDictionaryFile crash)."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertIn('Dictionary parsing failed (target=test_fuzzer, line=2).',
                     args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
 
@@ -852,13 +853,13 @@ class MinijailIntegrationTests(IntegrationTests):
   def test_exit_target_bug_not_logged(self, exit_code):
     """Test that we don't log when exit code indicates bug found in target."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -957,10 +958,10 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_qemu_logs_returned_on_error(self):
     """Test running against a qemu that has died"""
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_warn'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.warning'])
     # Pass-through logs just so we can see what's going on (but moving from
-    # log_warn to plain log to avoid creating a loop)
-    self.mock.log_warn.side_effect = logs.log
+    # warning to plain log to avoid creating a loop)
+    self.mock.warning.side_effect = logs.log
 
     environment.set_value('FUZZ_TARGET', 'example-fuzzers/crash_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
@@ -988,7 +989,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       pass
 
     # Check the logs for syslog presence
-    self.assertIn('{{{reset}}}', self.mock.log_warn.call_args[0][0])
+    self.assertIn('{{{reset}}}', self.mock.warning.call_args[0][0])
 
   @unittest.skipIf(
       not environment.get_value('FUCHSIA_TESTS'),

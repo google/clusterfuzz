@@ -16,10 +16,10 @@
 import datetime
 import unittest
 
+from clusterfuzz._internal.cron import fuzzer_and_job_weights
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import fuzzer_and_job_weights
 
 _TEST_SPECIFICATION = fuzzer_and_job_weights.QuerySpecification(
     query_format='ignored',
@@ -138,10 +138,10 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'handlers.cron.fuzzer_and_job_weights._query_helper',
-        'handlers.cron.fuzzer_and_job_weights.'
+        'clusterfuzz._internal.cron.fuzzer_and_job_weights._query_helper',
+        'clusterfuzz._internal.cron.fuzzer_and_job_weights.'
         'store_current_weights_in_bigquery',
-        'handlers.cron.fuzzer_and_job_weights.update_weight_for_target',
+        'clusterfuzz._internal.cron.fuzzer_and_job_weights.update_weight_for_target',
     ])
 
   def test_reported_fuzzer_has_weight_restored(self):
@@ -330,4 +330,4 @@ class TestUpdateJobWeights(unittest.TestCase):
     self.assertEqual(15.0, get_result('asan_blackbox_job').multiplier)
     self.assertEqual(15.0, get_result('libfuzzer_asan_job2').multiplier)
     self.assertEqual(1.0, get_result('honggfuzz_asan_job').multiplier)
-    self.assertEqual(50.0, get_result('libfuzzer_asan_large_job').multiplier)
+    self.assertEqual(500.0, get_result('libfuzzer_asan_large_job').multiplier)

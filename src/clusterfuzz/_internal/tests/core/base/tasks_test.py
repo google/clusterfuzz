@@ -26,7 +26,6 @@ class InitializeTaskTest(unittest.TestCase):
     self.command = 'symbolize'
     self.argument = 'blah'
     self.job = 'linux_asan_chrome_mp'
-    self.bucket = 'mybucket'
     self.path = 'worker.output'
     self.message = mock.MagicMock()
 
@@ -38,7 +37,7 @@ class InitializeTaskTest(unittest.TestCase):
         'job': self.job,
         'eta': 1,
     }
-    task = tasks.initialize_task([self.message])
+    task = tasks.initialize_task(self.message)
     self.assertIsInstance(task, tasks.PubSubTask)
     self.assertEqual(task.command, self.command)
     self.assertEqual(task.argument, self.argument)
@@ -46,64 +45,37 @@ class InitializeTaskTest(unittest.TestCase):
 
   def test_initialize_untrusted_task(self):
     """Tests that an untrusted task is initialized properly."""
-    self_link = f'https://www.googleapis.com/storage/v1/b/{self.bucket}/o/{self.path}'
     self.message.attributes = {
-        'kind': 'storage#object',
-        'selfLink': self_link,
-        'command': self.command,
-        'argument': self.argument,
-        'job': self.job,
+        'eventType':
+            'OBJECT_FINALIZE',
+        'objectGeneration':
+            '1698182630721865',
+        'eventTime':
+            '2023-10-24T21:23:50.761055Z',
+        'payloadFormat':
+            'JSON_API_V1',
+        'bucketId':
+            'uworker-output',
+        'notificationConfig':
+            'projects/_/buckets/uworker-output/notificationConfigs/4',
+        'objectId':
+            'm9'
     }
-    task = tasks.initialize_task([self.message])
-    self.assertFalse(isinstance(task, tasks.PubSubTask))
-    self.assertEqual(task.command, 'uworker_postprocess')
-    self.assertEqual(task.argument, '/mybucket/worker.output')
+    self.message.data = (
+        b'''{\n  "kind": "storage#object",\n  "id": "uworker-output/uworker.output/1698182630721865",\n  '''
+        b'''"selfLink": "https://www.googleapis.com/storage/v1/b/uworker-output/o/uworker.output",\n  '''
+        b'''"name": "worker.output",\n  "bucket": "uworker-output",\n  "generation": "1698182630721865",\n'''
+        b'''"metageneration": "1",\n  "contentType": "application/octet-stream",\n  "timeCreated": "2023-10-24T21:23:50.761Z",\n'''
+        b''' "updated": "2023-10-24T21:23:50.761Z",\n  "storageClass": "STANDARD",\n  '''
+        b'''"timeStorageClassUpdated": "2023-10-24T21:23:50.761Z",\n  "size": "0",\n  "md5Hash": "1B2M2Y8AsgTpgAmY7PhCfg==",\n'''
+        b'''"mediaLink": "https://storage.googleapis.com/download/storage/v1/b/uworker-output/o/uworker.output?generation=1698'''
+        b'''182630721865&alt=media",\n  "contentLanguage": "en",\n  "crc32c": "AAAAAA==",\n  "etag": "CMmS36PPj4IDEAE="\n}\n'''
+    )
+    task = tasks.initialize_task(self.message)
+    self.assertIsInstance(task, tasks.PostprocessPubSubTask)
+    self.assertEqual(task.command, 'postprocess')
+    self.assertEqual(task.argument, 'gs://uworker-output/worker.output')
     self.assertEqual(task.job, 'none')
-
-  def test_initialize_untrusted_from_reupload(self):
-    """Tests that an untrusted task is not initialized when the uworker output
-    was uploaded a second time. This tests checks that uworkers can't DoS or
-    worse by reuploading their output multiple times."""
-    # Test version 2 of an output.
-    self_link = f'https://www.googleapis.com/storage/v2/b/{self.bucket}/o/{self.path}'
-    self.message.attributes = {
-        'kind': 'storage#object',
-        'selfLink': self_link,
-    }
-    with self.assertRaises(tasks.Error):
-      tasks.initialize_task([self.message])
-
-
-class GetUtaskFiltersTest(unittest.TestCase):
-  """Tests for get_utask_filters."""
-
-  def test_chromium_linux(self):
-    """Tests that the get_utask_filters only has linux bots in chrome
-    clusterfuzz executing preprocess and postprocess. This test is temporary and
-    will be removed when the migration is complete."""
-    # TOOD(metzman): Delete this test when it is no longer needed.
-    filters = tasks.get_utask_filters(is_chromium=True, is_linux=True)
-    self.assertEqual(filters, 'attribute.name = uworker_postprocess')
-
-  def test_chromium_nonlinux(self):
-    """Tests that the get_utask_filters only has linux bots in chrome
-    clusterfuzz executing preprocess and postprocess. This test is temporary and
-    will be removed when the migration is complete."""
-    # TOOD(metzman): Delete this test when it is no longer needed.
-    filters = tasks.get_utask_filters(is_chromium=True, is_linux=False)
-    self.assertEqual(filters, '-attribute.name = uworker_postprocess')
-
-  def test_external_linux(self):
-    """Tests that the get_utask_filters only has linux bots in chrome
-    clusterfuzz executing preprocess and postprocess."""
-    filters = tasks.get_utask_filters(is_chromium=False, is_linux=True)
-    self.assertIsNone(filters)
-
-  def test_external_nonlinux(self):
-    """Tests that the get_utask_filters only has linux bots in chrome
-    clusterfuzz executing preprocess and postprocess."""
-    filters = tasks.get_utask_filters(is_chromium=False, is_linux=False)
-    self.assertIsNone(filters)
 
 
 class GetMachineTemplateForQueueTests(unittest.TestCase):
@@ -277,3 +249,32 @@ class GetMachineTemplateForQueueTests(unittest.TestCase):
     }
 
     self.assertEqual(template, expected_template)
+
+
+class GetTaskFromMessageTest(unittest.TestCase):
+  """Tests for get_task_from_message."""
+
+  def test_no_message(self):
+    self.assertEqual(tasks.get_task_from_message(None), None)
+
+  def test_success(self):
+    mock_task = mock.Mock(defer=mock.Mock(return_value=False))
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        return_value=mock_task):
+      self.assertEqual(tasks.get_task_from_message(mock.Mock()), mock_task)
+
+  def test_key_error(self):
+    mock_message = mock.Mock()
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        side_effect=KeyError):
+      self.assertEqual(tasks.get_task_from_message(mock_message), None)
+      mock_message.ack.assert_called_with()
+
+  def test_defer(self):
+    mock_task = mock.Mock(defer=mock.Mock(return_value=True))
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        return_value=mock_task):
+      self.assertEqual(tasks.get_task_from_message(mock.Mock()), None)

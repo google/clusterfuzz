@@ -19,6 +19,7 @@ import os
 import socket
 import threading
 
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
@@ -78,7 +79,7 @@ class BotHTTPServer(http.server.HTTPServer):
     """Process a single http request."""
     try:
       request, client_address = self.get_request()
-    except socket.error:
+    except OSError:
       return
     if self.verify_request(request, client_address):
       try:
@@ -94,14 +95,18 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     """Handle a GET request."""
     absolute_path = get_absolute_testcase_file(self.path)
     if not absolute_path:
+      logs.warning(f"Could not find an absolute path for {self.path}.")
       self.send_response(404)
       self.end_headers()
       return
 
     try:
-      with open(absolute_path) as file_handle:
+      # It is necessary to open the file as binary because `self.wfile` is now
+      # an `io.BufferedIOBase` since python3.6, and thus expects binary input
+      # in the `self.wfile.write` call below.
+      with open(absolute_path, 'rb') as file_handle:
         data = file_handle.read()
-    except IOError:
+    except OSError:
       self.send_response(403)
       self.end_headers()
       return
@@ -146,5 +151,13 @@ def start():
   http_port_2 = environment.get_value('HTTP_PORT_2', 8080)
   if not port_is_open(http_host, http_port_1):
     start_server_thread(http_host, http_port_1)
+  else:
+    logs.warning(
+        f"HTTP_PORT_1 ({http_port_1}) already open, not starting server thread."
+    )
   if not port_is_open(http_host, http_port_2):
     start_server_thread(http_host, http_port_2)
+  else:
+    logs.warning(
+        f"HTTP_PORT_2 ({http_port_2}) already open, not starting server thread."
+    )

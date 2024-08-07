@@ -44,7 +44,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.'
-        'symbolize_stacktrace', 'clusterfuzz._internal.metrics.logs.log_error',
+        'symbolize_stacktrace', 'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.platforms.android.kernel_utils.'
         'get_kernel_prefix_and_full_hash'
     ])
@@ -59,9 +59,14 @@ class StackAnalyzerTestcase(unittest.TestCase):
     with open(os.path.join(DATA_DIRECTORY, name), encoding='utf-8') as handle:
       return handle.read()
 
-  def _validate_get_crash_data(self, data, expected_type, expected_address,
-                               expected_state, expected_stacktrace,
-                               expected_security_flag):
+  def _validate_get_crash_data(self,
+                               data,
+                               expected_type,
+                               expected_address,
+                               expected_state,
+                               expected_stacktrace,
+                               expected_security_flag,
+                               expected_categories=None):
     """Test all outputs from a call to get_crash_data."""
     actual_state = stack_analyzer.get_crash_data(data)
     actual_security_flag = crash_analyzer.is_security_issue(
@@ -73,6 +78,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     self.assertEqual(actual_state.crash_stacktrace, expected_stacktrace)
     self.assertEqual(actual_security_flag, expected_security_flag)
+    if expected_categories:
+      self.assertEqual(actual_state.crash_categories, expected_categories)
 
   def test_symbolized_asan_null_dereference(self):
     """Test for a Null-dereference derived from a simple symbolized ASan
@@ -203,6 +210,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_stacktrace = data
     expected_state = 'NULL'
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_gpu_failure_with_asan(self):
+    """Basic test for GPU failure with an ASAN stacktrace available."""
+    data = self._read_test_data('gpu_crash_with_asan.txt')
+    expected_type = 'Heap-buffer-overflow\nREAD 8'
+    expected_address = '0x61500012fe48'
+    expected_stacktrace = data
+    expected_state = ('rx::RenderTargetVk::getImageActualFormat\n'
+                      'rx::FramebufferVk::updateColorAttachment\n'
+                      'rx::FramebufferVk::syncState\n')
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -412,10 +433,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'boom_internal\nanother_boom\nboom\n'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_ubsan_null_pointer_member_access(self):
     """Test the ubsan null format for member access within null pointer."""
@@ -500,10 +522,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'boom_internal\nanother_boom\nboom\n'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_ubsan_pointer_overflow(self):
     """Test the ubsan pointer overflow format."""
@@ -708,10 +731,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'function1\nfunction2\nfunction3\n'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_ignore_libc_if_symbolized(self):
     """Test that we ignore certain shared libraries if symbolized."""
@@ -798,10 +822,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'regexp-builtins.cc\n')
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_keep_libc_if_unsymbolized(self):
     """Test that certain libraries are kept for unsymbolized stacks."""
@@ -888,10 +913,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_v8_check_no_sourcefile(self):
     """Test v8 CHECK failures without source file information (e.g. from
@@ -906,10 +932,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_v8_dcheck(self):
     """Test the v8 DCHECK failure."""
@@ -988,6 +1015,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_oom(self):
     """Test a v8 JavaScript out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('v8_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'Allocation failed - JavaScript heap out of memory\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_oom_notdetected(self):
+    """Test a v8 JavaScript out of memory condition but without setting
+    REPORT_OOMS_AND_HANGS."""
     data = self._read_test_data('v8_oom.txt')
     expected_type = ''
     expected_address = ''
@@ -1001,11 +1044,47 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_process_oom(self):
     """Test a v8 process out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('v8_process_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = (
+        'Fatal process out of memory: base::SmallVector::Grow in small-vector.h\n'
+        'v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::G\n'
+        'v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::G\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom_notdetected(self):
+    """Test a v8 process out of memory condition without setting
+    REPORT_OOMS_AND_HANGS."""
     data = self._read_test_data('v8_process_oom.txt')
     expected_type = ''
     expected_address = ''
     expected_state = ''
     expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom_with_asan_abrt(self):
+    """Test a v8 process out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+
+    data = self._read_test_data('v8_process_oom_with_asan_abrt.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'mock-fuzz-target\n'
+    expected_stacktrace = data
     expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -1048,7 +1127,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('v8_unreachable_code.txt')
     expected_type = 'Unreachable code'
     expected_address = ''
-    expected_state = 'typer.cc\n'
+    expected_state = 'flags.cc\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1136,6 +1215,36 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'suppression: crbug.com/123456\n')
     expected_stacktrace = data
     expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_sandbox_violation_segv(self):
+    """Test a v8 sandbox violation observed as SIGSEGV."""
+    data = self._read_test_data('v8_sandbox_violation_segv.txt')
+    expected_type = 'V8 sandbox violation'
+    expected_address = '0x414141414141'
+    expected_state = ('Builtins_JSToWasmWrapperAsm\n'
+                      'Builtins_JSToWasmWrapper\n'
+                      'Builtins_InterpreterEntryTrampoline\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_sandbox_violation_asan(self):
+    """Test a v8 sandbox violation observed as ASan error."""
+    data = self._read_test_data('v8_sandbox_violation_asan.txt')
+    expected_type = 'V8 sandbox violation'
+    expected_address = '0x5765f349d5e8'
+    expected_state = ('v8::internal::ElementsAccessor::ForKind\n'
+                      'v8::internal::LookupIterator::WriteDataValue\n'
+                      'v8::internal::Object::SetDataProperty\n')
+    expected_stacktrace = data
+    expected_security_flag = True
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -1397,10 +1506,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_ubsan_ill(self):
     """Test the UBSan ILL format."""
@@ -1410,10 +1520,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_asan_ill_null_address(self):
     """Test the ASan ILL format with a null address."""
@@ -1423,10 +1534,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x000000000000'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_asan_gsignal(self):
     """Test the ASan gsignal format."""
@@ -1531,9 +1643,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_libfuzzer_fuzz_target_exited(self):
     """Test for unexpected fuzz target exit."""
@@ -1543,9 +1656,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_fuchsia_asan(self):
     """Test for Fuchsia ASan crashes."""
@@ -1731,44 +1845,16 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_syzkaller_kasan(self):
-    """Test syzkaller kasan."""
-    data = self._read_test_data('kasan_syzkaller.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nREAD 8'
-    expected_state = ('sock_wake_async\n'
-                      'sock_def_readable\n'
-                      'unix_dgram_sendmsg\n')
-    expected_address = '0xffffffc01640e9d0'
+  def test_sanitizer_signal_abrt_fuzz_target(self):
+    """Same as above, but this time we specify a fuzz target which should
+    then be used as fallback crash state."""
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+    data = self._read_test_data('sanitizer_signal_abrt_unknown.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'mock-fuzz-target\n'
     expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_syzkaller_kasan_android(self):
-    """Test syzkaller kasan."""
-    data = self._read_test_data('kasan_syzkaller_android.txt')
-    expected_type = 'Kernel failure\nNull-ptr-deref\nWRITE 4'
-    expected_state = 'sockfs_setattr\nnotify_change2\nchown_common\n'
-    expected_address = '0x00000000027c'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_syzkaller_kasan_x86(self):
-    """Test syzkaller kasan x86."""
-    data = self._read_test_data('kasan_syzkaller_x86.txt')
-    expected_type = 'Kernel failure\nNull-ptr-deref'
-    expected_state = ('__x64_sys_io_uring_setup\n'
-                      'do_syscall_64\n'
-                      'entry_SYSCALL_64_after_hwframe\n')
-    expected_address = '0x000000000088'
-    expected_stacktrace = data
-    expected_security_flag = True
+    expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -1812,32 +1898,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       '__device_attach_driver\n'
                       'bus_for_each_drv\n')
     expected_address = '0xffffffc002583240'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_kasan_uaf(self):
-    """Test a KASan use-after-free."""
-    data = self._read_test_data('kasan_uaf.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nREAD 4'
-    expected_state = 'ip6_append_data\nudpv6_sendmsg\ninet_sendmsg\n'
-    expected_address = '0xffff88005031ee80'
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_kasan_uaf_2(self):
-    """Test a second case of KASan use-after-free."""
-    data = self._read_test_data('kasan_uaf2.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nWRITE 8'
-    expected_state = 'f2fs_register_inmem_page\nf2fs_set_data_page_dirty\nset_page_dirty\n'
-    expected_address = '0xffffffc05b5c4d28'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -2429,6 +2489,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_fuzztest(self):
+    """Test centipede stacktrace."""
+    data = self._read_test_data('centipede_fuzztest.txt')
+    expected_type = 'Abrt'
+    expected_state = 'v8::internal::ManyConditions\n'
+    expected_address = '0x0539000001ac'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_centipede_uaf(self):
     """Test centipede's ASAN error."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
@@ -2509,10 +2581,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'pdfium_fuzzer\n'
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_libfuzzer_timeout_disabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting disabled)."""
@@ -2522,10 +2595,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ''
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_libfuzzer_oom_without_redzone(self):
     """Test a libFuzzer OOM stacktrace with no redzone."""
@@ -2538,16 +2612,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'freetype2_fuzzer\n'
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
     data = self._read_test_data('libfuzzer_oom_malloc.txt')
     expected_stacktrace = data
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_libfuzzer_oom_with_small_redzone(self):
     """Test a libFuzzer OOM stacktrace with redzone equal or smaller than 64."""
@@ -2561,16 +2636,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'freetype2_fuzzer\n'
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
     data = self._read_test_data('libfuzzer_oom_malloc.txt')
     expected_stacktrace = data
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_libfuzzer_oom_with_higher_redzone(self):
     """Test a libFuzzer OOM stacktrace with redzone greater than 64."""
@@ -2847,9 +2923,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
+
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_golang_sigsegv_panic(self):
     """Test golang stacktrace with panic and SIGSEGV."""
@@ -3124,7 +3202,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-    self.mock.log_error.assert_called_once_with(
+    self.mock.error.assert_called_once_with(
         'Unknown UBSan crash type: '
         'unsupported ubsan error that needs a new signature')
 
@@ -3138,9 +3216,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
+
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_python_unhandled_exception(self):
     """Test python stacktrace with an unhandled exception."""
@@ -3190,9 +3270,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'xymodem_trnasfer\nLoadImageFromUsb30\nLoadBL1FromUsb30\n')
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
+
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_rust_assert(self):
     """Test for assertion in Rust."""
@@ -3289,9 +3371,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'wasmtime_fuzzing::oracles::spectest::ha380505b8ea313d4\n')
     expected_stacktrace = data
     expected_security_flag = False
+    expected_categories = {'Fuzzer-exit'}
+
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_linux_kernel_library_libfuzzer(self):
     """Test Linux Kernel Library fuzzed with libfuzzer."""
@@ -3302,9 +3386,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x7f2a8ad06d18'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
+
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_linux_kernel_library_libfuzzer_symbolized(self):
     """Test Linux Kernel Library fuzzed with libfuzzer symbolized."""
@@ -3316,9 +3402,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x7f5256480ddc'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
+
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_linux_kernel_library_libfuzzer_unsymbolized(self):
     """Test Linux Kernel Library fuzzed with libfuzzer unsymbolized."""
@@ -3362,15 +3450,14 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_android_kasan_510(self):
-    """Test android kasan 5.10 stacktrace."""
-    data = self._read_test_data('android_kernel_kasan_510.txt')
-    expected_type = 'Kernel failure\nUse-after-free\nWRITE 8'
-    expected_state = (
-        'f2fs_register_inmem_page\nf2fs_set_data_page_dirty\nset_page_dirty\n')
-    expected_address = '0xffffffc05b5c4d28'
+  def test_googletest(self):
+    """Test googletest stacktrace."""
+    data = self._read_test_data('googletest.txt')
+    expected_type = 'Abrt'
+    expected_state = 'v8::internal::SingleString\nExecuteInputsFromShmem\n'
+    expected_address = '0x0539000a18ab'
     expected_stacktrace = data
-    expected_security_flag = True
+    expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
@@ -3419,9 +3506,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'wait4\ndo_system\ntarget.cpp\n'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_dns_resolution(self):
     """Test capturing command injection bugs detected by extra sanitizers"""
@@ -3431,9 +3519,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = '__sendmmsg\nsend_dg\n__res_context_send\n'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_pysecsan_command_os_system(self):
     """Test PySecSan command injection bug in os.system"""
@@ -3521,6 +3610,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ignore_skia_abort(self):
+    """Test ignore  SkAbort_FileLine and SkMutex::~SkMutex"""
+    data = self._read_test_data("skia_abort.txt")
+    expected_type = 'Unexpected-exit'
+    expected_state = 'ImmediateCrash\nImmediateCrash\nSkMakeRuntimeEffect\n'
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ignore_clusterfuzz_file_paths(self):
     """Test ignore ClusterFuzz specific file paths"""
     data = self._read_test_data('windows_crash_log.txt')
@@ -3531,9 +3632,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x1233a3fa0e08'
     expected_stacktrace = data
     expected_security_flag = True
+    expected_categories = {'Fuzzer-exit'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
-                                  expected_security_flag)
+                                  expected_security_flag, expected_categories)
 
   def test_sanitizer_ill_on_windows(self):
     """Test categorizing illegal-instruction as ill for consistency with Linux/Posix"""
@@ -3559,6 +3661,12 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_split_stacktrace = corrected_stacktrace.splitlines()
 
     self.assertEqual(actual_split_stacktrace, expected_split_stacktrace)
+
+  def test_split_stacktrace_no_dos(self):
+    """Tests that split_stacktrace wont search forever unless there's a very
+    well crafted input."""
+    stacktrace = "S text\n" + " 42 " * 100000 + "j text\n"
+    StackParser.split_stacktrace(stacktrace)
 
   def test_jazzer_js_javascript(self):
     """Test Jazzer.js JS stacktrace."""
@@ -3595,3 +3703,53 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_crash_signal_and_timeout_stacktrace(self):
+    """Test prioritization of Timeout crash_type"""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    data = self._read_test_data('unknown_crash_and_timeout.txt')
+    expected_type = 'Timeout'
+    expected_address = ''
+    expected_state = (
+        'gwp_asan::GuardedPoolAllocator::allocate\n'
+        'android::hardware::bluetooth::V1_0::implementation::UartController::ReportSocFai\n'
+        '__stpcpy_aarch64\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    expected_categories = {'Fuzzer-exit'}
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag, expected_categories)
+
+  def test_fuzzer_exit_crash_category(self):
+    """Test Fuzzer-exit crash category"""
+    data = self._read_test_data('fuzzer_exit_tag_mismatch.txt')
+    expected_type = 'Tag-mismatch\nREAD 1'
+    expected_address = '0x005a5f652fff'
+    expected_state = ('long FuzzedDataProvider::ConsumeIntegralInRange<long>\n'
+                      'long FuzzedDataProvider::ConsumeIntegral<long>\n'
+                      'android::FuzzEventHub::getEvents\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag, expected_categories)
+
+  def test_missing_libfuzzer_stacktrace(self):
+    """Test missing libfuzzer stacktrace crash category"""
+    data = self._read_test_data('missing_libfuzzer_stacktrace.txt')
+    expected_type = 'UNKNOWN'
+    expected_address = '0x72ffbea193'
+    expected_state = (
+        'std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::\n'
+        'void std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, \n'
+        'android::C2PlatformComponentStore::C2PlatformComponentStore\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+    expected_categories = {'Missing-libfuzzer-stacktrace'}
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag, expected_categories)

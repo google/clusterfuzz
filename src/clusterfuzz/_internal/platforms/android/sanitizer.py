@@ -34,12 +34,17 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
 }
 
 
-def get_ld_library_path_for_sanitizers():
-  """Return LD_LIBRARY_PATH setting for sanitizers, None otherwise."""
-  if not settings.get_sanitizer_tool_name():
-    return None
+def get_ld_library_path_for_memory_tools():
+  """Return LD_LIBRARY_PATH setting for memory tools, None otherwise."""
+  tool = settings.get_sanitizer_tool_name()
+  if tool:
+    return constants.DEVICE_SANITIZER_DIR
 
-  return constants.DEVICE_SANITIZER_DIR
+  tool = settings.is_mte_build()
+  if tool:
+    return constants.DEVICE_MTE_DIR
+
+  return None
 
 
 def get_options_file_path(sanitizer_tool_name):
@@ -52,7 +57,7 @@ def get_options_file_path(sanitizer_tool_name):
   sanitizer_filename = SANITIZER_TOOL_TO_FILE_MAPPINGS.get(
       sanitizer_tool_name.lower())
   if sanitizer_filename is None:
-    logs.log_error('Unsupported sanitizer: ' + sanitizer_tool_name)
+    logs.error('Unsupported sanitizer: ' + sanitizer_tool_name)
     return None
 
   return os.path.join(sanitizer_directory, sanitizer_filename)
@@ -89,7 +94,7 @@ def setup_asan_if_needed():
   device_id = environment.get_value('ANDROID_SERIAL')
 
   # Execute the script.
-  logs.log('Executing ASan device setup script.')
+  logs.info('Executing ASan device setup script.')
   asan_device_setup_script_path = os.path.join(android_directory, 'third_party',
                                                'asan_device_setup.sh')
   extra_options_arg = 'include_if_exists=' + get_options_file_path('asan')
@@ -102,10 +107,10 @@ def setup_asan_if_needed():
                                       asan_device_setup_script_args)
   result = process.run_and_wait()
   if result.return_code:
-    logs.log_error('Failed to setup ASan on device.', output=result.output)
+    logs.error('Failed to setup ASan on device.', output=result.output)
     return
 
-  logs.log(
+  logs.info(
       'ASan device setup script successfully finished, waiting for boot.',
       output=result.output)
 

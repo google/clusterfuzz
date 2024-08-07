@@ -15,19 +15,23 @@
 
 import contextlib
 import datetime
+import json
 import random
-import re
 import threading
 import time
+from typing import List
+from typing import Optional
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -59,8 +63,6 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX_WITH_GPU': 'Linux (with GPU)',
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
     'ANDROID': 'Android',
-    'ANDROID_KERNEL': 'Android Kernel',
-    'ANDROID_KERNEL_X86': 'Android Kernel (X86)',
     'ANDROID_AUTO': 'Android Auto',
     'ANDROID_X86': 'Android (x86)',
     'ANDROID_EMULATOR': 'Android (Emulated)',
@@ -79,12 +81,17 @@ LEASE_RETRIES = 5
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
-SELF_LINK_REGEX = re.compile(
-    r'https\:\/\/www\.googleapis\.com\/storage\/v1\/b'
-    r'(?P<bucket>\/[a-zA-Z\_\-\.]+)\/o(?P<path>\/[a-zA-Z\_\-\.]+)')
+POSTPROCESS_QUEUE = 'postprocess'
+UTASK_MAINS_QUEUE = 'utask_main'
 
-FILTERS_AND = 'AND'
-FILTERS_OR = 'OR'
+# See https://github.com/google/clusterfuzz/issues/3347 for usage
+SUBQUEUE_IDENTIFIER = ':'
+
+UTASK_QUEUE_PULL_SECONDS = 60
+
+# The maximum number of utasks we will collect from the utask queue before
+# scheduling on batch.
+MAX_UTASKS = 150
 
 
 class Error(Exception):
@@ -99,12 +106,16 @@ class InvalidRedoTask(Error):
 
 def queue_suffix_for_platform(platform):
   """Get the queue suffix for a platform."""
+  # Handle the case where a subqueue is used.
+  platform = platform.lower().replace(SUBQUEUE_IDENTIFIER, '-')
   return '-' + platform.lower().replace('_', '-')
 
 
 def default_queue_suffix():
   """Get the queue suffix for the current platform."""
   queue_override = environment.get_value('QUEUE_OVERRIDE')
+  logs.info(f'QUEUE_OVERRIDE is [{queue_override}]. '
+            f'Platform is {environment.platform()}')
   if queue_override:
     return queue_suffix_for_platform(queue_override)
 
@@ -128,6 +139,15 @@ def default_queue():
     return high_end_queue()
 
   return regular_queue()
+
+
+def default_android_queue():
+  """Get the generic 'android' queue that is not tied to a specific device."""
+  # Note: environment.platform() is not used as it could return different
+  # values based on the devices.
+  # E.g: Pixel 8 it is 'ANDROID_MTE' for Pixel 5 it is 'ANDROID_DEP'
+  # TODO: Update this when b/347727208 is fixed
+  return JOBS_PREFIX + queue_suffix_for_platform('ANDROID')
 
 
 def get_command_override():
@@ -162,89 +182,21 @@ def get_high_end_task():
   return task
 
 
-def initialize_task(messages):
-  """Creates a task from |messages|."""
-  message = messages[0]
-  if message.attributes.get('kind', None) != 'storage#object':
-    return PubSubTask(message)
-
-  # Handle postprocess task.
-  raw_self_link = message.attributes.get('selfLink')
-  match = SELF_LINK_REGEX.search(raw_self_link)
-  if match is None:
-    raise Error(f'{raw_self_link} cannot be parsed.')
-  groupdict = match.groupdict()
-  path = groupdict['path']
-  bucket = groupdict['bucket']
-  argument = f'{bucket}{path}'
-  command = 'uworker_postprocess'
-  job_type = 'none'
-  return Task(command, argument, job_type)
-
-
 def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
     queue = regular_queue()
 
-  pubsub_client = pubsub.PubSubClient()
-  application_id = utils.get_application_id()
-  while True:
-    messages = pubsub_client.pull_from_subscription(
-        pubsub.subscription_name(application_id, queue), max_messages=1)
+  pubsub_puller = PubSubPuller(queue)
 
+  while True:
+    messages = pubsub_puller.get_messages(max_messages=1)
     if not messages:
       return None
 
-    try:
-      task = initialize_task(messages)
-      if task is None:
-        continue
-    except KeyError:
-      logs.log_error('Received an invalid task, discarding...')
-      messages[0].ack()
-      continue
-
-    # Check that this task should be run now (past the ETA). Otherwise we defer
-    # its execution.
-    if not task.defer():
+    task = get_task_from_message(messages[0])
+    if task:
       return task
-
-
-# TODO(metzman): Use this function so that linux bots can execute preprocess and
-# postprocess of every utask.
-def get_utask_filters(is_chromium, is_linux):
-  """Returns a string containing filters for pubsub commands. If |is_chromium|
-  and |is_linux| the filters filter out all commands that are not the trusted
-  portions (preprocess and postprocess of utasks). The filter should be used to
-  read from non-linux queues so linux bots can do the trusted preprocess step of
-  non-linux utasks. Otherwise the filters should be used when reading from the
-  bot's "normal" queue to filter out these preprocess/postprocess steps."""
-  if not is_chromium:
-    # Execute all tasks on one machine outside of chrome for now.
-    return None
-
-  # Import here to avoid import errors on webapp.
-  from clusterfuzz._internal.bot.tasks import task_types
-
-  # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
-  # syntax.
-  utask_trusted_portions = task_types.get_utask_trusted_portions()
-  if is_linux:
-    pubsub_filters = [
-        f'attribute.name = {task}' for task in utask_trusted_portions
-    ]
-  else:
-    pubsub_filters = [
-        f'-attribute.name = {task}' for task in utask_trusted_portions
-    ]
-  pubsub_filter = FILTERS_AND.join(pubsub_filters)
-  return pubsub_filter
-
-
-def get_ttask_commands_queues():
-  """Get queues tworkers should be querying for ttask commands. (i.e. tworkers
-  on Linux will need to know about the Windows and Mac queues)."""
 
 
 def get_machine_template_for_queue(queue_name):
@@ -271,7 +223,7 @@ def get_machine_template_for_queue(queue_name):
   templates = get_machine_templates()
   for template in templates:
     if template['name'] == template_name:
-      logs.log(
+      logs.info(
           f'Found machine template for {initial_queue_name}',
           machine_template=template)
       return template
@@ -287,14 +239,85 @@ def get_machine_templates():
   return conf['instance_templates']
 
 
+class PubSubPuller:
+  """PubSub client providing convenience methods for pulling."""
+
+  def __init__(self, queue):
+    self.client = pubsub.PubSubClient()
+    self.application_id = utils.get_application_id()
+    self.queue = queue
+
+  def get_messages(self, max_messages=1):
+    """Pulls a list of messages up to |max_messages| from self.queue using
+    pubsub."""
+    return self.client.pull_from_subscription(
+        pubsub.subscription_name(self.application_id, self.queue), max_messages)
+
+  def get_messages_time_limited(self, max_messages, time_limit_secs):
+    """Returns up to |max_messages|. Waits up until |time_limit_secs| to get to
+    |max_messages|."""
+    start_time = time.time()
+    messages = []
+
+    def is_done_collecting_messages():
+      curr_time = time.time()
+      if curr_time - start_time >= time_limit_secs:
+        logs.info('Timed out collecting messages.')
+        return True
+
+      if len(messages) >= max_messages:
+        return True
+
+      return False
+
+    while not is_done_collecting_messages():
+      new_messages = self.get_messages(max_messages - len(messages))
+      if new_messages:
+        messages.extend(new_messages)
+
+    return messages
+
+
+def get_postprocess_task():
+  """Gets a postprocess task if one exists."""
+  # This should only be run on non-preemptible bots.
+  if not task_utils.is_remotely_executing_utasks():
+    return None
+  # Postprocess is platform-agnostic, so we run all such tasks on our
+  # most generic and plentiful bots only. In other words, we avoid
+  # wasting our precious non-linux bots on generic postprocess tasks.
+  if not environment.platform().lower() == 'linux':
+    return None
+  pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
+  logs.info('Pulling from postprocess queue')
+  messages = pubsub_puller.get_messages(max_messages=1)
+  if not messages:
+    return None
+  task = get_task_from_message(messages[0])
+  if task:
+    logs.info('Pulled from postprocess queue.')
+  return task
+
+
+def allow_all_tasks():
+  return not environment.get_value('PREEMPTIBLE')
+
+
 def get_task():
-  """Get a task."""
+  """Returns an ordinary (non-postprocess, non-utask_main) task that is pulled
+  from a ClusterFuzz task queue."""
   task = get_command_override()
   if task:
     return task
 
-  allow_all_tasks = not environment.get_value('PREEMPTIBLE')
-  if allow_all_tasks:
+  if allow_all_tasks():
+    # Postprocess tasks need to be executed on a non-preemptible otherwise we
+    # can lose the output of a task.
+    # Postprocess tasks get priority because they are so quick. They typically
+    # only involve a few DB writes and never run user code.
+    task = get_postprocess_task()
+    if task:
+      return task
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
@@ -304,14 +327,34 @@ def get_task():
 
     task = get_regular_task()
     if task:
+      # Log the task details for debug purposes.
+      logs.info(f'Got task with cmd {task.command} args {task.argument} '
+                f'job {task.job} from {regular_queue()} queue.')
       return task
+
+    if environment.is_android():
+      logs.info(f'Could not get task from {regular_queue()}. Trying from'
+                f'default android queue {default_android_queue()}.')
+      task = get_regular_task(default_android_queue())
+      if task:
+        # Log the task details for debug purposes.
+        logs.info(f'Got task with cmd {task.command} args {task.argument} '
+                  f'job {task.job} from {default_android_queue()} queue.')
+        return task
+
+  logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 
   task = get_fuzz_task()
   if not task:
-    logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
+    logs.error('Failed to get any fuzzing tasks. This should not happen.')
     time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
 
   return task
+
+
+def construct_payload(command, argument, job):
+  """Constructs payload for task, a standard description of tasks."""
+  return ' '.join([command, str(argument), str(job)])
 
 
 class Task:
@@ -323,20 +366,22 @@ class Task:
                job,
                eta=None,
                is_command_override=False,
-               high_end=False):
+               high_end=False,
+               extra_info=None):
     self.command = command
     self.argument = argument
     self.job = job
     self.eta = eta
     self.is_command_override = is_command_override
     self.high_end = high_end
+    self.extra_info = extra_info
 
   def attribute(self, _):
     return None
 
   def payload(self):
     """Get the payload."""
-    return ' '.join([self.command, self.argument, self.job])
+    return construct_payload(self.command, self.argument, self.job)
 
   def to_pubsub_message(self):
     """Convert the task to a pubsub message."""
@@ -345,6 +390,11 @@ class Task:
         'argument': str(self.argument),
         'job': self.job,
     }
+    if self.extra_info is not None:
+      for attribute, value in self.extra_info.items():
+        if attribute in attributes:
+          raise ValueError(f'Cannot set {attribute} using extra_info.')
+        attributes[attribute] = value
 
     if self.eta:
       attributes['eta'] = str(utils.utc_datetime_to_timestamp(self.eta))
@@ -369,6 +419,12 @@ class PubSubTask(Task):
         self.attribute('command'), self.attribute('argument'),
         self.attribute('job'))
 
+    self.extra_info = {
+        key: value
+        for key, value in self._pubsub_message.attributes.items()
+        if key not in {'command', 'argument', 'job', 'eta'}
+    }
+
     self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
 
   def attribute(self, key):
@@ -377,13 +433,15 @@ class PubSubTask(Task):
 
   def defer(self):
     """Defer a task until its ETA. Returns whether or not we deferred."""
+    if self.eta is None:
+      return False
     now = utils.utcnow()
     if now >= self.eta:
       return False
 
     # Extend the deadline until the ETA, or MAX_ACK_DEADLINE.
     time_until_eta = int((self.eta - now).total_seconds())
-    logs.log('Deferring task "%s".' % self.payload())
+    logs.info('Deferring task "%s".' % self.payload())
     self._pubsub_message.modify_ack_deadline(
         min(pubsub.MAX_ACK_DEADLINE, time_until_eta))
     return True
@@ -413,6 +471,88 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
     track_task_end()
 
+  def dont_retry(self):
+    self._pubsub_message.ack()
+
+
+def get_task_from_message(message) -> Optional[PubSubTask]:
+  """Returns a task constructed from the first of |messages| if possible."""
+  if message is None:
+    return None
+  try:
+    task = initialize_task(message)
+  except KeyError:
+    logs.error('Received an invalid task, discarding...')
+    message.ack()
+    return None
+
+  # Check that this task should be run now (past the ETA). Otherwise we defer
+  # its execution.
+  if task.defer():
+    return None
+
+  return task
+
+
+def get_utask_mains() -> List[PubSubTask]:
+  """Returns a list of tasks for preprocessing many utasks on this bot and then
+  running the uworker_mains in the same batch job."""
+  if not task_utils.is_remotely_executing_utasks():
+    return None
+  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
+                                                     UTASK_QUEUE_PULL_SECONDS)
+  return handle_multiple_utask_main_messages(messages)
+
+
+def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
+  """Merges tasks specified in |messages| into a list for processing on this
+  bot."""
+  tasks = []
+  for message in messages:
+    task = get_task_from_message(message)
+    if task is None:
+      continue
+    tasks.append(task)
+
+  logs.info(
+      'Got utask_mains.',
+      tasks_extras_info=[task.extra_info for task in tasks if task])
+  return tasks
+
+
+def initialize_task(message) -> PubSubTask:
+  """Creates a task from |messages|."""
+
+  if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
+    return PubSubTask(message)
+
+  # Handle postprocess task.
+  # The GCS API for pub/sub notifications uses the data field unlike
+  # ClusterFuzz which uses attributes more.
+  data = json.loads(message.data)
+  name = data['name']
+  bucket = data['bucket']
+  output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
+  return PostprocessPubSubTask(output_url_argument, message)
+
+
+class PostprocessPubSubTask(PubSubTask):
+  """A postprocess task received over pub/sub."""
+
+  def __init__(self,
+               output_url_argument,
+               pubsub_message,
+               is_command_override=False):
+    command = 'postprocess'
+    job_type = 'none'
+    eta = None
+    high_end = False
+    grandparent_class = super(PubSubTask, self)
+    grandparent_class.__init__(command, output_url_argument, job_type, eta,
+                               is_command_override, high_end)
+    self._pubsub_message = pubsub_message
+
 
 class _PubSubLeaserThread(threading.Thread):
   """Thread that continuously renews the lease for a message."""
@@ -435,13 +575,13 @@ class _PubSubLeaserThread(threading.Thread):
       try:
         time_left = latest_end_time - time.time()
         if time_left <= 0:
-          logs.log('Lease reached maximum lease time of {} seconds, '
-                   'stopping renewal.'.format(self._max_lease_seconds))
+          logs.info('Lease reached maximum lease time of {} seconds, '
+                    'stopping renewal.'.format(self._max_lease_seconds))
           break
 
         extension_seconds = min(self.EXTENSION_TIME_SECONDS, time_left)
 
-        logs.log(
+        logs.info(
             'Renewing lease for task by {} seconds.'.format(extension_seconds))
         self._message.modify_ack_deadline(extension_seconds)
 
@@ -451,13 +591,31 @@ class _PubSubLeaserThread(threading.Thread):
 
         # Wait until the next scheduled renewal, or if the task is complete.
         if self._done_event.wait(wait_seconds):
-          logs.log('Task complete, stopping renewal.')
+          logs.info('Task complete, stopping renewal.')
           break
       except Exception:
-        logs.log_error('Leaser thread failed.')
+        logs.error('Leaser thread failed.')
 
 
-def add_task(command, argument, job_type, queue=None, wait_time=None):
+def add_utask_main(command, input_url, job_type, wait_time=None):
+  """Adds the utask_main portion of a utask to the utasks queue for scheduling
+  on batch. This should only be done after preprocessing."""
+  initial_command = environment.get_value('TASK_PAYLOAD')
+  add_task(
+      command,
+      input_url,
+      job_type,
+      queue=UTASK_MAINS_QUEUE,
+      wait_time=wait_time,
+      extra_info={'initial_command': initial_command})
+
+
+def add_task(command,
+             argument,
+             job_type,
+             queue=None,
+             wait_time=None,
+             extra_info=None):
   """Add a new task to the job queue."""
   # Old testcases may pass in queue=None explicitly,
   # so we must check this here.
@@ -478,7 +636,7 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
-  task = Task(command, argument, job_type, eta=eta)
+  task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(
       pubsub.topic_name(utils.get_application_id(), queue),
@@ -521,7 +679,8 @@ def queue_for_job(job_name, is_high_end=False):
 
 
 def redo_testcase(testcase, tasks, user_email):
-  """Redo specific tasks for a testcase."""
+  """Redo specific tasks for a testcase. This is requested by the user from the
+  web interface."""
   for task in tasks:
     if task not in VALID_REDO_TASKS:
       raise InvalidRedoTask(task)
@@ -582,6 +741,12 @@ def redo_testcase(testcase, tasks, user_email):
   testcase.one_time_crasher_flag = False
   testcase.put()
 
+  # Log the task's queue for debug purposes.
+  logs.info(
+      f'{utils.current_date_time()} : Adding testcase id {testcase_id} '
+      f'to queue {queue_for_testcase(testcase)} with job {testcase.job_type} '
+      f'for tasks {sorted(task_list)}.')
+
   # Allow new notifications to be sent for this testcase.
   notifications = ndb_utils.get_all_from_query(
       data_types.Notification.query(
@@ -589,27 +754,51 @@ def redo_testcase(testcase, tasks, user_email):
       keys_only=True)
   ndb_utils.delete_multi(notifications)
 
+  # Use wait_time=0 to execute the task ASAP, since it is user-facing.
+  wait_time = 0
+
   # If we are re-doing minimization, other tasks will be done automatically
   # after minimization completes. So, don't add those tasks.
   if minimize:
-    add_task('minimize', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase))
-  else:
-    if regression:
-      add_task('regression', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+    add_task(
+        'minimize',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
+    return
 
-    if progression:
-      add_task('progression', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+  if regression:
+    add_task(
+        'regression',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
-    if impact:
-      add_task('impact', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+  if progression:
+    add_task(
+        'progression',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
-    if blame:
-      add_task('blame', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+  if impact:
+    add_task(
+        'impact',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
+
+  if blame:
+    add_task(
+        'blame',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
 
 def get_task_payload():

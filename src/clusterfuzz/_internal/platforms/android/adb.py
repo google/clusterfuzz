@@ -31,8 +31,8 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
-BAD_STATE_WAIT = 900
-BOOT_WAIT_INTERVAL = 30
+BAD_STATE_WAIT = 60 * 60  # 60 mins
+BOOT_WAIT_INTERVAL = 60 * 2
 CUTTLEFISH_USER = 'vsoc-01'
 CUTTLEFISH_CVD_PORT = 6520
 DEFAULT_DEVICE_MEMORY_MB = 2048
@@ -48,7 +48,7 @@ KERNEL_LOG_FILES = [
 MONKEY_PROCESS_NAME = 'monkey'
 WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
-RECOVERY_CMD_TIMEOUT = 60
+RECOVERY_CMD_TIMEOUT = 60 * 2
 GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
@@ -72,7 +72,7 @@ def bad_state_reached():
 
 def connect_to_cuttlefish_device():
   """Connect to Cuttlefish cvd."""
-  logs.log('Connect to cuttlefish device.')
+  logs.info('Connect to cuttlefish device.')
   device_serial = environment.get_value('ANDROID_SERIAL')
   connect_cmd = f'{get_adb_path()} connect {device_serial}'
   return execute_command(connect_cmd, timeout=RECOVERY_CMD_TIMEOUT)
@@ -82,14 +82,13 @@ def copy_local_directory_to_remote(local_directory, remote_directory):
   """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
   if os.listdir(local_directory):
-    run_command(['push', '%s/.' % local_directory, remote_directory], True,
-                True)
+    run_command(['push', '%s/.' % local_directory, remote_directory], True)
 
 
 def copy_local_file_to_remote(local_file_path, remote_file_path):
   """Copies local file to a device file."""
   create_directory_if_needed(os.path.dirname(remote_file_path))
-  run_command(['push', local_file_path, remote_file_path], True, True)
+  run_command(['push', local_file_path, remote_file_path], True)
 
 
 def copy_remote_directory_to_local(remote_directory, local_directory):
@@ -112,13 +111,11 @@ def create_directory_if_needed(device_directory):
 def directory_exists(directory_path):
   """Return whether a directory exists or not."""
   expected = '0'
-  result = run_shell_command(
-      '\'test -d "%s"; echo $?\'' % directory_path, log_error=False)
+  result = run_shell_command('\'test -d "%s"; echo $?\'' % directory_path)
   return result == expected
 
 
-def execute_command(cmd, timeout=None, log_error=True,
-                    on_cuttlefish_host=False):
+def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
   """Spawns a subprocess to run the given shell command."""
   if on_cuttlefish_host and environment.is_android_cuttlefish():
     # Auto accept key fingerprint for ssh command.
@@ -147,19 +144,17 @@ def execute_command(cmd, timeout=None, log_error=True,
       output_dest.close()
       if output:
         so.append(output)
-    except OSError as _:
-      logs.log_warn('Failed to retrieve stdout from: %s' % cmd)
+    except OSError:
+      logs.warning('Failed to retrieve stdout from: %s' % cmd)
     if pipe.returncode:
-      if log_error:
-        logs.log_warn(
-            '%s returned %d error code.' % (cmd, pipe.returncode),
-            output=output)
+      logs.warning(
+          '%s returned %d error code.' % (cmd, pipe.returncode), output=output)
 
   thread = threading.Thread(target=run)
   thread.start()
   thread.join(timeout)
   if thread.is_alive():
-    logs.log_warn('Command %s timed out. Killing process.' % cmd)
+    logs.warning('Command %s timed out. Killing process.' % cmd)
     try:
       pipe.kill()
     except OSError:
@@ -183,6 +178,7 @@ def copy_to_cuttlefish(src_path, dest_path, timeout=None):
 
 def factory_reset():
   """Reset device to factory state."""
+  logs.info('reached factory_reset')
   if environment.is_android_cuttlefish():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
@@ -206,8 +202,7 @@ def factory_reset():
 def file_exists(file_path):
   """Return whether a file exists or not."""
   expected = '0'
-  result = run_shell_command(
-      '\'test -f "%s"; echo $?\'' % file_path, log_error=False)
+  result = run_shell_command('\'test -f "%s"; echo $?\'' % file_path)
   return result == expected
 
 
@@ -289,7 +284,7 @@ def extract_logcat_from_ramdump_and_reboot():
       'python ramoops_reader.py kernel.log > logcat.log',
       shell=True,
       check=False)
-  with open('logcat.log', 'r') as file:
+  with open('logcat.log') as file:
     logcat = file.read()
 
   files_to_delete = ['ramoops_reader.py', 'kernel.log', 'logcat.log']
@@ -376,13 +371,13 @@ def hard_reset():
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
   if environment.is_android_emulator():
-    logs.log('Platform ANDROID_EMULATOR detected.')
+    logs.info('Platform ANDROID_EMULATOR detected.')
     restart_adb()
     state = get_device_state()
 
-    logs.log('Device state is: %s' % state)
+    logs.info('Device state is: %s' % state)
     if state == 'recovery':
-      logs.log('Rebooting recovery state device with --wipe_data.')
+      logs.info('Rebooting recovery state device with --wipe_data.')
       run_command('root')
       run_shell_command('recovery --wipe_data')
 
@@ -410,7 +405,7 @@ def reboot():
   run_command('reboot')
 
 
-def start_cuttlefish_device(use_kernel=False):
+def start_cuttlefish_device():
   """Start the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
@@ -418,19 +413,23 @@ def start_cuttlefish_device(use_kernel=False):
 
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
+  # TODO(https://github.com/google/clusterfuzz/issues/3777): Enable sandboxing
   launch_cvd_command_line = (
       f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
       '-report_anonymous_usage_stats Y')
-  if use_kernel:
-    kernel_path = os.path.join(cvd_dir, 'bzImage')
-    initramfs_path = os.path.join(cvd_dir, 'initramfs.img')
-    launch_cvd_command_line += (
-        f' -kernel_path={kernel_path} -initramfs_path={initramfs_path}')
+  execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
-  execute_command(
-      launch_cvd_command_line,
-      timeout=LAUNCH_CVD_TIMEOUT,
-      on_cuttlefish_host=True)
+
+def copy_images_to_cuttlefish():
+  """Copy and Combine cvd host package and OTA images."""
+  image_directory = environment.get_value('IMAGES_DIR')
+  cvd_dir = environment.get_value('CVD_DIR')
+  for image_filename in os.listdir(image_directory):
+    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
+      continue
+    image_src = os.path.join(image_directory, image_filename)
+    image_dest = os.path.join(cvd_dir, image_filename)
+    copy_to_cuttlefish(image_src, image_dest)
 
 
 def stop_cuttlefish_device():
@@ -438,10 +437,12 @@ def stop_cuttlefish_device():
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
+  logs.info('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
 
-  execute_command(
-      stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
-  time.sleep(STOP_CVD_WAIT)
+  if get_device_state() == 'device':
+    execute_command(
+        stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+    time.sleep(STOP_CVD_WAIT)
 
 
 def restart_cuttlefish_device():
@@ -455,24 +456,18 @@ def restart_cuttlefish_device():
 
 def recreate_cuttlefish_device():
   """Recreate cuttlefish device, restoring from backup images."""
-  logs.log('Reimaging cuttlefish device.')
+  logs.info('Reimaging cuttlefish device.')
   cvd_dir = environment.get_value('CVD_DIR')
+  logs.info('cvd_dir: %s' % str(cvd_dir))
 
+  copy_images_to_cuttlefish()
   stop_cuttlefish_device()
 
   # Delete all existing images.
   rm_cmd = f'rm -rf {cvd_dir}/*'
   execute_command(rm_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
 
-  # Copy and Combine cvd host package and OTA images.
-  image_directory = environment.get_value('IMAGES_DIR')
-  for image_filename in os.listdir(image_directory):
-    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
-      continue
-    image_src = os.path.join(image_directory, image_filename)
-    image_dest = os.path.join(cvd_dir, image_filename)
-    copy_to_cuttlefish(image_src, image_dest)
-
+  copy_images_to_cuttlefish()
   start_cuttlefish_device()
 
 
@@ -513,8 +508,8 @@ def reset_device_connection():
   # Check device status.
   state = get_device_state()
   if state != 'device':
-    logs.log_warn('Device state is %s, unable to recover using usb reset/'
-                  'cuttlefish reconnect.' % str(state))
+    logs.warning('Device state is %s, unable to recover using usb reset/'
+                 'cuttlefish reconnect.' % str(state))
     return False
 
   return True
@@ -533,7 +528,7 @@ def set_cuttlefish_device_serial():
   """Set the ANDROID_SERIAL to cuttlefish ip and port."""
   device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
   environment.set_value('ANDROID_SERIAL', device_serial)
-  logs.log('Set cuttlefish device serial: %s' % device_serial)
+  logs.info('Set cuttlefish device serial: %s' % device_serial)
 
 
 def get_cuttlefish_ssh_target():
@@ -549,8 +544,8 @@ def get_device_path():
     usb_list_cmd = 'lsusb -v'
     output = execute_command(usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
     if output is None:
-      logs.log_error('Failed to populate usb devices using lsusb, '
-                     'host restart might be needed.')
+      logs.error('Failed to populate usb devices using lsusb, '
+                 'host restart might be needed.')
       bad_state_reached()
 
     devices = []
@@ -612,7 +607,7 @@ def reset_usb():
   # adb root restarts.
   try:
     device_path = get_device_path()
-  except IOError:
+  except OSError:
     # We may reach this state if the device is no longer available.
     device_path = None
 
@@ -620,14 +615,14 @@ def reset_usb():
     # Try pulling from cache (if available).
     device_path = environment.get_value('DEVICE_PATH')
   if not device_path:
-    logs.log_warn('No device path found, unable to reset usb.')
+    logs.warning('No device path found, unable to reset usb.')
     return False
 
   try:
     with open(device_path, 'w') as f:
       fcntl.ioctl(f, USBDEVFS_RESET)
   except:
-    logs.log_warn('Failed to reset usb.')
+    logs.warning('Failed to reset usb.')
     return False
 
   # Wait for usb to recover.
@@ -663,23 +658,19 @@ def run_as_root():
   wait_for_device()
 
 
-def run_command(cmd,
-                log_output=False,
-                log_error=True,
-                timeout=None,
-                recover=True):
+def run_command(cmd, log_output=False, timeout=None, recover=True):
   """Run a command in adb shell."""
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
   if log_output:
-    logs.log('Running: adb %s' % cmd)
+    logs.info('Running: adb %s' % cmd)
   if not timeout:
     timeout = ADB_TIMEOUT
 
-  output = execute_command(get_adb_command_line(cmd), timeout, log_error)
+  output = execute_command(get_adb_command_line(cmd), timeout)
   if not recover:
     if log_output:
-      logs.log('Output: (%s)' % output)
+      logs.info('Output: (%s)' % output)
     return output
 
   device_not_found_string_with_serial = DEVICE_NOT_FOUND_STRING.format(
@@ -688,32 +679,29 @@ def run_command(cmd,
       DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
       device_not_found_string_with_serial
   ]):
-    logs.log_warn('Unable to query device, resetting device connection.')
+    logs.warning('Unable to query device, resetting device connection.')
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.
       # Continue execution and validate output next for |None| condition.
-      output = execute_command(get_adb_command_line(cmd), timeout, log_error)
+      output = execute_command(get_adb_command_line(cmd), timeout)
     else:
       output = DEVICE_HANG_STRING
 
   if output is DEVICE_HANG_STRING:
     # Handle the case where our command execution hung. This is usually when
     # device goes into a bad state and only way to recover is to restart it.
-    logs.log_warn('Unable to query device, restarting device to recover.')
+    logs.warning('Unable to query device, restarting device to recover.')
     hard_reset()
 
     # Wait until we've booted and try the command again.
     wait_until_fully_booted()
-    output = execute_command(get_adb_command_line(cmd), timeout, log_error)
+    output = execute_command(get_adb_command_line(cmd), timeout)
 
-  if log_output:
-    logs.log('Output: (%s)' % output)
   return output
 
 
 def run_shell_command(cmd,
                       log_output=False,
-                      log_error=True,
                       root=False,
                       timeout=None,
                       recover=True):
@@ -738,14 +726,10 @@ def run_shell_command(cmd,
     full_cmd = 'shell {}'.format(cmd)
 
   return run_command(
-      full_cmd,
-      log_output=log_output,
-      log_error=log_error,
-      timeout=timeout,
-      recover=recover)
+      full_cmd, log_output=log_output, timeout=timeout, recover=recover)
 
 
-def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
+def run_fastboot_command(cmd, log_output=True, timeout=None):
   """Run a command in fastboot shell."""
   if environment.is_android_cuttlefish():
     # We can't run fastboot commands on Android cuttlefish instances.
@@ -754,11 +738,11 @@ def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
   if log_output:
-    logs.log('Running: fastboot %s' % cmd)
+    logs.info('Running: fastboot %s' % cmd)
   if not timeout:
     timeout = ADB_TIMEOUT
 
-  output = execute_command(get_fastboot_command_line(cmd), timeout, log_error)
+  output = execute_command(get_fastboot_command_line(cmd), timeout)
   return output
 
 
@@ -810,17 +794,17 @@ def wait_until_fully_booted():
 
   def boot_completed():
     expected = '1'
-    result = run_shell_command('getprop sys.boot_completed', log_error=False)
+    result = run_shell_command('getprop sys.boot_completed')
     return result == expected
 
   def drive_ready():
     expected = '0'
-    result = run_shell_command('\'test -d "/"; echo $?\'', log_error=False)
+    result = run_shell_command('\'test -d "/"; echo $?\'')
     return result == expected
 
   def package_manager_ready():
     expected = 'package:/system/framework/framework-res.apk'
-    result = run_shell_command('pm path android', log_error=False)
+    result = run_shell_command('pm path android')
     if not result:
       return False
 

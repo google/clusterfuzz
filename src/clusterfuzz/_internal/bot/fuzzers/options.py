@@ -36,8 +36,10 @@ class FuzzerOptionsError(Exception):
 class FuzzerArguments:
   """Fuzzer flags."""
 
-  def __init__(self, flags):
-    self.flags = flags
+  PARSING_REGEX = re.compile(r'^[-]{1,2}([a-zA-Z0-9_]+)(=|\ )(.*)$')
+
+  def __init__(self, flags=None):
+    self.flags = flags if flags is not None else {}
 
   def __contains__(self, key):
     return key in self.flags
@@ -47,6 +49,9 @@ class FuzzerArguments:
 
   def __setitem__(self, key, value):
     self.flags[key] = value
+
+  def __delitem__(self, key):
+    del self.flags[key]
 
   def get(self, key, default=None, constructor=None):
     """Return value for |key|, calling the |constructor| on it, or |default| if
@@ -69,6 +74,22 @@ class FuzzerArguments:
   def list(self):
     """Return arguments as a list."""
     return [f'-{key}={value}' for key, value in self.flags.items()]
+
+  def extend(self, flags):
+    """Extends the existing flags with the provided ones. In case of both
+    containing the same key, `flag[key]` is the value that will be used."""
+    for key, value in flags.flags.items():
+      self.flags[key] = value
+
+  @staticmethod
+  def from_list(arguments):
+    res = FuzzerArguments()
+    for arg in arguments:
+      match = FuzzerArguments.PARSING_REGEX.match(arg)
+      if not match:
+        return None
+      res[match.groups()[0]] = match.groups()[2]
+    return res
 
 
 class FuzzerOptions:
@@ -152,10 +173,6 @@ class FuzzerOptions:
     """Return a list of HWSAN_OPTIONS overrides."""
     return self._get_option_section('hwasan')
 
-  def get_grammar_options(self):
-    """Return a list og grammar options"""
-    return self._get_option_section('grammar')
-
 
 def get_fuzz_target_options(fuzz_target_path):
   """Return a FuzzerOptions for the given target, or None if it does not
@@ -175,5 +192,5 @@ def get_fuzz_target_options(fuzz_target_path):
   try:
     return FuzzerOptions(options_file_path, cwd=options_cwd)
   except FuzzerOptionsError:
-    logs.log_error('Invalid options file: %s.' % options_file_path)
+    logs.error('Invalid options file: %s.' % options_file_path)
     return None

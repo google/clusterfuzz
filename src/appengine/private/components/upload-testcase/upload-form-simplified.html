@@ -145,15 +145,13 @@
           </div>
         </template>
       </div>
-      <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
-        <div class="warning">
-          <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
-          Only upload testcases that you trust enough to run on your own
-          machine. Note that some jobs do not use the Chrome sandbox, the
-          following jobs do:<br>
-          [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
-        </div>
-      </template>
+      <div class="warning">
+      <span><strong>WARNING</strong>: ClusterFuzz only partially supports untrusted workloads.<br></span>
+        ClusterFuzz supports untrusted workloads when the platform is Linux<br>
+        If your upload does not use Linux as the platform, Clusterfuzz will treat the input testcase as trusted,
+        and therefore run with privileged jobs. Only upload this testcase if you trust it enough to run on your own machine.<br>
+        To confirm this testcase is trusted, you must fill out the extra field confirming so.
+      </div>
       <div class="inline wide">
         <paper-dropdown-menu
             class="dropdown-filter"
@@ -175,6 +173,7 @@
       <p class="quick-mode-job narrow"> Job to be used for this testcase: {{getJobType(uploadParams.file, uploadParams.fileType, uploadParams.platform)}} </p>
       <div class="inline wide">
         <paper-input value="{{uploadParams.args}}" label="Command-line arguments (optional)" title="Additional command line flags to append when running this testcase. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
+	      <paper-input value="{{uploadParams.trustedAgreement}}" label="Type in 'This testcase is safe to run' to run trusted testcases on trusted jobs."></paper-input>
       </div>
       <template is="dom-if" if="[[isAndroid(uploadParams.job)]]">
         <div class="inline wide">
@@ -207,7 +206,7 @@
             value: [
                 'job', 'target', 'multiple', 'http', 'highEnd', 'issue',
                 'revision', 'timeout', 'retries', 'updateIssue', 'args', 'cmd',
-                'platform', 'gestures', 'testcaseId']
+                'platform', 'gestures', 'testcaseId', 'trustedAgreement']
           },
           uploadParams: {
             type: Object,
@@ -375,27 +374,8 @@
         window.location.href = '?upload=true&' + window.query.compute(
             this.uploadParams, this.paramKeys);
       }
-
-      showWarning(job) {
-        if (!job) { return false; }
-        let secureJobs = new Set(this.fieldValues.sandboxedJobs);
-        return this.fieldValues.isChromium && !secureJobs.has(job);
-      }
-
-      formatSandboxedJobs(jobs) {
-        if (!jobs) { return ''; }
-
-        let s = '';
-        for (let i=0;i<jobs.length;i++) {
-          if (i > 0) { s += ', '; }
-          if (i == (jobs.length - 1)) { s += 'and '; }
-          s += jobs[i]
-        }
-        return s;
-      }
     }
 
     customElements.define(UploadFormSimplified.is, UploadFormSimplified);
   </script>
 </dom-module>
-

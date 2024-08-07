@@ -50,8 +50,8 @@ class Error(Exception):
 class InvalidTestcaseError(Error):
   """Error thrown when there is an attempt to access an invalid test case."""
 
-  def __init__(self):
-    super().__init__('Invalid test case.')
+  def __init__(self, testcase_id):
+    super().__init__(f'Invalid test case {testcase_id!r}.')
 
 
 class InvalidFuzzerError(Error):
@@ -79,32 +79,6 @@ class BuildNotFoundError(Error):
   def __str__(self):
     return 'Build not found (revision %d, job %s).' % (self.revision,
                                                        self.job_type)
-
-
-class BuildSetupError(Error):
-  """Exception type for build setup failures."""
-
-  def __init__(self, revision, job_type):
-    self.revision = revision
-    self.job_type = job_type
-    super().__init__()
-
-  def __str__(self):
-    return 'Build setup failed (revision %d, job %s).' % (self.revision,
-                                                          self.job_type)
-
-
-class BadBuildError(Error):
-  """Exception type for bad build failures."""
-
-  def __init__(self, revision, job_type):
-    self.revision = revision
-    self.job_type = job_type
-    super().__init__()
-
-  def __str__(self):
-    return 'Bad build detected (revision %d, job %s).' % (self.revision,
-                                                          self.job_type)
 
 
 class BadConfigError(Error):

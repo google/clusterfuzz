@@ -77,7 +77,7 @@ class AflOptionType(enum.Enum):
 AflOption = collections.namedtuple('AflOption', ['name', 'type'])
 
 
-class AflConfig(object):
+class AflConfig:
   """Helper class that determines the arguments that should be passed to
   afl-fuzz, environment variables that should be set before running afl-fuzz,
   and the number of persistent executions that should be passed to the target
@@ -97,6 +97,8 @@ class AflConfig(object):
     self.additional_afl_arguments = []
     self.additional_env_vars = {}
     self.num_persistent_executions = constants.MAX_PERSISTENT_EXECUTIONS
+    self.dict_path = None
+    self._executable_path = None
 
   @classmethod
   def from_target_path(cls, target_path):
@@ -159,7 +161,7 @@ class AflConfig(object):
     self.additional_afl_arguments.append(constants.DICT_FLAG + self.dict_path)
 
 
-class AflFuzzOutputDirectory(object):
+class AflFuzzOutputDirectory:
   """Helper class used by AflRunner to deal with AFL's output directory and its
   contents (ie: the -o argument to afl-fuzz)."""
 
@@ -263,7 +265,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     """Copy the first crash found by AFL. Before calling super method
     copy the crashes directory from device to local.
     """
-    logs.log('Copying crash directory from device to local.')
+    logs.info('Copying crash directory from device to local.')
 
     # Copy the crashes dir from device to local.
     local_directory = os.path.join(self.instance_directory, 'crashes')
@@ -276,7 +278,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     super().copy_crash_if_needed(testcase_path)
 
 
-class FuzzingStrategies(object):
+class FuzzingStrategies:
   """Helper class used by AflRunner classes to decide what strategy to use
   and to record the decision for StatsGetter to use later."""
 
@@ -288,22 +290,33 @@ class FuzzingStrategies(object):
   ]
 
   # Probabilty for arithmetic CMPLOG calculations.
-  CMPLOG_ARITH_PROB = 0.1
+  CMPLOG_ARITH_PROB = 0.4
 
   # Probability for transforming CMPLOG solving.
   CMPLOG_TRANS_PROB = 0.1
+
+  # Probability for extreme CMPLOG solving.
+  CMPLOG_XTREME_PROB = 0.05
 
   # Probability for randomized coloring.
   CMPLOG_RAND_PROB = 0.1
 
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
-  DISABLE_TRIM_PROB = 0.75
+  DISABLE_TRIM_PROB = 0.70
 
   # Probability to keep long running finds. (AFL_KEEP_TIMEOUTS=1)
-  KEEP_TIMEOUTS_PROB = 0.5
+  KEEP_TIMEOUTS_PROB = 0.7
 
   # Probability for increased havoc intensity. (AFL_EXPAND_HAVOC_NOW=1)
   EXPAND_HAVOC_PROB = 0.5
+
+  # Probability for a fixed mutation type. (-P)
+  MUTATION_PROB = 0.5
+  MUTATION_EXPLORE_PROB = 0.75
+
+  # PROBABILITY for input type. (-a)
+  INPUT_PROB = 0.4
+  INPUT_ASCII_PROB = 0.3
 
   # Probability to use the MOpt mutator. (-L0)
   MOPT_PROB = 0.4
@@ -382,7 +395,7 @@ class FuzzingStrategies(object):
     return strategies_dict
 
 
-class AflFuzzInputDirectory(object):
+class AflFuzzInputDirectory:
   """Helper class used by AflRunner to deal with the input directory passed to
   afl-fuzz as the -i argument.
   """
@@ -435,7 +448,7 @@ class AflFuzzInputDirectory(object):
 # pylint: disable=no-member
 
 
-class AflRunnerCommon(object):
+class AflRunnerCommon:
   """Afl runner common routines."""
 
   # Window of time for afl to exit gracefully before we kill it.
@@ -531,6 +544,7 @@ class AflRunnerCommon(object):
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
+    self._executable_path = None
 
   @property
   def stderr_file_path(self):
@@ -553,7 +567,7 @@ class AflRunnerCommon(object):
             utils.read_from_handle_truncated(file_handle, MAX_OUTPUT_LEN))
 
       self._fuzzer_stderr = get_first_stacktrace(stderr_data)
-    except IOError:
+    except OSError:
       self._fuzzer_stderr = ''
     return self._fuzzer_stderr
 
@@ -569,6 +583,7 @@ class AflRunnerCommon(object):
     environment.set_value(constants.SKIP_CRASHES_ENV_VAR, 1)
     environment.set_value(constants.BENCH_UNTIL_CRASH_ENV_VAR, 1)
     environment.set_value(constants.SKIP_CPUFREQ_ENV_VAR, 1)
+    environment.set_value(constants.IGNORE_SEED_PROBLEMS, 1)
 
     stderr_file_path = self.stderr_file_path
     if environment.is_android():
@@ -590,7 +605,7 @@ class AflRunnerCommon(object):
       expected_return_codes += additional_return_codes
 
     if result.return_code not in expected_return_codes:
-      logs.log_error(
+      logs.error(
           f'AFL target exited with abnormal exit code: {result.return_code}.',
           output=result.output)
 
@@ -755,14 +770,14 @@ class AflRunnerCommon(object):
     (calculated using |max_total_time|).
     """
     if max_total_time <= 0:
-      logs.log_error('Tried fuzzing for {0} seconds. Not retrying'.format(
+      logs.error('Tried fuzzing for {} seconds. Not retrying'.format(
           self.initial_max_total_time))
 
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
-      logs.log_error(
-          'Tried to retry fuzzing {0} times. Fuzzer is likely broken'.format(
+      logs.error(
+          'Tried to retry fuzzing {} times. Fuzzer is likely broken'.format(
               num_retries))
 
       return False
@@ -798,7 +813,7 @@ class AflRunnerCommon(object):
         message_format = (
             'Seconds spent fuzzing: {seconds}, ' + log_message_format)
 
-        logs.log(
+        logs.info(
             message_format.format(
                 erroring_filename, seconds=get_time_spent_fuzzing()))
 
@@ -870,6 +885,24 @@ class AflRunnerCommon(object):
       self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG,
                    rand_cmplog_level(self.strategies))
 
+      if engine_common.decide_with_probability(self.strategies.MUTATION_PROB):
+        if engine_common.decide_with_probability(
+            self.strategies.MUTATION_EXPLORE_PROB):
+          self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
+                       constants.MUTATION_EXPLORE)
+        else:
+          self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
+                       constants.MUTATION_EXPLOIT)
+
+      if engine_common.decide_with_probability(self.strategies.INPUT_PROB):
+        if engine_common.decide_with_probability(
+            self.strategies.INPUT_ASCII_PROB):
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_ASCII)
+        else:
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_BINARY)
+
       if not environment.is_android():
         # Attempt to start the fuzzer.
         fuzz_result = self.run_and_wait(
@@ -935,7 +968,7 @@ class AflRunnerCommon(object):
           num_first_testcase_hangs += 1
           if (num_first_testcase_hangs >
               self.MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER):
-            logs.log_warn('First testcase hangs when not deferring.')
+            logs.warning('First testcase hangs when not deferring.')
 
           elif (num_first_testcase_hangs ==
                 self.MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER):
@@ -958,7 +991,7 @@ class AflRunnerCommon(object):
 
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
-      logs.log_error(
+      logs.error(
           ('Afl exited with a non-zero exitcode: %s. Cannot recover.' %
            fuzz_result.return_code),
           engine_output=fuzz_result.output)
@@ -984,15 +1017,15 @@ class AflRunnerCommon(object):
         constants.NO_AFFINITY_ENV_VAR)
 
     if current_no_affinity_value is not None:
-      logs.log_warn(('Already tried fixing CPU bind error\n'
-                     '$AFL_NO_AFFINITY: %s\n'
-                     'Not retrying.') % current_no_affinity_value)
+      logs.warning(('Already tried fixing CPU bind error\n'
+                    '$AFL_NO_AFFINITY: %s\n'
+                    'Not retrying.') % current_no_affinity_value)
 
       return False  # return False so this error is considered unhandled.
 
     # Log that this happened so someone can investigate/remediate the zombies
     # and then try fuzzing again, this time telling AFL not to bind.
-    logs.log_error(
+    logs.error(
         'CPU binding error encountered by afl-fuzz\n'
         'Check bot: %s for zombies\n'
         'Trying again with AFL_NO_AFFINITY=1' % BOT_NAME,
@@ -1078,18 +1111,18 @@ class AflRunnerCommon(object):
     if not os.path.exists(self.showmap_output_path):
       if not self.showmap_no_output_logged:
         self.showmap_no_output_logged = True
-        logs.log_error(('afl-showmap didn\'t output any coverage for '
-                        'file {file_path} ({file_size} bytes).\n'
-                        'Command: {command}\n'
-                        'Return code: {return_code}\n'
-                        'Time executed: {time_executed}\n'
-                        'Output: {output}').format(
-                            file_path=input_file_path,
-                            file_size=os.path.getsize(input_file_path),
-                            command=showmap_result.command,
-                            return_code=showmap_result.return_code,
-                            time_executed=showmap_result.time_executed,
-                            output=showmap_result.output))
+        logs.error(('afl-showmap didn\'t output any coverage for '
+                    'file {file_path} ({file_size} bytes).\n'
+                    'Command: {command}\n'
+                    'Return code: {return_code}\n'
+                    'Time executed: {time_executed}\n'
+                    'Output: {output}').format(
+                        file_path=input_file_path,
+                        file_size=os.path.getsize(input_file_path),
+                        command=showmap_result.command,
+                        return_code=showmap_result.return_code,
+                        time_executed=showmap_result.time_executed,
+                        output=showmap_result.output))
       return None, True
 
     showmap_output = engine_common.read_data_from_file(self.showmap_output_path)
@@ -1097,7 +1130,7 @@ class AflRunnerCommon(object):
 
   def merge_corpus(self):
     """Merge new testcases into the input corpus."""
-    logs.log('Merging corpus.')
+    logs.info('Merging corpus.')
     # Don't tell the fuzz target to write its stderr to the same file written
     # to during fuzzing. The target won't write its stderr anywhere.
     try:
@@ -1117,7 +1150,7 @@ class AflRunnerCommon(object):
     for file_path in shell.get_files_list(input_dir):
       file_features, timed_out = self.get_file_features(file_path, showmap_args)
       if timed_out:
-        logs.log_warn('Timed out in merge while processing initial corpus.')
+        logs.warning('Timed out in merge while processing initial corpus.')
         return 0
 
       if file_features is None:
@@ -1142,7 +1175,7 @@ class AflRunnerCommon(object):
 
       file_features, timed_out = self.get_file_features(file_path, showmap_args)
       if timed_out:
-        logs.log_warn('Timed out in merge while processing output.')
+        logs.warning('Timed out in merge while processing output.')
         break
 
       if file_features is None:
@@ -1178,7 +1211,7 @@ class AflRunnerCommon(object):
 
     if new_units_generated:
       new_units_added = self.merge_corpus()
-      logs.log('Merge completed successfully.')
+      logs.info('Merge completed successfully.')
 
     # Get corpus size after merge. This removes the duplicate units that were
     # created during this fuzzing session.
@@ -1294,8 +1327,8 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                                                     filename)
 
     if not os.path.exists(intput_file_showmap_results_file):
-      logs.log_error('Cannot merge corpus. Most likely reason is AFL_MAP_SIZE'
-                     'required is very large for fuzzing target.')
+      logs.error('Cannot merge corpus. Most likely reason is AFL_MAP_SIZE'
+                 'required is very large for fuzzing target.')
 
       return None, False
 
@@ -1371,7 +1404,7 @@ class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
 
 
-class CorpusElement(object):
+class CorpusElement:
   """An element (file) in a corpus."""
 
   def __init__(self, path):
@@ -1379,7 +1412,7 @@ class CorpusElement(object):
     self.size = os.path.getsize(self.path)
 
 
-class Corpus(object):
+class Corpus:
   """A minimal set of input files (elements) for a fuzz target."""
 
   def __init__(self):
@@ -1388,7 +1421,7 @@ class Corpus(object):
   @property
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
-    return set(element.path for element in self.features_and_elements.values())
+    return {element.path for element in self.features_and_elements.values()}
 
   def _associate_feature_with_element(self, feature, element):
     """Associate a feature with an element if the element is the smallest for
@@ -1620,6 +1653,8 @@ def rand_cmplog_level(strategies):
     cmplog_level += constants.CMPLOG_ARITH
   if engine_common.decide_with_probability(strategies.CMPLOG_TRANS_PROB):
     cmplog_level += constants.CMPLOG_TRANS
+  if engine_common.decide_with_probability(strategies.CMPLOG_XTREME_PROB):
+    cmplog_level += constants.CMPLOG_XTREME
   if engine_common.decide_with_probability(strategies.CMPLOG_RAND_PROB):
     cmplog_level += constants.CMPLOG_RAND
   return cmplog_level
@@ -1691,11 +1726,11 @@ def main(argv):
 
   # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
-    logs.log(
+    logs.info(
         'New units added to corpus: %d.' % new_units_added,
         stats=stats_getter.stats)
   else:
-    logs.log('No new units found.', stats=stats_getter.stats)
+    logs.info('No new units found.', stats=stats_getter.stats)
 
 
 if __name__ == '__main__':

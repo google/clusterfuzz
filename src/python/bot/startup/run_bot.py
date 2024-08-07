@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
+import contextlib
 import multiprocessing
 import os
 import sys
@@ -28,7 +29,8 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
@@ -69,6 +71,40 @@ class _Monitor:
         })
 
 
+@contextlib.contextmanager
+def lease_all_tasks(task_list):
+  """Creates a context manager that leases every task in tasks_list."""
+  with contextlib.ExitStack() as exit_stack:
+    for task in task_list:
+      monitoring_metrics.TASK_COUNT.increment({
+          'task': task.command or '',
+          'job': task.job or '',
+      })
+      exit_stack.enter_context(task.lease())
+    yield
+
+
+def schedule_utask_mains():
+  """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
+  from clusterfuzz._internal.google_cloud_utils import batch
+
+  logs.info('Attempting to combine batch tasks.')
+  utask_mains = taskslib.get_utask_mains()
+  if not utask_mains:
+    logs.info('No utask mains.')
+    return
+
+  logs.info(f'Combining {len(utask_mains)} batch tasks.')
+
+  batch_tasks = []
+  with lease_all_tasks(utask_mains):
+    batch_tasks = [
+        batch.BatchTask(task.command, task.job, task.argument)
+        for task in utask_mains
+    ]
+    batch.create_uworker_main_batch_jobs(batch_tasks)
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
@@ -83,13 +119,24 @@ def task_loop():
     environment.reset_environment()
     try:
       # Run regular updates.
+      # TODO(metzman): Move this after utask_main execution so that utasks can't
+      # be updated on subsequent attempts.
       update_task.run()
       update_task.track_revision()
-
       if environment.is_uworker():
         # Batch tasks only run one at a time.
         sys.exit(utasks.uworker_bot_main())
-      task = tasks.get_task()
+
+      if environment.get_value('SCHEDULE_UTASK_MAINS'):
+        # If the bot is configured to schedule utask_mains, don't run any other
+        # tasks because scheduling these tasks is more important than executing
+        # any one other task.
+
+        # TODO(metzman): Convert this to a k8s cron.
+        schedule_utask_mains()
+        continue
+
+      task = taskslib.get_task()
       if not task:
         continue
 
@@ -101,13 +148,18 @@ def task_loop():
       exception_occurred = True
       clean_exit = e.code == 0
       if not clean_exit and not isinstance(e, untrusted.HostError):
-        logs.log_error('SystemExit occurred while working on task.')
+        logs.error('SystemExit occurred while working on task.')
 
       stacktrace = traceback.format_exc()
     except commands.AlreadyRunningError:
       exception_occurred = False
+    except task_utils.UworkerMsgParseError:
+      logs.error('Task cannot be retried because of utask parse error.')
+      task.dont_retry()
+      exception_occurred = True
+      stacktrace = traceback.format_exc()
     except Exception:
-      logs.log_error('Error occurred while working on task.')
+      logs.error('Error occurred while working on task.')
       exception_occurred = True
       stacktrace = traceback.format_exc()
 
@@ -172,14 +224,14 @@ def main():
     if should_terminate:
       return
 
-    logs.log_error(
+    logs.error(
         'Task exited with exception (payload="%s").' % task_payload,
         error_stacktrace=error_stacktrace)
 
     should_hang = errors.error_in_list(error_stacktrace,
                                        errors.BOT_ERROR_HANG_LIST)
     if should_hang:
-      logs.log('Start hanging forever.')
+      logs.info('Start hanging forever.')
       while True:
         # Sleep to avoid consuming 100% of CPU.
         time.sleep(60)

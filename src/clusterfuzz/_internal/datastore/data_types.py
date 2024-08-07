@@ -32,7 +32,7 @@ BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
 BUILTIN_FUZZERS = ['afl', 'libFuzzer']
 
 # Time to look back to find a corpus backup that is marked public.
-CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 30
+CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 90
 
 # Marker to indicate end of crash stacktrace. Anything after that is excluded
 # from being stored as part of crash stacktrace (e.g. merge content, etc).
@@ -63,14 +63,6 @@ HEARTBEAT_WAIT_INTERVAL = 10 * 60
 # Android device heartbeat wait interval.
 ANDROID_HEARTBEAT_WAIT_INTERVAL = 60
 
-# FIXME: Move this to configuration.
-# List of internal sandboxed data types. This gives a warning on testcase
-# uploads on unsandboxed job types.
-INTERNAL_SANDBOXED_JOB_TYPES = [
-    'linux_asan_chrome_media', 'linux_asan_chrome_mp',
-    'linux_asan_chrome_v8_arm', 'mac_asan_chrome', 'windows_asan_chrome'
-]
-
 # Time to wait after a report is marked fixed and before filing another similar
 # one (hours).
 MIN_ELAPSED_TIME_SINCE_FIXED = 2 * 24
@@ -92,7 +84,6 @@ PLATFORMS = [
     'MAC',
     'WINDOWS',
     'FUCHSIA',
-    'ANDROID_KERNEL',
     'ANDROID_AUTO',
 ]
 
@@ -320,7 +311,7 @@ class Fuzzer(Model):
   sample_testcase = ndb.StringProperty()
 
   # Job types for this fuzzer.
-  jobs = ndb.StringProperty(repeated=True)
+  jobs = ndb.TextProperty(repeated=True)
 
   # Is the fuzzer coming from an external contributor ? Useful for adding
   # reward flags.
@@ -576,11 +567,19 @@ class Testcase(Model):
   # Note that the number is specific to the repository.
   github_issue_num = ndb.IntegerProperty()
 
+  # Whether the testcase is from a trustworthy source.
+  # False by default since this will determine what is put in the regression
+  # corpus.
+  trusted = ndb.BooleanProperty(default=False)
+
+  def is_chromium(self):
+    return self.project_name in ('chromium', 'chromium-testing')
+
   def has_blame(self):
-    return self.project_name == 'chromium'
+    return self.is_chromium()
 
   def has_impacts(self):
-    return self.project_name == 'chromium' and not self.one_time_crasher_flag
+    return self.is_chromium() and not self.one_time_crasher_flag
 
   def impacts_production(self):
     return (bool(self.impact_extended_stable_version) or
@@ -648,7 +647,7 @@ class Testcase(Model):
       # Failed put. An exception will be thrown automatically afterwards.
       return
 
-    logs.log(
+    logs.info(
         f'Updated testcase {self.key.id()} (bug {self.bug_information or "-"}).'
     )
 

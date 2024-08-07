@@ -71,9 +71,9 @@ class SetOptionsTest(android_helpers.AndroidTest):
 
   def setUp(self):
     """Setup for set options test."""
-    super(SetOptionsTest, self).setUp()
+    super().setUp()
 
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
     if settings.get_sanitizer_tool_name():
       self.skipTest('This test is not applicable on a system sanitizer build.')
@@ -87,19 +87,19 @@ class SetOptionsTest(android_helpers.AndroidTest):
     sanitizer.set_options('ASAN', 'a=b:c=d')
     self.assertEqual('a=b:c=d',
                      adb.read_data_from_file('/data/local/tmp/asan.options'))
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
 
   def test_unsupported(self):
     """Test that options are not set with an unsupported sanitizer e.g.
     UBSan, MSan, etc."""
     sanitizer.set_options('UBSAN', 'a=b:c=d')
     self.assertFalse(adb.file_exists('/data/local/tmp/ubsan.options'))
-    self.assertEqual(1, self.mock.log_error.call_count)
+    self.assertEqual(1, self.mock.error.call_count)
 
   def test_invalid(self):
     """Test that options are not set with an invalid sanitizer name."""
     sanitizer.set_options('invalid', 'a=b:c=d')
-    self.assertEqual(1, self.mock.log_error.call_count)
+    self.assertEqual(1, self.mock.error.call_count)
 
 
 class SetupASanIfNeededTest(android_helpers.AndroidTest):
@@ -107,9 +107,9 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
 
   def setUp(self):
     """Setup for setup ASan if needed test."""
-    super(SetupASanIfNeededTest, self).setUp()
+    super().setUp()
 
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
     if settings.get_sanitizer_tool_name():
       self.skipTest('This test is not applicable on a system sanitizer build.')
@@ -123,5 +123,5 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
     adb.revert_asan_device_setup_if_needed()
     environment.reset_current_memory_tool_options()
     sanitizer.setup_asan_if_needed()
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
     self.assertTrue(adb.file_exists('/system/bin/asanwrapper'))

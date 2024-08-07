@@ -14,12 +14,20 @@
 """Types of tasks. This needs to be seperate from commands.py because
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
+from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 
 class BaseTask:
   """Base module for tasks."""
+
+  @staticmethod
+  def is_execution_remote():
+    return False
 
   def __init__(self, module):
     self.module = module
@@ -39,44 +47,15 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-class UTask(BaseTask):
-  """Represents an untrusted task. Executes the preprocess part on this machine
-  and causes the other parts to be executed on on other machines."""
+class BaseUTask(BaseTask):
+  """Base class representing an untrusted task. Children must decide to execute
+  locally or remotely."""
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
+    """Executes a task."""
+    raise NotImplementedError('Child class must implement.')
 
-    if preprocess_result is None:
-      return
-
-    # TODO(metzman): Execute main on other machines.
-
-
-class UTaskLocalPreprocessAndMain(BaseTask):
-  """Represents an untrusted task. Executes the preprocess and main parts on
-  this machine and causes postprocess to be executed on on other machines."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
-
-    if preprocess_result is None:
-      return
-
-    input_download_url, _ = preprocess_result
-    utasks.uworker_main(input_download_url)
-    logs.log('Utask: done with preprocess and main.')
-
-
-class UTaskLocalExecutor(BaseTask):
-  """Represents an untrusted task. Executes it entirely locally and in
-  memory."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally in-memory."""
+  def execute_locally(self, task_argument, job_type, uworker_env):
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -85,7 +64,90 @@ class UTaskLocalExecutor(BaseTask):
     if uworker_output is None:
       return
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
-    logs.log('Utask local: done.')
+    logs.info('Utask local: done.')
+
+  def preprocess(self, task_argument, job_type, uworker_env):
+    """Executes preprocessing."""
+    raise NotImplementedError('Child class must implement.')
+
+
+def is_no_privilege_workload(command, job):
+  if not COMMAND_TYPES[command].is_execution_remote():
+    return False
+  return batch.is_no_privilege_workload(command, job)
+
+
+def is_remote_utask(command, job):
+  if not COMMAND_TYPES[command].is_execution_remote():
+    return False
+
+  if environment.is_uworker():
+    # Return True even if we can't query the db.
+    return True
+
+  return batch.is_remote_task(command, job)
+
+
+def task_main_runs_on_uworker():
+  """This returns True if the uworker_main portion of this task is
+  unprivileged."""
+  command = environment.get_value('TASK_NAME')
+  job = environment.get_value('JOB_NAME')
+  return is_remote_utask(command, job)
+
+
+class UTaskLocalExecutor(BaseUTask):
+  """Represents an untrusted task. Executes it entirely locally and in
+  memory."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally in-memory."""
+    self.execute_locally(task_argument, job_type, uworker_env)
+
+  def preprocess(self, task_argument, job_type, uworker_env):
+    """Executes preprocessing."""
+    raise NotImplementedError('Only needed for utasks.')
+
+
+class UTask(BaseUTask):
+  """Represents an untrusted task. Executes preprocess on this machine, main on
+  an untrusted machine, and postprocess on another trusted machine if
+  opted-in. Otherwise executes locally."""
+
+  @staticmethod
+  def is_execution_remote():
+    return task_utils.is_remotely_executing_utasks()
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask."""
+    logs.info('Executing utask.')
+    command = task_utils.get_command_from_module(self.module.__name__)
+    if not (self.is_execution_remote() and
+            batch.is_remote_task(command, job_type)):
+      self.execute_locally(task_argument, job_type, uworker_env)
+      return
+
+    logs.info('Preprocessing utask.')
+    download_url = self.preprocess(task_argument, job_type, uworker_env)
+    if download_url is None:
+      return
+
+    logs.info('Queueing utask for remote execution.', download_url=download_url)
+    tasks.add_utask_main(command, download_url, job_type)
+
+  def preprocess(self, task_argument, job_type, uworker_env):
+    result = utasks.tworker_preprocess(self.module, task_argument, job_type,
+                                       uworker_env)
+    if not result:
+      logs.error('Nothing returned from preprocess.')
+      return None
+
+    download_url, _ = result
+    if not download_url:
+      logs.error('No download_url returned from preprocess.')
+      return None
+    logs.info('Utask: done with preprocess.')
+    return download_url
 
 
 class PostprocessTask(BaseTask):
@@ -127,48 +189,17 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    # TODO(metzman): Change analyze task away from in-memory.
-    'analyze': UTaskLocalExecutor,
+    'analyze': UTask,
     'blame': TrustedTask,
-    'corpus_pruning': UTaskLocalExecutor,
+    'corpus_pruning': UTask,
     'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
-    'minimize': UTaskLocalExecutor,
-    'progression': UTaskLocalExecutor,
-    'regression': UTaskLocalExecutor,
-    'symbolize': TrustedTask,
+    'minimize': UTask,
+    'progression': UTask,
+    'regression': UTask,
+    'symbolize': UTask,
     'unpack': TrustedTask,
-    'uworker_postprocess': PostprocessTask,
-    'upload_reports': TrustedTask,
+    'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTaskLocalExecutor,
+    'variant': UTask,
 }
-
-
-def is_trusted_portion_of_utask(command_name):
-  """Returns true if |command_name| is asking the bot to execute the
-  trusted-portion of a utask (preprocess and postprocess). The workflow for
-  executing a task is as follows:
-  1. A command such as analyze is given to a bot.
-  2. The bot executes preprocess and schedules uworker_main.
-  3. The uworker_main command is given to the uworker which executes the
-  uworker_main function of the specified task.
-  4. Postprocessing runs (the postprocess task is triggered by GCS when
-  uworker_main writes its output.
-  Therefore, the commands to execute utasks and the "postprocess" command can be
-  executed on Linux bots even if the utask is supposed to run on Windows. This
-  function returns commands that denote these portions.
-  """
-  task_type = COMMAND_TYPES[command_name]
-  # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
-  # are executed on uworkers. Note that the uworker_main command will be used to
-  # execute uworker_main, while the name of the task itself will be used to
-  # request execution of the preprocess step.
-  return task_type in (PostprocessTask, UTask)
-
-
-def get_utask_trusted_portions():
-  return [
-      command_name for command_name in COMMAND_TYPES
-      if is_trusted_portion_of_utask(command_name)
-  ]

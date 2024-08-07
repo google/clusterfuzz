@@ -1,0 +1,36 @@
+==428==ERROR: AddressSanitizer: ABRT on unknown address 0x0539000001ac (pc 0x7ce393a5100b bp 0x7ffd61392e50 sp 0x7ffd61392bf0 T0)
+SCARINESS: 10 (signal)
+    #0 0x7ce393a5100b in raise /build/glibc-BHL3KM/glibc-2.31/sysdeps/unix/sysv/linux/raise.c:51:1
+    #1 0x7ce393a30858 in abort /build/glibc-BHL3KM/glibc-2.31/stdlib/abort.c:79:7
+    #2 0x55d5c02adb4b in fuzztest::internal::GTest_EventListener<testing::EmptyTestEventListener, testing::TestPartResult>::OnTestPartResult(testing::TestPartResult const&) ../../third_party/fuzztest/src/fuzztest/internal/googletest_adaptor.h:92:9
+    #3 0x55d5bff5539d in testing::internal::TestEventRepeater::OnTestPartResult(testing::TestPartResult const&) ../../third_party/googletest/src/googletest/src/gtest.cc:3852:1
+    #4 0x55d5bff2d70a in testing::UnitTest::AddTestPartResult(testing::TestPartResult::Type, char const*, int, std::__Cr::basic_string<char, std::__Cr::char_traits<char>, std::__Cr::allocator<char>> const&, std::__Cr::basic_string<char, std::__Cr::char_traits<char>, std::__Cr::allocator<char>> const&) ../../third_party/googletest/src/googletest/src/gtest.cc:5309:55
+    #5 0x55d5bff2c529 in testing::internal::AssertHelper::operator=(testing::Message const&) const ../../third_party/googletest/src/googletest/src/gtest.cc:432:28
+    #6 0x55d5bdcca0a4 in v8::internal::ManyConditions(std::__Cr::vector<int, std::__Cr::allocator<int>>, int) ../../test/unittests/fuzztest.cc:44:9
+    #7 0x55d5bdcfad89 in operator()<std::__Cr::vector<int, std::__Cr::allocator<int> > &, int &> ../../third_party/fuzztest/src/fuzztest/internal/fixture_driver.h:302:11
+    #8 0x55d5bdcfad89 in __invoke<(lambda at ../../third_party/fuzztest/src/./fuzztest/internal/fixture_driver.h:301:9), std::__Cr::vector<int, std::__Cr::allocator<int> > &, int &> ../../third_party/libc++/src/include/__type_traits/invoke.h:344:25
+    #9 0x55d5bdcfad89 in __apply_tuple_impl<(lambda at ../../third_party/fuzztest/src/./fuzztest/internal/fixture_driver.h:301:9), std::__Cr::tuple<std::__Cr::vector<int, std::__Cr::allocator<int> >, int> &, 0UL, 1UL> ../../third_party/libc++/src/include/tuple:1423:5
+    #10 0x55d5bdcfad89 in apply<(lambda at ../../third_party/fuzztest/src/./fuzztest/internal/fixture_driver.h:301:9), std::__Cr::tuple<std::__Cr::vector<int, std::__Cr::allocator<int> >, int> &> ../../third_party/libc++/src/include/tuple:1427:5
+    #11 0x55d5bdcfad89 in fuzztest::internal::FixtureDriver<fuzztest::Domain<std::__Cr::tuple<std::__Cr::vector<int, std::__Cr::allocator<int>>, int>>, fuzztest::internal::NoFixture, void (*)(std::__Cr::vector<int, std::__Cr::allocator<int>>, int), void*>::Test(fuzztest::internal::MoveOnlyAny&&) const ../../third_party/fuzztest/src/fuzztest/internal/fixture_driver.h:300:5
+    #12 0x55d5c02bfc90 in fuzztest::internal::FuzzTestFuzzerImpl::RunOneInput(fuzztest::internal::FuzzTestFuzzerImpl::Input const&) ../../third_party/fuzztest/src/fuzztest/internal/runtime.cc:801:20
+    #13 0x55d5c029d9e5 in fuzztest::internal::CentipedeAdaptorRunnerCallbacks::Execute(absl::Span<unsigned char const>) ../../third_party/fuzztest/src/fuzztest/internal/centipede_adaptor.cc:162:20
+    #14 0x55d5c03edb81 in centipede::RunOneInput(unsigned char const*, unsigned long, centipede::RunnerCallbacks&) ../../third_party/fuzztest/src/centipede/runner.cc:586:39
+    #15 0x55d5c03e814a in centipede::ReadOneInputExecuteItAndDumpCoverage(char const*, centipede::RunnerCallbacks&) ../../third_party/fuzztest/src/centipede/runner.cc:620:3
+    #16 0x55d5c03e78ca in centipede::RunnerMain(int, char**, centipede::RunnerCallbacks&) ../../third_party/fuzztest/src/centipede/runner.cc:1070:5
+    #17 0x55d5c029b555 in operator() ../../third_party/fuzztest/src/fuzztest/internal/centipede_adaptor.cc:409:14
+    #18 0x55d5c029b555 in fuzztest::internal::CentipedeFuzzerAdaptor::RunInFuzzingMode(int*, char***, fuzztest::internal::Configuration const&) ../../third_party/fuzztest/src/fuzztest/internal/centipede_adaptor.cc:405:22
+    #19 0x55d5c02b06ab in fuzztest::internal::GTest_TestAdaptor::TestBody() ../../third_party/fuzztest/src/fuzztest/internal/googletest_adaptor.h:59:7
+    #20 0x55d5bff42a15 in HandleExceptionsInMethodIfSupported<testing::Test, void> ../../third_party/googletest/src/googletest/src/gtest.cc:0:3
+    #21 0x55d5bff42a15 in testing::Test::Run() ../../third_party/googletest/src/googletest/src/gtest.cc:2670:5
+    #22 0x55d5bff452f3 in testing::TestInfo::Run() ../../third_party/googletest/src/googletest/src/gtest.cc:2849:11
+    #23 0x55d5bff471d0 in testing::TestSuite::Run() ../../third_party/googletest/src/googletest/src/gtest.cc:3008:30
+    #24 0x55d5bff768e2 in testing::internal::UnitTestImpl::RunAllTests() ../../third_party/googletest/src/googletest/src/gtest.cc:5866:44
+    #25 0x55d5bff754ab in HandleExceptionsInMethodIfSupported<testing::internal::UnitTestImpl, bool> ../../third_party/googletest/src/googletest/src/gtest.cc:0:3
+    #26 0x55d5bff754ab in testing::UnitTest::Run() ../../third_party/googletest/src/googletest/src/gtest.cc:5440:10
+    #27 0x55d5be46569a in RUN_ALL_TESTS ../../third_party/googletest/src/googletest/include/gtest/gtest.h:2284:73
+    #28 0x55d5be46569a in main ../../test/unittests/run-all-unittests.cc:65:10
+    #29 0x7ce393a32082 in __libc_start_main /build/glibc-BHL3KM/glibc-2.31/csu/libc-start.c:308:16
+    #30 0x55d5bd6faa19 in _start
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x4300b) (BuildId: e678fe54a5d2c2092f8e47eb0b33105e380f7340)
+==428==ABORTING

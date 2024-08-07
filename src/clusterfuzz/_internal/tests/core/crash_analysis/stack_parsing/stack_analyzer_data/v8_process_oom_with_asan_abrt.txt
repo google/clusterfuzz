@@ -1,0 +1,58 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allocator_release_to_os_interval_ms=500:allow_user_segv_handler=1:check_malloc_usable_size=0:detect_leaks=1:detect_odr_violation=0:detect_stack_use_after_return=1:exitcode=77:fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:handle_sigtrap=1:print_scariness=1:print_summary=1:print_suppressions=0:quarantine_size_mb=64:redzone=32:strict_memcmp=1:symbolize=0:use_sigaltstack=1
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Dictionary: 1 entries
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed:727896638
+INFO: Loaded 10 modules   (1011042 inline 8-bit counters): 27425 [0xecbcafa0, 0xecbd1ac1), 3259 [0xef1d9667, 0xef1da322), 45879 [0xed39aac7, 0xed3a5dfe), 69626 [0xedef82f7, 0xedf092f1), 20525 [0xee2c9067, 0xee2ce094), 73045 [0xef062b47, 0xef07489c), 4065 [0xf7efe5e7, 0xf7eff5c8), 2526 [0xf7e68397, 0xf7e68d75), 761637 [0xf7702007, 0xf77bbf2c), 3055 [0x5682a528, 0x5682b117),
+INFO: Loaded 10 PC tables (1011042 PCs): 27425 [0xecbd1ac4,0xecc073cc), 3259 [0xef1da324,0xef1e08fc), 45879 [0xed3a5e00,0xed3ff7b8), 69626 [0xedf092f4,0xedf912c4), 20525 [0xee2ce094,0xee2f61fc), 73045 [0xef07489c,0xef103344), 4065 [0xf7eff5c8,0xf7f074d0), 2526 [0xf7e68d78,0xf7e6dc68), 761637 [0xf77bbf2c,0xf7d8b854), 3055 [0x5682b118,0x56831090),
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-417/new
+INFO:      100 files found in /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-417/subset
+INFO: seed corpus: files: 100 min: 13b max: 471b total: 14969b rss: 141Mb
+#185 INITED cov: 30926 ft: 87008 corp: 100/14969b exec/s: 15 rss: 274Mb
+#187 NEW    cov: 30926 ft: 87048 corp: 101/15073b lim: 471 exec/s: 15 rss: 274Mb L: 104/471 MS: 1 CrossOver-
+ NEW_FUNC[1/2]: 0xf3d858c0  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8.so+0x4b858c0) (BuildId: f51c4af4048075fa)
+ NEW_FUNC[2/2]: 0xf3d85960  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8.so+0x4b85960) (BuildId: f51c4af4048075fa)
+#188 NEW    cov: 30933 ft: 87062 corp: 102/15139b lim: 471 exec/s: 15 rss: 274Mb L: 66/471 MS: 1 CMP- DE: "\000\000\000\000\000\000\000\200"-
+<--- Last few GCs --->
+[3746:0xe6301000]  2006821 ms: Mark-Compact (reduce) 0.1 (1.8) -> 0.1 (1.8) MB, pooled: 0 MB, 6.50 / 0.00 ms  (average mu = 0.686, current mu = 0.008) memory pressure; GC in old space requested
+<--- JS stacktrace --->
+#
+# Fatal process out of memory: Wasm fuzzer second instantiation
+#
+==== C stack trace ===============================
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(__interceptor_backtrace+0x4c) [0x56682a4c]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8_libbase.so(v8::base::debug::StackTrace::StackTrace()+0x3d) [0xf7eebadd]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8_libplatform.so(+0x36122) [0xf7e49122]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8_libbase.so(v8::base::FatalOOM(v8::base::OOMType, char const*)+0x89) [0xf7eaed09]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8.so(v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&)+0x918) [0xf08580c8]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libv8.so(v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, char const*)+0xbf) [0xf085869f]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x234540) [0x567cb540]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x179a2a) [0x56710a2a]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x1d68cb) [0x5676d8cb]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x1d47be) [0x5676b7be]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x1d9a42) [0x56770a42]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x1dd0af) [0x567740af]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(+0x1a223d) [0x5673923d]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(main+0xd9) [0x56711499]
+    /lib/i386-linux-gnu/libc.so.6(__libc_start_main+0xf5) [0xed42bed5]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-release-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/v8_wasm_fuzzer(_start+0x31) [0x56640961]
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==3746==ERROR: AddressSanitizer: ABRT on unknown address 0x00000ea2 (pc 0xf7f0e509 bp 0xfff9e92c sp 0xfff9e910 T0)
+SCARINESS: 10 (signal)
+    #0 0xf7f0e509 in linux-gate.so.1
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (linux-gate.so.1+0x509) (BuildId: 5d711f2929a77700180594e4a764e0090f52c673)
+==3746==ABORTING
+MS: 1 ChangeBit-; base unit: eda495f5a6564ecd559ff3aa70750d292c6b470f
+artifact_prefix='/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test unit written to /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-8fa8e0cb77c7ebd6bd9b7c7cd19d1e382abae9f4
+stat::number_of_executed_units: 411896
+stat::average_exec_per_sec:     205
+stat::new_units_added:          5256
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              2168
++----------------------------------------Release Build Unsymbolized Stacktrace (diff)----------------------------------------+
+==3746==ERROR: AddressSanitizer: ABRT on unknown address 0x00000ea2 (pc 0xf7f0e509 bp 0xfff9e92c sp 0xfff9e910 T0)
+SCARINESS: 10 (signal)
+    #0 0xf7f0e509  (linux-gate.so.1+0x509) (BuildId: 5d711f2929a77700180594e4a764e0090f52c673)
+AddressSanitizer can not provide additional info.

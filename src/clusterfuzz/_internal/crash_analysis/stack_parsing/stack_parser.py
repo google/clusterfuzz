@@ -43,13 +43,13 @@ def format_address_to_dec(address, base=16):
     except Exception:
       continue
 
-  logs.log_warn('Error formatting address %s to decimal int64 in bases %s.' %
-                (str(address), str(try_bases)))
+  logs.warning('Error formatting address %s to decimal int64 in bases %s.' %
+               (str(address), str(try_bases)))
   return None
 
 
-class StackFrameStructure(object):
-  """IR for fields a stackframe may contain/expect."""
+class StackFrameStructure:
+  """IR for fields a stackframe may conptain/expect."""
 
   def __init__(self,
                address=None,
@@ -145,20 +145,20 @@ class StackFrameStructure(object):
 
   def to_proto(self):
     """Convert StackFrame to process_state.proto format for upload to crash/."""
-    frame_proto = process_state_pb2.StackFrame()
+    frame_proto = process_state_pb2.StackFrame()  # pylint: disable=no-member
     if self.address is not None:
-      frame_proto.instruction = unsigned_to_signed(self.address)
+      frame_proto.instruction = unsigned_to_signed(int(self.address))
     if self.module_base is not None:
       frame_proto.module.base_address = unsigned_to_signed(  # pylint: disable=no-member
           int(self.module_base))
     if self.module_name is not None:
-      frame_proto.module.code_file = self.module_name  # pylint: disable=no-member
+      frame_proto.module.code_file = str(self.module_name)  # pylint: disable=no-member
     if self.function_name is not None:
-      frame_proto.function_name = self.function_name
+      frame_proto.function_name = str(self.function_name)
     if self.function_base is not None:
-      frame_proto.function_base = unsigned_to_signed(self.function_base)
+      frame_proto.function_base = unsigned_to_signed(int(self.function_base))
     if self.filename is not None:
-      frame_proto.source_file_name = self.filename
+      frame_proto.source_file_name = str(self.filename)
     if self.fileline is not None:
       frame_proto.source_line = int(self.fileline)
 
@@ -179,7 +179,7 @@ class StackFrame(StackFrameStructure):
                module_base=None,
                module_offset=None,
                base=16):
-    super(StackFrame, self).__init__(
+    super().__init__(
         address=format_address_to_dec(address),
         function_name=function_name,
         function_base=format_address_to_dec(function_base),
@@ -208,10 +208,10 @@ class StackFrame(StackFrameStructure):
     ]
     if field_name in address_fields:
       address = format_address_to_dec(field_value, self._base)
-      super(StackFrame, self).__setattr__(field_name, address)
+      super().__setattr__(field_name, address)
       return
 
-    super(StackFrame, self).__setattr__(field_name, field_value)
+    super().__setattr__(field_name, field_value)
 
   def __str__(self):
     s = []
@@ -248,7 +248,7 @@ class StackFrameSpec(StackFrameStructure):
     module_name = module_name if module_name is not None else []
     module_base = module_base if module_base is not None else []
     module_offset = module_offset if module_offset is not None else []
-    super(StackFrameSpec, self).__init__(
+    super().__init__(
         address=address,
         function_name=function_name,
         function_base=function_base,
@@ -279,7 +279,7 @@ class StackFrameSpec(StackFrameStructure):
     frame = StackFrame()
 
     # Set base to use for address translation.
-    frame.base = self.base
+    frame.base = self.base  # pylint: disable=attribute-defined-outside-init
     for name, member in inspect.getmembers(StackFrameSpec):
       # Pull out only the property fields; we don't care about methods etc.
       if not isinstance(member, property):

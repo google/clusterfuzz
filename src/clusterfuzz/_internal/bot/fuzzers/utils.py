@@ -24,7 +24,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
-FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
+FUZZ_TARGET_SEARCH_BYTES = [b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver']
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
 EXTRA_BUILD_DIR = '__extra_build'
@@ -32,7 +32,6 @@ EXTRA_BUILD_DIR = '__extra_build'
 
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
-  # TODO(hzawawy): Handle syzkaller case.
   if '@' in file_path:
     # GFT targets often have periods in the name that get misinterpreted as an
     # extension.
@@ -58,7 +57,8 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # Ignore non-existent files for cases when we don't have a file handle.
     return False
 
-  if filename.endswith('_fuzzer'):
+  if (filename.endswith('_fuzzer') or filename.endswith('_fuzztest') or
+      filename.endswith('_fuzz_test')):
     return True
 
   # TODO(aarya): Remove this optimization if it does not show up significant
@@ -69,16 +69,20 @@ def is_fuzz_target_local(file_path, file_handle=None):
 
   if os.path.exists(file_path) and not stat.S_ISREG(os.stat(file_path).st_mode):
     # Don't read special files (eg: /dev/urandom).
-    logs.log_warn('Tried to read from non-regular file: %s.' % file_path)
+    logs.warning('Tried to read from non-regular file: %s.' % file_path)
     return False
 
   # Use already provided file handle or open the file.
   local_file_handle = file_handle or open(file_path, 'rb')
 
-  # TODO(metzman): Bound this call so we don't read forever if something went
-  # wrong.
-  result = utils.search_bytes_in_file(FUZZ_TARGET_SEARCH_BYTES,
-                                      local_file_handle)
+  result = False
+  for pattern in FUZZ_TARGET_SEARCH_BYTES:
+    # TODO(metzman): Bound this call so we don't read forever if something went
+    # wrong.
+    local_file_handle.seek(0)
+    result = utils.search_bytes_in_file(pattern, local_file_handle)
+    if result:
+      break
 
   if not file_handle:
     # If this local file handle is owned by our function, close it now.
@@ -150,12 +154,14 @@ def get_supporting_file(fuzz_target_path, extension_or_suffix):
   return base_fuzz_target_path + extension_or_suffix
 
 
-def get_temp_dir():
+def get_temp_dir(use_fuzz_inputs_disk=True):
   """Return the temp dir."""
   temp_dirname = 'temp-' + str(os.getpid())
-  temp_directory = os.path.join(
-      environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir()),
-      temp_dirname)
+  if use_fuzz_inputs_disk:
+    prefix = environment.get_value('FUZZ_INPUTS_DISK', tempfile.gettempdir())
+  else:
+    prefix = tempfile.gettempdir()
+  temp_directory = os.path.join(prefix, temp_dirname)
   shell.create_directory(temp_directory)
   return temp_directory
 
@@ -175,3 +181,13 @@ def get_file_from_untrusted_worker(worker_file_path):
 def cleanup():
   """Clean up temporary metadata."""
   shell.remove_directory(get_temp_dir())
+
+
+def normalize_target_name(target_path):
+  """Normalize target path, removing file extensions."""
+  target_name = os.path.basename(target_path)
+  if '@' in target_name:
+    # GFT target names often have periods in their name.
+    return target_name
+
+  return os.path.splitext(target_name)[0]

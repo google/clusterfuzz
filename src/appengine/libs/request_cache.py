@@ -35,7 +35,7 @@ class _FifoRequestCache(memoize.FifoInMemory):
   """In memory caching engine scoped to a request."""
 
   def __init__(self, cache_key, capacity):
-    super(_FifoRequestCache, self).__init__(capacity)
+    super().__init__(capacity)
     self._cache_key = str(cache_key)
 
   @property
@@ -44,7 +44,7 @@ class _FifoRequestCache(memoize.FifoInMemory):
     cache_backing = get_cache_backing()
     if not cache_backing:
       # Not a cache (e.g. in a unit test). Should not happen in production.
-      logs.log_error('No container found for cache.')
+      logs.error('No container found for cache.')
       return None
 
     key = '__cache:' + self._cache_key

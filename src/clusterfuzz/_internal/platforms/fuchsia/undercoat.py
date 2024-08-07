@@ -38,14 +38,14 @@ HANDLE_CACHE_KEY = 'undercoat-handles'
 
 def add_running_handle(handle):
   """Record a handle as potentially needing to be cleaned up on restart."""
-  new_handle_list = list(set(get_running_handles()) | set([handle]))
+  new_handle_list = list(set(get_running_handles()) | {handle})
   persistent_cache.set_value(
       HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 
 
 def remove_running_handle(handle):
   """Remove a handle from the tracked set."""
-  new_handle_list = list(set(get_running_handles()) - set([handle]))
+  new_handle_list = list(set(get_running_handles()) - {handle})
   persistent_cache.set_value(
       HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 
@@ -72,7 +72,7 @@ class UndercoatError(Exception):
 
 def undercoat_api_command(*args, timeout=None):
   """Make an API call to the undercoat binary."""
-  logs.log(f'Running undercoat command {args}')
+  logs.info(f'Running undercoat command {args}')
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
   undercoat_path = os.path.join(bundle_dir, 'undercoat', 'undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
@@ -87,8 +87,8 @@ def undercoat_api_command(*args, timeout=None):
     if result.return_code != 0:
       # Dump the undercoat log to assist in debugging
       log_data = utils.read_from_handle_truncated(undercoat_log, 1024 * 1024)
-      logs.log_warn('Log output from undercoat: ' +
-                    utils.decode_to_unicode(log_data))
+      logs.warning('Log output from undercoat: ' +
+                   utils.decode_to_unicode(log_data))
 
       # The API error message is returned on stdout
       raise UndercoatError(
@@ -145,13 +145,13 @@ def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
   qemu_log = undercoat_instance_command(
       'get_logs', handle, abort_on_error=False).output
-  logs.log_warn(qemu_log[-QEMU_LOG_LIMIT:])
+  logs.warning(qemu_log[-QEMU_LOG_LIMIT:])
 
 
 def start_instance():
   """Start an instance via undercoat."""
   handle = undercoat_api_command('start_instance').output.strip()
-  logs.log('Started undercoat instance with handle %s' % handle)
+  logs.info('Started undercoat instance with handle %s' % handle)
 
   # Immediately save the handle in case we crash before stop_instance()
   # is called

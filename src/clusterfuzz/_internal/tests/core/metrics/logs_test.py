@@ -27,6 +27,9 @@ from clusterfuzz._internal.tests.test_libs import helpers
 class GetSourceLocationTest(unittest.TestCase):
   """Test get_source_location."""
 
+  def setUp(self):
+    self.statement_line = None
+
   def _nested(self):
     self.statement_line = inspect.currentframe().f_lineno + 1
     return logs.get_source_location()
@@ -298,8 +301,8 @@ class EmitTest(unittest.TestCase):
     self.mock.get_logger.return_value = None
     logs.emit(logging.INFO, 'message')
 
-  def test_log_info(self):
-    """Test log info."""
+  def test_info(self):
+    """Test info."""
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
@@ -315,14 +318,16 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
+            'release': 'prod',
+            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_log_info'
+                'method': 'test_info'
             }
         })
 
-  def test_log_error(self):
+  def test_error(self):
     """Test log error."""
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
@@ -339,10 +344,12 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
+            'release': 'prod',
+            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_log_error'
+                'method': 'test_error'
             }
         })
 
@@ -360,8 +367,8 @@ class TruncateTest(unittest.TestCase):
                      logs.truncate('abcdefghijk', 6))
 
 
-class LogErrorTest(unittest.TestCase):
-  """Tests log_error."""
+class ErrorTest(unittest.TestCase):
+  """Tests error."""
 
   def setUp(self):
     helpers.patch(self,
@@ -370,13 +377,13 @@ class LogErrorTest(unittest.TestCase):
   def test_no_exception(self):
     """Tests no exception."""
     self.mock.exc_info.return_value = 'err'
-    logs.log_error('test', hello='1')
+    logs.error('test', hello='1')
     self.mock.emit.assert_called_once_with(
         logging.ERROR, 'test', exc_info='err', hello='1')
 
   def test_exception(self):
     """Tests exception."""
     self.mock.exc_info.return_value = 'err'
-    logs.log_error('test', exception='exception', hello='1')
+    logs.error('test', exception='exception', hello='1')
     self.mock.emit.assert_called_once_with(
         logging.ERROR, 'test', exc_info='err', hello='1')

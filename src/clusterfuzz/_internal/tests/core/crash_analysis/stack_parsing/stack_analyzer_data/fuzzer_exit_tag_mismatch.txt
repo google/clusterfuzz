@@ -1,0 +1,19 @@
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Time ran: 0.17875170707702637
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed:958431646
+Running: /data/fuzz/bot/clusterfuzz/bot/inputs/fuzzer-testcases/testcase
+==26506==ERROR: HWAddressSanitizer: tag-mismatch on address 0x005a5f652fff at pc 0x00635f670774
+READ of size 1 at 0x005a5f652fff tags: 3c/00 (ptr/mem) in thread T10
+    #0 0x635f670774 in long FuzzedDataProvider::ConsumeIntegralInRange<long>(long, long) prebuilts/clang/host/linux-x86/clang-r468909/lib/clang/15.0.2/include/fuzzer/FuzzedDataProvider.h:225:37
+    #1 0x635f6736ec in long FuzzedDataProvider::ConsumeIntegral<long>() prebuilts/clang/host/linux-x86/clang-r468909/lib/clang/15.0.2/include/fuzzer/FuzzedDataProvider.h:195:10
+    #2 0x635f6736ec in android::FuzzEventHub::getEvents(int) frameworks/native/services/inputflinger/tests/fuzzers/c:162:35
+    #3 0x711ef6bf7c in android::InputReader::loopOnce() frameworks/native/services/inputflinger/reader/InputReader.cpp:123:47
+    #4 0x71373a269c in std::__1::__function::__value_func<void ()>::operator()() const external/libcxx/include/functional:1799:16
+    #5 0x71373a269c in std::__1::function<void ()>::operator()() const external/libcxx/include/functional:2347:12
+    #6 0x71373a269c in android::(anonymous namespace)::InputThreadImpl::threadLoop() frameworks/native/services/inputflinger/InputThread.cpp:35:9
+    #7 0x712c2c19b8 in android::Thread::_threadLoop(void*) system/core/libutils/Threads.cpp:0:13
+    #8 0x7121a5916c in __pthread_start(void*) bionic/libc/bionic/pthread_create.cpp:378:18
+    #9 0x71219bb200 in __start_thread bionic/libc/bionic/clone.cpp:53:16
+[0x005a5351800,0x005a5f645600) is a small allocated heap chunk; size: 6144 offset:6143
+Cause: heap-buffer-overflow

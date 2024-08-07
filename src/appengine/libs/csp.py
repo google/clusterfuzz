@@ -17,7 +17,7 @@ import collections
 from libs import auth
 
 
-class CSPBuilder(object):
+class CSPBuilder:
   """Helper to build a Content Security Policy string."""
 
   def __init__(self):

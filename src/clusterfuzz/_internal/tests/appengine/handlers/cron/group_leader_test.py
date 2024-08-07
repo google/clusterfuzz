@@ -15,8 +15,8 @@
 import datetime
 import unittest
 
-from handlers.cron import group_leader
-from handlers.cron import grouper
+from clusterfuzz._internal.cron import group_leader
+from clusterfuzz._internal.cron import grouper
 
 
 class GroupLeaderTest(unittest.TestCase):

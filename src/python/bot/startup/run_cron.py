@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import modules
 modules.fix_module_search_paths()
 
 import importlib
+import os
 import sys
 
 from clusterfuzz._internal.config import local_config
@@ -42,9 +43,21 @@ def main():
     print('For an example, check init.bash in the local directory.')
     return 1
 
+  config_modules_path = os.path.join(root_directory, 'src', 'appengine',
+                                     'config', 'modules')
+  if os.path.exists(config_modules_path):
+    sys.path.append(config_modules_path)
+
+  try:
+    # Run any module initialization code.
+    import module_init
+    module_init.init()
+  except ImportError:
+    pass
+
   task = sys.argv[1]
 
-  task_module_name = f'clusterfuzz._internal.bot.tasks.cron.{task}'
+  task_module_name = f'clusterfuzz._internal.cron.{task}'
   with ndb_init.context():
     task_module = importlib.import_module(task_module_name)
     return 0 if task_module.main() else 1

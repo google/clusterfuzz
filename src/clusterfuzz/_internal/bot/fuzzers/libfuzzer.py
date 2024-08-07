@@ -21,19 +21,17 @@ import random
 import re
 import shutil
 import string
-import sys
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
-from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.platforms.fuchsia import undercoat
-from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import minijail
 from clusterfuzz._internal.system import new_process
@@ -52,7 +50,6 @@ StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'arguments',
     'additional_corpus_dirs',
     'extra_env',
-    'use_dataflow_tracing',
     'is_mutations_run',
 ])
 
@@ -61,14 +58,6 @@ MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                         r'(.*(crash|oom|timeout|leak)-.*)')
-
-# Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
-DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
-
-# List of all strategies that affect LD_PRELOAD.
-MUTATOR_STRATEGIES = [
-    strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
-]
 
 # pylint: disable=no-member
 
@@ -148,32 +137,27 @@ class LibFuzzerCommon:
     Returns:
       A process.ProcessResult.
     """
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
 
     max_total_time = fuzz_timeout
-    if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
+    if constants.FORK_FLAGNAME in arguments:
       max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
     assert max_total_time > 0
 
     # Old libFuzzer jobs specify -artifact_prefix through additional_args
     if artifact_prefix:
-      additional_args.append(
-          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
-                    self._normalize_artifact_prefix(artifact_prefix)))
+      arguments[constants.ARTIFACT_PREFIX_FLAGNAME] = str(
+          self._normalize_artifact_prefix(artifact_prefix))
 
-    additional_args.extend([
-        '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, max_total_time),
-        constants.PRINT_FINAL_STATS_ARGUMENT,
-        # FIXME: temporarily disabled due to a lack of crash information in
-        # output.
-        # '-close_fd_mask=3',
-    ])
+    arguments[constants.MAX_TOTAL_TIME_FLAGNAME] = int(max_total_time)
+    arguments[constants.PRINT_FINAL_STATS_FLAGNAME] = 1
+    # FIXME: temporarily disabled due to a lack of crash information in
+    # output.
+    # arguments['close_fd_mask'] = 3
 
-    additional_args.extend(corpus_directories)
     return self.run_and_wait(
-        additional_args=additional_args,
+        additional_args=arguments.list() + corpus_directories,
         timeout=self.get_total_timeout(fuzz_timeout),
         terminate_before_kill=True,
         terminate_wait_time=self.SIGTERM_WAIT_TIME,
@@ -204,27 +188,23 @@ class LibFuzzerCommon:
     Returns:
       A process.ProcessResult.
     """
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
 
-    additional_args.append(constants.MERGE_ARGUMENT)
+    arguments[constants.MERGE_FLAGNAME] = 1
     if artifact_prefix:
-      additional_args.append(
-          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
-                    self._normalize_artifact_prefix(artifact_prefix)))
+      arguments[constants.ARTIFACT_PREFIX_FLAGNAME] = str(
+          self._normalize_artifact_prefix(artifact_prefix))
 
     if merge_control_file:
-      additional_args.append(constants.MERGE_CONTROL_FILE_ARGUMENT +
-                             merge_control_file)
+      arguments[constants.MERGE_CONTROL_FILE_FLAGNAME] = merge_control_file
 
     extra_env = {}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
 
-    additional_args.extend(corpus_directories)
     return self.run_and_wait(
-        additional_args=additional_args,
+        additional_args=arguments.list() + corpus_directories,
         timeout=merge_timeout,
         max_stdout_len=MAX_OUTPUT_LEN,
         extra_env=extra_env)
@@ -270,27 +250,20 @@ class LibFuzzerCommon:
       additional_args: A sequence of additional arguments to be passed to the
           executable.
     """
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
 
     max_total_time = self.get_minimize_total_time(timeout)
-    max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
-                                        max_total_time)
-
-    additional_args.extend([
-        constants.MINIMIZE_CRASH_ARGUMENT,
-        max_total_time_argument,
-        constants.EXACT_ARTIFACT_PATH_FLAG + output_path,
-    ])
+    arguments[constants.MAX_TOTAL_TIME_FLAGNAME] = int(max_total_time)
+    arguments[constants.EXACT_ARTIFACT_PATH_FLAGNAME] = str(output_path)
+    arguments[constants.MINIMIZE_CRASH_FLAGNAME] = 1
 
     if artifact_prefix:
-      additional_args.append(constants.ARTIFACT_PREFIX_FLAG +
-                             self._normalize_artifact_prefix(artifact_prefix))
-    additional_args.append(testcase_path)
+      arguments[constants.ARTIFACT_PREFIX_FLAGNAME] = str(
+          self._normalize_artifact_prefix(artifact_prefix))
 
     return self.run_and_wait(
-        additional_args=additional_args,
+        additional_args=arguments.list() + [testcase_path],
         timeout=timeout,
         max_stdout_len=MAX_OUTPUT_LEN)
 
@@ -310,22 +283,18 @@ class LibFuzzerCommon:
       additional_args: A sequence of additional arguments to be passed to the
           executable.
     """
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
 
-    additional_args.extend([
-        constants.CLEANSE_CRASH_ARGUMENT,
-        constants.EXACT_ARTIFACT_PATH_FLAG + output_path,
-    ])
+    arguments[constants.CLEANSE_CRASH_FLAGNAME] = 1
+    arguments[constants.EXACT_ARTIFACT_PATH_FLAGNAME] = str(output_path)
 
     if artifact_prefix:
-      additional_args.append(constants.ARTIFACT_PREFIX_FLAG +
-                             self._normalize_artifact_prefix(artifact_prefix))
-    additional_args.append(testcase_path)
+      arguments[constants.ARTIFACT_PREFIX_FLAGNAME] = str(
+          self._normalize_artifact_prefix(artifact_prefix))
 
     return self.run_and_wait(
-        additional_args=additional_args,
+        additional_args=arguments.list() + [testcase_path],
         timeout=timeout,
         max_stdout_len=MAX_OUTPUT_LEN)
 
@@ -404,7 +373,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
   def _push_corpora_from_host_to_target(self, corpus_directories):
     # Push corpus directories to the device.
     self._clear_all_target_corpora()
-    logs.log('Push corpora from host to target.')
+    logs.info('Push corpora from host to target.')
     for corpus_dir in corpus_directories:
       undercoat.put_data(self.handle, self.executable_path, corpus_dir,
                          'data/corpus')
@@ -413,7 +382,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     """Pull corpus directories from device to host."""
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
-    logs.log('Fuzzer ran; pulling down corpus')
+    logs.info('Fuzzer ran; pulling down corpus')
     new_corpus_files_target = self._new_corpus_dir_target(
         corpus_directories) + '/*'
     undercoat.get_data(self.handle, self.executable_path,
@@ -422,7 +391,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
   def _clear_all_target_corpora(self):
     """Clears out all the corpora on the target."""
-    logs.log('Clearing corpora on target')
+    logs.info('Clearing corpora on target')
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
@@ -456,22 +425,19 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
 
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
     self._push_corpora_from_host_to_target(corpus_directories)
 
     max_total_time = fuzz_timeout
-    if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
+    if constants.FORK_FLAGNAME in arguments:
       max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
     assert max_total_time > 0
 
-    additional_args.extend([
-        constants.MAX_TOTAL_TIME_FLAG + str(max_total_time),
-        constants.PRINT_FINAL_STATS_ARGUMENT,
-    ])
+    arguments[constants.MAX_TOTAL_TIME_FLAGNAME] = int(max_total_time)
+    arguments[constants.PRINT_FINAL_STATS_FLAGNAME] = 1
 
     # Run the fuzzer.
     # TODO(eep): Clarify comment from previous implementation: "actually we want
@@ -481,7 +447,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
         self.executable_path,
         artifact_prefix,
         self._corpus_directories_libfuzzer(corpus_directories) +
-        additional_args,
+        arguments.list(),
         timeout=self.get_total_timeout(fuzz_timeout))
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
@@ -499,11 +465,10 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
     self._push_corpora_from_host_to_target(corpus_directories)
 
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-    max_total_time_flag = constants.MAX_TOTAL_TIME_FLAG + str(merge_timeout)
-    additional_args.append(max_total_time_flag)
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
+
+    arguments[constants.MAX_TOTAL_TIME_FLAGNAME] = int(merge_timeout)
 
     target_merge_control_file = 'data/.mergefile'
 
@@ -512,15 +477,15 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                          target_merge_control_file)
 
     # Run merge.
-    additional_args += [
-        '-merge=1', '-merge_control_file=' + target_merge_control_file
-    ]
+    arguments['merge'] = 1
+    arguments['merge_control_file'] = target_merge_control_file
+
     result = undercoat.run_fuzzer(
         self.handle,
         self.executable_path,
         None,
         self._corpus_directories_libfuzzer(corpus_directories) +
-        additional_args,
+        arguments.list(),
         timeout=self.get_total_timeout(merge_timeout))
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
@@ -536,7 +501,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                           timeout=None,
                           additional_args=None):
     """Run a single testcase."""
-    #TODO(eep): Are all these copy.copy() calls still necessary?
+    # TODO(eep): Are all these copy.copy() calls still necessary?
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
@@ -566,19 +531,17 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                      artifact_prefix=None,
                      additional_args=None):
 
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-    additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
-    max_total_time = self.get_minimize_total_time(timeout)
-    max_total_time_arg = constants.MAX_TOTAL_TIME_FLAG + str(max_total_time)
-    additional_args.append(max_total_time_arg)
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
+
+    arguments[constants.MINIMIZE_CRASH_FLAGNAME] = 1
+    arguments[constants.MAX_TOTAL_TIME_FLAGNAME] = int(
+        self.get_minimize_total_time(timeout))
 
     target_artifact_prefix = 'data/'
     target_minimized_file = 'final-minimized-crash'
     min_file_fullpath = target_artifact_prefix + target_minimized_file
-    exact_artifact_arg = constants.EXACT_ARTIFACT_PATH_FLAG + min_file_fullpath
-    additional_args.append(exact_artifact_arg)
+    arguments[constants.EXACT_ARTIFACT_PATH_FLAGNAME] = str(min_file_fullpath)
 
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
@@ -590,7 +553,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     result = undercoat.run_fuzzer(
         self.handle,
         self.executable_path,
-        output_dir, ['data/' + testcase_path_name] + additional_args,
+        output_dir, ['data/' + testcase_path_name] + arguments.list(),
         timeout=self.get_total_timeout(timeout))
 
     # The minimized artifact is automatically fetched if minimization succeeded,
@@ -837,9 +800,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       executable_dir = os.path.dirname(executable_path)
       deps_path = os.path.join(self._get_device_path(executable_dir), 'lib')
       ld_library_path += deps_path
-      sanitizer_path = android.sanitizer.get_ld_library_path_for_sanitizers()
-      if sanitizer_path:
-        ld_library_path += ':' + sanitizer_path
+      memory_tool_path = android.sanitizer.get_ld_library_path_for_memory_tools(
+      )
+      if memory_tool_path:
+        ld_library_path += ':' + memory_tool_path
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
 
     # Add sanitizer options.
@@ -865,7 +829,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   def _get_local_path(self, device_path):
     """Return local path for the given device path."""
     if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
-      logs.log_error('Bad device path: ' + device_path)
+      logs.error('Bad device path: ' + device_path)
       return None
 
     root_directory = environment.get_root_directory()
@@ -895,7 +859,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
   def _extract_trusty_stacktrace_from_logcat(self, logcat):
     """Finds and returns a TA stacktrace from a logcat"""
-    begin, end = 'panic notifier - trusty version', 'Built:'
+    begin = android.constants.TRUSTY_STACKTRACE_BEGIN
+    end = android.constants.TRUSTY_STACKTRACE_END
     target_idx = logcat.rfind(begin)
 
     if target_idx != -1:
@@ -941,9 +906,47 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     loop = stack_symbolizer.SymbolizationLoop()
     ta_stacktrace = loop.process_trusty_stacktrace(ta_stacktrace)
 
-    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
-      \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
-        ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
+    return ('+-- Logcat excerpt: Trusted App crash stacktrace --+'
+            f'\n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
+
+  def _extract_mte_stacktrace_from_logcat(self, logcat):
+    """Finds and returns the MTE stacktrace from a logcat."""
+    begin = android.constants.MTE_STACKTRACE_BEGIN
+    end = android.constants.MTE_STACKTRACE_END
+    target_idx = logcat.rfind(begin)
+
+    if target_idx != -1:
+      # Logcat contains MTE crash
+      begin = logcat[:target_idx].rfind('\n')
+      end_idx = target_idx + logcat[target_idx:].find('\n')
+      end_idx += logcat[end_idx:].find(end)
+      end_idx += logcat[end_idx:].find('\n')
+
+      mte_stacktrace = ['MTE Stacktrace:']
+      for line in logcat[begin:end_idx].splitlines():
+        mte_stacktrace.append(line)
+
+      return '\n'.join(mte_stacktrace)
+
+    begin = '---------'
+    target = 'Backtrace for thread:'
+    target_idx = logcat.rfind(target)
+    if target_idx == -1:
+      return 'No MTE crash stacktrace found in logcat.\n'
+
+    begin_idx = logcat[:target_idx].rfind(begin)
+    end_idx = target_idx + logcat[target_idx:].find(end)
+    end_idx += logcat[end_idx:].find('\n')
+
+    return logcat[begin_idx:end_idx]
+
+  def _add_mte_stacktrace_if_needed(self, output):
+    """Add mte stacktrace to beginning of output if found in logcat."""
+    logcat = android.logger.log_output()
+    mte_stacktrace = self._extract_mte_stacktrace_from_logcat(logcat)
+
+    return ('+-- Logcat excerpt: MTE crash stacktrace --+'
+            f'\n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
   def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
@@ -954,8 +957,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if environment.is_android_emulator():
       return self._add_trusty_stacktrace_if_needed(output)
 
-    return '{output}\n\nLogcat:\n{logcat_output}'.format(
-        output=output, logcat_output=android.logger.log_output())
+    if environment.is_android() and android.settings.is_mte_build():
+      return self._add_mte_stacktrace_if_needed(output)
+
+    return f'{output}\n\nLogcat:\n{android.logger.log_output()}'
 
   @contextlib.contextmanager
   def _device_file(self, file_path):
@@ -999,22 +1004,23 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       artifact_prefix = self._get_device_path(artifact_prefix)
 
     # Extract local dict path from arguments list and subsitute with device one.
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-    dict_path = fuzzer_utils.extract_argument(additional_args,
-                                              constants.DICT_FLAG)
+    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    assert arguments is not None
+
+    dict_path = arguments.get(
+        constants.DICT_FLAGNAME, default=None, constructor=str)
+
     if dict_path:
       device_dict_path = self._get_device_path(dict_path)
       android.adb.copy_local_file_to_remote(dict_path, device_dict_path)
-      additional_args.append(constants.DICT_FLAG + device_dict_path)
+      arguments[constants.DICT_FLAGNAME] = device_dict_path
 
     result = LibFuzzerCommon.fuzz(
         self,
         corpus_directories,
         fuzz_timeout,
         artifact_prefix=artifact_prefix,
-        additional_args=additional_args,
+        additional_args=arguments.list(),
         extra_env=extra_env)
 
     result.output = self._add_logcat_output_if_needed(result.output)
@@ -1133,7 +1139,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     temp_dir = fuzzer_utils.get_temp_dir()
 
   build_dir = environment.get_value('BUILD_DIR')
-  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
   is_android = environment.is_android()
   is_fuchsia = environment.platform() == 'FUCHSIA'
 
@@ -1154,11 +1159,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     # structure of CF but this shouldn't be a big deal.
     minijail_chroot.add_binding(
         minijail.ChrootBinding(build_dir, build_dir, writeable=False))
-
-    if dataflow_build_dir:
-      minijail_chroot.add_binding(
-          minijail.ChrootBinding(
-              dataflow_build_dir, dataflow_build_dir, writeable=False))
 
     # Also bind the build dir to /out to make it easier to hardcode references
     # to data files.
@@ -1217,42 +1217,50 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
     shutil.copy(os.path.join(to_copy), os.path.join(dest_corpus_path, str(i)))
 
 
-def remove_fuzzing_arguments(arguments, is_merge=False):
+def strip_fuzzing_arguments(arguments, is_merge=False):
   """Remove arguments used during fuzzing."""
+  args = fuzzer_options.FuzzerArguments.from_list(arguments)
   for argument in [
       # Remove as it overrides `-merge` argument.
-      constants.FORK_FLAG,  # It overrides `-merge` argument.
+      constants.FORK_FLAGNAME,  # It overrides `-merge` argument.
 
       # Remove as it may shrink the testcase.
-      constants.MAX_LEN_FLAG,  # This may shrink the testcases.
+      constants.MAX_LEN_FLAGNAME,  # This may shrink the testcases.
 
       # Remove any existing runs argument as we will create our own for
       # reproduction.
-      constants.RUNS_FLAG,  # Make sure we don't have any '-runs' argument.
+      constants.RUNS_FLAGNAME,  # Make sure we don't have any '-runs' argument.
 
       # Remove the following flags/arguments that are only used for fuzzing.
-      constants.DATA_FLOW_TRACE_FLAG,
-      constants.DICT_FLAG,
-      constants.FOCUS_FUNCTION_FLAG,
+      constants.DATA_FLOW_TRACE_FLAGNAME,
+      constants.DICT_FLAGNAME,
+      constants.FOCUS_FUNCTION_FLAGNAME,
   ]:
-    fuzzer_utils.extract_argument(arguments, argument)
+    if argument in args:
+      del args[argument]
 
   # Value profile is needed during corpus merge, so do not remove if set.
   if not is_merge:
-    fuzzer_utils.extract_argument(arguments, constants.VALUE_PROFILE_ARGUMENT)
+    if constants.VALUE_PROFILE_FLAGNAME in args:
+      del args[constants.VALUE_PROFILE_FLAGNAME]
+
+  return args.list()
 
 
 def fix_timeout_argument_for_reproduction(arguments):
   """Changes timeout argument for reproduction. This is slightly less than the
   |TEST_TIMEOUT| value for the job."""
-  fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
+  args = fuzzer_options.FuzzerArguments.from_list(arguments)
+  if constants.TIMEOUT_FLAGNAME in args:
+    del args[constants.TIMEOUT_FLAGNAME]
 
   # Leave 5 sec buffer for report processing.
   adjusted_test_timeout = max(
       1,
       environment.get_value('TEST_TIMEOUT', constants.DEFAULT_TIMEOUT_LIMIT) -
       constants.REPORT_PROCESSING_TIME)
-  arguments.append('%s%d' % (constants.TIMEOUT_FLAG, adjusted_test_timeout))
+  args[constants.TIMEOUT_FLAGNAME] = adjusted_test_timeout
+  return args.list()
 
 
 def parse_log_stats(log_lines):
@@ -1269,7 +1277,7 @@ def parse_log_stats(log_lines):
     value = match.group(2)
     if not value.isdigit():
       # We do not expect any non-numeric stats from libFuzzer, skip those.
-      logs.log_error('Corrupted stats reported by libFuzzer: "%s".' % line)
+      logs.error('Corrupted stats reported by libFuzzer: "%s".' % line)
       continue
 
     value = int(value)
@@ -1284,18 +1292,14 @@ def parse_log_stats(log_lines):
   return log_stats
 
 
-def set_sanitizer_options(fuzzer_path, fuzz_options=None):
-  """Sets sanitizer options based on .options file overrides, FuzzOptions (if
-  provided), and what this script requires."""
+def set_sanitizer_options(fuzzer_path):
+  """Sets sanitizer options based on .options file overrides and what this
+  script requires."""
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
   sanitizer_options_var = environment.get_current_memory_tool_var()
   sanitizer_options = environment.get_memory_tool_options(
       sanitizer_options_var, {})
   sanitizer_options['exitcode'] = constants.TARGET_ERROR_EXITCODE
-  if fuzz_options and fuzz_options.use_dataflow_tracing:
-    # Focus function feature does not work without symbolization.
-    sanitizer_options['symbolize'] = 1
-    environment.update_symbolizer_options(sanitizer_options)
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
@@ -1315,49 +1319,6 @@ def is_linux_asan():
   """Helper functions. Returns whether or not the current env is linux asan."""
   return (environment.platform() != 'LINUX' or
           environment.get_value('MEMORY_TOOL') != 'ASAN')
-
-
-def use_peach_mutator(extra_env, grammar):
-  """Decide whether or not to use peach mutator, and set up all of the
-  environment variables necessary to do so."""
-  # TODO(mpherman): Include architecture info in job definition and exclude
-  # i386.
-  if environment.is_lib() or not is_linux_asan():
-    return False
-
-  if not grammar:
-    return False
-
-  pit_path = pits.get_path(grammar)
-
-  if not pit_path:
-    return False
-
-  # Set title and pit environment variables
-  extra_env['PIT_FILENAME'] = pit_path
-  extra_env['PIT_TITLE'] = grammar
-
-  # Extract zip of peach mutator code.
-  peach_dir = os.path.join(environment.get_platform_resources_directory(),
-                           'peach')
-  unzipped = os.path.join(peach_dir, 'mutator')
-  source = os.path.join(peach_dir, 'peach_mutator.zip')
-
-  archive.unpack(source, unzipped, trusted=True)
-
-  # Set LD_PRELOAD.
-  peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')
-  extra_env['LD_PRELOAD'] = peach_path
-
-  # Set Python path.
-  new_path = [
-      os.path.join(unzipped, 'peach_mutator', 'src'),
-      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'),
-  ] + sys.path
-
-  extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
-
-  return True
 
 
 def is_sha1_hash(possible_hash):
@@ -1384,19 +1345,11 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def has_existing_mutator_strategy(fuzzing_strategy):
-  return any(strategy in fuzzing_strategy for strategy in MUTATOR_STRATEGIES)
-
-
-def pick_strategies(strategy_pool,
-                    fuzzer_path,
-                    corpus_directory,
-                    existing_arguments,
-                    grammar=None):
+def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
+                    existing_arguments):
   """Pick strategies."""
-  build_directory = environment.get_value('BUILD_DIR')
   fuzzing_strategies = []
-  arguments = []
+  arguments = fuzzer_options.FuzzerArguments({})
   additional_corpus_dirs = []
 
   # Select a generator to attempt to use for existing testcase mutations.
@@ -1404,25 +1357,6 @@ def pick_strategies(strategy_pool,
                                                        fuzzer_path)
   is_mutations_run = (not environment.is_ephemeral() and
                       candidate_generator != engine_common.Generator.NONE)
-
-  # Depends on the presense of DFSan instrumented build.
-  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  use_dataflow_tracing = (
-      dataflow_build_dir and
-      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
-  if use_dataflow_tracing:
-    dataflow_binary_path = os.path.join(
-        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
-    dataflow_trace_dir = dataflow_binary_path + DATAFLOW_TRACE_DIR_SUFFIX
-    if os.path.exists(dataflow_trace_dir):
-      arguments.append(
-          '%s%s' % (constants.DATA_FLOW_TRACE_FLAG, dataflow_trace_dir))
-      arguments.append('%s%s' % (constants.FOCUS_FUNCTION_FLAG, 'auto'))
-      fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
-    else:
-      logs.log_warn(
-          'Dataflow trace is not found in dataflow build, skipping strategy.')
-      use_dataflow_tracing = False
 
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
@@ -1438,46 +1372,47 @@ def pick_strategies(strategy_pool,
     additional_corpus_dirs.append(new_testcase_mutations_directory)
 
   if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
-    max_len_argument = fuzzer_utils.extract_argument(
-        existing_arguments, constants.MAX_LEN_FLAG, remove=False)
-    if not max_len_argument:
+    if constants.MAX_LEN_FLAGNAME not in existing_arguments:
       max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
-      arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
+      arguments[constants.MAX_LEN_FLAGNAME] = max_length
       fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
 
   if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
-    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
+    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
-  # re-enable with a lower process count.
-  is_android = environment.is_android()
-  # Fork mode is not supported on Fuchsia platform.
-  is_fuchsia = environment.platform() == 'FUCHSIA'
-  # Fork mode is disabled on ephemeral bots due to a bug on the platform.
-  is_ephemeral = environment.is_ephemeral()
-
-  # Do not use fork mode for DFT-based fuzzing. This is needed in order to
-  # collect readable and actionable logs from fuzz targets running with DFT.
-  if (not is_fuchsia and not is_android and not is_ephemeral and
-      not use_dataflow_tracing and
-      strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
+  if should_set_fork_flag(existing_arguments, strategy_pool):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
-    arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
+    arguments[constants.FORK_FLAGNAME] = num_fuzz_processes
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
-  if (not has_existing_mutator_strategy(fuzzing_strategies) and
-      strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-      use_peach_mutator(extra_env, grammar)):
-    fuzzing_strategies.append(
-        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
   if (environment.platform() == 'LINUX' and utils.is_oss_fuzz() and
       strategy_pool.do_strategy(strategy.USE_EXTRA_SANITIZERS_STRATEGY)):
     fuzzing_strategies.append(strategy.USE_EXTRA_SANITIZERS_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
-                      extra_env, use_dataflow_tracing, is_mutations_run)
+                      extra_env, is_mutations_run)
+
+
+def should_set_fork_flag(existing_arguments, strategy_pool):
+  """Returns True if fork flag should be set."""
+  # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
+  # re-enable with a lower process count.
+  if environment.is_android():
+    return False
+  # Fork mode is not supported on Fuchsia platform.
+  if environment.platform() == 'FUCHSIA':
+    return False
+  # Fork mode is disabled on ephemeral bots due to a bug on the platform.
+  if environment.is_ephemeral():
+    return False
+  # Do not use fork mode for DFT-based fuzzing. This is needed in order to
+  # collect readable and actionable logs from fuzz targets running with DFT.
+  # If fork_server is already set by the user, let's keep it that way.
+  if constants.FORK_FLAGNAME in existing_arguments.flags:
+    return False
+  return strategy_pool.do_strategy(strategy.FORK_STRATEGY)

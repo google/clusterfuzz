@@ -19,7 +19,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from libs import request_cache
 
 
-class CacheClass(object):
+class CacheClass:
   """Test cache class."""
 
   def __init__(self):
@@ -31,7 +31,7 @@ class CacheClass(object):
     return a + 1
 
 
-class CacheClass2(object):
+class CacheClass2:
   """Test cache class."""
 
   def __init__(self):
@@ -43,7 +43,7 @@ class CacheClass2(object):
     return a + 2
 
 
-class FakeRequest(object):
+class FakeRequest:
   """Fake request."""
 
 

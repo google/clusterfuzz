@@ -126,6 +126,16 @@ class GoogleVCS(VCSViewer):
       r'https://cs.corp.google.com/\1/{path}?rcl={revision}&l={line}')
 
 
+class AndroidVCS(VCSViewer):
+  VCS_URL_REGEX = re.compile(r'^<android-internal>/(.*)$')
+  VCS_REVISION_SUB = (r'https://source.corp.google.com/h/googleplex-android/'
+                      r'platform/superproject/main/+/main:\1;drc={revision}')
+  VCS_REVISION_PATH_LINE_SUB = (
+      r'https://source.corp.google.com/h/googleplex-'
+      r'android/platform/superproject/main/+/main:\1/{path};drc={revision};'
+      r'l={line}')
+
+
 class MercurialVCS(VCSViewer):
   VCS_URL_REGEX = re.compile(r'(https?://hg\.(.*))')
   VCS_REVISION_SUB = r'\1/rev/{revision}'
@@ -141,6 +151,7 @@ VCS_LIST = [
     GoogleSourceVCS,
     GoogleVCS,
     MercurialVCS,
+    AndroidVCS,
 ]
 
 

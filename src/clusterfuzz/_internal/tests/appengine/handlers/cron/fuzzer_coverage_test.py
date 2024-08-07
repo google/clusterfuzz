@@ -18,10 +18,10 @@ import unittest
 
 from google.cloud import ndb
 
+from clusterfuzz._internal.cron import fuzzer_coverage
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import fuzzer_coverage
 
 INTEGRATION_TEST_BUCKET = 'clusterfuzz-test-data'
 

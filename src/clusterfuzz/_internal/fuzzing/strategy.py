@@ -29,8 +29,6 @@ CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
 # Supported fuzzing strategies.
 CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
     name='corpus_mutations_radamsa', probability=0.15, manually_enable=False)
-DATAFLOW_TRACING_STRATEGY = Strategy(
-    name='dataflow_tracing', probability=0.50, manually_enable=True)
 CORPUS_SUBSET_STRATEGY = Strategy(
     name='corpus_subset', probability=0.50, manually_enable=True)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
@@ -38,8 +36,6 @@ RANDOM_MAX_LENGTH_STRATEGY = Strategy(
     name='random_max_len', probability=0.15, manually_enable=False)
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
-PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
-    name='peach_grammar_mutation', probability=0.90, manually_enable=True)
 USE_EXTRA_SANITIZERS_STRATEGY = Strategy(
     name='extra_sanitizers', probability=0.10, manually_enable=False)
 
@@ -51,14 +47,7 @@ LIBFUZZER_STRATEGY_LIST = [
     VALUE_PROFILE_STRATEGY,
     FORK_STRATEGY,
     CORPUS_SUBSET_STRATEGY,
-    DATAFLOW_TRACING_STRATEGY,
-    PEACH_GRAMMAR_MUTATION_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,
-]
-
-# TODO: Add more syzkaller strategies.
-SYZKALLER_STRATEGY_LIST = [
-    CORPUS_SUBSET_STRATEGY,
 ]
 
 AFL_STRATEGY_LIST = [
@@ -70,18 +59,15 @@ AFL_STRATEGY_LIST = [
 LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE = [
     CORPUS_SUBSET_STRATEGY,
     FORK_STRATEGY,
-    PEACH_GRAMMAR_MUTATION_STRATEGY,
 ]
 
 LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
     'corpus_subset': int,
     'fork': int,
-    'peach_grammar_mutation': str
 }
 
 LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
-    DATAFLOW_TRACING_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     VALUE_PROFILE_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,

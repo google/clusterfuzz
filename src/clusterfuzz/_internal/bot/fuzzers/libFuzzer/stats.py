@@ -16,7 +16,7 @@
 import re
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
-from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
@@ -150,7 +150,7 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
       strategy_value = suffix_type(line[len(strategy_prefix):])
       stats[name_modifier(strategy_name)] = strategy_value
     except (IndexError, ValueError) as e:
-      logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
+      logs.error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
 
   # These strategies are used with different values specified in the prefix.
   for strategy_type in strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE:
@@ -196,6 +196,7 @@ def parse_performance_features(log_lines, strategies, arguments):
       'timeout_count': 0,
   }
 
+  arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
   # Extract strategy selection method.
   # TODO(ochang): Move to more general place?
   stats['strategy_selection_method'] = environment.get_value(
@@ -219,13 +220,12 @@ def parse_performance_features(log_lines, strategies, arguments):
     stats['startup_crash_count'] = 0
 
   # Extract '-max_len' value from arguments, if possible.
-  stats['max_len'] = int(
-      fuzzer_utils.extract_argument(
-          arguments, constants.MAX_LEN_FLAG, remove=False) or stats['max_len'])
+  max_len = arguments.get(
+      constants.MAX_LEN_FLAGNAME, default=None, constructor=int)
+  stats['max_len'] = max_len if max_len is not None else int(stats['max_len'])
 
   # Extract sizes of manual dictionary used for fuzzing.
-  dictionary_path = fuzzer_utils.extract_argument(
-      arguments, constants.DICT_FLAG, remove=False)
+  dictionary_path = arguments.get(constants.DICT_FLAGNAME, constructor=str)
   stats['manual_dict_size'] = dictionary_manager.get_stats_for_dictionary_file(
       dictionary_path)
 

@@ -22,6 +22,7 @@ import zlib
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -33,6 +34,7 @@ from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
@@ -340,7 +342,7 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
         env_copy=env_copy,
         current_working_directory=app_directory)
   except Exception:
-    logs.log_error('Exception occurred while running run_testcase.')
+    logs.error('Exception occurred while running run_testcase.')
 
     return None, None, None
 
@@ -364,7 +366,7 @@ def get_resource_paths(output):
 
     local_path = convert_dependency_url_to_local_path(match.group(2))
     if local_path:
-      logs.log('Detected resource: %s.' % local_path)
+      logs.info('Detected resource: %s.' % local_path)
       resource_paths.add(local_path)
 
   return list(resource_paths)
@@ -375,7 +377,7 @@ def convert_dependency_url_to_local_path(url):
   # Bot-specific import.
   from clusterfuzz._internal.bot.webserver import http_server
 
-  logs.log('Process dependency: %s.' % url)
+  logs.info('Process dependency: %s.' % url)
   file_match = FILE_URL_REGEX.search(url)
   http_match = HTTP_URL_REGEX.search(url)
   platform = environment.platform()
@@ -383,7 +385,7 @@ def convert_dependency_url_to_local_path(url):
   local_path = None
   if file_match:
     file_path = file_match.group(1)
-    logs.log('Detected file dependency: %s.' % file_path)
+    logs.info('Detected file dependency: %s.' % file_path)
     if platform == 'WINDOWS':
       local_path = file_path
     else:
@@ -398,13 +400,13 @@ def convert_dependency_url_to_local_path(url):
 
   elif http_match:
     relative_http_path = os.path.sep + http_match.group(2)
-    logs.log('Detected http dependency: %s.' % relative_http_path)
+    logs.info('Detected http dependency: %s.' % relative_http_path)
     local_path = http_server.get_absolute_testcase_file(relative_http_path)
     if not local_path:
       # This needs to be a warning since in many cases, it is actually a
       # non-existent path. For others, we need to add the directory aliases in
       # file http_server.py.
-      logs.log_warn(
+      logs.warning(
           'Unable to find server resource %s, skipping.' % relative_http_path)
 
   if local_path:
@@ -541,8 +543,8 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
                                    return_code)
       upload_log(log, log_time)
   except Exception:
-    logs.log_error('Exception occurred while running '
-                   'run_testcase_and_return_result_in_queue.')
+    logs.error('Exception occurred while running '
+               'run_testcase_and_return_result_in_queue.')
 
 
 def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
@@ -569,7 +571,7 @@ def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
   return result
 
 
-class TestcaseRunner(object):
+class TestcaseRunner:
   """Testcase runner."""
 
   def __init__(self,
@@ -640,7 +642,7 @@ class TestcaseRunner(object):
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
-      logs.log(
+      logs.info(
           f'No crash occurred (round {round_number}).',
           output=output,
       )
@@ -661,7 +663,7 @@ class TestcaseRunner(object):
     """Get crash state from a CrashResult."""
     state = crash_result.get_symbolized_data()
     if crash_result.is_crash():
-      logs.log(
+      logs.info(
           ('Crash occurred in {crash_time} seconds (round {round_number}). '
            'State:\n{crash_state}').format(
                crash_time=crash_result.crash_time,
@@ -689,31 +691,31 @@ class TestcaseRunner(object):
         continue
 
       if not expected_state:
-        logs.log('Crash stacktrace comparison skipped.')
+        logs.info('Crash stacktrace comparison skipped.')
         return crash_result
 
       if crash_result.should_ignore():
-        logs.log('Crash stacktrace matched ignore signatures, ignored.')
+        logs.info('Crash stacktrace matched ignore signatures, ignored.')
         continue
 
       if crash_result.is_security_issue() != expected_security_flag:
         unexpected_crash = True
-        logs.log('Crash security flag does not match, ignored.')
+        logs.info('Crash security flag does not match, ignored.')
         continue
 
       if flaky_stacktrace:
-        logs.log('Crash stacktrace is marked flaky, skipping comparison.')
+        logs.info('Crash stacktrace is marked flaky, skipping comparison.')
         return crash_result
 
       crash_comparer = CrashComparer(state.crash_state, expected_state)
       if crash_comparer.is_similar():
-        logs.log('Crash stacktrace is similar to original stacktrace.')
+        logs.info('Crash stacktrace is similar to original stacktrace.')
         return crash_result
 
       unexpected_crash = True
-      logs.log('Crash stacktrace does not match original stacktrace.')
+      logs.info('Crash stacktrace does not match original stacktrace.')
 
-    logs.log('Didn\'t crash at all.')
+    logs.info('Didn\'t crash at all.')
     return CrashResult(
         return_code=0,
         crash_time=0,
@@ -723,7 +725,7 @@ class TestcaseRunner(object):
   def test_reproduce_reliability(self, retries, expected_state,
                                  expected_security_flag) -> bool:
     """Test to see if a crash is fully reproducible or is a one-time crasher."""
-    logs.log("Beginning a reproducibility test.")
+    logs.info("Beginning a reproducibility test.")
     self._pre_run_cleanup()
 
     reproducible_crash_target_count = retries * REPRODUCIBILITY_FACTOR
@@ -747,27 +749,28 @@ class TestcaseRunner(object):
         expected_state = state.crash_state
 
       if crash_result.is_security_issue() != expected_security_flag:
-        logs.log('Detected a crash without the correct security flag.')
+        logs.info('Detected a crash without the correct security flag.')
         continue
 
       crash_comparer = CrashComparer(state.crash_state, expected_state)
       if not crash_comparer.is_similar():
-        logs.log(
+        logs.info(
             'Detected a crash with an unrelated state: '
             'Expected(%s), Found(%s).' % (expected_state, state.crash_state))
         continue
 
       crash_count += 1
       if crash_count >= reproducible_crash_target_count:
-        logs.log('Crash is reproducible.')
+        logs.info('Crash is reproducible.')
         return True
 
-    logs.log('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
-                                                                 round_number))
+    logs.info('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
+                                                                  round_number))
     return False
 
 
-def test_for_crash_with_retries(testcase,
+def test_for_crash_with_retries(fuzz_target,
+                                testcase,
                                 testcase_path,
                                 test_timeout,
                                 http_flag=False,
@@ -776,26 +779,23 @@ def test_for_crash_with_retries(testcase,
                                 crash_retries=None):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
+  logs.info('Testing for crash.')
   set_extra_sanitizers(testcase.crash_type)
   gestures = testcase.gestures if use_gestures else None
+  runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
+                          http_flag)
+
+  if crash_retries is None:
+    crash_retries = environment.get_value('CRASH_RETRIES')
+
+  if compare_crash and testcase.crash_type not in IGNORE_STATE_CRASH_TYPES:
+    expected_state = testcase.crash_state
+    expected_security_flag = testcase.security_flag
+  else:
+    expected_state = None
+    expected_security_flag = None
+
   try:
-    fuzz_target = testcase.get_fuzz_target()
-    if engine.get(testcase.fuzzer_name) and not fuzz_target:
-      raise TargetNotFoundError
-
-    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
-                            http_flag)
-
-    if crash_retries is None:
-      crash_retries = environment.get_value('CRASH_RETRIES')
-
-    if compare_crash and testcase.crash_type not in IGNORE_STATE_CRASH_TYPES:
-      expected_state = testcase.crash_state
-      expected_security_flag = testcase.security_flag
-    else:
-      expected_state = None
-      expected_security_flag = None
-
     return runner.reproduce_with_retries(crash_retries, expected_state,
                                          expected_security_flag,
                                          testcase.flaky_stack)
@@ -804,8 +804,28 @@ def test_for_crash_with_retries(testcase,
     return CrashResult(return_code=0, crash_time=0, output='')
 
 
-def test_for_reproducibility(fuzzer_name,
-                             full_fuzzer_name,
+def get_fuzz_target_from_input(uworker_input):
+  if uworker_input and uworker_input.HasField('fuzz_target'):
+    return uworker_io.entity_from_protobuf(uworker_input.fuzz_target,
+                                           data_types.FuzzTarget)
+  return None
+
+
+def preprocess_testcase_manager(testcase, uworker_input):
+  """Preprocess function for users of test_for_reproducibility."""
+  # TODO(metzman): Make this work for test_for_crash_with_retries.
+  fuzz_target = testcase.get_fuzz_target()
+  engine_obj = engine.get(testcase.fuzzer_name)
+  if engine_obj and not fuzz_target:
+    raise TargetNotFoundError
+
+  if not fuzz_target:
+    return
+
+  uworker_input.fuzz_target.CopyFrom(uworker_io.entity_to_protobuf(fuzz_target))
+
+
+def test_for_reproducibility(fuzz_target,
                              testcase_path,
                              crash_type,
                              expected_state,
@@ -816,25 +836,17 @@ def test_for_reproducibility(fuzzer_name,
                              arguments=None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
   set_extra_sanitizers(crash_type)
-  try:
-    fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-    if engine.get(fuzzer_name) and not fuzz_target:
-      raise TargetNotFoundError
+  runner = TestcaseRunner(
+      fuzz_target,
+      testcase_path,
+      test_timeout,
+      gestures,
+      http_flag,
+      arguments=arguments)
 
-    runner = TestcaseRunner(
-        fuzz_target,
-        testcase_path,
-        test_timeout,
-        gestures,
-        http_flag,
-        arguments=arguments)
-
-    crash_retries = environment.get_value('CRASH_RETRIES')
-    return runner.test_reproduce_reliability(crash_retries, expected_state,
-                                             expected_security_flag)
-  except TargetNotFoundError:
-    # If a target isn't found, treat it as not crashing.
-    return False
+  crash_retries = environment.get_value('CRASH_RETRIES')
+  return runner.test_reproduce_reliability(crash_retries, expected_state,
+                                           expected_security_flag)
 
 
 def prepare_log_for_upload(symbolized_output, return_code):
@@ -1096,7 +1108,8 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
     # Unpack the fuzzPriv extension.
     extension_archive = os.path.join(environment.get_resources_directory(),
                                      'firefox', 'fuzzPriv-extension.zip')
-    archive.unpack(extension_archive, extensions_directory)
+    with archive.open(extension_archive) as reader:
+      reader.extract_all(extensions_directory)
 
     # Add this extension in the extensions configuration file.
     extension_config_file_path = os.path.join(user_profile_directory,
@@ -1112,11 +1125,32 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
                              extension_config_file_path)
 
 
-def check_for_bad_build(job_type, crash_revision):
-  """Return true if the build is bad, i.e. crashes on startup."""
+def check_for_bad_build(job_type: str,
+                        crash_revision: int) -> uworker_msg_pb2.BuildData:  # pylint: disable=no-member
+  """
+  Checks whether the target binary fails to execute at the given revision.
+
+  Arguments:
+    job_type (str): The type of job we are executing on.
+    crash_revision (int): The revision at which the target was built.
+
+  Returns a UworkerMsg with the following attributes:
+    is_bad_build (bool): Whether the target build is bad. If True, the target
+      cannot be used for executing testcases.
+    should_ignore_crash (bool): True iff the target crashed, but we should
+      ignore it.
+    build_run_console_output (Optional[str]): The build run output, containing
+      crash stacktraces (if any).
+  """
   # Check the bad build check flag to see if we want do this.
   if not environment.get_value('BAD_BUILD_CHECK'):
-    return False
+    # should_ignore_crash_result set to True because build metadata does not
+    # need to be updated in this case.
+    return uworker_msg_pb2.BuildData(  # pylint: disable=no-member
+        revision=crash_revision,
+        is_bad_build=False,
+        should_ignore_crash_result=True,
+        build_run_console_output='')
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
@@ -1162,8 +1196,10 @@ def check_for_bad_build(job_type, crash_revision):
         command,
         crash_result.get_stacktrace(symbolized=True),
         crash_result.get_stacktrace(symbolized=False))
-    logs.log(
-        'Bad build for %s detected at r%d.' % (job_type, crash_revision),
+    logs.info(
+        f'Bad build for {job_type} detected at r{crash_revision}: ' +
+        f'return code = {return_code}, crash type = {crash_result.get_type()}',
+        raw_output=output,
         output=build_run_console_output)
 
   # Exit all running instances.
@@ -1171,18 +1207,36 @@ def check_for_bad_build(job_type, crash_revision):
 
   # Any of the conditions below indicate that bot is in a bad state and it is
   # not caused by the build itself. In that case, just exit.
-  build_state = data_handler.get_build_state(job_type, crash_revision)
   if is_bad_build and utils.sub_string_exists_in(BAD_STATE_HINTS, output):
     logs.log_fatal_and_exit(
         'Bad bot environment detected, exiting.',
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
+  return uworker_msg_pb2.BuildData(  # pylint: disable=no-member
+      revision=crash_revision,
+      is_bad_build=is_bad_build,
+      should_ignore_crash_result=crash_result.should_ignore(),
+      build_run_console_output=build_run_console_output)
 
+
+def update_build_metadata(job_type: str, build_data: uworker_msg_pb2.BuildData):  # pylint: disable=no-member
+  """
+  Updates the corresponding build metadata.
+
+  This method is intended to be called (from a trusted worker) on the result of
+  check_for_bad_build. It adds the corresponding build metadata if ncecessary.
+
+  Arguments:
+    job_type (str): The type of job we are executing on.
+    build_data (BuildData): the result of check_for_bad_build call.
+  """
+  if build_data.should_ignore_crash_result:
+    return
+
+  build_state = data_handler.get_build_state(job_type, build_data.revision)
   # If none of the other bots have added information about this build,
   # then add it now.
-  if (build_state == data_types.BuildState.UNMARKED and
-      not crash_result.should_ignore()):
-    data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
-                                    build_run_console_output)
-
-  return is_bad_build
+  if build_state == data_types.BuildState.UNMARKED:
+    data_handler.add_build_metadata(job_type, build_data.revision,
+                                    build_data.is_bad_build,
+                                    build_data.build_run_console_output)

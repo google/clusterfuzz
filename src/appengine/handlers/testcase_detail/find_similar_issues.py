@@ -15,10 +15,10 @@
 
 from flask import request
 
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from handlers import base_handler
 from libs import handler
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 
 
 class Handler(base_handler.Handler):

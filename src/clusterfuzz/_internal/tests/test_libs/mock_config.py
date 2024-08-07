@@ -14,7 +14,7 @@
 """Mock config."""
 
 
-class MockConfig(object):
+class MockConfig:
   """Mock config."""
 
   def __init__(self, data):

@@ -396,6 +396,7 @@ class QueryTest(unittest.TestCase):
     self.jobs.getQueryResults.return_value = self.get_query_results
 
     self.mock.get_api_client.return_value = underlying
+    self.count = None
 
   def _make_resp(self, page_token, is_complete, total_row, count=1):
     """Make response."""
@@ -651,7 +652,7 @@ class WriteRangeTest(unittest.TestCase):
   def setUp(self):
     self.client = mock.Mock(spec_set=big_query.Client)
     helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.google_cloud_utils.big_query.Client',
         'time.time',
     ])
@@ -672,7 +673,7 @@ class WriteRangeTest(unittest.TestCase):
     self.client.insert.return_value = {}
     big_query.write_range('regressions', self.testcase, 'regression', 456, 789)
 
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
     self.client.insert.assert_called_once_with([
         big_query.Insert(
             row={
@@ -695,7 +696,7 @@ class WriteRangeTest(unittest.TestCase):
     self.client.insert.return_value = {'insertErrors': ['exception']}
     big_query.write_range('regressions', self.testcase, 'regression', 456, 789)
 
-    self.mock.log_error.assert_called_once_with(
+    self.mock.error.assert_called_once_with(
         ("Ignoring error writing the testcase's regression range (%s) to "
          'BigQuery.' % self.testcase.key.id()),
         exception=mock.ANY)

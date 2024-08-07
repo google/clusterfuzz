@@ -32,7 +32,7 @@ MAX_MERGE_BATCH_SIZE = 32
 PROGRESS_REPORT_INTERVAL = 300
 
 
-class DummyLock(object):
+class DummyLock:
   """Dummy to replace threading.Lock for single-threaded tests."""
 
   def __enter__(self):
@@ -45,7 +45,7 @@ class DummyLock(object):
     return False
 
 
-class TestQueue(object):
+class TestQueue:
   """Queue to store commands that should be executed to test hypotheses."""
 
   def __init__(self,
@@ -126,7 +126,7 @@ class TestQueue(object):
       for thread in threads:
         thread.start()
 
-      while any([thread.is_alive() for thread in threads]):
+      while any(thread.is_alive() for thread in threads):
         if self.deadline_check:
           self.deadline_check(cleanup_function=self._cleanup)
 
@@ -136,7 +136,7 @@ class TestQueue(object):
         time.sleep(1)
 
 
-class Testcase(object):
+class Testcase:
   """Single test case to be minimized."""
 
   def __init__(self, data, minimizer):
@@ -245,7 +245,7 @@ class Testcase(object):
     destination = handle.name
     try:
       handle.write(data)
-    except IOError:
+    except OSError:
       # We may have filled the disk. Try processing tests and writing again.
       self._do_single_pass_process()
       handle.write(data)
@@ -488,7 +488,7 @@ def _default_combiner(tokens):
   return b'\n'.join(tokens)
 
 
-class Minimizer(object):
+class Minimizer:
   """Base class for minimizers."""
 
   def __init__(self,
@@ -559,8 +559,8 @@ class Minimizer(object):
       # that had been done up to that point.
       testcase = error.testcase
     except errors.TokenizationFailureError:
-      logs.log('Tokenized data did not match original data. Defaulting to line'
-               'minimization.')
+      logs.info('Tokenized data did not match original data. Defaulting to line'
+                'minimization.')
       # In situation where the tokenizer does not work, we still want to use
       # the token combiner. This will not change the data unless
       # token combiner changes the data such as appending extra data to the

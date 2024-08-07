@@ -72,7 +72,7 @@ RADAMSA_MUTATIONS = 2000
 RADAMSA_TIMEOUT = 3
 
 
-class Generator(object):
+class Generator:
   """Generators we can use."""
   NONE = 0
   RADAMSA = 1
@@ -180,7 +180,7 @@ def generate_new_testcase_mutations_using_radamsa(
       # efficiency.
       shell.remove_file(output_path)
     elif result.return_code or result.timed_out:
-      logs.log_warn(
+      logs.warning(
           'Radamsa failed to mutate or timed out.', output=result.output)
 
     # Check if we exceeded our timeout. If yes, do no more mutations and break.
@@ -189,8 +189,8 @@ def generate_new_testcase_mutations_using_radamsa(
 
   new_corpus_size = shell.get_directory_file_count(
       new_testcase_mutations_directory)
-  logs.log('Added %d tests using Radamsa mutations.' %
-           (new_corpus_size - old_corpus_size))
+  logs.info('Added %d tests using Radamsa mutations.' %
+            (new_corpus_size - old_corpus_size))
 
 
 def get_radamsa_path():
@@ -266,15 +266,12 @@ def find_fuzzer_path(build_directory, fuzzer_name):
     # configuration when doing variant task testing (e.g. Android on-device
     # fuzz target might not exist on host). In this case, treat it similar to
     # target not found by returning None.
-    logs.log_warn('No build directory found for fuzzer: %s' % fuzzer_name)
+    logs.warning('No build directory found for fuzzer: %s' % fuzzer_name)
     return None
 
   if environment.platform() == 'FUCHSIA':
     # Fuchsia targets are not on disk.
     return fuzzer_name
-
-  if environment.is_android_kernel():
-    return os.path.join(build_directory, 'syzkaller', 'bin', 'syz-manager')
 
   # TODO(ochang): This is necessary for legacy testcases, which include the
   # project prefix in arguments. Remove this in the near future.
@@ -294,8 +291,8 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   # that do not have that fuzz target. It can also happen when a host sends a
   # message to an untrusted worker that just restarted and lost information on
   # build directory.
-  logs.log_warn('Fuzzer: %s not found in build_directory: %s.' %
-                (fuzzer_name, build_directory))
+  logs.warning('Fuzzer: %s not found in build_directory: %s.' %
+               (fuzzer_name, build_directory))
   return None
 
 
@@ -354,7 +351,7 @@ def get_issue_owners(fuzz_target_path):
     return []
 
   owners = []
-  with open(owners_file_path, 'r') as owners_file_handle:
+  with open(owners_file_path) as owners_file_handle:
     owners_file_content = owners_file_handle.read()
 
     for line in owners_file_content.splitlines():
@@ -424,7 +421,7 @@ def get_additional_issue_metadata(fuzz_target_path):
     try:
       return json.load(handle)
     except (ValueError, TypeError):
-      logs.log_error('Invalid metadata file format.', path=metadata_file_path)
+      logs.error('Invalid metadata file format.', path=metadata_file_path)
       return {}
 
 
@@ -451,20 +448,19 @@ def get_all_issue_metadata(fuzz_target_path):
   return metadata
 
 
-def get_all_issue_metadata_for_testcase(testcase):
+def get_fuzz_target_issue_metadata(fuzz_target):
   """Get issue related metadata given a testcase."""
-  if environment.is_trusted_host():
-    # Not applicable.
+  if fuzz_target is None:
     return None
 
-  fuzz_target = testcase.get_fuzz_target()
-  if not fuzz_target:
+  if environment.is_trusted_host():
+    # Not applicable.
     return None
 
   build_dir = environment.get_value('BUILD_DIR')
   target_path = find_fuzzer_path(build_dir, fuzz_target.binary)
   if not target_path:
-    logs.log_error('Failed to find target path for ' + fuzz_target.binary)
+    logs.error('Failed to find target path for ' + fuzz_target.binary)
     return None
 
   return get_all_issue_metadata(target_path)
@@ -561,7 +557,7 @@ class MinijailEngineFuzzerRunner(minijail.MinijailProcessRunner):
 def signal_term_handler(sig, frame):  # pylint: disable=unused-argument
   try:
     print('SIGTERMed')
-  except IOError:  # Pipe may already be closed and we may not be able to print.
+  except OSError:  # Pipe may already be closed and we may not be able to print.
     pass
 
   new_process.kill_process_tree(os.getpid())
@@ -576,17 +572,18 @@ def get_seed_corpus_path(fuzz_target_path):
   # Get all files that end with _seed_corpus.*
   possible_archive_paths = set(glob.glob(archive_path_without_extension + '.*'))
   # Now get a list of these that are valid seed corpus archives.
-  archive_paths = possible_archive_paths.intersection(
-      set(archive_path_without_extension + extension
-          for extension in archive.ARCHIVE_FILE_EXTENSIONS))
+  archive_paths = possible_archive_paths.intersection({
+      archive_path_without_extension + extension
+      for extension in archive.ARCHIVE_FILE_EXTENSIONS
+  })
 
   archive_paths = list(archive_paths)
   if not archive_paths:
     return None
 
   if len(archive_paths) > 1:
-    logs.log_error('Multiple seed corpuses exist for fuzz target %s: %s.' %
-                   (fuzz_target_path, ', '.join(archive_paths)))
+    logs.error('Multiple seed corpuses exist for fuzz target %s: %s.' %
+               (fuzz_target_path, ', '.join(archive_paths)))
 
   return archive_paths[0]
 
@@ -643,29 +640,33 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
     return
 
   if force_unpack:
-    logs.log('Forced unpack: %s.' % seed_corpus_archive_path)
+    logs.info('Forced unpack: %s.' % seed_corpus_archive_path)
 
-  archive_iterator = archive.iterator(seed_corpus_archive_path)
-  # Unpack seed corpus recursively into the root of the main corpus directory.
+  try:
+    reader = archive.open(seed_corpus_archive_path)
+  except:
+    logs.error(f'Failed reading archive: {seed_corpus_archive_path}')
+    return
+
   idx = 0
-  for seed_corpus_file in archive_iterator:
-    # Ignore directories.
-    if seed_corpus_file.name.endswith('/'):
-      continue
+  with reader:
+    for file in reader.list_members():
+      if file.is_dir:
+        continue
 
-    # Allow callers to opt-out of unpacking large files.
-    if seed_corpus_file.size > max_bytes:
-      continue
+      if file.size_bytes > max_bytes:
+        continue
 
-    output_filename = '%016d' % idx
-    output_file_path = os.path.join(corpus_directory, output_filename)
-    with open(output_file_path, 'wb') as file_handle:
-      shutil.copyfileobj(seed_corpus_file.handle, file_handle)
+      output_filename = '%016d' % idx
+      output_file_path = os.path.join(corpus_directory, output_filename)
+      with open(output_file_path, 'wb') as file_handle:
+        with reader.open(file.name) as file:
+          shutil.copyfileobj(file, file_handle)
 
-    idx += 1
+      idx += 1
 
-  logs.log('Unarchiving %d files from seed corpus %s.' %
-           (idx, seed_corpus_archive_path))
+  logs.info('Unarchiving %d files from seed corpus %s.' %
+            (idx, seed_corpus_archive_path))
 
 
 def get_log_header(command, time_executed):

@@ -66,8 +66,11 @@ ASSERT_REGEX_GLIBC = re.compile(
 # The 'assertion .* failed' is suffixed with the failure reason. E.g.,
 # 'assertion __dest < len() failed: sample_array[] index out of bounds',
 # 'assertion !full() failed: sample_function() called on an empty vector'
+# Add the lookahead group to prevent DoS, see
+# https://github.com/google/clusterfuzz/issues/3978.
 ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
-    r'.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
+    r'(?=.*assertion .* failed:.).*.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)'  # pylint: disable=line-too-long
+)
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
 CENTIPEDE_TIMEOUT_REGEX = re.compile(r'(?:%s)' % '|'.join([
     r'========= Timeout of \d+ seconds exceeded; exiting',
@@ -114,6 +117,10 @@ FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
 FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
+FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
+                              re.IGNORECASE)
+FUZZER_EXIT_REGEX = re.compile(r'^\s*(?:#0|#1) 0x.*(?:fuzzer|fuzz/|/fuzz)',
+                               re.IGNORECASE)
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
     'Received signal 11 SEGV_[A-Z]+ ([0-9a-f]*)')
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
@@ -183,6 +190,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'in rust_oom',
     r'Failure description: out-of-memory',  # Centipede old.
     r'========= RSS limit exceeded:',  # Centipede new.
+    r'A device memory allocation has failed\.',  # To detect gpu OOM errors.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
@@ -196,8 +204,11 @@ SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'[ ]*([^ ]*|Atomic [^ ]*) of size ([^ ]*) at ([^ ]*)')
 SAN_DEADLYSIGNAL_REGEX = re.compile(
     r'(Address|Leak|Memory|UndefinedBehavior|Thread)Sanitizer:DEADLYSIGNAL')
+# Use the lookahead group to prevent DoS, see
+# https://github.com/google/clusterfuzz/issues/3978.
 CONCATENATED_SAN_DEADLYSIGNAL_REGEX = re.compile(
-    r'\n([^\n]*\S[^\n]*)(' + SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
+    r'\n(?=.*Sanitizer\:DEADLYSIGNAL.*)([^\n]*\S[^\n]*)(' +
+    SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
 SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX = r'\n\1\n\2\n'
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
@@ -295,6 +306,7 @@ V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
 V8_CORRECTNESS_METADATA_REGEX = re.compile(
     r'#\s*V8 correctness ((configs|sources|suppression): .*)')
 V8_ERROR_REGEX = re.compile(r'\s*\[[^\]]*\] V8 error: (.+)\.$')
+V8_SANDBOX_VIOLATION_REGEX = re.compile(r'## V8 sandbox violation detected!$')
 WINDOWS_CDB_STACK_FRAME_REGEX = re.compile(
     r'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
     r'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
@@ -541,6 +553,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*logging::LogMessage',
     r'.*stdext::exception::what',
     r'.*v8::base::OS::Abort',
+    r'.*Runtime_AbortCSADcheck',
 
     # File paths.
     r'.* base/callback',
@@ -550,6 +563,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*/crosstool/',
     r'.*/gcc/',
     r'.*/glibc\-',
+    r'.*/googletest/',
     r'.*/jemalloc/',
     r'.*/libc\+\+',
     r'.*/libc/',
@@ -593,6 +607,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Swift specific.
     r'^_swift_stdlib_',
 
+    # centipede specific.
+    r'.*centipede::',
+
     # googlefuzztest specific.
     r'.*fuzztest::internal::',
 
@@ -604,6 +621,10 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',
+
+    # Skia specific stack frame ignores
+    r'^SkAbort_FileLine',
+    r'^SkMutex::~SkMutex',  # sometimes released atexit giving a secondary crash
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -623,7 +644,10 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Out-of-memory',
+    'Unreachable code',
     'V8 API error',
+    'V8 sandbox violation',
 ]
 
 STATE_STOP_MARKERS = [

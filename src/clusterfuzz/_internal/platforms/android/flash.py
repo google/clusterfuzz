@@ -51,6 +51,9 @@ FLASH_IMAGE_FILES = [
     ('dtbo', 'dtbo.img'),
     ('userdata', 'userdata.img'),
 ]
+FLASH_DEFAULT_BUILD_TARGET = '-next-userdebug'
+FLASH_DEFAULT_IMAGES_DIR = os.path.join(
+    environment.get_value('ROOT_DIR', ''), 'bot', 'inputs', 'images')
 FLASH_INTERVAL = 1 * 24 * 60 * 60
 FLASH_RETRIES = 3
 FLASH_REBOOT_BOOTLOADER_WAIT = 15
@@ -63,7 +66,9 @@ def download_latest_build(build_info, image_regexes, image_directory):
   # download it.
   build_id = build_info['bid']
   target = build_info['target']
+  logs.info('target stored in current build_info: %s.' % target)
   last_build_info = persistent_cache.get_value(constants.LAST_FLASH_BUILD_KEY)
+  logs.info('last_build_info take from persisten cache: %s.' % last_build_info)
   if last_build_info and last_build_info['bid'] == build_id:
     return
 
@@ -74,14 +79,15 @@ def download_latest_build(build_info, image_regexes, image_directory):
                                           image_directory)
 
     if not image_file_paths:
-      logs.log_error('Failed to download artifact %s for '
-                     'branch %s and target %s.' %
-                     (image_file_paths, build_info['branch'], target))
+      logs.error('Failed to download artifact %s for '
+                 'branch %s and target %s.' % (image_file_paths,
+                                               build_info['branch'], target))
       return
 
     for file_path in image_file_paths:
       if file_path.endswith('.zip') or file_path.endswith('.tar.gz'):
-        archive.unpack(file_path, image_directory)
+        with archive.open(file_path) as reader:
+          reader.extract_all(image_directory)
 
 
 def flash_to_latest_build_if_needed():
@@ -107,12 +113,12 @@ def flash_to_latest_build_if_needed():
 
   is_google_device = settings.is_google_device()
   if is_google_device is None:
-    logs.log_error('Unable to query device. Reimaging failed.')
+    logs.error('Unable to query device. Reimaging failed.')
     adb.bad_state_reached()
 
   elif not is_google_device:
     # We can't reimage these, skip.
-    logs.log('Non-Google device found, skipping reimage.')
+    logs.info('Non-Google device found, skipping reimage.')
     return
 
   # Check if both |BUILD_BRANCH| and |BUILD_TARGET| environment variables
@@ -121,25 +127,38 @@ def flash_to_latest_build_if_needed():
   branch = environment.get_value('BUILD_BRANCH')
   target = environment.get_value('BUILD_TARGET')
   if not target:
-    # We default to userdebug configuration.
+    logs.info('BUILD_TARGET is not set.')
     build_params = settings.get_build_parameters()
     if build_params:
-      target = build_params.get('target') + '-userdebug'
+      logs.info('build_params found on device: %s.' % build_params)
+      if environment.is_android_cuttlefish():
+        target = build_params.get('target') + FLASH_DEFAULT_BUILD_TARGET
+        logs.info('is_android_cuttlefish() returned True. Target: %s.' % target)
+      else:
+        target = build_params.get('target') + '-userdebug'
+        logs.info(
+            'is_android_cuttlefish() returned False. Target: %s.' % target)
 
       # Cache target in environment. This is also useful for cases when
       # device is bricked and we don't have this information available.
       environment.set_value('BUILD_TARGET', target)
+    else:
+      logs.info('build_params not found.')
 
   if not branch or not target:
-    logs.log_warn(
-        'BUILD_BRANCH and BUILD_TARGET are not set, skipping reimage.')
+    logs.warning('BUILD_BRANCH and BUILD_TARGET are not set, skipping reimage.')
     return
 
   image_directory = environment.get_value('IMAGES_DIR')
+  logs.info('image_directory: %s' % str(image_directory))
+  if not image_directory:
+    logs.info('no image_directory set, setting to default')
+    image_directory = FLASH_DEFAULT_IMAGES_DIR
+    logs.info('image_directory: %s' % image_directory)
   build_info = fetch_artifact.get_latest_artifact_info(branch, target)
   if not build_info:
-    logs.log_error('Unable to fetch information on latest build artifact for '
-                   'branch %s and target %s.' % (branch, target))
+    logs.error('Unable to fetch information on latest build artifact for '
+               'branch %s and target %s.' % (branch, target))
     return
 
   if environment.is_android_cuttlefish():
@@ -152,11 +171,11 @@ def flash_to_latest_build_if_needed():
     # failures and device being stuck in a bad state.
     flash_lock_key_name = 'flash:%s' % socket.gethostname()
     if not locks.acquire_lock(flash_lock_key_name, by_zone=True):
-      logs.log_error('Failed to acquire lock for reimaging, exiting.')
+      logs.error('Failed to acquire lock for reimaging, exiting.')
       return
 
-    logs.log('Reimaging started.')
-    logs.log('Rebooting into bootloader mode.')
+    logs.info('Reimaging started.')
+    logs.info('Rebooting into bootloader mode.')
     for _ in range(FLASH_RETRIES):
       adb.run_as_root()
       adb.run_command(['reboot-bootloader'])
@@ -182,15 +201,15 @@ def flash_to_latest_build_if_needed():
 
       if adb.get_device_state() == 'device':
         break
-      logs.log_error('Reimaging failed, retrying.')
+      logs.error('Reimaging failed, retrying.')
 
     locks.release_lock(flash_lock_key_name, by_zone=True)
 
   if adb.get_device_state() != 'device':
-    logs.log_error('Unable to find device. Reimaging failed.')
+    logs.error('Unable to find device. Reimaging failed.')
     adb.bad_state_reached()
 
-  logs.log('Reimaging finished.')
+  logs.info('Reimaging finished.')
 
   # Reset all of our persistent keys after wipe.
   persistent_cache.delete_value(constants.BUILD_PROP_MD5_KEY)

@@ -18,6 +18,7 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
+CLUSTERFUZZ_FILE=clusterfuzz_package.zip
 # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
 if [[ -z "$LOCAL_SRC" ]]; then
   # Set up ClusterFuzz
@@ -25,8 +26,9 @@ if [[ -z "$LOCAL_SRC" ]]; then
     rm -rf clusterfuzz
   fi
 
-  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP .
-  unzip -q -o $DEPLOYMENT_ZIP
+  # DEPLOYMENT_ZIP might be test-deployment/linux-3.zip, so we do not extract DEPLOYMENT_ZIP directly
+  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
+  unzip -q -o $CLUSTERFUZZ_FILE
 fi
 
 # Some configurations (e.g. hosts) run many instances of ClusterFuzz. Don't
@@ -37,14 +39,14 @@ if [[ -z "$DISABLE_MOUNTS" ]]; then
   mount -t tmpfs -o size=10M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/logs/
   mount -t tmpfs -o size=90M,mode=777 tmpfs $BOT_TMPDIR
 
-  # Setup mount to limit disk space for fuzzer-testcases-disk directory.
+  # Setup mount to limit disk space for fuzzer testcases disk directory.
   FUZZER_TESTCASES_DISK_FILE=$INSTALL_DIRECTORY/fuzzer-testcases.mnt
   fallocate -l 8GiB $FUZZER_TESTCASES_DISK_FILE
   mkfs.ext4 -F $FUZZER_TESTCASES_DISK_FILE
 
   # mkfs.ext4 seems to remove the previous allocation, so do it again.
   fallocate -l 8GiB $FUZZER_TESTCASES_DISK_FILE
-  mount -o loop $FUZZER_TESTCASES_DISK_FILE $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases-disk
+  mount -o loop $FUZZER_TESTCASES_DISK_FILE $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/disk
 fi
 
 chown -R $USER:$USER $INSTALL_DIRECTORY

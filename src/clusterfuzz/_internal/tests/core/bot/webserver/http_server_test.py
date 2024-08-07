@@ -26,13 +26,15 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 class TestRequestHandler(http_server.RequestHandler):
   """Override methods which would be problematic for testing."""
 
-  class TestWFile(object):
+  class TestWFile:
 
     def __init__(self):
       self.contents = ''
 
     def write(self, data):
-      self.contents += data
+      # Since the fake files are being created with simple contents, we can
+      # just decode that as 'utf-8'.
+      self.contents += data.decode("utf-8")
 
   def __init__(self, path):  # pylint: disable=super-init-not-called
     self.response_code = 0

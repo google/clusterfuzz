@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DEPLOYMENT_ZIP="linux-3.zip"
+if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
+    DEPLOYMENT_ZIP="linux-3-candidate.zip"
+fi
+export DEPLOYMENT_ZIP
+
 source /data/setup_common.sh
 source /data/setup_clusterfuzz.sh
 

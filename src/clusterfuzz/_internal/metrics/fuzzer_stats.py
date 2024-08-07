@@ -431,7 +431,7 @@ class CoverageField(BaseCoverageField):
       return None
 
     if not total:
-      logs.log_error(
+      logs.error(
           'Invalid coverage info: total equals 0 for "%s".' % self.ctx.fuzzer)
       return BuiltinFieldData('No coverage', sort_key=0.0)
 
@@ -999,14 +999,14 @@ def upload_stats(stats_list, filename=None):
   """Upload the fuzzer run to the bigquery bucket. Assumes that all the stats
   given are for the same fuzzer/job run."""
   if not stats_list:
-    logs.log_error('Failed to upload fuzzer stats: empty stats.')
+    logs.error('Failed to upload fuzzer stats: empty stats.')
     return
 
   assert isinstance(stats_list, list)
 
   bucket_name = big_query.get_bucket()
   if not bucket_name:
-    logs.log_error('Failed to upload fuzzer stats: missing bucket name.')
+    logs.error('Failed to upload fuzzer stats: missing bucket name.')
     return
 
   kind = stats_list[0].kind
@@ -1032,8 +1032,10 @@ def upload_stats(stats_list, filename=None):
     day_path = 'gs:/' + get_gcs_stats_path(
         kind, fuzzer_or_engine_name, timestamp=timestamp) + filename
 
-    if not storage.write_data(upload_data.encode('utf-8'), day_path):
-      logs.log_error('Failed to upload FuzzerRun.')
+    if storage.write_data(upload_data.encode('utf-8'), day_path):
+      logs.info(f'Uploaded {kind} stats for {fuzzer} to {day_path}.')
+    else:
+      logs.error(f'Failed to upload {kind} stats for {fuzzer} to {day_path}.')
 
 
 def parse_stats_column_fields(column_fields):

@@ -23,15 +23,14 @@ class RemoteGSUtilRunner(gsutil.GSUtilRunner):
   """Remote GSUtil runner."""
 
   def __init__(self):
-    super(RemoteGSUtilRunner,
-          self).__init__(process_runner=remote_process_host.RemoteProcessRunner)
+    super().__init__(process_runner=remote_process_host.RemoteProcessRunner)
 
 
 class RemoteFuzzTargetCorpus(corpus_manager.FuzzTargetCorpus):
   """libFuzzer corpus sync that runs on untrusted bot."""
 
   def __init__(self, fuzzer_name, fuzzer_executable_name, quarantine=False):
-    super(RemoteFuzzTargetCorpus, self).__init__(
+    super().__init__(
         fuzzer_name,
         fuzzer_executable_name,
         quarantine,

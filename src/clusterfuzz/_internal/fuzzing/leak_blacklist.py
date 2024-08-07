@@ -65,7 +65,20 @@ def cleanup_global_blacklist():
   ndb_utils.delete_multi(blacklists_to_delete)
 
 
-def copy_global_to_local_blacklist(excluded_testcase=None):
+def get_global_blacklisted_functions():
+  # Copy global blacklist into local blacklist.
+  global_blacklists = data_types.Blacklist.query(
+      data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
+  blacklisted_functions = []
+  for blacklist in global_blacklists:
+    if blacklist.function_name in blacklisted_functions:
+      continue
+    blacklisted_functions.append(blacklist.function_name)
+  return blacklisted_functions
+
+
+def copy_global_to_local_blacklist(blacklisted_functions,
+                                   excluded_testcase=None):
   """Copies contents of global blacklist into local blacklist file, excluding
   a particular testcase (if any)."""
   lsan_suppressions_path = get_local_blacklist_file_path()
@@ -76,20 +89,12 @@ def copy_global_to_local_blacklist(excluded_testcase=None):
   with open(lsan_suppressions_path, 'w') as local_blacklist:
     # Insert comment on top to avoid parsing errors on empty file.
     local_blacklist.write(LSAN_HEADER_COMMENT)
-
-    # Copy global blacklist into local blacklist.
-    global_blacklists = data_types.Blacklist.query(
-        data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
-    blacklisted_functions = []
-    for blacklist in global_blacklists:
-      if blacklist.function_name in blacklisted_functions:
-        continue
-      if blacklist.function_name == excluded_function_name:
+    for function_name in blacklisted_functions:
+      if function_name == excluded_function_name:
         continue
 
       local_blacklist.write(
-          LSAN_SUPPRESSION_LINE.format(function=blacklist.function_name))
-      blacklisted_functions.append(blacklist.function_name)
+          LSAN_SUPPRESSION_LINE.format(function=function_name))
 
 
 def get_leak_function_for_blacklist(testcase):
@@ -124,15 +129,14 @@ def add_crash_to_global_blacklist_if_needed(testcase):
   """Adds relevant function from testcase crash state to global blacklist."""
   testcase_id = testcase.key.id()
   if not should_be_blacklisted(testcase):
-    logs.log('Testcase %s is not a reproducible leak, skipping leak blacklist.'
-             % testcase_id)
+    logs.info('Testcase %s is not a reproducible leak, skipping leak blacklist.'
+              % testcase_id)
     return False
 
   function_name = get_leak_function_for_blacklist(testcase)
   if not function_name:
-    logs.log_error(
-        'Testcase %s has invalid crash state, skipping leak blacklist.' %
-        testcase_id)
+    logs.error('Testcase %s has invalid crash state, skipping leak blacklist.' %
+               testcase_id)
     return False
 
   existing_query = data_types.Blacklist.query(
@@ -143,7 +147,7 @@ def add_crash_to_global_blacklist_if_needed(testcase):
       data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
 
   if existing_query.get():
-    logs.log_error('Item already in leak blacklist.')
+    logs.error('Item already in leak blacklist.')
     return False
 
   blacklist_item = data_types.Blacklist(
@@ -151,7 +155,7 @@ def add_crash_to_global_blacklist_if_needed(testcase):
       testcase_id=testcase_id,
       tool_name=LSAN_TOOL_NAME)
   blacklist_item.put()
-  logs.log('Added %s to leak blacklist.' % function_name)
+  logs.info('Added %s to leak blacklist.' % function_name)
 
   return blacklist_item
 

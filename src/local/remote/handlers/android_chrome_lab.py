@@ -24,7 +24,7 @@ class Handler(posix.Handler):
   """Handler for managing an android host in the chrome lab."""
 
   def __init__(self, instance_name, *_):
-    super(Handler, self).__init__(
+    super().__init__(
         instance_name=instance_name, platform='linux', project=None, zone=None)
 
     # FIXME: Make these configurable.

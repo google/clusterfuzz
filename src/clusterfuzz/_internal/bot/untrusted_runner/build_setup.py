@@ -17,6 +17,8 @@ from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz._internal.system import environment
 
+# pylint: disable=no-member
+
 
 def _build_response(result):
   if not result:

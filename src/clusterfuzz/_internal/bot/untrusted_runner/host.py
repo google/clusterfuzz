@@ -133,13 +133,12 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
       if state == ChannelState.INCONSISTENT:
         # No point retrying if the worker is inconsistent.
         monitoring_metrics.HOST_INCONSISTENT_COUNT.increment()
-        logs.log_warn('Worker got into an inconsistent state.')
+        logs.warning('Worker got into an inconsistent state.')
         host_exit_no_return(return_code=0)
 
       if state == ChannelState.NOT_READY:
         # Channel still isn't ready.
-        logs.log_warn(
-            'Channel failed to become ready within reconnect timeout.')
+        logs.warning('Channel failed to become ready within reconnect timeout.')
         if retry_attempt == num_retries:
           # Last attempt.
           host_exit_no_return()
@@ -159,7 +158,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
           # for retries.
           raise
 
-        logs.log_warn('Failed RPC: ' + repr(e))
+        logs.warning('Failed RPC: ' + repr(e))
         if retry_attempt == num_retries:
           # Last attempt.
           host_exit_no_return()
@@ -178,10 +177,10 @@ def _do_heartbeat():
   while True:
     try:
       heartbeat_stub.Beat(
-          heartbeat_pb2.HeartbeatRequest(),
+          heartbeat_pb2.HeartbeatRequest(),  # pylint: disable=no-member
           timeout=config.HEARTBEAT_TIMEOUT_SECONDS)
     except grpc.RpcError as e:
-      logs.log_warn('worker heartbeat failed: ' + repr(e))
+      logs.warning('worker heartbeat failed: ' + repr(e))
 
     time.sleep(config.HEARTBEAT_INTERVAL_SECONDS)
 
@@ -221,7 +220,7 @@ def _connect():
 
   root_cert = _get_root_cert(worker_assignment.project_name)
   if not root_cert:
-    logs.log_warn('TLS certs not yet generated.')
+    logs.warning('TLS certs not yet generated.')
     time.sleep(WAIT_TLS_CERT_SECONDS)
     sys.exit(0)
 
@@ -242,13 +241,13 @@ def _connect():
       options=config.GRPC_OPTIONS)
   _host_state.stub = UntrustedRunnerStub(_host_state.channel)
 
-  logs.log('Connecting to worker %s...' % server_name)
+  logs.info('Connecting to worker %s...' % server_name)
   _host_state.channel.subscribe(
       _channel_connectivity_changed, try_to_connect=True)
 
   channel_state = _check_channel_state(config.INITIAL_CONNECT_TIMEOUT_SECONDS)
   if channel_state == ChannelState.INCONSISTENT:
-    logs.log_warn('Worker inconsistent on initial connect.')
+    logs.warning('Worker inconsistent on initial connect.')
     monitoring_metrics.HOST_INCONSISTENT_COUNT.increment()
     host_exit_no_return(return_code=0)
 
@@ -268,7 +267,7 @@ def _channel_connectivity_changed(connectivity):
     with _host_state.channel_condition:
       if connectivity == grpc.ChannelConnectivity.READY:
         if _check_state():
-          logs.log('Connected to worker.')
+          logs.info('Connected to worker.')
           _host_state.channel_state = ChannelState.READY
         else:
           _host_state.channel_state = ChannelState.INCONSISTENT
@@ -281,46 +280,46 @@ def _channel_connectivity_changed(connectivity):
     if connectivity == grpc.ChannelConnectivity.SHUTDOWN:
       if _host_state.expect_shutdown:
         # We requested a shutdown to update the source.
-        logs.log('Worker shutting down.')
+        logs.info('Worker shutting down.')
         return
 
       raise untrusted.HostError('Unrecoverable error.')
   except AttributeError:
     # Python sets all globals to None on shutdown. Ignore.
-    logs.log('Shutting down.')
+    logs.info('Shutting down.')
     return
 
   if connectivity == grpc.ChannelConnectivity.TRANSIENT_FAILURE:
-    logs.log_warn('Transient failure detected on worker channel.')
+    logs.warning('Transient failure detected on worker channel.')
 
   if connectivity == grpc.ChannelConnectivity.CONNECTING:
-    logs.log('Reconnecting to worker.')
+    logs.info('Reconnecting to worker.')
 
 
 def _check_state():
   """Check that the worker's state is consistent with the host's knowledge."""
   try:
     status = stub().GetStatus(
-        untrusted_runner_pb2.GetStatusRequest(),
+        untrusted_runner_pb2.GetStatusRequest(),  # pylint: disable=no-member
         timeout=config.GET_STATUS_TIMEOUT_SECONDS)
   except grpc.RpcError:
-    logs.log_error('GetStatus failed.')
+    logs.error('GetStatus failed.')
     return False
 
   if status.revision != utils.current_source_version():
-    logs.log_warn('Mismatching source revision: %s (host) vs %s (worker).' %
-                  (utils.current_source_version(), status.revision))
+    logs.warning('Mismatching source revision: %s (host) vs %s (worker).' %
+                 (utils.current_source_version(), status.revision))
     return False
 
   if _host_state.worker_bot_name != status.bot_name:
-    logs.log_warn('Worker bot name invalid (IP changed?).')
+    logs.warning('Worker bot name invalid (IP changed?).')
     return False
 
   if _host_state.worker_start_time:
     if _host_state.worker_start_time == status.start_time:
       return True
 
-    logs.log_warn('Worker start time changed.')
+    logs.warning('Worker start time changed.')
     return False
 
   _host_state.worker_start_time = status.start_time
@@ -342,7 +341,7 @@ def update_worker():
   _host_state.expect_shutdown = True
   try:
     stub().UpdateSource(
-        untrusted_runner_pb2.UpdateSourceRequest(),
+        untrusted_runner_pb2.UpdateSourceRequest(),  # pylint: disable=no-member
         timeout=config.UPDATE_SOURCE_TIMEOUT_SECONDS)
   except grpc.RpcError:
     # Assume server got the shutdown request.
@@ -362,7 +361,7 @@ def host_exit_no_return(return_code=1):
 
   # This should bypass most exception handlers and avoid callers from catching
   # this incorrectly.
-  logs.log('Shutting down host.', return_code=return_code)
+  logs.info('Shutting down host.', return_code=return_code)
   raise untrusted.HostError(return_code)
 
 

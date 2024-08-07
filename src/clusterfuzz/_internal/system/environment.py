@@ -29,7 +29,8 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER',
+    'MTE'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -171,7 +172,6 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
   # Enable stack use-after-return.
   asan_options['detect_stack_use_after_return'] = 1
-  asan_options['max_uar_stack_size_log'] = 16
 
   # Other less important default options for all cases.
   asan_options.update({
@@ -666,11 +666,6 @@ def is_honggfuzz_job(job_name=None):
   return get_engine_for_job(job_name) == 'honggfuzz'
 
 
-def is_kernel_fuzzer_job(job_name=None):
-  """Return True if the current job uses syzkaller."""
-  return get_engine_for_job(job_name) == 'syzkaller'
-
-
 def is_centipede_fuzzer_job(job_name=None):
   """Return True if the current job uses Centipede."""
   return get_engine_for_job(job_name) == 'centipede'
@@ -691,6 +686,14 @@ def get_engine_for_job(job_name=None):
       return engine
 
   return None
+
+
+def is_minimization_supported():
+  """Return True if the current job supports minimization.
+
+  Currently blackbox-fuzzer jobs or libfuzzer support minimization.
+  """
+  return not is_engine_fuzzer_job() or is_libfuzzer_job()
 
 
 def is_posix():
@@ -746,6 +749,11 @@ def parse_environment_definition(environment_string):
         values[key] = value
 
   return values
+
+
+def base_platform(override):
+  """Return the base platform when an override is provided."""
+  return override.split(':')[0]
 
 
 def platform():
@@ -814,25 +822,6 @@ def set_common_environment_variables():
 def set_memory_tool_options(env_var, options_dict):
   """Set current memory tool options."""
   set_value(env_var, join_memory_tool_options(options_dict))
-
-
-def set_environment_parameters_from_file(file_path):
-  """Set environment variables from a file."""
-  if not os.path.exists(file_path):
-    return
-
-  with open(file_path, 'r') as f:
-    file_data = f.read()
-
-  for line in file_data.splitlines():
-    if line.startswith('#') or not line.strip():
-      continue
-
-    m = re.match('([^ =]+)[ ]*=[ ]*(.*)', line)
-    if m:
-      environment_variable = m.group(1)
-      environment_variable_value = m.group(2)
-      set_value(environment_variable, environment_variable_value)
 
 
 def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
@@ -957,8 +946,7 @@ def set_bot_environment():
   os.environ['DATA_BUNDLES_DIR'] = os.path.join(inputs_dir, 'data-bundles')
   os.environ['FUZZ_INPUTS'] = os.path.join(inputs_dir, 'fuzzer-testcases')
   os.environ['FUZZ_INPUTS_MEMORY'] = os.environ['FUZZ_INPUTS']
-  os.environ['FUZZ_INPUTS_DISK'] = os.path.join(inputs_dir,
-                                                'fuzzer-testcases-disk')
+  os.environ['FUZZ_INPUTS_DISK'] = os.path.join(inputs_dir, 'disk')
   os.environ['FUZZ_DATA'] = os.path.join(inputs_dir,
                                          'fuzzer-common-data-bundles')
   os.environ['IMAGES_DIR'] = os.path.join(inputs_dir, 'images')
@@ -1026,6 +1014,15 @@ def set_value(environment_variable, value, env=None):
                                                value_str)
 
 
+def get_initial_task_name():
+  """Returns the name of the task that this task (postprocess or utask_main) is
+  part of."""
+  initial_task_payload = get_value('INITIAL_TASK_PAYLOAD')
+  if initial_task_payload is None:
+    return None
+  return initial_task_payload.split(' ')[0]
+
+
 def tool_matches(tool_name, job_name):
   """Return if the memory debugging tool is used in this job."""
   match_prefix = '(.*[^a-zA-Z]|^)%s'
@@ -1066,6 +1063,13 @@ def is_local_development():
   return bool(get_value('LOCAL_DEVELOPMENT') and not get_value('PY_UNITTESTS'))
 
 
+def is_production():
+  """Returns True if there are no environmental indicators
+  of local development ocurring."""
+  return not (is_local_development() or get_value('UNTRUSTED_RUNNER_TESTS') or
+              get_value('LOCAL_DEVELOPMENT') or get_value('UTASK_TESTS'))
+
+
 def local_noop(func):
   """Wrap a function into no-op and return None if running in local
   development environment."""
@@ -1100,14 +1104,9 @@ def is_android_emulator():
   return 'ANDROID_EMULATOR' in get_platform_group()
 
 
-def is_android_kernel(plt=None):
-  """Return True if we are on android kernel platform groups."""
-  return 'ANDROID_KERNEL' in (plt or get_platform_group())
-
-
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platform() == 'ANDROID'
+  return base_platform(platform()) == 'ANDROID'
 
 
 def is_lib():
@@ -1117,3 +1116,50 @@ def is_lib():
 
 def is_i386(job_type):
   return '_i386' in job_type
+
+
+def if_redis_available(func):
+  """Wrap a function if redis is available and return None if not."""
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if get_value('REDIS_HOST'):
+      return func(*args, **kwargs)
+
+    return None
+
+  return wrapper
+
+
+def is_testcase_deprecated(platform_id=None):
+  """Whether or not the device or branch is deprecated."""
+
+  if is_android(
+      platform_id.upper()) and not is_android_cuttlefish(platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
+    return android.util.is_testcase_deprecated(platform_id)
+
+  return False
+
+
+def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
+  """Whether or not the testcase can run on the current platform."""
+  if not is_android(testcase_platform_id.upper()) or not is_android(
+      current_platform_id.upper()):
+    return False
+
+  if is_android_cuttlefish(
+      testcase_platform_id.upper()) and is_android_cuttlefish(
+          current_platform_id.upper()):
+    return True
+
+  if is_android(testcase_platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
+    return android.util.can_testcase_run_on_platform(testcase_platform_id,
+                                                     current_platform_id)
+
+  return False

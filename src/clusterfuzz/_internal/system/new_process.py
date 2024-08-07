@@ -57,7 +57,7 @@ def _end_process(terminate_function, process_result):
   try:
     terminate_function()
   except OSError:
-    logs.log('Process already killed.')
+    logs.info('Process already killed.')
 
   process_result.timed_out = True
 
@@ -126,22 +126,22 @@ def kill_process_tree(root_pid):
     parent = psutil.Process(root_pid)
     children = parent.children(recursive=True)
   except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-    logs.log_warn('Failed to find or access process.')
+    logs.warning('Failed to find or access process.')
     return
 
   for child in children:
     try:
       child.kill()
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-      logs.log_warn('Failed to kill process child.')
+      logs.warning('Failed to kill process child.')
 
   try:
     parent.kill()
   except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-    logs.log_warn('Failed to kill process.')
+    logs.warning('Failed to kill process.')
 
 
-class ChildProcess(object):
+class ChildProcess:
   """A class representing a process that's running."""
 
   def __init__(self,
@@ -209,10 +209,10 @@ class ChildProcess(object):
     try:
       self._popen.terminate()
     except OSError:
-      logs.log_warn('Failed to terminate process.')
+      logs.warning('Failed to terminate process.')
 
 
-class ProcessResult(object):
+class ProcessResult:
   """Object representing result of a process execution.
 
   Returned by ProcessRunner.run_and_wait().
@@ -239,7 +239,7 @@ class ProcessResult(object):
     self.timed_out = timed_out
 
 
-class ProcessRunner(object):
+class ProcessRunner:
   """Generic process runner class.
 
   Attributes:
@@ -411,7 +411,7 @@ class ProcessRunner(object):
     return result
 
 
-class UnicodeProcessRunnerMixin(object):
+class UnicodeProcessRunnerMixin:
   """Mixin for process runner subclasses to output unicode output."""
 
   def run_and_wait(self, *args, **kwargs) -> ProcessResult:  # pylint: disable=arguments-differ
@@ -427,7 +427,7 @@ class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which always returns unicode output."""
 
 
-class ModifierProcessRunnerMixin(object):
+class ModifierProcessRunnerMixin:
   """ProcessRunner mixin with modifiers."""
 
   def tool_prefix(self, tool):

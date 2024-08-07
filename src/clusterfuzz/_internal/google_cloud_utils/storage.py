@@ -13,6 +13,8 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+from concurrent import futures
+import contextlib
 import copy
 import datetime
 import json
@@ -20,7 +22,9 @@ import os
 import shutil
 import threading
 import time
+import uuid
 
+import google.auth.exceptions
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import requests
@@ -44,6 +48,12 @@ try:
 except ImportError:
   # This is expected to fail on AppEngine.
   pass
+
+try:
+  import OpenSSL.SSL
+except ImportError:
+  # This is expected to fail on non-linux platforms.
+  OpenSSL = None  # pylint: disable=invalid-name
 
 # Usually, authentication time have expiry of ~30 minutes, but keeping this
 # values lower to avoid failures and any future changes.
@@ -79,9 +89,18 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 HTTP_TIMEOUT_SECONDS = 15
 
 _TRANSIENT_ERRORS = [
-    google.cloud.exceptions.GoogleCloudError, ConnectionError,
-    requests.exceptions.ConnectionError
+    google.cloud.exceptions.GoogleCloudError,
+    ConnectionError,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.ChunkedEncodingError,
+    requests.exceptions.ReadTimeout,
+    ConnectionResetError,
+    google.auth.exceptions.TransportError,
 ]
+
+if OpenSSL:
+  # We haven't imported this on non-linux platforms.
+  _TRANSIENT_ERRORS.append(OpenSSL.SSL.Error)
 
 
 class StorageProvider:
@@ -115,7 +134,7 @@ class StorageProvider:
     """Read the data of a remote file."""
     raise NotImplementedError
 
-  def write_data(self, data, remote_path, metadata=None):
+  def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""
     raise NotImplementedError
 
@@ -145,8 +164,16 @@ class StorageProvider:
     """Downloads |signed_url|."""
     raise NotImplementedError
 
-  def upload_signed_url(self, data, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url):
     """Uploads |data| to |signed_url|."""
+    raise NotImplementedError
+
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    raise NotImplementedError
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
     raise NotImplementedError
 
 
@@ -174,7 +201,7 @@ class GcsProvider(StorageProvider):
     try:
       client.buckets().insert(project=project_id, body=request_body).execute()
     except HttpError as e:
-      logs.log_warn('Failed to create bucket %s: %s' % (name, e))
+      logs.warning('Failed to create bucket %s: %s' % (name, e))
       raise
 
     return True
@@ -232,8 +259,8 @@ class GcsProvider(StorageProvider):
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy cloud storage file %s to local file %s.' %
-                    (remote_path, local_path))
+      logs.warning('Failed to copy cloud storage file %s to local file %s.' %
+                   (remote_path, local_path))
       raise
 
     return True
@@ -254,8 +281,8 @@ class GcsProvider(StorageProvider):
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
-                    (local_path_or_handle, remote_path))
+      logs.warning('Failed to copy local file %s to cloud storage file %s.' %
+                   (local_path_or_handle, remote_path))
       raise
 
     return True
@@ -272,8 +299,8 @@ class GcsProvider(StorageProvider):
       target_bucket = client.bucket(target_bucket_name)
       source_bucket.copy_blob(source_blob, target_bucket, target_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy cloud storage file %s to cloud storage '
-                    'file %s.' % (remote_source, remote_target))
+      logs.warning('Failed to copy cloud storage file %s to cloud storage '
+                   'file %s.' % (remote_source, remote_target))
       raise
 
     return True
@@ -291,10 +318,10 @@ class GcsProvider(StorageProvider):
       if e.code == 404:
         return None
 
-      logs.log_warn('Failed to read cloud storage file %s.' % remote_path)
+      logs.warning('Failed to read cloud storage file %s.' % remote_path)
       raise
 
-  def write_data(self, data, remote_path, metadata=None):
+  def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
@@ -304,9 +331,13 @@ class GcsProvider(StorageProvider):
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       if metadata:
         blob.metadata = metadata
-      blob.upload_from_string(data)
+      if isinstance(data_or_fileobj, (bytes, str)):
+        blob.upload_from_string(data_or_fileobj)
+      else:
+        blob.upload_from_file(data_or_fileobj)
+
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
+      logs.warning('Failed to write cloud storage file %s.' % remote_path)
       raise
 
     return True
@@ -327,7 +358,7 @@ class GcsProvider(StorageProvider):
             data = data.encode()
           blob_writer.write(data)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
+      logs.warning('Failed to write cloud storage file %s.' % remote_path)
       raise
 
     return True
@@ -354,7 +385,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       bucket.delete_blob(path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to delete cloud storage file %s.' % remote_path)
+      logs.warning('Failed to delete cloud storage file %s.' % remote_path)
       raise
 
     return True
@@ -373,32 +404,38 @@ class GcsProvider(StorageProvider):
     """Downloads |signed_url|."""
     return _download_url(signed_url)
 
-  def upload_signed_url(self, data, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url):
     """Uploads |data| to |signed_url|."""
-    requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
+    requests.put(signed_url, data=data_or_fileobj, timeout=HTTP_TIMEOUT_SECONDS)
+    return True
+
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    return _sign_url(
+        remote_path, method='DELETE', minutes=SIGNED_URL_EXPIRATION_MINUTES)
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
-  if environment.get_value('UTASK_TESTS') or environment.get_value(
-      'UNTRUSTED_RUNNER_TESTS'):
+  if _integration_test_env_doesnt_support_signed_urls():
     return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
-  signing_creds = _signing_creds()
+  signing_creds, access_token = _signing_creds()
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
-  url = blob.generate_signed_url(
+  return blob.generate_signed_url(
       version='v4',
       expiration=minutes,
       method=method,
-      credentials=signing_creds)
-  return url
+      credentials=signing_creds,
+      access_token=access_token,
+      service_account_email=signing_creds.service_account_email)
 
 
 class FileSystemProvider(StorageProvider):
@@ -563,14 +600,17 @@ class FileSystemProvider(StorageProvider):
     with open(fs_path, 'rb') as f:
       return f.read()
 
-  def write_data(self, data, remote_path, metadata=None):
+  def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""
     fs_path = self.convert_path_for_write(remote_path)
-    if isinstance(data, str):
-      data = data.encode()
+    if isinstance(data_or_fileobj, str):
+      data_or_fileobj = data_or_fileobj.encode()
 
     with open(fs_path, 'wb') as f:
-      f.write(data)
+      if isinstance(data_or_fileobj, bytes):
+        f.write(data_or_fileobj)
+      else:
+        shutil.copyfileobj(data_or_fileobj, f)
 
     self._write_metadata(remote_path, metadata)
     return True
@@ -623,9 +663,18 @@ class FileSystemProvider(StorageProvider):
     """Downloads |signed_url|."""
     return self.read_data(signed_url)
 
-  def upload_signed_url(self, data, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url):
     """Uploads |data| to |signed_url|."""
-    return self.write_data(data, signed_url)
+    return self.write_data(data_or_fileobj, signed_url)
+
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    del minutes
+    return remote_path
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    self.delete(signed_url)
 
 
 class GcsBlobInfo:
@@ -645,8 +694,11 @@ class GcsBlobInfo:
       self.size = size
     else:
       gcs_object = get(get_cloud_storage_file_path(bucket, object_path))
+      if 'metadata' in gcs_object:
+        self.filename = gcs_object['metadata'].get(BLOB_FILENAME_METADATA_KEY)
+      else:
+        self.filename = os.path.basename(object_path)
 
-      self.filename = gcs_object['metadata'].get(BLOB_FILENAME_METADATA_KEY)
       self.size = int(gcs_object['size'])
 
     self.legacy_key = legacy_key
@@ -666,7 +718,7 @@ class GcsBlobInfo:
     try:
       return GcsBlobInfo(blobs_bucket(), key)
     except Exception:
-      logs.log_error('Failed to get blob from key %s.' % key)
+      logs.error('Failed to get blob from key %s.' % key)
       return None
 
   @staticmethod
@@ -696,18 +748,30 @@ def _create_storage_client_new():
 
 def _storage_client():
   """Get the storage client, creating it if it does not exist."""
-  if hasattr(_local, 'client'):
-    return _local.client
-
-  _local.client = _create_storage_client_new()
+  if not hasattr(_local, 'client'):
+    _local.client = _create_storage_client_new()
   return _local.client
 
 
+def _new_signing_creds():
+  service_account = credentials.get_storage_signing_service_account()
+  _local.signing_creds = credentials.get_signing_credentials(service_account)
+
+
 def _signing_creds():
-  if hasattr(_local, 'signing_creds'):
-    return _local.signing_creds
-  _local.signing_creds = credentials.get_signing_credentials()
+  if not hasattr(_local, 'signing_creds'):
+    _new_signing_creds()
+
   return _local.signing_creds
+
+
+@contextlib.contextmanager
+def _pool(pool_size=16):
+  if (environment.get_value('PY_UNITTESTS') or
+      environment.platform() == 'WINDOWS'):
+    yield futures.ThreadPoolExecutor(pool_size)
+  else:
+    yield futures.ProcessPoolExecutor(pool_size)
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -735,7 +799,7 @@ def _get_error_reason(http_error):
     data = json.loads(http_error.content.decode('utf-8'))
     return data['error']['message']
   except (ValueError, KeyError):
-    logs.log_error('Failed to decode error content: %s' % http_error.content)
+    logs.error('Failed to decode error content: %s' % http_error.content)
 
   return None
 
@@ -786,7 +850,7 @@ def get_bucket_iam_policy(storage, bucket_name):
   try:
     iam_policy = storage.buckets().getIamPolicy(bucket=bucket_name).execute()
   except HttpError as e:
-    logs.log_error('Failed to get IAM policies for %s: %s' % (bucket_name, e))
+    logs.error('Failed to get IAM policies for %s: %s' % (bucket_name, e))
     return None
 
   return iam_policy
@@ -815,13 +879,13 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
     error_reason = _get_error_reason(e)
     if error_reason == 'Invalid argument':
       # Expected error for non-Google emails or groups. Warn about these.
-      logs.log_warn('Invalid Google email or group being added to bucket %s.' %
-                    bucket_name)
+      logs.warning('Invalid Google email or group being added to bucket %s.' %
+                   bucket_name)
     elif error_reason and 'is of type "group"' in error_reason:
-      logs.log_warn('Failed to set IAM policy for %s bucket for a group: %s.' %
-                    (bucket_name, error_reason))
+      logs.warning('Failed to set IAM policy for %s bucket for a group: %s.' %
+                   (bucket_name, error_reason))
     else:
-      logs.log_error('Failed to set IAM policies for bucket %s.' % bucket_name)
+      logs.error('Failed to set IAM policies for bucket %s.' % bucket_name)
 
   return None
 
@@ -887,7 +951,7 @@ def copy_file_to(local_file_path_or_handle,
   """Copy local file to a cloud storage path."""
   if (isinstance(local_file_path_or_handle, str) and
       not os.path.exists(local_file_path_or_handle)):
-    logs.log_error('Local file %s not found.' % local_file_path_or_handle)
+    logs.error('Local file %s not found.' % local_file_path_or_handle)
     return False
 
   return _provider().copy_file_to(
@@ -925,8 +989,8 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     return bool(_provider().get(cloud_storage_file_path))
   except HttpError:
     if not ignore_errors:
-      logs.log_error('Failed when trying to find cloud storage file %s.' %
-                     cloud_storage_file_path)
+      logs.error('Failed when trying to find cloud storage file %s.' %
+                 cloud_storage_file_path)
 
     return False
 
@@ -964,10 +1028,10 @@ def read_data(cloud_storage_file_path):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.write_data',
     exception_types=_TRANSIENT_ERRORS)
-def write_data(data, cloud_storage_file_path, metadata=None):
+def write_data(data_or_fileobj, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
-      data, cloud_storage_file_path, metadata=metadata)
+      data_or_fileobj, cloud_storage_file_path, metadata=metadata)
 
 
 @retry.wrap(
@@ -1084,7 +1148,7 @@ def uworker_input_bucket():
   # TODO(metzman): Use local config.
   bucket = environment.get_value('UWORKER_INPUT_BUCKET')
   if not bucket:
-    logs.log_error('UWORKER_INPUT_BUCKET is not defined.')
+    logs.error('UWORKER_INPUT_BUCKET is not defined.')
   return bucket
 
 
@@ -1099,18 +1163,24 @@ def uworker_output_bucket():
   # TODO(metzman): Use local config.
   bucket = environment.get_value('UWORKER_OUTPUT_BUCKET')
   if not bucket:
-    logs.log_error('UWORKER_OUTPUT_BUCKET is not defined.')
+    logs.error('UWORKER_OUTPUT_BUCKET is not defined.')
   return bucket
 
 
+def _integration_test_env_doesnt_support_signed_urls():
+  return environment.get_value('UTASK_TESTS') or environment.get_value(
+      'UNTRUSTED_RUNNER_TESTS')
+
+
+# Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
+    retries=1,
+    delay=1,
     function='google_cloud_utils.storage._download_url',
     exception_types=_TRANSIENT_ERRORS)
 def _download_url(url):
   """Downloads |url| and returns the contents."""
-  if environment.get_value('UTASK_TESTS'):
+  if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not request.ok:
@@ -1123,9 +1193,9 @@ def _download_url(url):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.upload_signed_url')
-def upload_signed_url(data, url):
+def upload_signed_url(data_or_fileobj, url):
   """Uploads data to the |signed_url|."""
-  return _provider().upload_signed_url(data, url)
+  return _provider().upload_signed_url(str_to_bytes(data_or_fileobj), url)
 
 
 def download_signed_url(url):
@@ -1133,12 +1203,19 @@ def download_signed_url(url):
   return _provider().download_signed_url(url)
 
 
+def str_to_bytes(data):
+  if not isinstance(data, str):
+    return data
+  return bytes(data, 'utf-8')
+
+
 def download_signed_url_to_file(url, filepath):
+  # print('filepath', filepath)
   contents = download_signed_url(url)
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
     fp.write(contents)
-  return True
+  return filepath
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1153,3 +1230,126 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   contents."""
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
+
+
+def _error_tolerant_download_signed_url_to_file(url_and_path):
+  url, path = url_and_path
+  try:
+    return download_signed_url_to_file(url, path), url
+  except Exception:
+    return None, None
+
+
+def _error_tolerant_upload_signed_url(url_and_path):
+  url, path = url_and_path
+  with open(path, 'rb') as fp:
+    return upload_signed_url(fp, url)
+
+
+def delete_signed_url(url):
+  """Makes a DELETE HTTP request to |url|."""
+  _provider().delete_signed_url(url)
+
+
+def _error_tolerant_delete_signed_url(url):
+  try:
+    return delete_signed_url(url)
+  except Exception:
+    return False
+
+
+def upload_signed_urls(signed_urls, files):
+  if not signed_urls:
+    return []
+  logs.info('Uploading URLs.')
+  with _pool() as pool:
+    result = list(
+        pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
+  logs.info('Done uploading URLs.')
+  return result
+
+
+def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  return _provider().sign_delete_url(remote_path, minutes)
+
+
+def download_signed_urls(signed_urls, directory):
+  """Download |signed_urls| to |directory|."""
+  # TODO(metzman): Use the actual names of the files stored on GCS instead of
+  # renaming them.
+  if not signed_urls:
+    return []
+  basename = uuid.uuid4().hex
+  filepaths = [
+      os.path.join(directory, f'{basename}-{idx}')
+      for idx in range(len(signed_urls))
+  ]
+  logs.info('Downloading URLs.')
+  with _pool() as pool:
+    result = list(
+        pool.map(_error_tolerant_download_signed_url_to_file,
+                 zip(signed_urls, filepaths)))
+  logs.info('Done downloading URLs.')
+  return result
+
+
+def delete_signed_urls(urls):
+  if not urls:
+    return []
+  logs.info('Deleting URLs.')
+  with _pool() as pool:
+    result = list(pool.map(_error_tolerant_delete_signed_url, urls))
+  logs.info('Done deleting URLs.')
+  return result
+
+
+def _sign_urls_for_existing_file(corpus_element_url,
+                                 include_delete_urls,
+                                 minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  download_url = get_signed_download_url(corpus_element_url, minutes)
+  if include_delete_urls:
+    delete_url = sign_delete_url(corpus_element_url, minutes)
+  else:
+    delete_url = ''
+  return (download_url, delete_url)
+
+
+def sign_urls_for_existing_files(urls, include_delete_urls):
+  logs.info('Signing URLs for existing files.')
+  result = [
+      _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
+  ]
+  logs.info('Done signing URLs for existing files.')
+  return result
+
+
+def get_arbitrary_signed_upload_url(remote_directory):
+  return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+
+
+def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
+  """Returns |num_uploads| number of signed upload URLs to upload files with
+  unique arbitrary names to remote_directory."""
+  # We verify there are no collisions for uuid4s in CF because it would be bad
+  # if there is a collision and in most cases it's cheap (and because we
+  # probably didn't understand the likelihood of this happening when we started,
+  # see https://stackoverflow.com/a/24876263). It is not cheap if we had to do
+  # this 10,000 times. Instead create a prefix filename and check that no file
+  # has that name. Then the arbitrary names will all use that prefix.
+  unique_id = uuid.uuid4()
+  base_name = unique_id.hex
+  if not remote_directory.endswith('/'):
+    remote_directory = remote_directory + '/'
+  base_path = f'{remote_directory}/{base_name}'
+  base_search_path = f'{base_path}*'
+  if exists(base_search_path):
+    # Raise the error and let retry go again. There is a vanishingly small
+    # chance that we get more collisions. This is vulnerable to races, but is
+    # probably unneeded anyway.
+    raise ValueError(f'UUID collision found {str(unique_id)}')
+
+  urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
+  logs.info('Signing URLs for arbitrary uploads.')
+  result = [get_signed_upload_url(url) for url in urls]
+  logs.info('Done signing URLs for arbitrary uploads.')
+  return result

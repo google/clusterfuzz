@@ -110,13 +110,20 @@ def get_domain():
 
 
 def get_testcase_by_id(testcase_id):
-  """Return the testcase with the given id, or None if it does not exist."""
-  if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
-    raise errors.InvalidTestcaseError
+  """Return the testcase with the given id.
+  Raises InvalidTestcaseError if no such testcase exists.
+  """
+  try:
+    parsed_id = int(testcase_id)
+  except ValueError:
+    raise errors.InvalidTestcaseError(testcase_id)
 
-  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+  if parsed_id == 0:
+    raise errors.InvalidTestcaseError(0)
+
+  testcase = ndb.Key(data_types.Testcase, parsed_id).get()
   if not testcase:
-    raise errors.InvalidTestcaseError
+    raise errors.InvalidTestcaseError(parsed_id)
 
   return testcase
 
@@ -140,7 +147,7 @@ def find_testcase(project_name,
   if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
     culprit_engine = None
     target_without_engine = None
-    for engine in fuzzing.PUBLIC_ENGINES:
+    for engine in fuzzing.ENGINES:
       if fuzz_target.startswith(f'{engine}_'):
         culprit_engine = engine
         target_without_engine = fuzz_target[len(culprit_engine) + 1:]
@@ -149,7 +156,7 @@ def find_testcase(project_name,
       assert culprit_engine
 
     target_with_different_engines = [
-        f'{engine}_{target_without_engine}' for engine in fuzzing.PUBLIC_ENGINES
+        f'{engine}_{target_without_engine}' for engine in fuzzing.ENGINES
     ]
     query_args.append(
         data_types.Testcase.overridden_fuzzer_name.IN(
@@ -210,12 +217,25 @@ def get_crash_type_string(testcase):
                                  CRASH_TYPE_DIMENSION_MAP[crash_type])
 
 
-def filter_stacktrace(stacktrace):
+def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
   """Filters stacktrace and returns content appropriate for storage as an
   appengine entity."""
   unicode_stacktrace = utils.decode_to_unicode(stacktrace)
   if len(unicode_stacktrace) <= data_types.STACKTRACE_LENGTH_LIMIT:
     return unicode_stacktrace
+  # TODO(alhijazi): Once the migration is done, callers are expected to
+  # always pass a `blob_name` and a `signed_upload_url`.
+  if signed_upload_url:
+    try:
+      storage.upload_signed_url(
+          unicode_stacktrace.encode('utf-8'), signed_upload_url)
+      logs.info('Uploaded stacktrace using signed url.')
+    except Exception:
+      print("uplaod failed")
+      logs.error('Unable to upload crash stacktrace to signed url.')
+      return unicode_stacktrace[(-1 * data_types.STACKTRACE_LENGTH_LIMIT):]
+
+    return '%s%s' % (data_types.BLOBSTORE_STACK_PREFIX, blob_name)
 
   tmpdir = environment.get_value('BOT_TMPDIR')
   tmp_stacktrace_file = os.path.join(tmpdir, 'stacktrace.tmp')
@@ -226,7 +246,7 @@ def filter_stacktrace(stacktrace):
     with open(tmp_stacktrace_file, 'rb') as handle:
       key = blobs.write_blob(handle)
   except Exception:
-    logs.log_error('Unable to write crash stacktrace to temporary file.')
+    logs.error('Unable to write crash stacktrace to temporary file.')
     shell.remove_file(tmp_stacktrace_file)
     return unicode_stacktrace[(-1 * data_types.STACKTRACE_LENGTH_LIMIT):]
 
@@ -301,6 +321,11 @@ def get_reproduction_help_url(testcase, config):
 
 
 def get_fuzzer_display(testcase):
+  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
+  return get_fuzzer_display_unprivileged(testcase, fuzz_target)
+
+
+def get_fuzzer_display_unprivileged(testcase, fuzz_target):
   """Return FuzzerDisplay tuple."""
   if (testcase.overridden_fuzzer_name == testcase.fuzzer_name or
       not testcase.overridden_fuzzer_name):
@@ -309,8 +334,6 @@ def get_fuzzer_display(testcase):
         target=None,
         name=testcase.fuzzer_name,
         fully_qualified_name=testcase.fuzzer_name)
-
-  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
   if not fuzz_target:
     # Legacy testcases.
     return FuzzerDisplay(
@@ -609,8 +632,7 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
     with open(tmp_stacktrace_file) as handle:
       result = handle.read()
   except:
-    logs.log_error(
-        'Unable to read stacktrace for testcase %d.' % testcase.key.id())
+    logs.error('Unable to read stacktrace for testcase %d.' % testcase.key.id())
     result = ''
 
   shell.remove_file(tmp_stacktrace_file)
@@ -656,8 +678,8 @@ def handle_duplicate_entry(testcase):
     testcase.status = 'Duplicate'
     testcase.duplicate_of = existing_testcase_id
     testcase.put()
-    logs.log('Marking testcase %d as duplicate of testcase %d.' %
-             (testcase_id, existing_testcase_id))
+    logs.info('Marking testcase %d as duplicate of testcase %d.' %
+              (testcase_id, existing_testcase_id))
 
   elif (not existing_testcase.bug_information and
         not testcase.one_time_crasher_flag):
@@ -672,15 +694,14 @@ def handle_duplicate_entry(testcase):
     existing_testcase.status = 'Duplicate'
     existing_testcase.duplicate_of = testcase_id
     existing_testcase.put()
-    logs.log('Marking testcase %d as duplicate of testcase %d.' %
-             (existing_testcase_id, testcase_id))
+    logs.info('Marking testcase %d as duplicate of testcase %d.' %
+              (existing_testcase_id, testcase_id))
 
 
-def is_first_retry_for_task(testcase, reset_after_retry=False):
+def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
   """Returns true if this task is tried atleast once. Only applicable for
   analyze and progression tasks."""
-  task_name = environment.get_value('TASK_NAME')
-  retry_key = '%s_retry' % task_name
+  retry_key = f'{task_name}_retry'
   retry_flag = testcase.get_metadata(retry_key)
   if not retry_flag:
     # Update the metadata key since now we have tried it once.
@@ -729,8 +750,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
                    job_type, archived, archive_filename, http_flag, gestures,
-                   redzone, disable_ubsan, minidump_keys, window_argument,
-                   timeout_multiplier, minimized_arguments):
+                   redzone, disable_ubsan, window_argument, timeout_multiplier,
+                   minimized_arguments, trusted):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -770,24 +791,29 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.gestures = gestures
   testcase.redzone = redzone
   testcase.disable_ubsan = disable_ubsan
-  testcase.minidump_keys = minidump_keys
   testcase.window_argument = window_argument
   testcase.timeout_multiplier = float(timeout_multiplier)
   testcase.minimized_arguments = minimized_arguments
   testcase.project_name = get_project_name(job_type)
+  testcase.trusted = trusted
 
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
+
+  # Set crash metadata.
+  # TODO(https://github.com/google/clusterfuzz/pull/3333#discussion_r1369199761)
+  if hasattr(crash, 'crash_categories') and crash.crash_categories:
+    testcase.set_metadata('crash_categories', list(crash.crash_categories))
 
   # Update the comment and save testcase.
   update_testcase_comment(testcase, data_types.TaskState.NA, comment)
 
   # Get testcase id from newly created testcase.
   testcase_id = testcase.key.id()
-  logs.log(('Created new testcase %d (reproducible:%s, security:%s).\n'
-            'crash_type: %s\ncrash_state:\n%s\n') %
-           (testcase_id, not testcase.one_time_crasher_flag,
-            testcase.security_flag, testcase.crash_type, testcase.crash_state))
+  logs.info(('Created new testcase %d (reproducible:%s, security:%s).\n'
+             'crash_type: %s\ncrash_state:\n%s\n') %
+            (testcase_id, not testcase.one_time_crasher_flag,
+             testcase.security_flag, testcase.crash_type, testcase.crash_state))
 
   # Update global blacklist to avoid finding this leak again (if needed).
   is_lsan_enabled = environment.get_value('LSAN')
@@ -830,6 +856,8 @@ def update_testcase_comment(testcase, task_state, message=None):
   """Add task status and message to the test case's comment field."""
   bot_name = environment.get_value('BOT_NAME', 'Unknown')
   task_name = environment.get_value('TASK_NAME', 'Unknown')
+  # Override in postprocess.
+  task_name = environment.get_initial_task_name() or task_name
   task_string = '%s task' % task_name.capitalize()
   timestamp = utils.current_date_time()
 
@@ -848,7 +876,7 @@ def update_testcase_comment(testcase, task_state, message=None):
 
   # Truncate if too long.
   if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
-    logs.log_error(
+    logs.error(
         'Testcase comments truncated (testcase {testcase_id}, job {job_type}).'.
         format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
     testcase.comments = testcase.comments[
@@ -860,12 +888,9 @@ def update_testcase_comment(testcase, task_state, message=None):
   # the testcase key might not available yet (i.e. for new testcase).
   if message:
     log_func = (
-        logs.log_error
-        if task_state == data_types.TaskState.ERROR else logs.log)
-    log_func('{message} (testcase {testcase_id}, job {job_type}).'.format(
-        message=message,
-        testcase_id=testcase.key.id(),
-        job_type=testcase.job_type))
+        logs.error if task_state == data_types.TaskState.ERROR else logs.info)
+    log_func(
+        f'{message} (testcase {testcase.key.id()}, job {testcase.job_type}).')
 
 
 def get_open_testcase_id_iterator():
@@ -933,13 +958,13 @@ def add_build_metadata(job_type,
   build.put()
 
   if is_bad_build:
-    logs.log_error(
+    logs.error(
         'Bad build %s.' % job_type,
         revision=crash_revision,
         job_type=job_type,
         output=console_output)
   else:
-    logs.log(
+    logs.info(
         'Good build %s.' % job_type, revision=crash_revision, job_type=job_type)
   return build
 
@@ -1043,7 +1068,7 @@ def update_task_status(task_name, status, expiry_interval=None):
   if expiry_interval is None:
     expiry_interval = environment.get_value('TASK_LEASE_SECONDS')
     if expiry_interval is None:
-      logs.log_error('expiry_interval is None and TASK_LEASE_SECONDS not set.')
+      logs.error('expiry_interval is None and TASK_LEASE_SECONDS not set.')
 
   def _try_update_status():
     """Try update metadata."""
@@ -1072,7 +1097,7 @@ def update_task_status(task_name, status, expiry_interval=None):
       # We need to update the status under all circumstances.
       # Failing to update 'completed' status causes another bot
       # that picked up this job to bail out.
-      logs.log_error('Unable to update %s task metadata. Retrying.' % task_name)
+      logs.error('Unable to update %s task metadata. Retrying.' % task_name)
       time.sleep(utils.random_number(1, failure_wait_interval))
 
 
@@ -1083,6 +1108,10 @@ def update_task_status(task_name, status, expiry_interval=None):
 
 def update_heartbeat(force_update=False):
   """Updates heartbeat with current timestamp and log data."""
+  if environment.is_uworker():
+    # Uworkers can't update heartbeats.
+    return 0
+
   # Check if the heartbeat was recently updated. If yes, bail out.
   last_modified_time = persistent_cache.get_value(
       HEARTBEAT_LAST_UPDATE_KEY, constructor=datetime.datetime.utcfromtimestamp)
@@ -1110,7 +1139,7 @@ def update_heartbeat(force_update=False):
     persistent_cache.set_value(
         HEARTBEAT_LAST_UPDATE_KEY, time.time(), persist_across_reboots=True)
   except:
-    logs.log_error('Unable to update heartbeat.')
+    logs.error('Unable to update heartbeat.')
     return 0
 
   return 1
@@ -1321,6 +1350,7 @@ def create_user_uploaded_testcase(key,
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
   testcase.project_name = get_project_name(job.name)
+  testcase.trusted = False
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
@@ -1386,7 +1416,8 @@ def create_user_uploaded_testcase(key,
   metadata.put()
 
   # Create the job to analyze the testcase.
-  tasks.add_task('analyze', testcase_id, job.name, queue)
+  # Use wait_time=0 to execute the task ASAP, since it is user-facing.
+  tasks.add_task('analyze', testcase_id, job.name, queue, wait_time=0)
   return testcase.key.id()
 
 
@@ -1569,45 +1600,81 @@ FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
 FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 
 
-@retry.wrap(
-    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
-    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
-    function='datastore.data_handler.record_fuzz_target')
 def record_fuzz_target(engine_name, binary_name, job_type):
-  """Record existence of fuzz target."""
-  if not binary_name:
-    logs.log_error('Expected binary_name.')
-    return None
+  """Records exsistence of fuzz target to the DB."""
+  result = record_fuzz_targets(engine_name, [binary_name], job_type)[0]
 
   project = get_project_name(job_type)
   key_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, binary_name)
 
-  fuzz_target = ndb.Key(data_types.FuzzTarget, key_name).get()
-  if not fuzz_target:
-    fuzz_target = data_types.FuzzTarget(
-        engine=engine_name, project=project, binary=binary_name)
-    fuzz_target.put()
-
-  job_mapping_key = data_types.fuzz_target_job_key(key_name, job_type)
-  job_mapping = ndb.Key(data_types.FuzzTargetJob, job_mapping_key).get()
-  if job_mapping:
-    job_mapping.last_run = utils.utcnow()
-  else:
-    job_mapping = data_types.FuzzTargetJob(
-        fuzz_target_name=key_name,
-        job=job_type,
-        engine=engine_name,
-        last_run=utils.utcnow())
-  job_mapping.put()
-
-  logs.log(
+  logs.info(
       'Recorded use of fuzz target %s.' % key_name,
       project=project,
       engine=engine_name,
       binary_name=binary_name,
       job_type=job_type)
-  return fuzz_target
+  return result
+
+
+def get_or_create_multi_entities_from_keys(mapping):
+  """Gets or creates multiple db entities."""
+  keys = list(mapping.keys())
+  entities = ndb_utils.get_multi(
+      [ndb.Key(value.__class__, key) for key, value in mapping.items()])
+  entities = dict(zip(keys, entities))
+  new_entities = [
+      mapping[key] for key, entity in entities.items() if not entity
+  ]
+  new_entities = ndb_utils.get_multi(ndb_utils.put_multi(new_entities))
+  all_entities = [entity for entity in entities.values() if entity] + (
+      new_entities)
+  return all_entities
+
+
+@retry.wrap(
+    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
+    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
+    function='datastore.data_handler.record_fuzz_targets')
+def record_fuzz_targets(engine_name, binaries, job_type):
+  """Record existence of fuzz targets to the DB."""
+  # TODO(metzman): All of this code assumes that fuzzing jobs are behaving
+  # reasonably and won't try to DoS us by putting bogus fuzzers in the db.
+  # This should be changed by limiting the number of fuzz targets saved and
+  # putting an expiration on them.
+  binaries = [binary for binary in binaries if binary]
+  if not binaries:
+    logs.error('Expected binaries.')
+    return None
+
+  project = get_project_name(job_type)
+  fuzz_target_mapping = {
+      data_types.fuzz_target_fully_qualified_name(engine_name, project, binary):
+      data_types.FuzzTarget(engine=engine_name, project=project, binary=binary)
+      for binary in binaries
+  }
+  fuzz_targets = get_or_create_multi_entities_from_keys(fuzz_target_mapping)
+  ndb_utils.put_multi(fuzz_targets)
+
+  time_now = utils.utcnow()
+  job_mapping = {
+      data_types.fuzz_target_job_key(key_name, job_type):
+      data_types.FuzzTargetJob(
+          fuzz_target_name=key_name,
+          job=job_type,
+          engine=engine_name,
+          last_run=time_now) for key_name in fuzz_target_mapping
+  }
+
+  jobs = get_or_create_multi_entities_from_keys(job_mapping)
+
+  for job in jobs:
+    # TODO(metzman): Decide if we want to handle unused fuzzers differentlyo.
+    job.last_run = utils.utcnow()
+
+  ndb_utils.put_multi(jobs)
+
+  return fuzz_targets
 
 
 def get_fuzz_target(name):

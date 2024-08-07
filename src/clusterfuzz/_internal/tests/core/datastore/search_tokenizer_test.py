@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,29 +28,26 @@ class ComplexTokenizeTest(unittest.TestCase):
 
   def test_one_token(self):
     """Test one token."""
-    self.assertSetEqual(
-        set(['abcd']), search_tokenizer._complex_tokenize('abcd', 3))
+    self.assertSetEqual({'abcd'}, search_tokenizer._complex_tokenize('abcd', 3))
 
   def test_multiple_tokens(self):
     """Test multiple tokens."""
     self.assertSetEqual(
-        set([
-            'abcd', 'abcd::edfg', 'abcd::edfghijk', 'edfg', 'edfghijk', 'hijk'
-        ]), search_tokenizer._complex_tokenize('abcd::edfgHijk', 3))
+        {'abcd', 'abcd::edfg', 'abcd::edfghijk', 'edfg', 'edfghijk', 'hijk'},
+        search_tokenizer._complex_tokenize('abcd::edfgHijk', 3))
 
   def test_multple_tokens_with_empty_tokens(self):
     """Test multiple tokens with empty tokens."""
-    self.assertSetEqual(
-        set([
-            '::abcd', '::abcd::edfg', '::abcd::edfghijk', '::abcd::edfghijk::',
-            'abcd', 'abcd::edfg', 'abcd::edfghijk', 'abcd::edfghijk::', 'edfg',
-            'edfghijk', 'hijk', 'edfghijk::', 'hijk::'
-        ]), search_tokenizer._complex_tokenize('::abcd::edfgHijk::', 5))
+    self.assertSetEqual({
+        '::abcd', '::abcd::edfg', '::abcd::edfghijk', '::abcd::edfghijk::',
+        'abcd', 'abcd::edfg', 'abcd::edfghijk', 'abcd::edfghijk::', 'edfg',
+        'edfghijk', 'hijk', 'edfghijk::', 'hijk::'
+    }, search_tokenizer._complex_tokenize('::abcd::edfgHijk::', 5))
 
   def test_real_example(self):
     """Test real example."""
     crash_state = 'void WTF::Vector<blink::Member, 64ul'
-    expected = set([
+    expected = {
         'void',
         'void wtf',
         'void wtf::vector',
@@ -73,21 +69,21 @@ class ComplexTokenizeTest(unittest.TestCase):
         'member',
         'member, 64ul',
         '64ul',
-    ])
+    }
     self.assertSetEqual(expected,
                         search_tokenizer._complex_tokenize(crash_state, 6))
 
   def test_duplicate(self):
     """Test duplicate tokens."""
     crash_state = 'a:b:a:b'
-    expected = set(['a', 'b', 'a:b', 'a:b:a', 'a:b:a:b', 'b:a', 'b:a:b'])
+    expected = {'a', 'b', 'a:b', 'a:b:a', 'a:b:a:b', 'b:a', 'b:a:b'}
     self.assertSetEqual(expected,
                         search_tokenizer._complex_tokenize(crash_state, 4))
 
   def test_exceed_limit(self):
     """Test exceeding limit."""
     crash_state = 'a:b:c'
-    expected = set(['a', 'b', 'c', 'a:b', 'b:c'])
+    expected = {'a', 'b', 'c', 'a:b', 'b:c'}
     self.assertSetEqual(expected,
                         search_tokenizer._complex_tokenize(crash_state, 2))
 
@@ -132,7 +128,7 @@ class TokenizeImpactVersionTest(unittest.TestCase):
     """Test tokenising version."""
     self.assertEqual(['52'], search_tokenizer.tokenize_impact_version('52'))
     self.assertSetEqual(
-        set(['52', '52.1', '52.1.2', '52.1.2.3']),
+        {'52', '52.1', '52.1.2', '52.1.2.3'},
         set(search_tokenizer.tokenize_impact_version('52.1.2.3')))
 
 
@@ -145,17 +141,16 @@ class TokenizeTest(unittest.TestCase):
 
   def test_non_string(self):
     """Test non string."""
-    self.assertSetEqual(set(['123']), search_tokenizer.tokenize(123))
-    self.assertSetEqual(set(['true']), search_tokenizer.tokenize(True))
-    self.assertSetEqual(set([]), search_tokenizer.tokenize(None))
+    self.assertSetEqual({'123'}, search_tokenizer.tokenize(123))
+    self.assertSetEqual({'true'}, search_tokenizer.tokenize(True))
+    self.assertSetEqual(set(), search_tokenizer.tokenize(None))
 
   def test_non_ascii(self):
     s = 'IsString ¿ÓÞÎ¤ utf'
-    self.assertSetEqual(
-        set([
-            'is', 'string', 'utf', 'isstring', 'isstring utf', 'string utf',
-            s.lower()
-        ]), search_tokenizer.tokenize(s))
+    self.assertSetEqual({
+        'is', 'string', 'utf', 'isstring', 'isstring utf', 'string utf',
+        s.lower()
+    }, search_tokenizer.tokenize(s))
 
   def test_real_example(self):
     """Test real example."""
@@ -163,7 +158,7 @@ class TokenizeTest(unittest.TestCase):
         'track 1 fast;',
         'android.media.MediaCodec.native_setup',
     ])
-    expected = set([
+    expected = {
         'track',
         '1',
         'fast',
@@ -193,5 +188,5 @@ class TokenizeTest(unittest.TestCase):
         'codec.native',
         'codec.native_setup',
         'native_setup',
-    ])
+    }
     self.assertSetEqual(expected, search_tokenizer.tokenize(crash_states))

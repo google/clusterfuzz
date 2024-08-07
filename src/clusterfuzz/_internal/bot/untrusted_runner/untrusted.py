@@ -42,8 +42,10 @@ from . import tasks_impl
 
 SHUTDOWN_GRACE_SECONDS = 5
 
+# pylint: disable=no-member
 
-class WorkerState(object):
+
+class WorkerState:
   """Worker's state."""
 
   def __init__(self):
@@ -70,7 +72,7 @@ def wrap_servicer(func):
     # Check if there is a in-progress RPC.
     with _rpc_count_lock:
       if _rpc_count > 0:
-        logs.log_error('Hung RPC detected, shutting down.')
+        logs.error('Hung RPC detected, shutting down.')
         _worker_state.shutting_down.set()
         return None
 
@@ -238,12 +240,12 @@ def start_server():
   _worker_state.start_time = int(time.time())
   _worker_state.server.start()
 
-  logs.log('Server started.')
+  logs.info('Server started.')
 
   # Run forever until shutdown.
   _worker_state.shutting_down.wait()
 
-  logs.log('Server shutting down.')
+  logs.info('Server shutting down.')
   stopped = _worker_state.server.stop(SHUTDOWN_GRACE_SECONDS)
   stopped.wait()
 

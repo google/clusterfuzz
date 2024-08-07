@@ -16,8 +16,8 @@
         and close issues when necessary."""
 
 from clusterfuzz._internal.datastore import data_types
-from libs.issue_management import issue_tracker_utils
-from libs.issue_management import oss_fuzz_github
+from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.issue_management import oss_fuzz_github
 
 
 def _get_testcase(bug_information):

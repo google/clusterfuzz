@@ -16,8 +16,8 @@
 import unittest
 from unittest import mock
 
-from libs.issue_management.issue_tracker import IssueTracker
-from libs.issue_management.issue_tracker import LabelStore
+from clusterfuzz._internal.issue_management.issue_tracker import IssueTracker
+from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
 
 
 class LabelStoreTest(unittest.TestCase):
@@ -116,7 +116,7 @@ class LabelStoreTest(unittest.TestCase):
     self.assertFalse('label' in store)
 
 
-class TestIssueTracker(IssueTracker):
+class TestIssueTracker(IssueTracker):  # pylint:disable=abstract-method
   """Test issue tracker."""
 
   def __init__(self):

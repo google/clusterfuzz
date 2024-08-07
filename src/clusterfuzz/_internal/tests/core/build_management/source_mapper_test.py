@@ -30,6 +30,11 @@ class LinkifyStackFrameTest(unittest.TestCase):
         'org': {
             'url': 'https://github.com/apache/lucene',
             'rev': 'f44cc45cf8bfc2d6ef53e4767aec4654c1377fdf',
+        },
+        'system/media': {
+            'type': 'git',
+            'url': '<android-internal>/system/media',
+            'rev': '0114464eea67acc94a32a335914cd8dc6aeeea2c'
         }
     }
     test_helpers.patch(self, [
@@ -55,6 +60,20 @@ class LinkifyStackFrameTest(unittest.TestCase):
         result,
         'in build_for_in_iterator <a href="https://github.com/bellard/quickjs/blob/2788d71e823b522b178db3b3660ce93689534e6d/quickjs.c#L15131">quickjs/quickjs.c:15131</a>:12'
     )
+
+  def test_android_internal_stack_frame(self):
+    frame = (r'in android::Test::doSomething(long*, int) '
+             r'system/media/audio_utils/fifo_index.cpp:100')
+    linkifier = source_mapper.StackFrameLinkifier(self.revisions_dict)
+    result = linkifier.linkify_stack_frame(frame)
+
+    self.assertEqual(
+        result,
+        (r'in android::Test::doSomething(long*, int) <a href="https://'
+         r'source.corp.google.com/h/googleplex-android/platform/superproject/'
+         r'main/+/main:system/media/audio_utils/fifo_index.cpp;drc='
+         r'0114464eea67acc94a32a335914cd8dc6aeeea2c;l=100">system/media/'
+         r'audio_utils/fifo_index.cpp:100</a>'))
 
 
 class GetComponentSourceAndRelativePathTest(unittest.TestCase):
