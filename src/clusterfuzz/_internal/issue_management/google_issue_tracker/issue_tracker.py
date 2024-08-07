@@ -57,10 +57,8 @@ def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
   try:
     return IssueAccessLevel('LIMIT_' + limit_view_label)
   except:
-    logs.warning(
-        'Trying to set issue access level to incorrect value:'
-        f'LIMIT_{limit_view_label}. Ignoring.'
-    )
+    logs.warning('Trying to set issue access level to incorrect value:'
+                 f'LIMIT_{limit_view_label}. Ignoring.')
     return None
 
 
@@ -715,11 +713,11 @@ class Issue(issue_tracker.Issue):
       access_limit = self._issue_access_limit
       if access_limit:
         self._data['issueState']['accessLimit'] = {'accessLevel': access_limit}
-      if access_limit == IssueAccessLevel.LIMIT_NONE and access_limit_from_labels:
-        if access_limit:
-          self._data['issueState']['accessLimit'] = {
-              'accessLevel': access_limit_from_labels
-          }
+      if (access_limit == IssueAccessLevel.LIMIT_NONE and
+          access_limit_from_labels):
+        self._data['issueState']['accessLimit'] = {
+            'accessLevel': access_limit_from_labels
+        }
 
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
