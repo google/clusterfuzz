@@ -48,11 +48,19 @@ class IssueAccessLevel(str, enum.Enum):
   LIMIT_VIEW_TRUSTED = 'LIMIT_VIEW_TRUSTED'
 
 
-def _get_access_limit_for_label(label: str):
-  """Returns IssueAccessLevel from string lable or None."""
+def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
+  """ Extracts the access limit label from labels and returns the
+  corresponding IssueAccessLevel or None."""
+  limit_view_label = _extract_label(labels, 'LIMIT_')
+  if not limit_view_label:
+    return None
   try:
-    return IssueAccessLevel('LIMIT_' + label)
+    return IssueAccessLevel('LIMIT_' + limit_view_label)
   except:
+    logs.warning(
+        'Trying to set issue access level to incorrect value:'
+        f'LIMIT_{limit_view_label}. Ignoring.'
+    )
     return None
 
 
@@ -692,7 +700,7 @@ class Issue(issue_tracker.Issue):
       self.labels.remove_by_prefix(_SEVERITY_LABEL_PREFIX)
 
       # Check for an access_limit label before filtering
-      limit_view_label = _extract_label(self.labels, 'LIMIT_')
+      access_limit_from_labels = _get_access_limit_from_labels(self.labels)
       # Make sure self.labels contains only hotlist IDs.
       self._filter_labels()
 
@@ -707,13 +715,10 @@ class Issue(issue_tracker.Issue):
       access_limit = self._issue_access_limit
       if access_limit:
         self._data['issueState']['accessLimit'] = {'accessLevel': access_limit}
-      print(list(self.labels))
-      if access_limit == IssueAccessLevel.LIMIT_NONE:
-        # Try to set accessLimit from labels if any.
-        access_limit = _get_access_limit_for_label(limit_view_label)
+      if access_limit == IssueAccessLevel.LIMIT_NONE and access_limit_from_labels:
         if access_limit:
           self._data['issueState']['accessLimit'] = {
-              'accessLevel': access_limit
+              'accessLevel': access_limit_from_labels
           }
 
       self._data['issueState']['hotlistIds'] = [
