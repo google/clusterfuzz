@@ -24,7 +24,9 @@ class Handler(base_handler.Handler):
 
   def get(self, testcase_id=None):
     """Redirect user to the correct URL."""
-    testcase = helpers.get_testcase(testcase_id)
+    testcase = None
+    if testcase_id:
+      testcase = helpers.get_testcase(testcase_id)
     issue_url = helpers.get_or_exit(
         lambda: issue_tracker_utils.get_issue_url(testcase),
         'Issue tracker for testcase (id=%s) is not found.' % testcase_id,
