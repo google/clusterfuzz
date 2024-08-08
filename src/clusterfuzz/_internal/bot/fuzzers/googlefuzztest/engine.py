@@ -22,10 +22,6 @@ from clusterfuzz.fuzz import engine
 _CRASH_REGEX = re.compile(r'.*Reproducer file written to:\s*(.*)$')
 
 
-class GoogleFuzzTestError(Exception):
-  """Base exception class."""
-
-
 def _get_reproducer_path(line):
   """Get the reproducer path, if any."""
   crash_match = _CRASH_REGEX.match(line)

@@ -506,23 +506,6 @@ def recreate_directory(directory_path):
     raise OSError('Failed to recreate directory: ' + directory_path)
 
 
-def strip_minijail_command(command, fuzzer_path):
-  """Remove minijail arguments from a fuzzer command.
-
-  Args:
-    command: The command.
-    fuzzer_path: Absolute path to the fuzzer.
-
-  Returns:
-    The stripped command.
-  """
-  try:
-    fuzzer_path_index = command.index(fuzzer_path)
-    return command[fuzzer_path_index:]
-  except ValueError:
-    return command
-
-
 def write_data_to_file(content, file_path):
   """Writes data to file."""
   with open(file_path, 'wb') as file_handle:
