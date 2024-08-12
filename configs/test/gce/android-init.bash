@@ -97,7 +97,7 @@ sed -i 's/flush_interval 5s/flush_interval 60s/' \
 sudo service google-fluentd restart
 
 echo "Installing ClusterFuzz package dependencies."
-pip install crcmod==1.7 psutil==5.6.6 cryptography==3.3.2 pyOpenSSL==19.0.0
+pip install crcmod==1.7 psutil==5.9.4 cryptography==37.0.4 pyOpenSSL==22.0.0
 
 echo "Changing user shell to clusterfuzz."
 exec sudo -i -u clusterfuzz bash - << eof

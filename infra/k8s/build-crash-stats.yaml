@@ -26,11 +26,13 @@ spec:
         spec:
           containers:
           - name: build-crash-stats
-            image: gcr.io/clusterfuzz-images/base
+            image: gcr.io/clusterfuzz-images/base:vguidi_py311_testing_v1
             imagePullPolicy: Always
             env:
+            - name: CLUSTERFUZZ_RELEASE
+              value: "candidate"
             - name: RUN_CMD
-              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py build_crash_stats"
+              value: "python3.11 $ROOT_DIR/src/python/bot/startup/run_cron.py build_crash_stats"
             - name: IS_K8S_ENV
               value: "true"
             - name: DISABLE_MOUNTS
