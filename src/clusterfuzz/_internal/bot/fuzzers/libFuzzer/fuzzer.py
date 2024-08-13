@@ -45,7 +45,8 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
   if timeout is None or timeout > constants.DEFAULT_TIMEOUT_LIMIT:
     arguments[constants.TIMEOUT_FLAGNAME] = constants.DEFAULT_TIMEOUT_LIMIT
 
-  if not rss_limit_mb and utils.is_chromium():
+  if not rss_limit_mb and (utils.is_chromium() or
+                           utils.default_project_name() == 'google'):
     # TODO(metzman/alhijazi): Monitor if we are crashing the bots.
     arguments[constants.RSS_LIMIT_FLAGNAME] = 0
   elif not rss_limit_mb:
