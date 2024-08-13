@@ -515,6 +515,10 @@ def find_fixed_range(uworker_input):
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
 
+  logs.info(
+      f'min_revision is {min_revision} and max_revision is {max_revision}.')
+  logs.info(f'revision_list is {revision_list}.')
+
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
     error_message = f'Build {min_revision} no longer exists.'
