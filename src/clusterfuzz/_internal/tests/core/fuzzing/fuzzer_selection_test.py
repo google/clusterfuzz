@@ -16,6 +16,7 @@
 import os
 import unittest
 
+from google.cloud import ndb
 import parameterized
 
 from clusterfuzz._internal.datastore import data_types
@@ -130,6 +131,21 @@ class UpdateMappingsForFuzzerTest(unittest.TestCase):
 
     mappings = _get_job_list_for_fuzzer(fuzzer)
     self.assertEqual([], mappings)
+
+  def test_nonexistent_job(self):
+    """Ensure stale, non-existent job references are handled."""
+    fuzzer = data_types.Fuzzer()
+    fuzzer.name = 'adding_jobs'
+    fuzzer.jobs = ['does_not_exist', 'job_1']
+    fuzzer.put()
+
+    fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
+
+    fuzzer = ndb.Key(data_types.Fuzzer, fuzzer.key.id()).get()
+    self.assertCountEqual(['job_1'], fuzzer.jobs)
+
+    mappings = _get_job_list_for_fuzzer(fuzzer)
+    self.assertCountEqual(['job_1'], mappings)
 
 
 @test_utils.with_cloud_emulators('datastore')

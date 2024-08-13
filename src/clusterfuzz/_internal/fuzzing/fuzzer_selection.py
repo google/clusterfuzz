@@ -31,7 +31,8 @@ WeightedTarget = collections.namedtuple('WeightedTarget', ['target', 'weight'])
 def update_mappings_for_fuzzer(fuzzer, mappings=None):
   """Clear existing mappings for a fuzzer, and replace them."""
   if mappings is None:
-    mappings = fuzzer.jobs
+    # Make a copy in case we need to modify it.
+    mappings = fuzzer.jobs.copy()
 
   query = data_types.FuzzerJob.query()
   query = query.filter(data_types.FuzzerJob.fuzzer == fuzzer.name)
@@ -47,7 +48,22 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
     jobs = {job.name: job for job in jobs}
   else:
     jobs = {}
+
+  fuzzer_modified = False
+
   for job_name in mappings:
+    if job_name not in jobs:
+      # Job references a deleted job, clean it up.
+      try:
+        fuzzer.jobs.remove(job_name)
+        fuzzer_modified = True
+      except ValueError:
+        # If `mappings` was provided via an argument, it's possible it won't
+        # exist in `fuzzer.jobs`.
+        pass
+
+      continue
+
     mapping = old_mappings.pop(job_name, None)
     if not mapping:
       mapping = data_types.FuzzerJob()
@@ -58,6 +74,9 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
   ndb_utils.put_multi(new_mappings)
   ndb_utils.delete_multi([m.key for m in list(old_mappings.values())])
+
+  if fuzzer_modified:
+    fuzzer.put()
 
 
 def update_mappings_for_job(job, mappings):
