@@ -336,9 +336,9 @@ def process_command_impl(task_name,
           if not (environment.is_testcase_deprecated(testcase_platform_id) and
                   environment.can_testcase_run_on_platform(
                       testcase_platform_id, current_platform_id)):
-            logs.info(
-                f'Testcase {testcase.key.id()} platform ({testcase_platform_id}) '
-                f'does not match with ours ({current_platform_id}), exiting.')
+            logs.info(f'Testcase {testcase.key.id()} platform '
+                      f'({testcase_platform_id}) does not match with ours '
+                      f'({current_platform_id}), exiting.')
             tasks.add_task(
                 task_name,
                 task_argument,
