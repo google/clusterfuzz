@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes for objects stored in the datastore."""
 
+import json
 import re
 
 from google.cloud import ndb
@@ -679,6 +680,8 @@ class Testcase(Model):
       return self.metadata_cache
 
     try:
+      if key == 'issue_metadata':
+        return json.loads(self.metadata_cache[key])
       return self.metadata_cache[key]
     except KeyError:
       return default
@@ -686,7 +689,10 @@ class Testcase(Model):
   def set_metadata(self, key, value, update_testcase=True):
     """Set metadata for a test case."""
     self._ensure_metadata_is_cached()
-    self.metadata_cache[key] = value
+    if key == 'issue_metadata' and not isinstance(value, str):
+      self.metadata_cache[key] = json.dumps(value)
+    else:
+      self.metadata_cache[key] = value
 
     self.additional_metadata = json_utils.dumps(self.metadata_cache)
     if update_testcase:

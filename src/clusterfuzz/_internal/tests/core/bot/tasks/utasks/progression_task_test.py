@@ -392,6 +392,12 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.issue_metadata = {
         'issue_labels': 'label1',
         'issue_components': 'component1',
+        'issue_metadata': {
+            "assignee": "dev1@example.com",
+            "additional_fields": {
+                'Acknowledgements': 'dev4@example4.com'
+            }
+        },
     }
 
     self.testcase = data_types.Testcase(
@@ -403,28 +409,64 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     """Test update issue metadata a testcase with no metadata."""
     testcase = self.testcase.key.get()
     self.assertDictEqual({
-        'issue_labels': 'label1',
-        'issue_components': 'component1',
+        'issue_labels':
+            'label1',
+        'issue_components':
+            'component1',
+        'issue_metadata':
+            json.dumps({
+                "assignee": "dev1@example.com",
+                "additional_fields": {
+                    'Acknowledgements': 'dev4@example4.com'
+                }
+            }),
     }, json.loads(testcase.additional_metadata))
 
   def test_update_issue_metadata_replace(self):
     """Test update issue metadata a testcase with different metadata."""
     self.testcase.additional_metadata = json.dumps({
-        'issue_labels': 'label1',
-        'issue_components': 'component2',
+        'issue_labels':
+            'label1',
+        'issue_components':
+            'component2',
+        'issue_metadata':
+            json.dumps({
+                "assignee": "dev1@example.com",
+                "additional_fields": {
+                    'Acknowledgements': 'dev4@example4.com'
+                }
+            }),
     })
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
-        'issue_labels': 'label1',
-        'issue_components': 'component1',
+        'issue_labels':
+            'label1',
+        'issue_components':
+            'component1',
+        'issue_metadata':
+            json.dumps({
+                "assignee": "dev1@example.com",
+                "additional_fields": {
+                    'Acknowledgements': 'dev4@example4.com'
+                }
+            }),
     }, json.loads(testcase.additional_metadata))
 
   def test_update_issue_metadata_same(self):
     """Test update issue metadata a testcase with the same metadata."""
     self.testcase.additional_metadata = json.dumps({
-        'issue_labels': 'label1',
-        'issue_components': 'component1',
+        'issue_labels':
+            'label1',
+        'issue_components':
+            'component1',
+        'issue_metadata':
+            json.dumps({
+                "assignee": "dev1@example.com",
+                "additional_fields": {
+                    'Acknowledgements': 'dev4@example4.com'
+                }
+            }),
     })
     self.testcase.put()
 
@@ -432,8 +474,17 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
-        'issue_labels': 'label1',
-        'issue_components': 'component1',
+        'issue_labels':
+            'label1',
+        'issue_components':
+            'component1',
+        'issue_metadata':
+            json.dumps({
+                "assignee": "dev1@example.com",
+                "additional_fields": {
+                    'Acknowledgements': 'dev4@example4.com'
+                }
+            }),
     }, json.loads(testcase.additional_metadata))
     self.assertIsNone(testcase.crash_type)
 

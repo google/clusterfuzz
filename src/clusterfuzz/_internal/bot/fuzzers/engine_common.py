@@ -443,7 +443,9 @@ def get_all_issue_metadata(fuzz_target_path):
 
   issue_metadata = get_additional_issue_metadata(fuzz_target_path)
   if issue_metadata:
-    metadata['issue_metadata'] = issue_metadata
+    # issue_metadata is a dictionary. Treat it as string for storage purpose
+    # so that it is consistent with the definition in proto structure
+    metadata['issue_metadata'] = json.dumps(issue_metadata)
 
   return metadata
 

@@ -38,10 +38,13 @@ from clusterfuzz._internal.system import environment
 
 def _add_default_issue_metadata(testcase, fuzz_target_metadata):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
-  testcase_metadata = testcase.get_metadata()
   for key, default_value in fuzz_target_metadata.items():
     # Only string metadata are supported.
     if not isinstance(default_value, str):
+      continue
+
+    uploader_value = testcase.get_metadata(key, '')
+    if not isinstance(uploader_value, str):
       continue
 
     # Add the default issue metadata first. This gives preference to uploader
@@ -50,7 +53,6 @@ def _add_default_issue_metadata(testcase, fuzz_target_metadata):
         default_value, delimiter=',', strip=True, remove_empty=True)
 
     # Append uploader specified testcase metadata value to end (for preference).
-    uploader_value = testcase_metadata.get(key, '')
     uploader_value_list = utils.parse_delimited(
         uploader_value, delimiter=',', strip=True, remove_empty=True)
     for value in uploader_value_list:
