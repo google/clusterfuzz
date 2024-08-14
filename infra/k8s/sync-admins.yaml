@@ -26,13 +26,11 @@ spec:
         spec:
           containers:
           - name: sync-admins
-            image: gcr.io/clusterfuzz-images/base:vguidi_py311_testing_v1
+            image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
             env:
-            - name: CLUSTERFUZZ_RELEASE
-              value: "candidate"
             - name: RUN_CMD
-              value: "python3.11 $ROOT_DIR/src/python/bot/startup/run_cron.py sync_admins"
+              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py sync_admins"
             - name: IS_K8S_ENV
               value: "true"
             - name: DISABLE_MOUNTS

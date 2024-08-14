@@ -57,13 +57,13 @@ instructions](https://cloud.google.com/sdk/).
 
 ### Python programming language
 
-[Download Python 3.11](https://www.python.org/downloads/release/python-3114/), then install it ([see this guide for instructions](https://realpython.com/installing-python/#how-to-build-python-from-source-code)).
+[Download Python 3.7](https://www.python.org/downloads/release/python-377/), then install it ([see this guide for instructions](https://realpython.com/installing-python/#how-to-build-python-from-source-code)).
 If you have Python installed already, you can verify its version by running `python --version`.
-You'll want to install Python 3.11 if your local version is different.
+You'll want to install Python 3.7 if your local version is different.
 
 We recommend building using python source from the official repo, as it installs
 the needed python headers and pip. Otherwise, make sure to explicitly install
-the specific version of pip for Python 3.11 (e.g. configuring the build with the
+the specific version of pip for Python 3.7 (e.g. configuring the build with the
 `--with-ensurepip=install` flag).
 
 You shouldn’t need pyenv to manage python versions for ClusterFuzz. Instead,
@@ -129,7 +129,7 @@ python butler.py --help
 If you are having trouble installing dependencies due to Python versioning, try:
 
 ```
-$ PYTHON=python3.11 ./local/install_deps.bash
+$ PYTHON=python3.7 ./local/install_deps.bash
 ```
 
 Then run:
@@ -142,13 +142,13 @@ $ python --version
 The version should be the one you built from source and used to build your dependencies. If it is not, set the pipenv shell version of Python:
 
 ```
-$ pipenv install --python 3.11
+$ pipenv install --python 3.7
 ```
 
 Assuming your shell has the expected version of Python assigned, the following command should run all appengine tests:
 
 ```
-python3.11 butler.py py_unittest -t appengine
+python3.7 butler.py py_unittest -t appengine
 ```
 
 If, at this point, you see an error to the effect that the config.yaml is missing, sync the pipenv environment’s dependencies with the outer environment’s dependencies:
@@ -159,7 +159,7 @@ $ cd src; pipenv sync
 
 #### Refreshing the Python Environment
 
-You might get stuck in a mode where the python version is the global value, rather than the version you set for the pipenv environment - even when apparently leaving the virtual environment through the `exit`command. If this happens, you may still be in a virtual environment (especially if you see `(clusterfuzz)`before the command prompt). To escape this virtual environment, use the command `deactivate`, then run `python3.11 -m pipenv shell` again to start the pipenv shell with the correct python version.
+You might get stuck in a mode where the python version is the global value, rather than the version you set for the pipenv environment - even when apparently leaving the virtual environment through the `exit`command. If this happens, you may still be in a virtual environment (especially if you see `(clusterfuzz)`before the command prompt). To escape this virtual environment, use the command `deactivate`, then run `python3.7 -m pipenv shell` again to start the pipenv shell with the correct python version.
 
 ## ClusterFuzz Development Tips
 

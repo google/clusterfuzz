@@ -86,8 +86,6 @@ def clear_old_files(directory, extracted_file_set):
     for filename in filenames:
       file_path = os.path.join(root_directory, filename)
       if file_path not in extracted_file_set:
-        logs.info(
-            f'File not found in extracted file set, removing: {file_path}')
         shell.remove_file(file_path)
 
   shell.remove_empty_directories(directory)
@@ -159,7 +157,7 @@ def get_newer_source_revision():
   logs.info(f'Remote source code version: {source_version}, ' +
             f'on release {utils.get_clusterfuzz_release()}.')
   if local_source_version >= source_version:
-    logs.info('Remote source <= local source. No update.')
+    logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
     return None
 
@@ -225,12 +223,16 @@ def update_source_code():
       continue
 
     absolute_filepath = os.path.join(cf_source_root_parent_dir, file.name)
-
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
-    normalized_file_set.add(absolute_filepath)
+    real_path = os.path.realpath(absolute_filepath)
+    if real_path != absolute_filepath:
+      logs.info('Mismatch between absolute and real filepath. '
+                f'Not adding on normalized set: {real_path}')
+      continue
 
+    normalized_file_set.add(absolute_filepath)
     try:
       file_extension = os.path.splitext(filename)[1]
 

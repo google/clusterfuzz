@@ -30,7 +30,7 @@ jobs:
       - name: Setup python environment
         uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
         with:
-          python-version: 3.11
+          python-version: 3.7
 
       - name: Run basic tests
         run: ./local/tests/ci_tests.bash

@@ -26,7 +26,7 @@ fi
 
 brew bundle --file=$(dirname "$0")/Brewfile
 
-pipenv --python 3.11
+pipenv --python 3.7
 pipenv sync --dev
 source "$(pipenv --venv)/bin/activate"
 

@@ -97,12 +97,12 @@ RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db
     tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
 
-# Install Python 3.11
-RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C /tmp -xzv && \
-    cd /tmp/Python-3.11.4 && \
+# Install Python 3.7
+RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-3.7.7 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
-    rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
-RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
+    rm -rf /tmp/Python-3.7.7
+RUN pip3.7 --no-cache-dir install pipenv==2022.8.5
 
 # Install Node.js
 COPY setup_19.x /data
@@ -130,7 +130,7 @@ ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
 ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
-ENV RUN_CMD "python3.11 $ROOT_DIR/src/python/bot/startup/run.py"
+ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
 
 # Passwordless sudo (needed for AFL launcher).
 RUN groupadd nopwsudo && \
@@ -148,8 +148,8 @@ ENV PYTHONIOENCODING UTF-8
 
 COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
 RUN cd /data && \
-    # Make pip3.11 the default so that pipenv install --system works.
-    mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
+    # Make pip3.7 the default so that pipenv install --system works.
+    mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
     pipenv install --deploy --system
 
 CMD ["bash", "-ex", "/data/start.sh"]

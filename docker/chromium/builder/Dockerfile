@@ -14,7 +14,7 @@
 FROM gcr.io/clusterfuzz-images/base
 
 ENV RUN_CMD \
-   "python3.11 $ROOT_DIR/src/python/other-bots/chromium-builder/run.py"
+   "python3.7 $ROOT_DIR/src/python/other-bots/chromium-builder/run.py"
 ENV BUCKET_PREFIX "chromium-browser-"
 ENV BUILD_DIR /home/$USER/builds
 ENV DISABLE_MOUNTS True
@@ -50,5 +50,5 @@ COPY start.sh setup_depot_tools.sh setup_gerrit.sh /data/
 # Fix PATH to prefer /usr/local/bin to avoid build failures with using older
 # Python 3 in /usr/bin.
 ENV PATH /usr/local/bin:$PATH
-RUN ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
+RUN ln -s /usr/local/bin/python3.7 /usr/local/bin/python3
 CMD ["bash", "-ex", "/data/start.sh"]

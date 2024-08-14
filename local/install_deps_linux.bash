@@ -25,9 +25,7 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
-  if which python3.11 > /dev/null; then
-    export PYTHON='python3.11'
-  elif which python3.10 > /dev/null; then
+  if which python3.10 > /dev/null; then
     export PYTHON='python3.10'
   elif which python3.9 > /dev/null; then
     export PYTHON='python3.9'
@@ -80,7 +78,6 @@ sudo apt-get install -y \
     blackbox \
     curl \
     libpython3-all-dev \
-    pipenv \
     python3-pip \
     unzip \
     xvfb
