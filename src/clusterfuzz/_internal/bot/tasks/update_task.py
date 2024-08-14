@@ -226,12 +226,6 @@ def update_source_code():
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
-    real_path = os.path.realpath(absolute_filepath)
-    if real_path != absolute_filepath:
-      logs.info('Mismatch between absolute and real filepath. '
-                f'Not adding on normalized set: {real_path}')
-      continue
-
     normalized_file_set.add(absolute_filepath)
     try:
       file_extension = os.path.splitext(filename)[1]
