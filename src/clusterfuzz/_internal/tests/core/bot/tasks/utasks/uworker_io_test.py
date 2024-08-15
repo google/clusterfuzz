@@ -14,6 +14,7 @@
 """Tests for uworker_io."""
 
 import datetime
+import json
 import os
 import tempfile
 import unittest
@@ -347,15 +348,6 @@ class ComplexFieldsTest(unittest.TestCase):
     deserialized = uworker_io.deserialize_uworker_input(wire_format)
     self.assertEqual(deserialized.analyze_task_input.bad_revisions, [0, 1])
 
-  def test_map_update(self):
-    """Tests that updating a map works."""
-    output = uworker_msg_pb2.Output(issue_metadata={'a': 'b', 'c': 'd'})
-    output.issue_metadata.clear()
-    output.issue_metadata.update({'e': 'f'})
-    wire_format = uworker_io.serialize_uworker_output(output)
-    deserialized = uworker_io.deserialize_uworker_output(wire_format)
-    self.assertEqual(deserialized.issue_metadata, {'e': 'f'})
-
   def test_submessage_references(self):
     """Tests that updating a submessage works both when directly reading from
     uworker_input and from reading from it once it has been serialized and
@@ -381,3 +373,18 @@ class ComplexFieldsTest(unittest.TestCase):
     wire_format = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(wire_format)
     self.assertFalse(deserialized.HasField("analyze_task_input"))
+
+  def test_issue_metadata_field(self):
+    """Tests issue_metadata a serialized json string."""
+    metadata = {
+        'sam': 1,
+        1.0: 'i',
+        'am': {
+            'rhyme': [89]
+        },
+        2: 'h',
+    }
+    output = uworker_msg_pb2.Output(issue_metadata=json.dumps(metadata))
+    wire_format = uworker_io.serialize_uworker_input(output)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(json.loads(deserialized.issue_metadata), metadata)
