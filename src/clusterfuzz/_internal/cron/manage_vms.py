@@ -19,6 +19,7 @@ import copy
 import itertools
 import json
 import logging
+from typing import List
 
 from google.cloud import ndb
 
@@ -156,6 +157,21 @@ def _template_needs_update(current_template, new_template, resource_name):
   return False
 
 
+def reverse_pairs(l: List) -> List:
+  """Temporary function to speedup resizing of group 8 which hasn't been
+  updating due to timeouts."""
+  l = list(reversed(l))
+  length = len(l)
+  l_output = []
+  for idx in range(0, length, 2):
+    if idx + 1 >= length:
+      l_output.append(l[idx])
+      continue
+    l_output.append(l[idx + 1])
+    l_output.append(l[idx])
+  return l_output
+
+
 class ClustersManager:
   """Manager for clusters in a project."""
 
@@ -186,7 +202,10 @@ class ClustersManager:
     """Update all clusters in a project."""
     self.start_thread_pool()
 
-    for cluster in self.gce_project.clusters:
+    # TODO(metzman): Remove reverse_pairs.
+    # Use this function so we don't introduce weird bugs by changing the order
+    # in which hosts and workers are reassigned.
+    for cluster in reverse_pairs(self.gce_project.clusters):
       self.pending_updates.append(
           self.thread_pool.submit(self.update_cluster, cluster, cluster.name,
                                   cluster.instance_count))
