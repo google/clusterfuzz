@@ -19,7 +19,6 @@ import copy
 import itertools
 import json
 import logging
-from typing import List
 
 from google.cloud import ndb
 
