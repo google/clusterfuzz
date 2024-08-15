@@ -1193,13 +1193,9 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    logs.info('Running remote engine fuzz.')
-    result = tasks_host.engine_fuzz(engine_impl, target_name,
-                                    sync_corpus_directory, testcase_directory)
-    logs.info('Done remote engine fuzz.')
-    return result
+    return tasks_host.engine_fuzz(engine_impl, target_name,
+                                  sync_corpus_directory, testcase_directory)
 
-  logs.info('Worker engine fuzz.')
   build_dir = environment.get_value('BUILD_DIR')
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if target_path is None:
