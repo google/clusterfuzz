@@ -66,7 +66,7 @@ CORPUS_PRUNING_TIMEOUT = 22 * 60 * 60
 
 # Time to allow libFuzzer to timeout on its own.
 SINGLE_UNIT_TIMEOUT = 5
-TIMEOUT_FLAG = '-timeout=%d' % SINGLE_UNIT_TIMEOUT
+TIMEOUT_FLAG = f'-timeout={SINGLE_UNIT_TIMEOUT}'
 
 # Corpus files limit for cases when corpus pruning task failed in the last
 # execution.
@@ -177,7 +177,7 @@ class Context:
     self.merge_tmp_dir = None
     self.engine = engine.get(self.fuzz_target.engine)
     if not self.engine:
-      raise CorpusPruningError('Engine {} not found'.format(engine))
+      raise CorpusPruningError(f'Engine {engine} not found')
 
     self._created_directories = []
 
@@ -593,7 +593,7 @@ def _record_cross_pollination_stats(output):
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
-def do_corpus_pruning(context, revision):
+def do_corpus_pruning(uworker_input, context, revision):
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
@@ -601,7 +601,7 @@ def do_corpus_pruning(context, revision):
 
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.do_corpus_pruning(context, revision)
+    return tasks_host.do_corpus_pruning(uworker_input, context, revision)
 
   if not build_manager.setup_build(revision=revision):
     raise CorpusPruningError('Failed to setup build.')
@@ -1012,7 +1012,7 @@ def utask_main(uworker_input):
 
   uworker_output = None
   try:
-    result = do_corpus_pruning(context, revision)
+    result = do_corpus_pruning(uworker_input, context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
     _upload_corpus_crashes_zip(

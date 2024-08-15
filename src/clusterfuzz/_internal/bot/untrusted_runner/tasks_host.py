@@ -39,7 +39,7 @@ def _fuzz_target_to_proto(fuzz_target):
   )
 
 
-def do_corpus_pruning(context, revision):
+def do_corpus_pruning(uworker_input, context, revision):
   """Do corpus pruning on untrusted worker."""
   cross_pollinate_fuzzers = [
       untrusted_runner_pb2.CrossPollinateFuzzer(
@@ -52,7 +52,8 @@ def do_corpus_pruning(context, revision):
   request = untrusted_runner_pb2.PruneCorpusRequest(
       fuzz_target=_fuzz_target_to_proto(context.fuzz_target),
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
-      revision=revision)
+      revision=revision,
+      uworker_input=uworker_input)
 
   response = host.stub().PruneCorpus(request)
 
