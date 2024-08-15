@@ -1025,6 +1025,9 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   if not revision_urls:
     return None
 
+  logs.info(f'revision_urls is {revision_urls} and revision_pattern '
+            f'is {revision_pattern}.')
+
   # Parse the revisions out of the build urls.
   revision_list = []
   for url in revision_urls:

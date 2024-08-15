@@ -244,6 +244,7 @@ class LLVMSymbolizer(Symbolizer):
 
   def open_llvm_symbolizer(self):
     if not os.path.exists(self.symbolizer_path):
+      logs.info(f'os.path() does not have {self.symbolizer_path}')
       return None
 
     # Setup symbolizer command line.
@@ -274,6 +275,7 @@ class LLVMSymbolizer(Symbolizer):
     global pipes
     pipes.append(pipe)
 
+    logs.info(f'created pipe - {pipe}')
     return pipe
 
   def symbolize(self, addr, binary, offset):
