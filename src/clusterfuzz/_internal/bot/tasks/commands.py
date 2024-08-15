@@ -285,7 +285,7 @@ def process_command_impl(task_name,
     # A misconfiguration led to this point. Clean up the job if necessary.
     # TODO(ochang): Remove the first part of this check once we migrate off the
     # old untrusted worker architecture.
-    if (not environment.is_trusted_host(ensure_connected=False) &&
+    if (not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix):
       # This happens rarely, store this as a hard exception.
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
