@@ -925,7 +925,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
           group.context.timeout_multiplier, crash, group.context.test_timeout),
       minimized_arguments=crash.arguments,
       trusted=True)
-  logs.info(f'testcase_id: {testcase_id} is_archived: bool(crash.fuzzed_key)')
+  logs.info(f'testcase_id: {testcase_id} is_archived: {bool(crash.fuzzed_key)}')
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if group.context.fuzzer_metadata:
