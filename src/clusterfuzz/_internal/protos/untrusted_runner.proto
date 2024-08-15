@@ -15,7 +15,7 @@
 syntax = "proto2";
 
 import "google/protobuf/any.proto";
-
+import "clusterfuzz/_internal/protos/uworker_msg.proto";
 option go_package = "clusterfuzz/protos/untrusted_runner";
 
 message GetStatusRequest {
@@ -214,6 +214,7 @@ message PruneCorpusRequest {
   repeated CrossPollinateFuzzer cross_pollinate_fuzzers = 2;
   optional bool last_execution_failed = 4;
   optional int64 revision = 5;
+  optional uworker_msg.Input uworker_input = 6;
 }
 
 message PruneCorpusResponse {
