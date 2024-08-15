@@ -43,5 +43,7 @@ def execute(args):
       continue
     t.archive_state = 0
     testcases.append(t)
+    break
   print(testcases)
-  # ndb_utils.put_multi(testcases)
+  print(len(testcases))
+  ndb_utils.put_multi(testcases)
