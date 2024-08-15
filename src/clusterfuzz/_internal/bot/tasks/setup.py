@@ -320,7 +320,9 @@ def _get_testcase_file_and_path(testcase):
   # Default directory for testcases.
   input_directory = environment.get_value('FUZZ_INPUTS')
   if not testcase_path_is_absolute:
+    logs.info('Testcase path not absolute.')
     testcase_path = os.path.join(input_directory, testcase_absolute_path)
+    logs.info(f'testcase_path {testcase_path} abs {testcase_absolute_path}.')
     return input_directory, testcase_path
 
   # Root directory can be different on bots. Fix the path to account for this.
@@ -330,6 +332,9 @@ def _get_testcase_file_and_path(testcase):
   relative_path = testcase_absolute_path[search_index + len(search_string):]
   testcase_path = os.path.join(root_directory, _BOT_DIR, relative_path)
 
+  logs.info(f'testcase_path {testcase_path} abs {testcase_absolute_path} '
+            f'root {root_directory} search {search_string} {search_index} '
+            f'relative_path {relative_path} testcase_path {testcase_path.')
   return input_directory, testcase_path
 
 
@@ -367,13 +372,17 @@ def unpack_testcase(testcase, testcase_download_url):
 
   key, archived = _get_testcase_key_and_archive_status(testcase)
   if _is_testcase_minimized(testcase) and archived:
+    logs.info('Debugging: is_archive and minimized')
     temp_filename = (
         os.path.join(input_directory,
                      str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
   elif archived:
+    logs.info('Debugging: is_archive')
     temp_filename = os.path.join(input_directory, testcase.archive_filename)
   else:
     temp_filename = testcase_file_path
+
+  logs.info(f'Debugging: temp_filename {temp_filename}')
 
   if not download_testcase(testcase_download_url, temp_filename):
     logs.info(f'Couldn\'t download testcase {key} {testcase_download_url}.')
