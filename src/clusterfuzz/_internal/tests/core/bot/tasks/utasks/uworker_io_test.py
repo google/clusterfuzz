@@ -378,13 +378,12 @@ class ComplexFieldsTest(unittest.TestCase):
     """Tests issue_metadata a serialized json string."""
     metadata = {
         'sam': 1,
-        1.0: 'i',
+        'i': 2.1,
         'am': {
             'rhyme': [89]
         },
-        2: 'h',
     }
     output = uworker_msg_pb2.Output(issue_metadata=json.dumps(metadata))
     wire_format = uworker_io.serialize_uworker_input(output)
-    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    deserialized = uworker_io.deserialize_uworker_output(wire_format)
     self.assertEqual(json.loads(deserialized.issue_metadata), metadata)
