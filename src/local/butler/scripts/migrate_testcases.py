@@ -41,9 +41,12 @@ def execute(args):
     if t.archive_state != 1:
       print('unarchived', t.archive_state)
       continue
+    if not t.fuzzed_keys:
+      print('not fuzzed')
+      continue
     t.archive_state = 0
     testcases.append(t)
-    break
+    # break
   print(testcases)
   print(len(testcases))
-  ndb_utils.put_multi(testcases)
+  # ndb_utils.put_multi(testcases)
