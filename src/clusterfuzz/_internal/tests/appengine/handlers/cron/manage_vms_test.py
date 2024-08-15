@@ -1084,6 +1084,14 @@ class OssFuzzDistributeCpusTest(unittest.TestCase):
     self.assertEqual(3571, sum(result))
 
 
+class ReversePairsTest(unittest.TestCase):
+  """Tests reverse_pairs."""
+
+  def test_reverse_pairs(self):
+    l = list(range(6))
+    self.assertEqual(manage_vms.reverse_pairs(l), [4, 5, 2, 3, 0, 1])
+
+
 @test_utils.with_cloud_emulators('datastore')
 class AssignHostWorkerTest(unittest.TestCase):
   """Tests host -> worker assignment."""
