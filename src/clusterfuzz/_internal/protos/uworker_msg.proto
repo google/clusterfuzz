@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-// package "clusterfuzz/protos/uworker_msg";
+package uworker_msg;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
