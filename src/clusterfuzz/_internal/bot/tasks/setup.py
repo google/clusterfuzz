@@ -372,13 +372,17 @@ def unpack_testcase(testcase, testcase_download_url):
 
   key, archived = _get_testcase_key_and_archive_status(testcase)
   if _is_testcase_minimized(testcase) and archived:
+    logs.info('Debugging: is_archive and minimized')
     temp_filename = (
         os.path.join(input_directory,
                      str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
   elif archived:
+    logs.info('Debugging: is_archive')
     temp_filename = os.path.join(input_directory, testcase.archive_filename)
   else:
     temp_filename = testcase_file_path
+
+  logs.info(f'Debugging: temp_filename {temp_filename}')
 
   if not download_testcase(testcase_download_url, temp_filename):
     logs.info(f'Couldn\'t download testcase {key} {testcase_download_url}.')
