@@ -394,6 +394,6 @@ message Output {
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
   optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
-  map<string,string> issue_metadata = 17;
+  optional string issue_metadata = 20;
   optional string error_message = 15;
 }
