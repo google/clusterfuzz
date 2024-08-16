@@ -308,23 +308,23 @@ message ProgressionTaskOutput {
 message CrossPollinationStatistics {
   optional string project_qualified_name = 1;
   optional string sources = 2;
-  optional int32 initial_corpus_size = 3;
-  optional int32 corpus_size = 4;
-  optional int32 initial_edge_coverage = 5;
-  optional int32 edge_coverage = 6;
-  optional int32 initial_feature_coverage = 7;
-  optional int32 feature_coverage = 8;
+  optional int64 initial_corpus_size = 3;
+  optional int64 corpus_size = 4;
+  optional int64 initial_edge_coverage = 5;
+  optional int64 edge_coverage = 6;
+  optional int64 initial_feature_coverage = 7;
+  optional int64 feature_coverage = 8;
 }
 
 message CoverageInformation{
   optional string project_name = 1;
   optional google.protobuf.Timestamp timestamp = 2;
-  optional int32 corpus_size_units = 3;
-  optional int32 corpus_size_bytes = 4;
+  optional int64 corpus_size_units = 3;
+  optional int64 corpus_size_bytes = 4;
   optional string corpus_location = 5;
   optional string corpus_backup_location = 6;
-  optional int32 quarantine_size_units = 7;
-  optional int32 quarantine_size_bytes = 8;
+  optional int64 quarantine_size_units = 7;
+  optional int64 quarantine_size_bytes = 8;
   optional string quarantine_location = 9;
 }
 
