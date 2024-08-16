@@ -39,6 +39,10 @@ def _fuzz_target_to_proto(fuzz_target):
   )
 
 
+def _get_date():
+  return datetime.datetime.utcnow()
+
+
 def do_corpus_pruning(uworker_input, context, revision):
   """Do corpus pruning on untrusted worker."""
   cross_pollinate_fuzzers = [
