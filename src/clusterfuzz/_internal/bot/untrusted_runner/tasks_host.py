@@ -39,6 +39,10 @@ def _fuzz_target_to_proto(fuzz_target):
   )
 
 
+def _get_datetime():
+  return datetime.datetime.utcnow()
+
+
 def do_corpus_pruning(uworker_input, context, revision):
   """Do corpus pruning on untrusted worker."""
   cross_pollinate_fuzzers = [
@@ -58,7 +62,7 @@ def do_corpus_pruning(uworker_input, context, revision):
   response = host.stub().PruneCorpus(request)
 
   project_qualified_name = context.fuzz_target.project_qualified_name()
-  today_date = datetime.datetime.utcnow().date()
+  today_date = _get_datetime()
   coverage_info = data_types.CoverageInformation(
       fuzzer=project_qualified_name, date=today_date)
 
