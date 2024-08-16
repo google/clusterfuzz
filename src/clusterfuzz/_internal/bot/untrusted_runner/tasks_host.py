@@ -23,6 +23,7 @@ from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz.fuzz import engine
 
 from . import host
@@ -76,7 +77,7 @@ def do_corpus_pruning(uworker_input, context, revision):
   coverage_info.quarantine_location = response.coverage_info.quarantine_location
 
   crashes = [
-      corpus_pruning_task.CorpusCrash(
+      uworker_msg_pb2.CrashInfo(
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
