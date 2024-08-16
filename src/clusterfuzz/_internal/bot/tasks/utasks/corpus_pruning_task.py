@@ -454,6 +454,7 @@ class CorpusPruner:
       if state.crash_state not in crashes:
         security_flag = crash_analyzer.is_security_issue(
             state.crash_stacktrace, state.crash_type, state.crash_address)
+        # TODO(metzman): Get rid of CorpusCrash and replace with CrashInfo.
         crashes[state.crash_state] = CorpusCrash(
             state.crash_state, state.crash_type, state.crash_address,
             state.crash_stacktrace, unit_path, security_flag)
