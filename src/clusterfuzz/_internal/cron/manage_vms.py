@@ -342,6 +342,7 @@ class OssFuzzClustersManager(ClustersManager):
     super().__init__(project_id)
     self.worker_to_assignment = {}
     for assignment in self.gce_project.host_worker_assignments:
+      logging.info(f'Assigning worker {assignment.worker} to assignment {assignment}')
       self.worker_to_assignment[assignment.worker] = assignment
 
     self.all_host_names = set()
@@ -374,7 +375,7 @@ class OssFuzzClustersManager(ClustersManager):
         list(zip(high_end_projects, high_end_project_infos))):
       self.cleanup_clusters(project, project_info)
 
-    for cluster in self.gce_project.clusters:
+    for cluster in reverse_pairs(self.gce_project.clusters):
       self.update_project_cpus(projects, project_infos, high_end_projects,
                                high_end_project_infos, cluster)
 
@@ -682,6 +683,8 @@ class OssFuzzClustersManager(ClustersManager):
     # If the workers are done, we're ready to assign them.
     # Note: This assumes that hosts are always specified before workers.
     if cluster.name in self.worker_to_assignment:
+      assignment = self.worker_to_assignment[cluster.name]
+      logging.info(f'Assigning hosts to workers for cluster {cluster.name}: {assignment}')
       self.assign_hosts_to_workers(self.worker_to_assignment[cluster.name])
 
   def get_all_workers_in_cluster(self, manager, cluster_name):
@@ -724,6 +727,8 @@ class OssFuzzClustersManager(ClustersManager):
     """Assign host instances to workers."""
     host_cluster = self.gce_project.get_cluster(assignment.host)
     worker_cluster = self.gce_project.get_cluster(assignment.worker)
+    logging.info(f'host cluster = {host_cluster}')
+    logging.info(f'worker cluster = {worker_cluster}')
 
     if host_cluster.gce_zone != worker_cluster.gce_zone:
       logging.error('Mismatching zones for %s and %s.', assignment.host,
