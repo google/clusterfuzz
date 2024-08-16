@@ -213,6 +213,7 @@ message FuzzTaskCrash {
   optional string fuzzed_key = 21;
   optional string absolute_path = 22;
   optional string archive_filename = 23;
+  optional bool archived = 24;
 }
 
 message FuzzContext {
