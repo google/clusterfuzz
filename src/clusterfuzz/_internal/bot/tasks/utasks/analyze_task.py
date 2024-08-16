@@ -14,6 +14,8 @@
 """Analyze task for handling user uploads."""
 
 import datetime
+import json
+from typing import Dict
 from typing import Optional
 
 from clusterfuzz._internal.base import tasks
@@ -36,7 +38,8 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
-def _add_default_issue_metadata(testcase, fuzz_target_metadata):
+def _add_default_issue_metadata(testcase: data_types.Testcase,
+                                fuzz_target_metadata: Dict):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
   testcase_metadata = testcase.get_metadata()
   for key, default_value in fuzz_target_metadata.items():
@@ -420,7 +423,7 @@ def utask_main(uworker_input):
       analyze_task_output=analyze_task_output,
       test_timeout=test_timeout,
       crash_time=crash_time,
-      issue_metadata=fuzz_target_metadata)
+      issue_metadata=json.dumps(fuzz_target_metadata))
 
 
 def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
@@ -565,7 +568,7 @@ def utask_postprocess(output):
   testcase_upload_metadata.security_flag = testcase.security_flag
   testcase_upload_metadata.put()
 
-  _add_default_issue_metadata(testcase, output.issue_metadata)
+  _add_default_issue_metadata(testcase, json.loads(output.issue_metadata))
   logs.info('Creating post-analyze tasks.')
 
   # Create tasks to
