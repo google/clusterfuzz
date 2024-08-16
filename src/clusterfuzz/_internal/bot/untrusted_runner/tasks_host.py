@@ -23,6 +23,7 @@ from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz.fuzz import engine
 
 from . import host
@@ -37,6 +38,10 @@ def _fuzz_target_to_proto(fuzz_target):
       project=fuzz_target.project,
       binary=fuzz_target.binary,
   )
+
+
+def _get_datetime():
+  return datetime.datetime.utcnow()
 
 
 def do_corpus_pruning(uworker_input, context, revision):
@@ -58,7 +63,7 @@ def do_corpus_pruning(uworker_input, context, revision):
   response = host.stub().PruneCorpus(request)
 
   project_qualified_name = context.fuzz_target.project_qualified_name()
-  today_date = datetime.datetime.utcnow().date()
+  today_date = _get_datetime()
   coverage_info = data_types.CoverageInformation(
       fuzzer=project_qualified_name, date=today_date)
 
@@ -76,7 +81,7 @@ def do_corpus_pruning(uworker_input, context, revision):
   coverage_info.quarantine_location = response.coverage_info.quarantine_location
 
   crashes = [
-      corpus_pruning_task.CorpusCrash(
+      uworker_msg_pb2.CrashInfo(
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,

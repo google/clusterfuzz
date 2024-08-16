@@ -396,14 +396,14 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     """Test hydrating fuzzed_key."""
     crash = self._test_crash(should_be_ignored=False, security_flag=True)
 
-    self.assertFalse(crash.is_archived())
+    self.assertFalse(crash.is_uploaded())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
 
     fuzzed_key = 'fuzzed_key'
     crash.archive_testcase_in_blobstore(
         uworker_msg_pb2.BlobUploadUrl(key=fuzzed_key))
-    self.assertTrue(crash.is_archived())
+    self.assertTrue(crash.is_uploaded())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
 

@@ -80,8 +80,8 @@ class TestGetUrls(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
-  """Tests round trips for serializing+deserializing as well as
-  downloading and uploading inputs and outputs."""
+  """Tests round trips for serializing+deserializing as well as downloading and
+  uploading inputs and outputs."""
   WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
   WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
@@ -369,10 +369,10 @@ class ComplexFieldsTest(unittest.TestCase):
     analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
     uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
 
-    uworker_input.ClearField("analyze_task_input")
+    uworker_input.ClearField('analyze_task_input')
     wire_format = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(wire_format)
-    self.assertFalse(deserialized.HasField("analyze_task_input"))
+    self.assertFalse(deserialized.HasField('analyze_task_input'))
 
   def test_issue_metadata_field(self):
     """Tests issue_metadata a serialized json string."""
