@@ -955,7 +955,7 @@ def _save_coverage_information(output):
 def _get_proto_timestamp(initial_timestamp):
   timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
   timestamp.FromDatetime(initial_timestamp)
-  return timestampe
+  return timestamp
 
 
 def _extract_coverage_information(context, result):
