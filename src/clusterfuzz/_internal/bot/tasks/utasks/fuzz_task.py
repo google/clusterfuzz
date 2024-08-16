@@ -926,6 +926,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       timeout_multiplier=get_testcase_timeout_multiplier(
           group.context.timeout_multiplier, crash, group.context.test_timeout),
       minimized_arguments=crash.arguments,
+      # TODO(https://github.com/google/clusterfuzz/issues/4175): Before enabling
+      # oss-fuzz-on-demand change this.
       trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
