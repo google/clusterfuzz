@@ -952,13 +952,18 @@ def _save_coverage_information(output):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
+def _get_proto_timestamp(initial_timestamp):
+  timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+  timestamp.FromDatetime(initial_timestamp)
+  return timestamp
+
+
 def _extract_coverage_information(context, result):
   """Extracts and stores the coverage information in a proto."""
   coverage_info = uworker_msg_pb2.CoverageInformation()  # pylint: disable=no-member
   coverage_info.project_name = context.fuzz_target.project_qualified_name()
-  timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
-  timestamp.FromDatetime(result.coverage_info.date)
-  coverage_info.timestamp.CopyFrom(timestamp)
+  proto_timestamp = _get_proto_timestamp(result.coverage_info.date)
+  coverage_info.timestamp.CopyFrom(proto_timestamp)
   # Intentionally skip edge and function coverage values as those would come
   # from fuzzer coverage cron task.
   coverage_info.corpus_size_units = result.coverage_info.corpus_size_units
