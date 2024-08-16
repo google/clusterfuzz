@@ -308,6 +308,7 @@ class Crash:
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
+    crash.archived = self.archived
     if self.fuzzed_key:
       crash.fuzzed_key = self.fuzzed_key
       crash.absolute_path = self.absolute_path
