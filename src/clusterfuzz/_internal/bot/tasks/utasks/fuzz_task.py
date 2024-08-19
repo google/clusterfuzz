@@ -1729,7 +1729,7 @@ class FuzzingSession:
       environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'),
-        fuzzer_selection.get_fuzz_target_weights())
+        self.uworker_input.fuzz_task_input.fuzz_target_weights)
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -2009,6 +2009,10 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     # Copy global blacklist into local suppressions file if LSan is enabled.
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
+
+
+  fuzz_task_input.fuzz_target_weights.extend(
+    fuzzer_selection.get_fuzz_target_weights())
 
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,

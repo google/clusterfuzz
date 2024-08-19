@@ -52,6 +52,7 @@ message FuzzTaskInput {
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
   repeated BlobUploadUrl crash_upload_urls = 7;
+  map<string, float> fuzz_target_weights = 8;
 }
 
 message DataBundleCorpus {
