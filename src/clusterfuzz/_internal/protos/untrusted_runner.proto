@@ -44,7 +44,6 @@ message SetupBuildResponse {
   optional string app_dir = 4;
   optional string build_dir = 5;
   optional string build_url = 6;
-  optional string fuzz_target = 7;
   optional int32 fuzz_target_count = 8;
   repeated string fuzz_targets = 9;
 }
@@ -53,8 +52,8 @@ message SetupRegularBuildRequest {
   optional string base_build_dir = 1;
   optional int64 revision = 2;
   optional string build_url = 3;
-  map<string, double> target_weights = 4;
   optional string build_prefix = 5;
+  optional string fuzz_target = 6;
 }
 
 // Maps to process_handler.runProcess

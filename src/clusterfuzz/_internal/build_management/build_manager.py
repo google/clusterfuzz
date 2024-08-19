@@ -197,11 +197,6 @@ def _get_build_directory(bucket_path, job_name):
 
 def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
-  fuzz_target = environment.get_value('FUZZ_TARGET')
-  if fuzz_target:
-    logs.info('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
-    return fuzz_target
-
   if not environment.is_engine_fuzzer_job():
     return None
 
@@ -213,7 +208,7 @@ def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
   environment.set_value('FUZZ_TARGET', fuzz_target)
-  logs.info('Picked fuzz target %s for fuzzing.' % fuzz_target)
+  logs.info(f'Picked fuzz target {fuzz_target} for fuzzing.')
 
   return fuzz_target
 
@@ -332,12 +327,13 @@ class Build(BaseBuild):
                base_build_dir,
                revision,
                build_prefix='',
-               fuzz_targets=None):
+               fuzz_target=None):
     super().__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
-    self.fuzz_targets = list(fuzz_targets) if fuzz_targets is not None else None
+    self.fuzz_targets = None
+    self.fuzz_target = fuzz_target
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -410,11 +406,7 @@ class Build(BaseBuild):
     if instrumented_library_paths:
       self._patch_rpaths(instrumented_library_paths)
 
-  def _unpack_build(self,
-                    base_build_dir,
-                    build_dir,
-                    build_url,
-                    target_weights=None):
+  def _unpack_build(self, base_build_dir, build_dir, build_url):
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
     start_time = time.time()
@@ -454,26 +446,12 @@ class Build(BaseBuild):
       with build_archive.open(build_local_archive) as build:
         unpack_everything = environment.get_value(
             'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-        if not unpack_everything:
-          # For fuzzing, pick a random fuzz target so that we only un-archive
-          # that particular fuzz target and its dependencies and save disk
-          # space. If we are going to unpack everythng in archive based on
-          # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job definition, then
-          # don't set a random fuzz target before we've unpacked the build. It
-          # won't actually save us anything in this case and can be really
-          # expensive for large builds (such as Chrome OS). Defer setting it
-          # until after the build has been unpacked.
-          self._pick_fuzz_target(build.list_fuzz_targets(), target_weights)
 
-        fuzz_target = None
         if not unpack_everything:
-          fuzz_target = environment.get_value('FUZZ_TARGET')
-
-        if not fuzz_target:
-          unpack_everything = True
+          self.fuzz_targets = list(build.list_fuzz_targets())
 
         # If the fuzz_target is None, this will return the full size.
-        extracted_size = build.unpacked_size(fuzz_target=fuzz_target)
+        extracted_size = build.unpacked_size(fuzz_target=self.fuzz_target)
 
         if not _make_space(extracted_size, current_build_dir=base_build_dir):
           shell.clear_data_directories()
@@ -487,14 +465,14 @@ class Build(BaseBuild):
         trusted = not utils.is_oss_fuzz()
 
         build.unpack(
-            build_dir=build_dir, fuzz_target=fuzz_target, trusted=trusted)
+            build_dir=build_dir, fuzz_target=self.fuzz_target, trusted=trusted)
+
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_local_archive}: {e}')
       return False
 
     if unpack_everything:
-      self._pick_fuzz_target(
-          self._get_fuzz_targets_from_dir(build_dir), target_weights)
+      self.fuzz_targets = list(self._get_fuzz_targets_from_dir(build_dir))
     else:
       # If this is partial build due to selected build files, then mark it as
       # such so that it is not re-used.
@@ -518,12 +496,6 @@ class Build(BaseBuild):
 
     for path in fuzzer_utils.get_fuzz_targets(build_dir):
       yield fuzzer_utils.normalize_target_name(path)
-
-  def _pick_fuzz_target(self, fuzz_targets, target_weights):
-    """Selects a fuzz target for fuzzing."""
-    self.fuzz_targets = list(fuzz_targets)
-    return set_random_fuzz_target_for_fuzzing_if_needed(self.fuzz_targets,
-                                                        target_weights)
 
   def setup(self):
     """Set up the build on disk, and set all the necessary environment
@@ -627,11 +599,10 @@ class RegularBuild(Build):
                base_build_dir,
                revision,
                build_url,
-               target_weights=None,
                build_prefix='',
-               fuzz_targets=None):
+               fuzz_target=None):
     super().__init__(
-        base_build_dir, revision, build_prefix, fuzz_targets=fuzz_targets)
+        base_build_dir, revision, build_prefix, fuzz_target=fuzz_target)
     self.build_url = build_url
 
     if build_prefix:
@@ -640,7 +611,6 @@ class RegularBuild(Build):
       self.build_dir_name = 'revisions'
 
     self._build_dir = os.path.join(self.base_build_dir, self.build_dir_name)
-    self.target_weights = target_weights
 
   @property
   def build_dir(self):
@@ -655,17 +625,23 @@ class RegularBuild(Build):
     build_update = not self.exists()
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
-                                self.build_url, self.target_weights):
+                                self.build_url):
         return False
 
       logs.info('Retrieved build r%d.' % self.revision)
     else:
-      self._pick_fuzz_target(
-          self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
-
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
       logs.info('Build already exists.')
+
+      # This is OK because even though it is an incomplete list of
+      # fuzz targets, there was a full list saved earlier when it was
+      # unpacked. The way that lists are used, it doesn't matter if
+      # some of them are incomplete, so long as some of them are
+      # complete. Unfortunately, there is no better way to the mess
+      # that is the ClusterFuzz builds system. Also, SplitTargetBuild will clobber
+      # the value here and partial builds never take this branch.
+      self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
@@ -676,19 +652,14 @@ class RegularBuild(Build):
 class SplitTargetBuild(RegularBuild):
   """Represents a split target build."""
 
-  def _pick_fuzz_target(self, fuzz_targets, target_weights):
-    """Selects the already selected fuzz target for fuzzing."""
-    return set_random_fuzz_target_for_fuzzing_if_needed(
-        list(fuzz_targets), target_weights)
+  def setup(self, *args, **kwargs):
+    result = super().setup(*args, **kwargs)
+    self.fuzz_targets = list(_split_target_build_list_targets())
+    return result
 
 
 class FuchsiaBuild(RegularBuild):
   """Represents a Fuchsia build."""
-
-  def _pick_fuzz_target(self, fuzz_targets, target_weights):
-    """No-op, since Fuchsia builds pick targets later than other build types
-    and we aren't ready at the point that this is called by the superclass's
-    setup()."""
 
   def _get_fuzz_targets_from_dir(self, build_dir):
     """A running instance is required to enumerate targets so this is a
@@ -723,9 +694,6 @@ class FuchsiaBuild(RegularBuild):
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
     self.fuzz_targets = list(fuzz_targets)
-    set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
-                                                 self.target_weights)
-
     return True
 
 
@@ -804,12 +772,12 @@ class CustomBuild(Build):
                custom_binary_key,
                custom_binary_filename,
                custom_binary_revision,
-               target_weights=None):
-    super().__init__(base_build_dir, custom_binary_revision)
+               fuzz_target=None):
+    super().__init__(
+        base_build_dir, custom_binary_revision, fuzz_target=fuzz_target)
     self.custom_binary_key = custom_binary_key
     self.custom_binary_filename = custom_binary_filename
     self._build_dir = os.path.join(self.base_build_dir, 'custom')
-    self.target_weights = target_weights
 
   @property
   def build_dir(self):
@@ -861,9 +829,6 @@ class CustomBuild(Build):
       build.close()
       # Remove the archive.
       shell.remove_file(build_local_archive)
-
-    self._pick_fuzz_target(
-        self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True
 
   def setup(self):
@@ -887,9 +852,7 @@ class CustomBuild(Build):
     else:
       logs.info('Build already exists.')
 
-      self._pick_fuzz_target(
-          self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
-
+    self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
     return True
@@ -1089,31 +1052,18 @@ def _full_fuzz_target_path(bucket_path, fuzz_target):
   return bucket_path.replace('%TARGET%', _base_fuzz_target_name(fuzz_target))
 
 
-def _setup_split_targets_build(bucket_path, target_weights, revision=None):
+def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
   """Set up targets build."""
-  targets_list = _get_targets_list(bucket_path)
-  if not targets_list:
-    raise BuildManagerError(
-        'No targets found in targets.list (path=%s).' % bucket_path)
-
-  fuzz_target = set_random_fuzz_target_for_fuzzing_if_needed(
-      targets_list, target_weights)
+  bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
   if not fuzz_target:
     raise BuildManagerError(
         'Failed to choose a fuzz target (path=%s).' % bucket_path)
-
-  if fuzz_target not in targets_list:
-    raise errors.BuildNotFoundError(revision, environment.get_value('JOB_NAME'))
-
   fuzz_target_bucket_path = _full_fuzz_target_path(bucket_path, fuzz_target)
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
 
   return setup_regular_build(
-      revision,
-      bucket_path=fuzz_target_bucket_path,
-      target_weights=target_weights,
-      fuzz_targets=targets_list)
+      revision, bucket_path=fuzz_target_bucket_path, fuzz_target=fuzz_target)
 
 
 def _get_latest_revision(bucket_paths):
@@ -1151,7 +1101,7 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
-def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
+def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
@@ -1162,7 +1112,7 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
       latest_revision,
       bucket_path=bucket_paths[0],
       build_prefix=build_prefix,
-      target_weights=target_weights)
+      fuzz_target=fuzz_target)
   if not build:
     logs.error('Failed to set up a build.')
     return None
@@ -1173,8 +1123,7 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        target_weights=None,
-                        fuzz_targets=None) -> RegularBuild:
+                        fuzz_target=None) -> RegularBuild:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1208,9 +1157,8 @@ def setup_regular_build(revision,
       base_build_dir,
       revision,
       build_url,
-      target_weights=target_weights,
       build_prefix=build_prefix,
-      fuzz_targets=fuzz_targets)
+      fuzz_target=fuzz_target)
   if build.setup():
     result = build
   else:
@@ -1233,7 +1181,6 @@ def setup_regular_build(revision,
         build.build_dir,  # Store inside the main build.
         revision,
         extra_build_url,
-        target_weights=target_weights,
         build_prefix=fuzzer_utils.EXTRA_BUILD_DIR)
     if not build.setup():
       return None
@@ -1277,7 +1224,7 @@ def setup_symbolized_builds(revision):
   return None
 
 
-def setup_custom_binary(target_weights=None):
+def setup_custom_binary(fuzz_target=None):
   """Set up the custom binary for a particular job."""
   # Check if this build is dependent on any other custom job. If yes,
   # then fake out our job name for setting up the build.
@@ -1303,7 +1250,7 @@ def setup_custom_binary(target_weights=None):
       job.custom_binary_key,
       job.custom_binary_filename,
       job.custom_binary_revision,
-      target_weights=target_weights)
+      fuzz_target=fuzz_target)
 
   # Revert back the actual job name.
   if share_build_job_type:
@@ -1325,12 +1272,12 @@ def setup_system_binary():
   return None
 
 
-def setup_build(revision=0, target_weights=None):
+def setup_build(revision=0, fuzz_target=None):
   """Set up a custom or regular build based on revision."""
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
-    return setup_custom_binary(target_weights=target_weights)
+    return setup_custom_binary(fuzz_target=fuzz_target)
 
   # In this case, we assume the build is already installed on the system.
   system_binary = environment.get_value('SYSTEM_BINARY_DIR')
@@ -1343,11 +1290,11 @@ def setup_build(revision=0, target_weights=None):
   if fuzz_target_build_bucket_path:
     # Split fuzz target build.
     return _setup_split_targets_build(
-        fuzz_target_build_bucket_path, target_weights, revision=revision)
+        fuzz_target_build_bucket_path, fuzz_target, revision=revision)
 
   if revision:
     # Setup regular build with revision.
-    return setup_regular_build(revision, target_weights=target_weights)
+    return setup_regular_build(revision, fuzz_target=fuzz_target)
 
   # If no revision is provided, we default to a trunk build.
   bucket_paths = []
@@ -1362,7 +1309,7 @@ def setup_build(revision=0, target_weights=None):
     logs.error('Attempted a trunk build, but no bucket paths were found.')
     return None
 
-  return setup_trunk_build(bucket_paths, target_weights=target_weights)
+  return setup_trunk_build(bucket_paths, fuzz_target=fuzz_target)
 
 
 def is_custom_binary():
@@ -1434,6 +1381,39 @@ def get_rpaths(binary_path):
     return rpaths[start_index:].split(':')
 
   return []
+
+
+def _pick_random_fuzz_target_for_standard_build(target_weights):
+  return set_random_fuzz_target_for_fuzzing_if_needed(target_weights.keys(),
+                                                      target_weights)
+
+
+def _split_target_build_list_targets():
+  bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
+  targets_list = _get_targets_list(bucket_path)
+  if not targets_list:
+    raise BuildManagerError(
+        f'No targets found in targets.list (path={bucket_path}).')
+  return targets_list
+
+
+def _pick_random_fuzz_target_for_split_build(target_weights):
+  targets_list = _split_target_build_list_targets()
+  fuzz_target = set_random_fuzz_target_for_fuzzing_if_needed(
+      targets_list, target_weights)
+  if not fuzz_target:
+    bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
+    raise BuildManagerError(
+        f'Failed to choose a fuzz target (path={bucket_path}).')
+  if fuzz_target not in targets_list:
+    raise errors.BuildNotFoundError('Unknown',
+                                    environment.get_value('JOB_NAME'))
+
+
+def pick_random_fuzz_target(target_weights):
+  if environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'):
+    return _pick_random_fuzz_target_for_split_build(target_weights)
+  return _pick_random_fuzz_target_for_standard_build(target_weights)
 
 
 def check_app_path(app_path='APP_PATH') -> bool:

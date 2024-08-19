@@ -99,12 +99,6 @@ GenerateBlackboxTestcasesResult = collections.namedtuple(
     ['success', 'testcase_file_paths', 'fuzzer_metadata'])
 
 
-def has_standard_build():
-  if environment.platform() == 'FUCHSIA':
-    return False
-  return not bool(environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'))
-
-
 def get_unsymbolized_crash_stacktrace(stack_file_path):
   """Read unsymbolized crash stacktrace."""
   with open(stack_file_path, 'rb') as f:
@@ -1700,8 +1694,6 @@ class FuzzingSession:
 
   def run(self):
     """Run the fuzzing session."""
-    failure_wait_interval = environment.get_value('FAIL_WAIT')
-
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -1714,10 +1706,11 @@ class FuzzingSession:
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
         self.uworker_input.setup_input)
     if not self.fuzzer:
-      logs.error('Unable to setup fuzzer %s.' % self.fuzzer_name)
+      logs.error(f'Unable to setup fuzzer {self.fuzzer_name}.')
 
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
+      failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(failure_wait_interval)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
@@ -1727,9 +1720,9 @@ class FuzzingSession:
     if self.fuzz_target:
       logs.info(f'Setting fuzz target {self.fuzz_target}.')
       environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
+
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'),
-        self.uworker_input.fuzz_task_input.fuzz_target_weights)
+        environment.get_value('APP_REVISION'))
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -1739,18 +1732,6 @@ class FuzzingSession:
       self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
       if not self.fuzz_task_output.fuzz_targets:
         logs.error('No fuzz targets.')
-
-      if not has_standard_build():
-        # Handle split builds where fuzz target is picked as side effect of
-        # build setup.
-        fuzz_target_name = environment.get_value('FUZZ_TARGET')
-        self.fuzz_target = data_handler.record_fuzz_target(
-            engine_impl.name, fuzz_target_name, self.job_type)
-
-      if not self.fuzz_target:
-        return uworker_msg_pb2.Output(  # pylint: disable=no-member
-            fuzz_task_output=self.fuzz_task_output,
-            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
@@ -1935,14 +1916,6 @@ def _make_session(uworker_input):
   )
 
 
-def handle_fuzz_no_fuzz_target_selected(output):
-  save_fuzz_targets(output)
-  # Try again now that there are some fuzz targets.
-  utask_preprocess(output.uworker_input.fuzzer_name,
-                   output.uworker_input.job_type,
-                   output.uworker_input.uworker_env)
-
-
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:  # pylint: disable=no-member
         handle_fuzz_build_setup_failure,
@@ -1950,8 +1923,6 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_fuzz_data_bundle_setup_failure,
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:  # pylint: disable=no-member
         handle_fuzz_no_fuzzer,
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:  # pylint: disable=no-member
-        handle_fuzz_no_fuzz_target_selected,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 
@@ -1961,14 +1932,9 @@ def _pick_fuzz_target():
     logs.info('Not engine fuzzer. Not picking fuzz target.')
     return None
 
-  if not has_standard_build():
-    logs.info('Split build. Not picking fuzz target.')
-    return None
-
   logs.info('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
-  return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(
-      target_weights.keys(), target_weights)
+  return build_manager.pick_random_fuzz_target(target_weights)
 
 
 def _get_fuzz_target_from_db(engine_name, fuzz_target_binary, job_type):
@@ -2009,10 +1975,6 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     # Copy global blacklist into local suppressions file if LSan is enabled.
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
-
-
-  fuzz_task_input.fuzz_target_weights.extend(
-    fuzzer_selection.get_fuzz_target_weights())
 
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,

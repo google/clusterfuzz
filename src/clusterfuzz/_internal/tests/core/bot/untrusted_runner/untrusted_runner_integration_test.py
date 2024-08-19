@@ -312,7 +312,8 @@ class UntrustedRunnerIntegrationTest(
                           os.path.join(os.environ['ROOT_DIR'], launcher_dir))
 
     self._setup_env(job_type='libfuzzer_asan_job')
-    build = build_manager.setup_build(target_weights={})
+    fuzz_target = build_manager.pick_random_fuzz_target(target_weights={})
+    build = build_manager.setup_build(fuzz_target=fuzz_target)
     self.assertIsNotNone(build)
 
     worker_root_dir = os.environ['WORKER_ROOT_DIR']
