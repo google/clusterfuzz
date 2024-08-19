@@ -53,7 +53,7 @@ def _get_swarming_config():
 
 
 def _get_new_task_spec(command: str, job_name: str,
-                       download_url: str) -> swarming_pb2.NewTaskRequest:
+                       download_url: str) -> swarming_pb2.NewTaskRequest:  # pylint: disable=no-member
   """Gets the configured specifications for a swarming task."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   config_name = job.platform
@@ -83,35 +83,36 @@ def _get_new_task_spec(command: str, job_name: str,
   execution_timeout_secs = instance_spec['execution_timeout_secs']
   if command == 'fuzz':
     execution_timeout_secs = swarming_config.get('fuzz_task_duration')
-  new_task_request = swarming_pb2.NewTaskRequest(
+  new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
       name=_get_task_name(),
       priority=priority,
       realm=swarming_realm,
       service_account=service_account,
       task_slices=[
-          swarming_pb2.TaskSlice(
+          swarming_pb2.TaskSlice(  # pylint: disable=no-member
               expiration_secs=expiration_secs,
-              properties=swarming_pb2.TaskProperties(
+              properties=swarming_pb2.TaskProperties(  # pylint: disable=no-member
                   command=[startup_command],
                   dimensions=[
-                      swarming_pb2.StringPair(key='os', value=job.platform),
-                      swarming_pb2.StringPair(key='pool', value=swarming_pool)
+                      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
+                      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
                   ],
-                  cas_input_root=swarming_pb2.CASReference(
+                  cas_input_root=swarming_pb2.CASReference(  # pylint: disable=no-member
                       cas_instance=cas_instance,
-                      digest=swarming_pb2.Digest(
-                          hash=digest_hash, size_bytes=digest_size_bytes)),
+                      digest=swarming_pb2.Digest(  # pylint: disable=no-member
+                          hash=digest_hash,
+                          size_bytes=digest_size_bytes)),
                   execution_timeout_secs=execution_timeout_secs,
                   env=[
-                      swarming_pb2.StringPair(key='UWORKER', value='True'),
-                      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),
+                      swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
+                      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
                   ],
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
   docker_image = instance_spec.get('docker_image')
   if docker_image:
     new_task_request.task_slices[0].properties.env.append(
-        swarming_pb2.StringPair(key='DOCKER_IMAGE', value=docker_image))
+        swarming_pb2.StringPair(key='DOCKER_IMAGE', value=docker_image))  # pylint: disable=no-member
 
   return new_task_request
 
