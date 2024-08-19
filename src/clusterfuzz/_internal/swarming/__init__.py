@@ -63,6 +63,7 @@ def _get_new_task_spec(command: str, job_name: str,
     raise ValueError(f'No mapping for {config_name}')
   swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
+  logs_project_id = swarming_config.get('logs_project_id')
   # The priority of the task
   priority = instance_spec['priority']
   # The command to launch the startup script
@@ -106,6 +107,10 @@ def _get_new_task_spec(command: str, job_name: str,
                   env=[
                       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
                       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
+                      swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
+                      swarming_pb2.StringPair(  # pylint: disable=no-member
+                          key='LOGGING_CLOUD_PROJECT_ID',
+                          value=logs_project_id),
                   ],
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])

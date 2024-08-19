@@ -37,4 +37,5 @@ mapping:
 swarming_server: 'server-name'
 swarming_pool: 'pool-name'
 swarming_realm: 'realm-name'
+logs_project_id: 'project_id'
 fuzz_task_duration: 12345

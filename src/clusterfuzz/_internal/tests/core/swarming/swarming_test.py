@@ -68,6 +68,9 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                         swarming_pb2.StringPair(
                             key='DOCKER_IMAGE',
                             value=
@@ -119,6 +122,9 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -156,6 +162,9 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                         swarming_pb2.StringPair(
                             key='DOCKER_IMAGE',
                             value=
@@ -198,6 +207,9 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                         swarming_pb2.StringPair(
                             key='DOCKER_IMAGE',
                             value=
