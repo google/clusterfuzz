@@ -532,29 +532,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
-        data_types.Job.name == 'centipede_asan_lib1').get()
-    self.assertIsNotNone(job)
-    self.assertEqual(job.project, 'lib1')
-    self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertCountEqual(job.templates, ['engine_asan', 'centipede'])
-    self.assertEqual(
-        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds-centipede/lib1/lib1-none-([0-9]+).zip\n'
-        'PROJECT_NAME = lib1\n'
-        'SUMMARY_PREFIX = lib1\n'
-        'MANAGED = True\n'
-        'EXTRA_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds-centipede/lib1/lib1-address-([0-9]+).zip\n'
-        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds-centipede/lib1/lib1-address-%s.srcmap.json\n'
-        'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
-        'CORPUS_BUCKET = lib1-corpus.clusterfuzz-external.appspot.com\n'
-        'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
-        'BACKUP_BUCKET = lib1-backup.clusterfuzz-external.appspot.com\n'
-        'AUTOMATIC_LABELS = Proj-lib1,Engine-centipede\n'
-        'FILE_GITHUB_ISSUE = False\n')
-
-    job = data_types.Job.query(
         data_types.Job.name == 'centipede_asan_lib9').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib9')
@@ -607,7 +584,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     centipede = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'centipede').get()
     self.assertCountEqual(centipede.jobs, [
-        'centipede_asan_lib1',
         'centipede_asan_lib9',
     ])
 
@@ -1341,7 +1317,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_i386_lib8'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_lib8'),
-        ('LIB1_LINUX', 'centipede', 'centipede_asan_lib1'),
         ('LIB9_LINUX', 'centipede', 'centipede_asan_lib9'),
     ])
 
@@ -1595,27 +1570,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'email': 'primary@example.com',
             'entity_name': 'libfuzzer_nosanitizer_i386_lib8',
             'auto_cc': 1
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'auto_cc': 1,
-            'entity_name': 'centipede_asan_lib1',
-            'email': 'primary@example.com'
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'auto_cc': 1,
-            'entity_name': 'centipede_asan_lib1',
-            'email': 'user@example.com'
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'auto_cc': 1,
-            'entity_name': 'centipede_asan_lib1',
-            'email': 'user2@googlemail.com'
         },
         {
             'entity_kind': 1,
