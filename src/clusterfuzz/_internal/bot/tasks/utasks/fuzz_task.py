@@ -1745,8 +1745,9 @@ class FuzzingSession:
     logs.info('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
 
-    self.fuzz_task_output.build_data = testcase_manager.check_for_bad_build(
+    build_data = testcase_manager.check_for_bad_build(
         self.job_type, crash_revision)
+    self.fuzz_task_output.build_data = build_data
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
     if build_data.is_bad_build:
@@ -1895,6 +1896,11 @@ def handle_fuzz_no_fuzzer(output):
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
+def handle_fuzz_bad_build(uworker_input):
+  testcase_manager.update_build_metadata(
+      uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
+
+
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   session = _make_session(uworker_input)
@@ -1920,10 +1926,6 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_fuzz_bad_build,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
-
-def handle_bad_build(uworker_input):
-  testcase_manager.update_build_metadata(
-      uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
 
 
 def _pick_fuzz_target():

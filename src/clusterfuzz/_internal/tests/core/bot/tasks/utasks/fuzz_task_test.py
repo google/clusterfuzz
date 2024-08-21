@@ -1564,7 +1564,8 @@ class PickFuzzTargetTest(unittest.TestCase):
 
   def test_split_build(self):
     """Tests that we don't pick a target for a split build."""
-    os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
     os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
     self.assertEqual(fuzz_task._pick_fuzz_target(), 'target')
 
