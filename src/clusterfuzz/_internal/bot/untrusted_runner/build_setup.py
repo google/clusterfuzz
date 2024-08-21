@@ -31,7 +31,6 @@ def _build_response(build, result):
       app_dir=environment.get_value('APP_DIR'),
       build_dir=environment.get_value('BUILD_DIR'),
       build_url=environment.get_value('BUILD_URL'),
-      fuzz_target=environment.get_value('FUZZ_TARGET'),
       fuzz_target_count=environment.get_value('FUZZ_TARGET_COUNT'),
       fuzz_targets=build.fuzz_targets or [])
 
