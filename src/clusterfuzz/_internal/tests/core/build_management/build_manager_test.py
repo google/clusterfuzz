@@ -74,96 +74,95 @@ def _get_timestamp(base_build_dir):
       os.path.join(base_build_dir, '.timestamp'), eval_data=True)
 
 
-# class TrunkBuildTest(unittest.TestCase):
-#   """Tests for setting up trunk build."""
+class TrunkBuildTest(unittest.TestCase):
+  """Tests for setting up trunk build."""
 
-#   def setUp(self):
-#     test_helpers.patch_environ(self)
-#     test_helpers.patch(self, [
-#         'clusterfuzz._internal.build_management.build_manager._setup_build_directories',
-#         'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
-#         'clusterfuzz._internal.build_management.build_manager.setup_regular_build',
-#     ])
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager._setup_build_directories',
+        'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
+        'clusterfuzz._internal.build_management.build_manager.setup_regular_build',
+    ])
 
-#     os.environ['BUILDS_DIR'] = '/builds'
-#     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
-#         'gs://path/file-release-([0-9]+).zip')
-#     os.environ['SYM_RELEASE_BUILD_BUCKET_PATH'] = (
-#         'gs://path/file-sym-release-([0-9]+).zip')
-#     os.environ['SYM_DEBUG_BUILD_BUCKET_PATH'] = (
-#         'gs://path/file-sym-debug-([0-9]+).zip')
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+    os.environ['SYM_RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-sym-release-([0-9]+).zip')
+    os.environ['SYM_DEBUG_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-sym-debug-([0-9]+).zip')
 
-#   def test_setup_success(self):
-#     """Test successful setup."""
-#     self.mock.get_build_urls_list.side_effect = (
-#         [
-#             'gs://path/file-release-10.zip',
-#             'gs://path/file-release-2.zip',
-#             'gs://path/file-release-1.zip',
-#         ],
-#         [
-#             'gs://path/file-sym-release-10.zip',
-#             'gs://path/file-sym-release-2.zip',
-#             'gs://path/file-sym-release-1.zip',
-#         ],
-#         [
-#             'gs://path/file-sym-debug-10.zip',
-#             'gs://path/file-sym-debug-2.zip',
-#             'gs://path/file-sym-debug-1.zip',
-#         ],
-#     )
+  def test_setup_success(self):
+    """Test successful setup."""
+    self.mock.get_build_urls_list.side_effect = (
+        [
+            'gs://path/file-release-10.zip',
+            'gs://path/file-release-2.zip',
+            'gs://path/file-release-1.zip',
+        ],
+        [
+            'gs://path/file-sym-release-10.zip',
+            'gs://path/file-sym-release-2.zip',
+            'gs://path/file-sym-release-1.zip',
+        ],
+        [
+            'gs://path/file-sym-debug-10.zip',
+            'gs://path/file-sym-debug-2.zip',
+            'gs://path/file-sym-debug-1.zip',
+        ],
+    )
 
-#     build_manager.setup_build()
-#     self.mock.setup_regular_build.assert_called_with(
-#         10, 'gs://path/file-release-([0-9]+).zip', build_prefix=None, fuzz_target=None)
+    build_manager.setup_build()
+    self.mock.setup_regular_build.assert_called_with(
+        10, 'gs://path/file-release-([0-9]+).zip', build_prefix=None, fuzz_target=None)
 
-#   def test_setup_mismatch(self):
-#     """Test setup finding the first matching revision."""
-#     self.mock.get_build_urls_list.side_effect = (
-#         [
-#             'gs://path/file-release-10.zip',
-#             'gs://path/file-release-2.zip',
-#             'gs://path/file-release-1.zip',
-#         ],
-#         [
-#             'gs://path/file-sym-release-11.zip',
-#             'gs://path/file-sym-release-2.zip',
-#             'gs://path/file-sym-release-1.zip',
-#         ],
-#         [
-#             'gs://path/file-sym-debug-10.zip',
-#             'gs://path/file-sym-debug-2.zip',
-#             'gs://path/file-sym-debug-1.zip',
-#         ],
-#     )
+  def test_setup_mismatch(self):
+    """Test setup finding the first matching revision."""
+    self.mock.get_build_urls_list.side_effect = (
+        [
+            'gs://path/file-release-10.zip',
+            'gs://path/file-release-2.zip',
+            'gs://path/file-release-1.zip',
+        ],
+        [
+            'gs://path/file-sym-release-11.zip',
+            'gs://path/file-sym-release-2.zip',
+            'gs://path/file-sym-release-1.zip',
+        ],
+        [
+            'gs://path/file-sym-debug-10.zip',
+            'gs://path/file-sym-debug-2.zip',
+            'gs://path/file-sym-debug-1.zip',
+        ],
+    )
 
-#     build_manager.setup_build()
-#     self.mock.setup_regular_build.assert_called_with(
-#         2, 'gs://path/file-release-([0-9]+).zip', build_prefix=None, fuzz_target=None)
+    build_manager.setup_build()
+    self.mock.setup_regular_build.assert_called_with(
+        2, 'gs://path/file-release-([0-9]+).zip', build_prefix=None, fuzz_target=None)
 
-#   def test_setup_fail(self):
-#     """Test setup failing to find any matching revisions."""
-#     self.mock.get_build_urls_list.side_effect = (
-#         [
-#             'gs://path/file-release-10.zip',
-#             'gs://path/file-release-3.zip',
-#             'gs://path/file-release-1.zip',
-#         ],
-#         [
-#             'gs://path/file-sym-release-11.zip',
-#             'gs://path/file-sym-release-2.zip',
-#             'gs://path/file-sym-release-1.zip',
-#         ],
-#         [
-#             'gs://path/file-sym-debug-10.zip',
-#             'gs://path/file-sym-debug-2.zip',
-#             'gs://path/file-sym-debug-0.zip',
-#         ],
-#     )
+  def test_setup_fail(self):
+    """Test setup failing to find any matching revisions."""
+    self.mock.get_build_urls_list.side_effect = (
+        [
+            'gs://path/file-release-10.zip',
+            'gs://path/file-release-3.zip',
+            'gs://path/file-release-1.zip',
+        ],
+        [
+            'gs://path/file-sym-release-11.zip',
+            'gs://path/file-sym-release-2.zip',
+            'gs://path/file-sym-release-1.zip',
+        ],
+        [
+            'gs://path/file-sym-debug-10.zip',
+            'gs://path/file-sym-debug-2.zip',
+            'gs://path/file-sym-debug-0.zip',
+        ],
+    )
 
-#     build_manager.setup_build()
-#     self.assertEqual(0, self.mock.setup_regular_build.call_count)
-
+    build_manager.setup_build()
+    self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
 # @unittest.skipIf(
 #     not environment.get_value('FUCHSIA_TESTS'),
@@ -228,7 +227,6 @@ def _get_timestamp(base_build_dir):
 #         'zircon_fuzzers/lz4-fuzzer',
 #         'zircon_fuzzers/noop-fuzzer',
 #     ], targets)
-
 
 # class RegularBuildTest(fake_filesystem_unittest.TestCase):
 #   """Tests for regular build setup."""
@@ -600,8 +598,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
           fuzz_target=target_checker,
           trusted=True)
 
-  @parameterized.parameterized.expand(['True'# , 'False'
-                                       ])
+  @parameterized.parameterized.expand([
+      'True'  # , 'False'
+  ])
   def test_setup_nonfuzz_with_extra(self, unpack_all):
     """Test setting up a build during a non-fuzz task with an extra build."""
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
@@ -1360,7 +1359,6 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
 # #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
 # #     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
-
 # # class SortBuildUrlsByRevisionTest(unittest.TestCase):
 # #   """Test _sort_build_urls_by_revision."""
 
@@ -1495,209 +1493,211 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
 # #     self.assertEqual(expected_result, actual_result)
 
 
-# # class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
-# #   """Tests for split fuzz target build setup."""
+class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for split fuzz target build setup."""
 
-# #   def setUp(self):
-# #     """Setup for split fuzz targets build test."""
-# #     test_utils.set_up_pyfakefs(self)
+  def setUp(self):
+    """Setup for split fuzz targets build test."""
+    test_utils.set_up_pyfakefs(self)
 
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.build_management.build_archive.BuildArchive',
-# #         'clusterfuzz._internal.build_management.build_archive.open',
-# #         'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
-# #         'clusterfuzz._internal.build_management.build_manager._make_space',
-# #         'clusterfuzz._internal.system.shell.clear_temp_directory',
-# #         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-# #         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
-# #         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-# #         'clusterfuzz._internal.google_cloud_utils.storage.read_data',
-# #         'time.time',
-# #     ])
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_archive.BuildArchive',
+        'clusterfuzz._internal.build_management.build_archive.open',
+        'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
+        'clusterfuzz._internal.build_management.build_manager._make_space',
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.read_data',
+        'time.time',
+    ])
 
-# #     test_helpers.patch_environ(self)
+    test_helpers.patch_environ(self)
 
-# #     os.environ['BUILDS_DIR'] = '/builds'
-# #     os.environ['FAIL_RETRIES'] = '1'
-# #     os.environ['JOB_NAME'] = 'libfuzzer_job'
-# #     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
-# #     os.environ['FUZZER_DIR'] = os.path.join(os.environ['ROOT_DIR'], 'src',
-# #                                             'clusterfuzz', '_internal', 'bot',
-# #                                             'fuzzers', 'libFuzzer')
-# #     self.fs.add_real_directory(os.environ['FUZZER_DIR'])
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['JOB_NAME'] = 'libfuzzer_job'
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
+    os.environ['FUZZER_DIR'] = os.path.join(os.environ['ROOT_DIR'], 'src',
+                                            'clusterfuzz', '_internal', 'bot',
+                                            'fuzzers', 'libFuzzer')
+    self.fs.add_real_directory(os.environ['FUZZER_DIR'])
 
-# #     self.mock.list_blobs.return_value = (
-# #         '/subdir/target1/',
-# #         '/subdir/target2/',
-# #         '/subdir/target3/',
-# #         '/subdir/targets.list',
-# #     )
-# #     self.mock.read_data.return_value = b'target1\ntarget2\ntarget3\n'
+    self.mock.list_blobs.return_value = (
+        '/subdir/target1/',
+        '/subdir/target2/',
+        '/subdir/target3/',
+        '/subdir/targets.list',
+    )
+    self.mock.read_data.return_value = b'target1\ntarget2\ntarget3\n'
 
-# #     self.target_weights = {
-# #         'target1': 0.0,
-# #         'target2': 1.0,
-# #         'target3': 0.0,
-# #     }
-# #     self.mock.get_object_size.return_value = 1
-# #     self.mock.copy_file_from.return_value = True
+    self.target_weights = {
+        'target1': 0.0,
+        'target2': 1.0,
+        'target3': 0.0,
+    }
+    self.mock.get_object_size.return_value = 1
+    self.mock.copy_file_from.return_value = True
 
-# #     self.mock._make_space.return_value = True
-# #     self.mock.open.return_value.__enter__.return_value.unpack.return_value = True
-# #     self.mock.time.return_value = 1000.0
+    self.mock._make_space.return_value = True
+    self.mock.open.return_value.__enter__.return_value.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
-# #     os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = (
-# #         'gs://bucket/subdir/%TARGET%/([0-9]+).zip')
+    os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = (
+        'gs://bucket/subdir/%TARGET%/([0-9]+).zip')
 
-# #     self.mock.get_build_urls_list.return_value = [
-# #         'gs://bucket/subdir/target2/10.zip',
-# #         'gs://bucket/subdir/target2/2.zip',
-# #         'gs://bucket/subdir/target2/1.zip',
-# #     ]
+    self.mock.get_build_urls_list.return_value = [
+        'gs://bucket/subdir/target2/10.zip',
+        'gs://bucket/subdir/target2/2.zip',
+        'gs://bucket/subdir/target2/1.zip',
+    ]
 
-# #   def _assert_env_vars(self, target, revision):
-# #     """Assert the expected values of environment variables."""
-# #     self.assertEqual(
-# #         'gs://bucket/subdir/{target}/{revision}.zip'.format(
-# #             target=target, revision=revision), os.environ.get('BUILD_URL'))
-# #     self.assertEqual(str(revision), os.environ['APP_REVISION'])
-# #     self.assertEqual(
-# #         '/builds/bucket_subdir_{target}_'
-# #         '77651789446b3c3a04b9f492ff141f003d437347/revisions'.format(
-# #             target=target),
-# #         os.environ['BUILD_DIR'])
-# #     self.assertEqual('', os.environ['APP_PATH'])
+  def _assert_env_vars(self, target, revision):
+    """Assert the expected values of environment variables."""
+    self.assertEqual(
+        'gs://bucket/subdir/{target}/{revision}.zip'.format(
+            target=target, revision=revision), os.environ.get('BUILD_URL'))
+    self.assertEqual(str(revision), os.environ['APP_REVISION'])
+    self.assertEqual(
+        '/builds/bucket_subdir_{target}_'
+        '77651789446b3c3a04b9f492ff141f003d437347/revisions'.format(
+            target=target),
+        os.environ['BUILD_DIR'])
+    self.assertEqual('', os.environ['APP_PATH'])
 
-# #   def test_setup_fuzz(self):
-# #     """Tests setting up a build during fuzzing."""
-# #     os.environ['TASK_NAME'] = 'fuzz'
-# #     self.mock.time.return_value = 1000.0
-# #     fuzz_target = build_manager.pick_random_fuzz_target(
-# #         target_weights=self.target_weights)
-# #     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
+  def test_setup_fuzz(self):
+    """Tests setting up a build during fuzzing."""
+    os.environ['TASK_NAME'] = 'fuzz'
+    self.mock.time.return_value = 1000.0
+    fuzz_target = 'target2'
 
-# #     build = build_manager.setup_build(fuzz_target=fuzz_target)
-# #     self.assertIsInstance(build, build_manager.RegularBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    build = build_manager.setup_build(fuzz_target=fuzz_target)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
-# #     self._assert_env_vars('target2', 10)
+    self._assert_env_vars('target2', 10)
 
-# #     self.assertEqual(
-# #         1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
-# #     self.mock.open.assert_called_with(
-# #         '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
-# #         '/revisions/10.zip',)
-# #     self.mock.open.return_value.__enter__.return_value.unpack.assert_called_with(
-# #         build_dir=
-# #         '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
-# #         '/revisions',
-# #         fuzz_target=None,
-# #         trusted=True)
-# #     self.assertCountEqual(build.fuzz_targets, ['target1', 'target2', 'target3'])
+    self.assertEqual(
+        1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
+    self.mock.open.assert_called_with(
+        '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions/10.zip',)
+    self.mock.open.return_value.__enter__.return_value.unpack.assert_called_with(
+        build_dir=
+        '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions',
+        fuzz_target=None,
+        trusted=True)
+    self.assertCountEqual(build.fuzz_targets, ['target1', 'target2', 'target3'])
 
-# #   def test_setup_nonfuzz(self):
-# #     """Tests setting up a build during a non-fuzz task."""
-# #     os.environ['FUZZ_TARGET'] = 'target1'
-# #     self.mock.time.return_value = 1000.0
+  def test_setup_nonfuzz(self):
+    """Tests setting up a build during a non-fuzz task."""
+    os.environ['FUZZ_TARGET'] = 'target1'
+    self.mock.time.return_value = 1000.0
 
-# #     self.mock.get_build_urls_list.return_value = [
-# #         'gs://bucket/subdir/target1/10.zip',
-# #         'gs://bucket/subdir/target1/8.zip',
-# #     ]
+    self.mock.get_build_urls_list.return_value = [
+        'gs://bucket/subdir/target1/10.zip',
+        'gs://bucket/subdir/target1/8.zip',
+    ]
 
-# #     build = build_manager.setup_build(8, fuzz_target=os.environ['FUZZ_TARGET'])
-# #     self.assertIsInstance(build, build_manager.RegularBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-# #     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
-# #     self._assert_env_vars('target1', 8)
+    build = build_manager.setup_build(8, fuzz_target=os.environ['FUZZ_TARGET'])
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self.assertEqual('target1', os.environ['FUZZ_TARGET'])
+    self._assert_env_vars('target1', 8)
 
-# #     self.assertEqual(
-# #         1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
-# #     self.mock.open.assert_called_with(
-# #         '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
-# #         '/revisions/8.zip',)
-# #     self.mock.open.return_value.__enter__.return_value.unpack.assert_called_with(
-# #         build_dir=
-# #         '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
-# #         '/revisions',
-# #         fuzz_target=None,
-# #         trusted=True)
-# #     self.assertEqual(build.fuzz_targets, ['target1', 'target2', 'target3'])
+    self.assertEqual(
+        1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
+    self.mock.open.assert_called_with(
+        '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions/8.zip',)
+    self.mock.open.return_value.__enter__.return_value.unpack.assert_called_with(
+        build_dir=
+        '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions',
+        fuzz_target=None,
+        trusted=True)
+    self.assertEqual(build.fuzz_targets, ['target1', 'target2', 'target3'])
 
-# #   def test_delete(self):
-# #     """Test deleting this build."""
-# #     os.environ['FUZZ_TARGET'] = 'target2'
-# #     build = build_manager.setup_build(10)
+  def test_delete(self):
+    """Test deleting this build."""
+    fuzz_target = 'target2'
+    build = build_manager.setup_build(10, fuzz_target=fuzz_target)
 
-# #     self.assertTrue(
-# #         os.path.isdir('/builds/bucket_subdir_target2_'
-# #                       '77651789446b3c3a04b9f492ff141f003d437347'
-# #                       '/revisions'))
-# #     build.delete()
-# #     self.assertFalse(
-# #         os.path.isdir('/builds/bucket_subdir_target2_'
-# #                       '77651789446b3c3a04b9f492ff141f003d437347'
-# #                       '/revisions'))
-# #     self.assertTrue(
-# #         os.path.isdir('/builds/bucket_subdir_target2_'
-# #                       '77651789446b3c3a04b9f492ff141f003d437347'))
+    self.assertTrue(
+        os.path.isdir('/builds/bucket_subdir_target2_'
+                      '77651789446b3c3a04b9f492ff141f003d437347'
+                      '/revisions'))
+    build.delete()
+    self.assertFalse(
+        os.path.isdir('/builds/bucket_subdir_target2_'
+                      '77651789446b3c3a04b9f492ff141f003d437347'
+                      '/revisions'))
+    self.assertTrue(
+        os.path.isdir('/builds/bucket_subdir_target2_'
+                      '77651789446b3c3a04b9f492ff141f003d437347'))
 
-# #   def test_target_not_built(self):
-# #     """Test a target that's listed in target.list, but not yet built."""
-# #     self.mock.list_blobs.return_value = (
-# #         '/subdir/target1/',
-# #         '/subdir/target3/',
-# #         '/subdir/targets.list',
-# #     )
+  def test_target_not_built(self):
+    """Test a target that's listed in target.list, but not yet built."""
+    self.mock.list_blobs.return_value = (
+        '/subdir/target1/',
+        '/subdir/target3/',
+        '/subdir/targets.list',
+    )
 
-# #     targets_list = build_manager._get_targets_list(
-# #         os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
-# #     self.assertCountEqual(['target1', 'target3'], targets_list)
+    targets_list = build_manager._get_targets_list(
+        os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
+    self.assertCountEqual(['target1', 'target3'], targets_list)
 
-# #   def test_target_no_longer_built(self):
-# #     """Test a target that's not longer listed in target.list."""
-# #     with self.assertRaises(errors.BuildNotFoundError):
-# #       _pick_random_fuzz_target_for_split_build(target_weights={'target4':1})
+  def test_target_no_longer_built(self):
+    """Test a target that's not longer listed in target.list."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager._split_target_build_list_targets'
+    ])
+    self.mock._split_target_build_list_targets.return_value = []
+    with self.assertRaises(build_manager.BuildManagerError):
+      build_manager._pick_random_fuzz_target_for_split_build(target_weights={'target4': 1})
 
 
-# # class GetPrimaryBucketPathTest(unittest.TestCase):
-# #   """Tests for get_primary_bucket_path."""
+class GetPrimaryBucketPathTest(unittest.TestCase):
+  """Tests for get_primary_bucket_path."""
 
-# #   def setUp(self):
-# #     test_helpers.patch_environ(self)
+  def setUp(self):
+    test_helpers.patch_environ(self)
 
-# #   def test_release_bucket_path(self):
-# #     """Test primary bucket being a RELEASE_BUILD_BUCKET_PATH."""
-# #     os.environ['RELEASE_BUILD_BUCKET_PATH'] = 'gs://release_build'
-# #     self.assertEqual('gs://release_build',
-# #                      build_manager.get_primary_bucket_path())
+  def test_release_bucket_path(self):
+    """Test primary bucket being a RELEASE_BUILD_BUCKET_PATH."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = 'gs://release_build'
+    self.assertEqual('gs://release_build',
+                     build_manager.get_primary_bucket_path())
 
-# #   def test_fuzz_target_bucket_path(self):
-# #     """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH."""
-# #     os.environ[
-# #         'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
-# #     os.environ['FUZZ_TARGET'] = 'test_target'
-# #     self.assertEqual('gs://fuzz_target/test_target/path',
-# #                      build_manager.get_primary_bucket_path())
+  def test_fuzz_target_bucket_path(self):
+    """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH."""
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    os.environ['FUZZ_TARGET'] = 'test_target'
+    self.assertEqual('gs://fuzz_target/test_target/path',
+                     build_manager.get_primary_bucket_path())
 
-# #   def test_fuzz_target_bucket_path_multi_target(self):
-# #     """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with a multi
-# #     target binary."""
-# #     os.environ[
-# #         'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
-# #     os.environ['FUZZ_TARGET'] = 'test_target@target'
-# #     self.assertEqual('gs://fuzz_target/test_target/path',
-# #                      build_manager.get_primary_bucket_path())
+  def test_fuzz_target_bucket_path_multi_target(self):
+    """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with a multi
+    target binary."""
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    os.environ['FUZZ_TARGET'] = 'test_target@target'
+    self.assertEqual('gs://fuzz_target/test_target/path',
+                     build_manager.get_primary_bucket_path())
 
-# #   def test_fuzz_target_bucket_path_no_fuzz_target(self):
-# #     """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with no fuzz
-# #     target defined."""
-# #     os.environ[
-# #         'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
-# #     with self.assertRaises(build_manager.BuildManagerError):
-# #       build_manager.get_primary_bucket_path()
+  def test_fuzz_target_bucket_path_no_fuzz_target(self):
+    """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with no fuzz
+    target defined."""
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    with self.assertRaises(build_manager.BuildManagerError):
+      build_manager.get_primary_bucket_path()
 
-# #   def test_no_path_defined(self):
-# #     """Test no bucket paths defined."""
-# #     with self.assertRaises(build_manager.BuildManagerError):
-# #       build_manager.get_primary_bucket_path()
+  def test_no_path_defined(self):
+    """Test no bucket paths defined."""
+    with self.assertRaises(build_manager.BuildManagerError):
+      build_manager.get_primary_bucket_path()

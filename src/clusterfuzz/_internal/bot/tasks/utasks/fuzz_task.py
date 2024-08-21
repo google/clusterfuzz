@@ -1458,7 +1458,7 @@ class FuzzingSession:
     return GenerateBlackboxTestcasesResult(success, testcase_file_paths,
                                            fuzzer_metadata)
 
-  def do_engine_fuzzing(self, engine_impl, fuzz_target):
+  def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
@@ -1767,7 +1767,8 @@ class FuzzingSession:
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
-      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl, fuzz_target)
+      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl,
+                                                        fuzz_target)
 
       # Not applicable to engine fuzzers.
       testcase_file_paths = []

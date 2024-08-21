@@ -470,9 +470,10 @@ class Build(BaseBuild):
             f'Unpacking build archive {build_local_archive} to {build_dir}.')
         trusted = not utils.is_oss_fuzz()
 
-
         build.unpack(
-            build_dir=build_dir, fuzz_target=fuzz_target_to_unpack, trusted=trusted)
+            build_dir=build_dir,
+            fuzz_target=fuzz_target_to_unpack,
+            trusted=trusted)
 
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_local_archive}: {e}')
@@ -773,13 +774,9 @@ class SymbolizedBuild(Build):
 class CustomBuild(Build):
   """Custom binary."""
 
-  def __init__(self,
-               base_build_dir,
-               custom_binary_key,
-               custom_binary_filename,
+  def __init__(self, base_build_dir, custom_binary_key, custom_binary_filename,
                custom_binary_revision):
-    super().__init__(
-        base_build_dir, custom_binary_revision, fuzz_target=fuzz_target)
+    super().__init__(base_build_dir, custom_binary_revision)
     self.custom_binary_key = custom_binary_key
     self.custom_binary_filename = custom_binary_filename
     self._build_dir = os.path.join(self.base_build_dir, 'custom')
@@ -1250,11 +1247,8 @@ def setup_custom_binary():
     return False
 
   base_build_dir = _base_build_dir('')
-  build = CustomBuild(
-      base_build_dir,
-      job.custom_binary_key,
-      job.custom_binary_filename,
-      job.custom_binary_revision)
+  build = CustomBuild(base_build_dir, job.custom_binary_key,
+                      job.custom_binary_filename, job.custom_binary_revision)
 
   # Revert back the actual job name.
   if share_build_job_type:
@@ -1291,7 +1285,7 @@ def _setup_build(revision, fuzz_target):
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
-    return setup_custom_binary(fuzz_target=fuzz_target)
+    return setup_custom_binary()
 
   # In this case, we assume the build is already installed on the system.
   system_binary = environment.get_value('SYSTEM_BINARY_DIR')
@@ -1419,9 +1413,7 @@ def _pick_random_fuzz_target_for_split_build(target_weights):
     bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
     raise BuildManagerError(
         f'Failed to choose a fuzz target (path={bucket_path}).')
-  if fuzz_target not in targets_list:
-    raise errors.BuildNotFoundError('Unknown',
-                                    environment.get_value('JOB_NAME'))
+  return fuzz_target
 
 
 def pick_random_fuzz_target(target_weights):
