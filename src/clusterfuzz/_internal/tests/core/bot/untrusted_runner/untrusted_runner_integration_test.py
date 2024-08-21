@@ -41,6 +41,8 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import untrusted_runner_helpers
 
+# pylint: disable=protected-access
+
 TEST_FILE_CONTENTS = (b'A' * config.FILE_TRANSFER_CHUNK_SIZE +
                       b'B' * config.FILE_TRANSFER_CHUNK_SIZE +
                       b'C' * (config.FILE_TRANSFER_CHUNK_SIZE // 2))
