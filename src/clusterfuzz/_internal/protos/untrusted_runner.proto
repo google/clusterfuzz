@@ -44,6 +44,7 @@ message SetupBuildResponse {
   optional string app_dir = 4;
   optional string build_dir = 5;
   optional string build_url = 6;
+  optional string fuzz_target = 7;
   optional int32 fuzz_target_count = 8;
   repeated string fuzz_targets = 9;
 }
