@@ -97,7 +97,8 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-    target_zip_name = utils.get_platform_deployment_filename(platform_name, release)
+    target_zip_name = utils.get_platform_deployment_filename(
+        platform_name, release)
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)

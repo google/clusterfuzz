@@ -23,11 +23,11 @@ import sys
 import tempfile
 import time
 
+from clusterfuzz._internal.base import utils
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
 from local.butler import package
-from clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.system import environment
 
