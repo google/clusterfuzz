@@ -62,9 +62,6 @@ TIMESTAMP_FILE = '.timestamp'
 # target).
 PARTIAL_BUILD_FILE = '.partial_build'
 
-# ICU data file.
-ICU_DATA_FILENAME = 'icudtl.dat'
-
 # Time for unpacking a build beyond which an error should be logged.
 UNPACK_TIME_LIMIT = 60 * 20
 
@@ -279,10 +276,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
         if not absolute_file_path and filename == app_name:
           absolute_file_path = os.path.join(root, filename)
           app_directory = os.path.dirname(absolute_file_path)
-
-          # We don't want to change the state of system binaries.
-          if not environment.get_value('SYSTEM_BINARY_DIR'):
-            os.chmod(absolute_file_path, 0o750)
+          os.chmod(absolute_file_path, 0o750)
 
           set_env_var(app_path, absolute_file_path)
           set_env_var('APP_DIR', app_directory)
@@ -860,27 +854,6 @@ class CustomBuild(Build):
     return True
 
 
-class SystemBuild(Build):
-  """System binary."""
-
-  def __init__(self, system_binary_directory):
-    super().__init__(None, 1)
-    self._build_dir = system_binary_directory
-
-  @property
-  def build_dir(self):
-    return self._build_dir
-
-  def setup(self):
-    """Set up a build that we assume is already installed on the system."""
-    self._pre_setup()
-    self._setup_application_path()
-    return True
-
-  def delete(self):
-    raise BuildManagerError('Cannot delete system build.')
-
-
 def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   """Return a sorted list of build url by revision."""
   base_url = os.path.dirname(bucket_path)
@@ -1260,16 +1233,6 @@ def setup_custom_binary():
   return None
 
 
-def setup_system_binary():
-  """Set up a build that we assume is already installed on the system."""
-  system_binary_directory = environment.get_value('SYSTEM_BINARY_DIR', '')
-  build = SystemBuild(system_binary_directory)
-  if build.setup():
-    return build
-
-  return None
-
-
 def setup_build(revision=0, fuzz_target=None):
   """Set up a custom or regular build based on revision."""
   result = _setup_build(revision, fuzz_target)
@@ -1287,11 +1250,6 @@ def _setup_build(revision, fuzz_target):
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
     return setup_custom_binary()
-
-  # In this case, we assume the build is already installed on the system.
-  system_binary = environment.get_value('SYSTEM_BINARY_DIR')
-  if system_binary:
-    return setup_system_binary()
 
   fuzz_target_build_bucket_path = get_bucket_path(
       'FUZZ_TARGET_BUILD_BUCKET_PATH')
@@ -1322,10 +1280,8 @@ def _setup_build(revision, fuzz_target):
 
 
 def is_custom_binary():
-  """Determine if this is a custom or preinstalled system binary."""
-  return bool(
-      environment.get_value('CUSTOM_BINARY') or
-      environment.get_value('SYSTEM_BINARY_DIR'))
+  """Determine if this is a custom binary."""
+  return bool(environment.get_value('CUSTOM_BINARY'))
 
 
 def has_symbolized_builds():
