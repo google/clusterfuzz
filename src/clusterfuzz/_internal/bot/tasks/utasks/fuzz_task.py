@@ -1770,11 +1770,9 @@ class FuzzingSession:
     logs.info('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
 
-    build_data = testcase_manager.check_for_bad_build(self.job_type,
-                                                      crash_revision)
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-    # postprocess.
-    testcase_manager.update_build_metadata(self.job_type, build_data)
+
+    self.fuzz_task_output.build_data = testcase_manager.check_for_bad_build(
+        self.job_type, crash_revision)
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
     if build_data.is_bad_build:
@@ -1894,6 +1892,8 @@ class FuzzingSession:
 
     _upload_testcase_run_jsons(
         uworker_output.fuzz_task_output.testcase_run_jsons)
+    testcase_manager.update_build_metadata(
+        uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
 
 
 def _upload_testcase_run_jsons(testcase_run_jsons):
@@ -1943,6 +1943,11 @@ def handle_fuzz_no_fuzz_target_selected(output):
                    output.uworker_input.uworker_env)
 
 
+def handle_bad_build(uworker_input):
+  testcase_manager.update_build_metadata(
+      uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
+
+
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:  # pylint: disable=no-member
         handle_fuzz_build_setup_failure,
@@ -1952,6 +1957,8 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_fuzz_no_fuzzer,
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:  # pylint: disable=no-member
         handle_fuzz_no_fuzz_target_selected,
+    uworker_msg_pb2.ErrorType.FUZZ_BAD_BUILD:  # pylint: disable=no-member
+        handle_fuzz_bad_build,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 
