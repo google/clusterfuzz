@@ -115,7 +115,10 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_build()
     self.mock.setup_regular_build.assert_called_with(
-        10, 'gs://path/file-release-([0-9]+).zip', build_prefix=None, fuzz_target=None)
+        10,
+        'gs://path/file-release-([0-9]+).zip',
+        build_prefix=None,
+        fuzz_target=None)
 
   def test_setup_mismatch(self):
     """Test setup finding the first matching revision."""
@@ -139,7 +142,10 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_build()
     self.mock.setup_regular_build.assert_called_with(
-        2, 'gs://path/file-release-([0-9]+).zip', build_prefix=None, fuzz_target=None)
+        2,
+        'gs://path/file-release-([0-9]+).zip',
+        build_prefix=None,
+        fuzz_target=None)
 
   def test_setup_fail(self):
     """Test setup failing to find any matching revisions."""
@@ -164,232 +170,234 @@ class TrunkBuildTest(unittest.TestCase):
     build_manager.setup_build()
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
-# @unittest.skipIf(
-#     not environment.get_value('FUCHSIA_TESTS'),
-#     'Temporarily disabling the Fuchsia test until build size reduced.')
-# class FuchsiaBuildTest(unittest.TestCase):
-#   """Tests for Fuchsia build setup."""
 
-#   def setUp(self):
-#     test_helpers.patch_environ(self)
-#     test_helpers.patch(self, [
-#         'clusterfuzz._internal.system.shell.clear_temp_directory',
-#     ])
+@unittest.skipIf(
+    not environment.get_value('FUCHSIA_TESTS'),
+    'Temporarily disabling the Fuchsia test until build size reduced.')
+class FuchsiaBuildTest(unittest.TestCase):
+  """Tests for Fuchsia build setup."""
 
-#     self.temp_dir = tempfile.mkdtemp()
-#     builds_dir = os.path.join(self.temp_dir, 'builds')
-#     os.mkdir(builds_dir)
-#     urls_dir = os.path.join(self.temp_dir, 'urls')
-#     os.mkdir(urls_dir)
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+    ])
 
-#     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
-#     environment.set_value('FAIL_RETRIES', 1)
-#     environment.set_value('BUILDS_DIR', builds_dir)
-#     environment.set_value('BUILD_URLS_DIR', urls_dir)
-#     environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
-#     environment.set_value(
-#         'RELEASE_BUILD_BUCKET_PATH',
-#         'gs://clusterfuchsia-builds-test/libfuzzer/'
-#         'fuchsia-([0-9]+).zip')
-#     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
+    self.temp_dir = tempfile.mkdtemp()
+    builds_dir = os.path.join(self.temp_dir, 'builds')
+    os.mkdir(builds_dir)
+    urls_dir = os.path.join(self.temp_dir, 'urls')
+    os.mkdir(urls_dir)
 
-#     self.maxDiff = None
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
+    environment.set_value('FAIL_RETRIES', 1)
+    environment.set_value('BUILDS_DIR', builds_dir)
+    environment.set_value('BUILD_URLS_DIR', urls_dir)
+    environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
+    environment.set_value(
+        'RELEASE_BUILD_BUCKET_PATH',
+        'gs://clusterfuchsia-builds-test/libfuzzer/'
+        'fuchsia-([0-9]+).zip')
+    environment.set_value('OS_OVERRIDE', 'FUCHSIA')
 
-#   def tearDown(self):
-#     shutil.rmtree(self.temp_dir)
+    self.maxDiff = None
 
-#   def test_setup(self):
-#     """Tests setting up a build."""
-#     fuzz_target = build_manager.pick_random_fuzz_target({
-#         'example_fuzzers/trap_fuzzer': 1000000.0
-#     })
-#     build = build_manager.setup_build(fuzz_target)
-#     self.assertIsInstance(build, build_manager.FuchsiaBuild)
-#     self.assertEqual(20190926201257, environment.get_value('APP_REVISION'))
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir)
 
-#     # pylint: disable=protected-access
-#     targets = build._get_fuzz_targets_from_dir(build.build_dir)
-#     self.assertCountEqual([
-#         'example_fuzzers/baz_fuzzer',
-#         'example_fuzzers/overflow_fuzzer',
-#         'example_fuzzers/trap_fuzzer',
-#         'ledger_fuzzers/p2p_sync_fuzzer',
-#         'ledger_fuzzers/encoding_fuzzer',
-#         'ledger_fuzzers/commit_pack_fuzzer',
-#         'bluetooth_fuzzers/basic_mode_rx_engine_fuzzer',
-#         'bluetooth_fuzzers/enhanced_retransmission_mode_rx_engine_fuzzer',
-#         'mdns_fuzzers/packet_reader_fuzzer',
-#         'zircon_fuzzers/nhlt-fuzzer',
-#         'zircon_fuzzers/zstd-fuzzer',
-#         'zircon_fuzzers/utf_conversion-fuzzer',
-#         'zircon_fuzzers/zbi-bootfs-fuzzer',
-#         'zircon_fuzzers/lz4-decompress-fuzzer',
-#         'zircon_fuzzers/lz4-fuzzer',
-#         'zircon_fuzzers/noop-fuzzer',
-#     ], targets)
+  def test_setup(self):
+    """Tests setting up a build."""
+    fuzz_target = build_manager.pick_random_fuzz_target({
+        'example_fuzzers/trap_fuzzer': 1000000.0
+    })
+    build = build_manager.setup_build(fuzz_target)
+    self.assertIsInstance(build, build_manager.FuchsiaBuild)
+    self.assertEqual(20190926201257, environment.get_value('APP_REVISION'))
 
-# class RegularBuildTest(fake_filesystem_unittest.TestCase):
-#   """Tests for regular build setup."""
+    # pylint: disable=protected-access
+    targets = build._get_fuzz_targets_from_dir(build.build_dir)
+    self.assertCountEqual([
+        'example_fuzzers/baz_fuzzer',
+        'example_fuzzers/overflow_fuzzer',
+        'example_fuzzers/trap_fuzzer',
+        'ledger_fuzzers/p2p_sync_fuzzer',
+        'ledger_fuzzers/encoding_fuzzer',
+        'ledger_fuzzers/commit_pack_fuzzer',
+        'bluetooth_fuzzers/basic_mode_rx_engine_fuzzer',
+        'bluetooth_fuzzers/enhanced_retransmission_mode_rx_engine_fuzzer',
+        'mdns_fuzzers/packet_reader_fuzzer',
+        'zircon_fuzzers/nhlt-fuzzer',
+        'zircon_fuzzers/zstd-fuzzer',
+        'zircon_fuzzers/utf_conversion-fuzzer',
+        'zircon_fuzzers/zbi-bootfs-fuzzer',
+        'zircon_fuzzers/lz4-decompress-fuzzer',
+        'zircon_fuzzers/lz4-fuzzer',
+        'zircon_fuzzers/noop-fuzzer',
+    ], targets)
 
-#   def setUp(self):
-#     """Setup for regular build test."""
-#     test_utils.set_up_pyfakefs(self)
 
-#     test_helpers.patch(self, [
-#         'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
-#         'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
-#         'clusterfuzz._internal.fuzzing.fuzzer_selection.get_fuzz_target_weights',
-#         'clusterfuzz._internal.system.shell.clear_temp_directory',
-#         'time.time',
-#     ])
+class RegularBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for regular build setup."""
 
-#     test_helpers.patch_environ(self)
+  def setUp(self):
+    """Setup for regular build test."""
+    test_utils.set_up_pyfakefs(self)
 
-#     os.environ['BUILDS_DIR'] = '/builds'
-#     os.environ['FAIL_RETRIES'] = '1'
-#     os.environ['APP_NAME'] = FAKE_APP_NAME
-#     os.environ['JOB_NAME'] = 'job'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
+        'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
+        'clusterfuzz._internal.fuzzing.fuzzer_selection.get_fuzz_target_weights',
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+        'time.time',
+    ])
 
-#     self.mock._unpack_build.side_effect = _mock_unpack_build
+    test_helpers.patch_environ(self)
 
-#   def _assert_env_vars(self):
-#     """Assert env vars exist."""
-#     self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['JOB_NAME'] = 'job'
 
-#     self.assertEqual(
-#         os.environ['APP_PATH'],
-#         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/app')
+    self.mock._unpack_build.side_effect = _mock_unpack_build
 
-#     self.assertEqual(
-#         os.environ['GN_ARGS_PATH'],
-#         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
-#         'args.gn')
+  def _assert_env_vars(self):
+    """Assert env vars exist."""
+    self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
 
-#     self.assertEqual(
-#         os.environ['APP_DIR'],
-#         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
+    self.assertEqual(
+        os.environ['APP_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/app')
 
-#     self.assertEqual(
-#         os.environ['LLVM_SYMBOLIZER_PATH'],
-#         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
-#         'llvm-symbolizer')
+    self.assertEqual(
+        os.environ['GN_ARGS_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
+        'args.gn')
 
-#     self.assertEqual(
-#         os.environ['BUILD_DIR'],
-#         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
+    self.assertEqual(
+        os.environ['APP_DIR'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
 
-#   def test_setup(self):
-#     """Tests setting up a build."""
-#     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
-#         'gs://path/file-release-([0-9]+).zip')
+    self.assertEqual(
+        os.environ['LLVM_SYMBOLIZER_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
+        'llvm-symbolizer')
 
-#     self.mock.get_build_urls_list.return_value = [
-#         'gs://path/file-release-10.zip',
-#         'gs://path/file-release-2.zip',
-#         'gs://path/file-release-1.zip',
-#     ]
+    self.assertEqual(
+        os.environ['BUILD_DIR'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
 
-#     self.mock.time.return_value = 1000.0
-#     build = build_manager.setup_regular_build(2)
-#     self.assertIsInstance(build, build_manager.RegularBuild)
-#     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+  def test_setup(self):
+    """Tests setting up a build."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
 
-#     self.mock._unpack_build.assert_called_once_with(
-#         mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
-#         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-#         'gs://path/file-release-2.zip')
+    self.mock.get_build_urls_list.return_value = [
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ]
 
-#     self._assert_env_vars()
-#     self.assertEqual(os.environ['APP_REVISION'], '2')
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
-#     self.mock.time.return_value = 1005.0
-#     self.assertIsInstance(
-#         build_manager.setup_regular_build(2), build_manager.RegularBuild)
-#     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+        'gs://path/file-release-2.zip')
 
-#     # Already set up.
-#     self.assertEqual(self.mock._unpack_build.call_count, 1)
-#     self._assert_env_vars()
-#     self.assertEqual(os.environ['APP_REVISION'], '2')
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
 
-#     # Non-existent revisions do not result in any builds being set up.
-#     self.assertIsNone(build_manager.setup_regular_build(3))
+    self.mock.time.return_value = 1005.0
+    self.assertIsInstance(
+        build_manager.setup_regular_build(2), build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
-#   def test_setup_with_extra(self):
-#     """Tests setting up a build with an extra build set."""
-#     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
-#         'gs://path/file-release-([0-9]+).zip')
-#     os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
-#         'gs://path2/file-release-([0-9]+).zip')
+    # Already set up.
+    self.assertEqual(self.mock._unpack_build.call_count, 1)
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
 
-#     def mock_get_build_urls_list(bucket_path, reverse=True):
-#       if 'gs://path/' in bucket_path:
-#         return [
-#             'gs://path/file-release-10.zip',
-#             'gs://path/file-release-2.zip',
-#             'gs://path/file-release-1.zip',
-#         ]
+    # Non-existent revisions do not result in any builds being set up.
+    self.assertIsNone(build_manager.setup_regular_build(3))
 
-#       return [
-#           'gs://path2/file-release-10.zip',
-#           'gs://path2/file-release-2.zip',
-#           'gs://path2/file-release-1.zip',
-#       ]
+  def test_setup_with_extra(self):
+    """Tests setting up a build with an extra build set."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+    os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
+        'gs://path2/file-release-([0-9]+).zip')
 
-#     self.mock.get_build_urls_list.side_effect = mock_get_build_urls_list
+    def mock_get_build_urls_list(bucket_path, reverse=True):
+      if 'gs://path/' in bucket_path:
+        return [
+            'gs://path/file-release-10.zip',
+            'gs://path/file-release-2.zip',
+            'gs://path/file-release-1.zip',
+        ]
 
-#     self.mock.time.return_value = 1000.0
-#     build = build_manager.setup_regular_build(2)
-#     self.assertIsInstance(build, build_manager.RegularBuild)
-#     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+      return [
+          'gs://path2/file-release-10.zip',
+          'gs://path2/file-release-2.zip',
+          'gs://path2/file-release-1.zip',
+      ]
 
-#     self.mock._unpack_build.assert_has_calls([
-#         mock.call(
-#             mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
-#             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-#             'gs://path/file-release-2.zip'),
-#         mock.call(
-#             mock.ANY,
-#             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-#             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/__extra_build',
-#             'gs://path2/file-release-2.zip')
-#     ])
+    self.mock.get_build_urls_list.side_effect = mock_get_build_urls_list
 
-#     self._assert_env_vars()
-#     self.assertEqual(os.environ['APP_REVISION'], '2')
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
-#     self.mock.time.return_value = 1005.0
-#     self.assertIsInstance(
-#         build_manager.setup_regular_build(2), build_manager.RegularBuild)
-#     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+    self.mock._unpack_build.assert_has_calls([
+        mock.call(
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+            'gs://path/file-release-2.zip'),
+        mock.call(
+            mock.ANY,
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/__extra_build',
+            'gs://path2/file-release-2.zip')
+    ])
 
-#     # Already set up.
-#     self.assertEqual(self.mock._unpack_build.call_count, 2)
-#     self._assert_env_vars()
-#     self.assertEqual(os.environ['APP_REVISION'], '2')
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
 
-#     # Non-existent revisions do not result in any builds being set up.
-#     self.assertIsNone(build_manager.setup_regular_build(3))
+    self.mock.time.return_value = 1005.0
+    self.assertIsInstance(
+        build_manager.setup_regular_build(2), build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
-#   def test_delete(self):
-#     """Test deleting this build."""
-#     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
-#         'gs://path/file-release-([0-9]+).zip')
+    # Already set up.
+    self.assertEqual(self.mock._unpack_build.call_count, 2)
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
 
-#     self.mock.get_build_urls_list.return_value = [
-#         'gs://path/file-release-2.zip',
-#     ]
+    # Non-existent revisions do not result in any builds being set up.
+    self.assertIsNone(build_manager.setup_regular_build(3))
 
-#     build = build_manager.setup_regular_build(2)
-#     self.assertTrue(
-#         os.path.isdir(
-#             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions'))
-#     build.delete()
-#     self.assertFalse(
-#         os.path.isdir(
-#             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions'))
-#     self.assertTrue(
-#         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
+  def test_delete(self):
+    """Test deleting this build."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+
+    self.mock.get_build_urls_list.return_value = [
+        'gs://path/file-release-2.zip',
+    ]
+
+    build = build_manager.setup_regular_build(2)
+    self.assertTrue(
+        os.path.isdir(
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions'))
+    build.delete()
+    self.assertFalse(
+        os.path.isdir(
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions'))
+    self.assertTrue(
+        os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
 
 
 class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
@@ -1203,294 +1211,295 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     self.assertFalse(build_manager._make_space(size, '/builds/build4'))
 
 
-# # @test_utils.integration
-# # class RpathsTest(unittest.TestCase):
-# #   """Rpath patching tests."""
+@test_utils.integration
+class RpathsTest(unittest.TestCase):
+  """Rpath patching tests."""
 
-# #   def setUp(self):
-# #     test_helpers.patch_environ(self)
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
-# #         'clusterfuzz._internal.system.shell.clear_temp_directory',
-# #     ])
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+    ])
 
-# #     os.environ['JOB_NAME'] = 'linux_msan_test'
-# #     os.environ['INSTRUMENTED_LIBRARIES_PATHS_MSAN_CHAINED'] = (
-# #         '/msan/lib:/msan/usr/lib')
-# #     os.environ['INSTRUMENTED_LIBRARIES_PATHS_MSAN_NO_ORIGINS'] = (
-# #         '/msan-no-origins/lib:/msan-no-origins/usr/lib')
-# #     os.environ['FAIL_RETRIES'] = '1'
-# #     os.environ['APP_NAME'] = 'app'
+    os.environ['JOB_NAME'] = 'linux_msan_test'
+    os.environ['INSTRUMENTED_LIBRARIES_PATHS_MSAN_CHAINED'] = (
+        '/msan/lib:/msan/usr/lib')
+    os.environ['INSTRUMENTED_LIBRARIES_PATHS_MSAN_NO_ORIGINS'] = (
+        '/msan-no-origins/lib:/msan-no-origins/usr/lib')
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = 'app'
 
-# #     self.base_build_dir = tempfile.mkdtemp()
+    self.base_build_dir = tempfile.mkdtemp()
 
-# #   def tearDown(self):
-# #     shutil.rmtree(self.base_build_dir, ignore_errors=True)
+  def tearDown(self):
+    shutil.rmtree(self.base_build_dir, ignore_errors=True)
 
-# #   # pylint: disable=unused-argument
-# #   def mock_unpack_build(self, test_build_dir, actual_self, base_build_dir,
-# #                         build_dir, url, target_weights):
-# #     test_data_dir = os.path.join(
-# #         os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
-# #         test_build_dir)
+  # pylint: disable=unused-argument
+  def mock_unpack_build(self, test_build_dir, actual_self, base_build_dir,
+                        build_dir, url):
+    test_data_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
+        test_build_dir)
 
-# #     shell.remove_directory(build_dir, recreate=False)
-# #     shutil.copytree(test_data_dir, build_dir)
-# #     return True
+    shell.remove_directory(build_dir, recreate=False)
+    shutil.copytree(test_data_dir, build_dir)
+    return True
 
-# #   def test_patch_rpaths_no_origins(self):
-# #     """Tests that no-origins libraries are used."""
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_new')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337, 'no-origins')
-# #     self.assertTrue(build.setup())
+  def test_patch_rpaths_no_origins(self):
+    """Tests that no-origins libraries are used."""
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_new')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337, 'no-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual(
-# #         os.path.join(self.base_build_dir, 'revisions', 'app'),
-# #         os.environ['APP_PATH'])
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
 
-# #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
-# #     self.assertListEqual(['/msan-no-origins/lib', '/msan-no-origins/usr/lib'],
-# #                          rpaths)
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual(['/msan-no-origins/lib', '/msan-no-origins/usr/lib'],
+                         rpaths)
 
-# #   def test_patch_rpaths_not_available(self):
-# #     """Tests that rpaths aren't added when libs aren't available.."""
-# #     os.environ['JOB_NAME'] = 'linux_asan_test'
+  def test_patch_rpaths_not_available(self):
+    """Tests that rpaths aren't added when libs aren't available.."""
+    os.environ['JOB_NAME'] = 'linux_asan_test'
 
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_new')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337,
-# #                                        'chained-origins')
-# #     self.assertTrue(build.setup())
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_new')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual(
-# #         os.path.join(self.base_build_dir, 'revisions', 'app'),
-# #         os.environ['APP_PATH'])
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
 
-# #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
-# #     self.assertListEqual([], rpaths)
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual([], rpaths)
 
-# #   def test_patch_rpaths_prepend(self):
-# #     """Tests patching rpaths to a binary that already has an rpath."""
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_prepend_to_existing')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337,
-# #                                        'chained-origins')
-# #     self.assertTrue(build.setup())
+  def test_patch_rpaths_prepend(self):
+    """Tests patching rpaths to a binary that already has an rpath."""
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_prepend_to_existing')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual(
-# #         os.path.join(self.base_build_dir, 'revisions', 'app'),
-# #         os.environ['APP_PATH'])
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
 
-# #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
-# #     self.assertListEqual(['/msan/lib', '/msan/usr/lib', '$ORIGIN/.'], rpaths)
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual(['/msan/lib', '/msan/usr/lib', '$ORIGIN/.'], rpaths)
 
-# #   def test_patch_rpaths_chrpath(self):
-# #     """Tests patching rpaths to a binary using chrpath."""
-# #     limit = build_manager.PATCHELF_SIZE_LIMIT
-# #     build_manager.PATCHELF_SIZE_LIMIT = 0
+  def test_patch_rpaths_chrpath(self):
+    """Tests patching rpaths to a binary using chrpath."""
+    limit = build_manager.PATCHELF_SIZE_LIMIT
+    build_manager.PATCHELF_SIZE_LIMIT = 0
 
-# #     def cleanup():
-# #       build_manager.PATCHELF_SIZE_LIMIT = limit
+    def cleanup():
+      build_manager.PATCHELF_SIZE_LIMIT = limit
 
-# #     self.addCleanup(cleanup)
+    self.addCleanup(cleanup)
 
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_prepend_to_existing')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337,
-# #                                        'chained-origins')
-# #     self.assertTrue(build.setup())
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_prepend_to_existing')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual(
-# #         os.path.join(self.base_build_dir, 'revisions', 'app'),
-# #         os.environ['APP_PATH'])
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
 
-# #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
-# #     self.assertListEqual(['/msan/lib', '/msan/usr/lib', '$ORIGIN/.'], rpaths)
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual(['/msan/lib', '/msan/usr/lib', '$ORIGIN/.'], rpaths)
 
-# #   def test_patch_rpaths_new(self):
-# #     """Tests patching rpaths for a binary that doesn't have an rpath."""
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_new')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337,
-# #                                        'chained-origins')
-# #     self.assertTrue(build.setup())
+  def test_patch_rpaths_new(self):
+    """Tests patching rpaths for a binary that doesn't have an rpath."""
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_new')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual(
-# #         os.path.join(self.base_build_dir, 'revisions', 'app'),
-# #         os.environ['APP_PATH'])
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
 
-# #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
-# #     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
-# #   def test_patch_rpaths_libfuzzer(self):
-# #     """Tests patching rpaths for libFuzzer targets."""
-# #     os.environ['JOB_NAME'] = 'libfuzzer_msan_test'
+  def test_patch_rpaths_libfuzzer(self):
+    """Tests patching rpaths for libFuzzer targets."""
+    os.environ['JOB_NAME'] = 'libfuzzer_msan_test'
 
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_libfuzzer')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337,
-# #                                        'chained-origins')
-# #     self.assertTrue(build.setup())
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_libfuzzer')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual('', os.environ['APP_DIR'])
+    self.assertEqual('', os.environ['APP_DIR'])
 
-# #     rpaths = build_manager.get_rpaths(
-# #         os.path.join(os.environ['BUILD_DIR'], 'target_1'))
-# #     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
+    rpaths = build_manager.get_rpaths(
+        os.path.join(os.environ['BUILD_DIR'], 'target_1'))
+    self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
-# #     rpaths = build_manager.get_rpaths(
-# #         os.path.join(os.environ['BUILD_DIR'], 'target_2'))
-# #     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
+    rpaths = build_manager.get_rpaths(
+        os.path.join(os.environ['BUILD_DIR'], 'target_2'))
+    self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
-# #   def test_patch_rpaths_existing_msan(self):
-# #     """Tests patching rpaths for a binary that already has a msan rpath
-# #     patched."""
-# #     self.mock._unpack_build.side_effect = functools.partial(
-# #         self.mock_unpack_build, 'rpath_existing_msan')
-# #     build = build_manager.RegularBuild(self.base_build_dir, 1337,
-# #                                        'chained-origins')
-# #     self.assertTrue(build.setup())
+  def test_patch_rpaths_existing_msan(self):
+    """Tests patching rpaths for a binary that already has a msan rpath
+    patched."""
+    self.mock._unpack_build.side_effect = functools.partial(
+        self.mock_unpack_build, 'rpath_existing_msan')
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
 
-# #     self.assertEqual(
-# #         os.path.join(self.base_build_dir, 'revisions', 'app'),
-# #         os.environ['APP_PATH'])
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
 
-# #     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
-# #     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
-# # class SortBuildUrlsByRevisionTest(unittest.TestCase):
-# #   """Test _sort_build_urls_by_revision."""
 
-# #   def test_simple(self):
-# #     """Tests regular case with and without reverse flag set."""
-# #     bucket_path = ('gs://chromium-browser-libfuzzer/'
-# #                    'linux-release-asan/libfuzzer-linux-release-([0-9]+).zip')
-# #     build_urls = [
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-359950.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-359945.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-359953.zip',
-# #     ]
-# #     expected_result = [
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359953.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359950.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359945.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip'
-# #     ]
-# #     actual_result = build_manager._sort_build_urls_by_revision(
-# #         build_urls, bucket_path, reverse=True)
-# #     self.assertEqual(expected_result, actual_result)
+class SortBuildUrlsByRevisionTest(unittest.TestCase):
+  """Test _sort_build_urls_by_revision."""
 
-# #     expected_result = [
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359945.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359950.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359953.zip',
-# #     ]
-# #     actual_result = build_manager._sort_build_urls_by_revision(
-# #         build_urls, bucket_path, reverse=False)
-# #     self.assertEqual(expected_result, actual_result)
+  def test_simple(self):
+    """Tests regular case with and without reverse flag set."""
+    bucket_path = ('gs://chromium-browser-libfuzzer/'
+                   'linux-release-asan/libfuzzer-linux-release-([0-9]+).zip')
+    build_urls = [
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'linux-release-asan/libfuzzer-linux-release-359950.zip',
+        'linux-release-asan/libfuzzer-linux-release-359945.zip',
+        'linux-release-asan/libfuzzer-linux-release-359953.zip',
+    ]
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359953.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359950.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359936.zip'
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=True)
+    self.assertEqual(expected_result, actual_result)
 
-# #   def test_duplicate_revision(self):
-# #     """Tests that duplicate revision filename results in an exception."""
-# #     bucket_path = ('gs://chromium-browser-libfuzzer/'
-# #                    'linux-release-asan/libfuzzer-linux-release-(35)[0-9]+.zip')
-# #     build_urls = [
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-359945.zip',
-# #     ]
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359950.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359953.zip',
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=False)
+    self.assertEqual(expected_result, actual_result)
 
-# #     with self.assertRaises(errors.BadStateError):
-# #       build_manager._sort_build_urls_by_revision(
-# #           build_urls, bucket_path, reverse=True)
+  def test_duplicate_revision(self):
+    """Tests that duplicate revision filename results in an exception."""
+    bucket_path = ('gs://chromium-browser-libfuzzer/'
+                   'linux-release-asan/libfuzzer-linux-release-(35)[0-9]+.zip')
+    build_urls = [
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'linux-release-asan/libfuzzer-linux-release-359945.zip',
+    ]
 
-# #   def test_revision_in_revision(self):
-# #     """Tests that if a revision is a substring of another revision, then it is
-# #     only shown once and not repeated."""
-# #     bucket_path = ('gs://chromium-browser-libfuzzer/'
-# #                    'linux-release-asan/libfuzzer-linux-release-([0-9]+).zip')
-# #     build_urls = [
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-936.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-359945.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-599.zip',
-# #     ]
+    with self.assertRaises(errors.BadStateError):
+      build_manager._sort_build_urls_by_revision(
+          build_urls, bucket_path, reverse=True)
 
-# #     expected_result = [
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359945.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-936.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-599.zip'
-# #     ]
-# #     actual_result = build_manager._sort_build_urls_by_revision(
-# #         build_urls, bucket_path, reverse=True)
-# #     self.assertEqual(expected_result, actual_result)
+  def test_revision_in_revision(self):
+    """Tests that if a revision is a substring of another revision, then it is
+    only shown once and not repeated."""
+    bucket_path = ('gs://chromium-browser-libfuzzer/'
+                   'linux-release-asan/libfuzzer-linux-release-([0-9]+).zip')
+    build_urls = [
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'linux-release-asan/libfuzzer-linux-release-936.zip',
+        'linux-release-asan/libfuzzer-linux-release-359945.zip',
+        'linux-release-asan/libfuzzer-linux-release-599.zip',
+    ]
 
-# #   def test_duplicate_different_prefix(self):
-# #     """Test that we handle duplicate filenames with different prefixes
-# #     properly."""
-# #     bucket_path = ('gs://chromium-browser-libfuzzer/'
-# #                    'linux-release-asan/libfuzzer-linux-release-([0-9]+).zip')
-# #     build_urls = [
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'linux-release-asan/duplicate/libfuzzer-linux-release-359936.zip',
-# #         'linux-release-asan/libfuzzer-linux-release-936.zip',
-# #         'linux-release-asan/duplicate/libfuzzer-linux-release-936.zip',
-# #         'linux-release-asan/duplicate/libfuzzer-linux-release-123.zip',
-# #     ]
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-936.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-599.zip'
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=True)
+    self.assertEqual(expected_result, actual_result)
 
-# #     expected_result = [
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-359936.zip',
-# #         'gs://chromium-browser-libfuzzer/'
-# #         'linux-release-asan/libfuzzer-linux-release-936.zip',
-# #     ]
-# #     actual_result = build_manager._sort_build_urls_by_revision(
-# #         build_urls, bucket_path, reverse=True)
-# #     self.assertEqual(expected_result, actual_result)
+  def test_duplicate_different_prefix(self):
+    """Test that we handle duplicate filenames with different prefixes
+    properly."""
+    bucket_path = ('gs://chromium-browser-libfuzzer/'
+                   'linux-release-asan/libfuzzer-linux-release-([0-9]+).zip')
+    build_urls = [
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'linux-release-asan/duplicate/libfuzzer-linux-release-359936.zip',
+        'linux-release-asan/libfuzzer-linux-release-936.zip',
+        'linux-release-asan/duplicate/libfuzzer-linux-release-936.zip',
+        'linux-release-asan/duplicate/libfuzzer-linux-release-123.zip',
+    ]
 
-# #   def test_bucket_root(self):
-# #     """Tests regular case on bucket root with and without reverse flag set."""
-# #     bucket_path = ('gs://chromium-browser-libfuzzer/'
-# #                    'libfuzzer-linux-release-([0-9]+).zip')
-# #     build_urls = [
-# #         'libfuzzer-linux-release-359936.zip',
-# #         'libfuzzer-linux-release-359950.zip',
-# #         'libfuzzer-linux-release-359945.zip',
-# #         'libfuzzer-linux-release-359953.zip',
-# #     ]
-# #     expected_result = [
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359953.zip',
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359950.zip',
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359945.zip',
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359936.zip'
-# #     ]
-# #     actual_result = build_manager._sort_build_urls_by_revision(
-# #         build_urls, bucket_path, reverse=True)
-# #     self.assertEqual(expected_result, actual_result)
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-359936.zip',
+        'gs://chromium-browser-libfuzzer/'
+        'linux-release-asan/libfuzzer-linux-release-936.zip',
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=True)
+    self.assertEqual(expected_result, actual_result)
 
-# #     expected_result = [
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359936.zip',
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359945.zip',
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359950.zip',
-# #         'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359953.zip',
-# #     ]
-# #     actual_result = build_manager._sort_build_urls_by_revision(
-# #         build_urls, bucket_path, reverse=False)
-# #     self.assertEqual(expected_result, actual_result)
+  def test_bucket_root(self):
+    """Tests regular case on bucket root with and without reverse flag set."""
+    bucket_path = ('gs://chromium-browser-libfuzzer/'
+                   'libfuzzer-linux-release-([0-9]+).zip')
+    build_urls = [
+        'libfuzzer-linux-release-359936.zip',
+        'libfuzzer-linux-release-359950.zip',
+        'libfuzzer-linux-release-359945.zip',
+        'libfuzzer-linux-release-359953.zip',
+    ]
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359953.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359950.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359936.zip'
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=True)
+    self.assertEqual(expected_result, actual_result)
+
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359936.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359950.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359953.zip',
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=False)
+    self.assertEqual(expected_result, actual_result)
 
 
 class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
@@ -1657,7 +1666,8 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     ])
     self.mock._split_target_build_list_targets.return_value = []
     with self.assertRaises(build_manager.BuildManagerError):
-      build_manager._pick_random_fuzz_target_for_split_build(target_weights={'target4': 1})
+      build_manager._pick_random_fuzz_target_for_split_build(
+          target_weights={'target4': 1})
 
 
 class GetPrimaryBucketPathTest(unittest.TestCase):

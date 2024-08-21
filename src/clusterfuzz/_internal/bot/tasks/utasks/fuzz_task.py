@@ -1767,8 +1767,7 @@ class FuzzingSession:
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
-      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl,
-                                                        fuzz_target)
+      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
       # Not applicable to engine fuzzers.
       testcase_file_paths = []

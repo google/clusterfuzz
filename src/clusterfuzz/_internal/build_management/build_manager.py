@@ -647,8 +647,8 @@ class RegularBuild(Build):
       # unpacked. The way that lists are used, it doesn't matter if
       # some of them are incomplete, so long as some of them are
       # complete. Unfortunately, there is no better way to the mess
-      # that is the ClusterFuzz builds system. Also, SplitTargetBuild will clobber
-      # the value here and partial builds never take this branch.
+      # that is the ClusterFuzz builds system. Also, SplitTargetBuild will
+      # clobber the value here and partial builds never take this branch.
       self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
 
     self._setup_application_path(build_update=build_update)
@@ -1281,7 +1281,8 @@ def setup_build(revision=0, fuzz_target=None):
 
 
 def _setup_build(revision, fuzz_target):
-
+  """Helper for setup_build, so setup_build can be sure to set FUZZ_TARGET on
+  successful execution of this function."""
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
