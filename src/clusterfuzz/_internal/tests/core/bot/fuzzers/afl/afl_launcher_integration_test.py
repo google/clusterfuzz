@@ -56,8 +56,6 @@ def no_errors(f):
 def run_launcher(*args):
   """Run launcher.py."""
   mock_stdout = test_utils.MockStdout()
-
-  os.environ['FUZZ_TARGET'] = args[1]
   with mock.patch('sys.stdout', mock_stdout):
     launcher.main(['launcher.py'] + list(args))
 
