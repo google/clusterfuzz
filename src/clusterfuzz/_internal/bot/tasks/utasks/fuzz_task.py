@@ -1458,11 +1458,8 @@ class FuzzingSession:
     return GenerateBlackboxTestcasesResult(success, testcase_file_paths,
                                            fuzzer_metadata)
 
-  def do_engine_fuzzing(self, engine_impl):
+  def do_engine_fuzzing(self, engine_impl, fuzz_target):
     """Run fuzzing engine."""
-    fuzz_target_name = environment.get_value('FUZZ_TARGET')
-    if not fuzz_target_name:
-      raise FuzzTaskError('No fuzz targets set.')
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1717,12 +1714,9 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    if self.fuzz_target:
-      logs.info(f'Setting fuzz target {self.fuzz_target}.')
-      environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
-
+    fuzz_target = self.fuzz_target.name
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'))
+        environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -1773,7 +1767,7 @@ class FuzzingSession:
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
-      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
+      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl, fuzz_target)
 
       # Not applicable to engine fuzzers.
       testcase_file_paths = []

@@ -207,7 +207,6 @@ def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
 
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
-  environment.set_value('FUZZ_TARGET', fuzz_target)
   logs.info(f'Picked fuzz target {fuzz_target} for fuzzing.')
 
   return fuzz_target
@@ -448,7 +447,14 @@ class Build(BaseBuild):
             'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
         if not unpack_everything:
+          # We will never unpack the full build so we need to get the targets
+          # from the build archive.
           self.fuzz_targets = list(build.list_fuzz_targets())
+          # We only want to unpack a single fuzz target if unpack_everything is
+          # False.
+          fuzz_target_to_unpack = self.fuzz_target
+        else:
+          fuzz_target_to_unpack = None
 
         # If the fuzz_target is None, this will return the full size.
         extracted_size = build.unpacked_size(fuzz_target=self.fuzz_target)
@@ -464,8 +470,9 @@ class Build(BaseBuild):
             f'Unpacking build archive {build_local_archive} to {build_dir}.')
         trusted = not utils.is_oss_fuzz()
 
+
         build.unpack(
-            build_dir=build_dir, fuzz_target=self.fuzz_target, trusted=trusted)
+            build_dir=build_dir, fuzz_target=fuzz_target_to_unpack, trusted=trusted)
 
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_local_archive}: {e}')
@@ -645,7 +652,6 @@ class RegularBuild(Build):
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
-
     return True
 
 
@@ -771,8 +777,7 @@ class CustomBuild(Build):
                base_build_dir,
                custom_binary_key,
                custom_binary_filename,
-               custom_binary_revision,
-               fuzz_target=None):
+               custom_binary_revision):
     super().__init__(
         base_build_dir, custom_binary_revision, fuzz_target=fuzz_target)
     self.custom_binary_key = custom_binary_key
@@ -1224,7 +1229,7 @@ def setup_symbolized_builds(revision):
   return None
 
 
-def setup_custom_binary(fuzz_target=None):
+def setup_custom_binary():
   """Set up the custom binary for a particular job."""
   # Check if this build is dependent on any other custom job. If yes,
   # then fake out our job name for setting up the build.
@@ -1249,8 +1254,7 @@ def setup_custom_binary(fuzz_target=None):
       base_build_dir,
       job.custom_binary_key,
       job.custom_binary_filename,
-      job.custom_binary_revision,
-      fuzz_target=fuzz_target)
+      job.custom_binary_revision)
 
   # Revert back the actual job name.
   if share_build_job_type:
@@ -1274,6 +1278,16 @@ def setup_system_binary():
 
 def setup_build(revision=0, fuzz_target=None):
   """Set up a custom or regular build based on revision."""
+  result = _setup_build(revision, fuzz_target)
+  if fuzz_target:
+    # TODO(metzman): Remove this unjustifiable use of a mutable global
+    # variable.
+    environment.set_value('FUZZ_TARGET', fuzz_target)
+  return result
+
+
+def _setup_build(revision, fuzz_target):
+
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:

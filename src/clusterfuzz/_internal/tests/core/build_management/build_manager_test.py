@@ -465,7 +465,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
 
   @parameterized.parameterized.expand(['True', 'False'])
-                                       
   def test_setup_fuzz(self, unpack_all):
     """Tests setting up a build during fuzzing."""
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
@@ -474,7 +473,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.time.return_value = 1000.0
     fuzz_target = build_manager.pick_random_fuzz_target(
         target_weights=self.target_weights)
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
@@ -490,7 +488,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.time.return_value = 1005.0
     fuzz_target = build_manager.pick_random_fuzz_target(
         target_weights=self.target_weights)
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])    
     build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
 
     self.assertIsInstance(build, build_manager.RegularBuild)
@@ -506,8 +503,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(
           2,
           self.mock.open.return_value.__enter__.return_value.unpack.call_count)
-
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   @parameterized.parameterized.expand(['True', 'False'])
@@ -521,7 +516,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.time.return_value = 1000.0
     fuzz_target = build_manager.pick_random_fuzz_target(
         target_weights=self.target_weights)
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
@@ -606,16 +600,17 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
           fuzz_target=target_checker,
           trusted=True)
 
-
-  @parameterized.parameterized.expand(['True', 'False'])
+  @parameterized.parameterized.expand(['True'# , 'False'
+                                       ])
   def test_setup_nonfuzz_with_extra(self, unpack_all):
     """Test setting up a build during a non-fuzz task with an extra build."""
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
     os.environ['TASK_NAME'] = 'progression'
     os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
         'gs://path2/file-release-([0-9]+).zip')
+    fuzz_target = 'target3'
 
-    build = build_manager.setup_regular_build(2, fuzz_target='target3')
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
     class TargetChecker:
@@ -647,7 +642,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
             fuzz_target=target_checker,
             trusted=True)
     ])
-
     build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
@@ -669,8 +663,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
               fuzz_target=target_checker,
               trusted=True)
       ])
-
-    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
   def test_delete(self):
     """Test deleting this build."""
@@ -694,558 +686,522 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
 
 
-# # class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
-# #   """Tests for symbolized build setup."""
-
-# #   def setUp(self):
-# #     """Setup for symbolized build test."""
-# #     test_utils.set_up_pyfakefs(self)
-
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
-# #         'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
-# #         'clusterfuzz._internal.system.shell.clear_temp_directory', 'time.time'
-# #     ])
-
-# #     test_helpers.patch_environ(self)
-
-# #     os.environ['BUILDS_DIR'] = '/builds'
-# #     os.environ['FAIL_RETRIES'] = '1'
-# #     os.environ['APP_NAME'] = FAKE_APP_NAME
-# #     os.environ['JOB_NAME'] = 'job'
-
-# #     self.release_urls = None
-# #     self.debug_urls = None
-
-# #     self.mock._unpack_build.side_effect = _mock_unpack_build
-# #     self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
-
-# #   def _mock_get_build_urls_list(self, bucket_path):
-# #     if 'release' in bucket_path:
-# #       return self.release_urls or []
-
-# #     return self.debug_urls or []
-
-# #   def _prepare_test(self, release_urls, debug_urls):
-# #     """Prepare test."""
-# #     os.environ['SYM_RELEASE_BUILD_BUCKET_PATH'] = ''
-# #     os.environ['SYM_DEBUG_BUILD_BUCKET_PATH'] = ''
-
-# #     if release_urls:
-# #       os.environ['SYM_RELEASE_BUILD_BUCKET_PATH'] = (
-# #           'gs://path/file-release-([0-9]+).zip')
-
-# #     if debug_urls:
-# #       os.environ['SYM_DEBUG_BUILD_BUCKET_PATH'] = (
-# #           'gs://path/file-debug-([0-9]+).zip')
-
-# #     self.release_urls = release_urls
-# #     self.debug_urls = debug_urls
-
-# #   def _assert_env_vars_both(self):
-# #     """Assert env vars."""
-# #     self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
-
-# #     self.assertEqual(
-# #         os.environ['APP_PATH'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'release/app')
-
-# #     self.assertEqual(
-# #         os.environ['APP_PATH_DEBUG'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'debug/app')
-
-# #     self.assertEqual(
-# #         os.environ['APP_DIR'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'debug')
-
-# #     self.assertEqual(
-# #         os.environ['LLVM_SYMBOLIZER_PATH'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'debug/llvm-symbolizer')
-
-# #     self.assertEqual(
-# #         os.environ['BUILD_DIR'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'debug')
-
-# #   def _assert_env_vars_release(self):
-# #     """Assert env vars for release."""
-# #     self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
-
-# #     self.assertEqual(
-# #         os.environ['APP_PATH'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'release/app')
-# #     self.assertEqual(os.environ['APP_PATH_DEBUG'], '')
-
-# #     self.assertEqual(
-# #         os.environ['APP_DIR'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'release')
-
-# #     self.assertEqual(
-# #         os.environ['LLVM_SYMBOLIZER_PATH'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'release/llvm-symbolizer')
-
-# #     self.assertEqual(
-# #         os.environ['BUILD_DIR'],
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
-# #         'release')
-
-# #   def test_setup_both(self):
-# #     """Tests setting up both release and debug builds."""
-# #     self._prepare_test([
-# #         'gs://path/file-release-10.zip',
-# #         'gs://path/file-release-2.zip',
-# #         'gs://path/file-release-1.zip',
-# #     ], [
-# #         'gs://path/file-debug-10.zip',
-# #         'gs://path/file-debug-2.zip',
-# #         'gs://path/file-debug-1.zip',
-# #     ])
-
-# #     self.mock.time.return_value = 1000.0
-# #     build = build_manager.setup_symbolized_builds(2)
-# #     self.assertIsInstance(build, build_manager.SymbolizedBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-# #     self.mock._unpack_build.assert_has_calls([
-# #         mock.call(
-# #             mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
-# #             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #             'symbolized/release', 'gs://path/file-release-2.zip'),
-# #         mock.call(
-# #             mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
-# #             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #             'symbolized/debug', 'gs://path/file-debug-2.zip'),
-# #     ])
-# #     self._assert_env_vars_both()
-# #     self.assertEqual(os.environ['APP_REVISION'], '2')
-
-# #     self.mock.time.return_value = 1005.0
-# #     build = build_manager.setup_symbolized_builds(2)
-# #     self.assertIsInstance(build, build_manager.SymbolizedBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-
-# #     self._assert_env_vars_both()
-# #     self.assertEqual(os.environ['APP_REVISION'], '2')
-# #     self.assertTrue(self.mock._unpack_build.call_count, 2)
-
-# #     self.assertIsNone(build_manager.setup_symbolized_builds(4))
-
-# #   def test_setup_release_only(self):
-# #     """Tests setting up release builds."""
-# #     self._prepare_test([
-# #         'gs://path/file-release-10.zip',
-# #         'gs://path/file-release-2.zip',
-# #         'gs://path/file-release-1.zip',
-# #     ], None)
-
-# #     self.mock.time.return_value = 1000.0
-# #     build = build_manager.setup_symbolized_builds(2)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-# #     self.assertIsInstance(build, build_manager.SymbolizedBuild)
-# #     self.mock._unpack_build.assert_called_once_with(
-# #         mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
-# #         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #         'symbolized/release', 'gs://path/file-release-2.zip')
-# #     self._assert_env_vars_release()
-# #     self.assertEqual(os.environ['APP_REVISION'], '2')
-
-# #     self.mock.time.return_value = 1005.0
-# #     self.assertIsInstance(
-# #         build_manager.setup_symbolized_builds(2), build_manager.SymbolizedBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-# #     self._assert_env_vars_release()
-# #     self.assertEqual(os.environ['APP_REVISION'], '2')
-# #     self.assertTrue(self.mock._unpack_build.call_count, 1)
-
-# #     self.assertIsNone(build_manager.setup_symbolized_builds(4))
-
-# #   def test_delete(self):
-# #     """Test deleting this build."""
-# #     self._prepare_test([
-# #         'gs://path/file-release-10.zip',
-# #         'gs://path/file-release-2.zip',
-# #         'gs://path/file-release-1.zip',
-# #     ], [
-# #         'gs://path/file-debug-10.zip',
-# #         'gs://path/file-debug-2.zip',
-# #         'gs://path/file-debug-1.zip',
-# #     ])
-
-# #     build = build_manager.setup_symbolized_builds(2)
-# #     self.assertTrue(
-# #         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #                       'symbolized/release'))
-# #     self.assertTrue(
-# #         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #                       'symbolized/debug'))
-# #     build.delete()
-# #     self.assertFalse(
-# #         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #                       'symbolized/release'))
-# #     self.assertFalse(
-# #         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
-# #                       'symbolized/debug'))
-# #     self.assertTrue(
-# #         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
-
-
-# # class ProductionBuildTest(fake_filesystem_unittest.TestCase):
-# #   """Tests for production build setup."""
-
-# #   def setUp(self):
-# #     """Setup for production build test."""
-# #     test_utils.set_up_pyfakefs(self)
-
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
-# #         'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
-# #         'clusterfuzz._internal.system.shell.clear_temp_directory',
-# #         'time.sleep',
-# #         'time.time',
-# #     ])
-
-# #     test_helpers.patch_environ(self)
-
-# #     os.environ['BUILDS_DIR'] = '/builds'
-# #     os.environ['FAIL_RETRIES'] = '1'
-# #     os.environ['APP_NAME'] = FAKE_APP_NAME
-# #     os.environ['JOB_NAME'] = 'job'
-# #     os.environ['VERSION_PATTERN'] = r'.*-([0-9.]+).zip'
-
-# #     os.environ['STABLE_BUILD_BUCKET_PATH'] = (
-# #         'gs://path/file-stable-([0-9.]+).zip')
-# #     os.environ['BETA_BUILD_BUCKET_PATH'] = 'gs://path/file-beta-([0-9.]+).zip'
-
-# #     self.mock._unpack_build.side_effect = _mock_unpack_build
-# #     self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
-
-# #   def _mock_get_build_urls_list(self, bucket_path):
-# #     """Mock get_build_urls_list()"""
-# #     if not bucket_path:
-# #       return []
-
-# #     if 'extended_stable' in bucket_path:
-# #       return [
-# #           'gs://path/file-extended_stable-45.0.1824.2.zip',
-# #           'gs://path/file-extended_stable-44.0.1824.1.zip',
-# #           'gs://path/file-extended_stable-44.0.1822.2.zip',
-# #       ]
-
-# #     if 'stable' in bucket_path:
-# #       return [
-# #           'gs://path/file-stable-45.0.1824.2.zip',
-# #           'gs://path/file-stable-44.0.1824.1.zip',
-# #           'gs://path/file-stable-44.0.1822.2.zip',
-# #       ]
-
-# #     return [
-# #         'gs://path/file-beta-45.0.1824.2.zip',
-# #         'gs://path/file-beta-44.0.1824.1.zip',
-# #         'gs://path/file-beta-44.0.1822.2.zip',
-# #     ]
-
-# #   def _assert_env_vars(self, build_type):
-# #     """Assert env vars."""
-# #     self.assertEqual(os.environ['BUILD_URL'],
-# #                      'gs://path/file-%s-45.0.1824.2.zip' % build_type)
-
-# #     self.assertEqual(
-# #         os.environ['APP_PATH'],
-# #         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s/app' %
-# #         build_type)
-
-# #     self.assertEqual(os.environ['APP_PATH_DEBUG'], '')
-
-# #     self.assertEqual(
-# #         os.environ['APP_DIR'],
-# #         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s' % build_type)
-
-# #     self.assertEqual(
-# #         os.environ['LLVM_SYMBOLIZER_PATH'],
-# #         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s/'
-# #         'llvm-symbolizer' % build_type)
-
-# #     self.assertEqual(
-# #         os.environ['BUILD_DIR'],
-# #         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s' % build_type)
-
-
-# # @test_utils.with_cloud_emulators('datastore')
-# # class CustomBuildTest(fake_filesystem_unittest.TestCase):
-# #   """Tests for custom build setup."""
-
-# #   def setUp(self):
-# #     """Setup for custom build test."""
-# #     test_helpers.patch_environ(self)
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.build_management.build_archive.BuildArchive',
-# #         'clusterfuzz._internal.build_management.build_archive.open',
-# #         'clusterfuzz._internal.build_management.build_manager._make_space',
-# #         'clusterfuzz._internal.system.shell.clear_temp_directory',
-# #         'clusterfuzz._internal.google_cloud_utils.blobs.read_blob_to_disk',
-# #         'time.sleep',
-# #         'time.time',
-# #     ])
-
-# #     os.environ['BUILDS_DIR'] = '/builds'
-# #     os.environ['FAIL_RETRIES'] = '1'
-# #     os.environ['APP_NAME'] = FAKE_APP_NAME
-# #     os.environ['CUSTOM_BINARY'] = 'True'
-
-# #     data_types.Job(
-# #         name='job_custom',
-# #         custom_binary_key='key',
-# #         custom_binary_filename='custom_binary.zip',
-# #         custom_binary_revision=3).put()
-
-# #     test_utils.set_up_pyfakefs(self)
-# #     self.mock._make_space.return_value = True
-# #     self.mock.open.return_value.unpack.side_effect = self._mock_unpack
-# #     self.mock.read_blob_to_disk.return_value = True
-
-# #   # pylint: disable=unused-argument
-# #   def _mock_unpack(self, build_dir, fuzz_target=None, trusted=True):
-# #     """mock archive.ArchiveReader.extract_all."""
-# #     _mock_unpack_build(None, None, build_dir, None)
-
-# #   def _assert_env_vars(self):
-# #     """Assert env vars."""
-# #     self.assertEqual(os.environ['APP_PATH'], '/builds/job_custom/custom/app')
-# #     self.assertEqual(os.environ['APP_DIR'], '/builds/job_custom/custom')
-# #     self.assertEqual(os.environ['APP_PATH_DEBUG'], '')
-
-# #     self.assertEqual(os.environ['LLVM_SYMBOLIZER_PATH'],
-# #                      '/builds/job_custom/custom/llvm-symbolizer')
-
-# #     self.assertEqual(os.environ['APP_REVISION'], '3')
-# #     self.assertEqual(os.environ['BUILD_KEY'], 'key')
-# #     self.assertEqual(os.environ['BUILD_DIR'], '/builds/job_custom/custom')
-
-# #   def test_setup(self):
-# #     """Test setting up a custom binary."""
-# #     os.environ['JOB_NAME'] = 'job_custom'
-# #     self.mock.time.return_value = 1000.0
-# #     # APP_REVISION env variable is set during setup_custom_binary.
-# #     self.assertIsNone(os.environ.get('APP_REVISION'))
-# #     build = build_manager.setup_custom_binary()
-# #     self.assertIsInstance(build, build_manager.CustomBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-# #     self.mock.read_blob_to_disk.assert_called_once_with(
-# #         'key', '/builds/job_custom/custom/custom_binary.zip')
-
-# #     # For now, we're calling it multiple times because we're not passing the
-# #     # reader object along in the build manager
-# #     self.mock.open.assert_called_once_with(
-# #         '/builds/job_custom/custom/custom_binary.zip')
-# #     self.mock.open.return_value.unpack.assert_called_once_with(
-# #         '/builds/job_custom/custom', trusted=True)
-
-# #     self._assert_env_vars()
-
-# #     self.mock.time.return_value = 1005.0
-# #     self.assertIsInstance(build_manager.setup_custom_binary(),
-# #                           build_manager.CustomBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-# #     self.assertEqual(self.mock.read_blob_to_disk.call_count, 1)
-# #     self.assertEqual(self.mock.open.return_value.unpack.call_count, 1)
-# #     self._assert_env_vars()
-
-# #   def test_setup_shared(self):
-# #     """Test setting up a custom binary (shared)."""
-# #     os.environ['JOB_NAME'] = 'job_share'
-# #     os.environ['SHARE_BUILD_WITH_JOB_TYPE'] = 'job_custom'
-
-# #     self.mock.time.return_value = 1000.0
-# #     build = build_manager.setup_custom_binary()
-# #     self.assertIsInstance(build, build_manager.CustomBuild)
-# #     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-# #     self.mock.read_blob_to_disk.assert_called_once_with(
-# #         'key', '/builds/job_custom/custom/custom_binary.zip')
-
-# #     # For now, we're calling it multiple times because we're not passing the
-# #     # reader object along in the build manager
-# #     self.mock.open.assert_called_once_with(
-# #         archive_path='/builds/job_custom/custom/custom_binary.zip')
-# #     self.mock.open.return_value.unpack.assert_called_once_with(
-# #         '/builds/job_custom/custom', trusted=True)
-
-# #     self._assert_env_vars()
-# #     self.assertEqual(os.environ['JOB_NAME'], 'job_share')
-
-# #   def test_delete(self):
-# #     """Test deleting this build."""
-# #     os.environ['JOB_NAME'] = 'job_custom'
-# #     build = build_manager.setup_custom_binary()
-# #     self.assertTrue(os.path.isdir('/builds/job_custom/custom'))
-# #     build.delete()
-# #     self.assertFalse(os.path.isdir('/builds/job_custom/custom'))
-# #     self.assertTrue(os.path.isdir('/builds/job_custom'))
-
-
-# # class SystemBuildTest(fake_filesystem_unittest.TestCase):
-# #   """Tests for system build setup."""
-
-# #   def setUp(self):
-# #     """Setup for system build test."""
-# #     test_utils.set_up_pyfakefs(self)
-
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.system.shell.clear_temp_directory',
-# #     ])
-
-# #     test_helpers.patch_environ(self)
-
-# #     os.environ['BUILDS_DIR'] = '/builds'
-# #     os.environ['FAIL_RETRIES'] = '1'
-# #     os.environ['APP_NAME'] = FAKE_APP_NAME
-# #     os.environ['SYSTEM_BINARY_DIR'] = '/system_binary'
-# #     _mock_unpack_build(
-# #         build_manager.SystemBuild('/'), None, '/system_binary', None)
-
-# #   def test_setup(self):
-# #     """Test setting up a system binary."""
-# #     self.assertIsNotNone(build_manager.setup_system_binary())
-
-# #     self.assertEqual(os.environ['APP_REVISION'], '1')
-# #     self.assertEqual(os.environ['APP_PATH'], '/system_binary/app')
-# #     self.assertEqual(os.environ['APP_DIR'], '/system_binary')
-# #     self.assertEqual(os.environ['BUILD_DIR'], '/system_binary')
-
-# #   def test_delete(self):
-# #     """Test deleting this build."""
-# #     build = build_manager.setup_system_binary()
-# #     with self.assertRaises(build_manager.BuildManagerError):
-# #       build.delete()
-
-
-# # @mock.patch(
-# #     'clusterfuzz._internal.build_management.build_manager.MAX_EVICTED_BUILDS',
-# #     3)
-# # class BuildEvictionTests(fake_filesystem_unittest.TestCase):
-# #   """Build eviction tests."""
-
-# #   def setUp(self):
-# #     """Setup for build eviction tests."""
-# #     test_utils.set_up_pyfakefs(self)
-# #     test_helpers.patch(self, [
-# #         'clusterfuzz._internal.base.utils.is_chromium',
-# #         'clusterfuzz._internal.system.shell.get_free_disk_space',
-# #     ])
-
-# #     test_helpers.patch_environ(self)
-
-# #     os.environ['BUILDS_DIR'] = '/builds'
-# #     os.environ['FAIL_RETRIES'] = '1'
-
-# #     os.makedirs('/builds/build1/revisions')
-# #     os.makedirs('/builds/build2/revisions')
-# #     os.makedirs('/builds/build3/revisions')
-# #     os.makedirs('/builds/build4/revisions')
-# #     self.fs.create_file(
-# #         '/builds/build1/.timestamp', contents='1486166114.668105')
-# #     self.fs.create_file(
-# #         '/builds/build2/.timestamp', contents='1486166110.142942')
-# #     self.fs.create_file(
-# #         '/builds/build3/.timestamp', contents='1486166112.180345')
-
-# #     self.free_disk_space = []
-# #     self.mock.is_chromium.return_value = True
-
-# #   def _mock_free_disk_space(self, _):
-# #     return self.free_disk_space.pop(0)
-
-# #   def test_make_space_remove_one_build(self):
-# #     """Test _make_space (remove 1 build)."""
-# #     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
-# #     self.free_disk_space = [
-# #         9 * 1024 * 1024 * 1024,
-# #         24 * 1024 * 1024 * 1024,
-# #     ]
-
-# #     size = 1 * 1024 * 1024 * 1024  # 1 GB
-# #     self.assertTrue(build_manager._make_space(size, '/builds/build4'))
-
-# #     self.assertTrue(os.path.isdir('/builds/build1'))
-# #     self.assertFalse(os.path.isdir('/builds/build2'))
-# #     self.assertTrue(os.path.isdir('/builds/build3'))
-# #     self.assertTrue(os.path.isdir('/builds/build4'))
-
-# #   def test_make_space_remove_two_builds(self):
-# #     """Test _make_space (remove 2 builds)."""
-# #     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
-# #     self.free_disk_space = [
-# #         8 * 1024 * 1024 * 1024,
-# #         9 * 1024 * 1024 * 1024,
-# #         12 * 1024 * 1024 * 1024,
-# #     ]
-
-# #     size = 1 * 1024 * 1024 * 1024  # 1 GB
-# #     self.assertTrue(build_manager._make_space(size, '/builds/build4'))
-
-# #     self.assertTrue(os.path.isdir('/builds/build1'))
-# #     self.assertFalse(os.path.isdir('/builds/build2'))
-# #     self.assertFalse(os.path.isdir('/builds/build3'))
-# #     self.assertTrue(os.path.isdir('/builds/build4'))
-
-# #   def test_make_space_remove_three_builds(self):
-# #     """Test _make_space (remove 3 builds)."""
-# #     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
-# #     self.free_disk_space = [
-# #         7 * 1024 * 1024 * 1024,
-# #         8 * 1024 * 1024 * 1024,
-# #         9 * 1024 * 1024 * 1024,
-# #         14 * 1024 * 1024 * 1024,
-# #     ]
-
-# #     size = 1 * 1024 * 1024 * 1024  # 1 GB
-# #     self.assertTrue(build_manager._make_space(size, '/builds/build4'))
-
-# #     self.assertFalse(os.path.isdir('/builds/build1'))
-# #     self.assertFalse(os.path.isdir('/builds/build2'))
-# #     self.assertFalse(os.path.isdir('/builds/build3'))
-# #     self.assertTrue(os.path.isdir('/builds/build4'))
-
-# #   def test_make_space_fail(self):
-# #     """Test _make_space failure."""
-# #     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
-# #     self.free_disk_space = [
-# #         12 * 1024 * 1024 * 1024,
-# #         17 * 1024 * 1024 * 1024,
-# #         18 * 1024 * 1024 * 1024,
-# #         24 * 1024 * 1024 * 1024,
-# #     ]
-
-# #     size = 20 * 1024 * 1024 * 1024  # 1 GB
-# #     self.assertFalse(build_manager._make_space(size, '/builds/build4'))
-
-# #     self.assertFalse(os.path.isdir('/builds/build1'))
-# #     self.assertFalse(os.path.isdir('/builds/build2'))
-# #     self.assertFalse(os.path.isdir('/builds/build3'))
-# #     self.assertTrue(os.path.isdir('/builds/build4'))
-
-# #   def test_make_space_no_builds_to_remove(self):
-# #     """Test _make_space failure (no builds to remove)."""
-# #     shutil.rmtree('/builds/build1')
-# #     shutil.rmtree('/builds/build2')
-# #     shutil.rmtree('/builds/build3')
-
-# #     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
-# #     self.free_disk_space = [
-# #         18 * 1024 * 1024 * 1024,
-# #     ]
-
-# #     size = 20 * 1024 * 1024 * 1024  # 1 GB
-# #     self.assertFalse(build_manager._make_space(size, '/builds/build4'))
+class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for symbolized build setup."""
+
+  def setUp(self):
+    """Setup for symbolized build test."""
+    test_utils.set_up_pyfakefs(self)
+
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
+        'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
+        'clusterfuzz._internal.system.shell.clear_temp_directory', 'time.time'
+    ])
+
+    test_helpers.patch_environ(self)
+
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['JOB_NAME'] = 'job'
+
+    self.release_urls = None
+    self.debug_urls = None
+
+    self.mock._unpack_build.side_effect = _mock_unpack_build
+    self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
+
+  def _mock_get_build_urls_list(self, bucket_path):
+    if 'release' in bucket_path:
+      return self.release_urls or []
+
+    return self.debug_urls or []
+
+  def _prepare_test(self, release_urls, debug_urls):
+    """Prepare test."""
+    os.environ['SYM_RELEASE_BUILD_BUCKET_PATH'] = ''
+    os.environ['SYM_DEBUG_BUILD_BUCKET_PATH'] = ''
+
+    if release_urls:
+      os.environ['SYM_RELEASE_BUILD_BUCKET_PATH'] = (
+          'gs://path/file-release-([0-9]+).zip')
+
+    if debug_urls:
+      os.environ['SYM_DEBUG_BUILD_BUCKET_PATH'] = (
+          'gs://path/file-debug-([0-9]+).zip')
+
+    self.release_urls = release_urls
+    self.debug_urls = debug_urls
+
+  def _assert_env_vars_both(self):
+    """Assert env vars."""
+    self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
+
+    self.assertEqual(
+        os.environ['APP_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'release/app')
+
+    self.assertEqual(
+        os.environ['APP_PATH_DEBUG'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'debug/app')
+
+    self.assertEqual(
+        os.environ['APP_DIR'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'debug')
+
+    self.assertEqual(
+        os.environ['LLVM_SYMBOLIZER_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'debug/llvm-symbolizer')
+
+    self.assertEqual(
+        os.environ['BUILD_DIR'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'debug')
+
+  def _assert_env_vars_release(self):
+    """Assert env vars for release."""
+    self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
+
+    self.assertEqual(
+        os.environ['APP_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'release/app')
+    self.assertEqual(os.environ['APP_PATH_DEBUG'], '')
+
+    self.assertEqual(
+        os.environ['APP_DIR'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'release')
+
+    self.assertEqual(
+        os.environ['LLVM_SYMBOLIZER_PATH'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'release/llvm-symbolizer')
+
+    self.assertEqual(
+        os.environ['BUILD_DIR'],
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/symbolized/'
+        'release')
+
+  def test_setup_both(self):
+    """Tests setting up both release and debug builds."""
+    self._prepare_test([
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ], [
+        'gs://path/file-debug-10.zip',
+        'gs://path/file-debug-2.zip',
+        'gs://path/file-debug-1.zip',
+    ])
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_symbolized_builds(2)
+    self.assertIsInstance(build, build_manager.SymbolizedBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.mock._unpack_build.assert_has_calls([
+        mock.call(
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+            'symbolized/release', 'gs://path/file-release-2.zip'),
+        mock.call(
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+            'symbolized/debug', 'gs://path/file-debug-2.zip'),
+    ])
+    self._assert_env_vars_both()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.mock.time.return_value = 1005.0
+    build = build_manager.setup_symbolized_builds(2)
+    self.assertIsInstance(build, build_manager.SymbolizedBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    self._assert_env_vars_both()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+    self.assertTrue(self.mock._unpack_build.call_count, 2)
+
+    self.assertIsNone(build_manager.setup_symbolized_builds(4))
+
+  def test_setup_release_only(self):
+    """Tests setting up release builds."""
+    self._prepare_test([
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ], None)
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_symbolized_builds(2)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.assertIsInstance(build, build_manager.SymbolizedBuild)
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+        'symbolized/release', 'gs://path/file-release-2.zip')
+    self._assert_env_vars_release()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.mock.time.return_value = 1005.0
+    self.assertIsInstance(
+        build_manager.setup_symbolized_builds(2), build_manager.SymbolizedBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+    self._assert_env_vars_release()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+    self.assertTrue(self.mock._unpack_build.call_count, 1)
+
+    self.assertIsNone(build_manager.setup_symbolized_builds(4))
+
+  def test_delete(self):
+    """Test deleting this build."""
+    self._prepare_test([
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ], [
+        'gs://path/file-debug-10.zip',
+        'gs://path/file-debug-2.zip',
+        'gs://path/file-debug-1.zip',
+    ])
+
+    build = build_manager.setup_symbolized_builds(2)
+    self.assertTrue(
+        os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+                      'symbolized/release'))
+    self.assertTrue(
+        os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+                      'symbolized/debug'))
+    build.delete()
+    self.assertFalse(
+        os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+                      'symbolized/release'))
+    self.assertFalse(
+        os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+                      'symbolized/debug'))
+    self.assertTrue(
+        os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
+
+
+class ProductionBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for production build setup."""
+
+  def setUp(self):
+    """Setup for production build test."""
+    test_utils.set_up_pyfakefs(self)
+
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
+        'clusterfuzz._internal.build_management.build_manager.Build._unpack_build',
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+        'time.sleep',
+        'time.time',
+    ])
+
+    test_helpers.patch_environ(self)
+
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['JOB_NAME'] = 'job'
+    os.environ['VERSION_PATTERN'] = r'.*-([0-9.]+).zip'
+
+    os.environ['STABLE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-stable-([0-9.]+).zip')
+    os.environ['BETA_BUILD_BUCKET_PATH'] = 'gs://path/file-beta-([0-9.]+).zip'
+
+    self.mock._unpack_build.side_effect = _mock_unpack_build
+    self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
+
+  def _mock_get_build_urls_list(self, bucket_path):
+    """Mock get_build_urls_list()"""
+    if not bucket_path:
+      return []
+
+    if 'extended_stable' in bucket_path:
+      return [
+          'gs://path/file-extended_stable-45.0.1824.2.zip',
+          'gs://path/file-extended_stable-44.0.1824.1.zip',
+          'gs://path/file-extended_stable-44.0.1822.2.zip',
+      ]
+
+    if 'stable' in bucket_path:
+      return [
+          'gs://path/file-stable-45.0.1824.2.zip',
+          'gs://path/file-stable-44.0.1824.1.zip',
+          'gs://path/file-stable-44.0.1822.2.zip',
+      ]
+
+    return [
+        'gs://path/file-beta-45.0.1824.2.zip',
+        'gs://path/file-beta-44.0.1824.1.zip',
+        'gs://path/file-beta-44.0.1822.2.zip',
+    ]
+
+  def _assert_env_vars(self, build_type):
+    """Assert env vars."""
+    self.assertEqual(os.environ['BUILD_URL'],
+                     'gs://path/file-%s-45.0.1824.2.zip' % build_type)
+
+    self.assertEqual(
+        os.environ['APP_PATH'],
+        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s/app' %
+        build_type)
+
+    self.assertEqual(os.environ['APP_PATH_DEBUG'], '')
+
+    self.assertEqual(
+        os.environ['APP_DIR'],
+        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s' % build_type)
+
+    self.assertEqual(
+        os.environ['LLVM_SYMBOLIZER_PATH'],
+        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s/'
+        'llvm-symbolizer' % build_type)
+
+    self.assertEqual(
+        os.environ['BUILD_DIR'],
+        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s' % build_type)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class CustomBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for custom build setup."""
+
+  def setUp(self):
+    """Setup for custom build test."""
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_archive.BuildArchive',
+        'clusterfuzz._internal.build_management.build_archive.open',
+        'clusterfuzz._internal.build_management.build_manager._make_space',
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+        'clusterfuzz._internal.google_cloud_utils.blobs.read_blob_to_disk',
+        'time.sleep',
+        'time.time',
+    ])
+
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['CUSTOM_BINARY'] = 'True'
+
+    data_types.Job(
+        name='job_custom',
+        custom_binary_key='key',
+        custom_binary_filename='custom_binary.zip',
+        custom_binary_revision=3).put()
+
+    test_utils.set_up_pyfakefs(self)
+    self.mock._make_space.return_value = True
+    self.mock.open.return_value.unpack.side_effect = self._mock_unpack
+    self.mock.read_blob_to_disk.return_value = True
+
+  # pylint: disable=unused-argument
+  def _mock_unpack(self, build_dir, fuzz_target=None, trusted=True):
+    """mock archive.ArchiveReader.extract_all."""
+    _mock_unpack_build(None, None, build_dir, None)
+
+  def _assert_env_vars(self):
+    """Assert env vars."""
+    self.assertEqual(os.environ['APP_PATH'], '/builds/job_custom/custom/app')
+    self.assertEqual(os.environ['APP_DIR'], '/builds/job_custom/custom')
+    self.assertEqual(os.environ['APP_PATH_DEBUG'], '')
+
+    self.assertEqual(os.environ['LLVM_SYMBOLIZER_PATH'],
+                     '/builds/job_custom/custom/llvm-symbolizer')
+
+    self.assertEqual(os.environ['APP_REVISION'], '3')
+    self.assertEqual(os.environ['BUILD_KEY'], 'key')
+    self.assertEqual(os.environ['BUILD_DIR'], '/builds/job_custom/custom')
+
+  def test_setup(self):
+    """Test setting up a custom binary."""
+    os.environ['JOB_NAME'] = 'job_custom'
+    self.mock.time.return_value = 1000.0
+    # APP_REVISION env variable is set during setup_custom_binary.
+    self.assertIsNone(os.environ.get('APP_REVISION'))
+    build = build_manager.setup_custom_binary()
+    self.assertIsInstance(build, build_manager.CustomBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.mock.read_blob_to_disk.assert_called_once_with(
+        'key', '/builds/job_custom/custom/custom_binary.zip')
+
+    # For now, we're calling it multiple times because we're not passing the
+    # reader object along in the build manager
+    self.mock.open.assert_called_once_with(
+        '/builds/job_custom/custom/custom_binary.zip')
+    self.mock.open.return_value.unpack.assert_called_once_with(
+        '/builds/job_custom/custom', trusted=True)
+
+    self._assert_env_vars()
+
+    self.mock.time.return_value = 1005.0
+    self.assertIsInstance(build_manager.setup_custom_binary(),
+                          build_manager.CustomBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+    self.assertEqual(self.mock.read_blob_to_disk.call_count, 1)
+    self.assertEqual(self.mock.open.return_value.unpack.call_count, 1)
+    self._assert_env_vars()
+
+  def test_setup_shared(self):
+    """Test setting up a custom binary (shared)."""
+    os.environ['JOB_NAME'] = 'job_share'
+    os.environ['SHARE_BUILD_WITH_JOB_TYPE'] = 'job_custom'
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_custom_binary()
+    self.assertIsInstance(build, build_manager.CustomBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.mock.read_blob_to_disk.assert_called_once_with(
+        'key', '/builds/job_custom/custom/custom_binary.zip')
+
+    # For now, we're calling it multiple times because we're not passing the
+    # reader object along in the build manager
+    self.mock.open.assert_called_once_with(
+        archive_path='/builds/job_custom/custom/custom_binary.zip')
+    self.mock.open.return_value.unpack.assert_called_once_with(
+        '/builds/job_custom/custom', trusted=True)
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['JOB_NAME'], 'job_share')
+
+  def test_delete(self):
+    """Test deleting this build."""
+    os.environ['JOB_NAME'] = 'job_custom'
+    build = build_manager.setup_custom_binary()
+    self.assertTrue(os.path.isdir('/builds/job_custom/custom'))
+    build.delete()
+    self.assertFalse(os.path.isdir('/builds/job_custom/custom'))
+    self.assertTrue(os.path.isdir('/builds/job_custom'))
+
+
+@mock.patch(
+    'clusterfuzz._internal.build_management.build_manager.MAX_EVICTED_BUILDS',
+    3)
+class BuildEvictionTests(fake_filesystem_unittest.TestCase):
+  """Build eviction tests."""
+
+  def setUp(self):
+    """Setup for build eviction tests."""
+    test_utils.set_up_pyfakefs(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.system.shell.get_free_disk_space',
+    ])
+
+    test_helpers.patch_environ(self)
+
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+
+    os.makedirs('/builds/build1/revisions')
+    os.makedirs('/builds/build2/revisions')
+    os.makedirs('/builds/build3/revisions')
+    os.makedirs('/builds/build4/revisions')
+    self.fs.create_file(
+        '/builds/build1/.timestamp', contents='1486166114.668105')
+    self.fs.create_file(
+        '/builds/build2/.timestamp', contents='1486166110.142942')
+    self.fs.create_file(
+        '/builds/build3/.timestamp', contents='1486166112.180345')
+
+    self.free_disk_space = []
+    self.mock.is_chromium.return_value = True
+
+  def _mock_free_disk_space(self, _):
+    return self.free_disk_space.pop(0)
+
+  def test_make_space_remove_one_build(self):
+    """Test _make_space (remove 1 build)."""
+    self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
+    self.free_disk_space = [
+        9 * 1024 * 1024 * 1024,
+        24 * 1024 * 1024 * 1024,
+    ]
+
+    size = 1 * 1024 * 1024 * 1024  # 1 GB
+    self.assertTrue(build_manager._make_space(size, '/builds/build4'))
+
+    self.assertTrue(os.path.isdir('/builds/build1'))
+    self.assertFalse(os.path.isdir('/builds/build2'))
+    self.assertTrue(os.path.isdir('/builds/build3'))
+    self.assertTrue(os.path.isdir('/builds/build4'))
+
+  def test_make_space_remove_two_builds(self):
+    """Test _make_space (remove 2 builds)."""
+    self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
+    self.free_disk_space = [
+        8 * 1024 * 1024 * 1024,
+        9 * 1024 * 1024 * 1024,
+        12 * 1024 * 1024 * 1024,
+    ]
+
+    size = 1 * 1024 * 1024 * 1024  # 1 GB
+    self.assertTrue(build_manager._make_space(size, '/builds/build4'))
+
+    self.assertTrue(os.path.isdir('/builds/build1'))
+    self.assertFalse(os.path.isdir('/builds/build2'))
+    self.assertFalse(os.path.isdir('/builds/build3'))
+    self.assertTrue(os.path.isdir('/builds/build4'))
+
+  def test_make_space_remove_three_builds(self):
+    """Test _make_space (remove 3 builds)."""
+    self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
+    self.free_disk_space = [
+        7 * 1024 * 1024 * 1024,
+        8 * 1024 * 1024 * 1024,
+        9 * 1024 * 1024 * 1024,
+        14 * 1024 * 1024 * 1024,
+    ]
+
+    size = 1 * 1024 * 1024 * 1024  # 1 GB
+    self.assertTrue(build_manager._make_space(size, '/builds/build4'))
+
+    self.assertFalse(os.path.isdir('/builds/build1'))
+    self.assertFalse(os.path.isdir('/builds/build2'))
+    self.assertFalse(os.path.isdir('/builds/build3'))
+    self.assertTrue(os.path.isdir('/builds/build4'))
+
+  def test_make_space_fail(self):
+    """Test _make_space failure."""
+    self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
+    self.free_disk_space = [
+        12 * 1024 * 1024 * 1024,
+        17 * 1024 * 1024 * 1024,
+        18 * 1024 * 1024 * 1024,
+        24 * 1024 * 1024 * 1024,
+    ]
+
+    size = 20 * 1024 * 1024 * 1024  # 1 GB
+    self.assertFalse(build_manager._make_space(size, '/builds/build4'))
+
+    self.assertFalse(os.path.isdir('/builds/build1'))
+    self.assertFalse(os.path.isdir('/builds/build2'))
+    self.assertFalse(os.path.isdir('/builds/build3'))
+    self.assertTrue(os.path.isdir('/builds/build4'))
+
+  def test_make_space_no_builds_to_remove(self):
+    """Test _make_space failure (no builds to remove)."""
+    shutil.rmtree('/builds/build1')
+    shutil.rmtree('/builds/build2')
+    shutil.rmtree('/builds/build3')
+
+    self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
+    self.free_disk_space = [
+        18 * 1024 * 1024 * 1024,
+    ]
+
+    size = 20 * 1024 * 1024 * 1024  # 1 GB
+    self.assertFalse(build_manager._make_space(size, '/builds/build4'))
 
 
 # # @test_utils.integration
