@@ -24,6 +24,8 @@ class TrackFuzzTime:
     self.fuzzer_name = fuzzer_name
     self.job_type = job_type
     self.time = time_module
+    self.start_time = None
+    self.timeout = None
 
   def __enter__(self):
     self.start_time = self.time.time()
