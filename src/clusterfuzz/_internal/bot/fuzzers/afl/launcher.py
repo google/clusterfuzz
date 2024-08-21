@@ -1654,7 +1654,7 @@ def main(argv):
 
   # Initialize variables.
   testcase_file_path = argv[1]
-  fuzz_target = argv[2]
+  target_name = argv[2]
   input_directory = environment.get_value('FUZZ_CORPUS_DIR')
 
   # FIXME: Remove this once AFL is migrated to the new engine impl and runs in
