@@ -45,7 +45,6 @@ TEXT = 'text'
 
 CLUSTERFUZZ_AUTHORIZATION_HEADER = 'x-clusterfuzz-authorization'
 CLUSTERFUZZ_AUTHORIZATION_IDENTITY = 'x-clusterfuzz-identity'
-VERIFICATION_CODE_PREFIX = 'VerificationCode '
 BEARER_PREFIX = 'Bearer '
 
 _auth_config_obj = None

@@ -586,6 +586,14 @@ class CorpusPruningTestUntrusted(
     return compare
 
 
+class GetProtoTimestampTest(unittest.TestCase):
+
+  def test_get_proto_timestamp_utcnow(self):
+    """Tests that _get_proto_timestamp works with utcnow. It should not be used
+    with date()."""
+    corpus_pruning_task._get_proto_timestamp(datetime.datetime.utcnow())
+
+
 @test_utils.supported_platforms('LINUX')
 @test_utils.with_cloud_emulators('datastore')
 class CrashProcessingTest(unittest.TestCase, BaseTest):

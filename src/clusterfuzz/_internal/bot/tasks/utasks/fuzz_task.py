@@ -226,7 +226,7 @@ class Crash:
     self.security_flag = crash_analyzer.is_security_issue(
         self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
     self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
-                             self.security_flag)
+                             self.security_flag)  # pylint: disable=attribute-defined-outside-init
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
@@ -236,12 +236,13 @@ class Crash:
     self.fuzzed_key = None
     self.absolute_path = None
     self.archive_filename = None
+    self.archived = False
 
   @property
   def filename(self):
     return os.path.basename(self.file_path)
 
-  def is_archived(self):
+  def is_uploaded(self):
     """Return true if archive_testcase_in_blobstore(..) was performed."""
     return self.fuzzed_key is not None
 
@@ -250,14 +251,14 @@ class Crash:
     """Calling setup.archive_testcase_and_dependencies_in_gcs(..)
       and hydrate certain attributes. We single out this method because it's
       expensive and we want to do it at the very last minute."""
-    if self.is_archived():
+    if self.is_uploaded():
       return
 
     if upload_url.key:
       # TODO(metzman): Figure out if we need this check and if we can get rid of
       # the archived return value.
       self.fuzzed_key = upload_url.key
-    (_, self.absolute_path, self.archive_filename) = (
+    self.archived, self.absolute_path, self.archive_filename = (
         setup.archive_testcase_and_dependencies_in_gcs(
             self.resource_list, self.file_path, upload_url.url))
 
@@ -276,7 +277,7 @@ class Crash:
               (self.crash_state, self.unsymbolized_crash_stacktrace,
                self.crash_stacktrace))
 
-    if self.is_archived() and not self.fuzzed_key:
+    if self.is_uploaded() and not self.fuzzed_key:
       return f'Unable to store testcase in blobstore: {self.crash_state}'
 
     if not self.crash_state or not self.crash_type:
@@ -308,6 +309,7 @@ class Crash:
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
+    crash.archived = self.archived
     if self.fuzzed_key:
       crash.fuzzed_key = self.fuzzed_key
       crash.absolute_path = self.absolute_path
@@ -395,7 +397,6 @@ def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   # not. Otherwise, this one isn't reproducible either so don't create a new
   # one.
   return not group.one_time_crasher_flag
-
 
 def _last_sync_time(sync_file_path):
   """Read and parse the last sync file for the GCS corpus."""
@@ -654,7 +655,6 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
       sample_testcase_file = sample_testcase_file_handle.read()
-      fuzzer_run_results_output.uploaded_sample_testcase = True
       storage.upload_signed_url(sample_testcase_file,
                                 fuzz_task_input.sample_testcase_upload_url)
 
@@ -819,6 +819,9 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
                     fully_qualified_fuzzer_name: str):
   """Create a testcase based on crash."""
   crash = group.main_crash
+  comment = (f'Fuzzer {fully_qualified_fuzzer_name} generated testcase crashed '
+             f'in {crash.crash_time} seconds '
+             f'(r{uworker_output.fuzz_task_output.crash_revision})')
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key or None,
@@ -826,15 +829,13 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       regression=get_regression(group.one_time_crasher_flag),
       fixed=get_fixed_or_minimized_key(group.one_time_crasher_flag),
       one_time_crasher_flag=group.one_time_crasher_flag,
-      crash_revision=uworker_output.fuzz_task_output.crash_revision,
-      comment='Fuzzer %s generated testcase crashed in %d seconds (r%d)' %
-      (fully_qualified_fuzzer_name, crash.crash_time,
-       uworker_output.fuzz_task_output.crash_revision),
+      crash_revision=int(uworker_output.fuzz_task_output.crash_revision),
+      comment=comment,
       absolute_path=crash.absolute_path,
       fuzzer_name=uworker_input.fuzzer_name,
       fully_qualified_fuzzer_name=fully_qualified_fuzzer_name,
       job_type=uworker_input.job_type,
-      archived=bool(crash.fuzzed_key),
+      archived=crash.archived,
       archive_filename=crash.archive_filename,
       http_flag=crash.http_flag,
       gestures=list(crash.gestures),
@@ -844,6 +845,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       timeout_multiplier=get_testcase_timeout_multiplier(
           group.context.timeout_multiplier, crash, group.context.test_timeout),
       minimized_arguments=crash.arguments,
+      # TODO(https://github.com/google/clusterfuzz/issues/4175): Before enabling
+      # oss-fuzz-on-demand change this.
       trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
@@ -1113,9 +1116,13 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.engine_fuzz(engine_impl, target_name,
-                                  sync_corpus_directory, testcase_directory)
+    logs.info('Running remote engine fuzz.')
+    result = tasks_host.engine_fuzz(engine_impl, target_name,
+                                    sync_corpus_directory, testcase_directory)
+    logs.info('Done remote engine fuzz.')
+    return result
 
+  logs.info('Worker engine fuzz.')
   build_dir = environment.get_value('BUILD_DIR')
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if target_path is None:

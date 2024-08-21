@@ -175,8 +175,6 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.datastore.data_handler.'
         'get_data_bundle_bucket_name',
-        'clusterfuzz._internal.system.environment.'
-        'set_environment_parameters_from_file',
     ])
 
     test_helpers.patch_environ(self)
@@ -202,6 +200,7 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     test_utils.setup_pubsub('test-clusterfuzz')
     test_utils.create_pubsub_topic(pubsub.PubSubClient(), 'test-clusterfuzz',
                                    'jobs-project-linux')
+    self.fuzzer_name = None
 
   def tearDown(self):
     shutil.rmtree(self.tmp_dir)

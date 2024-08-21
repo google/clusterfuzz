@@ -43,8 +43,6 @@ MAX_VALUE_FOR_MAX_LENGTH = 10000
 # Allow 30 minutes to merge the testcases back into the corpus.
 DEFAULT_MERGE_TIMEOUT = 30 * 60
 
-MERGED_DICT_SUFFIX = '.merged'
-
 StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'fuzzing_strategies',
     'arguments',
@@ -1313,12 +1311,6 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
     fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
 
   return fuzz_timeout
-
-
-def is_linux_asan():
-  """Helper functions. Returns whether or not the current env is linux asan."""
-  return (environment.platform() != 'LINUX' or
-          environment.get_value('MEMORY_TOOL') != 'ASAN')
 
 
 def is_sha1_hash(possible_hash):

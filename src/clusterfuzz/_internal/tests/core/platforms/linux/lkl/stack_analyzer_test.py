@@ -78,6 +78,7 @@ class LKLStackAnalyzerTest(unittest.TestCase):
     os.environ['JOB_NAME'] = TEST_JOB_NAME
 
     self.mock.symbolize_stacktrace.side_effect = _mock_symbolize_stacktrace
+    self._real_read_data_from_file = None
 
   def _mock_read_data_from_file(self, file_path, eval_data=True, default=None):
     if file_path.endswith('repo.prop'):

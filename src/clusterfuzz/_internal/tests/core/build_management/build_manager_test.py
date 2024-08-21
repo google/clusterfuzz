@@ -1101,42 +1101,6 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(os.path.isdir('/builds/job_custom'))
 
 
-class SystemBuildTest(fake_filesystem_unittest.TestCase):
-  """Tests for system build setup."""
-
-  def setUp(self):
-    """Setup for system build test."""
-    test_utils.set_up_pyfakefs(self)
-
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.system.shell.clear_temp_directory',
-    ])
-
-    test_helpers.patch_environ(self)
-
-    os.environ['BUILDS_DIR'] = '/builds'
-    os.environ['FAIL_RETRIES'] = '1'
-    os.environ['APP_NAME'] = FAKE_APP_NAME
-    os.environ['SYSTEM_BINARY_DIR'] = '/system_binary'
-    _mock_unpack_build(
-        build_manager.SystemBuild('/'), None, '/system_binary', None)
-
-  def test_setup(self):
-    """Test setting up a system binary."""
-    self.assertIsNotNone(build_manager.setup_system_binary())
-
-    self.assertEqual(os.environ['APP_REVISION'], '1')
-    self.assertEqual(os.environ['APP_PATH'], '/system_binary/app')
-    self.assertEqual(os.environ['APP_DIR'], '/system_binary')
-    self.assertEqual(os.environ['BUILD_DIR'], '/system_binary')
-
-  def test_delete(self):
-    """Test deleting this build."""
-    build = build_manager.setup_system_binary()
-    with self.assertRaises(build_manager.BuildManagerError):
-      build.delete()
-
-
 @mock.patch(
     'clusterfuzz._internal.build_management.build_manager.MAX_EVICTED_BUILDS',
     3)

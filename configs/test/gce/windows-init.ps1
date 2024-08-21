@@ -63,7 +63,7 @@ setx /M PYTHONIOENCODING "UTF-8"
 setx /M RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR "0.9"
 
 # Set startup script contents.
-$s = "if not exist $registrySetupFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python37;c:\python27;c:\Windows\System32;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
+$s = "if not exist $registrySetupFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python311;c:\python27;c:\Windows\System32;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
 Set-Content c:\startup.bat $s
 
 if (!(Test-Path ($packageSetupFilePath))) {
@@ -157,11 +157,11 @@ if (!(Test-Path ($fileName))) {
 
 Copy-Item "c:\python27\python.exe" -Destination "c:\python27\python2.exe"
 
-$fileName = "$tmp\python-3.7.7-amd64.exe"
+$fileName = "$tmp\python-3.11.4-amd64.exe"
 if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://www.python.org/ftp/python/3.7.7/python-3.7.7-amd64.exe", $fileName)
-  Remove-Item c:\python37 -Recurse -ErrorAction Ignore
-  cmd /c $fileName /quiet InstallAllUsers=1 Include_test=0 TargetDir=c:\python37
+  $webClient.DownloadFile("https://www.python.org/ftp/python/3.11.4/python-3.11.4-amd64.exe", $fileName)
+  Remove-Item c:\python311 -Recurse -ErrorAction Ignore
+  cmd /c $fileName /quiet InstallAllUsers=1 Include_test=0 TargetDir=c:\python311
 }
 
 # Install specific python package versions.
@@ -171,8 +171,8 @@ cmd /c c:\python27\python -m pip install -U setuptools
 cmd /c c:\python27\python -m pip install -U wheel
 cmd /c c:\python27\python -m pip install crcmod==1.7 cryptography==3.3.2 pyOpenSSL==17.4.0 pywinauto==0.6.4 psutil==5.4.7 future==0.17.1
 
-cmd /c c:\python37\python -m pip install -U pip
-cmd /c c:\python37\python -m pip install pipenv
+cmd /c c:\python311\python -m pip install -U pip
+cmd /c c:\python311\python -m pip install pipenv
 
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"
@@ -323,12 +323,12 @@ Set-Content $packageSetupFilePath "Skipped package install"
 echo y | chkdsk C: /F /I /C
 
 # Install Pipfile dependencies
-$env:Path += ";c:\python37;c:\python37\scripts"
+$env:Path += ";c:\python311;c:\python311\scripts"
 cd c:\clusterfuzz
-cmd /c c:\python37\scripts\pipenv install --deploy --system
+cmd /c c:\python311\scripts\pipenv install --deploy --system
 
 # Can't be managed by pipenv due to https://github.com/pypa/pipenv/issues/3193.
-cmd /c c:\python37\python -m pip install pywinauto==0.6.8
+cmd /c c:\python311\python -m pip install pywinauto==0.6.8
 
 # Run the scripts.
 Write-Host "Run scripts"

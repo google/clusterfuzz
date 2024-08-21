@@ -24,6 +24,7 @@ import sys
 import yaml
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.metrics import logs
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -355,6 +356,7 @@ def get_llvm_symbolizer_path():
         stderr=subprocess.DEVNULL)
     if return_code == 0:
       # llvm-symbolize works, return it.
+      logs.info(f'Environment Symbolizer Path :- {llvm_symbolizer_path}')
       return llvm_symbolizer_path
 
   # Either
@@ -365,10 +367,12 @@ def get_llvm_symbolizer_path():
 
   # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
+    logs.info(f'None Symbolizer Path :- {llvm_symbolizer_path}')
     return None
 
   # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
+  logs.info(f'Default Symbolizer Path :- {llvm_symbolizer_path}')
   return llvm_symbolizer_path
 
 
@@ -822,25 +826,6 @@ def set_common_environment_variables():
 def set_memory_tool_options(env_var, options_dict):
   """Set current memory tool options."""
   set_value(env_var, join_memory_tool_options(options_dict))
-
-
-def set_environment_parameters_from_file(file_path):
-  """Set environment variables from a file."""
-  if not os.path.exists(file_path):
-    return
-
-  with open(file_path) as f:
-    file_data = f.read()
-
-  for line in file_data.splitlines():
-    if line.startswith('#') or not line.strip():
-      continue
-
-    m = re.match('([^ =]+)[ ]*=[ ]*(.*)', line)
-    if m:
-      environment_variable = m.group(1)
-      environment_variable_value = m.group(2)
-      set_value(environment_variable, environment_variable_value)
 
 
 def update_symbolizer_options(tool_options, symbolize_inline_frames=False):

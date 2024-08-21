@@ -45,6 +45,8 @@ def _handle_response(build, response):
       build_manager.set_environment_vars([fuzzer_directory])
 
   environment.set_value('APP_REVISION', build.revision)
+  build.fuzz_targets = list(response.fuzz_targets)
+
   return True
 
 

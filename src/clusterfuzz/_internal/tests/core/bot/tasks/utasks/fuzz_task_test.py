@@ -264,14 +264,14 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     """Test hydrating fuzzed_key."""
     crash = self._test_crash(should_be_ignored=False, security_flag=True)
 
-    self.assertFalse(crash.is_archived())
+    self.assertFalse(crash.is_uploaded())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
 
     fuzzed_key = 'fuzzed_key'
     crash.archive_testcase_in_blobstore(
         uworker_msg_pb2.BlobUploadUrl(key=fuzzed_key))
-    self.assertTrue(crash.is_archived())
+    self.assertTrue(crash.is_uploaded())
     self.assertIsNone(crash.get_error())
     self.assertTrue(crash.is_valid())
 
@@ -750,24 +750,6 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
         main_crash=self.crashes[0],
         one_time_crasher_flag=False,
         newly_created_testcase=newly_created_testcase)
-
-  def _create_context(self, job_type, platform_id):
-    return fuzz_task.Context(
-        project_name='some_project',
-        bot_name='bot',
-        job_type=job_type,
-        fuzz_target=data_types.FuzzTarget(engine='engine', binary='binary'),
-        redzone=32,
-        disable_ubsan=False,
-        platform_id=platform_id,
-        crash_revision=1234,
-        fuzzer_name='engine',
-        window_argument='windows_args',
-        fuzzer_metadata={},
-        testcases_metadata={},
-        timeout_multiplier=1.0,
-        test_timeout=5,
-        data_directory='data')
 
   def _make_crash(self, state):
     crash = mock.Mock(

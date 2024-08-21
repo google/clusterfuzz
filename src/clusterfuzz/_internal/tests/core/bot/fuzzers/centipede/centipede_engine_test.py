@@ -106,7 +106,7 @@ class IntegrationTest(unittest.TestCase):
 
   def run(self, *args, **kwargs):
     with get_test_paths() as test_paths:
-      self.test_paths = test_paths
+      self.test_paths = test_paths  # pylint: disable=attribute-defined-outside-init
       super().run(*args, **kwargs)
 
   def setUp(self):

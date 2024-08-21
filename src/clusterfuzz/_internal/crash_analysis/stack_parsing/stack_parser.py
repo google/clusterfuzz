@@ -279,7 +279,7 @@ class StackFrameSpec(StackFrameStructure):
     frame = StackFrame()
 
     # Set base to use for address translation.
-    frame.base = self.base
+    frame.base = self.base  # pylint: disable=attribute-defined-outside-init
     for name, member in inspect.getmembers(StackFrameSpec):
       # Pull out only the property fields; we don't care about methods etc.
       if not isinstance(member, property):

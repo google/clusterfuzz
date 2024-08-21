@@ -25,7 +25,6 @@ from libs import auth
 
 VIEW_OPERATION = 'View'
 MODIFY_OPERATION = 'Modify'
-TTL_IN_SECONDS = 15 * 60
 
 
 class _DoNotCatchException(Exception):

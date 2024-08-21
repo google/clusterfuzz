@@ -122,7 +122,7 @@ class BaseLauncherTest(unittest.TestCase):
 
   def run(self, *args, **kwargs):
     with tempfile.TemporaryDirectory() as temp_dir:
-      self.temp_dir = temp_dir
+      self.temp_dir = temp_dir  # pylint: disable=attribute-defined-outside-init
       super().run(*args, **kwargs)
 
   def setUp(self):

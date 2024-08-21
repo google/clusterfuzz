@@ -25,7 +25,9 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
-  if which python3.10 > /dev/null; then
+  if which python3.11 > /dev/null; then
+    export PYTHON='python3.11'
+  elif which python3.10 > /dev/null; then
     export PYTHON='python3.10'
   elif which python3.9 > /dev/null; then
     export PYTHON='python3.9'
@@ -78,6 +80,7 @@ sudo apt-get install -y \
     blackbox \
     curl \
     libpython3-all-dev \
+    pipenv \
     python3-pip \
     unzip \
     xvfb
@@ -110,7 +113,7 @@ fi
 sudo apt-get update
 sudo apt-get install -y \
     docker-ce \
-    google-cloud-sdk \
+    google-cloud-cli \
     openjdk-11-jdk \
     liblzma-dev
 
@@ -141,15 +144,15 @@ if gcloud components install --quiet beta; then
       cloud-datastore-emulator \
       pubsub-emulator
 else
-  # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-sdk package is
+  # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-cli package is
   # installed via apt-get.
   sudo apt-get install -y \
-      google-cloud-sdk-app-engine-go \
-      google-cloud-sdk-app-engine-python \
-      google-cloud-sdk-app-engine-python-extras \
-      google-cloud-sdk \
-      google-cloud-sdk-datastore-emulator \
-      google-cloud-sdk-pubsub-emulator
+      google-cloud-cli-app-engine-go \
+      google-cloud-cli-app-engine-python \
+      google-cloud-cli-app-engine-python-extras \
+      google-cloud-cli \
+      google-cloud-cli-datastore-emulator \
+      google-cloud-cli-pubsub-emulator
 fi
 
 dir=$(dirname "$0")

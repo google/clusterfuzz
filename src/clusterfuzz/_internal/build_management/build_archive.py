@@ -230,7 +230,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
-      self._root_dir = super().root_dir()
+      self._root_dir = super().root_dir()  # pylint: disable=attribute-defined-outside-init
     return self._root_dir
 
   def to_archive_path(self, path: str) -> str:

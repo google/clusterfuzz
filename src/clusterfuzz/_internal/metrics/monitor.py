@@ -97,6 +97,10 @@ class _MockMetric:
     return self._mock_method
 
 
+def _time_series_sort_key(ts):
+  return ts.points[-1].interval.start_time
+
+
 class _FlusherThread(threading.Thread):
   """Flusher thread."""
 
@@ -128,10 +132,12 @@ class _FlusherThread(threading.Thread):
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
+            time_series.sort(key=_time_series_sort_key)
             _create_time_series(project_path, time_series)
             time_series = []
 
         if time_series:
+          time_series.sort(key=_time_series_sort_key)
           _create_time_series(project_path, time_series)
       except Exception as e:
         if environment.is_android():

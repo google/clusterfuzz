@@ -13,7 +13,9 @@
 # limitations under the License.
 """Test to see if test cases are fixed."""
 
+import json
 import time
+from typing import Dict
 from typing import List
 
 from clusterfuzz._internal.base import bisection
@@ -297,15 +299,15 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
   return uworker_msg_pb2.Output(progression_task_output=progression_task_output)  # pylint: disable=no-member
 
 
-def _update_issue_metadata(testcase, metadata):
+def _update_issue_metadata(testcase: data_types.Testcase, metadata: Dict):
   if not metadata:
     return
 
   for key, value in metadata.items():
     old_value = testcase.get_metadata(key)
     if old_value != value:
-      logs.info('Updating issue metadata for {} from {} to {}.'.format(
-          key, old_value, value))
+      logs.info(
+          f'Updating issue metadata for {key} from {old_value} to {value}.')
       testcase.set_metadata(key, value)
 
 
@@ -515,6 +517,10 @@ def find_fixed_range(uworker_input):
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
 
+  logs.info(
+      f'min_revision is {min_revision} and max_revision is {max_revision}.')
+  logs.info(f'revision_list is {revision_list}.')
+
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
     error_message = f'Build {min_revision} no longer exists.'
@@ -566,7 +572,7 @@ def find_fixed_range(uworker_input):
         last_tested_crash_stacktrace)
     return uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
-        issue_metadata=issue_metadata)
+        issue_metadata=json.dumps(issue_metadata))
 
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
@@ -581,7 +587,7 @@ def find_fixed_range(uworker_input):
     progression_task_output.crash_revision = int(min_revision)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=progression_task_output,
-        issue_metadata=issue_metadata,
+        issue_metadata=json.dumps(issue_metadata),
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)  # pylint: disable=no-member
 
@@ -603,7 +609,7 @@ def find_fixed_range(uworker_input):
       progression_task_output.max_revision = int(max_revision)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           progression_task_output=progression_task_output,
-          issue_metadata=issue_metadata)
+          issue_metadata=json.dumps(issue_metadata))
 
     # Occasionally, we get into this bad state. It seems to be related to test
     # cases with flaky stacks, but the exact cause is unknown.
@@ -618,7 +624,7 @@ def find_fixed_range(uworker_input):
         progression_task_output.last_progression_max = int(last_progression_max)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           progression_task_output=progression_task_output,
-          issue_metadata=issue_metadata,
+          issue_metadata=json.dumps(issue_metadata),
           error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)  # pylint: disable=no-member
 
     # Test the middle revision of our range.
@@ -658,7 +664,7 @@ def find_fixed_range(uworker_input):
     progression_task_output.last_progression_max = last_progression_max
   return uworker_msg_pb2.Output(  # pylint: disable=no-member
       error_message=error_message,
-      issue_metadata=issue_metadata,
+      issue_metadata=json.dumps(issue_metadata),
       progression_task_output=progression_task_output,
       error_type=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)  # pylint: disable=no-member
 
@@ -701,7 +707,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
   task_output = None
 
   if output.issue_metadata:
-    _update_issue_metadata(testcase, output.issue_metadata)
+    _update_issue_metadata(testcase, json.loads(output.issue_metadata))
 
   if output.HasField('progression_task_output'):
     task_output = output.progression_task_output

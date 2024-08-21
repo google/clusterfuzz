@@ -15,7 +15,9 @@
 # pylint: disable=protected-access
 
 import os
+import queue
 import unittest
+from unittest.mock import patch
 
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -156,6 +158,54 @@ class MonitorTest(unittest.TestCase):
         0,
         2,
     ], result.buckets)
+
+  def test_gauge_metric_success(self):
+    """Test gauge metric success."""
+    self.assertIsInstance(
+        monitor.GaugeMetric('g', 'desc', field_spec=None), monitor._GaugeMetric)
+
+  def test_gauge_metric_failure(self):
+    """Test gauge metric failure."""
+    self.mock.check_module_loaded.return_value = False
+    gauge = monitor.GaugeMetric(
+        'g', 'desc', field_spec=[
+            monitor.StringField('name'),
+        ])
+    gauge.set(5)
+    self.assertIsInstance(gauge, monitor._MockMetric)
+
+
+class TestFlusherThread(unittest.TestCase):
+  """Sets up the flusher thread and mocks MetricServiceClient."""
+
+  @patch(
+      'clusterfuzz._internal.metrics.monitor.monitoring_v3.MetricServiceClient')
+  def test_flusher_thread(self, mock_client):
+    """Sets up the flusher thread and calls run()."""
+
+    monitor._monitoring_v3_client = mock_client.return_value
+    monitor._flusher_thread = monitor._FlusherThread()
+    monitor.FLUSH_INTERVAL_SECONDS = 1
+    monitoring_metrics.BOT_COUNT.set(1, {'revision': '1'})
+    monitoring_metrics.HOST_INCONSISTENT_COUNT.increment()
+    os.environ['BOT_NAME'] = 'bot-1'
+
+    call_queue = queue.Queue()
+    mock_create_time_series = mock_client.return_value.create_time_series
+
+    mock_create_time_series.side_effect = (
+        lambda **kwargs: call_queue.put(kwargs))
+
+    monitor._flusher_thread.start()
+    try:
+      args = call_queue.get(timeout=10)
+      time_series = args['time_series']
+      for i in range(1, len(time_series)):
+        self.assertLessEqual(time_series[i - 1].points[0].interval.start_time,
+                             time_series[i].points[0].interval.start_time)
+    except queue.Empty:
+      self.fail("Queue timed out, no arguments received from mocked method")
+    monitor._flusher_thread.stop()
 
 
 @unittest.skip('Skip this because it\'s only used by metzman for debugging.')

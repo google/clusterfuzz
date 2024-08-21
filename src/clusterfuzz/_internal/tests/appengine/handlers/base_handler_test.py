@@ -41,6 +41,9 @@ class HtmlHandler(base_handler.Handler):
 class ExceptionJsonHandler(base_handler.Handler):
   """Render exception in JSON response for testing."""
 
+  def setUp(self):
+    self.is_json = None
+
   def get(self):
     self.is_json = True
     raise RuntimeError('message')
@@ -55,6 +58,9 @@ class ExceptionHtmlHandler(base_handler.Handler):
 
 class EarlyExceptionHandler(base_handler.Handler):
   """Render EarlyException in JSON for testing."""
+
+  def setUp(self):
+    self.is_json = None
 
   def get(self):
     self.is_json = True

@@ -97,6 +97,8 @@ class AflConfig:
     self.additional_afl_arguments = []
     self.additional_env_vars = {}
     self.num_persistent_executions = constants.MAX_PERSISTENT_EXECUTIONS
+    self.dict_path = None
+    self._executable_path = None
 
   @classmethod
   def from_target_path(cls, target_path):
@@ -398,12 +400,6 @@ class AflFuzzInputDirectory:
   afl-fuzz as the -i argument.
   """
 
-  # If the number of input files is less than this, don't bother skipping
-  # deterministic steps since it won't take long.
-  MIN_INPUTS_FOR_SKIP = 10
-
-  MAX_COPIED_CORPUS_SIZE = 2**30  # 1 GB
-
   def __init__(self, input_directory, target_path, fuzzing_strategies):
     """Inits AflFuzzInputDirectory.
 
@@ -542,6 +538,7 @@ class AflRunnerCommon:
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
+    self._executable_path = None
 
   @property
   def stderr_file_path(self):
@@ -667,13 +664,6 @@ class AflRunnerCommon:
       afl_args[idx] = new_arg
 
     return afl_args
-
-  @classmethod
-  def remove_arg(cls, afl_args, flag):
-    idx = cls.get_arg_index(afl_args, flag)
-    if idx == -1:
-      return
-    del afl_args[idx]
 
   @classmethod
   def set_input_arg(cls, afl_args, new_input_value):

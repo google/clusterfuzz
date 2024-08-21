@@ -356,7 +356,6 @@ def _is_testcase_minimized(testcase):
 
 
 def download_testcase(testcase_download_url, dst):
-  logs.info(f'Downloading testcase from: {testcase_download_url}')
   return storage.download_signed_url_to_file(testcase_download_url, dst)
 
 

@@ -15,6 +15,7 @@
 
 import collections
 import datetime
+import json
 import os
 import random
 import shutil
@@ -66,7 +67,7 @@ CORPUS_PRUNING_TIMEOUT = 22 * 60 * 60
 
 # Time to allow libFuzzer to timeout on its own.
 SINGLE_UNIT_TIMEOUT = 5
-TIMEOUT_FLAG = '-timeout=%d' % SINGLE_UNIT_TIMEOUT
+TIMEOUT_FLAG = f'-timeout={SINGLE_UNIT_TIMEOUT}'
 
 # Corpus files limit for cases when corpus pruning task failed in the last
 # execution.
@@ -177,7 +178,7 @@ class Context:
     self.merge_tmp_dir = None
     self.engine = engine.get(self.fuzz_target.engine)
     if not self.engine:
-      raise CorpusPruningError('Engine {} not found'.format(engine))
+      raise CorpusPruningError(f'Engine {engine} not found')
 
     self._created_directories = []
 
@@ -454,6 +455,7 @@ class CorpusPruner:
       if state.crash_state not in crashes:
         security_flag = crash_analyzer.is_security_issue(
             state.crash_stacktrace, state.crash_type, state.crash_address)
+        # TODO(metzman): Get rid of CorpusCrash and replace with CrashInfo.
         crashes[state.crash_state] = CorpusCrash(
             state.crash_state, state.crash_type, state.crash_address,
             state.crash_stacktrace, unit_path, security_flag)
@@ -593,7 +595,7 @@ def _record_cross_pollination_stats(output):
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
-def do_corpus_pruning(context, revision):
+def do_corpus_pruning(uworker_input, context, revision):
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
@@ -601,7 +603,7 @@ def do_corpus_pruning(context, revision):
 
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.do_corpus_pruning(context, revision)
+    return tasks_host.do_corpus_pruning(uworker_input, context, revision)
 
   if not build_manager.setup_build(revision=revision):
     raise CorpusPruningError('Failed to setup build.')
@@ -841,7 +843,7 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
                             corpus_pruning_output.fuzzer_binary_name)
 
       if output.issue_metadata:
-        for key, value in output.issue_metadata.items():
+        for key, value in json.loads(output.issue_metadata).items():
           testcase.set_metadata(key, value, update_testcase=False)
 
         testcase.put()
@@ -952,13 +954,18 @@ def _save_coverage_information(output):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
+def _get_proto_timestamp(initial_timestamp):
+  timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+  timestamp.FromDatetime(initial_timestamp)
+  return timestamp
+
+
 def _extract_coverage_information(context, result):
   """Extracts and stores the coverage information in a proto."""
   coverage_info = uworker_msg_pb2.CoverageInformation()  # pylint: disable=no-member
   coverage_info.project_name = context.fuzz_target.project_qualified_name()
-  timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
-  timestamp.FromDatetime(result.coverage_info.date)
-  coverage_info.timestamp.CopyFrom(timestamp)
+  proto_timestamp = _get_proto_timestamp(result.coverage_info.date)
+  coverage_info.timestamp.CopyFrom(proto_timestamp)
   # Intentionally skip edge and function coverage values as those would come
   # from fuzzer coverage cron task.
   coverage_info.corpus_size_units = result.coverage_info.corpus_size_units
@@ -1012,7 +1019,7 @@ def utask_main(uworker_input):
 
   uworker_output = None
   try:
-    result = do_corpus_pruning(context, revision)
+    result = do_corpus_pruning(uworker_input, context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
     _upload_corpus_crashes_zip(
@@ -1026,7 +1033,7 @@ def utask_main(uworker_input):
             crash_revision=result.revision,
             crashes=_extract_corpus_crashes(result),
             corpus_backup_uploaded=bool(result.coverage_info.corpus_location)),
-        issue_metadata=issue_metadata)
+        issue_metadata=json.dumps(issue_metadata))
     _fill_cross_pollination_stats(result.cross_pollination_stats,
                                   uworker_output)
   except Exception as e:
