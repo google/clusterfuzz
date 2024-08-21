@@ -1770,11 +1770,12 @@ class FuzzingSession:
     logs.info('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
 
-
-    self.fuzz_task_output.build_data = testcase_manager.check_for_bad_build(
-        self.job_type, crash_revision)
+    build_data = testcase_manager.check_for_bad_build(self.job_type,
+                                                      crash_revision)
+    self.fuzz_task_output.build_data = build_data
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
+
     if build_data.is_bad_build:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
@@ -1927,14 +1928,6 @@ def utask_main(uworker_input):
   return session.run()
 
 
-def _make_session(uworker_input):
-  test_timeout = environment.get_value('TEST_TIMEOUT')
-  return FuzzingSession(
-      uworker_input,
-      test_timeout,
-  )
-
-
 def handle_fuzz_no_fuzz_target_selected(output):
   save_fuzz_targets(output)
   # Try again now that there are some fuzz targets.
@@ -1943,9 +1936,17 @@ def handle_fuzz_no_fuzz_target_selected(output):
                    output.uworker_input.uworker_env)
 
 
-def handle_bad_build(uworker_input):
-  testcase_manager.update_build_metadata(
-      uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
+def handle_fuzz_bad_build(output):
+  testcase_manager.update_build_metadata(output.uworker_input.job_type,
+                                         output.fuzz_task_output.build_data)
+
+
+def _make_session(uworker_input):
+  test_timeout = environment.get_value('TEST_TIMEOUT')
+  return FuzzingSession(
+      uworker_input,
+      test_timeout,
+  )
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
