@@ -15,6 +15,7 @@
 
 import collections
 import datetime
+import json
 import os
 import random
 import shutil
@@ -842,7 +843,7 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
                             corpus_pruning_output.fuzzer_binary_name)
 
       if output.issue_metadata:
-        for key, value in output.issue_metadata.items():
+        for key, value in json.loads(output.issue_metadata).items():
           testcase.set_metadata(key, value, update_testcase=False)
 
         testcase.put()
@@ -1032,7 +1033,7 @@ def utask_main(uworker_input):
             crash_revision=result.revision,
             crashes=_extract_corpus_crashes(result),
             corpus_backup_uploaded=bool(result.coverage_info.corpus_location)),
-        issue_metadata=issue_metadata)
+        issue_metadata=json.dumps(issue_metadata))
     _fill_cross_pollination_stats(result.cross_pollination_stats,
                                   uworker_output)
   except Exception as e:
