@@ -62,9 +62,6 @@ TIMESTAMP_FILE = '.timestamp'
 # target).
 PARTIAL_BUILD_FILE = '.partial_build'
 
-# ICU data file.
-ICU_DATA_FILENAME = 'icudtl.dat'
-
 # Time for unpacking a build beyond which an error should be logged.
 UNPACK_TIME_LIMIT = 60 * 20
 
