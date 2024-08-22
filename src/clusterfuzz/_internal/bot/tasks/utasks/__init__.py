@@ -293,7 +293,8 @@ def uworker_main(input_download_url) -> None:
     _start_web_server_if_needed(uworker_input.job_type)
 
     utask_module = get_utask_module(uworker_input.module_name)
-    execution_mode = _get_execution_mode(utask_module, uworker_input.job_type)
+    execution_mode = Mode.SWARMING if environment.is_swarming_bot(
+    ) else Mode.BATCH
     recorder.set_task_details(
         utask_module, uworker_input.job_type, execution_mode,
         environment.platform(), uworker_input.preprocess_start_time)

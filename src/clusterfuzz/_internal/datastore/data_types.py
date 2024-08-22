@@ -944,9 +944,6 @@ class Job(Model):
   # value here is the subscription used for receiving reproduction updates.
   external_updates_subscription = ndb.StringProperty()
 
-  # This indicates whether the job needs to run on devices with physical gpu
-  requires_gpu = ndb.BooleanProperty()
-
   def is_external(self):
     """Whether this job is external."""
     return (bool(self.external_reproduction_topic) or
