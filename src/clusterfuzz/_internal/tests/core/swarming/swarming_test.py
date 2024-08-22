@@ -52,11 +52,14 @@ class SwarmingTest(unittest.TestCase):
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
                 properties=swarming_pb2.TaskProperties(
-                    command=['./linux_entry_point.sh'],
+                    command=[
+                        'luci-auth', 'context', '--', './linux_entry_point.sh'
+                    ],
                     dimensions=[
                         swarming_pb2.StringPair(key='os', value=job.platform),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
+                    cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
                     cas_input_root=swarming_pb2.CASReference(
                         cas_instance=
                         'projects/server-name/instances/instance_name',
@@ -106,11 +109,25 @@ class SwarmingTest(unittest.TestCase):
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
                 properties=swarming_pb2.TaskProperties(
-                    command=['./mac_entry_point.sh'],
+                    command=[
+                        'luci-auth', 'context', '--', './mac_entry_point.sh'
+                    ],
                     dimensions=[
                         swarming_pb2.StringPair(key='os', value=job.platform),
-                        swarming_pb2.StringPair(key='pool', value='pool-name')
+                        swarming_pb2.StringPair(key='pool', value='pool-name'),
+                        swarming_pb2.StringPair(key='key1', value='value1'),
+                        swarming_pb2.StringPair(key='key2', value='value2'),
                     ],
+                    cipd_input=swarming_pb2.CipdInput(packages=[
+                        swarming_pb2.CipdPackage(
+                            package_name='package1_name',
+                            version='package1_version',
+                            path='package_install_path'),
+                        swarming_pb2.CipdPackage(
+                            package_name='package2_name',
+                            version='package2_version',
+                            path='package_install_path'),
+                    ]),
                     cas_input_root=swarming_pb2.CASReference(
                         cas_instance=
                         'projects/server-name/instances/instance_name',
@@ -125,6 +142,16 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
+                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2')
+                    ],
+                    env_prefixes=[
+                        swarming_pb2.StringListPair(
+                            key='PATH',
+                            value=[
+                                'package_install_path',
+                                'package_install_path/bin'
+                            ])
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -146,11 +173,14 @@ class SwarmingTest(unittest.TestCase):
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
                 properties=swarming_pb2.TaskProperties(
-                    command=['./linux_entry_point.sh'],
+                    command=[
+                        'luci-auth', 'context', '--', './linux_entry_point.sh'
+                    ],
                     dimensions=[
                         swarming_pb2.StringPair(key='os', value=job.platform),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
+                    cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
                     cas_input_root=swarming_pb2.CASReference(
                         cas_instance=
                         'projects/server-name/instances/instance_name',
@@ -191,11 +221,14 @@ class SwarmingTest(unittest.TestCase):
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
                 properties=swarming_pb2.TaskProperties(
-                    command=['./linux_entry_point.sh'],
+                    command=[
+                        'luci-auth', 'context', '--', './linux_entry_point.sh'
+                    ],
                     dimensions=[
                         swarming_pb2.StringPair(key='os', value=job.platform),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
+                    cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
                     cas_input_root=swarming_pb2.CASReference(
                         cas_instance=
                         'projects/server-name/instances/instance_name',

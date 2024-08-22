@@ -68,12 +68,6 @@ def _get_new_task_spec(command: str, job_name: str,
   priority = instance_spec['priority']
   # The command to launch the startup script
   startup_command = instance_spec['command']
-  # The cas instance storing the startup script
-  cas_instance = instance_spec['cas_instance']
-  # The startup script archive hash
-  digest_hash = instance_spec['digest_hash']
-  # The startup script size in bytes
-  digest_size_bytes = instance_spec['digest_size_bytes']
   # The service account that the task runs as.
   service_account = instance_spec['service_account_email']
   # If this task request slice is not scheduled after waiting this long,
@@ -84,6 +78,49 @@ def _get_new_task_spec(command: str, job_name: str,
   execution_timeout_secs = instance_spec['execution_timeout_secs']
   if command == 'fuzz':
     execution_timeout_secs = swarming_config.get('fuzz_task_duration')
+
+  # The cipd_input contains the cipd_packages that need to be installed
+  # before running the task (if any).
+  cipd_input = instance_spec.get('cipd_input', {})
+  # env_prefixes allows the modification of existing environment variables by
+  # adding the values as prefixes to the env variable.
+  env_prefixes = instance_spec.get('env_prefixes', {})
+  task_environment = [
+      swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='LOGGING_CLOUD_PROJECT_ID',
+          value=logs_project_id),
+  ]
+
+  env = instance_spec.get('env', None)
+  if env:
+    for var in env:
+      task_environment.append(
+          swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+
+  if instance_spec.get('docker_image'):
+    task_environment.append(
+        swarming_pb2.StringPair(  # pylint: disable=no-member
+            key='DOCKER_IMAGE',
+            value=instance_spec['docker_image']))
+
+  task_dimensions = [
+      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
+  ]
+
+  dimensions = instance_spec.get('dimensions', None)
+  if dimensions:
+    for dimension in dimensions:
+      task_dimensions.append(
+          swarming_pb2.StringPair(  # pylint: disable=no-member
+              key=dimension['key'],
+              value=dimension['value']))
+
+  cas_input_root = instance_spec.get('cas_input_root', {})
+
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
       name=_get_task_name(),
       priority=priority,
@@ -93,31 +130,15 @@ def _get_new_task_spec(command: str, job_name: str,
           swarming_pb2.TaskSlice(  # pylint: disable=no-member
               expiration_secs=expiration_secs,
               properties=swarming_pb2.TaskProperties(  # pylint: disable=no-member
-                  command=[startup_command],
-                  dimensions=[
-                      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
-                      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
-                  ],
-                  cas_input_root=swarming_pb2.CASReference(  # pylint: disable=no-member
-                      cas_instance=cas_instance,
-                      digest=swarming_pb2.Digest(  # pylint: disable=no-member
-                          hash=digest_hash,
-                          size_bytes=digest_size_bytes)),
+                  command=startup_command,
+                  dimensions=task_dimensions,
+                  cipd_input=cipd_input,
+                  cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=[
-                      swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
-                      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
-                      swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
-                      swarming_pb2.StringPair(  # pylint: disable=no-member
-                          key='LOGGING_CLOUD_PROJECT_ID',
-                          value=logs_project_id),
-                  ],
+                  env=task_environment,
+                  env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
-  docker_image = instance_spec.get('docker_image')
-  if docker_image:
-    new_task_request.task_slices[0].properties.env.append(
-        swarming_pb2.StringPair(key='DOCKER_IMAGE', value=docker_image))  # pylint: disable=no-member
 
   return new_task_request
 
