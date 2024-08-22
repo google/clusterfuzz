@@ -64,9 +64,7 @@ def _get_new_task_spec(command: str, job_name: str,
   swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
   logs_project_id = swarming_config.get('logs_project_id')
-  # The priority of the task
   priority = instance_spec['priority']
-  # The command to launch the startup script
   startup_command = instance_spec['command']
   # The service account that the task runs as.
   service_account = instance_spec['service_account_email']
