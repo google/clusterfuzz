@@ -245,6 +245,7 @@ message FuzzTaskOutput {
   repeated string fuzz_targets = 11;
   repeated string testcase_run_jsons = 12;
   repeated FuzzTaskCrashGroup crash_groups = 13;
+  optional BuildData build_data = 14;
 }
 
 message MinimizeTaskOutput {
