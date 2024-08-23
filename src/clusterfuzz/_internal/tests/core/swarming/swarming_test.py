@@ -264,32 +264,3 @@ class SwarmingTest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
-
-  def test_job_requires_gpu(self):
-    """Tests that _job_requires_gpu works as expected."""
-    job = data_types.Job(
-        name='libfuzzer_chrome_asan',
-        platform='LINUX',
-        environment_string='REQUIRES_GPU=True')
-    self.assertTrue(swarming._job_requires_gpu(job))  # pylint: disable=protected-access
-
-    job = data_types.Job(
-        name='libfuzzer_chrome_asan',
-        platform='LINUX',
-        environment_string='REQUIRES_GPU=true')
-    self.assertTrue(swarming._job_requires_gpu(job))  # pylint: disable=protected-access
-
-    job = data_types.Job(
-        name='libfuzzer_chrome_asan',
-        platform='LINUX',
-        environment_string='REQUIRES_GPU=false')
-    self.assertFalse(swarming._job_requires_gpu(job))  # pylint: disable=protected-access
-
-    job = data_types.Job(
-        name='libfuzzer_chrome_asan',
-        platform='LINUX',
-        environment_string='REQUIRES_GPU=False')
-    self.assertFalse(swarming._job_requires_gpu(job))  # pylint: disable=protected-access
-
-    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    self.assertFalse(swarming._job_requires_gpu(job))  # pylint: disable=protected-access
