@@ -46,3 +46,15 @@ class StacktracesTest(unittest.TestCase):
         'blink::internal::CallClosureTask::performTask\n',
         crash_info.crash_state)
     self.assertEqual(stacktrace, crash_info.crash_stacktrace)
+
+  def test_cannot_locate_symbol(self):
+    """Test for cannont locate symbol issue."""
+    stacktrace = _load_test_data('cannot_locate_symbol_stacktrace.txt')
+    parser = clusterfuzz.stacktraces.StackParser()
+    crash_info = parser.parse(stacktrace)
+
+    self.assertEqual('Missing-library', crash_info.crash_type)
+    self.assertEqual(
+        '_ZN7android26openDeclaredPassthroughHalERKNS_8String16ES2_i\n',
+        crash_info.crash_state)
+    self.assertEqual(stacktrace, crash_info.crash_stacktrace)

@@ -1,0 +1,6 @@
+CANNOT LINK EXECUTABLE "/data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-cuttlefish_asan_android.hardware.confirmationui-service.trusty_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/android.hardware.confirmationui-service.trusty_fuzzer": cannot locate symbol "_ZN7android26openDeclaredPassthroughHalERKNS_8String16ES2_i" referenced by "/system/lib64/libbinder_ndk.so"...
+
+
+Logcat:
+--------- linker (6045):
+CANNOT LINK EXECUTABLE "/data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-cuttlefish_asan_android.hardware.confirmationui-service.trusty_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/android.hardware.confirmationui-service.trusty_fuzzer": cannot locate symbol "_ZN7android26openDeclaredPassthroughHalERKNS_8String16ES2_i" referenced by "/system/lib64/libbinder_ndk.so"...
