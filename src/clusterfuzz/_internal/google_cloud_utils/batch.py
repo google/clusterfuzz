@@ -122,7 +122,6 @@ def _bunched(iterator, bunch_size):
   if bunch:
     yield bunch
 
-# Entrypoint
 def create_uworker_main_batch_jobs(batch_tasks):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
