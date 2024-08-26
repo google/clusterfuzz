@@ -124,7 +124,7 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
       if environment.is_uworker():
-        # Batch tasks only run one at a time.
+        # Batch/Swarming tasks only run one at a time.
         sys.exit(utasks.uworker_bot_main())
 
       if environment.get_value('SCHEDULE_UTASK_MAINS'):

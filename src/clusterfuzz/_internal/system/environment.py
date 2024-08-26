@@ -722,6 +722,11 @@ def is_uworker():
   return get_value('UWORKER')
 
 
+def is_swarming_bot():
+  """Return whether or not the current bot is a swarming bot."""
+  return get_value('SWARMING_BOT')
+
+
 def is_running_on_app_engine():
   """Return True if we are running on appengine (local or production)."""
   return (os.getenv('GAE_ENV') or is_running_on_app_engine_development() or
