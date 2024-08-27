@@ -20,6 +20,7 @@ import enum
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 import urllib.parse
 
 from google.auth import exceptions
@@ -31,10 +32,14 @@ from clusterfuzz._internal.metrics import logs
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 
+# TODO: Make these configuration settings instead of hardcoded values in code.
 # These custom fields use repeated enums.
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
 _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
+
+_OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID = '1349507'
+_OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349561'
 
 _SEVERITY_LABEL_PREFIX = 'Security_Severity-'
 
@@ -155,6 +160,12 @@ def _get_severity_from_label_value(value):
     return 'S3'
   # Default case.
   return _DEFAULT_SEVERITY
+
+
+def _parse_date_label(date_value: str) -> Tuple[int, int, int]:
+  """Parse a YYYY-MM-DD string into date components."""
+  year, month, day = date_value.split('-')
+  return int(year), int(month), int(day)
 
 
 class Issue(issue_tracker.Issue):
@@ -558,6 +569,32 @@ class Issue(issue_tracker.Issue):
     # Remove all ReleaseBlock labels or they will be attempted to be added as
     # hotlist IDs.
     self.labels.remove_by_prefix('ReleaseBlock-')
+
+    # Special case: OSS-Fuzz "Reported" custom field.
+    added_reported = _get_labels(self.labels.added, 'Reported-')
+    if added_reported:
+      try:
+        # Assume there is only one entry.
+        year, month, day = _parse_date_label(added_reported[0])
+        custom_field_entries.append({
+            'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
+            'dateValue': {
+                'year': year,
+                'month': month,
+                'day': day,
+            }
+        })
+      except ValueError:
+        logs.warning(f'Invalid date format for Reported-{added_reported[0]}')
+
+    # Special case: OSS-Fuzz "Project" custom field.
+    added_projects = _get_labels(self.labels.added, 'Project-')
+    if added_projects:
+      # Assume there is only one.
+      custom_field_entries.append({
+          'customFieldId': _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID,
+          'textValue': added_projects[0]
+      })
 
     # Special case Component Tags custom field.
     if self.components.added:
