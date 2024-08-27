@@ -159,7 +159,7 @@ def _get_task_spec(batch_workload_spec):
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
   runnable.container.image_uri = batch_workload_spec.docker_image
-  clusterfuzz_release = batch_workload_spec['clusterfuzz_release']
+  clusterfuzz_release = batch_workload_spec.clusterfuzz_release
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
       '-e HOST_UID=1337 -P --privileged --cap-add=all '
