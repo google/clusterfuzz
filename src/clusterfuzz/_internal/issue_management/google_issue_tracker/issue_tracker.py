@@ -579,9 +579,9 @@ class Issue(issue_tracker.Issue):
         custom_field_entries.append({
             'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
             'dateValue': {
-              'year': year,
-              'month': month,
-              'day': day,
+                'year': year,
+                'month': month,
+                'day': day,
             }
         })
       except ValueError:
