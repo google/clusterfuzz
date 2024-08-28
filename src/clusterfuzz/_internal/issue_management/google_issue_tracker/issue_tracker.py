@@ -571,7 +571,7 @@ class Issue(issue_tracker.Issue):
     self.labels.remove_by_prefix('ReleaseBlock-')
 
     # Special case: OSS-Fuzz "Reported" custom field.
-    added_reported = _get_labels(self.labels.added, 'Reported-')
+    added_reported = _extract_label(self.labels, 'Reported-')
     if added_reported:
       try:
         # Assume there is only one entry.
@@ -588,7 +588,7 @@ class Issue(issue_tracker.Issue):
         logs.warning(f'Invalid date format for Reported-{added_reported[0]}')
 
     # Special case: OSS-Fuzz "Project" custom field.
-    added_projects = _get_labels(self.labels.added, 'Project-')
+    added_projects = _extract_label(self.labels, 'Project-')
     if added_projects:
       # Assume there is only one.
       custom_field_entries.append({
