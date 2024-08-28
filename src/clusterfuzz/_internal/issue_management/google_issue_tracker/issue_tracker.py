@@ -575,7 +575,7 @@ class Issue(issue_tracker.Issue):
     if added_reported:
       try:
         # Assume there is only one entry.
-        year, month, day = _parse_date_label(added_reported[0])
+        year, month, day = _parse_date_label(added_reported)
         custom_field_entries.append({
             'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
             'dateValue': {
@@ -588,12 +588,12 @@ class Issue(issue_tracker.Issue):
         logs.warning(f'Invalid date format for Reported-{added_reported[0]}')
 
     # Special case: OSS-Fuzz "Project" custom field.
-    added_projects = _extract_label(self.labels, 'Project-')
-    if added_projects:
+    added_project = _extract_label(self.labels, 'Project-')
+    if added_project:
       # Assume there is only one.
       custom_field_entries.append({
           'customFieldId': _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID,
-          'textValue': added_projects[0]
+          'textValue': added_project
       })
 
     # Special case Component Tags custom field.
