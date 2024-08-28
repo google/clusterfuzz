@@ -38,8 +38,8 @@ _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
 _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
 
-_OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID = '1349507'
-_OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349561'
+_OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID = '1349561'
+_OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349507'
 
 _SEVERITY_LABEL_PREFIX = 'Security_Severity-'
 
@@ -105,8 +105,7 @@ def _sanitize_oses(oses: List[str]):
       oses[i] = 'ChromeOS'
 
 
-def _extract_label(labels: issue_tracker.LabelStore,
-                   prefix: str) -> Optional[str]:
+def _extract_label(labels: Sequence[str], prefix: str) -> Optional[str]:
   """Extract a label value."""
   for label in labels:
     if not label.startswith(prefix):
@@ -125,6 +124,25 @@ def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
       continue
     results.append(label[len(prefix):])
   return results
+
+
+def _get_oss_fuzz_reported_value(labels: Sequence[str]) -> Optional[str]:
+  """Return OSS-Fuzz Reported custom field value."""
+  added_reported = _extract_label(labels, 'Reported-')
+  if not added_reported:
+    return None
+
+  try:
+    year, month, day = _parse_date_label(added_reported)
+  except ValueError:
+    logs.warning(f'Invalid date format for Reported-{added_reported}')
+    return None
+
+  return {
+      'year': year,
+      'month': month,
+      'day': day,
+  }
 
 
 def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
@@ -571,24 +589,15 @@ class Issue(issue_tracker.Issue):
     self.labels.remove_by_prefix('ReleaseBlock-')
 
     # Special case: OSS-Fuzz "Reported" custom field.
-    added_reported = _extract_label(self.labels, 'Reported-')
+    added_reported = _get_oss_fuzz_reported_value(self.labels.added)
     if added_reported:
-      try:
-        # Assume there is only one entry.
-        year, month, day = _parse_date_label(added_reported)
-        custom_field_entries.append({
-            'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
-            'dateValue': {
-                'year': year,
-                'month': month,
-                'day': day,
-            }
-        })
-      except ValueError:
-        logs.warning(f'Invalid date format for Reported-{added_reported[0]}')
+      custom_field_entries.append({
+          'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
+          'dateValue': added_reported,
+      })
 
     # Special case: OSS-Fuzz "Project" custom field.
-    added_project = _extract_label(self.labels, 'Project-')
+    added_project = _extract_label(self.labels.added, 'Proj-')
     if added_project:
       # Assume there is only one.
       custom_field_entries.append({
@@ -712,6 +721,24 @@ class Issue(issue_tracker.Issue):
                 'values': releaseblocks
             },
         })
+
+      # Special case: OSS-Fuzz "Reported" custom field.
+      added_reported = _get_oss_fuzz_reported_value(self.labels)
+      if added_reported:
+        custom_field_entries.append({
+            'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
+            'dateValue': added_reported,
+        })
+
+      # Special case: OSS-Fuzz "Project" custom field.
+      added_project = _extract_label(self.labels, 'Proj-')
+      if added_project:
+        # Assume there is only one.
+        custom_field_entries.append({
+            'customFieldId': _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID,
+            'textValue': added_project
+        })
+
       if list(self.components):
         component_paths = self._get_component_paths(self.components)
         logs.info(
@@ -753,7 +780,7 @@ class Issue(issue_tracker.Issue):
       if (access_limit == IssueAccessLevel.LIMIT_NONE and
           access_limit_from_labels):
         self._data['issueState']['accessLimit'] = {
-            'accessLevel': access_limit_from_labels
+            'accessLevel': access_limit_from_labels.value
         }
 
       self._data['issueState']['hotlistIds'] = [
