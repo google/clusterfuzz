@@ -126,7 +126,7 @@ def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
   return results
 
 
-def _get_oss_fuzz_reported_value(labels: Sequence[str]) -> Optional[str]:
+def _get_oss_fuzz_reported_value(labels: Sequence[str]) -> Optional[dict]:
   """Return OSS-Fuzz Reported custom field value."""
   added_reported = _extract_label(labels, 'Reported-')
   if not added_reported:
