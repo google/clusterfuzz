@@ -859,8 +859,10 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
-  upload_job_run_stats(fully_qualified_fuzzer_name, uworker_input.job_type,
-                       fuzz_task_output.crash_revision,
+  # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
+  # `fuzz_task_input.fuzz_target` instead.
+  upload_job_run_stats(fuzz_task_output.fully_qualified_fuzzer_name,
+                       uworker_input.job_type, fuzz_task_output.crash_revision,
                        fuzz_task_output.job_run_timestamp, new_crash_count,
                        known_crash_count, fuzz_task_output.testcases_executed,
                        crash_groups_for_stats)
