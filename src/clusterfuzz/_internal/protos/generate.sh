@@ -17,8 +17,12 @@
 SCRIPT_DIR=$( readlink -f $( dirname ${BASH_SOURCE[0]} ) )
 PARENT_DIR=$( dirname $( dirname $( dirname ${SCRIPT_DIR} ) ) )
 echo "PARENT_DIR $PARENT_DIR"
-python -m grpc_tools.protoc --proto_path=$PARENT_DIR/third_party:$PARENT_DIR \
-  --python_out=$PARENT_DIR --grpc_python_out=$PARENT_DIR $SCRIPT_DIR/*.proto
+python -m grpc_tools.protoc \
+  --proto_path=$PARENT_DIR/third_party:$PARENT_DIR \
+  --python_out=$PARENT_DIR \
+  --grpc_python_out=$PARENT_DIR \
+  --mypy_out=$PARENT_DIR \
+  $SCRIPT_DIR/*.proto
 
 read -r -d '' COPYRIGHT_HEADER <<EOF
 # Copyright 2023 Google LLC
@@ -36,7 +40,7 @@ read -r -d '' COPYRIGHT_HEADER <<EOF
 # limitations under the License.
 EOF
 
-for generated in $SCRIPT_DIR/*pb2*.py; do
+for generated in $SCRIPT_DIR/*pb2*.py{,i}; do
   echo -e "$COPYRIGHT_HEADER\n" > /tmp/cf_pb2_temp
   cat "$generated" >> /tmp/cf_pb2_temp
   mv /tmp/cf_pb2_temp "$generated"
