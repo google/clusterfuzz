@@ -1135,6 +1135,13 @@ class StackParser:
             new_type='Missing-library',
             state_from_group=1,
             reset=True)
+        self.update_state_on_match(
+            SYMBOL_NOT_FOUND_REGEX,
+            line,
+            state,
+            new_type='Missing-library',
+            state_from_group=2,
+            reset=True)
 
       if state.fatal_error_occurred:
         error_line_match = self.update_state_on_match(

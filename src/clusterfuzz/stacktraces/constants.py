@@ -248,6 +248,8 @@ SECURITY_CHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security CHECK failed[:]\s*(.*)\.\s*')
 SECURITY_DCHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security DCHECK failed[:]\s*(.*)\.\s*')
+SYMBOL_NOT_FOUND_REGEX = re.compile(
+    r'.*: cannot locate symbol ([`\'"])(.*)\1 referenced by')
 TRUSTY_STACK_FRAME_REGEX = re.compile(
     r'(uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16}) in (\w+)')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
