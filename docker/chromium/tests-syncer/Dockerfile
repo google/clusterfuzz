@@ -32,7 +32,7 @@ RUN apt-get update && \
         git \
 	python-is-python3 \
         subversion \
-        zip	
+        zip
 
 RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git \
     /data/depot_tools
