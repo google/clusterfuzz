@@ -2717,6 +2717,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_check_log_message(self):
+    """Tests a more recent Chromium DCHECK failure."""
+    data = self._read_test_data('check_log_message.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        '!tls_base_sync_primitives_disallowed. Waiting on a //base sync primitive is not \n'
+        'base::internal::AssertBaseSyncPrimitivesAllowed\n'
+        'base::internal::ScopedBlockingCallWithBaseSyncPrimitives::ScopedBlockingCallWith\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_asan_container_overflow(self):
     """Test an ASan container overflow."""
     data = self._read_test_data('asan_container_overflow_read.txt')

@@ -551,6 +551,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*libpthread',
     r'.*logger',
     r'.*logging::CheckError',
+    r'.*logging::`anonymous namespace\'::CheckLogMessage',
     r'.*logging::ErrnoLogMessage',
     r'.*logging::LogMessage',
     r'.*stdext::exception::what',
