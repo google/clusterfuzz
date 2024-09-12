@@ -37,6 +37,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
+MAX_TESTCASES = 10000
 STORED_TESTCASES_LIST = []
 
 # pylint: disable=broad-exception-raised
@@ -44,7 +45,12 @@ STORED_TESTCASES_LIST = []
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""
+  count = 0
   for testcase in ndb_utils.get_all_from_model(data_types.Testcase):
+    count += 1
+    if count >= MAX_TESTCASES:
+      logs.info(f'{MAX_TESTCASES} testcases reached.')
+      break
     testcase_id = testcase.key.id()
 
     # 1. If we have already stored the testcase, then just skip.
