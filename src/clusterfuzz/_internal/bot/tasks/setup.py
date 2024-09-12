@@ -467,9 +467,9 @@ def _prepare_update_data_bundle(fuzzer, data_bundle):
   return data_bundle_directory
 
 
-def update_data_bundle(
+def _update_data_bundle(
     fuzzer: data_types.Fuzzer,
-    data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:  # pylint: disable=no-member
+    data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> Optional[str]:  # pylint: disable=no-member
   """Updates a data bundle to the latest version."""
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
@@ -656,7 +656,7 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):  # pylint: d
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
   for data_bundle_corpus in update_input.data_bundle_corpuses:
-    if not update_data_bundle(fuzzer, data_bundle_corpus):
+    if not _update_data_bundle(fuzzer, data_bundle_corpus):
       return False
 
   return True
@@ -742,16 +742,6 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     return True
 
   return False
-
-
-def trusted_get_data_bundle_directory(fuzzer):
-  """For fuzz_task which doesn't get data bundles in an untrusted manner."""
-  # TODO(metzman): Delete this when fuzz_task is migrated.
-  # Check if we have a fuzzer-specific data bundle. Use it to calculate the
-  # data directory we will fetch our testcases from.
-  data_bundle = data_types.DataBundle.query(
-      data_types.DataBundle.name == fuzzer.data_bundle_name).get()
-  return get_data_bundle_directory(fuzzer, data_bundle)
 
 
 def get_data_bundle_directory(fuzzer, data_bundle):
