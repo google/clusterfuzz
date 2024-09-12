@@ -214,7 +214,7 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.task_types.is_remote_utask',
         'clusterfuzz._internal.bot.tasks.setup._update_fuzzer',
         'clusterfuzz._internal.bot.tasks.setup._clear_old_data_bundles_if_needed',
-        'clusterfuzz._internal.bot.tasks.setup._update_data_bundle',
+        'clusterfuzz._internal.bot.tasks.setup.update_data_bundle',
     ])
     self.mock.get_signed_upload_url.return_value = 'https://fake/upload'
     self.mock.get_signed_download_url.return_value = 'https://fake/download'
@@ -234,4 +234,4 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
     setup_input = setup.preprocess_update_fuzzer_and_data_bundles(
         self.fuzzer_name)
     setup.update_fuzzer_and_data_bundles(setup_input)
-    self.assertEqual(self.mock._update_data_bundle.call_count, 2)
+    self.assertEqual(self.mock.update_data_bundle.call_count, 2)

@@ -1,0 +1,76 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+mapping:
+  LINUX:
+    priority: 1
+    command: 
+      - 'luci-auth'
+      - 'context'
+      - '--'
+      - './linux_entry_point.sh'
+    cas_input_root:
+      cas_instance: 'projects/server-name/instances/instance_name'
+      digest:
+        hash: 'linux_entry_point_archive_hash'
+        size_bytes: 1234
+    service_account_email: test-clusterfuzz-service-account-email
+    preemptible: false
+    expiration_secs: 86400
+    execution_timeout_secs: 86400
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+  MAC:
+    priority: 1
+    command:
+      - 'luci-auth'
+      - 'context'
+      - '--'
+      - './mac_entry_point.sh'
+    cas_input_root:
+      cas_instance: 'projects/server-name/instances/instance_name'
+      digest:
+        hash: 'mac_entry_point_archive_hash'
+        size_bytes: 456
+    service_account_email: test-clusterfuzz-service-account-email
+    preemptible: false
+    expiration_secs: 86400
+    execution_timeout_secs: 86400
+    cipd_input:
+      packages:
+        - package_name: 'package1_name'
+          version: 'package1_version'
+          path: 'package_install_path'
+        - package_name: 'package2_name'
+          version: 'package2_version'
+          path: 'package_install_path'
+    env_prefixes:
+      - key: 'PATH'
+        value: 
+          - 'package_install_path'
+          - 'package_install_path/bin'
+    dimensions:
+      - key: 'key1'
+        value: 'value1'
+      - key: 'key2'
+        value: 'value2'
+    env:
+      - key: 'ENV_VAR1'
+        value: 'VALUE1'
+      - key: 'ENV_VAR2'
+        value: 'VALUE2'
+swarming_server: 'server-name'
+swarming_pool: 'pool-name'
+swarming_realm: 'realm-name'
+logs_project_id: 'project_id'
+fuzz_task_duration: 12345

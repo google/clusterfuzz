@@ -1774,19 +1774,18 @@ class FuzzingSession:
 
     build_data = testcase_manager.check_for_bad_build(self.job_type,
                                                       crash_revision)
-    self.fuzz_task_output.build_data = build_data
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+    # postprocess.
+    testcase_manager.update_build_metadata(self.job_type, build_data)
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
-
     if build_data.is_bad_build:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
-    self.data_directory = setup.get_data_bundle_directory(
-        self.fuzzer, self.uworker_input.setup_input.data_bundle_corpuses)
-
+    self.data_directory = setup.trusted_get_data_bundle_directory(self.fuzzer)
     if not self.data_directory:
       logs.error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
@@ -1897,8 +1896,6 @@ class FuzzingSession:
 
     _upload_testcase_run_jsons(
         uworker_output.fuzz_task_output.testcase_run_jsons)
-    testcase_manager.update_build_metadata(
-        uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
 
 
 def _upload_testcase_run_jsons(testcase_run_jsons):
@@ -1932,25 +1929,20 @@ def utask_main(uworker_input):
   return session.run()
 
 
-def handle_fuzz_no_fuzz_target_selected(output):
-  save_fuzz_targets(output)
-  # Try again now that there are some fuzz targets.
-  utask_preprocess(output.uworker_input.fuzzer_name,
-                   output.uworker_input.job_type,
-                   output.uworker_input.uworker_env)
-
-
-def handle_fuzz_bad_build(output):
-  testcase_manager.update_build_metadata(output.uworker_input.job_type,
-                                         output.fuzz_task_output.build_data)
-
-
 def _make_session(uworker_input):
   test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(
       uworker_input,
       test_timeout,
   )
+
+
+def handle_fuzz_no_fuzz_target_selected(output):
+  save_fuzz_targets(output)
+  # Try again now that there are some fuzz targets.
+  utask_preprocess(output.uworker_input.fuzzer_name,
+                   output.uworker_input.job_type,
+                   output.uworker_input.uworker_env)
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
@@ -1962,8 +1954,6 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_fuzz_no_fuzzer,
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:  # pylint: disable=no-member
         handle_fuzz_no_fuzz_target_selected,
-    uworker_msg_pb2.ErrorType.FUZZ_BAD_BUILD:  # pylint: disable=no-member
-        handle_fuzz_bad_build,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 

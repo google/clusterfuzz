@@ -19,6 +19,7 @@ import unittest
 from unittest import mock
 
 from google.protobuf import timestamp_pb2
+import parameterized
 
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
@@ -40,6 +41,7 @@ class TworkerPreprocessTest(unittest.TestCase):
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks._get_execution_mode',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
     ])
@@ -48,9 +50,11 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
 
-  def test_tworker_preprocess(self):
+  @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
+  def test_tworker_preprocess(self, execution_mode: utasks.Mode):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock(__name__='mock_task')
+    self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
 
     uworker_input = uworker_msg_pb2.Input(job_type='something')
     module.utask_preprocess.return_value = uworker_input
@@ -76,7 +80,7 @@ class TworkerPreprocessTest(unittest.TestCase):
         'task': 'mock',
         'job': self.JOB_TYPE,
         'subtask': 'preprocess',
-        'mode': 'batch',
+        'mode': execution_mode.value,
         'platform': 'LINUX',
     }
 
@@ -131,16 +135,24 @@ class UworkerMainTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks._get_execution_mode',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
+        'clusterfuzz._internal.system.environment.is_swarming_bot'
     ])
     self.module = mock.MagicMock(__name__='tasks.analyze_task')
     self.mock.get_utask_module.return_value = self.module
 
-  def test_uworker_main(self):
+  @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
+  def test_uworker_main(self, execution_mode: utasks.Mode):
     """Tests that uworker_main works as intended."""
     start_time_ns = time.time_ns()
+
+    if execution_mode == utasks.Mode.SWARMING:
+      self.mock.is_swarming_bot.return_value = True  # pylint: disable=protected-access
+    else:
+      self.mock.is_swarming_bot.return_value = False
 
     preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
     preprocess_start_timestamp = timestamp_pb2.Timestamp()
@@ -174,7 +186,7 @@ class UworkerMainTest(unittest.TestCase):
         'task': 'analyze',
         'job': uworker_input.job_type,
         'subtask': 'uworker_main',
-        'mode': 'batch',
+        'mode': execution_mode.value,
         'platform': 'LINUX',
     }
 
@@ -207,13 +219,16 @@ class TworkerPostprocessTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch_environ(self)
     helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks._get_execution_mode',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
     ])
 
-  def test_success(self):
+  @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
+  def test_success(self, execution_mode: utasks.Mode):
     """Tests that if utask_postprocess suceeds, uworker_postprocess does too.
     """
+    self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
     download_url = 'https://uworker_output_download_url'
 
     start_time_ns = time.time_ns()
@@ -243,7 +258,7 @@ class TworkerPostprocessTest(unittest.TestCase):
         'task': 'mock',
         'job': 'foo-job',
         'subtask': 'postprocess',
-        'mode': 'batch',
+        'mode': execution_mode.value,
         'platform': 'LINUX',
     }
 
