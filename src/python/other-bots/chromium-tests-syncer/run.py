@@ -37,7 +37,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
-MAX_TESTCASES = 10000
+MAX_TESTCASES = 500
 STORED_TESTCASES_LIST = []
 
 # pylint: disable=broad-exception-raised
