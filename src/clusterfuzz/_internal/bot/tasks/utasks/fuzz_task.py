@@ -1784,11 +1784,8 @@ class FuzzingSession:
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
-    if self.uworker_input.setup_input.data_bundle_corpuses:
-      data_bundle = self.uworker_input.setup_input.data_bundle_corpuses[0]
-    else:
-      data_bundle = None
-    self.data_directory = setup.get_data_bundle_directory(self.fuzzer, data_bundle)
+    self.data_directory = setup.get_data_bundle_directory(
+        self.fuzzer, self.uworker_input.setup_input.data_bundle_corpuses)
 
     if not self.data_directory:
       logs.error(
