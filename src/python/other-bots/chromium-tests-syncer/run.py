@@ -235,20 +235,8 @@ def main():
   shell.create_directory(crash_testcases_directory)
   unpack_crash_testcases(crash_testcases_directory)
 
-  # Sync web tests.
-  logs.info('Syncing web tests.')
-  src_directory = os.path.join(tests_directory, 'src')
-  gclient_file_path = os.path.join(tests_directory, '.gclient')
-  if not os.path.exists(gclient_file_path):
-    subprocess.check_call(
-        ['fetch', '--no-history', 'chromium', '--nosvn=True'],
-        cwd=tests_directory)
-  if os.path.exists(src_directory):
-    subprocess.check_call(['gclient', 'revert'], cwd=src_directory)
-    subprocess.check_call(['git', 'pull'], cwd=src_directory)
-    subprocess.check_call(['gclient', 'sync'], cwd=src_directory)
-  else:
-    raise Exception('Unable to checkout web tests.')
+  clone_git_repository(tests_directory, 'src',
+                       'https://chromium.googlesource.com/chromium/src')
 
   clone_git_repository(tests_directory, 'v8',
                        'https://chromium.googlesource.com/v8/v8')
