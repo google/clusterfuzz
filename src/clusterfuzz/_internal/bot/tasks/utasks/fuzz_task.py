@@ -1774,7 +1774,7 @@ class FuzzingSession:
 
     build_data = testcase_manager.check_for_bad_build(self.job_type,
                                                       crash_revision)
-    self.fuzz_task_output.build_data = build_data
+    self.fuzz_task_output.build_data.CopyFrom(build_data)
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
 
