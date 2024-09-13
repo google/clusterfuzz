@@ -1746,6 +1746,11 @@ class FuzzingSession:
         # Handle split builds where fuzz target is picked as side effect of
         # build setup.
         fuzz_target_name = environment.get_value('FUZZ_TARGET')
+        # This is uworker unsafe. We will do it anyway on the
+        # assumption that we will never run it on a uworker because
+        # the only users of split builds are fuchsia and internal
+        # Google code.
+        assert not environment.get_value('UWORKER')
         self.fuzz_target = data_handler.record_fuzz_target(
             engine_impl.name, fuzz_target_name, self.job_type)
 
@@ -1788,7 +1793,8 @@ class FuzzingSession:
       data_bundle = self.uworker_input.setup_input.data_bundle_corpuses[0]
     else:
       data_bundle = None
-    self.data_directory = setup.get_data_bundle_directory(self.fuzzer, data_bundle)
+    self.data_directory = setup.get_data_bundle_directory(
+        self.fuzzer, data_bundle)
 
     if not self.data_directory:
       logs.error(
@@ -1929,7 +1935,7 @@ def handle_fuzz_no_fuzzer(output):
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
-def utask_main(uworker_input):
+def utask_main(uworker_input: uworker_msg_pb2.Input):
   """Runs the given fuzzer for one round."""
   session = _make_session(uworker_input)
   return session.run()
@@ -1948,7 +1954,7 @@ def handle_fuzz_bad_build(output):
                                          output.fuzz_task_output.build_data)
 
 
-def _make_session(uworker_input):
+def _make_session(uworker_input: uworker_msg_pb2.Input) -> FuzzingSession:
   test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(
       uworker_input,

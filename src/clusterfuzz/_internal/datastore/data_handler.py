@@ -19,6 +19,7 @@ import os
 import re
 import shlex
 import time
+from typing import List
 
 from google.cloud import ndb
 
@@ -1600,7 +1601,8 @@ FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
 FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 
 
-def record_fuzz_target(engine_name, binary_name, job_type):
+def record_fuzz_target(engine_name: str, binary_name: str,
+                       job_type: str) -> data_types.FuzzTarget:
   """Records exsistence of fuzz target to the DB."""
   result = record_fuzz_targets(engine_name, [binary_name], job_type)[0]
 
@@ -1636,7 +1638,8 @@ def get_or_create_multi_entities_from_keys(mapping):
     retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
     delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
     function='datastore.data_handler.record_fuzz_targets')
-def record_fuzz_targets(engine_name, binaries, job_type):
+def record_fuzz_targets(engine_name: str, binaries: List[str],
+                        job_type: str) -> List[data_types.FuzzTarget]:
   """Record existence of fuzz targets to the DB."""
   # TODO(metzman): All of this code assumes that fuzzing jobs are behaving
   # reasonably and won't try to DoS us by putting bogus fuzzers in the db.
@@ -1669,7 +1672,7 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   jobs = get_or_create_multi_entities_from_keys(job_mapping)
 
   for job in jobs:
-    # TODO(metzman): Decide if we want to handle unused fuzzers differentlyo.
+    # TODO(metzman): Decide if we want to handle unused fuzzers differently.
     job.last_run = utils.utcnow()
 
   ndb_utils.put_multi(jobs)
