@@ -155,21 +155,6 @@ def clone_git_repository(tests_directory, name, repo_url):
     raise Exception('Unable to checkout %s tests.' % name)
 
 
-def checkout_svn_repository(tests_directory, name, repo_url):
-  """Checkout a SVN repo."""
-  logs.info('Syncing %s tests.' % name)
-
-  directory = os.path.join(tests_directory, name)
-  if not os.path.exists(directory):
-    subprocess.check_call(
-        ['svn', 'checkout', repo_url, directory], cwd=tests_directory)
-
-  if os.path.exists(directory):
-    subprocess.check_call(['svn', 'update', directory], cwd=tests_directory)
-  else:
-    raise Exception('Unable to checkout %s tests.' % name)
-
-
 def create_symbolic_link(tests_directory, source_subdirectory,
                          target_subdirectory):
   """Create symbolic link."""
@@ -262,17 +247,8 @@ def main():
   clone_git_repository(tests_directory, 'webgl-conformance-tests',
                        'https://github.com/KhronosGroup/WebGL.git')
 
-  checkout_svn_repository(
-      tests_directory, 'WebKit/LayoutTests',
-      'http://svn.webkit.org/repository/webkit/trunk/LayoutTests')
-
-  checkout_svn_repository(
-      tests_directory, 'WebKit/JSTests/stress',
-      'http://svn.webkit.org/repository/webkit/trunk/JSTests/stress')
-
-  checkout_svn_repository(
-      tests_directory, 'WebKit/JSTests/es6',
-      'http://svn.webkit.org/repository/webkit/trunk/JSTests/es6')
+  clone_git_repository(tests_directory, 'WebKit',
+                       'https://github.com/WebKit/WebKit.git')
 
   create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
 
@@ -298,7 +274,9 @@ def main():
           tests_archive_local,
           'CrashTests',
           'LayoutTests',
-          'WebKit',
+          'WebKit/JSTests/es6',
+          'WebKit/JSTests/stress',
+          'WebKit/LayoutTests',
           'gecko-tests',
           'v8/test/mjsunit',
           'spidermonkey',
