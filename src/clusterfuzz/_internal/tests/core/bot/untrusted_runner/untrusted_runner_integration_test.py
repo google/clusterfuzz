@@ -41,6 +41,8 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import untrusted_runner_helpers
 
+# pylint: disable=protected-access
+
 TEST_FILE_CONTENTS = (b'A' * config.FILE_TRANSFER_CHUNK_SIZE +
                       b'B' * config.FILE_TRANSFER_CHUNK_SIZE +
                       b'C' * (config.FILE_TRANSFER_CHUNK_SIZE // 2))
@@ -513,7 +515,7 @@ class UntrustedRunnerIntegrationTest(
     self.assertEqual(expected_symbolized_stacktrace, symbolized_stacktrace)
 
   def test_update_data_bundle(self):
-    """Test update_data_bundle."""
+    """Test _update_data_bundle."""
     self.mock.get_data_bundle_bucket_name.return_value = TEST_BUNDLE_BUCKET
 
     # Get a blobstore key for the fuzzer.
@@ -536,7 +538,7 @@ class UntrustedRunnerIntegrationTest(
     data_bundle_corpus.data_bundle.CopyFrom(
         uworker_io.entity_to_protobuf(bundle))
     self.assertTrue(
-        setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
+        setup._update_data_bundle(returned_fuzzer, data_bundle_corpus))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory(returned_fuzzer, bundle))
@@ -544,7 +546,7 @@ class UntrustedRunnerIntegrationTest(
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
     self.assertTrue(
-        setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
+        setup._update_data_bundle(returned_fuzzer, data_bundle_corpus))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""
