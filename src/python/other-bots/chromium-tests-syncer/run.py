@@ -229,8 +229,9 @@ def main():
   clone_git_repository(tests_directory, 'ChakraCore',
                        'https://github.com/Microsoft/ChakraCore.git')
 
-  clone_git_repository(tests_directory, 'gecko-dev',
-                       'https://github.com/mozilla/gecko-dev.git')
+  # TODO(metzman): Reenable when we figure out why gecko-dev is killing the machine.
+  # clone_git_repository(tests_directory, 'gecko-dev',
+  #                     'https://github.com/mozilla/gecko-dev.git')
 
   clone_git_repository(tests_directory, 'webgl-conformance-tests',
                        'https://github.com/KhronosGroup/WebGL.git')
@@ -238,7 +239,7 @@ def main():
   clone_git_repository(tests_directory, 'WebKit',
                        'https://github.com/WebKit/WebKit.git')
 
-  create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
+  # create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
 
   # Upload tests archive to google cloud storage.
   logs.info('Uploading tests archive to cloud.')
