@@ -89,6 +89,7 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
 # Install OpenJDK 17 for Jazzer (Java fuzzer).
 # Copied from gcr.io/oss-fuzz-base/base-runner.
 ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_15_HOME /usr/lib/jvm/java-15-openjdk-amd64
 ENV JVM_LD_LIBRARY_PATH=$JAVA_HOME/lib/server
 ENV PATH=$PATH:$JAVA_HOME/bin
 
@@ -98,10 +99,17 @@ RUN cd /tmp && \
     tar -xzv --strip-components=1 -f openjdk-17.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
 
+ # Install OpenJDK 15 and trim its size by removing unused components. Some projects only run with Java 15.
+RUN cd /tmp && \
+    curl --silent -L -O https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db48ee2/7/GPL/openjdk-15.0.2_linux-x64_bin.tar.gz && \
+    mkdir -p $JAVA_15_HOME && \
+    tar -xz --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_15_HOME && \
+    rm -rf openjdk*.tar.gz $JAVA_15_HOME/lib/src.zip
+
 # Install Python 3.11
 RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C /tmp -xzv && \
     cd /tmp/Python-3.11.4 && \
-    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall -j && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
