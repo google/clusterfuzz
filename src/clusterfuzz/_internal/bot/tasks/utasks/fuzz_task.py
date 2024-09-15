@@ -772,7 +772,7 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
 
 def postprocess_store_fuzzer_run_results(output):
   """Postprocess store_fuzzer_run_results."""
-  if not environment.is_engine_fuzzer_job():
+  if not environment.is_engine_fuzzer_job(output.uworker_input.job_type):
     return
   if not output.fuzz_task_output.fuzzer_run_results:
     return
