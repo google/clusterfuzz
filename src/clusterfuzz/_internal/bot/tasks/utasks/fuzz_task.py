@@ -709,7 +709,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
   if not environment.is_engine_fuzzer_job():
-      return
+    return None
   fuzzer_logs.upload_script_log(
       fuzzer_output, signed_upload_url=fuzz_task_input.script_log_upload_url)
 
@@ -773,7 +773,7 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
 def postprocess_store_fuzzer_run_results(output):
   """Postprocess store_fuzzer_run_results."""
   if not environment.is_engine_fuzzer_job():
-      return
+    return
   if not output.fuzz_task_output.fuzzer_run_results:
     return
   uworker_input = output.uworker_input
