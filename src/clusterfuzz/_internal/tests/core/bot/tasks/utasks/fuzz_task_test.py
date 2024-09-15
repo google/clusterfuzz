@@ -1491,7 +1491,7 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
         lambda remote_path, method, minutes: remote_path)
     self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
     helpers.patch_environ(self)
-    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
+    os.environ['JOB_NAME'] = 'linux_chrome_asan'
 
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
@@ -1509,7 +1509,8 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   def test_postprocess_store_fuzzer_run_results(self):
     """Tests postprocess_store_fuzzer_run_results."""
     helpers.patch_environ(self)
-    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
+    job_name = 'linux_chrome_asan'
+    os.environ['JOB_NAME'] = job_name
     fuzzer_name = 'myfuzzer'
     revision = 1
     fuzzer = data_types.Fuzzer(name=fuzzer_name, revision=revision)
@@ -1525,7 +1526,9 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
         sample_testcase_upload_key=sample_testcase_upload_key)
     uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name=fuzzer_name, fuzz_task_input=fuzz_task_input)
+        fuzzer_name=fuzzer_name,
+        fuzz_task_input=fuzz_task_input,
+        job_type=job_name)
     output = uworker_msg_pb2.Output(
         fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
             fuzzer_run_results=fuzzer_run_results, fuzzer_revision=revision),

@@ -708,7 +708,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              generated_testcase_string, fuzz_task_input):
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
-  if not environment.is_engine_fuzzer_job():
+  if environment.is_engine_fuzzer_job():
     return None
   fuzzer_logs.upload_script_log(
       fuzzer_output, signed_upload_url=fuzz_task_input.script_log_upload_url)
@@ -760,7 +760,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 def preprocess_store_fuzzer_run_results(fuzz_task_input):
   """Does preprocessing for store_fuzzer_run_results. More specifically, gets
   URLs to upload a sample testcase and the logs."""
-  if not environment.is_engine_fuzzer_job():
+  if environment.is_engine_fuzzer_job():
     return
   fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
@@ -772,7 +772,7 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
 
 def postprocess_store_fuzzer_run_results(output):
   """Postprocess store_fuzzer_run_results."""
-  if not environment.is_engine_fuzzer_job(output.uworker_input.job_type):
+  if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
     return
   if not output.fuzz_task_output.fuzzer_run_results:
     return
