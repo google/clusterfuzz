@@ -1490,6 +1490,8 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     self.mock._sign_url.side_effect = (
         lambda remote_path, method, minutes: remote_path)
     self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
+    helpers.patch_environ(self)
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
 
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
@@ -1506,6 +1508,8 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
 
   def test_postprocess_store_fuzzer_run_results(self):
     """Tests postprocess_store_fuzzer_run_results."""
+    helpers.patch_environ(self)
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
     fuzzer_name = 'myfuzzer'
     revision = 1
     fuzzer = data_types.Fuzzer(name=fuzzer_name, revision=revision)
