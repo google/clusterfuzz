@@ -14,6 +14,7 @@
 """Tasks host."""
 
 import datetime
+import os
 
 from google.protobuf import wrappers_pb2
 import grpc
@@ -86,7 +87,7 @@ def do_corpus_pruning(uworker_input, context, revision):
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
           crash_stacktrace=crash.crash_stacktrace,
-          unit_path=crash.unit_path,
+          unit_name=os.path.basename(crash.unit_path),
           security_flag=crash.security_flag,
       ) for crash in response.crashes
   ]
