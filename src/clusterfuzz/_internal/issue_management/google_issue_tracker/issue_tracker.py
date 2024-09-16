@@ -94,15 +94,18 @@ def _extract_all_labels(labels: issue_tracker.LabelStore,
   return results
 
 
-def _sanitize_oses(oses: List[str]):
-  """Sanitize the OS custom field values.
+def _sanitize_oses(oses: Sequence[str]) -> List[str]:
+  """Sanitizes and deduplicates the given OS custom field values."""
+  result = set()
+  for os in oses:
+    # The OS custom field no longer has the 'Chrome' value.
+    # It was replaced by 'ChromeOS'.
+    if os == 'Chrome':
+      os = 'ChromeOS'
 
-  The OS custom field no longer has the 'Chrome' value.
-  It was replaced by 'ChromeOS'.
-  """
-  for i, os_field in enumerate(oses):
-    if os_field == 'Chrome':
-      oses[i] = 'ChromeOS'
+    result.add(os)
+
+  return list(result)
 
 
 def _extract_label(labels: Sequence[str], prefix: str) -> Optional[str]:
@@ -434,7 +437,7 @@ class Issue(issue_tracker.Issue):
         break
 
   @property
-  def _os_custom_field_values(self):
+  def _os_custom_field_values(self) -> List[str]:
     """OS custom field values."""
     custom_fields = self._data['issueState'].get('customFields', [])
     for cf in custom_fields:
@@ -562,11 +565,10 @@ class Issue(issue_tracker.Issue):
     if added_oses:
       oses = self._os_custom_field_values
       oses.extend(added_oses)
-      _sanitize_oses(oses)
       custom_field_entries.append({
           'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
           'repeatedEnumValue': {
-              'values': oses,
+              'values': _sanitize_oses(oses),
           }
       })
     # Remove all OS labels or they will be attempted to be added as
@@ -706,11 +708,10 @@ class Issue(issue_tracker.Issue):
       custom_field_entries = []
       oses = _extract_all_labels(self.labels, 'OS-')
       if oses:
-        _sanitize_oses(oses)
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
-                'values': oses
+                'values': _sanitize_oses(oses)
             },
         })
       releaseblocks = _extract_all_labels(self.labels, 'ReleaseBlock-')
