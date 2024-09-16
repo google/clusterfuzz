@@ -391,22 +391,17 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call(
             body={
                 'issueState': {
-                    'componentId':
-                        1337,
+                    'componentId': 1337,
                     'ccs': [],
                     'collaborators': [],
                     'hotlistIds': [],
                     'accessLimit': {
                         'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
                     },
-                    'status':
-                        'NEW',
-                    'title':
-                        'issue title',
-                    'type':
-                        'BUG',
-                    'severity':
-                        'S4',
+                    'status': 'NEW',
+                    'title': 'issue title',
+                    'type': 'BUG',
+                    'severity': 'S4',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -824,22 +819,17 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             issueId='68828938',
             body={
                 'add': {
-                    'customFields': [
-                        {
-                            'customFieldId': '1223084',
-                            'repeatedEnumValue': {
-                                'values': ['Android', 'Linux']
-                            }
-                        },
-                    ],
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Android', 'Linux']
+                        }
+                    },],
                 },
-                'addMask':
-                    'customFields',
+                'addMask': 'customFields',
                 'remove': {},
-                'removeMask':
-                    '',
-                'significanceOverride':
-                    'MAJOR',
+                'removeMask': '',
+                'significanceOverride': 'MAJOR',
             },
         ),
         mock.call().execute(http=None, num_retries=3),
