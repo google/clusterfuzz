@@ -759,7 +759,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     ])
 
   def test_update_issue_with_empty_os(self):
-    """Test updating an existing issue with OS and FoundIn labels."""
+    """Test updating an existing issue with an "empty" OS label."""
     self.client.issues().get().execute.return_value = {
         'issueId': '68828938',
         'issueState': {
