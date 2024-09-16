@@ -109,7 +109,7 @@ RUN cd /tmp && \
 # Install Python 3.11
 RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C /tmp -xzv && \
     cd /tmp/Python-3.11.4 && \
-    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall -j && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
