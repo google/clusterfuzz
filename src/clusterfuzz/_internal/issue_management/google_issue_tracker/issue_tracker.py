@@ -96,7 +96,7 @@ def _extract_all_labels(labels: issue_tracker.LabelStore,
 
 def _sanitize_oses(oses: Sequence[str]) -> List[str]:
   """Sanitizes and deduplicates the given OS custom field values."""
-  result = set()
+  deduped = set()
   for os in oses:
     # The OS custom field no longer has the 'Chrome' value.
     # It was replaced by 'ChromeOS'.
@@ -107,9 +107,12 @@ def _sanitize_oses(oses: Sequence[str]) -> List[str]:
     if not os:
       continue
 
-    result.add(os)
+    deduped.add(os)
 
-  return list(result)
+  # Sort the result for deterministic tests.
+  result = list(deduped)
+  result.sort()
+  return result
 
 
 def _extract_label(labels: Sequence[str], prefix: str) -> Optional[str]:
