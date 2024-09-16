@@ -95,23 +95,20 @@ def _extract_all_labels(labels: issue_tracker.LabelStore,
 
 
 def _sanitize_oses(oses: Sequence[str]) -> List[str]:
-  """Sanitizes and deduplicates the given OS custom field values."""
-  deduped = set()
+  """Sanitizes the given OS custom field values."""
+  result = []
   for os in oses:
+    # Skip empty OS values. Workaround for https://crbug.com/366955327.
+    if not os:
+      continue
+
     # The OS custom field no longer has the 'Chrome' value.
     # It was replaced by 'ChromeOS'.
     if os == 'Chrome':
       os = 'ChromeOS'
 
-    # Skip empty OS values. Workaround for https://crbug.com/366955327.
-    if not os:
-      continue
+    result.append(os)
 
-    deduped.add(os)
-
-  # Sort the result for deterministic tests.
-  result = list(deduped)
-  result.sort()
   return result
 
 
@@ -570,14 +567,15 @@ class Issue(issue_tracker.Issue):
     # Special case OS custom field.
     added_oses = _get_labels(self.labels.added, 'OS-')
     if added_oses:
-      oses = self._os_custom_field_values
-      oses.extend(added_oses)
-      custom_field_entries.append({
-          'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
-          'repeatedEnumValue': {
-              'values': _sanitize_oses(oses),
-          }
-      })
+      oses = set(self._os_custom_field_values)
+      new_oses = oses.union(_sanitize_oses(added_oses))
+      if oses != new_oses:
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': list(sorted(new_oses)),
+            }
+        })
     # Remove all OS labels or they will be attempted to be added as
     # hotlist IDs.
     self.labels.remove_by_prefix('OS-')
@@ -713,12 +711,13 @@ class Issue(issue_tracker.Issue):
         self._data['issueState']['priority'] = priority
 
       custom_field_entries = []
-      oses = _extract_all_labels(self.labels, 'OS-')
+      oses = _sanitize_oses(_extract_all_labels(self.labels, 'OS-'))
       if oses:
+        oses.sort()
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
-                'values': _sanitize_oses(oses)
+                'values': oses,
             },
         })
       releaseblocks = _extract_all_labels(self.labels, 'ReleaseBlock-')

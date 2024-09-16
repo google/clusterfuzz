@@ -407,14 +407,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'BUG',
                     'severity':
                         'S4',
-                    'customFields': [
-                        {
-                            'customFieldId': '1223084',
-                            'repeatedEnumValue': {
-                                'values': []
-                            }
-                        },
-                    ],
                 },
             },
             templateOptions_applyTemplate=True,
@@ -823,6 +815,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue = self.issue_tracker.get_issue(68828938)
     # Adding "empty" OS label here.
     issue.labels.add('OS-')
+    # Also add a real OS label to trigger an API call we can compare against.
+    issue.labels.add('OS-Android')
     issue.save()
 
     self.client.issues().modify.assert_has_calls([
@@ -834,7 +828,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         {
                             'customFieldId': '1223084',
                             'repeatedEnumValue': {
-                                'values': ['Linux']
+                                'values': ['Android', 'Linux']
                             }
                         },
                     ],
