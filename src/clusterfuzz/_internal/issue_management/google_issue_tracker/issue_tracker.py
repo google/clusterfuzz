@@ -103,6 +103,10 @@ def _sanitize_oses(oses: Sequence[str]) -> List[str]:
     if os == 'Chrome':
       os = 'ChromeOS'
 
+    # Skip empty OS values. Workaround for https://crbug.com/366955327.
+    if not os:
+      continue
+
     result.add(os)
 
   return list(result)
