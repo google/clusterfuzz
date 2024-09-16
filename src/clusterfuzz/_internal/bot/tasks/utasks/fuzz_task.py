@@ -708,6 +708,8 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              generated_testcase_string, fuzz_task_input):
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
+  if environment.is_engine_fuzzer_job():
+    return None
   fuzzer_logs.upload_script_log(
       fuzzer_output, signed_upload_url=fuzz_task_input.script_log_upload_url)
 
@@ -718,7 +720,6 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   # 4. Return code is non-zero and was not found before.
   # 5. Testcases generated were fewer than expected in this run and zero return
   #    code did occur before and zero generated testcases didn't occur before.
-  # TODO(mbarbella): Break this up for readability.
   # pylint: disable=consider-using-in
   save_test_results = (
       not fuzzer.result or not fuzzer.result_timestamp or
@@ -759,6 +760,8 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 def preprocess_store_fuzzer_run_results(fuzz_task_input):
   """Does preprocessing for store_fuzzer_run_results. More specifically, gets
   URLs to upload a sample testcase and the logs."""
+  if environment.is_engine_fuzzer_job():
+    return
   fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
       fuzz_task_input.sample_testcase_upload_key)
@@ -769,6 +772,8 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
 
 def postprocess_store_fuzzer_run_results(output):
   """Postprocess store_fuzzer_run_results."""
+  if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
+    return
   if not output.fuzz_task_output.fuzzer_run_results:
     return
   uworker_input = output.uworker_input
@@ -1795,7 +1800,6 @@ class FuzzingSession:
       data_bundle = None
     self.data_directory = setup.get_data_bundle_directory(
         self.fuzzer, data_bundle)
-
     if not self.data_directory:
       logs.error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)

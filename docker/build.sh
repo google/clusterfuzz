@@ -35,7 +35,12 @@ function docker_push {
   docker push $image:$stamp
 }
 
-GIT_HASH=`git rev-parse HEAD | head -c7`
+if [ -z "$1" ]; then
+  GIT_HASH=`git rev-parse HEAD | head -c7`
+else
+  GIT_HASH=$1
+fi
+
 stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
   docker build -t $image ${image#gcr.io/clusterfuzz-images/}
