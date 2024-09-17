@@ -353,7 +353,6 @@ def file_issue(testcase,
   else:
     issue.labels.add(policy.label('reproducible'))
 
-
   logs.info('Set repro')
 
   # Chromium-specific labels.
