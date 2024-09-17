@@ -1250,6 +1250,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_csa_dcheck(self):
+    """Test a v8 CSA_DCHECK failure."""
+    data = self._read_test_data('v8_csa_dcheck.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'CSA_DCHECK failed: Torque assert \'data.wrapper_budget > 0\' failed\n'
+        'wasm-to-js.tq\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
