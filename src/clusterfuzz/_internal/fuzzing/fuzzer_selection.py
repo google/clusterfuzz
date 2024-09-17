@@ -159,6 +159,7 @@ def get_fuzz_task_payload(platform=None):
   # The environment variable containing a list of comma-separated jobs.
   # E.g: "libfuzzer_asan_android_host,afl_asan_android_host,..."
   jobs_selection = environment.get_value('HOST_JOB_SELECTION')
+  logs.info(f'jobs_selection: {jobs_selection}.')
   if jobs_selection:
     jobs = get_job_list(jobs_selection)
     selected_mappings = [entity for entity in mappings if entity.job in jobs]
