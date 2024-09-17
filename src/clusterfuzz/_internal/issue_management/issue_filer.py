@@ -28,6 +28,8 @@ from clusterfuzz._internal.issue_management import oss_fuzz_github
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+_MAX_STACKTRACE_LEN_FOR_PARSING = 300000
+
 NON_CRASH_TYPES = [
     'Data race',
     'Direct-leak',
@@ -262,6 +264,10 @@ def get_label_pattern(label):
 
 def get_memory_tool_labels(stacktrace):
   """Distinguish memory tools used and return corresponding labels."""
+  if len(stacktrace) > _MAX_STACKTRACE_LEN_FOR_PARSING:
+    # Some stacktraces to too huge to do this on.
+    return [t['label'] for t in MEMORY_TOOLS_LABELS if t['token'] in stacktrace]
+
   # Remove stack frames and paths to source code files. This helps to avoid
   # confusion when function names or source paths contain a memory tool token.
   data = ''
@@ -338,22 +344,17 @@ def file_issue(testcase,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
       is_security=testcase.security_flag, is_crash=is_crash)
-  logs.info('got properties')
 
   issue = issue_tracker.new_issue()
   issue.title = data_handler.get_issue_summary(testcase)
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)
 
-  logs.info('Set issue body')
-
   # Add reproducibility flag label.
   if testcase.one_time_crasher_flag:
     issue.labels.add(policy.label('unreproducible'))
   else:
     issue.labels.add(policy.label('reproducible'))
-
-  logs.info('Set repro')
 
   # Chromium-specific labels.
   if issue_tracker.project in ('chromium', 'chromium-testing'):
@@ -379,14 +380,10 @@ def file_issue(testcase,
   for label in additional_labels:
     issue.labels.add(policy.substitution_mapping(label))
 
-  logs.info('Set automatic labels')
-
   # Add crash-type-specific label
   crash_type_label = policy.label_for_crash_type(testcase.crash_type)
   if crash_type_label:
     issue.labels.add(policy.substitution_mapping(crash_type_label))
-
-  logs.info('Set crash_type label')
 
   # Add labels from crash metadata.
   for crash_category in testcase.get_metadata('crash_categories', []):
@@ -400,8 +397,6 @@ def file_issue(testcase,
   for component in automatic_components:
     issue.components.add(component)
 
-  logs.info('Set automatic components')
-
   # Add issue assignee from the job definition and fuzzer.
   automatic_assignee = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_ASSIGNEE', testcase.job_type, testcase.fuzzer_name)
@@ -410,8 +405,6 @@ def file_issue(testcase,
     issue.assignee = automatic_assignee[0]
   else:
     issue.status = properties.status
-
-  logs.info('Set automatic assignee')
 
   fuzzer_metadata = testcase.get_metadata('issue_metadata')
   if fuzzer_metadata and 'assignee' in fuzzer_metadata:
@@ -422,7 +415,6 @@ def file_issue(testcase,
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_CCS', testcase.job_type, testcase.fuzzer_name)
-  logs.info('Set automatic_ccs')
 
   # For externally contributed fuzzers, potentially cc the author.
   # Use fully qualified fuzzer name if one is available.
@@ -450,7 +442,6 @@ def file_issue(testcase,
   should_restrict_issue = (
       issue_restrictions == 'all' or
       (issue_restrictions == 'security' and testcase.security_flag))
-  logs.info('Set restrictions')
 
   has_accountable_people = (
       bool(ccs) and not data_handler.get_value_from_job_definition(
@@ -481,8 +472,6 @@ def file_issue(testcase,
       policy.deadline_policy_message):
     issue.body += '\n\n' + policy.deadline_policy_message
 
-  logs.info('Set label subs.')
-
   for cc in ccs:
     issue.ccs.add(cc)
 
@@ -497,8 +486,6 @@ def file_issue(testcase,
   metadata_components = _get_from_metadata(testcase, 'issue_components')
   for component in metadata_components:
     issue.components.add(component)
-
-  logs.info('Added metadata components.')
 
   if testcase.one_time_crasher_flag and policy.unreproducible_component:
     issue.components.add(policy.unreproducible_component)
