@@ -225,6 +225,10 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     if uworker_output is None:
       return None
 
+    # NOTE: Keep this in sync with `uworker_main()`.
+    uworker_output.bot_name = environment.get_value('BOT_NAME', '')
+    uworker_output.platform_id = environment.get_platform_id()
+
     return uworker_io.serialize_uworker_output(uworker_output)
 
 
@@ -301,8 +305,11 @@ def uworker_main(input_download_url) -> None:
 
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
+
+    # NOTE: Keep this in sync with `uworker_main_no_io()`.
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
+
     uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                    uworker_output_upload_url)
     logs.info('Finished uworker_main.')
