@@ -54,8 +54,6 @@ BUILD_TYPE_SUBSTRINGS = [
 
 # Build eviction constants.
 MAX_EVICTED_BUILDS = 100
-MIN_FREE_DISK_SPACE_CHROMIUM = 10 * 1024 * 1024 * 1024  # 10 GB
-MIN_FREE_DISK_SPACE_DEFAULT = 5 * 1024 * 1024 * 1024  # 5 GB
 TIMESTAMP_FILE = '.timestamp'
 
 # Indicates if this is a partial build (due to selected files copied from fuzz
@@ -84,22 +82,17 @@ def _base_build_dir(bucket_path):
 
 def _make_space(requested_size, current_build_dir=None):
   """Try to make the requested number of bytes available by deleting builds."""
-  if utils.is_chromium():
-    min_free_disk_space = MIN_FREE_DISK_SPACE_CHROMIUM
-  else:
-    min_free_disk_space = MIN_FREE_DISK_SPACE_DEFAULT
-
   builds_directory = environment.get_value('BUILDS_DIR')
 
   error_message = 'Need at least %d GB of free disk space.' % (
-      (min_free_disk_space + requested_size) // 1024**3)
+      requested_size // 1024**3)
   for _ in range(MAX_EVICTED_BUILDS):
     free_disk_space = shell.get_free_disk_space(builds_directory)
     if free_disk_space is None:
       # Can't determine free disk space, bail out.
       return False
 
-    if requested_size + min_free_disk_space < free_disk_space:
+    if requested_size < free_disk_space:
       return True
 
     if not _evict_build(current_build_dir):
@@ -107,7 +100,7 @@ def _make_space(requested_size, current_build_dir=None):
       return False
 
   free_disk_space = shell.get_free_disk_space(builds_directory)
-  result = requested_size + min_free_disk_space < free_disk_space
+  result = requested_size < free_disk_space
   if not result:
     logs.error(error_message)
   return result
