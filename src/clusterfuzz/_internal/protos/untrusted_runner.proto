@@ -53,8 +53,8 @@ message SetupRegularBuildRequest {
   optional string base_build_dir = 1;
   optional int64 revision = 2;
   optional string build_url = 3;
-  map<string, double> target_weights = 4;
   optional string build_prefix = 5;
+  optional string fuzz_target = 6;
 }
 
 // Maps to process_handler.runProcess
