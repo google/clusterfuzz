@@ -39,6 +39,6 @@ def _build_response(build, result):
 def setup_regular_build(request):
   """Set up a regular build."""
   build = build_manager.RegularBuild(request.base_build_dir, request.revision,
-                                     request.build_url, request.build_prefix,
-                                     request.fuzz_target)
+                                     request.build_url, request.target_weights,
+                                     request.build_prefix)
   return _build_response(build, build.setup())

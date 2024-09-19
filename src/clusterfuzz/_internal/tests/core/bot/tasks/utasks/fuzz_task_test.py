@@ -1558,23 +1558,17 @@ class UploadTestcaseRunJsons(unittest.TestCase):
     self.assertEqual(self.mock.upload_stats.call_count, 1)
 
 
-@test_utils.with_cloud_emulators('datastore')
 class PickFuzzTargetTest(unittest.TestCase):
   """Tests for _pick_fuzz_target."""
 
   def setUp(self):
     helpers.patch_environ(self)
-    helpers.patch(self, [
-        'clusterfuzz._internal.build_management.build_manager._split_target_build_list_targets'
-    ])
-    self.mock._split_target_build_list_targets.return_value = ['target']
 
   def test_split_build(self):
     """Tests that we don't pick a target for a split build."""
-    os.environ[
-        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'Fake'
     os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
-    self.assertEqual(fuzz_task._pick_fuzz_target(), 'target')
+    self.assertIsNone(fuzz_task._pick_fuzz_target())
 
 
 def _create_uworker_input(job='job',
