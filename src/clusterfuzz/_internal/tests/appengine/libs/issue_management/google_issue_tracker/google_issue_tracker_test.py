@@ -29,6 +29,7 @@ EXTENSION_FIELDS = {
 TEST_CONFIG = {
     'default_component_id': 1337,
     'type': 'google-issue-tracker',
+    'url': 'https://issues.chromium.org/issues',
 }
 
 BASIC_ISSUE = {
