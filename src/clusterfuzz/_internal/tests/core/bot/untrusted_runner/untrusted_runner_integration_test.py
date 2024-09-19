@@ -312,9 +312,7 @@ class UntrustedRunnerIntegrationTest(
                           os.path.join(os.environ['ROOT_DIR'], launcher_dir))
 
     self._setup_env(job_type='libfuzzer_asan_job')
-    fuzz_target = build_manager.pick_random_fuzz_target(
-        target_weights={'test_fuzzer': 1.0})
-    build = build_manager.setup_build(fuzz_target=fuzz_target)
+    build = build_manager.setup_build(target_weights={})
     self.assertIsNotNone(build)
 
     worker_root_dir = os.environ['WORKER_ROOT_DIR']
@@ -328,6 +326,7 @@ class UntrustedRunnerIntegrationTest(
     self.assertEqual('', os.environ['APP_PATH_DEBUG'])
     self.assertEqual(expected_build_dir, os.environ['BUILD_DIR'])
     self.assertEqual('', os.environ['APP_DIR'])
+    self.assertEqual('test_fuzzer', os.environ['FUZZ_TARGET'])
 
   def test_run_process_testcase(self):
     """Test run_process for testcase runs."""
@@ -587,6 +586,7 @@ class UntrustedRunnerIntegrationTest(
 
   # The "zzz" is a hack to make this test run last (tests are run in
   # alphabetical order).
+  # TODO(ochang): Find a better way.
   def test_zzz_update(self):
     """Test updating."""
     host.update_worker()

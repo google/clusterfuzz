@@ -30,7 +30,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import builtins
-import clusterfuzz._internal.protos.uworker_msg_pb2
 import collections.abc
 import google.protobuf.any_pb2
 import google.protobuf.descriptor
@@ -124,7 +123,6 @@ class SetupBuildResponse(google.protobuf.message.Message):
     BUILD_URL_FIELD_NUMBER: builtins.int
     FUZZ_TARGET_FIELD_NUMBER: builtins.int
     FUZZ_TARGET_COUNT_FIELD_NUMBER: builtins.int
-    FUZZ_TARGETS_FIELD_NUMBER: builtins.int
     result: builtins.bool
     app_path: builtins.str
     app_path_debug: builtins.str
@@ -133,8 +131,6 @@ class SetupBuildResponse(google.protobuf.message.Message):
     build_url: builtins.str
     fuzz_target: builtins.str
     fuzz_target_count: builtins.int
-    @property
-    def fuzz_targets(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     def __init__(
         self,
         *,
@@ -146,10 +142,9 @@ class SetupBuildResponse(google.protobuf.message.Message):
         build_url: builtins.str | None = ...,
         fuzz_target: builtins.str | None = ...,
         fuzz_target_count: builtins.int | None = ...,
-        fuzz_targets: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["app_dir", b"app_dir", "app_path", b"app_path", "app_path_debug", b"app_path_debug", "build_dir", b"build_dir", "build_url", b"build_url", "fuzz_target", b"fuzz_target", "fuzz_target_count", b"fuzz_target_count", "result", b"result"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["app_dir", b"app_dir", "app_path", b"app_path", "app_path_debug", b"app_path_debug", "build_dir", b"build_dir", "build_url", b"build_url", "fuzz_target", b"fuzz_target", "fuzz_target_count", b"fuzz_target_count", "fuzz_targets", b"fuzz_targets", "result", b"result"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["app_dir", b"app_dir", "app_path", b"app_path", "app_path_debug", b"app_path_debug", "build_dir", b"build_dir", "build_url", b"build_url", "fuzz_target", b"fuzz_target", "fuzz_target_count", b"fuzz_target_count", "result", b"result"]) -> None: ...
 
 global___SetupBuildResponse = SetupBuildResponse
 
@@ -157,27 +152,45 @@ global___SetupBuildResponse = SetupBuildResponse
 class SetupRegularBuildRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
+    @typing_extensions.final
+    class TargetWeightsEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        value: builtins.float
+        def __init__(
+            self,
+            *,
+            key: builtins.str | None = ...,
+            value: builtins.float | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> None: ...
+
     BASE_BUILD_DIR_FIELD_NUMBER: builtins.int
     REVISION_FIELD_NUMBER: builtins.int
     BUILD_URL_FIELD_NUMBER: builtins.int
+    TARGET_WEIGHTS_FIELD_NUMBER: builtins.int
     BUILD_PREFIX_FIELD_NUMBER: builtins.int
-    FUZZ_TARGET_FIELD_NUMBER: builtins.int
     base_build_dir: builtins.str
     revision: builtins.int
     build_url: builtins.str
+    @property
+    def target_weights(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.float]: ...
     build_prefix: builtins.str
-    fuzz_target: builtins.str
     def __init__(
         self,
         *,
         base_build_dir: builtins.str | None = ...,
         revision: builtins.int | None = ...,
         build_url: builtins.str | None = ...,
+        target_weights: collections.abc.Mapping[builtins.str, builtins.float] | None = ...,
         build_prefix: builtins.str | None = ...,
-        fuzz_target: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["base_build_dir", b"base_build_dir", "build_prefix", b"build_prefix", "build_url", b"build_url", "fuzz_target", b"fuzz_target", "revision", b"revision"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["base_build_dir", b"base_build_dir", "build_prefix", b"build_prefix", "build_url", b"build_url", "fuzz_target", b"fuzz_target", "revision", b"revision"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["base_build_dir", b"base_build_dir", "build_prefix", b"build_prefix", "build_url", b"build_url", "revision", b"revision"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["base_build_dir", b"base_build_dir", "build_prefix", b"build_prefix", "build_url", b"build_url", "revision", b"revision", "target_weights", b"target_weights"]) -> None: ...
 
 global___SetupRegularBuildRequest = SetupRegularBuildRequest
 
@@ -791,15 +804,12 @@ class PruneCorpusRequest(google.protobuf.message.Message):
     CROSS_POLLINATE_FUZZERS_FIELD_NUMBER: builtins.int
     LAST_EXECUTION_FAILED_FIELD_NUMBER: builtins.int
     REVISION_FIELD_NUMBER: builtins.int
-    UWORKER_INPUT_FIELD_NUMBER: builtins.int
     @property
     def fuzz_target(self) -> global___FuzzTarget: ...
     @property
     def cross_pollinate_fuzzers(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CrossPollinateFuzzer]: ...
     last_execution_failed: builtins.bool
     revision: builtins.int
-    @property
-    def uworker_input(self) -> clusterfuzz._internal.protos.uworker_msg_pb2.Input: ...
     def __init__(
         self,
         *,
@@ -807,10 +817,9 @@ class PruneCorpusRequest(google.protobuf.message.Message):
         cross_pollinate_fuzzers: collections.abc.Iterable[global___CrossPollinateFuzzer] | None = ...,
         last_execution_failed: builtins.bool | None = ...,
         revision: builtins.int | None = ...,
-        uworker_input: clusterfuzz._internal.protos.uworker_msg_pb2.Input | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["fuzz_target", b"fuzz_target", "last_execution_failed", b"last_execution_failed", "revision", b"revision", "uworker_input", b"uworker_input"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["cross_pollinate_fuzzers", b"cross_pollinate_fuzzers", "fuzz_target", b"fuzz_target", "last_execution_failed", b"last_execution_failed", "revision", b"revision", "uworker_input", b"uworker_input"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["fuzz_target", b"fuzz_target", "last_execution_failed", b"last_execution_failed", "revision", b"revision"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["cross_pollinate_fuzzers", b"cross_pollinate_fuzzers", "fuzz_target", b"fuzz_target", "last_execution_failed", b"last_execution_failed", "revision", b"revision"]) -> None: ...
 
 global___PruneCorpusRequest = PruneCorpusRequest
 

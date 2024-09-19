@@ -69,6 +69,8 @@ class RemoteRegularBuild(build_manager.RegularBuild):
         base_build_dir=self.base_build_dir,
         revision=self.revision,
         build_url=self.build_url,
-        fuzz_target=self.fuzz_target,
         build_prefix=self.build_prefix)
+    if self.target_weights:
+      request.target_weights.update(self.target_weights)  # pylint:disable=no-member
+
     return _handle_response(self, host.stub().SetupRegularBuild(request))
