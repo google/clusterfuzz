@@ -58,6 +58,8 @@ PRODUCT_TO_KERNEL = {
 
 RELEASE_CONFIGURATION = 'next'
 
+NO_RELEASE_CONFIGURATION_TARGET_LIST = ['shiba_fullmte', 'husky_fullmte']
+
 DEPRECATED_DEVICE_LIST = [
     'sailfish',  # Pixel
     'marlin',  # Pixel XL
