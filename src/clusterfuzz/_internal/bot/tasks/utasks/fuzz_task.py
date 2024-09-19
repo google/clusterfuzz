@@ -1721,7 +1721,7 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    fuzz_target = self.fuzz_target.name
+    fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
 
