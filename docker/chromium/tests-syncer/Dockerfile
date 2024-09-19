@@ -30,6 +30,7 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y \
         git \
+	python-is-python3 \
         subversion \
         zip
 

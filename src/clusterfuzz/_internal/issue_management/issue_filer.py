@@ -28,6 +28,8 @@ from clusterfuzz._internal.issue_management import oss_fuzz_github
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+_MAX_STACKTRACE_LEN_FOR_PARSING = 300000
+
 NON_CRASH_TYPES = [
     'Data race',
     'Direct-leak',
@@ -262,6 +264,10 @@ def get_label_pattern(label):
 
 def get_memory_tool_labels(stacktrace):
   """Distinguish memory tools used and return corresponding labels."""
+  if len(stacktrace) > _MAX_STACKTRACE_LEN_FOR_PARSING:
+    # Some stacktraces to too huge to do this on.
+    return [t['label'] for t in MEMORY_TOOLS_LABELS if t['token'] in stacktrace]
+
   # Remove stack frames and paths to source code files. This helps to avoid
   # confusion when function names or source paths contain a memory tool token.
   data = ''

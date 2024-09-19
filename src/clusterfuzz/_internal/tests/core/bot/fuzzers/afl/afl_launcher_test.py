@@ -38,9 +38,7 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
   TARGET_OPTIONS_PATH = TARGET_PATH + '.options'
   TEMP_DIR = '/tmp'
   BUILD_DIR = '/build'
-  OUTPUT_DIR = '/tmp/afl_output_dir'
   CRASHES_DIR = '/tmp/afl_output_dir/default/crashes'
-  DEFAULT_INPUT_DIR_CONTENTS = [fuzzer.AFL_DUMMY_INPUT]
   DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
   def setUp(self):
@@ -206,13 +204,11 @@ class AflFuzzOutputDirectoryTest(LauncherTestBase):
 
   def test_count_new_units(self):
     """Test that count_new_units works as expected."""
-    self.afl_output.destination_directory_inodes = set()
     # Test that it works as intended.
     self.assertEqual(self.afl_output.count_new_units(self.afl_output.queue), 1)
 
     # Test that hard links aren't counted as new units because they are copies
     # of files from the original output directory.
-    self.afl_output.destination_directory_inodes = self.input_directory_inodes
     self.assertEqual(self.afl_output.count_new_units(self.afl_output.queue), 1)
 
     # Test that copies aren't counted as new units.

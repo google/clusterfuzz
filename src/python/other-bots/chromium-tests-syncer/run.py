@@ -37,6 +37,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
+MAX_TESTCASES = 250000
 STORED_TESTCASES_LIST = []
 
 # pylint: disable=broad-exception-raised
@@ -44,7 +45,12 @@ STORED_TESTCASES_LIST = []
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""
+  count = 0
   for testcase in ndb_utils.get_all_from_model(data_types.Testcase):
+    count += 1
+    if count >= MAX_TESTCASES:
+      logs.info(f'{MAX_TESTCASES} testcases reached.')
+      break
     testcase_id = testcase.key.id()
 
     # 1. If we have already stored the testcase, then just skip.
@@ -149,21 +155,6 @@ def clone_git_repository(tests_directory, name, repo_url):
     raise Exception('Unable to checkout %s tests.' % name)
 
 
-def checkout_svn_repository(tests_directory, name, repo_url):
-  """Checkout a SVN repo."""
-  logs.info('Syncing %s tests.' % name)
-
-  directory = os.path.join(tests_directory, name)
-  if not os.path.exists(directory):
-    subprocess.check_call(
-        ['svn', 'checkout', repo_url, directory], cwd=tests_directory)
-
-  if os.path.exists(directory):
-    subprocess.check_call(['svn', 'update', directory], cwd=tests_directory)
-  else:
-    raise Exception('Unable to checkout %s tests.' % name)
-
-
 def create_symbolic_link(tests_directory, source_subdirectory,
                          target_subdirectory):
   """Create symbolic link."""
@@ -229,20 +220,8 @@ def main():
   shell.create_directory(crash_testcases_directory)
   unpack_crash_testcases(crash_testcases_directory)
 
-  # Sync web tests.
-  logs.info('Syncing web tests.')
-  src_directory = os.path.join(tests_directory, 'src')
-  gclient_file_path = os.path.join(tests_directory, '.gclient')
-  if not os.path.exists(gclient_file_path):
-    subprocess.check_call(
-        ['fetch', '--no-history', 'chromium', '--nosvn=True'],
-        cwd=tests_directory)
-  if os.path.exists(src_directory):
-    subprocess.check_call(['gclient', 'revert'], cwd=src_directory)
-    subprocess.check_call(['git', 'pull'], cwd=src_directory)
-    subprocess.check_call(['gclient', 'sync'], cwd=src_directory)
-  else:
-    raise Exception('Unable to checkout web tests.')
+  clone_git_repository(tests_directory, 'src',
+                       'https://chromium.googlesource.com/chromium/src')
 
   clone_git_repository(tests_directory, 'v8',
                        'https://chromium.googlesource.com/v8/v8')
@@ -256,17 +235,8 @@ def main():
   clone_git_repository(tests_directory, 'webgl-conformance-tests',
                        'https://github.com/KhronosGroup/WebGL.git')
 
-  checkout_svn_repository(
-      tests_directory, 'WebKit/LayoutTests',
-      'http://svn.webkit.org/repository/webkit/trunk/LayoutTests')
-
-  checkout_svn_repository(
-      tests_directory, 'WebKit/JSTests/stress',
-      'http://svn.webkit.org/repository/webkit/trunk/JSTests/stress')
-
-  checkout_svn_repository(
-      tests_directory, 'WebKit/JSTests/es6',
-      'http://svn.webkit.org/repository/webkit/trunk/JSTests/es6')
+  clone_git_repository(tests_directory, 'WebKit',
+                       'https://github.com/WebKit/WebKit.git')
 
   create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
 
@@ -292,7 +262,9 @@ def main():
           tests_archive_local,
           'CrashTests',
           'LayoutTests',
-          'WebKit',
+          'WebKit/JSTests/es6',
+          'WebKit/JSTests/stress',
+          'WebKit/LayoutTests',
           'gecko-tests',
           'v8/test/mjsunit',
           'spidermonkey',

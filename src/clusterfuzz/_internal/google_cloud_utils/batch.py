@@ -45,6 +45,7 @@ TASK_COUNT_PER_NODE = 1
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
+    'clusterfuzz_release',
     'disk_size_gb',
     'disk_type',
     'docker_image',
@@ -158,9 +159,11 @@ def _get_task_spec(batch_workload_spec):
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
   runnable.container.image_uri = batch_workload_spec.docker_image
+  clusterfuzz_release = batch_workload_spec.clusterfuzz_release
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
       '-e HOST_UID=1337 -P --privileged --cap-add=all '
+      f'-e CLUSTERFUZZ_RELEASE={clusterfuzz_release} '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
@@ -289,9 +292,11 @@ def _get_spec_from_config(command, job_name):
   project_name = batch_config.get('project')
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
+  clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
   # low-privilege account.
   spec = BatchWorkloadSpec(
+      clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
       user_data=user_data,
       disk_size_gb=instance_spec['disk_size_gb'],

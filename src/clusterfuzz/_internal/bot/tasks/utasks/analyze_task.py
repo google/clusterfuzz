@@ -41,6 +41,9 @@ from clusterfuzz._internal.system import environment
 def _add_default_issue_metadata(testcase: data_types.Testcase,
                                 fuzz_target_metadata: Dict):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
+  if fuzz_target_metadata is None:
+    return
+
   testcase_metadata = testcase.get_metadata()
   for key, default_value in fuzz_target_metadata.items():
     # Only string metadata are supported.

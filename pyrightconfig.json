@@ -1,0 +1,14 @@
+{
+  "include": [
+    "src/clusterfuzz"
+  ],
+  "ignore": [
+    "src/clusterfuzz/_internal/tests",
+    "src/third_party"
+  ],
+  "executionEnvironments": [{
+    "root": "src",
+    "extraPaths": [ "src/third_party" ],
+    "pythonVersion": "3.7"
+  }]
+}

@@ -20,6 +20,7 @@ import enum
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 import urllib.parse
 
 from google.auth import exceptions
@@ -31,10 +32,14 @@ from clusterfuzz._internal.metrics import logs
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 
+# TODO: Make these configuration settings instead of hardcoded values in code.
 # These custom fields use repeated enums.
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
 _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
+
+_OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID = '1349561'
+_OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349507'
 
 _SEVERITY_LABEL_PREFIX = 'Security_Severity-'
 
@@ -89,19 +94,25 @@ def _extract_all_labels(labels: issue_tracker.LabelStore,
   return results
 
 
-def _sanitize_oses(oses: List[str]):
-  """Sanitize the OS custom field values.
+def _sanitize_oses(oses: Sequence[str]) -> List[str]:
+  """Sanitizes the given OS custom field values."""
+  result = []
+  for os in oses:
+    # Skip empty OS values. Workaround for https://crbug.com/366955327.
+    if not os:
+      continue
 
-  The OS custom field no longer has the 'Chrome' value.
-  It was replaced by 'ChromeOS'.
-  """
-  for i, os_field in enumerate(oses):
-    if os_field == 'Chrome':
-      oses[i] = 'ChromeOS'
+    # The OS custom field no longer has the 'Chrome' value.
+    # It was replaced by 'ChromeOS'.
+    if os == 'Chrome':
+      os = 'ChromeOS'
+
+    result.append(os)
+
+  return result
 
 
-def _extract_label(labels: issue_tracker.LabelStore,
-                   prefix: str) -> Optional[str]:
+def _extract_label(labels: Sequence[str], prefix: str) -> Optional[str]:
   """Extract a label value."""
   for label in labels:
     if not label.startswith(prefix):
@@ -120,6 +131,25 @@ def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
       continue
     results.append(label[len(prefix):])
   return results
+
+
+def _get_oss_fuzz_reported_value(labels: Sequence[str]) -> Optional[dict]:
+  """Return OSS-Fuzz Reported custom field value."""
+  added_reported = _extract_label(labels, 'Reported-')
+  if not added_reported:
+    return None
+
+  try:
+    year, month, day = _parse_date_label(added_reported)
+  except ValueError:
+    logs.warning(f'Invalid date format for Reported-{added_reported}')
+    return None
+
+  return {
+      'year': year,
+      'month': month,
+      'day': day,
+  }
 
 
 def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
@@ -155,6 +185,12 @@ def _get_severity_from_label_value(value):
     return 'S3'
   # Default case.
   return _DEFAULT_SEVERITY
+
+
+def _parse_date_label(date_value: str) -> Tuple[int, int, int]:
+  """Parse a YYYY-MM-DD string into date components."""
+  year, month, day = date_value.split('-')
+  return int(year), int(month), int(day)
 
 
 class Issue(issue_tracker.Issue):
@@ -405,7 +441,7 @@ class Issue(issue_tracker.Issue):
         break
 
   @property
-  def _os_custom_field_values(self):
+  def _os_custom_field_values(self) -> List[str]:
     """OS custom field values."""
     custom_fields = self._data['issueState'].get('customFields', [])
     for cf in custom_fields:
@@ -531,15 +567,15 @@ class Issue(issue_tracker.Issue):
     # Special case OS custom field.
     added_oses = _get_labels(self.labels.added, 'OS-')
     if added_oses:
-      oses = self._os_custom_field_values
-      oses.extend(added_oses)
-      _sanitize_oses(oses)
-      custom_field_entries.append({
-          'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
-          'repeatedEnumValue': {
-              'values': oses,
-          }
-      })
+      oses = set(self._os_custom_field_values)
+      new_oses = oses.union(_sanitize_oses(added_oses))
+      if oses != new_oses:
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': list(sorted(new_oses)),
+            }
+        })
     # Remove all OS labels or they will be attempted to be added as
     # hotlist IDs.
     self.labels.remove_by_prefix('OS-')
@@ -558,6 +594,23 @@ class Issue(issue_tracker.Issue):
     # Remove all ReleaseBlock labels or they will be attempted to be added as
     # hotlist IDs.
     self.labels.remove_by_prefix('ReleaseBlock-')
+
+    # Special case: OSS-Fuzz "Reported" custom field.
+    added_reported = _get_oss_fuzz_reported_value(self.labels.added)
+    if added_reported:
+      custom_field_entries.append({
+          'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
+          'dateValue': added_reported,
+      })
+
+    # Special case: OSS-Fuzz "Project" custom field.
+    added_project = _extract_label(self.labels.added, 'Proj-')
+    if added_project:
+      # Assume there is only one.
+      custom_field_entries.append({
+          'customFieldId': _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID,
+          'textValue': added_project
+      })
 
     # Special case Component Tags custom field.
     if self.components.added:
@@ -658,13 +711,13 @@ class Issue(issue_tracker.Issue):
         self._data['issueState']['priority'] = priority
 
       custom_field_entries = []
-      oses = _extract_all_labels(self.labels, 'OS-')
+      oses = _sanitize_oses(_extract_all_labels(self.labels, 'OS-'))
       if oses:
-        _sanitize_oses(oses)
+        oses.sort()
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
-                'values': oses
+                'values': oses,
             },
         })
       releaseblocks = _extract_all_labels(self.labels, 'ReleaseBlock-')
@@ -675,6 +728,24 @@ class Issue(issue_tracker.Issue):
                 'values': releaseblocks
             },
         })
+
+      # Special case: OSS-Fuzz "Reported" custom field.
+      added_reported = _get_oss_fuzz_reported_value(self.labels)
+      if added_reported:
+        custom_field_entries.append({
+            'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
+            'dateValue': added_reported,
+        })
+
+      # Special case: OSS-Fuzz "Project" custom field.
+      added_project = _extract_label(self.labels, 'Proj-')
+      if added_project:
+        # Assume there is only one.
+        custom_field_entries.append({
+            'customFieldId': _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID,
+            'textValue': added_project
+        })
+
       if list(self.components):
         component_paths = self._get_component_paths(self.components)
         logs.info(
@@ -716,7 +787,7 @@ class Issue(issue_tracker.Issue):
       if (access_limit == IssueAccessLevel.LIMIT_NONE and
           access_limit_from_labels):
         self._data['issueState']['accessLimit'] = {
-            'accessLevel': access_limit_from_labels
+            'accessLevel': access_limit_from_labels.value
         }
 
       self._data['issueState']['hotlistIds'] = [

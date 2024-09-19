@@ -702,6 +702,8 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              generated_testcase_string, fuzz_task_input):
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
+  if environment.is_engine_fuzzer_job():
+    return None
   fuzzer_logs.upload_script_log(
       fuzzer_output, signed_upload_url=fuzz_task_input.script_log_upload_url)
 
@@ -712,7 +714,6 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   # 4. Return code is non-zero and was not found before.
   # 5. Testcases generated were fewer than expected in this run and zero return
   #    code did occur before and zero generated testcases didn't occur before.
-  # TODO(mbarbella): Break this up for readability.
   # pylint: disable=consider-using-in
   save_test_results = (
       not fuzzer.result or not fuzzer.result_timestamp or
@@ -753,6 +754,8 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 def preprocess_store_fuzzer_run_results(fuzz_task_input):
   """Does preprocessing for store_fuzzer_run_results. More specifically, gets
   URLs to upload a sample testcase and the logs."""
+  if environment.is_engine_fuzzer_job():
+    return
   fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
       fuzz_task_input.sample_testcase_upload_key)
@@ -763,6 +766,8 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
 
 def postprocess_store_fuzzer_run_results(output):
   """Postprocess store_fuzzer_run_results."""
+  if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
+    return
   if not output.fuzz_task_output.fuzzer_run_results:
     return
   uworker_input = output.uworker_input
@@ -853,8 +858,10 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
-  upload_job_run_stats(fully_qualified_fuzzer_name, uworker_input.job_type,
-                       fuzz_task_output.crash_revision,
+  # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
+  # `fuzz_task_input.fuzz_target` instead.
+  upload_job_run_stats(fuzz_task_output.fully_qualified_fuzzer_name,
+                       uworker_input.job_type, fuzz_task_output.crash_revision,
                        fuzz_task_output.job_run_timestamp, new_crash_count,
                        known_crash_count, fuzz_task_output.testcases_executed,
                        crash_groups_for_stats)
@@ -1094,7 +1101,7 @@ def _update_testcase_variant_if_needed(group, existing_testcase, crash_revision,
     variant.status = data_types.TestcaseVariantStatus.FLAKY
   else:
     variant.status = data_types.TestcaseVariantStatus.REPRODUCIBLE
-  variant.revision = crash_revision
+  variant.revision = int(crash_revision)
   variant.crash_type = group.main_crash.crash_type
   variant.crash_state = group.main_crash.crash_state
   variant.security_flag = group.main_crash.security_flag
@@ -1747,9 +1754,10 @@ class FuzzingSession:
 
     build_data = testcase_manager.check_for_bad_build(self.job_type,
                                                       crash_revision)
-    self.fuzz_task_output.build_data = build_data
+    self.fuzz_task_output.build_data.CopyFrom(build_data)
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
+
     if build_data.is_bad_build:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
@@ -1908,6 +1916,14 @@ def utask_main(uworker_input):
   return session.run()
 
 
+def handle_fuzz_no_fuzz_target_selected(output):
+  save_fuzz_targets(output)
+  # Try again now that there are some fuzz targets.
+  utask_preprocess(output.uworker_input.fuzzer_name,
+                   output.uworker_input.job_type,
+                   output.uworker_input.uworker_env)
+
+
 def _make_session(uworker_input):
   test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(
@@ -1923,6 +1939,8 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_fuzz_data_bundle_setup_failure,
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:  # pylint: disable=no-member
         handle_fuzz_no_fuzzer,
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:  # pylint: disable=no-member
+        handle_fuzz_no_fuzz_target_selected,
     uworker_msg_pb2.ErrorType.FUZZ_BAD_BUILD:  # pylint: disable=no-member
         handle_fuzz_bad_build,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
