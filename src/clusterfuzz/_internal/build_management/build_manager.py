@@ -325,7 +325,10 @@ class Build(BaseBuild):
     self.revision = revision
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
+    # This is used by users of the class to learn the fuzz targets in the build.
     self.fuzz_targets = None
+    # This is used by users of the class to instruct the class which fuzz
+    # target to unpack.
     self.fuzz_target = fuzz_target
 
   def _reset_cwd(self):
@@ -636,13 +639,10 @@ class RegularBuild(Build):
       # setting application path environment variables.
       logs.info('Build already exists.')
 
-      # This is OK because even though it is an incomplete list of
-      # fuzz targets, there was a full list saved earlier when it was
-      # unpacked. The way that lists are used, it doesn't matter if
-      # some of them are incomplete, so long as some of them are
-      # complete. Unfortunately, there is no better way to the mess
-      # that is the ClusterFuzz builds system. Also, SplitTargetBuild will
-      # clobber the value here and partial builds never take this branch.
+      # This list will be incomplete because the directory on disk does not have
+      # all fuzz targets. This is fine. The way fuzz_targets are added to db, it
+      # does not clobber complete lists.
+      assert self.fuzz_targets is None
       self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
 
     self._setup_application_path(build_update=build_update)

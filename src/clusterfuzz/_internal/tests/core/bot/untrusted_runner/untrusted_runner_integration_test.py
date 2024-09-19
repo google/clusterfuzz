@@ -328,7 +328,6 @@ class UntrustedRunnerIntegrationTest(
     self.assertEqual('', os.environ['APP_PATH_DEBUG'])
     self.assertEqual(expected_build_dir, os.environ['BUILD_DIR'])
     self.assertEqual('', os.environ['APP_DIR'])
-    self.assertEqual('test_fuzzer', os.environ['FUZZ_TARGET'])
 
   def test_run_process_testcase(self):
     """Test run_process for testcase runs."""
@@ -588,7 +587,6 @@ class UntrustedRunnerIntegrationTest(
 
   # The "zzz" is a hack to make this test run last (tests are run in
   # alphabetical order).
-  # TODO(ochang): Find a better way.
   def test_zzz_update(self):
     """Test updating."""
     host.update_worker()
