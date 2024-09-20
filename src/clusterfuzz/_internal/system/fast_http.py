@@ -16,6 +16,7 @@ import asyncio
 from concurrent import futures
 import contextlib
 import itertools
+import multiprocessing
 from typing import List
 from typing import Tuple
 
@@ -23,7 +24,7 @@ import aiohttp
 
 from clusterfuzz._internal.system import environment
 
-_POOL_SIZE = 16
+_POOL_SIZE = multiprocessing.cpu_count()
 
 
 @contextlib.contextmanager
@@ -76,9 +77,10 @@ def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str,
 
 async def _async_download_file(session: aiohttp.ClientSession, url: str,
                                path: str) -> bool:
-  async with session.get(url) as response, open(path, 'wb') as fp:
-    while True:
-      chunk = await response.content.read(1024)
-      if not chunk:
-        return True
-      fp.write(chunk)
+  async with session.get(url) as response:
+    with open(path, 'wb') as fp:
+      while True:
+        chunk = await response.content.read(1024)
+        if not chunk:
+          return True
+        fp.write(chunk)
