@@ -20,7 +20,8 @@ from typing import List
 import aiohttp
 
 
-def download_urls(pool: multiprocessing.Pool, urls: List[str], filepaths: List[str], pool_size: int) -> str:
+def download_urls(pool: multiprocessing.Pool, urls: List[str],
+                  filepaths: List[str], pool_size: int) -> str:
   """Downloads multiple |urls| to |filepaths| in parallel (using |pool|) and
   asynchronously. Tolerates errors. Returns a list of whether each download was
   successful."""
@@ -30,7 +31,7 @@ def download_urls(pool: multiprocessing.Pool, urls: List[str], filepaths: List[s
   chunk_size = len(urls) // pool_size
   urls_and_filepaths = list(zip(urls, filepaths))
   for idx in range(0, len(all_urls), chunk_size):
-    chunk = urls_and_file_paths[idx:idx+chunk_size]
+    chunk = urls_and_file_paths[idx:idx + chunk_size]
     chunks.append(chunk)
   return list(itertools.chain(pool.starmap(download_files, chunks)))
 
@@ -38,24 +39,28 @@ def download_urls(pool: multiprocessing.Pool, urls: List[str], filepaths: List[s
 def _download_files(urls: List[str], paths: List[str]) -> List[bool]:
   return asyncio.run(_async_download_files(urls, paths))
 
-  
-async def _async_download_files(urls: List[str], paths: List[str]) -> List[bool]:
+
+async def _async_download_files(urls: List[str],
+                                paths: List[str]) -> List[bool]:
   async with aiohttp.ClientSession() as session:
     tasks = [
-      asyncio.create_task(_error_tolerant_download_file(session, url, filename))
-      for url, path in zip(urls, paths)
+        asyncio.create_task(
+            _error_tolerant_download_file(session, url, filename))
+        for url, path in zip(urls, paths)
     ]
     return await asyncio.gather(*tasks)
 
 
-def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str, path: str) -> bool: 
+def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str,
+                                  path: str) -> bool:
   try:
     return _async_download_file(session, url, path)
   except:
     return False
 
-    
-def _async_download_file(session: aiohttp.ClientSession, url: str, path: str) -> bool:
+
+async def _async_download_file(session: aiohttp.ClientSession, url: str,
+                               path: str) -> bool:
   async with session.get(url) as response, open(path, 'wb') as fp:
     while True:
       chunk = await response.content.read(1024)

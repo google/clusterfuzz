@@ -99,6 +99,12 @@ GenerateBlackboxTestcasesResult = collections.namedtuple(
     ['success', 'testcase_file_paths', 'fuzzer_metadata'])
 
 
+def has_standard_build():
+  if environment.platform() == 'FUCHSIA':
+    return False
+  return not bool(environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'))
+
+
 def get_unsymbolized_crash_stacktrace(stack_file_path):
   """Read unsymbolized crash stacktrace."""
   with open(stack_file_path, 'rb') as f:
@@ -1467,6 +1473,9 @@ class FuzzingSession:
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    fuzz_target_name = environment.get_value('FUZZ_TARGET')
+    if not fuzz_target_name:
+      raise FuzzTaskError('No fuzz targets set.')
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1698,6 +1707,8 @@ class FuzzingSession:
 
   def run(self):
     """Run the fuzzing session."""
+    failure_wait_interval = environment.get_value('FAIL_WAIT')
+
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -1710,20 +1721,22 @@ class FuzzingSession:
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
         self.uworker_input.setup_input)
     if not self.fuzzer:
-      logs.error(f'Unable to setup fuzzer {self.fuzzer_name}.')
+      logs.error('Unable to setup fuzzer %s.' % self.fuzzer_name)
 
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
-      failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(failure_wait_interval)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
+    if self.fuzz_target:
+      logs.info(f'Setting fuzz target {self.fuzz_target}.')
+      environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
+        environment.get_value('APP_REVISION'),
+        fuzzer_selection.get_fuzz_target_weights())
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -1733,6 +1746,18 @@ class FuzzingSession:
       self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
       if not self.fuzz_task_output.fuzz_targets:
         logs.error('No fuzz targets.')
+
+      if not has_standard_build():
+        # Handle split builds where fuzz target is picked as side effect of
+        # build setup.
+        fuzz_target_name = environment.get_value('FUZZ_TARGET')
+        self.fuzz_target = data_handler.record_fuzz_target(
+            engine_impl.name, fuzz_target_name, self.job_type)
+
+      if not self.fuzz_target:
+        return uworker_msg_pb2.Output(  # pylint: disable=no-member
+            fuzz_task_output=self.fuzz_task_output,
+            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
@@ -1904,12 +1929,6 @@ def handle_fuzz_no_fuzzer(output):
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
-def handle_fuzz_bad_build(uworker_output):
-  testcase_manager.update_build_metadata(
-      uworker_output.uworker_input.job_type,
-      uworker_output.fuzz_task_output.build_data)
-
-
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   session = _make_session(uworker_input)
@@ -1922,6 +1941,11 @@ def handle_fuzz_no_fuzz_target_selected(output):
   utask_preprocess(output.uworker_input.fuzzer_name,
                    output.uworker_input.job_type,
                    output.uworker_input.uworker_env)
+
+
+def handle_fuzz_bad_build(output):
+  testcase_manager.update_build_metadata(output.uworker_input.job_type,
+                                         output.fuzz_task_output.build_data)
 
 
 def _make_session(uworker_input):
@@ -1952,9 +1976,14 @@ def _pick_fuzz_target():
     logs.info('Not engine fuzzer. Not picking fuzz target.')
     return None
 
+  if not has_standard_build():
+    logs.info('Split build. Not picking fuzz target.')
+    return None
+
   logs.info('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
-  return build_manager.pick_random_fuzz_target(target_weights)
+  return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(
+      target_weights.keys(), target_weights)
 
 
 def _get_fuzz_target_from_db(engine_name, fuzz_target_binary, job_type):
