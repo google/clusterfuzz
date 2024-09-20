@@ -90,8 +90,8 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     ])
     self.mock.get.return_value = {
         'type': 'google_issue_tracker',
-        'default_component_id': 123
-        'url': 'https://issues.chromium.org/issues'
+        'default_component_id': 123,
+        'url': 'https://issues.chromium.org/issues',
     }
     self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
     issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
