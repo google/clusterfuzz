@@ -14,7 +14,11 @@
 """Load project data."""
 
 from collections import namedtuple
+import dataclasses
 import os
+from typing import Any
+from typing import Dict
+from typing import Optional
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.system import environment
@@ -54,6 +58,51 @@ HostWorkerAssignment = namedtuple('HostWorkerAssignment',
                                   ['host', 'worker', 'workers_per_host'])
 
 
+@dataclasses.dataclass(kw_only=True)
+class AutoHealingPolicy:
+  """Represents an auto-healing policy for an instance group."""
+  # The health check URL.
+  health_check: str
+
+  # The initial delay to apply to the auto-healing policy, in seconds.
+  # This controls the policy but not the health check - health checks starts as
+  # soon as the instance is created, but the instance group manager ignores
+  # unhealthy instances for this delay after creation.
+  initial_delay_sec: int
+
+  @classmethod
+  def from_config(
+      cls, policy: Optional[Dict[str, Any]]) -> Optional['AutoHealingPolicy']:
+    """Attempts to create a policy from the given yaml configuration value."""
+    if policy is None:
+      return None
+
+    health_check = policy.get('health_check')
+    initial_delay_sec = policy.get('initial_delay_sec')
+    if health_check is None and initial_delay_sec is None:
+      return None
+
+    if health_check is None or initial_delay_sec is None:
+      logging.warning(
+          'Ignoring auto_healing_policy ' +
+          'because its two values (health_check, initial_delay_sec) ' +
+          'should never exist independently: ' +
+          f'({health_check}, {initial_delay_sec})')
+      return None
+
+    assert isinstance(health_check, str), repr(health_check)
+    assert isinstance(initial_delay_sec, int), repr(initial_delay_sec)
+
+    return cls(health_check=health_check, initial_delay_sec=initial_delay_sec)
+
+  def to_json_dict(self) -> Dict[str, Any]:
+    """Returns this policy as an API-compatible dict."""
+    return {
+        "healthCheck": self.health_check,
+        "initialDelaySec": self.initial_delay_sec,
+    }
+
+
 def _process_instance_template(instance_template):
   """Process instance template, normalizing some of metadata key values."""
   # Load metadata items for a particular instance template.
@@ -83,7 +132,8 @@ def _config_to_project(name, config):
             instance_count=zone['instance_count'],
             instance_template=zone['instance_template'],
             distribute=zone.get('distribute', False),
-            auto_healing_policy=zone.get('auto_healing_policy', {}),
+            auto_healing_policy=AutoHealingPolicy.from_config(
+                zone.get('auto_healing_policy')),
             worker=zone.get('worker', False),
             high_end=zone.get('high_end', False)))
 
