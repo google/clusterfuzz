@@ -158,9 +158,8 @@ def _template_needs_update(current_template, new_template, resource_name):
 
 
 def _update_auto_healing_policy(
-    instance_group: bot_manager.InstanceGroup,
+    instance_group: bot_manager.InstanceGroup, instance_group_body,
     new_policy: Optional[compute_engine_projects.AutoHealingPolicy]):
-  # Check if needs to update health check URL in autoHealingPolicies.
   old_policy_dict = None
   policies = instance_group_body.get('autoHealingPolicies')
   if policies:
@@ -169,8 +168,8 @@ def _update_auto_healing_policy(
   new_policy_dict = None
   if new_policy is not None:
     new_policy_dict = {
-        "healthCheck": new_policy.health_check,
-        "initialDelaySec": new_policy.initial_delay_sec,
+        'healthCheck': new_policy.health_check,
+        'initialDelaySec': new_policy.initial_delay_sec,
     }
 
   if new_policy_dict == old_policy_dict:
@@ -184,7 +183,7 @@ def _update_auto_healing_policy(
         auto_healing_policy=new_policy_dict, wait_for_instances=False)
   except bot_manager.OperationError as e:
     logging.error('Failed to patch auto-healing policies for instance group ' +
-                  f'{instance_group["name"]}: {e}')
+                  f'{instance_group.name}: {e}')
 
 
 class ClustersManager:
