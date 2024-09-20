@@ -588,7 +588,7 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
   results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
                                          directory)
-  return results.count(None) < MAX_SYNC_ERRORS
+  return results.count(False) < MAX_SYNC_ERRORS
 
 
 def get_proto_corpus(bucket_name,
