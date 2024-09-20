@@ -40,9 +40,9 @@ redis = "==3.3.11"
 requests = "==2.21.0"
 sendgrid = "==6.0.4"
 wrapt = "==1.16.0"
+aiohttp = "==3.10.5"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
-aiohttp = "==3.10.5"
 
 [dev-packages]
 charset-normalizer = "==3.3.2"
