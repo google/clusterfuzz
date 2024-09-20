@@ -36,8 +36,10 @@ from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
+ENGINE_FUZZER_NAMES = ['afl', 'centipede', 'googlefuzztest', 'libFuzzer']
 MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
-MAX_TESTCASES = 250000
+MAX_TESTCASES = 25000
+TESTCASES_REPORT_INTERVAL = 2500
 STORED_TESTCASES_LIST = []
 
 # pylint: disable=broad-exception-raised
@@ -51,6 +53,9 @@ def unpack_crash_testcases(crash_testcases_directory):
     if count >= MAX_TESTCASES:
       logs.info(f'{MAX_TESTCASES} testcases reached.')
       break
+    if count % TESTCASES_REPORT_INTERVAL == 0:
+      logs.info(f'Processed {count} testcases.')
+
     testcase_id = testcase.key.id()
 
     # 1. If we have already stored the testcase, then just skip.
@@ -85,7 +90,7 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     # 8. Skip in-process fuzzer testcases, since these are only applicable to
     # fuzz targets and don't run with blackbox binaries.
-    if testcase.fuzzer_name and testcase.fuzzer_name in ['afl', 'libFuzzer']:
+    if testcase.fuzzer_name and testcase.fuzzer_name in ENGINE_FUZZER_NAMES:
       continue
 
     # Un-pack testcase.
@@ -108,6 +113,7 @@ def unpack_crash_testcases(crash_testcases_directory):
     STORED_TESTCASES_LIST.append(testcase_id)
 
   # Remove testcase directories that exceed the max size limit.
+  logs.info('Removing large directories.')
   for directory_name in os.listdir(crash_testcases_directory):
     directory_path = os.path.join(crash_testcases_directory, directory_name)
     if not os.path.isdir(directory_path):
@@ -119,6 +125,7 @@ def unpack_crash_testcases(crash_testcases_directory):
     shell.remove_directory(directory_path)
 
   # Rename all fuzzed testcase files as regular files.
+  logs.info('Renaming testcase files.')
   for root, _, files in os.walk(crash_testcases_directory):
     for filename in files:
       if not filename.startswith(testcase_manager.FUZZ_PREFIX):
