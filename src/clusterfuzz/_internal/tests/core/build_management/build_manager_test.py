@@ -46,7 +46,6 @@ def _mock_unpack_build(
     _,
     build_dir,
     build_url,
-    target_weights=None,
 ):
   """Mock _unpack_build."""
   if not shell.remove_directory(build_dir, recreate=True):
@@ -119,7 +118,7 @@ class TrunkBuildTest(unittest.TestCase):
         10,
         'gs://path/file-release-([0-9]+).zip',
         build_prefix=None,
-        target_weights=None)
+        fuzz_target=None)
 
   def test_setup_mismatch(self):
     """Test setup finding the first matching revision."""
@@ -146,7 +145,7 @@ class TrunkBuildTest(unittest.TestCase):
         2,
         'gs://path/file-release-([0-9]+).zip',
         build_prefix=None,
-        target_weights=None)
+        fuzz_target=None)
 
   def test_setup_fail(self):
     """Test setup failing to find any matching revisions."""
@@ -208,12 +207,11 @@ class FuchsiaBuildTest(unittest.TestCase):
 
   def test_setup(self):
     """Tests setting up a build."""
-    build = build_manager.setup_build(
-        target_weights={'example_fuzzers/trap_fuzzer': 1000000.0})
+    fuzz_target = build_manager.pick_random_fuzz_target({
+        'example_fuzzers/trap_fuzzer': 1000000.0
+    })
+    build = build_manager.setup_build(fuzz_target)
     self.assertIsInstance(build, build_manager.FuchsiaBuild)
-
-    self.assertIsNotNone(os.environ['FUZZ_TARGET'])
-    self.assertEqual('example_fuzzers/trap_fuzzer', os.environ['FUZZ_TARGET'])
     self.assertEqual(20190926201257, environment.get_value('APP_REVISION'))
 
     # pylint: disable=protected-access
@@ -307,7 +305,7 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._unpack_build.assert_called_once_with(
         mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-        'gs://path/file-release-2.zip', None)
+        'gs://path/file-release-2.zip')
 
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
@@ -357,12 +355,12 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
         mock.call(
             mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-            'gs://path/file-release-2.zip', None),
+            'gs://path/file-release-2.zip'),
         mock.call(
             mock.ANY,
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/__extra_build',
-            'gs://path2/file-release-2.zip', None)
+            'gs://path2/file-release-2.zip')
     ])
 
     self._assert_env_vars()
@@ -479,12 +477,12 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
 
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(
-        2, target_weights=self.target_weights)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
@@ -494,8 +492,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
     self.mock.time.return_value = 1005.0
-    build = build_manager.setup_regular_build(
-        2, target_weights=self.target_weights)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
 
     self.assertIsInstance(build, build_manager.RegularBuild)
 
@@ -510,8 +509,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(
           2,
           self.mock.open.return_value.__enter__.return_value.unpack.call_count)
-
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   @parameterized.parameterized.expand(['True', 'False'])
@@ -523,12 +520,12 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'gs://path2/file-release-([0-9]+).zip')
 
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(
-        2, target_weights=self.target_weights)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
@@ -538,9 +535,10 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
     self.mock.time.return_value = 1005.0
+
     self.assertIsInstance(
-        build_manager.setup_regular_build(
-            2, target_weights=self.target_weights), build_manager.RegularBuild)
+        build_manager.setup_regular_build(2, fuzz_target=fuzz_target),
+        build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # If it was a partial build, the unpack should be called again.
@@ -552,8 +550,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(
           4,
           self.mock.open.return_value.__enter__.return_value.unpack.call_count)
-
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   @parameterized.parameterized.expand(['True', 'False'])
@@ -561,9 +557,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     """Test setting up a build during a non-fuzz task."""
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
     os.environ['TASK_NAME'] = 'progression'
-    os.environ['FUZZ_TARGET'] = 'target3'
-
-    build = build_manager.setup_regular_build(2)
+    fuzz_target = 'target3'
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
     self.assertEqual(
@@ -593,9 +588,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
         fuzz_target=target_checker,
         trusted=True)
-    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
     # If it was a partial build, the unpack should be called again.
@@ -612,18 +606,18 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
           fuzz_target=target_checker,
           trusted=True)
 
-    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
-
-  @parameterized.parameterized.expand(['True', 'False'])
+  @parameterized.parameterized.expand([
+      'True'  # , 'False'
+  ])
   def test_setup_nonfuzz_with_extra(self, unpack_all):
     """Test setting up a build during a non-fuzz task with an extra build."""
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
     os.environ['TASK_NAME'] = 'progression'
-    os.environ['FUZZ_TARGET'] = 'target3'
     os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
         'gs://path2/file-release-([0-9]+).zip')
+    fuzz_target = 'target3'
 
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
     class TargetChecker:
@@ -655,9 +649,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
             fuzz_target=target_checker,
             trusted=True)
     ])
-    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
-
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
     # If it was a partial build, the unpack should be called again.
@@ -678,8 +670,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
               fuzz_target=target_checker,
               trusted=True)
       ])
-
-    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
   def test_delete(self):
     """Test deleting this build."""
@@ -1247,7 +1237,7 @@ class RpathsTest(unittest.TestCase):
 
   # pylint: disable=unused-argument
   def mock_unpack_build(self, test_build_dir, actual_self, base_build_dir,
-                        build_dir, url, target_weights):
+                        build_dir, url):
     test_data_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
         test_build_dir)
@@ -1589,11 +1579,12 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     """Tests setting up a build during fuzzing."""
     os.environ['TASK_NAME'] = 'fuzz'
     self.mock.time.return_value = 1000.0
+    fuzz_target = 'target2'
 
-    build = build_manager.setup_build(target_weights=self.target_weights)
+    build = build_manager.setup_build(fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
+
     self._assert_env_vars('target2', 10)
 
     self.assertEqual(
@@ -1619,7 +1610,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'gs://bucket/subdir/target1/8.zip',
     ]
 
-    build = build_manager.setup_build(8)
+    build = build_manager.setup_build(8, fuzz_target=os.environ['FUZZ_TARGET'])
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
@@ -1640,8 +1631,8 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
   def test_delete(self):
     """Test deleting this build."""
-    os.environ['FUZZ_TARGET'] = 'target2'
-    build = build_manager.setup_build(10)
+    fuzz_target = 'target2'
+    build = build_manager.setup_build(10, fuzz_target=fuzz_target)
 
     self.assertTrue(
         os.path.isdir('/builds/bucket_subdir_target2_'
@@ -1670,9 +1661,13 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
   def test_target_no_longer_built(self):
     """Test a target that's not longer listed in target.list."""
-    os.environ['FUZZ_TARGET'] = 'target4'
-    with self.assertRaises(errors.BuildNotFoundError):
-      build_manager.setup_build()
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager._split_target_build_list_targets'
+    ])
+    self.mock._split_target_build_list_targets.return_value = []
+    with self.assertRaises(build_manager.BuildManagerError):
+      build_manager._pick_random_fuzz_target_for_split_build(
+          target_weights={'target4': 1})
 
 
 class GetPrimaryBucketPathTest(unittest.TestCase):

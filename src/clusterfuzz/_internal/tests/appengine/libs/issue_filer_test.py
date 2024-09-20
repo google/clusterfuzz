@@ -499,6 +499,7 @@ class IssueFilerTests(unittest.TestCase):
         'type': 'google_issue_tracker',
         'default_component_id': '1234567890',
         'component_id': '123',
+        'url': 'https://issues.chromium.org/issues',
     }
     exp_issue_id = 68828938
     self.mock._execute.return_value = {

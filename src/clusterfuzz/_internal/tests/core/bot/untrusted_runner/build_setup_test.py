@@ -52,10 +52,8 @@ class BuildSetupTest(unittest.TestCase):
         base_build_dir='/base',
         revision=1337,
         build_url='https://build/url.zip',
-        target_weights={
-            'bad_target': 0.1,
-            'normal_target': 1.0
-        })
+        fuzz_target='normal_target',
+    )
 
     self.mock.regular_build_setup.side_effect = _mock_regular_build_setup
     response = build_setup.setup_regular_build(request)

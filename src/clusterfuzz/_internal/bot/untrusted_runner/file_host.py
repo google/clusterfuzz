@@ -176,8 +176,7 @@ def copy_directory_from_worker(worker_directory, host_directory, replace=False):
       return False
 
     host_file_directory = os.path.dirname(host_file_path)
-    if not os.path.exists(host_file_directory):
-      os.makedirs(host_file_directory)
+    os.makedirs(host_file_directory, exist_ok=True)
 
     if not copy_file_from_worker(worker_file_path, host_file_path):
       logs.warning('Failed to copy %s from worker.' % worker_file_path)
