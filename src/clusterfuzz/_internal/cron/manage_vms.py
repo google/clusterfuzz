@@ -19,9 +19,9 @@ import copy
 import itertools
 import json
 import logging
+from typing import Optional
 
 from google.cloud import ndb
-from tuping import Optional
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -160,6 +160,7 @@ def _template_needs_update(current_template, new_template, resource_name):
 def _update_auto_healing_policy(
     instance_group: bot_manager.InstanceGroup, instance_group_body,
     new_policy: Optional[compute_engine_projects.AutoHealingPolicy]):
+  """Updates the given instance group's auto-healing policy if need be."""
   old_policy_dict = None
   policies = instance_group_body.get('autoHealingPolicies')
   if policies:
@@ -175,15 +176,16 @@ def _update_auto_healing_policy(
   if new_policy_dict == old_policy_dict:
     return
 
-  logging.info('Updating auto-healing policy from ' +
-               f'{old_policy_dict} to {new_policy_dict}')
+  logging.info('Updating auto-healing policy from %s to %s', old_policy_dict,
+               new_policy_dict)
 
   try:
     instance_group.patch_auto_healing_policies(
         auto_healing_policy=new_policy_dict, wait_for_instances=False)
   except bot_manager.OperationError as e:
-    logging.error('Failed to patch auto-healing policies for instance group ' +
-                  f'{instance_group.name}: {e}')
+    logging.error(
+        'Failed to patch auto-healing policies for instance group %s: %s',
+        instance_group.name, e)
 
 
 class ClustersManager:
@@ -283,7 +285,8 @@ class ClustersManager:
         else:
           logging.info('No instance group size changes needed.')
 
-        _update_auto_healing_policy(instance_group, cluster.auto_healing_policy)
+        _update_auto_healing_policy(instance_group, instance_group_body,
+                                    cluster.auto_healing_policy)
         return
 
     if template_needs_update:

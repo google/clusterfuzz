@@ -15,6 +15,7 @@
 
 from collections import namedtuple
 import dataclasses
+import logging
 import os
 from typing import Any
 from typing import Dict
@@ -84,10 +85,10 @@ class AutoHealingPolicy:
 
     if health_check is None or initial_delay_sec is None:
       logging.warning(
-          'Ignoring auto_healing_policy ' +
-          'because its two values (health_check, initial_delay_sec) ' +
-          'should never exist independently: ' +
-          f'({health_check}, {initial_delay_sec})')
+          'Ignoring auto_healing_policy '
+          'because its two values (health_check, initial_delay_sec) '
+          'should never exist independently: (%s, %s)', health_check,
+          initial_delay_sec)
       return None
 
     assert isinstance(health_check, str), repr(health_check)
