@@ -30,7 +30,6 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
-_ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 
 # TODO: Make these configuration settings instead of hardcoded values in code.
 # These custom fields use repeated enums.
@@ -951,6 +950,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._client = http_client
     self._default_component_id = config['default_component_id']
     self._type = config['type'] if hasattr(config, 'type') else None
+    self._url = config['url']
 
   @property
   def client(self):
@@ -1062,13 +1062,13 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def find_issues_url(self, keywords=None, only_open=None):
     """Finds issues (web URL)."""
-    return (_ISSUE_TRACKER_URL + '?' + urllib.parse.urlencode({
+    return (self._url + '?' + urllib.parse.urlencode({
         'q': _get_query(keywords, only_open),
     }))
 
   def issue_url(self, issue_id):
     """Returns the issue URL with the given ID."""
-    return _ISSUE_TRACKER_URL + '/' + str(issue_id)
+    return self._url + '/' + str(issue_id)
 
   @property
   def label_type(self):
