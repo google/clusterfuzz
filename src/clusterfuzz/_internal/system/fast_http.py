@@ -13,39 +13,54 @@
 # limitations under the License.
 """Tools for fast HTTP operations."""
 import asyncio
+from concurrent import futures
+import contextlib
 import itertools
-import multiprocessing
 from typing import List
+from typing import Tuple
 
 import aiohttp
 
+from clusterfuzz._internal.system import environment
 
-def download_urls(pool: multiprocessing.Pool, urls: List[str],
-                  filepaths: List[str], pool_size: int) -> str:
-  """Downloads multiple |urls| to |filepaths| in parallel (using |pool|) and
-  asynchronously. Tolerates errors. Returns a list of whether each download was
-  successful."""
+_POOL_SIZE = 16
+
+
+@contextlib.contextmanager
+def _pool(pool_size=_POOL_SIZE):
+  if (environment.get_value('PY_UNITTESTS') or
+      environment.platform() == 'WINDOWS'):
+    yield futures.ThreadPoolExecutor(pool_size)
+  else:
+    yield futures.ProcessPoolExecutor(pool_size)
+
+
+def download_urls(urls: List[str], filepaths: List[str]) -> str:
+  """Downloads multiple |urls| to |filepaths| in parallel and
+  asynchronously. Tolerates errors. Returns a list of whether each
+  download was successful."""
   # TOOD(metzman): Move the multiprocessing code over from storage.
   assert len(urls) == len(filepaths)
   chunks = []
-  chunk_size = len(urls) // pool_size
+  chunk_size = len(urls) // _POOL_SIZE
   urls_and_filepaths = list(zip(urls, filepaths))
-  for idx in range(0, len(all_urls), chunk_size):
-    chunk = urls_and_file_paths[idx:idx + chunk_size]
+  for idx in range(0, len(urls), chunk_size):
+    chunk = urls_and_filepaths[idx:idx + chunk_size]
     chunks.append(chunk)
-  return list(itertools.chain(pool.starmap(download_files, chunks)))
+  with _pool() as pool:
+    return list(itertools.chain(pool.map(_download_files, chunks)))
 
 
-def _download_files(urls: List[str], paths: List[str]) -> List[bool]:
-  return asyncio.run(_async_download_files(urls, paths))
+def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
+  urls, paths = list(zip(*urls_and_paths))
+  return asyncio.run(_async_download_files(list(urls), list(paths)))
 
 
 async def _async_download_files(urls: List[str],
                                 paths: List[str]) -> List[bool]:
   async with aiohttp.ClientSession() as session:
     tasks = [
-        asyncio.create_task(
-            _error_tolerant_download_file(session, url, filename))
+        asyncio.create_task(_error_tolerant_download_file(session, url, path))
         for url, path in zip(urls, paths)
     ]
     return await asyncio.gather(*tasks)
