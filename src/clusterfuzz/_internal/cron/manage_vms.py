@@ -161,22 +161,27 @@ def _update_auto_healing_policy(
     instance_group: bot_manager.InstanceGroup,
     new_policy: Optional[compute_engine_projects.AutoHealingPolicy]):
   # Check if needs to update health check URL in autoHealingPolicies.
-  old_policy = None
-  old_policies = instance_group_body.get('autoHealingPolicies')
-  if old_policies:
-    old_policy = compute_engine_projects.AutoHealingPolicy(
-        health_check=old_policies[0].get('healthCheck'),
-        initial_delay_sec=old_policies[0].get('initialDelaySec'))
+  old_policy_dict = None
+  policies = instance_group_body.get('autoHealingPolicies')
+  if policies:
+    old_policy_dict = policies[0]
 
-  if old_policy == new_policy:
+  new_policy_dict = None
+  if new_policy is not None:
+    new_policy_dict = {
+        "healthCheck": new_policy.health_check,
+        "initialDelaySec": new_policy.initial_delay_sec,
+    }
+
+  if new_policy_dict == old_policy_dict:
     return
 
   logging.info('Updating auto-healing policy from ' +
-               f'{repr(old_policy)} to {repr(new_policy)}')
+               f'{old_policy_dict} to {new_policy_dict}')
 
   try:
     instance_group.patch_auto_healing_policies(
-        auto_healing_policy=new_policy.to_json_dict(), wait_for_instances=False)
+        auto_healing_policy=new_policy_dict, wait_for_instances=False)
   except bot_manager.OperationError as e:
     logging.error('Failed to patch auto-healing policies for instance group ' +
                   f'{instance_group["name"]}: {e}')

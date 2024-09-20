@@ -95,13 +95,6 @@ class AutoHealingPolicy:
 
     return cls(health_check=health_check, initial_delay_sec=initial_delay_sec)
 
-  def to_json_dict(self) -> Dict[str, Any]:
-    """Returns this policy as an API-compatible dict."""
-    return {
-        "healthCheck": self.health_check,
-        "initialDelaySec": self.initial_delay_sec,
-    }
-
 
 def _process_instance_template(instance_template):
   """Process instance template, normalizing some of metadata key values."""
