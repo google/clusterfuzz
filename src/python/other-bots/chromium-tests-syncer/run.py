@@ -50,13 +50,10 @@ def unpack_crash_testcases(crash_testcases_directory):
   count = 0
   # Make sure that it is a unique crash testcase. Ignore duplicates,
   # uploaded repros. Check if the testcase is fixed. If not, skip.
-  # Only use testcases that have bugs associated with them.
   # Sort latest first.
   testcases = data_types.Testcase.query(
-      data_types.Testcase.status == 'Processed',
-      ndb_utils.is_false(data_types.Testcase.open),
-      data_types.Testcase.bug_information !=
-      '').order(-data_types.Testcase.timestamp)
+      ndb_utils.is_false(data_types.Testcase.open), data_types.Testcase.status
+      == 'Processed').order(-data_types.Testcase.timestamp)
   for testcase in testcases:
     count += 1
     if count >= MAX_TESTCASES:
@@ -75,16 +72,20 @@ def unpack_crash_testcases(crash_testcases_directory):
     if not testcase.minimized_keys or testcase.minimized_keys == 'NA':
       continue
 
-    # 3. Existing IPC testcases are un-interesting and unused in further
+    # 3. Only use testcases that have bugs associated with them.
+    if not testcase.bug_information:
+      continue
+
+    # 4. Existing IPC testcases are un-interesting and unused in further
     # mutations. Due to size bloat, ignoring these for now.
     if testcase.absolute_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
       continue
 
-    # 4. Ignore testcases that are archives (e.g. Langfuzz fuzzer tests).
+    # 5. Ignore testcases that are archives (e.g. Langfuzz fuzzer tests).
     if archive.get_archive_type(testcase.absolute_path):
       continue
 
-    # 5. Skip in-process fuzzer testcases, since these are only applicable to
+    # 6. Skip in-process fuzzer testcases, since these are only applicable to
     # fuzz targets and don't run with blackbox binaries.
     if testcase.fuzzer_name and testcase.fuzzer_name in ENGINE_FUZZER_NAMES:
       continue
