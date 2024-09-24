@@ -209,5 +209,4 @@ CLUSTERFUZZ_CRON_EXIT_CODE = monitor.GaugeMetric(
     description='Tracks successful completion of cronjobs',
     field_spec=[
         monitor.StringField('cron_name'),
-    ]
-)
+    ])

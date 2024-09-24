@@ -116,9 +116,9 @@ class _FlusherThread(threading.Thread):
 
     should_stop = False
     while True:
-      # Make sure there are no metrics left to flush after monitor.stop() is called
+      # Make sure there are no metrics left to flush after monitor.stop()
       if self.stop_event.wait(FLUSH_INTERVAL_SECONDS):
-          should_stop = True
+        should_stop = True
       try:
         time_series = []
         end_time = time.time()

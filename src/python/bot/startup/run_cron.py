@@ -63,24 +63,27 @@ def main():
 
   task_module_name = f'clusterfuzz._internal.cron.{task}'
   labels = {
-    'cron_name': task,
+      'cron_name': task,
   }
-  
+
+  return_code = 0
+
   with ndb_init.context():
     task_module = importlib.import_module(task_module_name)
     exception = None
-    return_code = 0
     try:
       return_code = 0 if task_module.main() else 1
     except Exception as e:
       return_code = 1
       exception = e
     finally:
-      monitoring_metrics.CLUSTERFUZZ_CRON_EXIT_CODE.set(return_code, labels=labels)
+      monitoring_metrics.CLUSTERFUZZ_CRON_EXIT_CODE.set(
+          return_code, labels=labels)
       monitor.stop()
       if exception:
         raise exception
-      return return_code
+
+  return return_code
 
 
 if __name__ == '__main__':
