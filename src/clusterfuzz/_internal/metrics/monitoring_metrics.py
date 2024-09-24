@@ -200,3 +200,14 @@ ANDROID_UPTIME = monitor.CounterMetric(
         monitor.StringField('platform'),
     ],
 )
+
+# Cron metrics
+
+# 0 value means healthy, 1 unhealthy
+CLUSTERFUZZ_CRON_EXIT_CODE = monitor.GaugeMetric(
+    'clusterfuzz_cron_exit_code',
+    description='Tracks successful completion of cronjobs',
+    field_spec=[
+        monitor.StringField('cron_name'),
+    ]
+)

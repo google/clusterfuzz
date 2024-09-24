@@ -114,11 +114,12 @@ class _FlusherThread(threading.Thread):
     project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
         utils.get_application_id())
 
+    should_stop = False
     while True:
+      # Make sure there are no metrics left to flush after monitor.stop() is called
+      if self.stop_event.wait(FLUSH_INTERVAL_SECONDS):
+          should_stop = True
       try:
-        if self.stop_event.wait(FLUSH_INTERVAL_SECONDS):
-          return
-
         time_series = []
         end_time = time.time()
         for metric, labels, start_time, value in _metrics_store.iter_values():
@@ -146,6 +147,8 @@ class _FlusherThread(threading.Thread):
           logs.warning(f'Failed to flush metrics: {e}')
         else:
           logs.error(f'Failed to flush metrics: {e}')
+      if should_stop:
+        return
 
   def stop(self):
     self.stop_event.set()
