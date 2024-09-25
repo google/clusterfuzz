@@ -550,12 +550,13 @@ def _initialize_monitored_resource():
   _monitored_resource.labels['project_id'] = utils.get_application_id()
 
   # Use bot name here instance as that's more useful to us.
+  # In case it is in Kubernetes, we use the pod name
   if environment.is_running_on_k8s():
-    pod_name = environment.get_value('HOSTNAME')
-    _monitored_resource.labels['pod_name'] = pod_name
+    instance_name = environment.get_value('HOSTNAME')
   else:
-    bot_name = environment.get_value('BOT_NAME')
-    _monitored_resource.labels['instance_id'] = bot_name
+    instance_name = environment.get_value('BOT_NAME')
+  _monitored_resource.labels['instance_id'] = instance_name
+
   if compute_metadata.is_gce():
     # Returned in the form projects/{id}/zones/{zone}
     zone = compute_metadata.get('instance/zone').split('/')[-1]
