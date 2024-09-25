@@ -27,6 +27,8 @@ import sys
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
 
 
@@ -55,12 +57,35 @@ def main():
   except ImportError:
     pass
 
+  # Few metrics get collected per job run, so
+  # no need for a thread to continuously push those
+  monitor.initialize(use_flusher_thread=False)
+
   task = sys.argv[1]
 
   task_module_name = f'clusterfuzz._internal.cron.{task}'
+  labels = {
+      'cron_name': task,
+  }
+
+  return_code = 0
+
   with ndb_init.context():
     task_module = importlib.import_module(task_module_name)
-    return 0 if task_module.main() else 1
+    exception = None
+    try:
+      return_code = 0 if task_module.main() else 1
+    except Exception as e:
+      return_code = 1
+      exception = e
+    finally:
+      monitoring_metrics.CLUSTERFUZZ_CRON_EXIT_CODE.set(
+          return_code, labels=labels)
+      monitor.stop()
+      if exception:
+        raise exception
+
+  return return_code
 
 
 if __name__ == '__main__':
