@@ -100,7 +100,9 @@ class _MockMetric:
 def _time_series_sort_key(ts):
   return ts.points[-1].interval.start_time
 
+
 def flush_metrics():
+  """Flushes all metrics stored in _metrics_store"""
   project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
       utils.get_application_id())
   try:
@@ -108,12 +110,12 @@ def flush_metrics():
     end_time = time.time()
     for metric, labels, start_time, value in _metrics_store.iter_values():
       if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
-          ):
+         ):
         start_time = end_time
 
       series = _TimeSeries()
       metric.monitoring_v3_time_series(series, labels, start_time, end_time,
-                                        value)
+                                       value)
       time_series.append(series)
 
       if len(time_series) == MAX_TIME_SERIES_PER_CALL:
@@ -131,6 +133,7 @@ def flush_metrics():
       logs.warning(f'Failed to flush metrics: {e}')
     else:
       logs.error(f'Failed to flush metrics: {e}')
+
 
 class _FlusherThread(threading.Thread):
   """Flusher thread."""

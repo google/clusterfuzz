@@ -57,6 +57,8 @@ def main():
   except ImportError:
     pass
 
+  # Few metrics get collected per job run, so
+  # no need for a thread to continuously push those
   monitor.initialize(use_flusher_thread=False)
 
   task = sys.argv[1]
