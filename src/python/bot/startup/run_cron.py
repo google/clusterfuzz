@@ -57,7 +57,7 @@ def main():
   except ImportError:
     pass
 
-  monitor.initialize()
+  monitor.initialize(use_flusher_thread=False)
 
   task = sys.argv[1]
 
