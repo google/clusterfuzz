@@ -24,6 +24,8 @@ import time
 import traceback
 from typing import Any
 
+from clusterfuzz._internal.system import environment
+
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
 LOCAL_LOG_MESSAGE_LIMIT = 100000
 LOCAL_LOG_LIMIT = 500000
@@ -34,7 +36,7 @@ _default_extras = {}
 
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_running_on_k8s():
+  if environment.is_running_on_k8s():
     task_name = 'k8s'
   elif _is_running_on_app_engine():
     task_name = 'appengine'
@@ -60,11 +62,6 @@ def _is_running_on_app_engine():
        os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
-def _is_running_on_k8s():
-  """Returns whether or not we're running on K8s."""
-  return os.getenv('IS_K8S_ENV') == 'true'
-
-
 def _console_logging_enabled():
   """Return bool on where console logging is enabled, usually for tests."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
@@ -78,9 +75,9 @@ def _file_logging_enabled():
   This is disabled if we are running in app engine or kubernetes as these have
     their dedicated loggers, see configure_appengine() and configure_k8s().
   """
-  return bool(os.getenv(
-      'LOG_TO_FILE',
-      'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  return bool(
+      os.getenv('LOG_TO_FILE', 'True')
+  ) and not _is_running_on_app_engine() and not environment.is_running_on_k8s()
 
 
 def _fluentd_logging_enabled():
@@ -90,7 +87,7 @@ def _fluentd_logging_enabled():
     kubernetes as these have their dedicated loggers, see configure_appengine()
     and configure_k8s()."""
   return bool(os.getenv('LOG_TO_FLUENTD', 'True')) and not _is_local(
-  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  ) and not _is_running_on_app_engine() and not environment.is_running_on_k8s()
 
 
 def _cloud_logging_enabled():
@@ -99,7 +96,7 @@ def _cloud_logging_enabled():
     or kubernetes as these have their dedicated loggers, see
     configure_appengine() and configure_k8s()."""
   return bool(os.getenv('LOG_TO_GCP')) and not _is_local(
-  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  ) and not _is_running_on_app_engine() and not environment.is_running_on_k8s()
 
 
 def suppress_unwanted_warnings():
@@ -417,7 +414,7 @@ def configure(name, extras=None):
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
 
-  if _is_running_on_k8s():
+  if environment.is_running_on_k8s():
     configure_k8s()
     return
 
@@ -453,7 +450,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine() or _is_running_on_k8s():
+  if _is_running_on_app_engine() or environment.is_running_on_k8s():
     # Running on App Engine.
     set_logger(logging.getLogger())
 

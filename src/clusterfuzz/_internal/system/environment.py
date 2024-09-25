@@ -54,6 +54,11 @@ COMMON_SANITIZER_OPTIONS = {
 }
 
 
+def is_running_on_k8s():
+  """Returns whether or not we're running on K8s."""
+  return os.getenv('IS_K8S_ENV') == 'true'
+
+
 def _eval_value(value_string):
   """Returns evaluated value."""
   try:

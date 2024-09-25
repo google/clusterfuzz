@@ -296,8 +296,9 @@ class Metric:
       metric.labels[key] = str(value)
 
     # Default labels.
-    bot_name = environment.get_value('BOT_NAME')
-    metric.labels['region'] = _get_region(bot_name)
+    if not environment.is_running_on_k8s():
+      bot_name = environment.get_value('BOT_NAME', None)
+      metric.labels['region'] = _get_region(bot_name)
 
     return metric
 
@@ -549,8 +550,12 @@ def _initialize_monitored_resource():
   _monitored_resource.labels['project_id'] = utils.get_application_id()
 
   # Use bot name here instance as that's more useful to us.
-  _monitored_resource.labels['instance_id'] = environment.get_value('BOT_NAME')
-
+  if environment.is_running_on_k8s():
+    bot_name = environment.get_value('BOT_NAME')
+    _monitored_resource.labels['instance_id'] = bot_name
+  else:
+    pod_name = environment.get_value('HOSTNAME')
+    _monitored_resource.labels['pod_name'] = pod_name
   if compute_metadata.is_gce():
     # Returned in the form projects/{id}/zones/{zone}
     zone = compute_metadata.get('instance/zone').split('/')[-1]
