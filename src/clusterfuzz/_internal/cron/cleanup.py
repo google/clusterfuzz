@@ -136,8 +136,8 @@ def cleanup_testcases_and_issues():
       update_fuzz_blocker_label(policy, testcase, issue,
                                 top_crashes_by_project_and_platform_map)
       logs.info('maybe updated fuzz blocker')
-      update_component_labels(policy, testcase, issue)
-      logs.info('maybe updated component labels')
+      update_component_labels_and_id(policy, testcase, issue)
+      logs.info('maybe updated component labels and component id')
       update_issue_ccs_from_owners_file(policy, testcase, issue)
       logs.info('maybe updated issueccs')
       update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
@@ -1024,13 +1024,15 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   issue.save(new_comment=update_message, notify=True)
 
 
-def update_component_labels(policy, testcase, issue):
+def update_component_labels_and_id(policy, testcase, issue):
   """Add components to the issue if needed."""
   if not issue:
     return
 
   components = _get_predator_result_item(
       testcase, 'suspected_components', default=[])
+  component_id = _get_predator_result_item(testcase,
+                                           'suspected_buganizer_component_id')
 
   # Remove components already in issue or whose more specific variants exist.
   filtered_components = []
@@ -1069,6 +1071,11 @@ def update_component_labels(policy, testcase, issue):
 
   for filtered_component in filtered_components:
     issue.components.add(filtered_component)
+
+  # This is very specific to google_issue_tracker, so this attribute might not
+  # be available for other issue trackers.
+  if component_id and hasattr(issue, 'component_id'):
+    issue.component_id = component_id
 
   issue.labels.add(
       policy.substitution_mapping(
