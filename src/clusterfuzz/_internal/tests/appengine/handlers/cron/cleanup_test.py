@@ -1363,10 +1363,13 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdateComponentsTest(unittest.TestCase):
-  """Tests for update_component_labels."""
+  """Tests for update_component_labels_and_id."""
 
   def setUp(self):
     self.issue = appengine_test_utils.create_generic_issue()
+    # This is very specific to google_issue_tracker, but for the sake of
+    # simplicity and still testing this feature, we're adding this here.
+    setattr(self.issue, 'component_id', 0)
     self.testcase = test_utils.create_generic_testcase()
     self.policy = issue_tracker_policy.get('test-project')
 
@@ -1377,9 +1380,27 @@ class UpdateComponentsTest(unittest.TestCase):
             'suspected_components': ['A', 'B>C']
         }})
 
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('B>C', self.issue.components)
+    self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
+
+  def test_component_id_added(self):
+    """Ensure that we a component_id when applicable."""
+    self.testcase.set_metadata(
+        'predator_result', {
+            'result': {
+                'suspected_components': ['A', 'B>C'],
+                'suspected_buganizer_component_id': 123456,
+            }
+        })
+
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertIn('A', self.issue.components)
+    self.assertIn('B>C', self.issue.components)
+    self.assertEqual(123456, self.issue.component_id)
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
   def test_components_not_reapplied(self):
@@ -1393,7 +1414,8 @@ class UpdateComponentsTest(unittest.TestCase):
         labels=['Test-Predator-Auto-Components'])
     self.issue._monorail_issue.comments.append(comment)
 
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertNotIn('A', self.issue.components)
     self.assertNotIn('B>C', self.issue.components)
     self.assertNotIn('Test-Predator-Auto-Components', self.issue.labels)
@@ -1402,7 +1424,8 @@ class UpdateComponentsTest(unittest.TestCase):
     """Ensure that we don't add label when there is no component in result."""
     self.testcase.set_metadata('predator_result', {})
     self.issue.components.add('A')
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertIn('A', self.issue.components)
     self.assertNotIn('Test-Predator-Auto-Components', self.issue.labels)
 
@@ -1415,7 +1438,8 @@ class UpdateComponentsTest(unittest.TestCase):
     self.issue.components.add('A')
     self.issue.components.add('B>C')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('B>C', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1430,7 +1454,8 @@ class UpdateComponentsTest(unittest.TestCase):
                                }})
     self.issue.components.add('A>B')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertNotIn('A', self.issue.components)
     self.assertIn('A>B', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1445,7 +1470,8 @@ class UpdateComponentsTest(unittest.TestCase):
                                }})
     self.issue.components.add('A>B')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertNotIn('A', self.issue.components)
     self.assertIn('A>B', self.issue.components)
     self.assertIn('D', self.issue.components)
@@ -1461,7 +1487,8 @@ class UpdateComponentsTest(unittest.TestCase):
                                }})
     self.issue.components.add('AA>B')
     self.issue.components.add('D')
-    cleanup.update_component_labels(self.policy, self.testcase, self.issue)
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('AA>B', self.issue.components)
     self.assertIn('D', self.issue.components)
