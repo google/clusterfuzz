@@ -440,7 +440,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             body={
                 'issueState': {
                     'componentId':
-                        1337,
+                        1456567,
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
