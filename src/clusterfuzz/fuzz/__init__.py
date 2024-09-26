@@ -42,9 +42,9 @@ def get_engine(name):
   return engine_impl
 
 
-def is_fuzz_target(file_path, file_handle=None):
+def is_fuzz_target(file_path, file_opener=None):
   """Returns whether |file_path| is a fuzz target."""
-  return utils.is_fuzz_target_local(file_path, file_handle)
+  return utils.is_fuzz_target(file_path, file_opener)
 
 
 def get_fuzz_targets(directory):

@@ -24,7 +24,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
 
 class IsFuzzTargetLocalTest(unittest.TestCase):
-  """is_fuzz_target_local tests."""
+  """is_fuzz_target tests."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
@@ -42,74 +42,84 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
 
   def test_not_a_fuzzer_invalid_name(self):
     path = self._create_file('abc$_fuzzer', contents=b'LLVMFuzzerTestOneInput')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_not_a_fuzzer_blocklisted_name(self):
     path = self._create_file(
         'jazzer_driver', contents=b'LLVMFuzzerTestOneInput')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_not_a_fuzzer_without_extension(self):
     path = self._create_file('abc', contents=b'anything')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_not_a_fuzzer_with_extension(self):
     path = self._create_file('abc.dict', contents=b'LLVMFuzzerTestOneInput')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_not_a_fuzzer_with_extension_and_suffix(self):
     path = self._create_file(
         'abc_fuzzer.dict', contents=b'LLVMFuzzerTestOneInput')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_fuzzer_posix(self):
     path = self._create_file('abc_fuzzer', contents=b'anything')
-    self.assertTrue(utils.is_fuzz_target_local(path))
+    self.assertTrue(utils.is_fuzz_target(path))
 
   def test_fuzzer_win(self):
     path = self._create_file('abc_fuzzer.exe', contents=b'anything')
-    self.assertTrue(utils.is_fuzz_target_local(path))
+    self.assertTrue(utils.is_fuzz_target(path))
 
   def test_fuzzer_py(self):
     path = self._create_file('abc_fuzzer.par', contents=b'anything')
-    self.assertTrue(utils.is_fuzz_target_local(path))
+    self.assertTrue(utils.is_fuzz_target(path))
 
   def test_fuzzer_not_exist(self):
-    self.assertFalse(utils.is_fuzz_target_local('/not_exist_fuzzer'))
+    self.assertFalse(utils.is_fuzz_target('/not_exist_fuzzer'))
 
   def test_fuzzer_without_suffix(self):
     path = self._create_file(
         'abc', contents=b'anything\nLLVMFuzzerTestOneInput')
-    self.assertTrue(utils.is_fuzz_target_local(path))
+    self.assertTrue(utils.is_fuzz_target(path))
 
   def test_fuzzer_with_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
     path = self._create_file('a_custom', contents=b'anything')
-    self.assertTrue(utils.is_fuzz_target_local(path))
+    self.assertTrue(utils.is_fuzz_target(path))
 
   def test_fuzzer_with_file_string_and_without_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
     path = self._create_file(
         'nomatch', contents=b'anything\nLLVMFuzzerTestOneInput')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_fuzzer_without_file_string_and_without_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
     path = self._create_file('nomatch', contents=b'anything')
-    self.assertFalse(utils.is_fuzz_target_local(path))
+    self.assertFalse(utils.is_fuzz_target(path))
 
   def test_fuzzer_with_fuzzer_name_and_without_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
     path = self._create_file(
         'a_fuzzer', contents=b'anything\nLLVMFuzzerTestOneInput')
-    self.assertTrue(utils.is_fuzz_target_local(path))
+    self.assertTrue(utils.is_fuzz_target(path))
 
   def test_file_handle(self):
     """Test with a file handle."""
+
+    class MockFileOpener:
+
+      def __init__(self, fileobj):
+        self.fileobj = fileobj
+
+      def __call__(self, _):
+        return self.fileobj
+
     path = self._create_file(
         'abc', contents=b'anything\nLLVMFuzzerTestOneInput')
-    with open(path, 'rb') as f:
-      self.assertTrue(utils.is_fuzz_target_local('name', f))
+    f_opener = MockFileOpener(open(path, 'rb'))
+    self.assertTrue(utils.is_fuzz_target('name', f_opener))
+    self.assertTrue(f_opener.fileobj.closed)
 
 
 class GetSupportingFileTest(unittest.TestCase):

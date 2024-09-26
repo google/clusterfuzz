@@ -190,13 +190,9 @@ class DefaultBuildArchive(BuildArchive):
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     for archive_file in self.list_members():
-      file_content = self.try_open(archive_file.name)
-      if fuzzer_utils.is_fuzz_target_local(archive_file.name, file_content):
+      if fuzzer_utils.is_fuzz_target(archive_file.name, self.open):
         fuzz_target = fuzzer_utils.normalize_target_name(archive_file.name)
         self._fuzz_targets[fuzz_target] = archive_file.name
-
-      if file_content:
-        file_content.close()
 
     return list(self._fuzz_targets.keys())
 
@@ -299,23 +295,19 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return res
 
 
-# pylint: disable=redefined-builtin
-def open(archive_path: str) -> BuildArchive:
-  """Opens the archive and gets the appropriate build archive based on the
-  `archive_path`. The resulting object is usable as a normal archive reader,
-  but provides additional feature related to build handling.
+def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
+  """Open the archive and gets the appropriate build archive based on the
+  provided archive information.
 
   Args:
-      archive_path: the path to the archive.
+      reader: the archive reader.
 
   Raises:
-      If the file could not be opened or if the archive type cannot be handled.
+    If the archive reader cannot be handled.
 
   Returns:
-      the build archive.
+      The build archive.
   """
-  reader = archive.open(archive_path)
-
   # Unfortunately, there is no good heuristic for determining which build
   # archive implementation to use.
   # Hopefully, we can search in the archive whether some files are present and
@@ -328,3 +320,41 @@ def open(archive_path: str) -> BuildArchive:
   if reader.file_exists(args_gn_path):
     return ChromeBuildArchive(reader)
   return DefaultBuildArchive(reader)
+
+
+def open(archive_path: str) -> BuildArchive:  # pylint: disable=redefined-builtin
+  """Opens the archive and gets the appropriate build archive based on the
+  `archive_path`. The resulting object is usable as a normal archive reader,
+  but provides additional feature related to build handling.
+
+  Args:
+      archive_path: the path to the archive.
+
+  Raises:
+      If the file could not be opened or if the archive type cannot be handled.
+
+  Returns:
+      The build archive.
+  """
+  reader = archive.open(archive_path)
+  return open_with_reader(reader)
+
+
+def open_uri(uri: str) -> BuildArchive:
+  """Opens a build archive over HTTP. This is only compatible with chromium as
+  of now.
+
+  Args:
+      uri: the URI pointing to the zip file.
+
+  Returns:
+      The build archive.
+  """
+  reader = archive.ZipArchiveReader(archive.HttpZipFile(uri))
+  return open_with_reader(reader)
+
+
+def unzip_over_http_compatible(build_url: str) -> bool:
+  """Whether the build URL is compatible with unzipping over HTTP.
+  """
+  return archive.HttpZipFile.is_uri_compatible(build_url)

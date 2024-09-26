@@ -14,11 +14,13 @@
 """Build manager."""
 
 from collections import namedtuple
+import contextlib
 import os
 import re
 import shutil
 import subprocess
 import time
+from typing import Optional
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -402,10 +404,92 @@ class Build(BaseBuild):
     if instrumented_library_paths:
       self._patch_rpaths(instrumented_library_paths)
 
-  def _unpack_build(self, base_build_dir, build_dir, build_url):
+  @contextlib.contextmanager
+  def _download_and_open_build_archive(self, base_build_dir: str,
+                                       build_dir: str, build_url: str):
+    """Downloads the build archive at `build_url` and opens it.
+
+    Args:
+        base_build_dir: the base build directory
+        build_dir: the current build directory
+        build_url: the build URL
+
+    Yields:
+        the build archive
+    """
+    # Download build archive locally.
+    build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
+
+    # Make the disk space necessary for the archive available.
+    archive_size = storage.get_object_size(build_url)
+    if archive_size is not None and not _make_space(archive_size,
+                                                    base_build_dir):
+      shell.clear_data_directories()
+      logs.log_fatal_and_exit(
+          'Failed to make space for download. '
+          'Cleared all data directories to free up space, exiting.')
+
+    logs.info(f'Downloading build from {build_url} to {build_local_archive}.')
+    try:
+      storage.copy_file_from(build_url, build_local_archive)
+    except Exception as e:
+      logs.error(f'Unable to download build from {build_url}: {e}')
+      raise
+
+    try:
+      with build_archive.open(build_local_archive) as build:
+        yield build
+    finally:
+      shell.remove_file(build_local_archive)
+
+  def _open_build_archive(self, base_build_dir: str, build_dir: str,
+                          build_url: str, http_build_url: Optional[str],
+                          unpack_everything: Optional[bool]):
+    """Gets a handle on a build archive for the current build. Depending on the
+    provided parameters, this function might download the build archive into
+    the build directory or directly use remote HTTP archive.
+
+    Args:
+        unpack_everything: wether we should unpack the whole archive or try
+        selective unpacking.
+        base_build_dir: the base build directory.
+        build_dir: the current build directory.
+        build_url: the build URL.
+        http_build_url: the HTTP build URL.
+
+    Raises:
+        if an error occurred while accessing the file over HTTP or while
+        downloading the file on disk.
+
+    Returns:
+        the build archive.
+    """
+    # We only want to use remote unzipping if we're not unpacking everything and
+    # if the HTTP URL is compatible with remote unzipping.
+    allow_unpack_over_http = environment.get_value(
+        'ALLOW_UNPACK_OVER_HTTP', default_value=False)
+    can_unzip_over_http = (
+        allow_unpack_over_http and not unpack_everything and http_build_url and
+        build_archive.unzip_over_http_compatible(http_build_url))
+
+    if not can_unzip_over_http:
+      return self._download_and_open_build_archive(base_build_dir, build_dir,
+                                                   build_url)
+    logs.info("Opening an archive over HTTP, skipping archive download.")
+    assert http_build_url
+    return build_archive.open_uri(http_build_url)
+
+  def _unpack_build(self,
+                    base_build_dir,
+                    build_dir,
+                    build_url,
+                    http_build_url=None):
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
     start_time = time.time()
+
+    unpack_everything = environment.get_value(
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
     logs.info(f'Unpacking build from {build_url} into {build_dir}.')
 
@@ -419,27 +503,9 @@ class Build(BaseBuild):
       _handle_unrecoverable_error_on_windows()
       return False
 
-    # Download build archive locally.
-    build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
-
-    # Make the disk space necessary for the archive available.
-    archive_size = storage.get_object_size(build_url)
-    if archive_size is not None and not _make_space(archive_size,
-                                                    base_build_dir):
-      shell.clear_data_directories()
-      logs.log_fatal_and_exit(
-          'Failed to make space for download. '
-          'Cleared all data directories to free up space, exiting.')
-
-    logs.info(f'Downloading build from {build_url}.')
     try:
-      storage.copy_file_from(build_url, build_local_archive)
-    except Exception as e:
-      logs.error(f'Unable to download build from {build_url}: {e}')
-      return False
-
-    try:
-      with build_archive.open(build_local_archive) as build:
+      with self._open_build_archive(base_build_dir, build_dir, build_url,
+                                    http_build_url, unpack_everything) as build:
         unpack_everything = environment.get_value(
             'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
@@ -463,8 +529,7 @@ class Build(BaseBuild):
               'Cleared all data directories to free up space, exiting.')
 
         # Unpack the local build archive.
-        logs.info(
-            f'Unpacking build archive {build_local_archive} to {build_dir}.')
+        logs.info(f'Unpacking build archive {build_url} to {build_dir}.')
         trusted = not utils.is_oss_fuzz()
 
         build.unpack(
@@ -473,7 +538,7 @@ class Build(BaseBuild):
             trusted=trusted)
 
     except Exception as e:
-      logs.error(f'Unable to unpack build archive {build_local_archive}: {e}')
+      logs.error(f'Unable to unpack build archive {build_url}: {e}')
       return False
 
     if unpack_everything:
@@ -483,9 +548,6 @@ class Build(BaseBuild):
       # such so that it is not re-used.
       partial_build_file_path = os.path.join(build_dir, PARTIAL_BUILD_FILE)
       utils.write_data_to_file('', partial_build_file_path)
-
-    # No point in keeping the archive around.
-    shell.remove_file(build_local_archive)
 
     elapsed_time = time.time() - start_time
     elapsed_mins = elapsed_time / 60.
@@ -605,10 +667,20 @@ class RegularBuild(Build):
                revision,
                build_url,
                build_prefix='',
-               fuzz_target=None):
+               fuzz_target=None,
+               http_build_url=None):
+    """RegularBuild constructor. See Build constructor for other parameters.
+
+    Args:
+        http_build_url: the http build URL. E.g.
+        http://storage.com/foo/bar.zip. Defaults to None.
+        build_url: the GCS bucket URL where the build is stored. E.g.
+        gs://foo/bar.zip.
+    """
     super().__init__(
         base_build_dir, revision, build_prefix, fuzz_target=fuzz_target)
     self.build_url = build_url
+    self.http_build_url = http_build_url
 
     if build_prefix:
       self.build_dir_name = build_prefix.lower()
@@ -630,7 +702,7 @@ class RegularBuild(Build):
     build_update = not self.exists()
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
-                                self.build_url):
+                                self.build_url, self.http_build_url):
         return False
 
       logs.info('Retrieved build r%d.' % self.revision)
@@ -1116,6 +1188,9 @@ def setup_regular_build(revision,
 
     return None
 
+  # build_url points to a GCP bucket, and we're only converting it to its HTTP
+  # endpoint so that we can use remote unzipping.
+  http_build_url = build_url.replace('gs://', 'https://storage.googleapis.com/')
   base_build_dir = _base_build_dir(bucket_path)
 
   build_class = RegularBuild
@@ -1133,7 +1208,8 @@ def setup_regular_build(revision,
       revision,
       build_url,
       build_prefix=build_prefix,
-      fuzz_target=fuzz_target)
+      fuzz_target=fuzz_target,
+      http_build_url=http_build_url)
   if build.setup():
     result = build
   else:
