@@ -248,7 +248,9 @@ def create_tasks(testcase):
     testcase.put()
     return
 
-  if environment.is_minimization_supported():
+  if environment.is_minimization_supported() or environment.get_value(
+    'MINMIZE_FUZZER_OVERRIDE'
+  ):
     # For supported environments, just create the minimize task for now.
     # Once minimization is complete, it automatically creates the rest of the
     # needed tasks.
