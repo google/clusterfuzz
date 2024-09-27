@@ -526,6 +526,14 @@ indexes:
     - name: open
     - name: one_time_crasher_flag
 
+- kind: Testcase
+  properties:
+  - name: open
+  - name: status
+  - name: timestamp
+    direction: desc
+  - name: bug_information
+
 - kind: _AE_Pipeline_Record
   properties:
   - name: is_root_pipeline
