@@ -22,6 +22,7 @@ import unittest
 from unittest import mock
 
 from google.cloud import ndb
+import parameterized
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
@@ -527,3 +528,32 @@ class SearchBytesInFileTest(unittest.TestCase):
 
     with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'ABCD', f))
+
+
+class SearchBytesInFileTestComplex(unittest.TestCase):
+  """Tests search_bytes_in_file."""
+
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+    self.test_path = os.path.join(self.temp_dir, 'file')
+    with open(self.test_path, 'wb') as f:
+      f.write(b'A' * 16 + b'\n' + b'B' * 16)
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+  @parameterized.parameterized.expand(
+      [10, 16, 17, 18, 20, utils.DEFAULT_SEARCH_BUFFER_LENGTH])
+  def test_exists(self, buffer_length):
+    """Test exists."""
+    utils.DEFAULT_SEARCH_BUFFER_LENGTH = buffer_length
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'A\nB', f))
+
+  @parameterized.parameterized.expand(
+      [10, 16, 17, 18, 20, utils.DEFAULT_SEARCH_BUFFER_LENGTH])
+  def test_not_exists(self, buffer_length):
+    """Test not exists."""
+    utils.DEFAULT_SEARCH_BUFFER_LENGTH = buffer_length
+    with open(self.test_path, 'rb') as f:
+      self.assertFalse(utils.search_bytes_in_file(b'A\n\nB', f))
