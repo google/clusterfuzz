@@ -1764,7 +1764,12 @@ class FuzzingSession:
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
-    self.data_directory = setup.trusted_get_data_bundle_directory(self.fuzzer)
+    if self.uworker_input.setup_input.data_bundle_corpuses:
+      data_bundle = self.uworker_input.setup_input.data_bundle_corpuses[0]
+    else:
+      data_bundle = None
+    self.data_directory = setup.get_data_bundle_directory(
+        self.fuzzer, data_bundle)
     if not self.data_directory:
       logs.error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
@@ -1924,7 +1929,7 @@ def handle_fuzz_no_fuzz_target_selected(output):
                    output.uworker_input.uworker_env)
 
 
-def _make_session(uworker_input):
+def _make_session(uworker_input: uworker_msg_pb2.Input) -> FuzzingSession:
   test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(
       uworker_input,
