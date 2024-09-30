@@ -119,7 +119,8 @@ def _testcase_reproduces_in_revision(
       log_message += ' (current range %d:%d)' % (min_revision, max_revision)
     logs.info(log_message)
 
-  build_manager.setup_build(revision)
+  target = fuzz_target.binary if fuzz_target else None
+  build_manager.setup_build(revision, target)
   if not build_manager.check_app_path():
     error_message = f'Build setup failed r{revision}'
     return None, uworker_msg_pb2.Output(

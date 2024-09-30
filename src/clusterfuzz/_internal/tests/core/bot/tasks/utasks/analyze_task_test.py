@@ -155,7 +155,8 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
       os.environ['GN_ARGS_PATH'] = gn_args_path.name
       gn_args_path.write(bytes(self.gn_args, 'utf-8'))
       gn_args_path.seek(0)
-      result = analyze_task.setup_testcase_and_build(testcase, 'job', None, [])
+      result = analyze_task.setup_testcase_and_build(testcase, 'job', None, [],
+                                                     None)
       metadata = json.loads(testcase.additional_metadata)
       self.assertEqual(metadata['gn_args'], self.gn_args)
     self.assertEqual(result, (self.testcase_path, None))

@@ -605,7 +605,8 @@ def do_corpus_pruning(uworker_input, context, revision):
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
     return tasks_host.do_corpus_pruning(uworker_input, context, revision)
 
-  if not build_manager.setup_build(revision=revision):
+  if not build_manager.setup_build(
+      revision=revision, fuzz_target=context.fuzz_target.binary):
     raise CorpusPruningError('Failed to setup build.')
 
   build_directory = environment.get_value('BUILD_DIR')
