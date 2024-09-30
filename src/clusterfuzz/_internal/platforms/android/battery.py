@@ -14,7 +14,6 @@
 """Battery functions."""
 
 import datetime
-import re
 import time
 
 from clusterfuzz._internal.base import dates
@@ -37,22 +36,22 @@ LAST_BATTERY_CHECK_TIME_KEY = 'android_last_battery_check'
 
 def get_battery_level_and_temperature():
   """Return device's battery and temperature levels."""
-  output = adb.run_shell_command(['dumpsys', 'battery'])
 
   # Get battery level.
-  m_battery_level = re.match(r'.*level: (\d+).*', output, re.DOTALL)
+  m_battery_level = adb.run_shell_command(['cmd', 'battery', 'get', 'level'])
   if not m_battery_level:
     logs.error('Error occurred while getting battery status.')
     return None
 
   # Get battery temperature.
-  m_battery_temperature = re.match(r'.*temperature: (\d+).*', output, re.DOTALL)
+  m_battery_temperature = adb.run_shell_command(
+      ['cmd', 'battery', 'get', 'temp'])
   if not m_battery_temperature:
     logs.error('Error occurred while getting battery temperature.')
     return None
 
-  level = int(m_battery_level.group(1))
-  temperature = float(m_battery_temperature.group(1)) / 10.0
+  level = int(m_battery_level)
+  temperature = float(m_battery_temperature) / 10.0
   return {'level': level, 'temperature': temperature}
 
 
