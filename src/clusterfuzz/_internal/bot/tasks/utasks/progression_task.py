@@ -320,8 +320,8 @@ def _testcase_reproduces_in_revision(
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""
   try:
-    target = fuzz_target.binary if fuzz_target else None
-    build_manager.setup_build(revision, target)
+    fuzz_target_binary = fuzz_target.binary if fuzz_target else None
+    build_manager.setup_build(revision, fuzz_target=fuzz_target_binary)
   except errors.BuildNotFoundError as e:
     # Build no longer exists, so we need to mark this testcase as invalid.
     error_message = f'Build not found at r{e.revision}'
