@@ -357,6 +357,8 @@ def utask_main(uworker_input):
     # Creates empty local blacklist so all leaks will be visible to uploader.
     leak_blacklist.create_empty_local_blacklist()
 
+  # TODO(metzman): Move this function outside of testcase_manager.
+  # Also, make it get the binary.
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   testcase_file_path, output = setup_testcase_and_build(
       testcase, uworker_input.job_type, uworker_input.setup_input,
