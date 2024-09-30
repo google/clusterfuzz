@@ -70,6 +70,9 @@ THREAD_POOL = None
 LOCAL_SOURCE_MANIFEST = os.path.join('src', 'appengine', 'resources',
                                      'clusterfuzz-source.manifest')
 
+# The length we're reading from the file-object in search_bytes_in_file.
+DEFAULT_SEARCH_BUFFER_LENGTH = 10 * 1024 * 1024  # 10MB
+
 
 def utcnow():
   """Return datetime.datetime.utcnow(). We need this method because we can't
@@ -673,15 +676,39 @@ def restart_machine():
     os.system('sudo shutdown -r now')
 
 
-def search_bytes_in_file(search_bytes, file_handle):
-  """Helper to search for bytes in a large binary file without memory
-  issues.
+def search_bytes_in_file(search_bytes, file_handle) -> bool:
+  """Searches `search_bytes` in the file represented by the file-object
+  `file_handle`.
+
+  Args:
+      search_bytes: the bytes to search for in the file.
+      file_handle: the file-object handle.
+
+  Returns:
+      Whether the pattern was found in the file.
   """
-  # TODO(aarya): This is too brittle and will fail if we have a very large
-  # line.
-  for line in file_handle:
-    if search_bytes in line:
+  # Invariant: `buf[:offset]` contains valid bytes.
+  buf = bytearray(DEFAULT_SEARCH_BUFFER_LENGTH)
+  mv = memoryview(buf)
+  offset = 0
+  # We copy exactly one byte less than the actual length of the sequence
+  # we're trying to match. This is to prevent missing stuff like:
+  # sequence: 'abcd'
+  # read #1: 'abc' -> no match
+  # read #2: 'd' -> no match
+  # With the copy, we get:
+  # read #1: 'abc': -> no match
+  # copy: 'abc'
+  # read #2: 'abcd': -> match!
+  length = len(search_bytes) - 1
+  # We read right after the previously copied offset. This ensures we're
+  # perfectly matching the byte sequence above.
+  while read_len := file_handle.readinto(mv[offset:]):
+    if search_bytes in buf[:read_len + offset]:
       return True
+
+    buf[:length] = buf[-length:]
+    offset = length
 
   return False
 
