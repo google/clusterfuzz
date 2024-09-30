@@ -42,7 +42,7 @@ def _pool(pool_size=_POOL_SIZE):
 def download_urls(urls: List[str], filepaths: List[str]) -> List[str]:
   """Downloads multiple |urls| to |filepaths| in parallel and
   asynchronously. Tolerates errors. Returns a list of whether each
-  download was successful."""  
+  download was successful."""
   assert len(urls) == len(filepaths)
   url_batches = []
   url_batch_size = len(urls) // _POOL_SIZE
