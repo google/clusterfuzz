@@ -70,8 +70,8 @@ async def _async_download_files(urls: List[str],
     return await asyncio.gather(*tasks)
 
 
-async def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str,
-                                  path: str) -> bool:
+async def _error_tolerant_download_file(session: aiohttp.ClientSession,
+                                        url: str, path: str) -> bool:
   try:
     await _async_download_file(session, url, path)
     return True
