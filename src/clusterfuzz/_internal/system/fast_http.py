@@ -22,6 +22,7 @@ from typing import Tuple
 
 import aiohttp
 
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 _POOL_SIZE = multiprocessing.cpu_count()
@@ -39,7 +40,7 @@ def _pool(pool_size=_POOL_SIZE):
     yield futures.ProcessPoolExecutor(pool_size)
 
 
-def download_urls(urls: List[str], filepaths: List[str]) -> List[str]:
+def download_urls(urls: List[str], filepaths: List[str]) -> List[bool]:
   """Downloads multiple |urls| to |filepaths| in parallel and
   asynchronously. Tolerates errors. Returns a list of whether each
   download was successful."""
@@ -51,7 +52,7 @@ def download_urls(urls: List[str], filepaths: List[str]) -> List[str]:
     url_batch = urls_and_filepaths[idx:idx + url_batch_size]
     url_batches.append(url_batch)
   with _pool() as pool:
-    return list(itertools.chain(pool.map(_download_files, url_batches)))
+    return list(itertools.chain(*pool.map(_download_files, url_batches)))
 
 
 def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
@@ -69,10 +70,10 @@ async def _async_download_files(urls: List[str],
     return await asyncio.gather(*tasks)
 
 
-def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str,
+async def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str,
                                   path: str) -> bool:
   try:
-    _async_download_file(session, url, path)
+    await _async_download_file(session, url, path)
     return True
   except:
     logs.warning(f'Failed to download {url}.')
