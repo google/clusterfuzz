@@ -685,7 +685,7 @@ def search_bytes_in_file(search_bytes, file_handle) -> bool:
       file_handle: the file-object handle.
 
   Returns:
-      whether the pattern was found in the file.
+      Whether the pattern was found in the file.
   """
   # Invariant: `buf[:offset]` contains valid bytes.
   buf = bytearray(DEFAULT_SEARCH_BUFFER_LENGTH)
