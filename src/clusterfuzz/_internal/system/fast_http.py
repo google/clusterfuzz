@@ -29,6 +29,9 @@ _POOL_SIZE = multiprocessing.cpu_count()
 
 @contextlib.contextmanager
 def _pool(pool_size=_POOL_SIZE):
+  # TOOD(metzman): Move the multiprocessing code from _pool() in storage.py
+  # over.
+  # Don't use processes on Windows and unittests to avoid hangs.
   if (environment.get_value('PY_UNITTESTS') or
       environment.platform() == 'WINDOWS'):
     yield futures.ThreadPoolExecutor(pool_size)
@@ -36,20 +39,19 @@ def _pool(pool_size=_POOL_SIZE):
     yield futures.ProcessPoolExecutor(pool_size)
 
 
-def download_urls(urls: List[str], filepaths: List[str]) -> str:
+def download_urls(urls: List[str], filepaths: List[str]) -> List[str]:
   """Downloads multiple |urls| to |filepaths| in parallel and
   asynchronously. Tolerates errors. Returns a list of whether each
-  download was successful."""
-  # TOOD(metzman): Move the multiprocessing code over from storage.
+  download was successful."""  
   assert len(urls) == len(filepaths)
-  chunks = []
-  chunk_size = len(urls) // _POOL_SIZE
+  url_batches = []
+  url_batch_size = len(urls) // _POOL_SIZE
   urls_and_filepaths = list(zip(urls, filepaths))
-  for idx in range(0, len(urls), chunk_size):
-    chunk = urls_and_filepaths[idx:idx + chunk_size]
-    chunks.append(chunk)
+  for idx in range(0, len(urls), url_batch_size):
+    url_batch = urls_and_filepaths[idx:idx + url_batch_size]
+    url_batches.append(url_batch)
   with _pool() as pool:
-    return list(itertools.chain(pool.map(_download_files, chunks)))
+    return list(itertools.chain(pool.map(_download_files, url_batches)))
 
 
 def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
@@ -70,17 +72,19 @@ async def _async_download_files(urls: List[str],
 def _error_tolerant_download_file(session: aiohttp.ClientSession, url: str,
                                   path: str) -> bool:
   try:
-    return _async_download_file(session, url, path)
+    _async_download_file(session, url, path)
+    return True
   except:
+    logs.warning(f'Failed to download {url}.')
     return False
 
 
 async def _async_download_file(session: aiohttp.ClientSession, url: str,
-                               path: str) -> bool:
+                               path: str):
   async with session.get(url) as response:
     with open(path, 'wb') as fp:
       while True:
         chunk = await response.content.read(1024)
         if not chunk:
-          return True
+          return
         fp.write(chunk)
