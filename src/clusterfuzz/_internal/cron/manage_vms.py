@@ -19,6 +19,8 @@ import copy
 import itertools
 import json
 import logging
+from typing import Any
+from typing import Dict
 from typing import Optional
 
 from google.cloud import ndb
@@ -157,6 +159,15 @@ def _template_needs_update(current_template, new_template, resource_name):
   return False
 
 
+def _auto_healing_policy_to_dict(
+    policy: compute_engine_projects.AutoHealingPolicy) -> Dict[str, Any]:
+  """Converts `policy` into its JSON API representation."""
+  return {
+      'healthCheck': policy.health_check,
+      'initialDelaySec': policy.initial_delay_sec,
+  }
+
+
 def _update_auto_healing_policy(
     instance_group: bot_manager.InstanceGroup, instance_group_body,
     new_policy: Optional[compute_engine_projects.AutoHealingPolicy]):
@@ -168,10 +179,7 @@ def _update_auto_healing_policy(
 
   new_policy_dict = None
   if new_policy is not None:
-    new_policy_dict = {
-        'healthCheck': new_policy.health_check,
-        'initialDelaySec': new_policy.initial_delay_sec,
-    }
+    new_policy_dict = _auto_healing_policy_to_dict(new_policy)
 
   if new_policy_dict == old_policy_dict:
     return
@@ -300,7 +308,8 @@ class ClustersManager:
           resource_name,
           resource_name,
           size=cpu_count,
-          auto_healing_policy=cluster.auto_healing_policy,
+          auto_healing_policy=_auto_healing_policy_to_dict(
+              cluster.auto_healing_policy),
           wait_for_instances=False)
     except bot_manager.OperationError as e:
       logging.error('Failed to create instance group %s: %s', resource_name,
