@@ -244,8 +244,8 @@ def find_earliest_good_revision(
     regression_task_output.last_regression_min = revision
 
     if time.time() > deadline:
-      return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
           regression_task_output=regression_task_output)
 
     is_crash, error = _testcase_reproduces_in_revision(
@@ -277,8 +277,7 @@ def find_earliest_good_revision(
   # the first good build crashes.
   regression_task_output.regression_range_start = 0
   regression_task_output.regression_range_end = revision_range[-1]
-  return uworker_msg_pb2.Output(
-      regression_task_output=regression_task_output)  # pylint: disable=no-member
+  return uworker_msg_pb2.Output(regression_task_output=regression_task_output)  # pylint: disable=no-member
 
 
 def validate_regression_range(
