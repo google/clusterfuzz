@@ -558,8 +558,6 @@ class Issue(issue_tracker.Issue):
     self._add_update_single(update_body, added, removed, 'reporter', 'reporter',
                             _make_user)
     self._add_update_single(update_body, added, removed, 'title', 'title')
-    self._add_update_single(update_body, added, removed, 'component_id',
-                            'componentId')
     self._add_update_collection(update_body, added, removed, 'ccs', 'ccs',
                                 _make_users)
     self._add_update_collection(update_body, added, removed, '_collaborators',
@@ -671,6 +669,18 @@ class Issue(issue_tracker.Issue):
           'comment': new_comment,
       }
     result = self._data
+    if 'component_id' in self._changed:
+      # This is a special case here, because changing the component id requires
+      # a move operation. However, we still treat that as an update for
+      # simplicity.
+      move_body = {
+          'componentId': self.component_id,
+          'significanceOverride': 'MAJOR' if notify else 'SILENT'
+      }
+      result = self.issue_tracker._execute(
+          self.issue_tracker.client.issues().move(
+              issueId=str(self.id), body=move_body))
+      logs.info('google_issue_tracker: move result: %s' % result)
     if added or removed or new_comment:
       logs.info('google_issue_tracker: modify update_body: %s' % update_body)
       result = self.issue_tracker._execute(
