@@ -26,8 +26,6 @@ except ImportError:
   # This can be imported from appengine, so make sure we don't exception out.
   pass
 
-RELOAD_GESTURE = 'key,{F5}'
-
 
 def find_windows_for_process(process_id):
   """Return visible windows belonging to a process."""
