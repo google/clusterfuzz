@@ -161,7 +161,7 @@ def close_bug(issue_tracker, issue_id, project_name):
             (project_name, issue_id))
 
   issue = issue_tracker.get_original_issue(issue_id)
-  issue.status = 'Verified'
+  issue.status = 'Fixed'
   issue.save(
       new_comment='The latest build has succeeded, closing this issue.',
       notify=True)
