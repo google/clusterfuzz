@@ -58,56 +58,47 @@ def execute(args):
       file_loc, roll_back)
   print(f'Size of issue_id_dict: {len(issue_id_dict)}')
 
-  testcases = []
+  fails = []
   count_of_updated = 0
 
-  for testcase in data_types.Testcase.query(
-      # only target testcases in single project
-      data_types.Testcase.project_name == project_name,):
-    testcase_updated = False
-    if testcase.bug_information and issue_id_dict.get(testcase.bug_information):
-      testcase.bug_information = issue_id_dict[testcase.bug_information]
-      testcase_updated = True
+  for fail in data_types.OssFuzzBuildFailure.query():
+    fail_updated = False
+    if fail.issue_id and issue_id_dict.get(fail.issue_id):
+      fail.issue_id = issue_id_dict[fail.issue_id]
+      fail_updated = True
 
-    if testcase.group_bug_information and issue_id_dict.get(
-        str(testcase.group_bug_information)):
-      # group_bug_information is an int unlike bug_information which is a str.
-      testcase.group_bug_information = int(issue_id_dict[str(
-          testcase.group_bug_information)])
-      testcase_updated = True
+    if fail_updated:
+      print(f'We will update testcase id: {fail.key.id()}')
+      fails.append(fail)
 
-    if testcase_updated:
-      print(f'We will update testcase id: {testcase.key.id()}')
-      testcases.append(testcase)
+    if args.non_dry_run and len(fails) >= batch_size:
+      # put_multi(testcases)
+      count_of_updated += len(fails)
+      print(f'Updated {len(fails)}. Total {count_of_updated}')
+      fails = []
 
-    if args.non_dry_run and len(testcases) >= batch_size:
-      put_multi(testcases)
-      count_of_updated += len(testcases)
-      print(f'Updated {len(testcases)}. Total {count_of_updated}')
-      testcases = []
-
-  if args.non_dry_run and len(testcases) > 0:
-    put_multi(testcases)
-    count_of_updated += len(testcases)
-    print(f'Updated {len(testcases)}. Total {count_of_updated}')
+  if args.non_dry_run and len(fails) > 0:
+    put_multi(fails)
+    count_of_updated += len(fails)
+    print(f'Updated {len(fails)}. Total {count_of_updated}')
 
 
-def put_multi(testcases):
-  """Attempts to batch put the specified slice of testcases.
+def put_multi(entities):
+  """Attempts to batch put the specified slice of entities.
 
   If there is a 'payload size exceeds the limit' error then it will halve the
-  testcases and try again. If that does not work then will go into a debugger.
+  entities and try again. If that does not work then will go into a debugger.
   """
   try:
-    ndb.put_multi(testcases)
+    ndb.put_multi(entities)
   except Exception as e:
-    if PAYLOAD_SIZE_ERROR in str(e) and len(testcases) > 1:
-      half_batch_size = len(testcases) // 2
+    if PAYLOAD_SIZE_ERROR in str(e) and len(entities) > 1:
+      half_batch_size = len(entities) // 2
       print('Reached payload size limit. Retrying batch put with half the '
             f'specified batch size: {half_batch_size}')
       try:
-        ndb.put_multi(testcases[:half_batch_size])
-        ndb.put_multi(testcases[half_batch_size:])
+        ndb.put_multi(entities[:half_batch_size])
+        ndb.put_multi(entities[half_batch_size:])
       except Exception as ie:
         if PAYLOAD_SIZE_ERROR in str(ie):
           print(f'Got exception: {e}')
