@@ -72,7 +72,7 @@ def execute(args):
       fails.append(fail)
 
     if args.non_dry_run and len(fails) >= batch_size:
-      # put_multi(testcases)
+      put_multi(testcases)
       count_of_updated += len(fails)
       print(f'Updated {len(fails)}. Total {count_of_updated}')
       fails = []
