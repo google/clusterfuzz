@@ -937,8 +937,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     },
                     'title':
                         'issue title2',
-                    'componentId':
-                        987654321,
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
@@ -951,13 +949,20 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         }
                     },],
                 },
-                'addMask':
-                    'status,assignee,reporter,title,componentId,ccs,customFields',
+                'addMask': 'status,assignee,reporter,title,ccs,customFields',
                 'remove': {},
-                'removeMask':
-                    '',
-                'significanceOverride':
-                    'MAJOR',
+                'removeMask': '',
+                'significanceOverride': 'MAJOR',
+            },
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+    self.client.issues().move.assert_has_calls([
+        mock.call(
+            issueId='68828938',
+            body={
+                'componentId': 987654321,
+                'significanceOverride': 'MAJOR',
             },
         ),
         mock.call().execute(http=None, num_retries=3),
