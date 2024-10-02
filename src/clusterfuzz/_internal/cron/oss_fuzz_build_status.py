@@ -161,6 +161,9 @@ def close_bug(issue_tracker, issue_id, project_name):
             (project_name, issue_id))
 
   issue = issue_tracker.get_original_issue(issue_id)
+  if issue is None:
+    logs.error(f'Failed to fetch issue {issue_id}, not closing')
+    return
   issue.status = 'Verified'
   issue.save(
       new_comment='The latest build has succeeded, closing this issue.',
