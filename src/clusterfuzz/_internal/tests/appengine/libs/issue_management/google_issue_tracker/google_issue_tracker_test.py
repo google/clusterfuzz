@@ -428,6 +428,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.components.add('ABC>DEF')
     issue.components.add('IJK>XYZ')
     issue.components.add('1456567')
+    issue.component_id = 987654321
     issue.status = 'ASSIGNED'
     issue.title = 'issue title'
     issue.save()
@@ -440,7 +441,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             body={
                 'issueState': {
                     'componentId':
-                        1337,
+                        987654321,
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
@@ -914,6 +915,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.components.add('1111111')
     # Will be rejected because it is not in allowed enum values.
     issue.components.add('AAA')
+    issue.component_id = 987654321
     issue.save()
 
     self.client.components().get.assert_has_calls([
@@ -935,6 +937,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     },
                     'title':
                         'issue title2',
+                    'componentId':
+                        987654321,
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
@@ -947,10 +951,13 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         }
                     },],
                 },
-                'addMask': 'status,assignee,reporter,title,ccs,customFields',
+                'addMask':
+                    'status,assignee,reporter,title,componentId,ccs,customFields',
                 'remove': {},
-                'removeMask': '',
-                'significanceOverride': 'MAJOR',
+                'removeMask':
+                    '',
+                'significanceOverride':
+                    'MAJOR',
             },
         ),
         mock.call().execute(http=None, num_retries=3),

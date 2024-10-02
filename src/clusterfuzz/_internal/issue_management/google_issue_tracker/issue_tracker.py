@@ -418,6 +418,12 @@ class Issue(issue_tracker.Issue):
     """The issue's component ID."""
     return self._data['issueState']['componentId']
 
+  @component_id.setter
+  def component_id(self, component_id):
+    """Setter for component_id."""
+    self._changed.add('component_id')
+    self._data['issueState']['componentId'] = component_id
+
   @property
   def components(self):
     """The issue's component tags."""
@@ -552,6 +558,8 @@ class Issue(issue_tracker.Issue):
     self._add_update_single(update_body, added, removed, 'reporter', 'reporter',
                             _make_user)
     self._add_update_single(update_body, added, removed, 'title', 'title')
+    self._add_update_single(update_body, added, removed, 'component_id',
+                            'componentId')
     self._add_update_collection(update_body, added, removed, 'ccs', 'ccs',
                                 _make_users)
     self._add_update_collection(update_body, added, removed, '_collaborators',
