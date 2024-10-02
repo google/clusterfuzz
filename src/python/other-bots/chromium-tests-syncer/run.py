@@ -50,10 +50,13 @@ def unpack_crash_testcases(crash_testcases_directory):
   count = 0
   # Make sure that it is a unique crash testcase. Ignore duplicates,
   # uploaded repros. Check if the testcase is fixed. If not, skip.
+  # Only use testcases that have bugs associated with them.
   # Sort latest first.
   testcases = data_types.Testcase.query(
-      ndb_utils.is_false(data_types.Testcase.open), data_types.Testcase.status
-      == 'Processed').order(-data_types.Testcase.timestamp)
+      ndb_utils.is_false(
+          data_types.Testcase.open), data_types.Testcase.status == 'Processed',
+      data_types.Testcase.bug_information !=
+      '').order(-data_types.Testcase.timestamp)
   for testcase in testcases:
     count += 1
     if count >= MAX_TESTCASES:
@@ -64,28 +67,24 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     testcase_id = testcase.key.id()
 
-    # 1. If we have already stored the testcase, then just skip.
+    # If we have already stored the testcase, then just skip.
     if testcase_id in STORED_TESTCASES_LIST:
       continue
 
-    # 2. Check if the testcase has a minimized repro. If not, skip.
+    # Check if the testcase has a minimized repro. If not, skip.
     if not testcase.minimized_keys or testcase.minimized_keys == 'NA':
       continue
 
-    # 3. Only use testcases that have bugs associated with them.
-    if not testcase.bug_information:
-      continue
-
-    # 4. Existing IPC testcases are un-interesting and unused in further
+    # Existing IPC testcases are un-interesting and unused in further
     # mutations. Due to size bloat, ignoring these for now.
     if testcase.absolute_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
       continue
 
-    # 5. Ignore testcases that are archives (e.g. Langfuzz fuzzer tests).
+    # Ignore testcases that are archives (e.g. Langfuzz fuzzer tests).
     if archive.get_archive_type(testcase.absolute_path):
       continue
 
-    # 6. Skip in-process fuzzer testcases, since these are only applicable to
+    # Skip in-process fuzzer testcases, since these are only applicable to
     # fuzz targets and don't run with blackbox binaries.
     if testcase.fuzzer_name and testcase.fuzzer_name in ENGINE_FUZZER_NAMES:
       continue

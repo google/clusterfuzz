@@ -19,6 +19,9 @@ import copy
 import itertools
 import json
 import logging
+from typing import Any
+from typing import Dict
+from typing import Optional
 
 from google.cloud import ndb
 
@@ -156,6 +159,43 @@ def _template_needs_update(current_template, new_template, resource_name):
   return False
 
 
+def _auto_healing_policy_to_dict(
+    policy: compute_engine_projects.AutoHealingPolicy) -> Dict[str, Any]:
+  """Converts `policy` into its JSON API representation."""
+  return {
+      'healthCheck': policy.health_check,
+      'initialDelaySec': policy.initial_delay_sec,
+  }
+
+
+def _update_auto_healing_policy(
+    instance_group: bot_manager.InstanceGroup, instance_group_body,
+    new_policy: Optional[compute_engine_projects.AutoHealingPolicy]):
+  """Updates the given instance group's auto-healing policy if need be."""
+  old_policy_dict = None
+  policies = instance_group_body.get('autoHealingPolicies')
+  if policies:
+    old_policy_dict = policies[0]
+
+  new_policy_dict = None
+  if new_policy is not None:
+    new_policy_dict = _auto_healing_policy_to_dict(new_policy)
+
+  if new_policy_dict == old_policy_dict:
+    return
+
+  logging.info('Updating auto-healing policy from %s to %s', old_policy_dict,
+               new_policy_dict)
+
+  try:
+    instance_group.patch_auto_healing_policies(
+        auto_healing_policy=new_policy_dict, wait_for_instances=False)
+  except bot_manager.OperationError as e:
+    logging.error(
+        'Failed to patch auto-healing policies for instance group %s: %s',
+        instance_group.name, e)
+
+
 class ClustersManager:
   """Manager for clusters in a project."""
 
@@ -253,49 +293,8 @@ class ClustersManager:
         else:
           logging.info('No instance group size changes needed.')
 
-        # Check if needs to update autoHealingPolicies.
-        auto_healing_policy = {}
-        # Check if needs to update health check URL in autoHealingPolicies.
-        old_url = instance_group_body.get('auto_healing_policy',
-                                          {}).get('health_check')
-        new_url = cluster.auto_healing_policy.get('health_check')
-
-        if new_url != old_url:
-          logging.info(
-              'Updating the health check URL in auto_healing_policy'
-              'of instance group %s from %s to %s.', resource_name, old_url,
-              new_url)
-          auto_healing_policy['healthCheck'] = new_url
-
-        # Check if needs to update initial delay in autoHealingPolicies.
-        old_delay = instance_group_body.get('auto_healing_policy',
-                                            {}).get('initial_delay_sec')
-        new_delay = cluster.auto_healing_policy.get('initial_delay_sec')
-
-        if new_delay != old_delay:
-          logging.info(
-              'Updating the health check initial delay in auto_healing_policy'
-              'of instance group %s from %s seconds to %s seconds.',
-              resource_name, old_delay, new_delay)
-          auto_healing_policy['initialDelaySec'] = new_delay
-
-        # Send one request to update either or both if needed
-        if auto_healing_policy:
-          if new_url is None or new_delay is None:
-            auto_healing_policy = {}
-            if new_url is not None or new_delay is not None:
-              logging.warning(
-                  'Deleting auto_healing_policy '
-                  'because its two values (health_check, initial_delay_sec) '
-                  'should never exist independently: (%s, %s)', new_url,
-                  new_delay)
-          try:
-            instance_group.patch_auto_healing_policies(
-                auto_healing_policy=auto_healing_policy,
-                wait_for_instances=False)
-          except bot_manager.OperationError as e:
-            logging.error('Failed to create instance group %s: %s',
-                          resource_name, str(e))
+        _update_auto_healing_policy(instance_group, instance_group_body,
+                                    cluster.auto_healing_policy)
         return
 
     if template_needs_update:
@@ -309,7 +308,8 @@ class ClustersManager:
           resource_name,
           resource_name,
           size=cpu_count,
-          auto_healing_policy=cluster.auto_healing_policy,
+          auto_healing_policy=_auto_healing_policy_to_dict(
+              cluster.auto_healing_policy),
           wait_for_instances=False)
     except bot_manager.OperationError as e:
       logging.error('Failed to create instance group %s: %s', resource_name,
