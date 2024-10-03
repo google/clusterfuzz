@@ -562,7 +562,7 @@ class _CumulativeDistributionMetric(Metric):
 # Global state.
 _metrics_store = _MetricsStore()
 _monitoring_v3_client = None
-_flusher_thread = None
+_monitoring_daemon = None
 _monitored_resource = None
 
 # Add fields very conservatively here. There is a limit of 10 labels per metric
@@ -630,7 +630,7 @@ def _time_to_timestamp(interval, attr, time_seconds):
 def initialize():
   """Initialize if monitoring is enabled for this bot."""
   global _monitoring_v3_client
-  global _flusher_thread
+  global _monitoring_daemon
 
   if environment.get_value('LOCAL_DEVELOPMENT'):
     return
@@ -642,14 +642,14 @@ def initialize():
     _initialize_monitored_resource()
     _monitoring_v3_client = monitoring_v3.MetricServiceClient(
         credentials=credentials.get_default()[0])
-    _flusher_thread = _FlusherThread()
-    _flusher_thread.start()
+    _monitoring_daemon = _MonitoringDaemon(_flush_metrics, FLUSH_INTERVAL_SECONDS)
+    _monitoring_daemon.start()
 
 
 def stop():
   """Stops monitoring and cleans up (only if monitoring is enabled)."""
-  if _flusher_thread:
-    _flusher_thread.stop()
+  if _monitoring_daemon:
+    _monitoring_daemon.stop()
 
 
 def metrics_store():
