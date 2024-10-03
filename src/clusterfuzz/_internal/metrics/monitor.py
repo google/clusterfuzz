@@ -113,17 +113,14 @@ def flush_metrics():
       if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
          ):
         start_time = end_time
-
       series = _TimeSeries()
       metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                        value)
       time_series.append(series)
-
       if len(time_series) == MAX_TIME_SERIES_PER_CALL:
         time_series.sort(key=_time_series_sort_key)
         _create_time_series(project_path, time_series)
         time_series = []
-
     if time_series:
       time_series.sort(key=_time_series_sort_key)
       _create_time_series(project_path, time_series)
@@ -134,6 +131,8 @@ def flush_metrics():
       logs.warning(f'Failed to flush metrics: {e}')
     else:
       logs.error(f'Failed to flush metrics: {e}')
+
+
 class _MonitoringDaemon():
   """Wrapper for the daemon threads responsible for flushing metrics."""
   def __init__(self, flush_function, tick_interval):
