@@ -16,8 +16,9 @@
 
 import os
 import queue
+import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -174,6 +175,40 @@ class MonitorTest(unittest.TestCase):
     gauge.set(5)
     self.assertIsInstance(gauge, monitor._MockMetric)
 
+
+class TestMonitoringDaemon(unittest.TestCase):
+  """Tests that the monitoring daemon correctly flushes, and terminates."""
+  
+  def test_monitoring_daemon_calls_flush_while_looping(self):
+    calls = 0
+    def mock_flush():
+      nonlocal calls
+      calls += 1
+    daemon = monitor._MonitoringDaemon(mock_flush, 1)
+    daemon.start()
+    time.sleep(2)
+    daemon.stop()
+    assert not daemon._flushing_thread.is_alive()
+    assert not daemon._ticking_thread.is_alive()
+    # We do not exercise fine grained control over the threads
+    # To avoid flakyness, assert flusher being called at least once
+    assert calls > 0
+
+  def test_monitoring_daemon_flushes_after_stop(self):
+    calls = 0
+    def mock_flush():
+      nonlocal calls
+      calls += 1
+    # Impose an absurdly large ticking interval, so only the
+    # closing flush happens
+    daemon = monitor._MonitoringDaemon(mock_flush, 10000)
+    daemon.start()
+    daemon.stop()
+    assert not daemon._flushing_thread.is_alive()
+    assert not daemon._ticking_thread.is_alive()
+    # We do not exercise fine grained control over the threads
+    # So it is good enough to see the flusher being called once
+    assert calls > 0
 
 class TestFlusherThread(unittest.TestCase):
   """Sets up the flusher thread and mocks MetricServiceClient."""

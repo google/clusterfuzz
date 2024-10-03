@@ -24,6 +24,7 @@ import re
 import threading
 import time
 from typing import List
+import queue
 
 try:
   from google.cloud import monitoring_v3
@@ -99,6 +100,72 @@ class _MockMetric:
 
 def _time_series_sort_key(ts):
   return ts.points[-1].interval.start_time
+
+
+def flush_metrics():
+  """Flushes all metrics stored in _metrics_store"""
+  project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
+      utils.get_application_id())
+  try:
+    time_series = []
+    end_time = time.time()
+    for metric, labels, start_time, value in _metrics_store.iter_values():
+      if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+         ):
+        start_time = end_time
+
+      series = _TimeSeries()
+      metric.monitoring_v3_time_series(series, labels, start_time, end_time,
+                                       value)
+      time_series.append(series)
+
+      if len(time_series) == MAX_TIME_SERIES_PER_CALL:
+        time_series.sort(key=_time_series_sort_key)
+        _create_time_series(project_path, time_series)
+        time_series = []
+
+    if time_series:
+      time_series.sort(key=_time_series_sort_key)
+      _create_time_series(project_path, time_series)
+  except Exception as e:
+    if environment.is_android():
+      # FIXME: This exception is extremely common on Android. We are already
+      # aware of the problem, don't make more noise about it.
+      logs.warning(f'Failed to flush metrics: {e}')
+    else:
+      logs.error(f'Failed to flush metrics: {e}')
+class _MonitoringDaemon():
+  """Wrapper for the daemon threads responsible for flushing metrics."""
+  def __init__(self, flush_function, tick_interval):
+    self._tick_interval = tick_interval
+    self._flush_function = flush_function
+    self._work_queue = queue.Queue()
+    self._ticking_thread = threading.Thread(name='ticking_thread', target=self._tick_loop, daemon=True)
+    self._ticking_thread_stop_event = threading.Event()
+    self._flushing_thread = threading.Thread(name='flushing_thread', target=self._flush_loop, daemon=True)
+
+  def _tick_loop(self):
+    while True:
+      if self._ticking_thread_stop_event.wait(self._tick_interval):
+        break
+      self._work_queue.put(False)
+
+  def _flush_loop(self):
+    while True:
+      should_stop = self._work_queue.get(block=True, timeout=None)
+      self._flush_function()
+      if should_stop:
+        break
+
+  def start(self):
+    self._ticking_thread.start()
+    self._flushing_thread.start()
+
+  def stop(self):
+    self._work_queue.put(True)
+    self._flushing_thread.join()
+    self._ticking_thread_stop_event.set()
+    self._ticking_thread.join()
 
 
 class _FlusherThread(threading.Thread):
