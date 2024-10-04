@@ -24,7 +24,6 @@ import re
 import threading
 import time
 from typing import List
-import queue
 
 try:
   from google.cloud import monitoring_v3
@@ -135,36 +134,28 @@ def flush_metrics():
 
 class _MonitoringDaemon():
   """Wrapper for the daemon threads responsible for flushing metrics."""
+
   def __init__(self, flush_function, tick_interval):
     self._tick_interval = tick_interval
     self._flush_function = flush_function
-    self._work_queue = queue.Queue()
-    self._ticking_thread = threading.Thread(name='ticking_thread', target=self._tick_loop, daemon=True)
-    self._ticking_thread_stop_event = threading.Event()
-    self._flushing_thread = threading.Thread(name='flushing_thread', target=self._flush_loop, daemon=True)
-
-  def _tick_loop(self):
-    while True:
-      if self._ticking_thread_stop_event.wait(self._tick_interval):
-        break
-      self._work_queue.put(False)
+    self._flushing_thread = threading.Thread(
+        name='flushing_thread', target=self._flush_loop, daemon=True)
+    self._flushing_thread_stop_event = threading.Event()
 
   def _flush_loop(self):
     while True:
-      should_stop = self._work_queue.get(block=True, timeout=None)
+      should_stop = self._flushing_thread_stop_event.wait(
+          timeout=self._tick_interval)
       self._flush_function()
       if should_stop:
         break
 
   def start(self):
-    self._ticking_thread.start()
     self._flushing_thread.start()
 
   def stop(self):
-    self._work_queue.put(True)
+    self._flushing_thread_stop_event.set()
     self._flushing_thread.join()
-    self._ticking_thread_stop_event.set()
-    self._ticking_thread.join()
 
 
 class _FlusherThread(threading.Thread):
@@ -642,7 +633,8 @@ def initialize():
     _initialize_monitored_resource()
     _monitoring_v3_client = monitoring_v3.MetricServiceClient(
         credentials=credentials.get_default()[0])
-    _monitoring_daemon = _MonitoringDaemon(_flush_metrics, FLUSH_INTERVAL_SECONDS)
+    _monitoring_daemon = _MonitoringDaemon(_flush_metrics,
+                                           FLUSH_INTERVAL_SECONDS)
     _monitoring_daemon.start()
 
 

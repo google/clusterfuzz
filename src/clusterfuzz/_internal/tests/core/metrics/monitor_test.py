@@ -15,10 +15,8 @@
 # pylint: disable=protected-access
 
 import os
-import queue
 import time
 import unittest
-from unittest.mock import patch, MagicMock
 
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -62,7 +60,7 @@ class InitializeTest(unittest.TestCase):
   def test_initialize(self):
     """Tests initialization."""
     monitor.initialize()
-    self.assertEqual(2, self.mock.start.call_count)
+    self.assertEqual(1, self.mock.start.call_count)
 
 
 class MonitorTest(unittest.TestCase):
@@ -178,34 +176,39 @@ class MonitorTest(unittest.TestCase):
 
 class TestMonitoringDaemon(unittest.TestCase):
   """Tests that the monitoring daemon correctly flushes, and terminates."""
-  
+
   def test_monitoring_daemon_calls_flush_while_looping(self):
+    """Tests that flushes happen during the flushing loop."""
     calls = 0
+
     def mock_flush():
       nonlocal calls
       calls += 1
+
     daemon = monitor._MonitoringDaemon(mock_flush, 1)
     daemon.start()
     time.sleep(2)
     daemon.stop()
     assert not daemon._flushing_thread.is_alive()
-    assert not daemon._ticking_thread.is_alive()
     # We do not exercise fine grained control over the threads
     # To avoid flakyness, assert flusher being called at least once
     assert calls > 0
 
   def test_monitoring_daemon_flushes_after_stop(self):
+    """Tests that flushes happen during prior to exit."""
     calls = 0
+
     def mock_flush():
       nonlocal calls
       calls += 1
+
     # Impose an absurdly large ticking interval, so only the
     # closing flush happens
     daemon = monitor._MonitoringDaemon(mock_flush, 10000)
     daemon.start()
+    assert calls == 0
     daemon.stop()
     assert not daemon._flushing_thread.is_alive()
-    assert not daemon._ticking_thread.is_alive()
     # We do not exercise fine grained control over the threads
     # So it is good enough to see the flusher being called once
     assert calls > 0
@@ -221,7 +224,8 @@ class JonathanDebugTest(unittest.TestCase):
     monitor._monitoring_v3_client = monitor.monitoring_v3.MetricServiceClient(
         credentials=monitor.credentials.get_default()[0])
     monitor.FLUSH_INTERVAL_SECONDS = 1
-    monitor._monitoring_daemon = monitor._MonitoringDaemon(monitor._flush_metrics, monitor.FLUSH_INTERVAL_SECONDS)
+    monitor._monitoring_daemon = monitor._MonitoringDaemon(
+        monitor._flush_metrics, monitor.FLUSH_INTERVAL_SECONDS)
     monitoring_metrics.BOT_COUNT.set(1, {'revision': '1'})
     monitor.utils.get_application_id = lambda: 'google.com:clusterfuzz'
     os.environ['BOT_NAME'] = 'bot-1'
