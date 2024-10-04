@@ -85,6 +85,22 @@ def lease_all_tasks(task_list):
     yield
 
 
+def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
+  logs.info('Handling sigterm, stopping monitoring daemon.')
+  monitor.stop()
+  logs.info('Sigterm handled, metrics flushed.')
+
+
+@contextlib.contextmanager
+def wrap_with_monitoring():
+  """Wraps execution so we flush metrics on exit"""
+  try:
+      monitor.initialize()
+      signal.signal(signal.SIGTERM, handle_sigterm)
+      yield
+  finally:
+    monitor.stop()
+
 def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
   from clusterfuzz._internal.google_cloud_utils import batch
@@ -126,17 +142,7 @@ def task_loop():
       update_task.track_revision()
       if environment.is_uworker():
         # Batch/Swarming tasks only run one at a time.
-        uworker_return_code = None
-        exception = None
-        try:
-          uworker_return_code = utasks.uworker_bot_main()
-        except Exception as e:
-          exception = e
-        finally:
-          monitor.stop()
-        if exception is not None:
-          raise exception
-        sys.exit(uworker_return_code)
+        sys.exit(utasks.uworker_bot_main())
 
       if environment.get_value('SCHEDULE_UTASK_MAINS'):
         # If the bot is configured to schedule utask_mains, don't run any other
@@ -197,14 +203,6 @@ def main():
 
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
-  monitor.initialize()
-
-  def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
-    logs.info('Handling sigterm, stopping monitoring daemon.')
-    monitor.stop()
-    logs.info('Sigterm handled, metrics flushed. Exiting.')
-
-  signal.signal(signal.SIGTERM, handle_sigterm)
 
   if not profiler.start_if_needed('python_profiler_bot'):
     sys.exit(-1)
@@ -263,7 +261,7 @@ if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')
 
   try:
-    with ndb_init.context():
+    with wrap_with_monitoring(), ndb_init.context():
       main()
     exit_code = 0
   except Exception:
@@ -271,8 +269,6 @@ if __name__ == '__main__':
     sys.stdout.flush()
     sys.stderr.flush()
     exit_code = 1
-
-  monitor.stop()
 
   # Prevent python GIL deadlocks on shutdown. See https://crbug.com/744680.
   os._exit(exit_code)  # pylint: disable=protected-access
