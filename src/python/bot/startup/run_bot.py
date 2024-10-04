@@ -199,7 +199,7 @@ def main():
   environment.set_bot_environment()
   monitor.initialize()
 
-  def handle_sigterm(_signo, _stack_frame):
+  def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
     logs.info('Handling sigterm, stopping monitoring daemon.')
     monitor.stop()
     logs.info('Sigterm handled, metrics flushed. Exiting.')
