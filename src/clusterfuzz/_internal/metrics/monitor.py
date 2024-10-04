@@ -101,7 +101,7 @@ def _time_series_sort_key(ts):
   return ts.points[-1].interval.start_time
 
 
-def flush_metrics():
+def _flush_metrics():
   """Flushes all metrics stored in _metrics_store"""
   project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
       utils.get_application_id())
