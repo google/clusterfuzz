@@ -23,6 +23,7 @@ modules.fix_module_search_paths()
 import contextlib
 import multiprocessing
 import os
+import signal
 import sys
 import time
 import traceback
@@ -125,7 +126,17 @@ def task_loop():
       update_task.track_revision()
       if environment.is_uworker():
         # Batch/Swarming tasks only run one at a time.
-        sys.exit(utasks.uworker_bot_main())
+        uworker_return_code = None
+        exception = None
+        try:
+          uworker_return_code = utasks.uworker_bot_main()
+        except Exception as e:
+          exception = e
+        finally:
+          monitor.stop()
+        if exception is not None:
+          raise exception
+        sys.exit(uworker_return_code)
 
       if environment.get_value('SCHEDULE_UTASK_MAINS'):
         # If the bot is configured to schedule utask_mains, don't run any other
@@ -187,6 +198,13 @@ def main():
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
   monitor.initialize()
+
+  def handle_sigterm(_signo, _stack_frame):
+    logs.info('Handling sigterm, stopping monitoring daemon.')
+    monitor.stop()
+    logs.info('Sigterm handled, metrics flushed. Exiting.')
+
+  signal.signal(signal.SIGTERM, handle_sigterm)
 
   if not profiler.start_if_needed('python_profiler_bot'):
     sys.exit(-1)
