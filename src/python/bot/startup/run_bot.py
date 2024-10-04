@@ -95,11 +95,12 @@ def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
 def wrap_with_monitoring():
   """Wraps execution so we flush metrics on exit"""
   try:
-      monitor.initialize()
-      signal.signal(signal.SIGTERM, handle_sigterm)
-      yield
+    monitor.initialize()
+    signal.signal(signal.SIGTERM, handle_sigterm)
+    yield
   finally:
     monitor.stop()
+
 
 def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
