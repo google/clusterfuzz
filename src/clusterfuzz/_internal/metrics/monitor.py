@@ -101,40 +101,6 @@ def _time_series_sort_key(ts):
   return ts.points[-1].interval.start_time
 
 
-def flush_metrics():
-  """Flushes all metrics stored in _metrics_store"""
-  project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
-      utils.get_application_id())
-  try:
-    time_series = []
-    end_time = time.time()
-    for metric, labels, start_time, value in _metrics_store.iter_values():
-      if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
-         ):
-        start_time = end_time
-
-      series = _TimeSeries()
-      metric.monitoring_v3_time_series(series, labels, start_time, end_time,
-                                       value)
-      time_series.append(series)
-
-      if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-        time_series.sort(key=_time_series_sort_key)
-        _create_time_series(project_path, time_series)
-        time_series = []
-
-    if time_series:
-      time_series.sort(key=_time_series_sort_key)
-      _create_time_series(project_path, time_series)
-  except Exception as e:
-    if environment.is_android():
-      # FIXME: This exception is extremely common on Android. We are already
-      # aware of the problem, don't make more noise about it.
-      logs.warning(f'Failed to flush metrics: {e}')
-    else:
-      logs.error(f'Failed to flush metrics: {e}')
-
-
 class _FlusherThread(threading.Thread):
   """Flusher thread."""
 
@@ -145,14 +111,41 @@ class _FlusherThread(threading.Thread):
 
   def run(self):
     """Run the flusher thread."""
-    should_stop = False
+    project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
+        utils.get_application_id())
+
     while True:
-      # Make sure there are no metrics left to flush after monitor.stop()
-      if self.stop_event.wait(FLUSH_INTERVAL_SECONDS):
-        should_stop = True
-      flush_metrics()
-      if should_stop:
-        return
+      try:
+        if self.stop_event.wait(FLUSH_INTERVAL_SECONDS):
+          return
+
+        time_series = []
+        end_time = time.time()
+        for metric, labels, start_time, value in _metrics_store.iter_values():
+          if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+             ):
+            start_time = end_time
+
+          series = _TimeSeries()
+          metric.monitoring_v3_time_series(series, labels, start_time, end_time,
+                                           value)
+          time_series.append(series)
+
+          if len(time_series) == MAX_TIME_SERIES_PER_CALL:
+            time_series.sort(key=_time_series_sort_key)
+            _create_time_series(project_path, time_series)
+            time_series = []
+
+        if time_series:
+          time_series.sort(key=_time_series_sort_key)
+          _create_time_series(project_path, time_series)
+      except Exception as e:
+        if environment.is_android():
+          # FIXME: This exception is extremely common on Android. We are already
+          # aware of the problem, don't make more noise about it.
+          logs.warning(f'Failed to flush metrics: {e}')
+        else:
+          logs.error(f'Failed to flush metrics: {e}')
 
   def stop(self):
     self.stop_event.set()
@@ -568,7 +561,7 @@ def _time_to_timestamp(interval, attr, time_seconds):
   setattr(interval, attr, timestamp)
 
 
-def initialize(use_flusher_thread=True):
+def initialize():
   """Initialize if monitoring is enabled for this bot."""
   global _monitoring_v3_client
   global _flusher_thread
@@ -583,17 +576,14 @@ def initialize(use_flusher_thread=True):
     _initialize_monitored_resource()
     _monitoring_v3_client = monitoring_v3.MetricServiceClient(
         credentials=credentials.get_default()[0])
-    if use_flusher_thread:
-      _flusher_thread = _FlusherThread()
-      _flusher_thread.start()
+    _flusher_thread = _FlusherThread()
+    _flusher_thread.start()
 
 
 def stop():
   """Stops monitoring and cleans up (only if monitoring is enabled)."""
   if _flusher_thread:
     _flusher_thread.stop()
-  if not _flusher_thread and check_module_loaded(monitoring_v3):
-    flush_metrics()
 
 
 def metrics_store():
