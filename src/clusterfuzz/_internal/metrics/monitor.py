@@ -551,11 +551,11 @@ def _initialize_monitored_resource():
 
   # Use bot name here instance as that's more useful to us.
   if environment.is_running_on_k8s():
-    pod_name = environment.get_value('HOSTNAME')
-    _monitored_resource.labels['pod_name'] = pod_name
-  else:
     bot_name = environment.get_value('BOT_NAME')
     _monitored_resource.labels['instance_id'] = bot_name
+  else:
+    pod_name = environment.get_value('HOSTNAME')
+    _monitored_resource.labels['pod_name'] = pod_name
   if compute_metadata.is_gce():
     # Returned in the form projects/{id}/zones/{zone}
     zone = compute_metadata.get('instance/zone').split('/')[-1]
