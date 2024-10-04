@@ -15,12 +15,10 @@
 
 import os
 
-from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 
-
-def execute():
+def execute(args):
   """Build keywords."""
   environment.set_bot_environment()
-  os.environ['USE_TEST_DEPLOYMENT'] = '1'
-  update_task.update_source_code()
+  oss_fuzz_apply_ccs.main()
