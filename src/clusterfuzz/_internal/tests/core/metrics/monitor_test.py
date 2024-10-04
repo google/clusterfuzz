@@ -188,11 +188,9 @@ class TestMonitoringDaemon(unittest.TestCase):
     daemon = monitor._MonitoringDaemon(mock_flush, 1)
     daemon.start()
     time.sleep(2)
+    assert calls > 0
     daemon.stop()
     assert not daemon._flushing_thread.is_alive()
-    # We do not exercise fine grained control over the threads
-    # To avoid flakyness, assert flusher being called at least once
-    assert calls > 0
 
   def test_monitoring_daemon_flushes_after_stop(self):
     """Tests that flushes happen during prior to exit."""
@@ -209,9 +207,7 @@ class TestMonitoringDaemon(unittest.TestCase):
     assert calls == 0
     daemon.stop()
     assert not daemon._flushing_thread.is_alive()
-    # We do not exercise fine grained control over the threads
-    # So it is good enough to see the flusher being called once
-    assert calls > 0
+    assert calls == 1
 
 
 @unittest.skip('Skip this because it\'s only used by metzman for debugging.')
