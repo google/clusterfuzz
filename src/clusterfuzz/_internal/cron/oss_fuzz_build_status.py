@@ -145,7 +145,6 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
       project_name=project_name, build_type=build_type.capitalize())
   issue.body = _get_issue_body(project_name, build_id, build_type)
   issue.status = 'New'
-  issue.labels.add('Type-Build-Failure')
   issue.labels.add('Proj-' + project_name)
 
   for cc in ccs:
