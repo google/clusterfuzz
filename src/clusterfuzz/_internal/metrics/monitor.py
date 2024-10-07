@@ -101,55 +101,61 @@ def _time_series_sort_key(ts):
   return ts.points[-1].interval.start_time
 
 
-class _FlusherThread(threading.Thread):
-  """Flusher thread."""
-
-  def __init__(self):
-    super().__init__()
-    self.daemon = True
-    self.stop_event = threading.Event()
-
-  def run(self):
-    """Run the flusher thread."""
-    project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
-        utils.get_application_id())
-
-    while True:
-      try:
-        if self.stop_event.wait(FLUSH_INTERVAL_SECONDS):
-          return
-
+def _flush_metrics():
+  """Flushes all metrics stored in _metrics_store"""
+  project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
+      utils.get_application_id())
+  try:
+    time_series = []
+    end_time = time.time()
+    for metric, labels, start_time, value in _metrics_store.iter_values():
+      if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+         ):
+        start_time = end_time
+      series = _TimeSeries()
+      metric.monitoring_v3_time_series(series, labels, start_time, end_time,
+                                       value)
+      time_series.append(series)
+      if len(time_series) == MAX_TIME_SERIES_PER_CALL:
+        time_series.sort(key=_time_series_sort_key)
+        _create_time_series(project_path, time_series)
         time_series = []
-        end_time = time.time()
-        for metric, labels, start_time, value in _metrics_store.iter_values():
-          if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
-             ):
-            start_time = end_time
+    if time_series:
+      time_series.sort(key=_time_series_sort_key)
+      _create_time_series(project_path, time_series)
+  except Exception as e:
+    if environment.is_android():
+      # FIXME: This exception is extremely common on Android. We are already
+      # aware of the problem, don't make more noise about it.
+      logs.warning(f'Failed to flush metrics: {e}')
+    else:
+      logs.error(f'Failed to flush metrics: {e}')
 
-          series = _TimeSeries()
-          metric.monitoring_v3_time_series(series, labels, start_time, end_time,
-                                           value)
-          time_series.append(series)
 
-          if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-            time_series.sort(key=_time_series_sort_key)
-            _create_time_series(project_path, time_series)
-            time_series = []
+class _MonitoringDaemon():
+  """Wrapper for the daemon threads responsible for flushing metrics."""
 
-        if time_series:
-          time_series.sort(key=_time_series_sort_key)
-          _create_time_series(project_path, time_series)
-      except Exception as e:
-        if environment.is_android():
-          # FIXME: This exception is extremely common on Android. We are already
-          # aware of the problem, don't make more noise about it.
-          logs.warning(f'Failed to flush metrics: {e}')
-        else:
-          logs.error(f'Failed to flush metrics: {e}')
+  def __init__(self, flush_function, tick_interval):
+    self._tick_interval = tick_interval
+    self._flush_function = flush_function
+    self._flushing_thread = threading.Thread(
+        name='flushing_thread', target=self._flush_loop, daemon=True)
+    self._flushing_thread_stop_event = threading.Event()
+
+  def _flush_loop(self):
+    while True:
+      should_stop = self._flushing_thread_stop_event.wait(
+          timeout=self._tick_interval)
+      self._flush_function()
+      if should_stop:
+        break
+
+  def start(self):
+    self._flushing_thread.start()
 
   def stop(self):
-    self.stop_event.set()
-    self.join()
+    self._flushing_thread_stop_event.set()
+    self._flushing_thread.join()
 
 
 _StoreValue = collections.namedtuple(
@@ -496,7 +502,7 @@ class _CumulativeDistributionMetric(Metric):
 # Global state.
 _metrics_store = _MetricsStore()
 _monitoring_v3_client = None
-_flusher_thread = None
+_monitoring_daemon = None
 _monitored_resource = None
 
 # Add fields very conservatively here. There is a limit of 10 labels per metric
@@ -564,7 +570,7 @@ def _time_to_timestamp(interval, attr, time_seconds):
 def initialize():
   """Initialize if monitoring is enabled for this bot."""
   global _monitoring_v3_client
-  global _flusher_thread
+  global _monitoring_daemon
 
   if environment.get_value('LOCAL_DEVELOPMENT'):
     return
@@ -576,14 +582,15 @@ def initialize():
     _initialize_monitored_resource()
     _monitoring_v3_client = monitoring_v3.MetricServiceClient(
         credentials=credentials.get_default()[0])
-    _flusher_thread = _FlusherThread()
-    _flusher_thread.start()
+    _monitoring_daemon = _MonitoringDaemon(_flush_metrics,
+                                           FLUSH_INTERVAL_SECONDS)
+    _monitoring_daemon.start()
 
 
 def stop():
   """Stops monitoring and cleans up (only if monitoring is enabled)."""
-  if _flusher_thread:
-    _flusher_thread.stop()
+  if _monitoring_daemon:
+    _monitoring_daemon.stop()
 
 
 def metrics_store():
