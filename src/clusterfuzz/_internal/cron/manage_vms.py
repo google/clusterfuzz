@@ -160,8 +160,15 @@ def _template_needs_update(current_template, new_template, resource_name):
 
 
 def _auto_healing_policy_to_dict(
-    policy: compute_engine_projects.AutoHealingPolicy) -> Dict[str, Any]:
-  """Converts `policy` into its JSON API representation."""
+    policy: Optional[compute_engine_projects.AutoHealingPolicy]
+) -> Optional[Dict[str, Any]]:
+  """Converts `policy` into its JSON API representation.
+
+  Returns None if `policy` is None.
+  """
+  if policy is None:
+    return None
+
   return {
       'healthCheck': policy.health_check,
       'initialDelaySec': policy.initial_delay_sec,
@@ -177,9 +184,7 @@ def _update_auto_healing_policy(
   if policies:
     old_policy_dict = policies[0]
 
-  new_policy_dict = None
-  if new_policy is not None:
-    new_policy_dict = _auto_healing_policy_to_dict(new_policy)
+  new_policy_dict = _auto_healing_policy_to_dict(new_policy)
 
   if new_policy_dict == old_policy_dict:
     return
