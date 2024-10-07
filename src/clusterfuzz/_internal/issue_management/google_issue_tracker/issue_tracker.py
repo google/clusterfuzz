@@ -601,7 +601,7 @@ class Issue(issue_tracker.Issue):
     self.labels.remove_by_prefix('ReleaseBlock-')
 
     # Special case: OSS-Fuzz "Reported" custom field.
-    added_reported = _get_oss_fuzz_reported_value(self.labels.added)
+    added_reported = _get_oss_fuzz_reported_value(self.labels)
     if added_reported:
       custom_field_entries.append({
           'customFieldId': _OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID,
@@ -609,7 +609,7 @@ class Issue(issue_tracker.Issue):
       })
 
     # Special case: OSS-Fuzz "Project" custom field.
-    added_project = _extract_label(self.labels.added, 'Proj-')
+    added_project = _extract_label(self.labels, 'Proj-')
     if added_project:
       # Assume there is only one.
       custom_field_entries.append({

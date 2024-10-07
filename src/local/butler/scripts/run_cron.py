@@ -13,14 +13,11 @@
 # limitations under the License.
 """Executes update task locally, so we can run it through a debugger."""
 
-import os
-
-from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 from clusterfuzz._internal.system import environment
 
 
-def execute():
+def execute(args):  #pylint: disable=unused-argument
   """Build keywords."""
   environment.set_bot_environment()
-  os.environ['USE_TEST_DEPLOYMENT'] = '1'
-  update_task.update_source_code()
+  oss_fuzz_apply_ccs.main()
