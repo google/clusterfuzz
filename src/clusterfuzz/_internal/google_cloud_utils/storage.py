@@ -23,6 +23,8 @@ import os
 import shutil
 import threading
 import time
+from typing import Dict
+from typing import List
 from typing import Tuple
 import uuid
 
@@ -108,7 +110,7 @@ if OpenSSL:
   _TRANSIENT_ERRORS.append(OpenSSL.SSL.Error)
 
 SignedUrlDownloadResult = collections.namedtuple('SignedUrlDownloadResult',
-                                                 ['success', 'url', 'filepath'])
+                                                 ['url', 'filepath'])
 
 
 class StorageProvider:
@@ -1251,17 +1253,16 @@ def _error_tolerant_upload_signed_url(url_and_path):
     return upload_signed_url(fp, url)
 
 
-def delete_signed_url(url):
+def delete_signed_url(url: str):
   """Makes a DELETE HTTP request to |url|."""
   _provider().delete_signed_url(url)
 
 
-def _error_tolerant_delete_signed_url(url):
+def _error_tolerant_delete_signed_url(url: str):
   try:
-    return delete_signed_url(url)
+    delete_signed_url(url)
   except Exception:
     logs.warning(f'Failed to delete: {url}')
-    return False
 
 
 def upload_signed_urls(signed_urls, files):
@@ -1279,8 +1280,8 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
 
 
-def download_signed_urls(signed_urls: list[str],
-                         directory: str) -> list[SignedUrlDownloadResult]:
+def download_signed_urls(signed_urls: List[str],
+                         directory: str) -> List[SignedUrlDownloadResult]:
   """Download |signed_urls| to |directory|."""
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
@@ -1293,22 +1294,21 @@ def download_signed_urls(signed_urls: list[str],
       for idx in range(len(signed_urls))
   ]
   logs.info('Downloading URLs.')
-  results = fast_http.download_urls(signed_urls, filepaths)
+  urls = fast_http.download_urls(signed_urls, filepaths)
   download_results = [
-      SignedUrlDownloadResult(result, signed_urls[idx], filepaths[idx])
-      for idx, result in enumerate(results)
+      SignedUrlDownloadResult(url, filepaths[idx])
+      for idx, url in enumerate(urls)
   ]
   return download_results
 
 
-def delete_signed_urls(urls) -> list[bool]:
+def delete_signed_urls(urls):
   if not urls:
     return []
   logs.info('Deleting URLs.')
   with _pool() as pool:
-    result = list(pool.map(_error_tolerant_delete_signed_url, urls))
+    pool.map(_error_tolerant_delete_signed_url, urls)
   logs.info('Done deleting URLs.')
-  return result
 
 
 def _sign_urls_for_existing_file(
@@ -1324,7 +1324,7 @@ def _sign_urls_for_existing_file(
 
 
 def sign_urls_for_existing_files(urls,
-                                 include_delete_urls) -> list[Tuple[str, str]]:
+                                 include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
   result = [
       _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
@@ -1338,7 +1338,7 @@ def get_arbitrary_signed_upload_url(remote_directory):
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
-                                     num_uploads: int) -> list[str]:
+                                     num_uploads: int) -> List[str]:
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
   # We verify there are no collisions for uuid4s in CF because it would be bad

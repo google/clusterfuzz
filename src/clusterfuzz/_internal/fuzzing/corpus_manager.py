@@ -432,7 +432,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
     for result in results:
-      if not result.success:
+      if not result.url:
         fails += 1
         continue
 
@@ -539,8 +539,9 @@ def _get_regressions_corpus_gcs_url(bucket_name, bucket_path):
 
 
 def download_corpus(corpus, directory):
-  storage.download_signed_urls(corpus.download_urls, directory)
-  storage.download_signed_urls(corpus.regression_download_urls, directory)
+  storage.download_signed_urls(list(corpus.download_urls.keys()), directory)
+  storage.download_signed_urls(
+      list(corpus.regression_download_urls.keys()), directory)
 
 
 def _get_gcs_url(bucket_name, bucket_path, suffix=''):
@@ -593,7 +594,7 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
   results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
                                          directory)
-  fails = [result.success for result in results if not result.success]
+  fails = [result.url for result in results if not result.url]
   return len(fails) < MAX_SYNC_ERRORS
 
 
@@ -654,7 +655,6 @@ def get_fuzz_target_corpus(engine,
       bucket_path,
       include_delete_urls=include_delete_urls,
       max_upload_urls=max_upload_urls)
-  print('bucket_name', bucket_name, 'bucket_path', bucket_path, corpus.gcs_url)
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
   assert not (include_regressions and quarantine)
