@@ -28,6 +28,9 @@ test-clusterfuzz:
       instance_count: 2   # Change to actual number of instances needed.
       instance_template: clusterfuzz-linux-pre
       distribute: False
+      auto_healing_policy:
+        health_check: global/healthChecks/test-check
+        initial_delay_sec: 300
 
     # These can be uncommented as needed.
     #
