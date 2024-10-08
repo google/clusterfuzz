@@ -90,6 +90,14 @@ async def _error_tolerant_download_file(session: aiohttp.ClientSession,
 async def _async_download_file(session: aiohttp.ClientSession, url: str,
                                path: str):
   async with session.get(url) as response:
+    if response.status != 200:
+      print(response.status, url)
+      raise aiohttp.ClientResponseError(
+          response.request_info,
+          response.history,
+          message=f'Failed to download. Code: {response.status}.',
+          status=response.status,
+      )
     with open(path, 'wb') as fp:
       while True:
         chunk = await response.content.read(1024)

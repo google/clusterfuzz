@@ -1286,6 +1286,7 @@ def download_signed_urls(signed_urls: list[str],
   # renaming them.
   if not signed_urls:
     return []
+  os.makedirs(directory, exist_ok=True)
   basename = uuid.uuid4().hex
   filepaths = [
       os.path.join(directory, f'{basename}-{idx}')
