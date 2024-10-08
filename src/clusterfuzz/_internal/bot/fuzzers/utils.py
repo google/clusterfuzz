@@ -13,10 +13,13 @@
 # limitations under the License.
 """Fuzzer utils."""
 
+import functools
 import os
 import re
 import stat
 import tempfile
+from typing import Callable
+from typing import Optional
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
@@ -30,7 +33,7 @@ BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
 EXTRA_BUILD_DIR = '__extra_build'
 
 
-def is_fuzz_target_local(file_path, file_handle=None):
+def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
   if '@' in file_path:
     # GFT targets often have periods in the name that get misinterpreted as an
@@ -53,7 +56,7 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # Ignore files with disallowed extensions (to prevent opening e.g. .zips).
     return False
 
-  if not file_handle and not os.path.exists(file_path):
+  if not file_opener and not os.path.exists(file_path):
     # Ignore non-existent files for cases when we don't have a file handle.
     return False
 
@@ -72,24 +75,27 @@ def is_fuzz_target_local(file_path, file_handle=None):
     logs.warning('Tried to read from non-regular file: %s.' % file_path)
     return False
 
-  # Use already provided file handle or open the file.
-  local_file_handle = file_handle or open(file_path, 'rb')
+  # Either use the file opener or open the file ourselves.
+  if not file_opener:
+    file_opener = functools.partial(open, mode='rb')
+  try:
+    with file_opener(file_path) as file_handle:
+      result = False
+      for pattern in FUZZ_TARGET_SEARCH_BYTES:
+        # TODO(metzman): Bound this call so we don't read forever if something
+        # went wrong.
+        file_handle.seek(0)
+        result = utils.search_bytes_in_file(pattern, file_handle)
+        if result:
+          break
 
-  result = False
-  for pattern in FUZZ_TARGET_SEARCH_BYTES:
-    # TODO(metzman): Bound this call so we don't read forever if something went
-    # wrong.
-    local_file_handle.seek(0)
-    result = utils.search_bytes_in_file(pattern, local_file_handle)
-    if result:
-      break
+      file_handle.close()
 
-  if not file_handle:
-    # If this local file handle is owned by our function, close it now.
-    # Otherwise, it is caller's responsibility.
-    local_file_handle.close()
-
-  return result
+      return result
+  except Exception as e:
+    # In case we could not open the file, we consider it's not a fuzzer.
+    logs.warning(f'Could not open {file_path}: {e}')
+    return False
 
 
 def get_fuzz_targets_local(path):
@@ -103,7 +109,7 @@ def get_fuzz_targets_local(path):
         continue
 
       file_path = os.path.join(root, filename)
-      if is_fuzz_target_local(file_path):
+      if is_fuzz_target(file_path):
         fuzz_target_paths.append(file_path)
 
   return fuzz_target_paths

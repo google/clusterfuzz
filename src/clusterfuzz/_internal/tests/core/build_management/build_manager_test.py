@@ -46,6 +46,7 @@ def _mock_unpack_build(
     _,
     build_dir,
     build_url,
+    http_build_url=None,
 ):
   """Mock _unpack_build."""
   if not shell.remove_directory(build_dir, recreate=True):
@@ -305,7 +306,8 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._unpack_build.assert_called_once_with(
         mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-        'gs://path/file-release-2.zip')
+        'gs://path/file-release-2.zip',
+        'https://storage.googleapis.com/path/file-release-2.zip')
 
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
@@ -322,6 +324,20 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
 
     # Non-existent revisions do not result in any builds being set up.
     self.assertIsNone(build_manager.setup_regular_build(3))
+
+  def test_setup_with_http_url(self):
+    """Tests setup build with compatible http remote zipping."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+    self.mock.get_build_urls_list.return_value = [
+        'gs://path/file-release-10.zip',
+        'gs://path/file-release-2.zip',
+        'gs://path/file-release-1.zip',
+    ]
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2)
+    self.assertEqual(build.http_build_url,
+                     'https://storage.googleapis.com/path/file-release-2.zip')
 
   def test_setup_with_extra(self):
     """Tests setting up a build with an extra build set."""
@@ -355,12 +371,13 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
         mock.call(
             mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-            'gs://path/file-release-2.zip'),
+            'gs://path/file-release-2.zip',
+            'https://storage.googleapis.com/path/file-release-2.zip'),
         mock.call(
             mock.ANY,
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/__extra_build',
-            'gs://path2/file-release-2.zip')
+            'gs://path2/file-release-2.zip', None)
     ])
 
     self._assert_env_vars()
@@ -411,6 +428,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.bot.fuzzers.utils.get_fuzz_targets',
         'clusterfuzz._internal.build_management.build_archive.BuildArchive',
         'clusterfuzz._internal.build_management.build_archive.open',
+        'clusterfuzz._internal.build_management.build_archive.open_uri',
+        'clusterfuzz._internal.build_management.build_archive.unzip_over_http_compatible',
         'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
         'clusterfuzz._internal.build_management.build_manager._make_space',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
@@ -440,9 +459,14 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.open.return_value.__enter__.return_value.list_fuzz_targets.return_value = [
         'target1', 'target2', 'target3'
     ]
+    self.mock.open_uri.return_value.__enter__.return_value.list_fuzz_targets.return_value = [
+        'target1', 'target2', 'target3'
+    ]
+    self.mock.unzip_over_http_compatible.return_value = False
 
     self.mock._make_space.return_value = True
     self.mock.open.return_value.__enter__.return_value.unpack.return_value = True
+    self.mock.open_uri.return_value.__enter__.return_value.unpack.return_value = True
     self.mock.time.return_value = 1000.0
 
     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
@@ -670,6 +694,76 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
               fuzz_target=target_checker,
               trusted=True)
       ])
+
+  def test_setup_fuzz_over_http(self):
+    """Tests setup fuzzing with compatible remote unzipping."""
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['RELEASE_BUILD_URL_PATTERN'] = (
+        'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = "True"
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.assertEqual(
+        1,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+    self.assertEqual(1, self.mock.unzip_over_http_compatible.call_count)
+
+    # Test setting up build again.
+    self.mock.time.return_value = 1005.0
+    build = build_manager.setup_regular_build(2)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Since it was a partial build, the unpack should be called again.
+    self.assertEqual(
+        2,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
+
+  def test_setup_fuzz_over_http_unpack_all(self):
+    """Tests setup fuzzing with compatible remote unzipping."""
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['RELEASE_BUILD_URL_PATTERN'] = (
+        'https://example.com/path/file-release-([0-9]+).zip')
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.assertEqual(
+        1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
+
+    # Test setting up build again.
+    os.environ['FUZZ_TARGET'] = ''
+    self.mock.time.return_value = 1005.0
+    build = build_manager.setup_regular_build(2)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Not a partial build, so unpack shouldn't be called again.
+    self.assertEqual(
+        1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
+
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   def test_delete(self):
     """Test deleting this build."""
@@ -1237,7 +1331,7 @@ class RpathsTest(unittest.TestCase):
 
   # pylint: disable=unused-argument
   def mock_unpack_build(self, test_build_dir, actual_self, base_build_dir,
-                        build_dir, url):
+                        build_dir, url, http_build_url):
     test_data_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
         test_build_dir)

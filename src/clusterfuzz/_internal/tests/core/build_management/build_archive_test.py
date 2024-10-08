@@ -132,15 +132,15 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
-        'clusterfuzz._internal.bot.fuzzers.utils.is_fuzz_target_local',
+        'clusterfuzz._internal.bot.fuzzers.utils.is_fuzz_target',
     ])
     self.mock.open.return_value.list_members.return_value = []
-    self.mock.is_fuzz_target_local.side_effect = self._mock_is_fuzz_target_local
+    self.mock.is_fuzz_target.side_effect = self._mock_is_fuzz_target
     self.build = build_archive.ChromeBuildArchive(self.mock.open.return_value)
     self._declared_fuzzers = []
     self.maxDiff = None
 
-  def _mock_is_fuzz_target_local(self, target, _=None):
+  def _mock_is_fuzz_target(self, target, _=None):
     target = os.path.basename(target)
     return target in self._declared_fuzzers
 

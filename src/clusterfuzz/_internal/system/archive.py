@@ -15,6 +15,7 @@
 
 import abc
 import dataclasses
+import io
 import os
 import tarfile
 from typing import BinaryIO
@@ -23,6 +24,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 import zipfile
+
+import requests
 
 from clusterfuzz._internal.metrics import logs
 
@@ -38,6 +41,11 @@ LZMA_FILE_EXTENSIONS = ['.tar.lzma', '.tar.xz']
 
 ARCHIVE_FILE_EXTENSIONS = (
     ZIP_FILE_EXTENSIONS + TAR_FILE_EXTENSIONS + LZMA_FILE_EXTENSIONS)
+
+# This is the size of the internal buffer that we're using to cache HTTP
+# range bytes.
+HTTP_BUFFER_SIZE = 50 * 1024 * 1024  # 50 MB
+HTTP_REQUEST_TIMEOUT = 5  # 5 seconds
 
 StrBytesPathLike = Union[str, bytes, os.PathLike]
 MatchCallback = Callable[[str], bool]
@@ -373,9 +381,9 @@ class ArchiveError(Exception):
   """ArchiveError"""
 
 
-# pylint: disable=redefined-builtin
-def open(archive_path: str,
-         file_obj: Optional[BinaryIO] = None) -> ArchiveReader:
+def open(  # pylint: disable=redefined-builtin
+    archive_path: str,
+    file_obj: Optional[BinaryIO] = None) -> ArchiveReader:
   """Opens the archive and gets the appropriate archive reader based on the
   `archive_path`. If `file_obj` is not none, the binary file-like object will be
   used to read the archive instead of opening `archive_path`.
@@ -405,6 +413,154 @@ class ArchiveType:
   ZIP = 1
   TAR = 2
   TAR_LZMA = 3
+
+
+@dataclasses.dataclass
+class CacheBlock:
+  """Represents a cache entry for the HttpZipFile.
+  Members:
+    start: the start of the byte range in the file.
+    end: the end of the byte range in the file (inclusive).
+    content: the sequence of bytes for this range.
+  """
+  start: int
+  end: int
+  content: bytes
+
+
+class HttpZipFile(io.IOBase):
+  """This class is a very simple file-like object representation of a zip file
+  over HTTP.
+  It uses the 'Accept-Ranges' feature of HTTP to fetch parts (or all) of the
+  file.
+  See https://docs.python.org/3/glossary.html#term-file-like-object for the
+  definition of a file-like object.
+  """
+
+  @staticmethod
+  def is_uri_compatible(uri: str) -> bool:
+    try:
+      res = requests.head(uri, timeout=HTTP_REQUEST_TIMEOUT)
+      return res.headers.get('Accept-Ranges') is not None
+    except Exception as e:
+      logs.warning(f'Request to {uri} failed: {e}')
+      return False
+
+  def __init__(self, uri: str):
+    self.uri = uri
+    self.session = requests.Session()
+    # This slows down the overall performances, because compressing something
+    # that's already encoded is unlikely to shrink its size, and we'll just
+    # waste time decoding the data twice.
+    self.session.headers.pop('Accept-Encoding')
+    resp = self.session.head(self.uri)
+    self.file_size = int(resp.headers.get('Content-Length', default=0))
+    self._current_block = CacheBlock(0, 0, b'')
+    self._pos = 0
+    assert resp.headers.get('Accept-Ranges') is not None
+
+  def seekable(self) -> bool:
+    """Whether this is seekable."""
+    return True
+
+  def readable(self) -> bool:
+    """Whether this stream is readable."""
+    return True
+
+  def seek(self, offset: int, from_what: int = 0) -> int:
+    """Provides a seek implementation.
+
+    Args:
+        offset: the offset
+        from_what: from where the offset should be computed. Defaults to 0.
+    """
+    if from_what == 0:
+      self._pos = offset
+    elif from_what == 1:
+      self._pos = self._pos + offset
+    else:
+      self._pos = self.file_size + offset
+    self._pos = max(min(self._pos, self.file_size), 0)
+    return self._pos
+
+  def tell(self) -> int:
+    """Provides a tell implementation. Returns the current cursor position.
+
+    Returns:
+        the current cursor position.
+    """
+    return self._pos
+
+  def _fetch_from_http(self, start: int, end: int) -> bytes:
+    """Fetches the bytes from the HTTP URI using the ranges.
+
+    Args:
+        start: the start of the range.
+        end (int): the end of the range (inclusive).
+
+    Returns:
+        the read bytes.
+    """
+    resp = self.session.get(self.uri, headers={'Range': f'bytes={start}-{end}'})
+    return resp.content
+
+  def _fetch_from_cache(self, start: int, end: int) -> bytes:
+    """Fetches the bytes from the cache. If the cache does not contain the
+    bytes, it will read bytes from HTTP and cache the result.
+
+    Args:
+        start: the start of the range.
+        end: the end of the range (inclusive).
+
+    Returns:
+        the read bytes.
+    """
+    if self._current_block.start > start or self._current_block.end < end:
+      # We're reading at most `HTTP_BUFFER_SIZE` from the HTTP range request.
+      read_ahead_end = min(self.file_size - 1, start + HTTP_BUFFER_SIZE - 1)
+      self._current_block = CacheBlock(
+          start, read_ahead_end, self._fetch_from_http(start, read_ahead_end))
+    inner_start = start - self._current_block.start
+    inner_end = end - self._current_block.start
+    return self._current_block.content[inner_start:inner_end + 1]
+
+  def read(self, size: Optional[int] = -1) -> bytes:
+    """Read into this file-object.
+
+    Args:
+        size: the size of the read. If not specified, reads all.
+
+    Returns:
+        the read bytes.
+    """
+    if not size or size == -1:
+      size = self.file_size - self._pos
+    read_size = min(self.file_size - self._pos, size)
+    end_range = self._pos + read_size - 1
+    # If the request if greater than the buffer size, we're not caching
+    # the request, because it is likely that we are trying to read a big
+    # file in the archive, in which case it's unlikely that we read it again
+    # in a subsequent read. For small reads, however, it is likely that we are,
+    # for example, unpacking a whole directory. In this case, reading ahead
+    # helps reducing the number of HTTP requests that are being made.
+    if read_size > HTTP_BUFFER_SIZE:
+      content = self._fetch_from_http(self._pos, end_range)
+    else:
+      content = self._fetch_from_cache(self._pos, end_range)
+    self._pos += read_size
+    return content
+
+  def read1(self, size: Optional[int] = -1) -> bytes:
+    """Read into the file-object in at most on system call.
+    This is exactly similar to the read implementation in our case.
+
+    Args:
+        size: The size to read. Defaults to -1.
+
+    Returns:
+        the read bytes.
+    """
+    return self.read(size)
 
 
 def get_archive_type(archive_path: str) -> ArchiveType:
