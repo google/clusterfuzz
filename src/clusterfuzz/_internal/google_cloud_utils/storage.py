@@ -22,7 +22,6 @@ import os
 import shutil
 import threading
 import time
-from typing import List
 import uuid
 
 import google.auth.exceptions
@@ -1270,7 +1269,7 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
 
 
-def download_signed_urls(signed_urls: List[str], directory: str) -> List[bool]:
+def download_signed_urls(signed_urls: list[str], directory: str) -> list[bool]:
   """Download |signed_urls| to |directory|."""
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
