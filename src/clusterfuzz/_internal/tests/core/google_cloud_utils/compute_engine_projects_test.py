@@ -24,5 +24,33 @@ class LoadProjectTest(unittest.TestCase):
   def test_load_test_project(self):
     """Test that test config (project test-clusterfuzz) loads without any
     exceptions."""
-    self.assertIsNotNone(
-        compute_engine_projects.load_project('test-clusterfuzz'))
+    project = compute_engine_projects.load_project('test-clusterfuzz')
+    self.assertIsNotNone(project)
+
+    self.assertEqual(project.project_id, 'test-clusterfuzz')
+    self.assertEqual(project.clusters, [
+        compute_engine_projects.Cluster(
+            name='clusterfuzz-linux',
+            gce_zone='gce-zone',
+            instance_count=1,
+            instance_template='clusterfuzz-linux',
+            distribute=False,
+            worker=False,
+            high_end=False,
+            auto_healing_policy=None,
+        ),
+        compute_engine_projects.Cluster(
+            name='clusterfuzz-linux-pre',
+            gce_zone='gce-zone',
+            instance_count=2,
+            instance_template='clusterfuzz-linux-pre',
+            distribute=False,
+            worker=False,
+            high_end=False,
+            auto_healing_policy=compute_engine_projects.AutoHealingPolicy(
+                health_check='https://www.googleapis.com/compute/v1/projects/' +
+                'test-clusterfuzz/global/healthChecks/test-check',
+                initial_delay_sec=300,
+            ),
+        ),
+    ])

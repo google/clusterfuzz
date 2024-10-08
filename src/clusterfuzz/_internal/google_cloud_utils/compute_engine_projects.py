@@ -26,6 +26,10 @@ from clusterfuzz._internal.system import environment
 
 FILE_SCHEME = 'file://'
 
+# Base URL for the GCE API.
+GCE_API_URL_SCHEME = 'https://'
+GCE_API_URL_BASE = f'{GCE_API_URL_SCHEME}www.googleapis.com/compute/v1/projects'
+
 
 class Project:
   """Project."""
@@ -72,8 +76,8 @@ class AutoHealingPolicy:
   initial_delay_sec: int
 
   @classmethod
-  def from_config(
-      cls, policy: Optional[Dict[str, Any]]) -> Optional['AutoHealingPolicy']:
+  def from_config(cls, policy: Optional[Dict[str, Any]],
+                  project_id: str) -> Optional['AutoHealingPolicy']:
     """Attempts to create a policy from the given yaml configuration value."""
     if policy is None:
       return None
@@ -93,6 +97,9 @@ class AutoHealingPolicy:
 
     assert isinstance(health_check, str), repr(health_check)
     assert isinstance(initial_delay_sec, int), repr(initial_delay_sec)
+
+    if not health_check.startswith(GCE_API_URL_SCHEME):
+      health_check = f'{GCE_API_URL_BASE}/{project_id}/{health_check}'
 
     return cls(health_check=health_check, initial_delay_sec=initial_delay_sec)
 
@@ -127,7 +134,7 @@ def _config_to_project(name, config):
             instance_template=zone['instance_template'],
             distribute=zone.get('distribute', False),
             auto_healing_policy=AutoHealingPolicy.from_config(
-                zone.get('auto_healing_policy')),
+                zone.get('auto_healing_policy'), name),
             worker=zone.get('worker', False),
             high_end=zone.get('high_end', False)))
 
