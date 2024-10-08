@@ -17,7 +17,7 @@ from concurrent import futures
 import contextlib
 import itertools
 import multiprocessing
-from typing import List
+from typing import Optional
 from typing import Tuple
 
 import aiohttp
@@ -40,13 +40,20 @@ def _pool(pool_size=_POOL_SIZE):
     yield futures.ProcessPoolExecutor(pool_size)
 
 
-def download_urls(urls: List[str], filepaths: List[str]) -> List[bool]:
+def download_urls(urls: list[str], filepaths: list[str]) -> list[bool]:
   """Downloads multiple |urls| to |filepaths| in parallel and
   asynchronously. Tolerates errors. Returns a list of whether each
   download was successful."""
   assert len(urls) == len(filepaths)
+  if len(urls) == 0:
+    # Do this to avoid issues with the range function.
+    return []
   url_batches = []
   url_batch_size = len(urls) // _POOL_SIZE
+
+  # Avoid issues with range when urls is less than _POOL_SIZE.
+  url_batch_size = max(url_batch_size, len(urls))
+
   urls_and_filepaths = list(zip(urls, filepaths))
   for idx in range(0, len(urls), url_batch_size):
     url_batch = urls_and_filepaths[idx:idx + url_batch_size]
@@ -55,13 +62,13 @@ def download_urls(urls: List[str], filepaths: List[str]) -> List[bool]:
     return list(itertools.chain(*pool.map(_download_files, url_batches)))
 
 
-def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
+def _download_files(urls_and_paths: list[Tuple[str, str]]) -> list[bool]:
   urls, paths = list(zip(*urls_and_paths))
   return asyncio.run(_async_download_files(list(urls), list(paths)))
 
 
-async def _async_download_files(urls: List[str],
-                                paths: List[str]) -> List[bool]:
+async def _async_download_files(urls: list[str],
+                                paths: list[str]) -> list[bool]:
   async with aiohttp.ClientSession() as session:
     tasks = [
         asyncio.create_task(_error_tolerant_download_file(session, url, path))

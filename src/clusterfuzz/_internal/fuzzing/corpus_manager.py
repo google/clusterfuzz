@@ -395,14 +395,16 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     for filepath in shell.get_files_list(directory):
       files_to_upload.append(filepath)
       if filepath in files_to_delete:
+        # Remove it from the delete list if it is still on disk, since that
+        # means it's still in the corpus.
         del self._filenames_to_delete_urls_mapping[filepath]
 
     results = self.upload_files(files_to_upload)
 
-    urls_to_delete = []
-    for filename in files_to_delete:
-      urls_to_delete.append(self._filenames_to_delete_urls_mapping[filename])
-
+    urls_to_delete = [
+        self._filenames_to_delete_urls_mapping[filename]
+        for filename in files_to_delete
+    ]
     storage.delete_signed_urls(urls_to_delete)
     logs.info(f'{results.count(True)} corpus files uploaded.')
     return results.count(False) < MAX_SYNC_ERRORS
@@ -428,14 +430,17 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     """Syncs a corpus from GCS to disk."""
     shell.create_directory(directory, create_intermediates=True)
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
-    for filepath, upload_url in results:
-      if filepath is None:
+    fails = 0
+    for result in results:
+      if not result.success:
+        fails += 1
         continue
-      self._filenames_to_delete_urls_mapping[filepath] = (
-          corpus.corpus_urls[upload_url])
+
+      self._filenames_to_delete_urls_mapping[result.filepath] = (
+          corpus.corpus_urls[result.url])
 
     # TODO(metzman): Add timeout and tolerance for missing URLs.
-    return results.count(None) < MAX_SYNC_ERRORS
+    return fails < MAX_SYNC_ERRORS
 
   def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
     del timeout
@@ -588,7 +593,8 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
   results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
                                          directory)
-  return results.count(None) < MAX_SYNC_ERRORS
+  fails = [result.success for result in results if not result.success]
+  return len(fails) < MAX_SYNC_ERRORS
 
 
 def get_proto_corpus(bucket_name,

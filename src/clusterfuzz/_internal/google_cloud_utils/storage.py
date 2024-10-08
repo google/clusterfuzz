@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+import collections
 from concurrent import futures
 import contextlib
 import copy
@@ -22,6 +23,7 @@ import os
 import shutil
 import threading
 import time
+from typing import Tuple
 import uuid
 
 import google.auth.exceptions
@@ -105,6 +107,9 @@ if OpenSSL:
   # We haven't imported this on non-linux platforms.
   _TRANSIENT_ERRORS.append(OpenSSL.SSL.Error)
 
+SignedUrlDownloadResult = collections.namedtuple('SignedUrlDownloadResult',
+                                                 ['success', 'url', 'filepath'])
+
 
 class StorageProvider:
   """Core storage provider interface."""
@@ -167,7 +172,7 @@ class StorageProvider:
     """Downloads |signed_url|."""
     raise NotImplementedError
 
-  def upload_signed_url(self, data_or_fileobj, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
     raise NotImplementedError
 
@@ -394,12 +399,14 @@ class GcsProvider(StorageProvider):
     return True
 
   def sign_download_url(self,
-                        remote_path,
-                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
+                        remote_path: str,
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES) -> str:
     """Signs a download URL for a remote file."""
     return _sign_url(remote_path, method='GET', minutes=minutes)
 
-  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_upload_url(self,
+                      remote_path: str,
+                      minutes=SIGNED_URL_EXPIRATION_MINUTES) -> str:
     """Signs an upload URL for a remote file."""
     return _sign_url(remote_path, method='PUT', minutes=minutes)
 
@@ -407,7 +414,7 @@ class GcsProvider(StorageProvider):
     """Downloads |signed_url|."""
     return _download_url(signed_url)
 
-  def upload_signed_url(self, data_or_fileobj, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
     requests.put(signed_url, data=data_or_fileobj, timeout=HTTP_TIMEOUT_SECONDS)
     return True
@@ -422,7 +429,9 @@ class GcsProvider(StorageProvider):
     requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
-def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
+def _sign_url(remote_path: str,
+              minutes=SIGNED_URL_EXPIRATION_MINUTES,
+              method='GET') -> str:
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
     return remote_path
@@ -666,7 +675,7 @@ class FileSystemProvider(StorageProvider):
     """Downloads |signed_url|."""
     return self.read_data(signed_url)
 
-  def upload_signed_url(self, data_or_fileobj, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
     return self.write_data(data_or_fileobj, signed_url)
 
@@ -1197,7 +1206,7 @@ def _download_url(url):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.upload_signed_url')
-def upload_signed_url(data_or_fileobj, url):
+def upload_signed_url(data_or_fileobj, url: str) -> bool:
   """Uploads data to the |signed_url|."""
   return _provider().upload_signed_url(str_to_bytes(data_or_fileobj), url)
 
@@ -1251,6 +1260,7 @@ def _error_tolerant_delete_signed_url(url):
   try:
     return delete_signed_url(url)
   except Exception:
+    logs.warning(f'Failed to delete: {url}')
     return False
 
 
@@ -1269,7 +1279,8 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
 
 
-def download_signed_urls(signed_urls: list[str], directory: str) -> list[bool]:
+def download_signed_urls(signed_urls: list[str],
+                         directory: str) -> list[SignedUrlDownloadResult]:
   """Download |signed_urls| to |directory|."""
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
@@ -1281,12 +1292,15 @@ def download_signed_urls(signed_urls: list[str], directory: str) -> list[bool]:
       for idx in range(len(signed_urls))
   ]
   logs.info('Downloading URLs.')
-  result = fast_http.download_urls(signed_urls, filepaths)
-  logs.info('Done downloading URLs.')
-  return result
+  results = fast_http.download_urls(signed_urls, filepaths)
+  download_results = [
+      SignedUrlDownloadResult(result, signed_urls[idx], filepaths[idx])
+      for idx, result in enumerate(results)
+  ]
+  return download_results
 
 
-def delete_signed_urls(urls):
+def delete_signed_urls(urls) -> list[bool]:
   if not urls:
     return []
   logs.info('Deleting URLs.')
@@ -1296,9 +1310,10 @@ def delete_signed_urls(urls):
   return result
 
 
-def _sign_urls_for_existing_file(corpus_element_url,
-                                 include_delete_urls,
-                                 minutes=SIGNED_URL_EXPIRATION_MINUTES):
+def _sign_urls_for_existing_file(
+    corpus_element_url: str,
+    include_delete_urls: bool,
+    minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
   download_url = get_signed_download_url(corpus_element_url, minutes)
   if include_delete_urls:
     delete_url = sign_delete_url(corpus_element_url, minutes)
@@ -1307,7 +1322,8 @@ def _sign_urls_for_existing_file(corpus_element_url,
   return (download_url, delete_url)
 
 
-def sign_urls_for_existing_files(urls, include_delete_urls):
+def sign_urls_for_existing_files(urls,
+                                 include_delete_urls) -> list[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
   result = [
       _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
@@ -1320,7 +1336,8 @@ def get_arbitrary_signed_upload_url(remote_directory):
   return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
 
 
-def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
+def get_arbitrary_signed_upload_urls(remote_directory: str,
+                                     num_uploads: int) -> list[str]:
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
   # We verify there are no collisions for uuid4s in CF because it would be bad
