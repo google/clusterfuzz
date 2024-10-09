@@ -20,6 +20,9 @@ import re
 import socket
 import subprocess
 import sys
+from typing import Optional
+from typing import TypeVar
+from typing import Union
 
 import yaml
 
@@ -600,9 +603,14 @@ def get_ubsan_disabled_options():
   }
 
 
-def get_value_string(environment_variable, default_value=None):
-  """Get environment variable (as a string)."""
-  return os.getenv(environment_variable, default_value)
+# This allows the type checker to notice that if the default value passed to
+# `get_value_raw()` is not None, then the function will never return None.
+_MaybeStr = TypeVar('MaybeStr', bound=Optional[str])
+
+
+def get_value_raw(var: str, default: _MaybeStr = None) -> Union[str, _MaybeStr]:
+  """Returns environment variable `var` directly, without evaluating it."""
+  return os.environ.get(var, default)
 
 
 def get_value(environment_variable, default_value=None, env=None):
