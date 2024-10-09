@@ -397,7 +397,7 @@ class CorpusPruner:
     return quarantined_unit_path
 
   def process_bad_units(self, bad_units_path, quarantine_corpus_path
-                       ) -> Dict[str, uworker_msg_pb2.CrashInfo]:
+                       ) -> Dict[str, uworker_msg_pb2.CrashInfo]:  # pylint: disable=no-member
     """Process bad units found during merge."""
     # TODO(ochang): A lot of this function is similar to parts of fuzz_task.
     # Ideally fuzz_task can be refactored in a way that lets us share the common
@@ -449,7 +449,7 @@ class CorpusPruner:
       if state.crash_state not in crashes:
         security_flag = crash_analyzer.is_security_issue(
             state.crash_stacktrace, state.crash_type, state.crash_address)
-        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(
+        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
             state.crash_state, state.crash_type, state.crash_address,
             state.crash_stacktrace, os.path.basename(unit_path), security_flag)
 

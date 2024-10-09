@@ -14,7 +14,6 @@
 """Tasks host."""
 
 import datetime
-import os
 
 from google.protobuf import wrappers_pb2
 import grpc
