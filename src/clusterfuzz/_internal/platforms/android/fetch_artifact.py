@@ -112,8 +112,9 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
       status, done = downloader.next_chunk()
       if status:
         size_completed = int(status.resumable_progress)
-        percent_completed = (size_completed * 100.0) / size
-        logs.info('%.1f%% complete.' % percent_completed)
+        if size != 0:
+          percent_completed = (size_completed * 100.0) / size
+          logs.info('%.1f%% complete.' % percent_completed)
 
   return output_path
 
