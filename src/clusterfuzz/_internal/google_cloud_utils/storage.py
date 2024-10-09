@@ -1304,7 +1304,7 @@ def download_signed_urls(signed_urls: List[str],
 
 def delete_signed_urls(urls):
   if not urls:
-    return []
+    return
   logs.info('Deleting URLs.')
   with _pool() as pool:
     pool.map(_error_tolerant_delete_signed_url, urls)
