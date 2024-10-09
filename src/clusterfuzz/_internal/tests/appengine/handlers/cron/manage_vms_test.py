@@ -27,9 +27,9 @@ from clusterfuzz._internal.google_cloud_utils import compute_engine_projects
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-AUTO_HEALING_POLICY = {
-    'healthCheck': 'global/healthChecks/example-check',
-    'initialDelaySec': 300
+AUTO_HEALING_POLICY = compute_engine_projects.AutoHealingPolicy(
+    health_check='global/healthChecks/example-check',
+    initial_delay_sec=300,
 }
 
 INSTANCE_GROUPS = {

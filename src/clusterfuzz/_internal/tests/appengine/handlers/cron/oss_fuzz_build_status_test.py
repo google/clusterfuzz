@@ -448,7 +448,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual(0, data_types.OssFuzzBuildFailure.query().count())
 
     issue = self.itm.issues[1]
-    self.assertEqual('Verified', issue.status)
+    self.assertEqual('Fixed', issue.status)
     self.assertEqual('The latest build has succeeded, closing this issue.',
                      issue.comment)
 
