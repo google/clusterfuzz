@@ -396,8 +396,8 @@ class CorpusPruner:
 
     return quarantined_unit_path
 
-  def process_bad_units(self, bad_units_path, quarantine_corpus_path) -> Dict[
-      str, uworker_msg_pb2.CrashInfo]:
+  def process_bad_units(self, bad_units_path, quarantine_corpus_path
+                       ) -> Dict[str, uworker_msg_pb2.CrashInfo]:
     """Process bad units found during merge."""
     # TODO(ochang): A lot of this function is similar to parts of fuzz_task.
     # Ideally fuzz_task can be refactored in a way that lets us share the common
@@ -655,7 +655,7 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   # Process bad units found during merge.
   # Mapping of crash state -> CrashInfo
   crashes = pruner.process_bad_units(context.bad_units_path,
-                                     context.quarantine_corpus_path, crashes)
+                                     context.quarantine_corpus_path)
   context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path)
 
   # Store corpus stats into CoverageInformation entity.
@@ -739,8 +739,7 @@ def _update_crash_unit_path(context, crash):
   crash.unit_path = unit_path
 
 
-def _upload_corpus_crashes_zip(context: Context,
-                               result: CorpusPruningResult,
+def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
                                corpus_crashes_blob_name,
                                corpus_crashes_upload_url):
   """Packs the corpus crashes in a zip file. The file is then uploaded
@@ -795,9 +794,10 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       if existing_testcase:
         continue
 
-      crash_local_unit_path = os.path.join(temp_dir, crash.unit_name)
+      unit_name = os.path.basename(crash.unit_name)
+      crash_local_unit_path = os.path.join(temp_dir, unit_name)
       # Extract the crash unit_path into crash_local_unit_path
-      zip_reader.extract(member=crash.unit_name, path=temp_dir)
+      zip_reader.extract(member=unit_name, path=temp_dir)
       # Upload/store testcase.
       with open(crash_local_unit_path, 'rb') as f:
         key = blobs.write_blob(f)
@@ -978,20 +978,6 @@ def _extract_coverage_information(context, result):
   return coverage_info
 
 
-def _extract_corpus_crashes(result):
-  """Extracts the corpus crashes as a list of CrashInfo from the result."""
-  return [
-      uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
-          crash_type=crash.crash_type,
-          crash_state=crash.crash_state,
-          security_flag=crash.security_flag,
-          crash_address=crash.crash_address,
-          crash_stacktrace=crash.crash_stacktrace,
-          unit_name=os.path.basename(crash.unit_path))
-      for crash in result.crashes
-  ]
-
-
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
   fuzz_target = uworker_io.entity_from_protobuf(
@@ -1027,7 +1013,7 @@ def utask_main(uworker_input):
             coverage_info=_extract_coverage_information(context, result),
             fuzzer_binary_name=result.fuzzer_binary_name,
             crash_revision=result.revision,
-            crashes=_extract_corpus_crashes(result),
+            crashes=result.crashes,
             corpus_backup_uploaded=bool(result.coverage_info.corpus_location)),
         issue_metadata=json.dumps(issue_metadata))
     _fill_cross_pollination_stats(result.cross_pollination_stats,

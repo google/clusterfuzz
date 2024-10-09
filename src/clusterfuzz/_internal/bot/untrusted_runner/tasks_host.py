@@ -45,7 +45,8 @@ def _get_datetime():
   return datetime.datetime.utcnow()
 
 
-def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
+def do_corpus_pruning(uworker_input, context,
+                      revision) -> corpus_pruning_task.CorpusPruningResult:
   """Do corpus pruning on untrusted worker."""
   cross_pollinate_fuzzers = [
       untrusted_runner_pb2.CrossPollinateFuzzer(
@@ -87,7 +88,7 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
           crash_stacktrace=crash.crash_stacktrace,
-          unit_name=os.path.basename(crash.unit_path),
+          unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in response.crashes
   ]

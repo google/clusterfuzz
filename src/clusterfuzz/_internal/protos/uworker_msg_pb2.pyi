@@ -890,17 +890,18 @@ class CrashInfo(google.protobuf.message.Message):
     CRASH_TYPE_FIELD_NUMBER: builtins.int
     CRASH_STATE_FIELD_NUMBER: builtins.int
     SECURITY_FLAG_FIELD_NUMBER: builtins.int
-    UNIT_NAME_FIELD_NUMBER: builtins.int
     CRASH_ADDRESS_FIELD_NUMBER: builtins.int
     CRASH_STACKTRACE_FIELD_NUMBER: builtins.int
+    UNIT_PATH_FIELD_NUMBER: builtins.int
     is_new: builtins.bool
     count: builtins.int
     crash_type: builtins.str
     crash_state: builtins.str
     security_flag: builtins.bool
-    unit_name: builtins.str
     crash_address: builtins.str
     crash_stacktrace: builtins.str
+    unit_path: builtins.str
+    """TODO(metzman): Replace with unit_name when we get rid of trusted hosts."""
     def __init__(
         self,
         *,
@@ -909,12 +910,12 @@ class CrashInfo(google.protobuf.message.Message):
         crash_type: builtins.str | None = ...,
         crash_state: builtins.str | None = ...,
         security_flag: builtins.bool | None = ...,
-        unit_name: builtins.str | None = ...,
         crash_address: builtins.str | None = ...,
         crash_stacktrace: builtins.str | None = ...,
+        unit_path: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_count", b"_count", "_crash_address", b"_crash_address", "_crash_stacktrace", b"_crash_stacktrace", "_crash_state", b"_crash_state", "_crash_type", b"_crash_type", "_is_new", b"_is_new", "_security_flag", b"_security_flag", "_unit_name", b"_unit_name", "count", b"count", "crash_address", b"crash_address", "crash_stacktrace", b"crash_stacktrace", "crash_state", b"crash_state", "crash_type", b"crash_type", "is_new", b"is_new", "security_flag", b"security_flag", "unit_name", b"unit_name"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_count", b"_count", "_crash_address", b"_crash_address", "_crash_stacktrace", b"_crash_stacktrace", "_crash_state", b"_crash_state", "_crash_type", b"_crash_type", "_is_new", b"_is_new", "_security_flag", b"_security_flag", "_unit_name", b"_unit_name", "count", b"count", "crash_address", b"crash_address", "crash_stacktrace", b"crash_stacktrace", "crash_state", b"crash_state", "crash_type", b"crash_type", "is_new", b"is_new", "security_flag", b"security_flag", "unit_name", b"unit_name"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_count", b"_count", "_crash_address", b"_crash_address", "_crash_stacktrace", b"_crash_stacktrace", "_crash_state", b"_crash_state", "_crash_type", b"_crash_type", "_is_new", b"_is_new", "_security_flag", b"_security_flag", "_unit_path", b"_unit_path", "count", b"count", "crash_address", b"crash_address", "crash_stacktrace", b"crash_stacktrace", "crash_state", b"crash_state", "crash_type", b"crash_type", "is_new", b"is_new", "security_flag", b"security_flag", "unit_path", b"unit_path"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_count", b"_count", "_crash_address", b"_crash_address", "_crash_stacktrace", b"_crash_stacktrace", "_crash_state", b"_crash_state", "_crash_type", b"_crash_type", "_is_new", b"_is_new", "_security_flag", b"_security_flag", "_unit_path", b"_unit_path", "count", b"count", "crash_address", b"crash_address", "crash_stacktrace", b"crash_stacktrace", "crash_state", b"crash_state", "crash_type", b"crash_type", "is_new", b"is_new", "security_flag", b"security_flag", "unit_path", b"unit_path"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_count", b"_count"]) -> typing_extensions.Literal["count"] | None: ...
     @typing.overload
@@ -930,7 +931,7 @@ class CrashInfo(google.protobuf.message.Message):
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_security_flag", b"_security_flag"]) -> typing_extensions.Literal["security_flag"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["_unit_name", b"_unit_name"]) -> typing_extensions.Literal["unit_name"] | None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_unit_path", b"_unit_path"]) -> typing_extensions.Literal["unit_path"] | None: ...
 
 global___CrashInfo = CrashInfo
 
