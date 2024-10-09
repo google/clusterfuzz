@@ -32,6 +32,11 @@ AUTO_HEALING_POLICY = compute_engine_projects.AutoHealingPolicy(
     initial_delay_sec=300,
 )
 
+AUTO_HEALING_POLICY_DICT = {
+    'healthCheck': 'global/healthChecks/example-check',
+    'initialDelaySec': 300
+}
+
 INSTANCE_GROUPS = {
     'oss-fuzz-linux-zone2-pre-proj2': {
         'targetSize': 1,
@@ -712,7 +717,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone2-pre-proj1',
             'oss-fuzz-linux-zone2-pre-proj1',
             size=100,
-            auto_healing_policy=AUTO_HEALING_POLICY,
+            auto_healing_policy=AUTO_HEALING_POLICY_DICT,
             wait_for_instances=False)
     mock_bot_manager.instance_group(
         'oss-fuzz-linux-zone2-pre-proj1').resize.assert_not_called()
@@ -759,7 +764,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone2-pre-proj4',
             'oss-fuzz-linux-zone2-pre-proj4',
             size=99,
-            auto_healing_policy=AUTO_HEALING_POLICY,
+            auto_healing_policy=AUTO_HEALING_POLICY_DICT,
             wait_for_instances=False)
     mock_bot_manager.instance_group(
         'oss-fuzz-linux-zone2-pre-proj4').resize.assert_not_called()
@@ -781,7 +786,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone2-pre-proj5',
             'oss-fuzz-linux-zone2-pre-proj5',
             size=99,
-            auto_healing_policy=AUTO_HEALING_POLICY,
+            auto_healing_policy=AUTO_HEALING_POLICY_DICT,
             wait_for_instances=False)
     mock_bot_manager.instance_group(
         'oss-fuzz-linux-zone2-pre-proj5').resize.assert_not_called()
@@ -813,7 +818,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone3-host',
             'oss-fuzz-linux-zone3-host',
             size=2,
-            auto_healing_policy={},
+            auto_healing_policy=None,
             wait_for_instances=False)
 
     mock_bot_manager.instance_group(
@@ -821,7 +826,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone3-host-high-end',
             'oss-fuzz-linux-zone3-host-high-end',
             size=1,
-            auto_healing_policy={},
+            auto_healing_policy=None,
             wait_for_instances=False)
 
     # Worker instances: created.
@@ -838,7 +843,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone3-worker-proj1',
             'oss-fuzz-linux-zone3-worker-proj1',
             size=1,
-            auto_healing_policy={},
+            auto_healing_policy=None,
             wait_for_instances=False)
 
     mock_bot_manager.instance_template(
@@ -854,7 +859,7 @@ class CronTest(unittest.TestCase):
             'oss-fuzz-linux-zone3-worker-proj2',
             'oss-fuzz-linux-zone3-worker-proj2',
             size=4,
-            auto_healing_policy={},
+            auto_healing_policy=None,
             wait_for_instances=False)
 
     self.assertCountEqual([{

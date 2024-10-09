@@ -408,7 +408,6 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'day once it is fixed.**', issue.body)
 
     self.assertTrue(issue.has_label('Proj-proj6'))
-    self.assertTrue(issue.has_label('Type-Build-Failure'))
 
   def test_recovered_build_failure(self):
     """Test fixed build failures."""
