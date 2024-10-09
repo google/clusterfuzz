@@ -450,11 +450,15 @@ class CorpusPruner:
         security_flag = crash_analyzer.is_security_issue(
             state.crash_stacktrace, state.crash_type, state.crash_address)
         crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
-            state.crash_state, state.crash_type, state.crash_address,
-            state.crash_stacktrace, os.path.basename(unit_path), security_flag)
+            crash_state=state.crash_state,
+            crash_type=state.crash_type,
+            crash_address=state.crash_address,
+            crash_stacktrace=state.crash_stacktrace,
+            unit_path=unit_path,
+            security_flag=security_flag)
 
-    logs.info('Found %d bad units, %d unique crashes.' % (num_bad_units,
-                                                          len(crashes)))
+    logs.info(
+        f'Found {num_bad_units} bad units, {len(crashes)} unique crashes.')
     return crashes
 
   def run(self, initial_corpus_path, minimized_corpus_path, bad_units_path):
