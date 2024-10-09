@@ -35,6 +35,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import fast_http
 from clusterfuzz._internal.system import shell
 
 from . import credentials
@@ -87,6 +88,8 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 
 # Timeout for HTTP operations.
 HTTP_TIMEOUT_SECONDS = 15
+
+_POOL_SIZE = 16
 
 _TRANSIENT_ERRORS = [
     google.cloud.exceptions.GoogleCloudError,
@@ -765,8 +768,9 @@ def _signing_creds():
   return _local.signing_creds
 
 
+# TODO(metzman): Move all parallel code to fast_http.
 @contextlib.contextmanager
-def _pool(pool_size=16):
+def _pool(pool_size=_POOL_SIZE):
   if (environment.get_value('PY_UNITTESTS') or
       environment.platform() == 'WINDOWS'):
     yield futures.ThreadPoolExecutor(pool_size)
@@ -1232,14 +1236,6 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
-def _error_tolerant_download_signed_url_to_file(url_and_path):
-  url, path = url_and_path
-  try:
-    return download_signed_url_to_file(url, path), url
-  except Exception:
-    return None, None
-
-
 def _error_tolerant_upload_signed_url(url_and_path):
   url, path = url_and_path
   with open(path, 'rb') as fp:
@@ -1273,7 +1269,7 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
 
 
-def download_signed_urls(signed_urls, directory):
+def download_signed_urls(signed_urls: list[str], directory: str) -> list[bool]:
   """Download |signed_urls| to |directory|."""
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
@@ -1285,10 +1281,7 @@ def download_signed_urls(signed_urls, directory):
       for idx in range(len(signed_urls))
   ]
   logs.info('Downloading URLs.')
-  with _pool() as pool:
-    result = list(
-        pool.map(_error_tolerant_download_signed_url_to_file,
-                 zip(signed_urls, filepaths)))
+  result = fast_http.download_urls(signed_urls, filepaths)
   logs.info('Done downloading URLs.')
   return result
 
