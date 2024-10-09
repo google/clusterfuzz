@@ -424,11 +424,11 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   crash_revision = last_tested_crash_revision or testcase.crash_revision
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   fuzz_target = fuzz_target.binary if fuzz_target else None
-  build_manager.setup_build(crash_revision, fuzz_target)
+  build_setup_result = build_manager.setup_build(crash_revision, fuzz_target)
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
-  if not build_manager.check_app_path():
+  if not build_setup_result or not build_manager.check_app_path():
     logs.error('Unable to setup build for minimization.')
     return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

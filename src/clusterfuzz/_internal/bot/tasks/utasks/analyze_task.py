@@ -101,7 +101,9 @@ def setup_build(testcase: data_types.Testcase, bad_revisions,
     revision = revision_list[revision_index]
 
   fuzz_target = fuzz_target.binary if fuzz_target else None
-  build_manager.setup_build(revision, fuzz_target)
+  if not build_manager.setup_build(revision, fuzz_target):
+    return uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
   return None
 
 

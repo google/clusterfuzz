@@ -120,8 +120,9 @@ def _testcase_reproduces_in_revision(
     logs.info(log_message)
 
   fuzz_target_binary = fuzz_target.binary if fuzz_target else None
-  build_manager.setup_build(revision, fuzz_target=fuzz_target_binary)
-  if not build_manager.check_app_path():
+  build_setup_result = build_manager.setup_build(
+      revision, fuzz_target=fuzz_target_binary)
+  if not build_setup_result or not build_manager.check_app_path():
     error_message = f'Build setup failed r{revision}'
     return None, uworker_msg_pb2.Output(
         regression_task_output=regression_task_output,
