@@ -18,6 +18,7 @@ import contextlib
 import itertools
 import multiprocessing
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import aiohttp
@@ -40,13 +41,20 @@ def _pool(pool_size=_POOL_SIZE):
     yield futures.ProcessPoolExecutor(pool_size)
 
 
-def download_urls(urls: List[str], filepaths: List[str]) -> List[bool]:
+def download_urls(urls: List[str], filepaths: List[str]) -> List[Optional[str]]:
   """Downloads multiple |urls| to |filepaths| in parallel and
   asynchronously. Tolerates errors. Returns a list of whether each
   download was successful."""
   assert len(urls) == len(filepaths)
+  if len(urls) == 0:
+    # Do this to avoid issues with the range function.
+    return []
   url_batches = []
   url_batch_size = len(urls) // _POOL_SIZE
+
+  # Avoid issues with range when urls is less than _POOL_SIZE.
+  url_batch_size = max(url_batch_size, len(urls))
+
   urls_and_filepaths = list(zip(urls, filepaths))
   for idx in range(0, len(urls), url_batch_size):
     url_batch = urls_and_filepaths[idx:idx + url_batch_size]
@@ -55,13 +63,14 @@ def download_urls(urls: List[str], filepaths: List[str]) -> List[bool]:
     return list(itertools.chain(*pool.map(_download_files, url_batches)))
 
 
-def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
+def _download_files(
+    urls_and_paths: List[Tuple[str, str]]) -> List[Optional[str]]:
   urls, paths = list(zip(*urls_and_paths))
   return asyncio.run(_async_download_files(list(urls), list(paths)))
 
 
 async def _async_download_files(urls: List[str],
-                                paths: List[str]) -> List[bool]:
+                                paths: List[str]) -> List[Optional[str]]:
   async with aiohttp.ClientSession() as session:
     tasks = [
         asyncio.create_task(_error_tolerant_download_file(session, url, path))
@@ -71,18 +80,27 @@ async def _async_download_files(urls: List[str],
 
 
 async def _error_tolerant_download_file(session: aiohttp.ClientSession,
-                                        url: str, path: str) -> bool:
+                                        url: str, path: str) -> Optional[str]:
   try:
     await _async_download_file(session, url, path)
-    return True
+    return url
   except:
     logs.warning(f'Failed to download {url}.')
-    return False
+    return None
 
 
 async def _async_download_file(session: aiohttp.ClientSession, url: str,
                                path: str):
+  """Asynchronously downloads |url| and writes it to |path|."""
   async with session.get(url) as response:
+    if response.status != 200:
+      print(response.status, url)
+      raise aiohttp.ClientResponseError(
+          response.request_info,
+          response.history,
+          message=f'Failed to download. Code: {response.status}.',
+          status=response.status,
+      )
     with open(path, 'wb') as fp:
       while True:
         chunk = await response.content.read(1024)
