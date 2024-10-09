@@ -798,7 +798,7 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       if existing_testcase:
         continue
 
-      unit_name = os.path.basename(crash.unit_name)
+      unit_name = os.path.basename(crash.unit_path)
       crash_local_unit_path = os.path.join(temp_dir, unit_name)
       # Extract the crash unit_path into crash_local_unit_path
       zip_reader.extract(member=unit_name, path=temp_dir)
