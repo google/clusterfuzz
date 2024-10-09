@@ -430,8 +430,8 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   # to setup correctly.
   if not build_manager.check_app_path():
     logs.error('Unable to setup build for minimization.')
-    return uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)  # pylint: disable=no-member
 
   if environment.is_libfuzzer_job():
     fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
