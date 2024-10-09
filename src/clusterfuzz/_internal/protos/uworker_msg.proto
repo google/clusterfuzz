@@ -182,6 +182,7 @@ message CrashInfo {
   optional string unit_name = 6;
   optional string crash_address = 7;
   optional string crash_stacktrace = 8;
+  optional string unit_path = 9;
 }
 
 message StoreFuzzerRunResultsOutput {

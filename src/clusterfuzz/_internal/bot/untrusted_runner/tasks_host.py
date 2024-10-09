@@ -45,7 +45,7 @@ def _get_datetime():
   return datetime.datetime.utcnow()
 
 
-def do_corpus_pruning(uworker_input, context, revision):
+def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   """Do corpus pruning on untrusted worker."""
   cross_pollinate_fuzzers = [
       untrusted_runner_pb2.CrossPollinateFuzzer(
