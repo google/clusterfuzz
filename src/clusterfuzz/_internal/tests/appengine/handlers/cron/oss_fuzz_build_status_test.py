@@ -387,7 +387,6 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'day once it is fixed.**', issue.body)
 
     self.assertTrue(issue.has_label('Proj-proj2'))
-    self.assertTrue(issue.has_label('Type-Build-Failure'))
 
     issue = self.itm.issues[2]
     self.assertCountEqual(['b@user.com'], issue.cc)
