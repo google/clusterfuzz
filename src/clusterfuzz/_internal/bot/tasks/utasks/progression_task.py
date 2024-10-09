@@ -259,9 +259,9 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
     revision = 0
 
   if not build_setup_result or not build_manager.check_app_path():
-    return uworker_msg_pb2.Output(
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message='Build setup failed for custom binary',
-        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
@@ -334,10 +334,10 @@ def _testcase_reproduces_in_revision(
   if not build_setup_result or not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
     error_message = f'Build setup failed at r{revision}'
-    return None, uworker_msg_pb2.Output(
+    return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message=error_message,
         progression_task_output=progression_task_output,
-        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
   build_data = testcase_manager.check_for_bad_build(job_type, revision)
   progression_task_output.build_data_list.append(build_data)

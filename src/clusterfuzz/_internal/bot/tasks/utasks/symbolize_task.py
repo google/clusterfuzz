@@ -114,9 +114,9 @@ def utask_main(uworker_input):
   crash_revision = environment.get_value('APP_REVISION')
 
   if not build or not build_manager.check_app_path():
-    return uworker_msg_pb2.Output(
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message='Build setup failed',
-        error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
+        error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
   # ASAN tool settings (if the tool is used).
   # See if we can get better stacks with higher redzone sizes.

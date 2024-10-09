@@ -102,8 +102,8 @@ def setup_build(testcase: data_types.Testcase, bad_revisions,
 
   fuzz_target = fuzz_target.binary if fuzz_target else None
   if not build_manager.setup_build(revision, fuzz_target):
-    return uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
   return None
 
 
@@ -153,8 +153,8 @@ def setup_testcase_and_build(
   # to setup correctly.
   if not build_manager.check_app_path():
     # Let postprocess handle ANALYZE_BUILD_SETUP and restart tasks if needed.
-    return None, uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+    return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
 
   update_testcase_after_build_setup(testcase)
   testcase.absolute_path = testcase_file_path

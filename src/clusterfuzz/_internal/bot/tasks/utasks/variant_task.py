@@ -120,7 +120,7 @@ def utask_main(uworker_input):
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_setup_result or not build_manager.check_app_path():
-    return uworker_msg_pb2.Output(
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP)
 
   # Disable gestures if we're running on a different platform from that of
