@@ -398,15 +398,17 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
         del files_to_delete_dict[filepath]
-    
+
     results = self.upload_files(files_to_upload)
     logs.info(f'{results.count(True)} corpus files uploaded.')
-    
+
     files_to_delete = list(files_to_delete_dict.values())
     logs.info(f'{len(files_to_delete)} corpus files to delete.')
-    assert ((len(files_to_delete) != len(self._filepaths_to_delete_urls_mapping)) or not len(files_to_delete))
+    assert (
+        (len(files_to_delete) != len(self._filepaths_to_delete_urls_mapping)) or
+        not len(files_to_delete))
     storage.delete_signed_urls(files_to_delete)
-    
+
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
@@ -449,7 +451,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       logs.error(f'Cannot upload {len(file_paths)} filepaths, only have '
                  f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
       file_paths = file_paths[:num_upload_urls]
-      
+
     logs.info(f'Uploading {len(file_paths)} corpus files.')
     results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
                                          file_paths)

@@ -418,7 +418,8 @@ class GcsProvider(StorageProvider):
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
     requests.put(
-      signed_url, data=data_or_fileobj, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
+        signed_url, data=data_or_fileobj,
+        timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
     return True
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
