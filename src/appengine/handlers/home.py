@@ -161,6 +161,7 @@ class Handler(base_handler.Handler):
   """Home page handler."""
 
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self):
     """GET handler."""
     return self.render('oss-fuzz-home.html', get_results())

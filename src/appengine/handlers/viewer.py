@@ -29,6 +29,7 @@ class Handler(base_handler.Handler):
   """Content Viewer."""
 
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self):
     """Get the HTML page."""
     key = request.get('key')

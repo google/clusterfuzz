@@ -71,6 +71,7 @@ class Handler(base_handler.Handler):
 
   # pylint: disable=unused-argument
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self, report_type=None, argument=None, date=None, extra=None):
     """Handle a get request."""
     report_url = get_report_url(report_type, argument, date)
