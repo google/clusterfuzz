@@ -123,10 +123,10 @@ def _testcase_reproduces_in_revision(
   build_manager.setup_build(revision, fuzz_target=fuzz_target_binary)
   if not build_manager.check_app_path():
     error_message = f'Build setup failed r{revision}'
-    return None, uworker_msg_pb2.Output(
+    return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         regression_task_output=regression_task_output,
         error_message=error_message,
-        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR)
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
   build_data = testcase_manager.check_for_bad_build(job_type, revision)
   regression_task_output.build_data_list.append(build_data)
