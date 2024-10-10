@@ -19,6 +19,7 @@ import json
 import os
 import random
 import shutil
+from typing import Dict
 from typing import List
 import zipfile
 
@@ -101,15 +102,6 @@ CROSS_POLLINATE_FUZZER_COUNT = 3
 CorpusPruningResult = collections.namedtuple('CorpusPruningResult', [
     'coverage_info', 'crashes', 'fuzzer_binary_name', 'revision',
     'cross_pollination_stats'
-])
-
-CorpusCrash = collections.namedtuple('CorpusCrash', [
-    'crash_state',
-    'crash_type',
-    'crash_address',
-    'crash_stacktrace',
-    'unit_path',
-    'security_flag',
 ])
 
 CrossPollinationStats = collections.namedtuple('CrossPollinationStats', [
@@ -404,11 +396,13 @@ class CorpusPruner:
 
     return quarantined_unit_path
 
-  def process_bad_units(self, bad_units_path, quarantine_corpus_path, crashes):
+  def process_bad_units(self, bad_units_path, quarantine_corpus_path
+                       ) -> Dict[str, uworker_msg_pb2.CrashInfo]:  # pylint: disable=no-member
     """Process bad units found during merge."""
     # TODO(ochang): A lot of this function is similar to parts of fuzz_task.
     # Ideally fuzz_task can be refactored in a way that lets us share the common
     # code.
+    crashes = {}
 
     environment.reset_current_memory_tool_options(redzone_size=DEFAULT_REDZONE)
     self.runner.process_sanitizer_options()
@@ -455,13 +449,17 @@ class CorpusPruner:
       if state.crash_state not in crashes:
         security_flag = crash_analyzer.is_security_issue(
             state.crash_stacktrace, state.crash_type, state.crash_address)
-        # TODO(metzman): Get rid of CorpusCrash and replace with CrashInfo.
-        crashes[state.crash_state] = CorpusCrash(
-            state.crash_state, state.crash_type, state.crash_address,
-            state.crash_stacktrace, unit_path, security_flag)
+        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
+            crash_state=state.crash_state,
+            crash_type=state.crash_type,
+            crash_address=state.crash_address,
+            crash_stacktrace=state.crash_stacktrace,
+            unit_path=unit_path,
+            security_flag=security_flag)
 
-    logs.info('Found %d bad units, %d unique crashes.' % (num_bad_units,
-                                                          len(crashes)))
+    logs.info(
+        f'Found {num_bad_units} bad units, {len(crashes)} unique crashes.')
+    return crashes
 
   def run(self, initial_corpus_path, minimized_corpus_path, bad_units_path):
     """Run corpus pruning. Output result to directory."""
@@ -595,7 +593,7 @@ def _record_cross_pollination_stats(output):
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
-def do_corpus_pruning(uworker_input, context, revision):
+def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
@@ -659,10 +657,9 @@ def do_corpus_pruning(uworker_input, context, revision):
             (initial_corpus_size, minimized_corpus_size_units))
 
   # Process bad units found during merge.
-  # Mapping of crash state -> CorpusCrash
-  crashes = {}
-  pruner.process_bad_units(context.bad_units_path,
-                           context.quarantine_corpus_path, crashes)
+  # Mapping of crash state -> CrashInfo
+  crashes = pruner.process_bad_units(context.bad_units_path,
+                                     context.quarantine_corpus_path)
   context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path)
 
   # Store corpus stats into CoverageInformation entity.
@@ -746,7 +743,8 @@ def _update_crash_unit_path(context, crash):
   crash.unit_path = unit_path
 
 
-def _upload_corpus_crashes_zip(context, result, corpus_crashes_blob_name,
+def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
+                               corpus_crashes_blob_name,
                                corpus_crashes_upload_url):
   """Packs the corpus crashes in a zip file. The file is then uploaded
   using the signed upload url from the input."""
@@ -800,9 +798,10 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       if existing_testcase:
         continue
 
-      crash_local_unit_path = os.path.join(temp_dir, crash.unit_name)
+      unit_name = os.path.basename(crash.unit_path)
+      crash_local_unit_path = os.path.join(temp_dir, unit_name)
       # Extract the crash unit_path into crash_local_unit_path
-      zip_reader.extract(member=crash.unit_name, path=temp_dir)
+      zip_reader.extract(member=unit_name, path=temp_dir)
       # Upload/store testcase.
       with open(crash_local_unit_path, 'rb') as f:
         key = blobs.write_blob(f)
@@ -983,20 +982,6 @@ def _extract_coverage_information(context, result):
   return coverage_info
 
 
-def _extract_corpus_crashes(result):
-  """Extracts the corpus crashes as a list of CrashInfo from the result."""
-  return [
-      uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
-          crash_type=crash.crash_type,
-          crash_state=crash.crash_state,
-          security_flag=crash.security_flag,
-          crash_address=crash.crash_address,
-          crash_stacktrace=crash.crash_stacktrace,
-          unit_name=os.path.basename(crash.unit_path))
-      for crash in result.crashes
-  ]
-
-
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
   fuzz_target = uworker_io.entity_from_protobuf(
@@ -1032,7 +1017,7 @@ def utask_main(uworker_input):
             coverage_info=_extract_coverage_information(context, result),
             fuzzer_binary_name=result.fuzzer_binary_name,
             crash_revision=result.revision,
-            crashes=_extract_corpus_crashes(result),
+            crashes=result.crashes,
             corpus_backup_uploaded=bool(result.coverage_info.corpus_location)),
         issue_metadata=json.dumps(issue_metadata))
     _fill_cross_pollination_stats(result.cross_pollination_stats,
