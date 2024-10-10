@@ -1272,7 +1272,7 @@ def upload_signed_urls(signed_urls, files):
   logs.info('Uploading URLs.')
   with _pool() as pool:
     result = list(
-        list(map(_error_tolerant_upload_signed_url, zip(signed_urls, files))))
+        pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.info('Done uploading URLs.')
   return result
 

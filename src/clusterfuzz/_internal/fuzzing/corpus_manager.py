@@ -394,10 +394,10 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
 
     for filepath in shell.get_files_list(directory):
       files_to_upload.append(filepath)
-      if filepath in files_to_delete:
+      if filepath in files_to_delete_dict:
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
-        del files_to_delete_dict[filepath]
+        del files_to_delete_dict_dict[filepath]
 
     results = self.upload_files(files_to_upload)
     logs.info(f'{results.count(True)} corpus files uploaded.')
@@ -406,7 +406,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     logs.info(f'{len(files_to_delete)} corpus files to delete.')
     assert (
         (len(files_to_delete) != len(self._filepaths_to_delete_urls_mapping)) or
-        not len(files_to_delete))
+        not files_to_delete)
     storage.delete_signed_urls(files_to_delete)
 
     return results.count(False) < MAX_SYNC_ERRORS
