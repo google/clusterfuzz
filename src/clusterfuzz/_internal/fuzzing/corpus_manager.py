@@ -704,5 +704,6 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       engine,
       project_qualified_name,
       quarantine=True,
+      include_delete_urls=True,
       max_upload_urls=max_upload_urls)
   return corpus, quarantine_corpus
