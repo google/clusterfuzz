@@ -96,6 +96,7 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.check_user_access(need_privileged_access=True)
+  @handler.oauth
   def get(self):
     """Handle a get request."""
     templates = list(data_types.JobTemplate.query().order(

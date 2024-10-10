@@ -385,6 +385,7 @@ class Handler(base_handler.Handler):
   # pylint: disable=unused-argument
   @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self, extra=None):
     """Handle a GET request."""
     if not access.has_access():
