@@ -397,7 +397,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       if filepath in files_to_delete_dict:
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
-        del files_to_delete_dict_dict[filepath]
+        del files_to_delete_dict[filepath]
 
     results = self.upload_files(files_to_upload)
     logs.info(f'{results.count(True)} corpus files uploaded.')
