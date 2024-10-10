@@ -68,7 +68,6 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.check_admin_access
-  @handler.oauth
   def get(self):
     """Handle a get request."""
     external_user_permissions = list(
