@@ -214,6 +214,7 @@ class Handler(base_handler.Handler):
   """Handler for the testcase uploads page."""
 
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self):
     """Handles get request."""
     email = helpers.get_user_email()

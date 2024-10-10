@@ -42,6 +42,7 @@ class Handler(base_handler.Handler):
   @handler.get(handler.HTML)
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
+  @handler.oauth
   def get(self):
     """Handle a get request."""
     fuzzer_logs_bucket = fuzzer_logs.get_bucket()

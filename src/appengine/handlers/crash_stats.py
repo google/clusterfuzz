@@ -232,6 +232,7 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
+  @handler.oauth
   def get(self):
     """Get and render the crash stats in HTML."""
     result, params = get_result()

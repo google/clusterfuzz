@@ -128,6 +128,7 @@ class DeadBotsHandler(base_handler.Handler):
   """Output dead bots as json."""
 
   @handler.get(handler.JSON)
+  @handler.oauth
   def get(self):
     """Render dead bots as json (used by automated scripts)."""
 

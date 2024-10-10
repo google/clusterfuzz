@@ -180,6 +180,7 @@ class Handler(base_handler.Handler):
   """Handler that gets the testcase list when user first lands on the page."""
 
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self):
     """Get and render the testcase list in HTML."""
     result, params = get_result()

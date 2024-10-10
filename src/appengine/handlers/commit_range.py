@@ -177,6 +177,7 @@ class Handler(base_handler.Handler):
 
   @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self):
     """Get and render the commit range in HTML."""
     result, params = get_result()

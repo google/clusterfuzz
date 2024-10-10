@@ -25,6 +25,7 @@ class Handler(base_handler.Handler):
   """Information on a revision range."""
 
   @handler.get(handler.HTML)
+  @handler.oauth
   def get(self):
     """GET handler."""
     job_type = request.get('job')
