@@ -1250,8 +1250,11 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 def _error_tolerant_upload_signed_url(url_and_path):
   url, path = url_and_path
-  with open(path, 'rb') as fp:
-    return upload_signed_url(fp, url)
+  try:
+    with open(path, 'rb') as fp:
+      return upload_signed_url(fp, url)
+  except Exception:
+    logs.error(f'Failed to upload url: {url_and_path}')
 
 
 def delete_signed_url(url: str):
