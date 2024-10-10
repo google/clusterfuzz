@@ -371,7 +371,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
 
     self._project_qualified_target_name = project_qualified_target_name
     self.proto_corpus = proto_corpus
-    self._filenames_to_delete_urls_mapping = {}
+    self._filepaths_to_delete_urls_mapping = {}
 
   def rsync_from_disk(self,
                       directory,
@@ -389,7 +389,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    files_to_delete_dict = _filenames_to_delete_urls_mapping.keys().copy()
+    files_to_delete_dict = self._filepaths_to_delete_urls_mapping.keys().copy()
     files_to_upload = []
 
     for filepath in shell.get_files_list(directory):
@@ -397,13 +397,14 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       if filepath in files_to_delete:
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
-        del files_to_delete_dict[os.path.basename(filepath)]
+        del files_to_delete_dict[filepath]
     
     results = self.upload_files(files_to_upload)
     logs.info(f'{results.count(True)} corpus files uploaded.')
     
     files_to_delete = list(files_to_delete_dict.values())
-    logs.info(f'{len(files_to_delete)} files to delete.')
+    logs.info(f'{len(files_to_delete)} corpus files to delete.')
+    assert ((len(files_to_delete) != len(self._filepaths_to_delete_urls_mapping)) or not len(files_to_delete))
     storage.delete_signed_urls(files_to_delete)
     
     return results.count(False) < MAX_SYNC_ERRORS
@@ -435,7 +436,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         fails += 1
         continue
 
-      self._filenames_to_delete_urls_mapping[result.filepath] = (
+      self._filepaths_to_delete_urls_mapping[result.filepath] = (
           corpus.corpus_urls[result.url])
 
     # TODO(metzman): Add timeout and tolerance for missing URLs.
