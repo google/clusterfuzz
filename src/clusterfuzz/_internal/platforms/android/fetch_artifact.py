@@ -119,10 +119,19 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   return output_path
 
 
-def get_artifacts_for_build(client, bid, target, attempt_id='latest'):
+def get_artifacts_for_build(client, bid, target, attempt_id='latest',
+                            regexp=''):
   """Return list of artifacts for a given build."""
-  request = client.buildartifact().list(
-      buildId=bid, target=target, attemptId=attempt_id)
+  if regexp == '':
+    request = client.buildartifact().list(
+        buildId=bid, target=target, attemptId=attempt_id)
+  else:
+    request = client.buildartifact().list(
+        buildId=bid,
+        target=target,
+        attemptId=attempt_id,
+        nameRegexp=regexp,
+        maxResults=100)
 
   request_str = (f'{request.uri}, {request.method}, '
                  f'{request.body}, {request.methodId}')
@@ -239,7 +248,7 @@ def get(bid, target, regex, output_directory, output_filename=None):
 def run_script(client, bid, target, regex, output_directory, output_filename):
   """Download artifacts as specified."""
   artifacts = get_artifacts_for_build(
-      client=client, bid=bid, target=target, attempt_id='latest')
+      client=client, bid=bid, target=target, attempt_id='latest', regexp=regex)
   if not artifacts:
     logs.error(f'Artifact could not be fetched for target {target}, '
                f'build id {bid}.')
