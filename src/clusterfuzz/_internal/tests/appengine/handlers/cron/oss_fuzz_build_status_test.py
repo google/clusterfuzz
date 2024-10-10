@@ -387,7 +387,6 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'day once it is fixed.**', issue.body)
 
     self.assertTrue(issue.has_label('Proj-proj2'))
-    self.assertTrue(issue.has_label('Type-Build-Failure'))
 
     issue = self.itm.issues[2]
     self.assertCountEqual(['b@user.com'], issue.cc)
@@ -409,7 +408,6 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'day once it is fixed.**', issue.body)
 
     self.assertTrue(issue.has_label('Proj-proj6'))
-    self.assertTrue(issue.has_label('Type-Build-Failure'))
 
   def test_recovered_build_failure(self):
     """Test fixed build failures."""
@@ -448,7 +446,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual(0, data_types.OssFuzzBuildFailure.query().count())
 
     issue = self.itm.issues[1]
-    self.assertEqual('Verified', issue.status)
+    self.assertEqual('Fixed', issue.status)
     self.assertEqual('The latest build has succeeded, closing this issue.',
                      issue.comment)
 

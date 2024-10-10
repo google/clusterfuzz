@@ -57,7 +57,7 @@ Cluster = namedtuple(
         'name', 'gce_zone', 'instance_count', 'instance_template', 'distribute',
         'worker', 'high_end', 'auto_healing_policy'
     ],
-    defaults=[{}])
+    defaults=[None])
 
 HostWorkerAssignment = namedtuple('HostWorkerAssignment',
                                   ['host', 'worker', 'workers_per_host'])
