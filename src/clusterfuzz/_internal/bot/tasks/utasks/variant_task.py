@@ -111,7 +111,7 @@ def utask_main(uworker_input):
   try:
     fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
     fuzz_target = fuzz_target.binary if fuzz_target else None
-    build_manager.setup_build(fuzz_target=fuzz_target)
+    build_setup_result = build_manager.setup_build(fuzz_target=fuzz_target)
   except errors.BuildNotFoundError:
     logs.warning('Matching build not found.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -119,7 +119,7 @@ def utask_main(uworker_input):
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
-  if not build_manager.check_app_path():
+  if not build_setup_result or not build_manager.check_app_path():
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP)  # pylint: disable=no-member
 

@@ -251,14 +251,14 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
                                    testcase_file_path: str,
                                    uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-member
   """Simplified fixed check for test cases using custom binaries."""
-  build_manager.setup_build()
+  build_setup_result = build_manager.setup_build()
   # 'APP_REVISION' is set during setup_build().
   revision = environment.get_value('APP_REVISION')
   if revision is None:
     logs.error('APP_REVISION is not set, setting revision to 0')
     revision = 0
 
-  if not build_manager.check_app_path():
+  if not build_setup_result or not build_manager.check_app_path():
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message='Build setup failed for custom binary',
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)  # pylint: disable=no-member
@@ -321,7 +321,8 @@ def _testcase_reproduces_in_revision(
   there was an error."""
   try:
     fuzz_target_binary = fuzz_target.binary if fuzz_target else None
-    build_manager.setup_build(revision, fuzz_target=fuzz_target_binary)
+    build_setup_result = build_manager.setup_build(
+        revision, fuzz_target=fuzz_target_binary)
   except errors.BuildNotFoundError as e:
     # Build no longer exists, so we need to mark this testcase as invalid.
     error_message = f'Build not found at r{e.revision}'
@@ -330,7 +331,7 @@ def _testcase_reproduces_in_revision(
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)  # pylint: disable=no-member
 
-  if not build_manager.check_app_path():
+  if not build_setup_result or not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
     error_message = f'Build setup failed at r{revision}'
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member

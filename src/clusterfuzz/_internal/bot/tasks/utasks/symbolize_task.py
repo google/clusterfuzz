@@ -113,7 +113,7 @@ def utask_main(uworker_input):
   # Get crash revision used in setting up build.
   crash_revision = environment.get_value('APP_REVISION')
 
-  if not build_manager.check_app_path():
+  if not build or not build_manager.check_app_path():
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_message='Build setup failed',
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)  # pylint: disable=no-member
