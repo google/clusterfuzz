@@ -162,6 +162,7 @@ def unsupported_on_local_server(func):
 
 
 def _validate_access_token(authorization):
+  """Validates a JWT as an access or id token, or raises."""
   access_token = authorization.split(' ')[1]
   response_access_token = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
