@@ -444,7 +444,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
+  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT) -> bool:
     del timeout
     num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
     if len(file_paths) > num_upload_urls:
