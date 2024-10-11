@@ -161,48 +161,6 @@ def unsupported_on_local_server(func):
   return wrapper
 
 
-def validate_id_token(access_token):
-  """Validates a JWT as an id token."""
-  response_id_token = requests.get(
-      'https://www.googleapis.com/oauth2/v3/tokeninfo',
-      params={'id_token': access_token},
-      timeout=HTTP_GET_TIMEOUT_SECS)
-
-  if response_id_token.status_code == 200:
-    return response_id_token
-
-  return None
-
-
-def validate_access_token(access_token):
-  """Validates a JWT as an access token."""
-  response_access_token = requests.get(
-      'https://www.googleapis.com/oauth2/v3/tokeninfo',
-      params={'access_token': access_token},
-      timeout=HTTP_GET_TIMEOUT_SECS)
-
-  if response_access_token.status_code == 200:
-    return response_access_token
-
-  return None
-
-
-def validate_token(authorization):
-  """Validates a JWT as either an access or id token, or raises."""
-  access_token = authorization.split(' ')[1]
-  id_token_response = validate_id_token(access_token)
-  if id_token_response is not None:
-    return id_token_response
-
-  access_token_response = validate_access_token(access_token)
-  if access_token_response is not None:
-    return access_token_response
-
-  raise helpers.UnauthorizedError(
-      f'Failed to authorize. The Authorization header ({authorization}) '
-      'is neither a valid id or access token.')
-
-
 def get_email_and_access_token(authorization):
   """Get user email from the request.
 
@@ -213,7 +171,16 @@ def get_email_and_access_token(authorization):
         'The Authorization header is invalid. It should have been started with'
         " '%s'." % BEARER_PREFIX)
 
-  response = validate_token(authorization)
+  access_token = authorization.split(' ')[1]
+
+  response = requests.get(
+      'https://www.googleapis.com/oauth2/v3/tokeninfo',
+      params={'access_token': access_token},
+      timeout=HTTP_GET_TIMEOUT_SECS)
+  if response.status_code != 200:
+    raise helpers.UnauthorizedError(
+        f'Failed to authorize. The Authorization header ({authorization}) '
+        'might be invalid.')
 
   try:
     data = json.loads(response.text)
