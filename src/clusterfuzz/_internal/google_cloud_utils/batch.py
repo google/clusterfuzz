@@ -276,6 +276,7 @@ def _get_spec_from_config(command, job_name):
     config_name += '-PREEMPTIBLE'
   else:
     config_name += '-NONPREEMPTIBLE'
+  config_name += '-UNPRIVILEGED'
   batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
