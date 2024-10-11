@@ -161,25 +161,26 @@ def unsupported_on_local_server(func):
   return wrapper
 
 
-def _validade_access_token(authorization):
+def _validate_access_token(authorization):
   access_token = authorization.split(' ')[1]
   response_access_token = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
       params={'access_token': access_token},
       timeout=HTTP_GET_TIMEOUT_SECS)
+
+  if response_access_token.status_code == 200:
+    return response_access_token
+
   response_id_token = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
       params={'id_token': access_token},
       timeout=HTTP_GET_TIMEOUT_SECS)
-  if response_access_token.status_code != 200 and response_id_token:
-    raise helpers.UnauthorizedError(
-        f'Failed to authorize. The Authorization header ({authorization}) '
-        'is neither a valid id or access token.')
-  
-  if response_access_token.status_code == 200:
-    return response_access_token
-  
-  return response_id_token
+  if response_id_token.status_code == 200:
+    return response_id_token
+
+  raise helpers.UnauthorizedError(
+      f'Failed to authorize. The Authorization header ({authorization}) '
+      'is neither a valid id or access token.')
 
 
 def get_email_and_access_token(authorization):
@@ -192,7 +193,7 @@ def get_email_and_access_token(authorization):
         'The Authorization header is invalid. It should have been started with'
         " '%s'." % BEARER_PREFIX)
 
-  response = _validade_access_token(authorization)
+  response = _validate_access_token(authorization)
 
   try:
     data = json.loads(response.text)
