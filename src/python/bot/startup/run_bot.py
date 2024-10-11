@@ -85,23 +85,6 @@ def lease_all_tasks(task_list):
     yield
 
 
-def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
-  logs.info('Handling sigterm, stopping monitoring daemon.')
-  monitor.stop()
-  logs.info('Sigterm handled, metrics flushed.')
-
-
-@contextlib.contextmanager
-def wrap_with_monitoring():
-  """Wraps execution so we flush metrics on exit"""
-  try:
-    monitor.initialize()
-    signal.signal(signal.SIGTERM, handle_sigterm)
-    yield
-  finally:
-    monitor.stop()
-
-
 def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
   from clusterfuzz._internal.google_cloud_utils import batch
@@ -262,7 +245,7 @@ if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')
 
   try:
-    with wrap_with_monitoring(), ndb_init.context():
+    with monitor.wrap_with_monitoring(), ndb_init.context():
       main()
     exit_code = 0
   except Exception:
