@@ -226,3 +226,19 @@ ISSUE_FILINGS_FAILED = monitor.CounterMetric(
         monitor.StringField('fuzzer_name'),
     ]
 )
+
+ISSUE_CLOSING_SUCCESS = monitor.CounterMetric(
+    'issues/closing/success',
+    description='Bugs opened through triage task.',
+    field_spec=[
+        monitor.StringField('fuzzer_name'),
+    ]
+)
+
+ISSUE_CLOSING_FAILED = monitor.CounterMetric(
+    'issues/closing/failed',
+    description='Bugs opened through triage task.',
+    field_spec=[
+        monitor.StringField('fuzzer_name'),
+    ]
+)
