@@ -23,7 +23,6 @@ modules.fix_module_search_paths()
 import contextlib
 import multiprocessing
 import os
-import signal
 import sys
 import time
 import traceback

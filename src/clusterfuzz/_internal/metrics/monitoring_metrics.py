@@ -208,37 +208,33 @@ ISSSUE_FILING_SUCCESS = monitor.CounterMetric(
     description='Bugs opened through triage task.',
     field_spec=[
         monitor.StringField('fuzzer_name'),
-    ]
-)
+    ])
 
 ISSUE_FILING_THROTTLED = monitor.CounterMetric(
     'issues/filing/throttled',
     description='Bugs opened through triage task.',
     field_spec=[
-        monitor.StringField('fuzzer_name'),        monitor.StringField(''),
-    ]
-)
+        monitor.StringField('fuzzer_name'),
+        monitor.StringField(''),
+    ])
 
 ISSUE_FILINGS_FAILED = monitor.CounterMetric(
     'issues/filing/throttled',
     description='Bugs opened through triage task.',
     field_spec=[
         monitor.StringField('fuzzer_name'),
-    ]
-)
+    ])
 
 ISSUE_CLOSING_SUCCESS = monitor.CounterMetric(
     'issues/closing/success',
     description='Bugs opened through triage task.',
     field_spec=[
         monitor.StringField('fuzzer_name'),
-    ]
-)
+    ])
 
 ISSUE_CLOSING_FAILED = monitor.CounterMetric(
     'issues/closing/failed',
     description='Bugs opened through triage task.',
     field_spec=[
         monitor.StringField('fuzzer_name'),
-    ]
-)
+    ])

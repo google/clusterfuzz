@@ -75,9 +75,9 @@ def _file_logging_enabled():
   This is disabled if we are running in app engine or kubernetes as these have
     their dedicated loggers, see configure_appengine() and configure_k8s().
   """
-  return bool(os.getenv(
-      'LOG_TO_FILE',
-      'True')) and not _is_running_on_app_engine() and not environment.is_running_on_k8s()
+  return bool(
+      os.getenv('LOG_TO_FILE', 'True')
+  ) and not _is_running_on_app_engine() and not environment.is_running_on_k8s()
 
 
 def _fluentd_logging_enabled():

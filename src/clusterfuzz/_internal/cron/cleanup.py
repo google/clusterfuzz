@@ -35,7 +35,8 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
-from clusterfuzz._internal.metrics import logs, monitoring_metrics
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')
@@ -488,11 +489,17 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     logs.info(f'Mark issue {issue.id} as verified for '
               f'fixed testcase {testcase.key.id()}.')
     issue_filer.notify_issue_update(testcase, 'verified')
-    monitoring_metrics.ISSUE_CLOSING_SUCCESS.increment({'fuzzer_name': testcase.fuzzer_name})
+    monitoring_metrics.ISSUE_CLOSING_SUCCESS.increment({
+        'fuzzer_name': testcase.fuzzer_name
+    })
   except Exception as e:
-    logs.error(f'Failed to mark issue {issue.id} as verified for '
-          f'fixed testcase {testcase.key.id()}.', extras={'exception': e})
-    monitoring_metrics.ISSUE_CLOSING_FAILED.increment({'fuzzer_name': testcase.fuzzer_name})
+    logs.error(
+        f'Failed to mark issue {issue.id} as verified for '
+        f'fixed testcase {testcase.key.id()}.',
+        extras={'exception': e})
+    monitoring_metrics.ISSUE_CLOSING_FAILED.increment({
+        'fuzzer_name': testcase.fuzzer_name
+    })
     raise e
 
 
