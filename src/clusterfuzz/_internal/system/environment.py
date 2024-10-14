@@ -760,6 +760,11 @@ def parse_environment_definition(environment_string):
   return values
 
 
+def is_running_on_k8s():
+  """Returns whether or not we're running on K8s."""
+  return os.getenv('IS_K8S_ENV') == 'true'
+
+
 def base_platform(override):
   """Return the base platform when an override is provided."""
   return override.split(':')[0]
