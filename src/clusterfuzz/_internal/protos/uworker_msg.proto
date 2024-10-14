@@ -63,6 +63,9 @@ message DataBundleCorpus {
 message FuzzTargetCorpus {
   optional Corpus corpus = 1;
   optional Corpus regressions_corpus = 2;
+  // These are only used by fuzz_task.
+  optional string engine = 3;
+  optional string project_qualified_target_name = 4;
 }
 
 message Corpus {

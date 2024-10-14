@@ -251,7 +251,8 @@ class FuzzTargetCorpus(GcsCorpus):
                quarantine=False,
                log_results=True,
                include_regressions=False,
-               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
+               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER,
+               skip_corpora=False):
     """Inits the FuzzTargetCorpus.
 
     Args:
@@ -276,6 +277,9 @@ class FuzzTargetCorpus(GcsCorpus):
 
     if not sync_corpus_bucket_name:
       raise RuntimeError('No corpus bucket specified.')
+
+    if skip_corpora:
+      return
 
     GcsCorpus.__init__(
         self,
@@ -363,15 +367,34 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
-  def __init__(self, engine, project_qualified_target_name, proto_corpus):  # pylint: disable=super-init-not-called
+  def __init__(self,
+               engine,
+               project_qualified_target_name,
+               proto_corpus,
+               allow_engine_override=True):  # pylint: disable=super-init-not-called
     # TODO(metzman): Do we need project_qualified_target_name?
 
     # This is used to let AFL share corpora with libFuzzer.
-    self._engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    if allow_engine_override:
+      engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    self._engine = engine
 
     self._project_qualified_target_name = project_qualified_target_name
     self.proto_corpus = proto_corpus
+    proto_corpus.engine = self._engine
+    proto_corpus.project_qualified_target_name = project_qualified_target_name
     self._filepaths_to_delete_urls_mapping = {}
+
+  def serialize(self):
+    return self.proto_corpus
+
+  @classmethod
+  def deserialize(cls, proto_corpus):
+    return cls.__init__(
+        proto_corpus.engine,
+        proto_corpus.project_qualified_target_name,
+        proto_corpus,
+        allow_engine_override=False)
 
   def rsync_from_disk(self,
                       directory,
