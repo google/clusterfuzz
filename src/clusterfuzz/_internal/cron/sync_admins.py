@@ -58,7 +58,8 @@ def admins_from_iam_policy(iam_policy):
   service_account_admins = get_emails_from_bindings(iam_policy, 'serviceAccount', service_account_roles)
 
 
-  return user_admins.extend(service_account_admins)
+  user_admins.extend(service_account_admins)
+  return user_admins
 
 
 def update_admins(new_admins):
