@@ -215,7 +215,6 @@ ISSUE_FILING_THROTTLED = monitor.CounterMetric(
     description='Bug creation attempts throttled during triage task.',
     field_spec=[
         monitor.StringField('fuzzer_name'),
-        monitor.StringField(''),
     ])
 
 ISSUE_FILING_FAILED = monitor.CounterMetric(
