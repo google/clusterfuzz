@@ -368,7 +368,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
                engine,
                project_qualified_target_name,
                proto_corpus,
-               allow_engine_override=True):  # pylint: disable=super-init-not-called
+               allow_engine_override=True):
     # TODO(metzman): Do we need project_qualified_target_name?
 
     # This is used to let AFL share corpora with libFuzzer.
