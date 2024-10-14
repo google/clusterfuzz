@@ -615,18 +615,26 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
     with open(unit1_path, 'w') as f:
       f.write('unit1_contents')
 
-    crash1 = corpus_pruning_task.CorpusCrash(
-        'crash_state1', 'crash_type1', 'crash_address1', 'crash_stacktrace1',
-        unit1_path, False)
+    crash1 = uworker_msg_pb2.CrashInfo(
+        crash_state='crash_state1',
+        crash_type='crash_type1',
+        crash_address='crash_address1',
+        crash_stacktrace='crash_stacktrace1',
+        unit_path=unit1_path,
+        security_flag=False)
 
     os.makedirs('c/d')
     unit2_path = 'c/d/unit2'
     with open(unit2_path, 'w') as f:
       f.write('unit2_contents')
 
-    crash2 = corpus_pruning_task.CorpusCrash(
-        'crash_state2', 'crash_type2', 'crash_address2', 'crash_stacktrace2',
-        unit2_path, False)
+    crash2 = uworker_msg_pb2.CrashInfo(
+        crash_state='crash_state2',
+        crash_type='crash_type2',
+        crash_address='crash_address2',
+        crash_stacktrace='crash_stacktrace2',
+        unit_path=unit2_path,
+        security_flag=False)
 
     result = corpus_pruning_task.CorpusPruningResult(
         coverage_info=None,
