@@ -417,7 +417,9 @@ class GcsProvider(StorageProvider):
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
-    requests.put(signed_url, data=data_or_fileobj, timeout=HTTP_TIMEOUT_SECONDS)
+    requests.put(
+        signed_url, data=data_or_fileobj,
+        timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
     return True
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -427,7 +429,7 @@ class GcsProvider(StorageProvider):
 
   def delete_signed_url(self, signed_url):
     """Makes a DELETE HTTP request to |signed_url|."""
-    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
+    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
 
 
 def _sign_url(remote_path: str,
@@ -1246,10 +1248,15 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
-def _error_tolerant_upload_signed_url(url_and_path):
+def _error_tolerant_upload_signed_url(url_and_path) -> bool:
   url, path = url_and_path
-  with open(path, 'rb') as fp:
-    return upload_signed_url(fp, url)
+  try:
+    with open(path, 'rb') as fp:
+      upload_signed_url(fp, url)
+    return True
+  except Exception:
+    logs.error(f'Failed to upload url: {url_and_path}')
+    return False
 
 
 def delete_signed_url(url: str):
@@ -1264,7 +1271,7 @@ def _error_tolerant_delete_signed_url(url: str):
     logs.warning(f'Failed to delete: {url}')
 
 
-def upload_signed_urls(signed_urls, files):
+def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
   if not signed_urls:
     return []
   logs.info('Uploading URLs.')
@@ -1350,7 +1357,8 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
   base_name = unique_id.hex
   if not remote_directory.endswith('/'):
     remote_directory = remote_directory + '/'
-  base_path = f'{remote_directory}/{base_name}'
+  # The remote_directory ends with slash.
+  base_path = f'{remote_directory}{base_name}'
   base_search_path = f'{base_path}*'
   if exists(base_search_path):
     # Raise the error and let retry go again. There is a vanishingly small
