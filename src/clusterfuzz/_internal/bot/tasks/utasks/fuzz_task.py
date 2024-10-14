@@ -506,7 +506,8 @@ class GcsCorpus:
       self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
           engine_name, project_qualified_target_name)
     else:
-      self.gcs_corpus = proto_corpus
+      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus.deserialize(
+          proto_corpus)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -1984,7 +1985,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
         uworker_io.entity_to_protobuf(fuzz_target))
     fuzz_task_input.corpus.CopyFrom(
         corpus_manager.get_fuzz_target_corpus(
-            fuzzer_name, fuzz_target.project_qualified_name()))
+            fuzzer_name, fuzz_target.project_qualified_name()).serialize())
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
