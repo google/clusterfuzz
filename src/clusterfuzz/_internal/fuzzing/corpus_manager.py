@@ -359,19 +359,39 @@ class FuzzTargetCorpus(GcsCorpus):
     return result
 
 
+# pylint: disable=super-init-not-called
 class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
-  def __init__(self, engine, project_qualified_target_name, proto_corpus):  # pylint: disable=super-init-not-called
+  def __init__(self,
+               engine,
+               project_qualified_target_name,
+               proto_corpus,
+               allow_engine_override=True):
     # TODO(metzman): Do we need project_qualified_target_name?
 
     # This is used to let AFL share corpora with libFuzzer.
-    self._engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    if allow_engine_override:
+      engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    self._engine = engine
 
     self._project_qualified_target_name = project_qualified_target_name
     self.proto_corpus = proto_corpus
-    self._filenames_to_delete_urls_mapping = {}
+    proto_corpus.engine = self._engine
+    proto_corpus.project_qualified_target_name = project_qualified_target_name
+    self._filepaths_to_delete_urls_mapping = {}
+
+  def serialize(self):
+    return self.proto_corpus
+
+  @classmethod
+  def deserialize(cls, proto_corpus):
+    return ProtoFuzzTargetCorpus(
+        proto_corpus.engine,
+        proto_corpus.project_qualified_target_name,
+        proto_corpus,
+        allow_engine_override=False)
 
   def rsync_from_disk(self,
                       directory,
@@ -389,24 +409,26 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    files_to_delete = list(self._filenames_to_delete_urls_mapping.keys())
+    files_to_delete_dict = self._filepaths_to_delete_urls_mapping.keys().copy()
     files_to_upload = []
 
     for filepath in shell.get_files_list(directory):
       files_to_upload.append(filepath)
-      if filepath in files_to_delete:
+      if filepath in files_to_delete_dict:
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
-        del self._filenames_to_delete_urls_mapping[filepath]
+        del files_to_delete_dict[filepath]
 
     results = self.upload_files(files_to_upload)
-
-    urls_to_delete = [
-        self._filenames_to_delete_urls_mapping[filename]
-        for filename in files_to_delete
-    ]
-    storage.delete_signed_urls(urls_to_delete)
     logs.info(f'{results.count(True)} corpus files uploaded.')
+
+    files_to_delete = list(files_to_delete_dict.values())
+    logs.info(f'{len(files_to_delete)} corpus files to delete.')
+    assert (
+        (len(files_to_delete) != len(self._filepaths_to_delete_urls_mapping)) or
+        not files_to_delete)
+    storage.delete_signed_urls(files_to_delete)
+
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
@@ -436,13 +458,13 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         fails += 1
         continue
 
-      self._filenames_to_delete_urls_mapping[result.filepath] = (
+      self._filepaths_to_delete_urls_mapping[result.filepath] = (
           corpus.corpus_urls[result.url])
 
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
+  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT) -> bool:
     del timeout
     num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
     if len(file_paths) > num_upload_urls:
@@ -450,6 +472,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
                  f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
       file_paths = file_paths[:num_upload_urls]
 
+    logs.info(f'Uploading {len(file_paths)} corpus files.')
     results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
                                          file_paths)
 
@@ -704,5 +727,6 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       engine,
       project_qualified_name,
       quarantine=True,
+      include_delete_urls=True,
       max_upload_urls=max_upload_urls)
   return corpus, quarantine_corpus

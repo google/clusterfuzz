@@ -63,6 +63,9 @@ message DataBundleCorpus {
 message FuzzTargetCorpus {
   optional Corpus corpus = 1;
   optional Corpus regressions_corpus = 2;
+  // These are only used by fuzz_task.
+  optional string engine = 3;
+  optional string project_qualified_target_name = 4;
 }
 
 message Corpus {
@@ -179,9 +182,10 @@ message CrashInfo {
   optional string crash_type = 3;
   optional string crash_state = 4;
   optional bool security_flag = 5;
-  optional string unit_name = 6;
   optional string crash_address = 7;
   optional string crash_stacktrace = 8;
+  // TODO(metzman): Replace with unit_name when we get rid of trusted hosts.
+  optional string unit_path = 9;
 }
 
 message StoreFuzzerRunResultsOutput {

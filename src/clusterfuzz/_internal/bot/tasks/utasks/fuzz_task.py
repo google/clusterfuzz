@@ -499,17 +499,15 @@ class GcsCorpus:
   """Sync state for a corpus."""
 
   def __init__(self, engine_name, project_qualified_target_name,
-               corpus_directory, data_directory):
+               corpus_directory, data_directory, proto_corpus):
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as remote_corpus_manager
       self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
           engine_name, project_qualified_target_name)
     else:
-      # TODO(metzman): After fuzz target selection is moved to preprocess, move
-      # this to preprocess.
-      self.gcs_corpus = corpus_manager.get_fuzz_target_corpus(
-          engine_name, project_qualified_target_name)
+      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus.deserialize(
+          proto_corpus)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -1290,9 +1288,11 @@ class FuzzingSession:
 
   def sync_corpus(self, sync_corpus_directory):
     """Sync corpus from GCS."""
+    # Corpus should always be set at this point.
     self.gcs_corpus = GcsCorpus(self.fuzzer_name,
                                 self.fuzz_target.project_qualified_name(),
-                                sync_corpus_directory, self.data_directory)
+                                sync_corpus_directory, self.data_directory,
+                                self.uworker_input.fuzz_task_input.corpus)
     if not self.gcs_corpus.sync_from_gcs():
       raise FuzzTaskError(
           'Failed to sync corpus for fuzzer %s (job %s).' %
@@ -1983,6 +1983,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   if fuzz_target:
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
+    fuzz_task_input.corpus.CopyFrom(
+        corpus_manager.get_fuzz_target_corpus(
+            fuzzer_name, fuzz_target.project_qualified_name()).serialize())
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
