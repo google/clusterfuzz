@@ -19,7 +19,23 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from typing import List
 
+def get_emails_from_bindings(iam_policy, principal_type, allowed_roles) -> List[str]:
+  admins = []
+
+  assert principal_type in ['user', 'serviceAccount']
+
+  for binding in iam_policy['bindings']:
+    if binding['role'] not in allowed_roles:
+      continue
+
+    for member in binding['members']:
+      user_type, email = member.split(':', 2)
+      if user_type == principal_type:
+        admins.append(email)
+
+  return admins
 
 def admins_from_iam_policy(iam_policy):
   """Gets a list of admins from the IAM policy."""
@@ -27,24 +43,22 @@ def admins_from_iam_policy(iam_policy):
   # https://cloud.google.com/appengine/docs/standard/python/users/adminusers, An
   # administrator is a user who has the Viewer, Editor, or Owner primitive role,
   # or the App Engine App Admin predefined role
-  roles = [
+  user_roles = [
       'roles/editor',
       'roles/owner',
       'roles/viewer',
       'roles/appengine.appAdmin',
   ]
 
-  admins = []
-  for binding in iam_policy['bindings']:
-    if binding['role'] not in roles:
-      continue
+  service_account_roles = [
+    'roles/viewer'
+  ]
 
-    for member in binding['members']:
-      user_type, email = member.split(':', 2)
-      if user_type == 'user':
-        admins.append(email)
+  user_admins = get_emails_from_bindings(iam_policy, 'user', user_roles)
+  service_account_admins = get_emails_from_bindings(iam_policy, 'serviceAccount', service_account_roles)
 
-  return admins
+
+  return user_admins.extend(service_account_admins)
 
 
 def update_admins(new_admins):
