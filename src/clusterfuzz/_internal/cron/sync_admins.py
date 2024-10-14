@@ -21,7 +21,9 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 from typing import List
 
-def get_emails_from_bindings(iam_policy, principal_type, allowed_roles) -> List[str]:
+def get_emails_from_bindings(
+    iam_policy, principal_type, allowed_roles) -> List[str]:
+  """Returns emails that should be admins, given constraints."""
   admins = []
 
   assert principal_type in ['user', 'serviceAccount']
@@ -54,8 +56,10 @@ def admins_from_iam_policy(iam_policy):
     'roles/viewer'
   ]
 
-  user_admins = get_emails_from_bindings(iam_policy, 'user', user_roles)
-  service_account_admins = get_emails_from_bindings(iam_policy, 'serviceAccount', service_account_roles)
+  user_admins = get_emails_from_bindings(
+    iam_policy, 'user', user_roles)
+  service_account_admins = get_emails_from_bindings(
+    iam_policy, 'serviceAccount', service_account_roles)
 
 
   user_admins.extend(service_account_admins)
