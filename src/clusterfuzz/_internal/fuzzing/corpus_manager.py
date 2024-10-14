@@ -364,12 +364,11 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
-  def __init__(
-      self,
-      engine,
-      project_qualified_target_name,
-      proto_corpus,
-      allow_engine_override=True):  # pylint: disable=super-init-not-called
+  def __init__(self,
+               engine,
+               project_qualified_target_name,
+               proto_corpus,
+               allow_engine_override=True):  # pylint: disable=super-init-not-called
     # TODO(metzman): Do we need project_qualified_target_name?
 
     # This is used to let AFL share corpora with libFuzzer.
