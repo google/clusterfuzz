@@ -251,8 +251,7 @@ class FuzzTargetCorpus(GcsCorpus):
                quarantine=False,
                log_results=True,
                include_regressions=False,
-               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER,
-               skip_corpora=False):
+               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
     """Inits the FuzzTargetCorpus.
 
     Args:
@@ -277,9 +276,6 @@ class FuzzTargetCorpus(GcsCorpus):
 
     if not sync_corpus_bucket_name:
       raise RuntimeError('No corpus bucket specified.')
-
-    if skip_corpora:
-      return
 
     GcsCorpus.__init__(
         self,
@@ -367,7 +363,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
-  def __init__(self,
+  def __init__(self,  # pylint: disable=super-init-not-called
                engine,
                project_qualified_target_name,
                proto_corpus,
@@ -390,7 +386,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
 
   @classmethod
   def deserialize(cls, proto_corpus):
-    return cls.__init__(
+    return ProtoFuzzTargetCorpus(
         proto_corpus.engine,
         proto_corpus.project_qualified_target_name,
         proto_corpus,

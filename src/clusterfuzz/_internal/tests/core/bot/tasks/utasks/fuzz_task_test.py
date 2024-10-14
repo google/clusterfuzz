@@ -1066,7 +1066,8 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.fs.create_dir('/dir1')
     self.mock.list_blobs.return_value = []
     self.mock.last_updated.return_value = None
-    self.corpus = corpus_manager.get_fuzz_target_corpus('parent', 'child')
+    self.corpus = corpus_manager.get_fuzz_target_corpus('parent',
+                                                        'child').serialize()
 
   def _write_corpus_files(self, *args, **kwargs):  # pylint: disable=unused-argument
     self.fs.create_file('/dir/a')
