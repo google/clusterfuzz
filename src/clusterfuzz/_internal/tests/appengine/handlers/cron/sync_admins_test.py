@@ -71,10 +71,11 @@ class SyncAdminsTest(unittest.TestCase):
                     'members': ['user:user4@email.com',]
                 },
                 {
-                    'role': 'roles/viewer',
+                    'role':
+                        'roles/viewer',
                     'members': [
-                      'user:user5@email.com',
-                      'serviceAccount:another_sa@sa.com'
+                        'user:user5@email.com',
+                        'serviceAccount:another_sa@sa.com'
                     ]
                 },
             ]
