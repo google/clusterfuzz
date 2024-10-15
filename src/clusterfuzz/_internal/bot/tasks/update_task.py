@@ -109,10 +109,9 @@ def track_revision():
   revision = get_local_source_revision() or ''
   os_type = environment.platform()
   labels = {
-    'revision': revision,
-    'os_type': os_type,
-    'release': utils.get_clusterfuzz_release(),
-
+      'revision': revision,
+      'os_type': os_type,
+      'release': utils.get_clusterfuzz_release(),
   }
   monitoring_metrics.BOT_COUNT.set(1, labels)
 

@@ -140,7 +140,8 @@ BOT_COUNT = monitor.GaugeMetric(
     field_spec=[
         monitor.StringField('revision'),
         monitor.StringField('os_type'),
-        monitor.StringField('release')])
+        monitor.StringField('release')
+    ])
 
 TASK_COUNT = monitor.CounterMetric(
     'task/count',

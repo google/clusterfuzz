@@ -57,8 +57,8 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
     helpers.patch(self, [
-      'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
-      'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
+        'clusterfuzz._internal.system.environment.platform',
     ])
 
     self.mock.platform.return_value = 'unix'
@@ -72,12 +72,13 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
   def test_no_revision(self):
     """Test when there's no revision."""
     update_task.track_revision()
-    self.assertEqual(0,
-                     monitoring_metrics.BOT_COUNT.get({
-                         'revision': 'revision',
-                         'os_type': 'unix',
-                         'release': 'prod',
-                     }))
+    self.assertEqual(
+        0,
+        monitoring_metrics.BOT_COUNT.get({
+            'revision': 'revision',
+            'os_type': 'unix',
+            'release': 'prod',
+        }))
 
   def test_has_revision(self):
     """Test when there's a revision."""
@@ -85,12 +86,13 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
     self.fs.create_file(
         os.path.join('/root', utils.LOCAL_SOURCE_MANIFEST), contents='revision')
     update_task.track_revision()
-    self.assertEqual(1,
-                     monitoring_metrics.BOT_COUNT.get({
-                         'revision': 'revision',
-                         'os_type': 'unix',
-                         'release': 'prod',
-                     }))
+    self.assertEqual(
+        1,
+        monitoring_metrics.BOT_COUNT.get({
+            'revision': 'revision',
+            'os_type': 'unix',
+            'release': 'prod',
+        }))
 
 
 class GetNewerSourceRevisionTest(unittest.TestCase):
