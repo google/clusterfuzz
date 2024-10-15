@@ -16,6 +16,7 @@
 import ast
 import functools
 import os
+from platform import release
 import re
 import socket
 import subprocess
@@ -784,6 +785,14 @@ def platform():
     return 'MAC'
 
   raise ValueError('Unsupported platform "%s".' % sys.platform)
+
+
+def platform_vesion():
+  """Return the operating system type, unless an override is provided."""
+  environment_override = get_value('OS_OVERRIDE')
+  if environment_override:
+    return ''
+  return release()
 
 
 def remove_key(key_name):
