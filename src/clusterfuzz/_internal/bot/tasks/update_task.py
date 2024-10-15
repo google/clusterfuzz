@@ -104,11 +104,16 @@ def clear_pyc_files(directory):
       shell.remove_file(file_path)
 
 
+def _get_os_version():
+  """Returns the version for the current OS."""
+  return platform.release()
+
 def track_revision():
   """Get the local revision and report as a metric."""
   revision = get_local_source_revision() or ''
   os_type = environment.platform()
   labels = {
+      'os_version': _get_os_version(),
       'revision': revision,
       'os_type': os_type,
       'release': utils.get_clusterfuzz_release(),
