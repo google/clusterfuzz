@@ -787,7 +787,7 @@ def platform():
   raise ValueError('Unsupported platform "%s".' % sys.platform)
 
 
-def platform_vesion():
+def platform_version():
   """Return the operating system type, unless an override is provided."""
   environment_override = get_value('OS_OVERRIDE')
   if environment_override:

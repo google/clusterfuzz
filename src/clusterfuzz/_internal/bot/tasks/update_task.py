@@ -108,7 +108,7 @@ def track_revision():
   """Get the local revision and report as a metric."""
   revision = get_local_source_revision() or ''
   os_type = environment.platform()
-  os_version = environment.release()
+  os_version = environment.platform_version()
   release = utils.get_clusterfuzz_release()
   labels = {
       'revision': revision,
