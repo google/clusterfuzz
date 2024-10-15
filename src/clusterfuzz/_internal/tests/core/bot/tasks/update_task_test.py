@@ -59,12 +59,12 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
         'clusterfuzz._internal.system.environment.platform',
-        'clusterfuzz._internal.bot.tasks.update_task._get_os_version',
+        'platform.release',
     ])
 
     self.mock.platform.return_value = 'unix'
     self.mock.get_clusterfuzz_release.return_value = 'prod'
-    self.mock._get_os_version.return_value = 'v5'
+    self.mock.release.return_value = 'v5'
 
     os.environ['ROOT_DIR'] = '/root'
     os.environ['FAIL_RETRIES'] = '1'

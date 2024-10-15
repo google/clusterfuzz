@@ -223,10 +223,10 @@ class JonathanDebugTest(unittest.TestCase):
     monitor._monitoring_daemon = monitor._MonitoringDaemon(
         monitor._flush_metrics, monitor.FLUSH_INTERVAL_SECONDS)
     labels = {
-      'revision': '1',
-      'os_type': 'linux',
-      'release': 'candidate',
-      'os_version': 'v5'
+        'revision': '1',
+        'os_type': 'linux',
+        'release': 'candidate',
+        'os_version': 'v5'
     }
     monitoring_metrics.BOT_COUNT.set(1, labels)
     monitor.utils.get_application_id = lambda: 'google.com:clusterfuzz'
