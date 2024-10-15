@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for battery functions."""
 
+from clusterfuzz._internal.platforms.android import adb
 from clusterfuzz._internal.platforms.android import battery
 from clusterfuzz._internal.tests.test_libs import android_helpers
 
@@ -24,8 +25,15 @@ class GetBatteryLevelAndTemperatureTest(android_helpers.AndroidTest):
     """Ensure that get_battery_level_and_temperature returns data in the
     expected form."""
     battery_info = battery.get_battery_level_and_temperature()
+    stats = adb.run_shell_command(['dumpsys', 'battery'])
+    output = [attribute.strip() for attribute in stats.split('\n')]
+    output = dict(item.split(': ') for item in output[1:])
+
     self.assertTrue(isinstance(battery_info, dict))
     self.assertTrue('level' in battery_info)
     self.assertTrue('temperature' in battery_info)
     self.assertTrue(battery_info['level'] > 0)
+    self.assertTrue(battery_info['level'] == int(output.get('level')))
     self.assertTrue(battery_info['temperature'] > 0)
+    self.assertTrue(
+        battery_info['temperature'] == float(output.get('temperature')) / 10)
