@@ -111,10 +111,10 @@ def track_revision():
   os_version = environment.release()
   release = utils.get_clusterfuzz_release()
   labels = {
-    'revision': revision,
-    'os_type': os_type,
-    'os_version': os_version,
-    'release': release,
+      'revision': revision,
+      'os_type': os_type,
+      'os_version': os_version,
+      'release': release,
   }
   monitoring_metrics.BOT_COUNT.set(1, labels)
 
