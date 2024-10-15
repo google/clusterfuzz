@@ -376,26 +376,26 @@ class FileHashTest(FileMixin, fake_filesystem_unittest.TestCase):
 class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
   """Tests for legalize_filenames."""
 
-  # def test_rename_illegal(self):
-  #   """Test that illegally named files are renamed."""
-  #   legally_named = corpus_manager.legalize_filenames([self.FILE_PATH])
-  #   # pylint: disable=unnecessary-comprehension
-  #   self.assertEqual([os.path.join(self.DIRECTORY, self.FILE_SHA1SUM)],
-  #                    [file_path for file_path in legally_named])
-  #   with open(os.path.join(self.DIRECTORY, self.FILE_SHA1SUM)) as file_handle:
-  #     self.assertEqual(self.FILE_CONTENTS, file_handle.read())
+  def test_rename_illegal(self):
+    """Test that illegally named files are renamed."""
+    legally_named = corpus_manager.legalize_filenames([self.FILE_PATH])
+    # pylint: disable=unnecessary-comprehension
+    self.assertEqual([os.path.join(self.DIRECTORY, self.FILE_SHA1SUM)],
+                     [file_path for file_path in legally_named])
+    with open(os.path.join(self.DIRECTORY, self.FILE_SHA1SUM)) as file_handle:
+      self.assertEqual(self.FILE_CONTENTS, file_handle.read())
 
-  # def test_does_not_rename_legal(self):
-  #   """Test that legally named files are not renamed."""
-  #   new_file_path_1 = os.path.join(self.DIRECTORY, 'new_file')
-  #   os.rename(self.FILE_PATH, new_file_path_1)
-  #   initial_files = os.listdir(self.DIRECTORY)
-  #   new_file_path_2 = '/other_new_file'
-  #   initial_files.append(new_file_path_2)
-  #   legal_files = corpus_manager.legalize_filenames(initial_files)
-  #   self.assertEqual(initial_files, legal_files)
-  #   with open(new_file_path_1) as file_handle:
-  #     self.assertEqual(self.FILE_CONTENTS, file_handle.read())
+  def test_does_not_rename_legal(self):
+    """Test that legally named files are not renamed."""
+    new_file_path_1 = os.path.join(self.DIRECTORY, 'new_file')
+    os.rename(self.FILE_PATH, new_file_path_1)
+    initial_files = os.listdir(self.DIRECTORY)
+    new_file_path_2 = '/other_new_file'
+    initial_files.append(new_file_path_2)
+    legal_files = corpus_manager.legalize_filenames(initial_files)
+    self.assertEqual(initial_files, legal_files)
+    with open(new_file_path_1) as file_handle:
+      self.assertEqual(self.FILE_CONTENTS, file_handle.read())
 
   def test_logs_errors(self):
     """Test that errors are logged when we fail to rename a file."""
