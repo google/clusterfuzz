@@ -19,6 +19,8 @@ import io
 import json
 import os
 import re
+from typing import List
+from typing import Optional
 
 import apiclient
 from oauth2client.service_account import ServiceAccountCredentials
@@ -119,10 +121,13 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   return output_path
 
 
-def get_artifacts_for_build(client, bid, target, attempt_id='latest',
-                            regexp=''):
+def get_artifacts_for_build(client,
+                            bid: str,
+                            target: str,
+                            attempt_id: str = 'latest',
+                            regexp: Optional[str] = None) -> List[str]:
   """Return list of artifacts for a given build."""
-  if regexp == '':
+  if not regexp:
     request = client.buildartifact().list(
         buildId=bid, target=target, attemptId=attempt_id)
   else:
