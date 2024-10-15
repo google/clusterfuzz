@@ -13,16 +13,18 @@
 # limitations under the License.
 """Cron to sync admin users."""
 
+from typing import List
+
 from googleapiclient import discovery
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
-from typing import List
 
-def get_emails_from_bindings(
-    iam_policy, principal_type, allowed_roles) -> List[str]:
+
+def get_emails_from_bindings(iam_policy, principal_type,
+                             allowed_roles) -> List[str]:
   """Returns emails that should be admins, given constraints."""
   admins = []
 
@@ -39,6 +41,7 @@ def get_emails_from_bindings(
 
   return admins
 
+
 def admins_from_iam_policy(iam_policy):
   """Gets a list of admins from the IAM policy."""
   # Per
@@ -52,15 +55,11 @@ def admins_from_iam_policy(iam_policy):
       'roles/appengine.appAdmin',
   ]
 
-  service_account_roles = [
-    'roles/viewer'
-  ]
+  service_account_roles = ['roles/viewer']
 
-  user_admins = get_emails_from_bindings(
-    iam_policy, 'user', user_roles)
+  user_admins = get_emails_from_bindings(iam_policy, 'user', user_roles)
   service_account_admins = get_emails_from_bindings(
-    iam_policy, 'serviceAccount', service_account_roles)
-
+      iam_policy, 'serviceAccount', service_account_roles)
 
   user_admins.extend(service_account_admins)
   return user_admins
