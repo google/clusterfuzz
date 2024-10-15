@@ -102,34 +102,42 @@ def rename_file_to_sha(filepath, directory=None):
   return new_filepath
 
 
-def legalize_filenames(file_paths):
-  """Convert the name of every file in |file_paths| a name that is legal on
+def legalize_filenames(filepaths):
+  """Convert the name of every file in |filepaths| a name that is legal on
   Windows. Returns list of legally named files."""
   if environment.is_trusted_host():
-    return file_paths
+    return filepaths
 
   illegal_chars = {'<', '>', ':', '\\', '|', '?', '*'}
   legally_named = []
-  for file_path in file_paths:
-    _, basename = os.path.split(file_path)
+  failed_to_move_filepaths = []
+  for filepath in filepaths:
+    _, basename = os.path.split(filepath)
     if not any(char in illegal_chars for char in basename):
-      legally_named.append(file_path)
+      legally_named.append(filepath)
       continue
 
-    # Hash file to get new name since it also lets us get rid of duplicates,
-    # will not cause collisions for different files and makes things more
-    # consistent (since libFuzzer uses hashes).
-    rename_file_to_sha(filepath)
-    legally_named.append(new_file_path)
+    try:
+      # Hash file to get new name since it also lets us get rid of duplicates,
+      # will not cause collisions for different files and makes things more
+      # consistent (since libFuzzer uses hashes).
+      new_filepath = rename_file_to_sha(filepath)
+      legally_named.append(new_filepath)
+    except OSError:
+      failed_to_move_filepaths.append(filepath)
+
+  if failed_to_move_filepaths:
+    logs.error(
+        'Failed to rename files.',
+        failed_to_move_filepaths=failed_to_move_filepaths)
 
   return legally_named
 
 
-def sha_corpus_files(directory):
-  """Convert the name of every corpus file in |directory| to a shasum. If
-  |only_illegal| is True than this is only done for filenames that are not
+def legalize_corpus_files(directory):
+  """Convert the name of every corpus file in |directory| to a name that is
   allowed on Windows."""
-  # Iterate through return value of sha_filenames to convert every
+  # Iterate through return value of legalize_filenames to convert every
   # filename.
   files_list = shell.get_files_list(directory)
   legalize_filenames(files_list)
@@ -236,7 +244,7 @@ class GcsCorpus:
 
     # Get a new file_paths iterator where all files have been renamed to be
     # legal on Windows.
-    file_paths = sha_filenames(file_paths, only_illegal=True)
+    file_paths = legalize_filenames(file_paths)
     gcs_url = self.get_gcs_url()
     return self._gsutil_runner.upload_files_to_url(
         file_paths, gcs_url, timeout=timeout)
@@ -411,7 +419,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     """
     filenames_to_delete_dict = self._filenames_to_delete_urls_mapping.copy()
     filepaths_to_upload = []
-
+    logs.info('Rsyncing corpus from disk.')
     for filepath in shell.get_files_list(directory):
       filepath = rename_file_to_sha(filepath)
       filename = os.path.basename(filepath)
@@ -423,15 +431,18 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         # We only need to upload if it wasn't uploaded already.
         filepaths_to_upload.append(filepath)
 
+    logs.info('Uploading corpus.')
     results = self.upload_files(filepaths_to_upload)
+    logs.info('Done uploading corpus.')
     filenames_to_delete = list(filenames_to_delete_dict.values())
+    assert ((len(filenames_to_delete) != len(
+        self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
+    logs.info('Deleting files.')
+    storage.delete_signed_urls(filenames_to_delete)
+    logs.info('Done files.')
     logs.info(f'Corpus. {results.count(True)} uploaded. '
               f'{len(filenames_to_delete)} deleted. '
               f'{len(filenames_to_delete_dict)} originally.')
-    assert (
-        (len(filenames_to_delete) != len(self._filenames_to_delete_urls_mapping)) or
-        not filenames_to_delete)
-    storage.delete_signed_urls(filenames_to_delete)
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
@@ -456,13 +467,16 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     shell.create_directory(directory, create_intermediates=True)
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
+    # Convert this to a dict so proto's map doesn't return a default value for
+    # missing keys (this hides errors).
+    corpus_urls = dict(corpus.corpus_urls)
     for result in results:
       if not result.url:
         fails += 1
         continue
       sha_filename = os.path.basename(rename_file_to_sha(result.filepath))
       self._filenames_to_delete_urls_mapping[sha_filename] = (
-          corpus.corpus_urls[result.url])
+          corpus_urls[result.url])
 
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
