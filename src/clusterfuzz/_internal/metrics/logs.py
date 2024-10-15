@@ -32,6 +32,12 @@ _is_already_handling_uncaught = False
 _default_extras = {}
 
 
+def _is_running_on_k8s():
+  """Returns whether or not we're running on K8s."""
+  # We do this here to avoid circular imports with environment.
+  return os.getenv('IS_K8S_ENV') == 'true'
+
+
 def _increment_error_count():
   """"Increment the error count metric."""
   if _is_running_on_k8s():
@@ -58,11 +64,6 @@ def _is_running_on_app_engine():
       os.getenv('SERVER_SOFTWARE') and
       (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
        os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
-
-
-def _is_running_on_k8s():
-  """Returns whether or not we're running on K8s."""
-  return os.getenv('IS_K8S_ENV') == 'true'
 
 
 def _console_logging_enabled():

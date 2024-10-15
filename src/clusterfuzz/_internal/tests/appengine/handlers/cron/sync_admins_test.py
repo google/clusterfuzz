@@ -71,8 +71,12 @@ class SyncAdminsTest(unittest.TestCase):
                     'members': ['user:user4@email.com',]
                 },
                 {
-                    'role': 'roles/viewer',
-                    'members': ['user:user5@email.com',]
+                    'role':
+                        'roles/viewer',
+                    'members': [
+                        'user:user5@email.com',
+                        'serviceAccount:another_sa@sa.com'
+                    ]
                 },
             ]
         }
@@ -87,4 +91,5 @@ class SyncAdminsTest(unittest.TestCase):
         'user3@email.com',
         'user4@email.com',
         'user5@email.com',
+        'another_sa@sa.com',
     ], [admin.email for admin in admins])

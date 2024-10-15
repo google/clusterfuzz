@@ -409,7 +409,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    files_to_delete_dict = self._filepaths_to_delete_urls_mapping.keys().copy()
+    files_to_delete_dict = self._filepaths_to_delete_urls_mapping.copy()
     files_to_upload = []
 
     for filepath in shell.get_files_list(directory):
