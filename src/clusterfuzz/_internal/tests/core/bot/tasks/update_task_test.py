@@ -56,6 +56,13 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
+    helpers.patch(self, [
+      'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
+      'clusterfuzz._internal.system.environment.platform',
+    ])
+
+    self.mock.platform.return_value = 'unix'
+    self.mock.get_clusterfuzz_release.return_value = 'prod'
 
     os.environ['ROOT_DIR'] = '/root'
     os.environ['FAIL_RETRIES'] = '1'
@@ -67,7 +74,9 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
     update_task.track_revision()
     self.assertEqual(0,
                      monitoring_metrics.BOT_COUNT.get({
-                         'revision': 'revision'
+                         'revision': 'revision',
+                         'os_type': 'unix',
+                         'release': 'prod',
                      }))
 
   def test_has_revision(self):
@@ -78,7 +87,9 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
     update_task.track_revision()
     self.assertEqual(1,
                      monitoring_metrics.BOT_COUNT.get({
-                         'revision': 'revision'
+                         'revision': 'revision',
+                         'os_type': 'unix',
+                         'release': 'prod',
                      }))
 
 
