@@ -40,7 +40,7 @@ def get_battery_level_and_temperature():
   output = adb.run_shell_command(['dumpsys', 'battery'])
 
   # Get battery level.
-  m_battery_level = re.match(r'.*level: (\d+).*', output, re.DOTALL)
+  m_battery_level = re.match(r'.*  level: (\d+).*', output, re.DOTALL)
   if not m_battery_level:
     logs.error('Error occurred while getting battery status.')
     return None
