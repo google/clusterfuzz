@@ -55,6 +55,7 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
+    helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
         'clusterfuzz._internal.system.environment.platform',
