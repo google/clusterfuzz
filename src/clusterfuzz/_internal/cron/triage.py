@@ -262,8 +262,9 @@ def _file_issue(testcase, issue_tracker, throttler):
 
   if throttler.should_throttle(testcase):
     _add_triage_message(testcase, 'Skipping filing as it is throttled.')
-    monitoring_metrics.ISSUE_FILING_THROTTLED.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_FILING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'throttled',
     })
     return False
 
@@ -277,16 +278,18 @@ def _file_issue(testcase, issue_tracker, throttler):
   try:
     _, file_exception = issue_filer.file_issue(testcase, issue_tracker)
     filed = True
-    monitoring_metrics.ISSSUE_FILING_SUCCESS.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_FILING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'success',
     })
   except Exception as e:
     file_exception = e
 
   if file_exception:
     logs.error(f'Failed to file issue for testcase {testcase.key.id()}.')
-    monitoring_metrics.ISSUE_FILING_FAILED.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_FILING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'failed',
     })
     _add_triage_message(
         testcase,
