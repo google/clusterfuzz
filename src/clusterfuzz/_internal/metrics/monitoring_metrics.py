@@ -137,7 +137,12 @@ TRY_COUNT = monitor.CounterMetric(
 BOT_COUNT = monitor.GaugeMetric(
     'bot_count',
     description='Bot count',
-    field_spec=[monitor.StringField('revision')])
+    field_spec=[
+        monitor.StringField('revision'),
+        monitor.StringField('os_type'),
+        monitor.StringField('release'),
+        monitor.StringField('os_version')
+    ])
 
 TASK_COUNT = monitor.CounterMetric(
     'task/count',
