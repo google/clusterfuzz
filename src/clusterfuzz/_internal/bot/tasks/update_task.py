@@ -106,11 +106,11 @@ def clear_pyc_files(directory):
 
 def track_revision():
   """Get the local revision and report as a metric."""
-  revision = get_local_source_revision() or ''
+  source_code_revision = get_local_source_revision() or ''
   os_type = environment.platform()
   labels = {
       'os_version': platform.release(),
-      'revision': revision,
+      'revision': source_code_revision,
       'os_type': os_type,
       'release': utils.get_clusterfuzz_release(),
   }
