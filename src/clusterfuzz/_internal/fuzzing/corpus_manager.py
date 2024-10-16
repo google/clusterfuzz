@@ -418,6 +418,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       A bool indicating whether or not the command succeeded.
     """
     filenames_to_delete_dict = self._filenames_to_delete_urls_mapping.copy()
+    len_corpus = len(self._filenames_to_delete_urls_mapping)
     filepaths_to_upload = []
     logs.info('Rsyncing corpus from disk.')
     for filepath in shell.get_files_list(directory):
@@ -447,7 +448,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     logs.info('Done files.')
     logs.info(f'Corpus. {results.count(True)} uploaded. '
               f'{len(filenames_to_delete)} deleted. '
-              f'{len(filenames_to_delete_dict)} originally.')
+              f'{len(self._filenames_to_delete_urls_mapping)} originally.')
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
