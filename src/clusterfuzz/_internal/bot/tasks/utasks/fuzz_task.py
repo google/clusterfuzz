@@ -1852,13 +1852,12 @@ class FuzzingSession:
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
     fuzzing_session_duration = time.time() - start_time
-    labels = {
-      'fuzzer': self.fuzzer_name,
-      'job': self.job_type,
-      'platform': environment.platform()
-    }
     monitoring_metrics.FUZZING_SESSION_DURATION.add(
-      fuzzing_session_duration, labels)
+        fuzzing_session_duration, {
+            'fuzzer': self.fuzzer_name,
+            'job': self.job_type,
+            'platform': environment.platform()
+        })
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
