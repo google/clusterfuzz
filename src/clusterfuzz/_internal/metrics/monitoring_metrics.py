@@ -84,6 +84,17 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
+    'task/fuzz/session/duration',
+    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    description=('Total duration of fuzzing session.'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+    ],
+)
+
 JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     'task/fuzz/job/total_time',
     description=('The total fuzz time in seconds '
