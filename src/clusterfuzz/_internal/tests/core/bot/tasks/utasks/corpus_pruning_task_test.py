@@ -128,7 +128,7 @@ class BaseTest:
     shutil.rmtree(self.corpus_bucket, ignore_errors=True)
     shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
 
-  def _mock_setup_build(self, revision=None, fuzz_target=None):
+  def _mock_setup_build(self, revision=None, fuzz_target=None, job_type=None):
     os.environ['BUILD_DIR'] = self.build_dir
     return True
 
