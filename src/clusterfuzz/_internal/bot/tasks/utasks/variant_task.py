@@ -111,7 +111,8 @@ def utask_main(uworker_input):
   try:
     fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
     fuzz_target = fuzz_target.binary if fuzz_target else None
-    build_setup_result = build_manager.setup_build(fuzz_target=fuzz_target)
+    build_setup_result = build_manager.setup_build(
+        fuzz_target=fuzz_target, job_type=uworker_input.job_type)
   except errors.BuildNotFoundError:
     logs.warning('Matching build not found.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
