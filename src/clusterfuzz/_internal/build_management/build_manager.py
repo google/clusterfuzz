@@ -1309,9 +1309,9 @@ def setup_custom_binary():
   return None
 
 
-def setup_build(revision=0, fuzz_target=None):
+def setup_build(revision=0, fuzz_target=None, job_type=None):
   """Set up a custom or regular build based on revision."""
-  result = _setup_build(revision, fuzz_target)
+  result = _setup_build(revision, fuzz_target, job_type)
   if fuzz_target:
     # TODO(metzman): Remove this unjustifiable use of a mutable global
     # variable.
@@ -1319,7 +1319,7 @@ def setup_build(revision=0, fuzz_target=None):
   return result
 
 
-def _setup_build(revision, fuzz_target):
+def _setup_build(revision, fuzz_target, job_type):  # pylint: disable=unused-argument
   """Helper for setup_build, so setup_build can be sure to set FUZZ_TARGET on
   successful execution of this function."""
   # For custom binaries we always use the latest version. Revision is ignored.
