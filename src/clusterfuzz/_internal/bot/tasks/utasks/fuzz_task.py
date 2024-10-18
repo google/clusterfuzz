@@ -412,12 +412,14 @@ class _TrackFuzzTime:
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'fuzzer': self.fuzzer_name,
-            'timeout': self.timeout
+            'timeout': self.timeout,
+            'platform': environment.platform(),
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'job': self.job_type,
-            'timeout': self.timeout
+            'timeout': self.timeout,
+            'platform': environment.platform(),
         })
 
 
@@ -442,6 +444,7 @@ def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
   monitoring_metrics.FUZZER_RETURN_CODE_COUNT.increment({
       'fuzzer': fuzzer_name,
       'return_code': return_code,
+      'platform': environment.platform(),
   })
 
 
@@ -460,16 +463,20 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
   monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
       known_crash_count, {
           'fuzzer': fuzzer,
+          'platform': environment.platform(),
       })
   monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
       new_crash_count, {
           'fuzzer': fuzzer,
+          'platform': environment.platform(),
       })
   monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(known_crash_count, {
       'job': job_type,
+      'platform': environment.platform(),
   })
   monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(new_crash_count, {
       'job': job_type,
+      'platform': environment.platform()
   })
 
 

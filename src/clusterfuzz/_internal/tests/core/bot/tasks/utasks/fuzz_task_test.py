@@ -55,6 +55,9 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.platform'])
+    self.mock.platform.return_value = 'some_platform'
 
   def test_fuzzer_run_result(self):
     """Ensure _track_fuzzer_run_result set the right metrics."""
@@ -69,19 +72,22 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
         4,
         monitoring_metrics.FUZZER_RETURN_CODE_COUNT.get({
             'fuzzer': 'name',
-            'return_code': 2
+            'return_code': 2,
+            'platform': 'some_platform',
         }))
     self.assertEqual(
         1,
         monitoring_metrics.FUZZER_RETURN_CODE_COUNT.get({
             'fuzzer': 'name',
-            'return_code': 0
+            'return_code': 0,
+            'platform': 'some_platform',
         }))
     self.assertEqual(
         1,
         monitoring_metrics.FUZZER_RETURN_CODE_COUNT.get({
             'fuzzer': 'name',
-            'return_code': -1
+            'return_code': -1,
+            'platform': 'some_platform',
         }))
 
     testcase_count_ratio = (
@@ -130,6 +136,9 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.platform'])
+    self.mock.platform.return_value = 'some_platform'
 
   def test_testcase_run_result(self):
     """Ensure _track_testcase_run_result sets the right metrics."""
@@ -138,19 +147,23 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
 
     self.assertEqual(7,
                      monitoring_metrics.JOB_NEW_CRASH_COUNT.get({
-                         'job': 'job'
+                         'job': 'job',
+                         'platform': 'some_platform',
                      }))
     self.assertEqual(
         15, monitoring_metrics.JOB_KNOWN_CRASH_COUNT.get({
-            'job': 'job'
+            'job': 'job',
+            'platform': 'some_platform',
         }))
     self.assertEqual(
         7, monitoring_metrics.FUZZER_NEW_CRASH_COUNT.get({
-            'fuzzer': 'fuzzer'
+            'fuzzer': 'fuzzer',
+            'platform': 'some_platform',
         }))
     self.assertEqual(
         15, monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.get({
-            'fuzzer': 'fuzzer'
+            'fuzzer': 'fuzzer',
+            'platform': 'some_platform',
         }))
 
 
@@ -180,6 +193,9 @@ class TrackFuzzTimeTest(unittest.TestCase):
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.platform'])
+    self.mock.platform.return_value = 'some_platform'
 
   def _test(self, timeout):
     """Test helper."""
@@ -190,7 +206,8 @@ class TrackFuzzTimeTest(unittest.TestCase):
 
     fuzzer_total_time = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.get({
         'fuzzer': 'fuzzer',
-        'timeout': timeout
+        'timeout': timeout,
+        'platform': 'some_platform',
     })
     self.assertEqual(5, fuzzer_total_time)
 
