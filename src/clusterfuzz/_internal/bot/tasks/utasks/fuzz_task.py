@@ -1723,7 +1723,9 @@ class FuzzingSession:
 
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
+        environment.get_value('APP_REVISION'),
+        fuzz_target=fuzz_target,
+        job_type=self.job_type)
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:

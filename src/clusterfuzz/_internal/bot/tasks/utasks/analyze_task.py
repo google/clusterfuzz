@@ -79,8 +79,8 @@ def handle_analyze_no_revisions_list_error(output):
   handle_build_setup_error(output)
 
 
-def setup_build(testcase: data_types.Testcase, bad_revisions,
-                fuzz_target) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
+def setup_build(testcase: data_types.Testcase, bad_revisions, fuzz_target,
+                job_type) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -101,7 +101,7 @@ def setup_build(testcase: data_types.Testcase, bad_revisions,
     revision = revision_list[revision_index]
 
   fuzz_target = fuzz_target.binary if fuzz_target else None
-  if not build_manager.setup_build(revision, fuzz_target):
+  if not build_manager.setup_build(revision, fuzz_target, job_type):
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
   return None
@@ -145,7 +145,7 @@ def setup_testcase_and_build(
     return None, error
 
   # Set up build.
-  error = setup_build(testcase, bad_revisions, fuzz_target)
+  error = setup_build(testcase, bad_revisions, fuzz_target, job_type)
   if error:
     return None, error
 
