@@ -423,7 +423,7 @@ class _TrackFuzzTime:
         })
 
 
-def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
                              expected_testcase_count, return_code):
   """Track fuzzer run result"""
   if expected_testcase_count > 0:
@@ -445,6 +445,7 @@ def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
       'fuzzer': fuzzer_name,
       'return_code': return_code,
       'platform': environment.platform(),
+      'job_type': job_type,
   })
 
 
@@ -1341,8 +1342,9 @@ class FuzzingSession:
 
     self.gcs_corpus.upload_files(filtered_new_files)
 
-  def generate_blackbox_testcases(self, fuzzer, fuzzer_directory, testcase_count
-                                 ) -> GenerateBlackboxTestcasesResult:
+  def generate_blackbox_testcases(
+      self, fuzzer, job_type, fuzzer_directory,
+      testcase_count) -> GenerateBlackboxTestcasesResult:
     """Run the blackbox fuzzer and generate testcases."""
     # Helper variables.
     fuzzer_name = fuzzer.name
@@ -1464,7 +1466,7 @@ class FuzzingSession:
     if fuzzer_run_results:
       self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
-      _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+      _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
                                testcase_count, fuzzer_return_code)
 
     # Make sure that there are testcases generated. If not, set the error flag.
@@ -1566,8 +1568,8 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
-    generate_result = self.generate_blackbox_testcases(fuzzer, fuzzer_directory,
-                                                       testcase_count)
+    generate_result = self.generate_blackbox_testcases(
+        fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
 
@@ -1897,17 +1899,20 @@ def _upload_testcase_run_jsons(testcase_run_jsons):
 
 
 def handle_fuzz_build_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.BUILD_SETUP_FAILED)
 
 
 def handle_fuzz_data_bundle_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
 
 def handle_fuzz_no_fuzzer(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
