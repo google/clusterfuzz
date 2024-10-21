@@ -407,9 +407,10 @@ class Build(BaseBuild):
       self._patch_rpaths(instrumented_library_paths)
 
   def _emmit_build_age_metric(self, gcs_path):
+    """Emmits a metric to track the age of a build."""
     try:
       last_update_time = storage.get(gcs_path).get('updated')
-      if type(last_update_time) is str:
+      if isinstance(last_update_time, str):
         # storage.get returns two different types for the updated field:
         # the gcs api returns string, and the local filesystem implementation
         # returns a datetime.datetime object normalized for UTC
@@ -417,13 +418,14 @@ class Build(BaseBuild):
       now = last_update_time = datetime.datetime.now(datetime.timezone.utc)
       elapsed_time = now - last_update_time
       elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
+      # Fuzz targets do not apply for custom builds
+      fuzz_target = self.fuzz_target if self.fuzz_target is not None else 'N/A'
       monitoring_metrics.JOB_BUILD_AGE.add(
-        elapsed_time_in_hours, {
-              'fuzz_target': self.fuzz_target,
+          elapsed_time_in_hours, {
+              'fuzz_target': fuzz_target,
               'job_type': os.getenv('JOB_TYPE'),
               'platform': environment.platform(),
-          }
-      )
+          })
       # This field is expected as a datetime object
       # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
     except Exception as e:
