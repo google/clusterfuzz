@@ -436,13 +436,12 @@ class Build(BaseBuild):
       storage.copy_file_from(build_url, build_local_archive)
       build_download_duration = time.time() - start_time
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-                build_download_duration, {
-            'fuzz_target': self.fuzz_target,
-            'job_type': os.getenv('JOB_TYPE'),
-            'platform': environment.platform(),
-            'step': 'download',
-        }
-      )
+          build_download_duration, {
+              'fuzz_target': self.fuzz_target,
+              'job_type': os.getenv('JOB_TYPE'),
+              'platform': environment.platform(),
+              'step': 'download',
+          })
     except Exception as e:
       logs.error(f'Unable to download build from {build_url}: {e}')
       raise
@@ -563,7 +562,8 @@ class Build(BaseBuild):
 
     elapsed_time = time.time() - start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-      elapsed_time, {
+        elapsed_time,
+        {
             # The concept of a fuzz target does not apply
             # to blackbox fuzzers
             'fuzz_target': self.fuzz_target,
@@ -896,10 +896,11 @@ class CustomBuild(Build):
     elif not blobs.read_blob_to_disk(self.custom_binary_key,
                                      build_local_archive):
       return False
-    
+
     build_download_time = time.time() - download_start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-      build_download_time, {
+        build_download_time,
+        {
             # The concept of a fuzz target does not apply
             # to blackbox fuzzers
             'fuzz_target': 'N/A',
@@ -929,7 +930,8 @@ class CustomBuild(Build):
         build.unpack(self.build_dir, trusted=True)
         build_unpack_time = time.time() - unpack_start_time
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-          build_unpack_time, {
+            build_unpack_time,
+            {
                 # The concept of a fuzz target does not apply
                 # to blackbox fuzzers
                 'fuzz_target': 'N/A',
