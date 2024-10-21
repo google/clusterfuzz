@@ -17,10 +17,8 @@ import logging
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 
@@ -50,14 +48,6 @@ def main():
                     testcase.key.id())
       continue
 
-    policy = issue_tracker_policy.get(issue_tracker.project)
-    reported_label = policy.label('reported')
-    if not reported_label:
-      logging.info('No reported label.')
-      return True
-
-    reported_pattern = issue_filer.get_label_pattern(reported_label)
-
     try:
       issue = issue_tracker.get_original_issue(testcase.bug_information)
     except:
@@ -78,21 +68,7 @@ def main():
       logging.info('CCing %s on %s', cc, issue.id)
       issue.ccs.add(cc)
 
-    comment = None
-
-    if (not issue.labels.has_with_pattern(reported_pattern) and
-        not data_handler.get_value_from_job_definition(
-            testcase.job_type, 'DISABLE_DISCLOSURE', False)):
-      # Add reported label and deadline comment if necessary.
-      for result in issue_filer.apply_substitutions(policy, reported_label,
-                                                    testcase):
-        issue.labels.add(result)
-
-      if policy.label('restrict_view') in issue.labels:
-        logging.info('Adding deadline comment on %s', issue.id)
-        comment = policy.deadline_policy_message
-
-    issue.save(new_comment=comment, notify=True)
+    issue.save(notify=True)
 
   logging.info('OSS fuzz apply ccs succeeded.')
   return True
