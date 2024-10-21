@@ -418,7 +418,6 @@ class Build(BaseBuild):
     Yields:
         the build archive
     """
-    start_time = time.time()
     # Download build archive locally.
     build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
 
@@ -433,6 +432,7 @@ class Build(BaseBuild):
 
     logs.info(f'Downloading build from {build_url} to {build_local_archive}.')
     try:
+      start_time = time.time()
       storage.copy_file_from(build_url, build_local_archive)
       build_download_duration = time.time() - start_time
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
@@ -562,6 +562,16 @@ class Build(BaseBuild):
       utils.write_data_to_file('', partial_build_file_path)
 
     elapsed_time = time.time() - start_time
+    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+      elapsed_time, {
+            # The concept of a fuzz target does not apply
+            # to blackbox fuzzers
+            'fuzz_target': self.fuzz_target,
+            'job_type': os.getenv('JOB_TYPE'),
+            'platform': environment.platform(),
+            'step': 'unpack',
+        })
+
     elapsed_mins = elapsed_time / 60.
     log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
     log_func(f'Build took {elapsed_mins:0.02f} minutes to unpack.')
@@ -874,6 +884,9 @@ class CustomBuild(Build):
                                        self.custom_binary_filename)
     custom_builds_bucket = local_config.ProjectConfig().get(
         'custom_builds.bucket')
+
+    download_start_time = time.time()
+
     if custom_builds_bucket:
       directory = os.path.dirname(build_local_archive)
       if not os.path.exists(directory):
@@ -883,6 +896,17 @@ class CustomBuild(Build):
     elif not blobs.read_blob_to_disk(self.custom_binary_key,
                                      build_local_archive):
       return False
+    
+    build_download_time = time.time() - download_start_time
+    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+      build_download_time, {
+            # The concept of a fuzz target does not apply
+            # to blackbox fuzzers
+            'fuzz_target': 'N/A',
+            'job_type': os.getenv('JOB_TYPE'),
+            'platform': environment.platform(),
+            'step': 'download',
+        })
 
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
@@ -900,7 +924,19 @@ class CustomBuild(Build):
         logs.log_fatal_and_exit('Could not make space for build.')
 
       try:
+        # Unpack belongs to the BuildArchive class
+        unpack_start_time = time.time()
         build.unpack(self.build_dir, trusted=True)
+        build_unpack_time = time.time() - unpack_start_time
+        monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+          build_unpack_time, {
+                # The concept of a fuzz target does not apply
+                # to blackbox fuzzers
+                'fuzz_target': 'N/A',
+                'job_type': os.getenv('JOB_TYPE'),
+                'platform': environment.platform(),
+                'step': 'unpack',
+            })
       except:
         build.close()
         logs.error('Unable to unpack build archive %s.' % build_local_archive)
