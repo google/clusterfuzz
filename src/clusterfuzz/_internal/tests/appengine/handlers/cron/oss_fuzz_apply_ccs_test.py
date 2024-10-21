@@ -17,7 +17,6 @@ import unittest
 
 from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import monorail
 from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
