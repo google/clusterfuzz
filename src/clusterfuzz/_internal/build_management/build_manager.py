@@ -34,6 +34,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -417,6 +418,7 @@ class Build(BaseBuild):
     Yields:
         the build archive
     """
+    start_time = time.time()
     # Download build archive locally.
     build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
 
@@ -432,6 +434,15 @@ class Build(BaseBuild):
     logs.info(f'Downloading build from {build_url} to {build_local_archive}.')
     try:
       storage.copy_file_from(build_url, build_local_archive)
+      build_download_duration = time.time() - start_time
+      monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+                build_download_duration, {
+            'fuzz_target': self.fuzz_target,
+            'job_type': os.getenv('JOB_TYPE'),
+            'platform': environment.platform(),
+            'step': 'download',
+        }
+      )
     except Exception as e:
       logs.error(f'Unable to download build from {build_url}: {e}')
       raise
@@ -475,6 +486,7 @@ class Build(BaseBuild):
     if not can_unzip_over_http:
       return self._download_and_open_build_archive(base_build_dir, build_dir,
                                                    build_url)
+    # We do not emmit a metric for build download time, if using http
     logs.info("Opening an archive over HTTP, skipping archive download.")
     assert http_build_url
     return build_archive.open_uri(http_build_url)
