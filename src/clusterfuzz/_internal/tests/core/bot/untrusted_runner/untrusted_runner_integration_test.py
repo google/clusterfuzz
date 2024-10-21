@@ -540,7 +540,7 @@ class UntrustedRunnerIntegrationTest(
         setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
-        setup._get_data_bundle_directory(returned_fuzzer, bundle))
+        setup._get_data_bundle_directory(returned_fuzzer, bundle))  # pylint: disable=protected-access
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'a')))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
