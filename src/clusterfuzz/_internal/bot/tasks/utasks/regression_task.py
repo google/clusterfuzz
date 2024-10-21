@@ -121,7 +121,7 @@ def _testcase_reproduces_in_revision(
 
   fuzz_target_binary = fuzz_target.binary if fuzz_target else None
   build_setup_result = build_manager.setup_build(
-      revision, fuzz_target=fuzz_target_binary, job_type=job_type)
+      revision, fuzz_target=fuzz_target_binary)
   if not build_setup_result or not build_manager.check_app_path():
     error_message = f'Build setup failed r{revision}'
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member

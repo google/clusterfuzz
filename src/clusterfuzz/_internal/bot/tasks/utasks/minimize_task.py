@@ -424,8 +424,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   crash_revision = last_tested_crash_revision or testcase.crash_revision
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   fuzz_target = fuzz_target.binary if fuzz_target else None
-  build_setup_result = build_manager.setup_build(crash_revision, fuzz_target,
-                                                 uworker_input.job_type)
+  build_setup_result = build_manager.setup_build(crash_revision, fuzz_target)
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.

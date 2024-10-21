@@ -108,8 +108,7 @@ def utask_main(uworker_input):
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   fuzz_target = fuzz_target.binary if fuzz_target else None
   # Set up a custom or regular build based on revision.
-  build = build_manager.setup_build(build_revision, fuzz_target,
-                                    uworker_input.job_type)
+  build = build_manager.setup_build(build_revision, fuzz_target)
 
   # Get crash revision used in setting up build.
   crash_revision = environment.get_value('APP_REVISION')
