@@ -41,6 +41,7 @@ JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzz_target'),
         monitor.StringField('job_type'),
         monitor.StringField('step'),
+        monitor.StringField('platform'),
     ],
 )
 
