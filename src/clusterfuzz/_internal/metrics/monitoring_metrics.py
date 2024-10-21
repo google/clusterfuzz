@@ -39,7 +39,8 @@ JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
                  '(grouped by fuzzer/job)'),
     field_spec=[
         monitor.StringField('fuzzer'),
-        monitor.StringField('job_type')
+        monitor.StringField('job_type'),
+        monitor.StringField('step'),
     ],
 )
 
