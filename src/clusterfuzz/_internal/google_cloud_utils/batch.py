@@ -119,7 +119,7 @@ def _bunched(iterator, bunch_size):
     yield bunch
 
 
-def create_uworker_main_batch_jobs(batch_tasks List[BatchTask]):
+def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
