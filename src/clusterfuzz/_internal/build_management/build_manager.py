@@ -322,8 +322,7 @@ class Build(BaseBuild):
                base_build_dir,
                revision,
                build_prefix='',
-               fuzz_target=None,
-               job_type=None):
+               fuzz_target=None):
     super().__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
@@ -333,7 +332,6 @@ class Build(BaseBuild):
     # This is used by users of the class to instruct the class which fuzz
     # target to unpack.
     self.fuzz_target = fuzz_target
-    self.job_type = job_type
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -670,8 +668,7 @@ class RegularBuild(Build):
                build_url,
                build_prefix='',
                fuzz_target=None,
-               http_build_url=None,
-               job_type=None):
+               http_build_url=None):
     """RegularBuild constructor. See Build constructor for other parameters.
 
     Args:
@@ -681,7 +678,7 @@ class RegularBuild(Build):
         gs://foo/bar.zip.
     """
     super().__init__(
-        base_build_dir, revision, build_prefix, fuzz_target=fuzz_target, job_type=job_type)
+        base_build_dir, revision, build_prefix, fuzz_target=fuzz_target)
     self.build_url = build_url
     self.http_build_url = http_build_url
 
@@ -1102,7 +1099,7 @@ def _full_fuzz_target_path(bucket_path, fuzz_target):
   return bucket_path.replace('%TARGET%', _base_fuzz_target_name(fuzz_target))
 
 
-def _setup_split_targets_build(bucket_path, fuzz_target, revision=None, job_type=None):
+def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
   """Set up targets build."""
   bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
   if not fuzz_target:
@@ -1151,7 +1148,7 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
-def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None, job_type=None):
+def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
@@ -1162,8 +1159,7 @@ def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None, job_type=Non
       latest_revision,
       bucket_path=bucket_paths[0],
       build_prefix=build_prefix,
-      fuzz_target=fuzz_target,
-      job_type=job_type)
+      fuzz_target=fuzz_target)
   if not build:
     logs.error('Failed to set up a build.')
     return None
@@ -1174,8 +1170,7 @@ def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None, job_type=Non
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        fuzz_target=None,
-                        job_type=None) -> RegularBuild:
+                        fuzz_target=None) -> RegularBuild:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1324,7 +1319,7 @@ def setup_build(revision=0, fuzz_target=None, job_type=None):
   return result
 
 
-def _setup_build(revision, fuzz_target, job_type):
+def _setup_build(revision, fuzz_target, job_type):  # pylint: disable=unused-argument
   """Helper for setup_build, so setup_build can be sure to set FUZZ_TARGET on
   successful execution of this function."""
   # For custom binaries we always use the latest version. Revision is ignored.
@@ -1338,11 +1333,11 @@ def _setup_build(revision, fuzz_target, job_type):
   if fuzz_target_build_bucket_path:
     # Split fuzz target build.
     return _setup_split_targets_build(
-        fuzz_target_build_bucket_path, fuzz_target, revision=revision, job_type=job_type)
+        fuzz_target_build_bucket_path, fuzz_target, revision=revision)
 
   if revision:
     # Setup regular build with revision.
-    return setup_regular_build(revision, fuzz_target=fuzz_target, job_type=job_type)
+    return setup_regular_build(revision, fuzz_target=fuzz_target)
 
   # If no revision is provided, we default to a trunk build.
   bucket_paths = []
@@ -1357,7 +1352,7 @@ def _setup_build(revision, fuzz_target, job_type):
     logs.error('Attempted a trunk build, but no bucket paths were found.')
     return None
 
-  return setup_trunk_build(bucket_paths, fuzz_target=fuzz_target, job_type=job_type)
+  return setup_trunk_build(bucket_paths, fuzz_target=fuzz_target)
 
 
 def is_custom_binary():
