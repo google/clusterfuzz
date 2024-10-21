@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,23 +14,18 @@
 """Runs uworker_main on a uworker input URL."""
 
 import os
-import datetime
-import sys
 
-from clusterfuzz._internal.base import tasks
-from clusterfuzz._internal.datastore import data_handler
-from clusterfuzz._internal.google_cloud_utils import batch
-from clusterfuzz._internal.bot.tasks import commands
-from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.bot.fuzzers import init
-from clusterfuzz._internal.fuzzing import corpus_manager
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.system import environment
+
 
 def execute(args):
-  """Build keywords."""
+  """Runs uworker_main on a uworker input URL."""
+  del args
   environment.set_bot_environment()
   init.run()
-  os.environ['UWORKER_INPUT_DOWNLOAD_URL'] = '<PUT SIGNED UWORKER INPUT URL HERE>'
+  os.environ[
+      'UWORKER_INPUT_DOWNLOAD_URL'] = '<PUT SIGNED UWORKER INPUT URL HERE>'
 
   utasks.uworker_bot_main()
