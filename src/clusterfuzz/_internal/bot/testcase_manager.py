@@ -539,9 +539,7 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).
       crash_result_full = CrashResult(return_code, crash_time, output)
-      log = prepare_log_for_upload(crash_result_full.get_stacktrace(),
-                                   return_code)
-      upload_log(log, log_time)
+      upload_log(crash_result_full.get_stacktrace(), return_code, log_time)
   except Exception:
     logs.error('Exception occurred while running '
                'run_testcase_and_return_result_in_queue.')
@@ -849,10 +847,10 @@ def test_for_reproducibility(fuzz_target,
                                            expected_security_flag)
 
 
-def prepare_log_for_upload(symbolized_output, return_code):
+def _prepare_log_for_upload(symbolized_output, return_code, app_revision):
   """Prepare log for upload."""
   # Add revision information to the logs.
-  app_revision = environment.get_value('APP_REVISION')
+  app_revision = app_revision or environment.get_value('APP_REVISION')
   job_name = environment.get_value('JOB_NAME')
   components = revisions.get_component_list(app_revision, job_name)
   component_revisions = (
@@ -867,15 +865,16 @@ def prepare_log_for_upload(symbolized_output, return_code):
   if environment.is_android():
     bot_header += f'Device serial: {environment.get_value("ANDROID_SERIAL")}\n'
 
-  return_code_header = "Return code: %s\n\n" % return_code
+  return_code_header = f'Return code: {return_code}\n\n'
 
-  result = revisions_header + bot_header + return_code_header +\
-  symbolized_output
+  result = (
+      revisions_header + bot_header + return_code_header + symbolized_output)
   return result.encode('utf-8')
 
 
-def upload_log(log, log_time):
+def upload_log(symbolized_output, return_code, log_time, app_revision=None):
   """Upload the output into corresponding GCS logs bucket."""
+  log = _prepare_log_for_upload(symbolized_output, return_code, app_revision)
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
     return

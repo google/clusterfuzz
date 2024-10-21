@@ -70,6 +70,8 @@ MAX_NEW_CORPUS_FILES = 500
 THREAD_WAIT_TIMEOUT = 1
 MAX_CRASHES_UPLOADED = 64
 
+ENGINE_OUTPUT_LIMIT = 10 * 2**20
+
 
 class FuzzTaskError(Exception):
   """Fuzz task exception."""
@@ -548,7 +550,8 @@ class GcsCorpus:
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
     # don't sync it again and save some time.
-    if last_sync_time and os.path.exists(self._corpus_directory):
+    if not environment.is_uworker() and last_sync_time and os.path.exists(
+        self._corpus_directory):
       last_update_time = storage.last_updated(self._get_gcs_url())
       if last_update_time and last_sync_time > last_update_time:
         logs.info('Corpus for target %s has no new updates, skipping rsync.' %
@@ -1484,6 +1487,7 @@ class FuzzingSession:
     fuzzer_metadata = {}
     return_code = 1  # Vanilla return-code for engine crashes.
 
+    self.fuzz_task_output.app_revision = environment.get_value('APP_REVISION')
     # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.info(f'Fuzzing round {fuzzing_round}.')
@@ -1513,9 +1517,9 @@ class FuzzingSession:
           float(testcase_run.timestamp))
       crash_result_obj = crash_result.CrashResult(
           return_code, result.time_executed, result.logs)
-      log = testcase_manager.prepare_log_for_upload(
-          crash_result_obj.get_stacktrace(), return_code)
-      testcase_manager.upload_log(log, log_time)
+      output = crash_result_obj.get_stacktrace()
+      self.fuzz_task_output.engine_outputs.append(
+          _to_engine_output(output, return_code, log_time))
 
       for crash in result.crashes:
         testcase_manager.upload_testcase(crash.input_path, log_time)
@@ -1764,7 +1768,8 @@ class FuzzingSession:
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
-    self.data_directory = setup.trusted_get_data_bundle_directory(self.fuzzer)
+    self.data_directory = setup.get_data_bundle_directory(
+        self.fuzzer, self.uworker_input.setup_input)
     if not self.data_directory:
       logs.error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
@@ -2019,7 +2024,29 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
+def _to_engine_output(output: str, return_code: int,
+                      log_time: datetime.datetime):
+  """Returns an EngineOutput proto."""
+  truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
+  if len(output) != len(truncated_output):
+    logs.warning('Fuzzer output truncated.')
+
+  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
+  engine_output = uworker_msg_pb2.EngineOutput(
+      output=bytes(truncated_output, 'utf-8'),
+      return_code=return_code,
+      timestamp=proto_timestamp)
+  return engine_output
+
+
+def _upload_engine_output_log(engine_output):
+  timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
+  testcase_manager.upload_log(engine_output.output, engine_output.return_code,
+                              timestamp)
+
+
 def utask_postprocess(output):
+  """Postprocesses fuzz_task."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
@@ -2027,4 +2054,10 @@ def utask_postprocess(output):
   save_fuzz_targets(output)
 
   session = _make_session(output.uworker_input)
+  # TODO(metzman): Get rid of this method and move functionality to this
+  # function.
   session.postprocess(output)
+  # TODO(b/374776013): Refactor this code so the uploads happen during
+  # utask_main.
+  for engine_output in output.fuzz_task_output.engine_output:
+    _upload_engine_output_log(engine_output)

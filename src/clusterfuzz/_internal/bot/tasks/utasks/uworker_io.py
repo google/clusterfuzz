@@ -22,6 +22,7 @@ from google.cloud import ndb
 from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
 from google.protobuf import any_pb2
+from google.protobuf import timestamp_pb2
 import google.protobuf.message
 
 from clusterfuzz._internal.base import task_utils
@@ -29,6 +30,9 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+
+# Define an alias to appease pylint.
+Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
 
 
 def generate_new_input_file_name() -> str:
@@ -215,3 +219,13 @@ def check_handling_testcase_safe(testcase):
     # TODO(https://b.corp.google.com/issues/328691756): Change this to
     # log_fatal_and_exit once we are handling untrusted tasks properly.
     logs.warning(f'Cannot handle {testcase.key.id()} in trusted task.')
+
+
+def timestamp_to_proto_timestamp(pydt) -> Timestamp:
+  proto_timestamp = Timestamp()
+  proto_timestamp.FromDatetime(pydt)
+  return proto_timestamp
+
+
+def proto_timestamp_to_timestamp(proto_timestamp: Timestamp):
+  return proto_timestamp.ToDatetime()
