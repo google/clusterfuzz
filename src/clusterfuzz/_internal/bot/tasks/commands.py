@@ -92,6 +92,8 @@ def cleanup_task_state():
 
   # Call python's garbage collector.
   utils.python_gc()
+  if 'CF_TASK_ID' in os.environ:
+    del os.environ['CF_TASK_ID']
 
 
 def is_supported_cpu_arch_for_job():
