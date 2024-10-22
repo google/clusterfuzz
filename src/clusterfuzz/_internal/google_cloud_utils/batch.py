@@ -276,14 +276,7 @@ def _get_spec_from_config(command, job_name):
   if command == 'fuzz':
     config_name += '-PREEMPTIBLE-UNPRIVILEGED'
   else:
-<<<<<<< HEAD
     config_name += '-NONPREEMPTIBLE-UNPRIVILEGED'
-=======
-    config_name += '-NONPREEMPTIBLE'
-  # TODO(metzman): Get rid of this when we stop doing privileged operations in
-  # utasks.
-  config_name += '-UNPRIVILEGED'
->>>>>>> master
   batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
