@@ -562,8 +562,7 @@ class Build(BaseBuild):
 
     elapsed_time = time.time() - start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        elapsed_time,
-        {
+        elapsed_time, {
             'fuzz_target': self.fuzz_target,
             'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
