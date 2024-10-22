@@ -14,6 +14,7 @@
 
 mapping:
   LINUX-NONPREEMPTIBLE:
+    clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
     user_data: 'file://linux-init.yaml'
     disk_size_gb: 110
@@ -35,7 +36,7 @@ mapping:
     preemptible: false
     machine_type: n1-standard-1
   LINUX-PREEMPTIBLE:
-    clusterfuzz_release: 'candidate'
+    clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
     user_data: 'file://linux-init.yaml'
     disk_size_gb: 75

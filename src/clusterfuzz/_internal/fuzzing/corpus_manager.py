@@ -93,34 +93,43 @@ def _count_corpus_files(directory):
   return shell.get_directory_file_count(directory)
 
 
-def legalize_filenames(file_paths):
-  """Convert the name of every file in |file_paths| a name that is legal on
+def rename_file_to_sha(filepath, directory=None):
+  if directory is None:
+    directory = os.path.dirname(filepath)
+  sha1sum = utils.file_hash(filepath)
+  new_filepath = os.path.join(directory, sha1sum)
+  shutil.move(filepath, new_filepath)
+  return new_filepath
+
+
+def legalize_filenames(filepaths):
+  """Convert the name of every file in |filepaths| a name that is legal on
   Windows. Returns list of legally named files."""
   if environment.is_trusted_host():
-    return file_paths
+    return filepaths
 
   illegal_chars = {'<', '>', ':', '\\', '|', '?', '*'}
-  failed_to_move_files = []
   legally_named = []
-  for file_path in file_paths:
-    file_dir_path, basename = os.path.split(file_path)
+  failed_to_move_filepaths = []
+  for filepath in filepaths:
+    _, basename = os.path.split(filepath)
     if not any(char in illegal_chars for char in basename):
-      legally_named.append(file_path)
+      legally_named.append(filepath)
       continue
 
-    # Hash file to get new name since it also lets us get rid of duplicates,
-    # will not cause collisions for different files and makes things more
-    # consistent (since libFuzzer uses hashes).
-    sha1sum = utils.file_hash(file_path)
-    new_file_path = os.path.join(file_dir_path, sha1sum)
     try:
-      shutil.move(file_path, new_file_path)
-      legally_named.append(new_file_path)
+      # Hash file to get new name since it also lets us get rid of duplicates,
+      # will not cause collisions for different files and makes things more
+      # consistent (since libFuzzer uses hashes).
+      new_filepath = rename_file_to_sha(filepath)
+      legally_named.append(new_filepath)
     except OSError:
-      failed_to_move_files.append((file_path, new_file_path))
-  if failed_to_move_files:
+      failed_to_move_filepaths.append(filepath)
+
+  if failed_to_move_filepaths:
     logs.error(
-        'Failed to rename files.', failed_to_move_files=failed_to_move_files)
+        'Failed to rename files.',
+        failed_to_move_filepaths=failed_to_move_filepaths)
 
   return legally_named
 
@@ -215,7 +224,6 @@ class GcsCorpus:
     shell.create_directory(directory, create_intermediates=True)
 
     corpus_gcs_url = self.get_gcs_url()
-    print(corpus_gcs_url)
     result = self._gsutil_runner.rsync(corpus_gcs_url, directory, timeout,
                                        delete)
 
@@ -380,7 +388,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     self.proto_corpus = proto_corpus
     proto_corpus.engine = self._engine
     proto_corpus.project_qualified_target_name = project_qualified_target_name
-    self._filepaths_to_delete_urls_mapping = {}
+    self._filenames_to_delete_urls_mapping = {}
 
   def serialize(self):
     return self.proto_corpus
@@ -409,26 +417,37 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    files_to_delete_dict = self._filepaths_to_delete_urls_mapping.copy()
-    files_to_upload = []
-
+    filenames_to_delete_dict = self._filenames_to_delete_urls_mapping.copy()
+    filepaths_to_upload = []
+    logs.info('Rsyncing corpus from disk.')
     for filepath in shell.get_files_list(directory):
-      files_to_upload.append(filepath)
-      if filepath in files_to_delete_dict:
+      filepath = rename_file_to_sha(filepath)
+      filename = os.path.basename(filepath)
+      if filename in filenames_to_delete_dict:
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
-        del files_to_delete_dict[filepath]
+        del filenames_to_delete_dict[filename]
+      else:
+        # We only need to upload if it wasn't uploaded already.
+        filepaths_to_upload.append(filepath)
 
-    results = self.upload_files(files_to_upload)
-    logs.info(f'{results.count(True)} corpus files uploaded.')
+    logs.info('Uploading corpus.')
+    results = self.upload_files(filepaths_to_upload)
+    logs.info('Done uploading corpus.')
+    filenames_to_delete = list(filenames_to_delete_dict.values())
 
-    files_to_delete = list(files_to_delete_dict.values())
-    logs.info(f'{len(files_to_delete)} corpus files to delete.')
-    assert (
-        (len(files_to_delete) != len(self._filepaths_to_delete_urls_mapping)) or
-        not files_to_delete)
-    storage.delete_signed_urls(files_to_delete)
+    # Assert that we aren't making the very bad mistake of deleting the entire
+    # corpus because we messed up our determination of which files were deleted
+    # by libFuzzer during merge/pruning.
+    assert ((len(filenames_to_delete) != len(
+        self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
 
+    logs.info('Deleting files.')
+    storage.delete_signed_urls(filenames_to_delete)
+    logs.info('Done files.')
+    logs.info(f'Corpus. {results.count(True)} uploaded. '
+              f'{len(filenames_to_delete)} deleted. '
+              f'{len(self._filenames_to_delete_urls_mapping)} originally.')
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
@@ -453,13 +472,16 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     shell.create_directory(directory, create_intermediates=True)
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
+    # Convert this to a dict so proto's map doesn't return a default value for
+    # missing keys (this hides errors).
+    corpus_urls = dict(corpus.corpus_urls)
     for result in results:
       if not result.url:
         fails += 1
         continue
-
-      self._filepaths_to_delete_urls_mapping[result.filepath] = (
-          corpus.corpus_urls[result.url])
+      sha_filename = os.path.basename(rename_file_to_sha(result.filepath))
+      self._filenames_to_delete_urls_mapping[sha_filename] = (
+          corpus_urls[result.url])
 
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
@@ -559,12 +581,6 @@ def _get_regressions_corpus_gcs_url(bucket_name, bucket_path):
   """Return gcs path to directory containing crash regressions."""
   return _get_gcs_url(
       bucket_name, bucket_path, suffix=REGRESSIONS_GCS_PATH_SUFFIX)
-
-
-def download_corpus(corpus, directory):
-  storage.download_signed_urls(list(corpus.download_urls.keys()), directory)
-  storage.download_signed_urls(
-      list(corpus.regression_download_urls.keys()), directory)
 
 
 def _get_gcs_url(bucket_name, bucket_path, suffix=''):

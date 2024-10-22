@@ -17,36 +17,10 @@ import unittest
 
 from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import monorail
 from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-
-OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
-    'deadline_policy_message':
-        'This bug is subject to a 90 day disclosure deadline. '
-        'If 90 days elapse\n'
-        'without an upstream patch, then the bug report will automatically\n'
-        'become visible to the public.',
-    'labels': {
-        'reported': 'Reported-%YYYY-MM-DD%',
-        'restrict_view': 'Restrict-View-Commit',
-    },
-    'status': {
-        'assigned': 'Assigned',
-        'duplicate': 'Duplicate',
-        'fixed': 'Fixed',
-        'new': 'New',
-        'verified': 'Verified',
-        'wontfix': 'WontFix'
-    }
-})
-
-DEADLINE_NOTE = (
-    'This bug is subject to a 90 day disclosure deadline. If 90 days elapse\n'
-    'without an upstream patch, then the bug report will automatically\n'
-    'become visible to the public.')
 
 
 class IssueTrackerManager:
@@ -77,8 +51,6 @@ def get_original_issue(self, issue_id):
   elif issue_id == 1338:
     issue.add_cc('user@example.com')
     issue.add_cc('user2@example.com')
-  elif issue_id == 1340:
-    issue.add_label('reported-2015-01-01')
 
   return monorail.Issue(issue)
 
@@ -116,7 +88,6 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.mock.get_issue_tracker_for_testcase.return_value = (
         monorail.IssueTracker(self.itm))
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
-    self.mock.get.return_value = OSS_FUZZ_POLICY
     self.mock.get_original_issue.side_effect = get_original_issue
 
     self.job = data_types.Job(name='job', environment_string='')
@@ -149,9 +120,6 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
         'user2@example.com',
     ])
 
-    self.assertTrue(issue_1337.has_label_matching('reported-2016-01-01'))
-    self.assertEqual(issue_1337.comment, DEADLINE_NOTE)
-
     self.assertNotIn(1338, self.itm.modified_issues)
 
     issue_1339 = self.itm.modified_issues[1339]
@@ -160,7 +128,6 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
         'user2@example.com',
     ])
 
-    self.assertTrue(issue_1339.has_label_matching('reported-2016-01-01'))
     self.assertEqual(issue_1339.comment, '')
 
     issue_1340 = self.itm.modified_issues[1340]
@@ -168,42 +135,4 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
         'user@example.com',
         'user2@example.com',
     ])
-    self.assertTrue(issue_1340.has_label_matching('reported-2015-01-01'))
-    self.assertFalse(issue_1340.has_label_matching('reported-2016-01-01'))
-    self.assertEqual(issue_1340.comment, '')
-
-  def test_execute_disabled_disclosure(self):
-    """Test executing of cron with disclosure disabled."""
-    self.job.environment_string += 'DISABLE_DISCLOSURE = True\n'
-    self.job.put()
-
-    oss_fuzz_apply_ccs.main()
-    self.assertEqual(len(self.itm.modified_issues), 3)
-
-    issue_1337 = self.itm.modified_issues[1337]
-    self.assertCountEqual(issue_1337.cc, [
-        'user@example.com',
-        'user2@example.com',
-    ])
-
-    self.assertFalse(issue_1337.has_label_matching('reported-2016-01-01'))
-    self.assertEqual('', issue_1337.comment)
-
-    self.assertNotIn(1338, self.itm.modified_issues)
-
-    issue_1339 = self.itm.modified_issues[1339]
-    self.assertCountEqual(issue_1339.cc, [
-        'user@example.com',
-        'user2@example.com',
-    ])
-
-    self.assertFalse(issue_1339.has_label_matching('reported-2016-01-01'))
-    self.assertEqual('', issue_1339.comment)
-
-    issue_1340 = self.itm.modified_issues[1340]
-    self.assertCountEqual(issue_1340.cc, [
-        'user@example.com',
-        'user2@example.com',
-    ])
-    self.assertTrue(issue_1340.has_label_matching('reported-2015-01-01'))
     self.assertEqual(issue_1340.comment, '')
