@@ -438,7 +438,7 @@ class Build(BaseBuild):
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
           build_download_duration, {
               'fuzz_target': self.fuzz_target,
-              'job_type': os.getenv('JOB_TYPE'),
+              'job': os.getenv('JOB_TYPE'),
               'platform': environment.platform(),
               'step': 'download',
           })
@@ -567,7 +567,7 @@ class Build(BaseBuild):
             # The concept of a fuzz target does not apply
             # to blackbox fuzzers
             'fuzz_target': self.fuzz_target,
-            'job_type': os.getenv('JOB_TYPE'),
+            'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
             'step': 'unpack',
         })
@@ -904,7 +904,7 @@ class CustomBuild(Build):
             # The concept of a fuzz target does not apply
             # to blackbox fuzzers
             'fuzz_target': 'N/A',
-            'job_type': os.getenv('JOB_TYPE'),
+            'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
             'step': 'download',
         })
@@ -935,7 +935,7 @@ class CustomBuild(Build):
                 # The concept of a fuzz target does not apply
                 # to blackbox fuzzers
                 'fuzz_target': 'N/A',
-                'job_type': os.getenv('JOB_TYPE'),
+                'job': os.getenv('JOB_TYPE'),
                 'platform': environment.platform(),
                 'step': 'unpack',
             })
