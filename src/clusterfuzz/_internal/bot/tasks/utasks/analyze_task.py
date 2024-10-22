@@ -118,8 +118,10 @@ def handle_analyze_no_revision_index(output):
 
 def handle_analyze_close_invalid_uploaded(output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase_upload_metadata = query_testcase_upload_metadata(
+      output.uworker_input.testcase_id)
   data_handler.close_invalid_uploaded_testcase(
-    testcase, testcase_upload_metadata, 'Irrelevant')
+      testcase, testcase_upload_metadata, 'Irrelevant')
 
 
 def prepare_env_for_main(testcase_upload_metadata):
@@ -474,11 +476,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_analyze_no_revision_index,
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
         handle_analyze_no_revisions_list_error,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
-        handle_analyze_no_revisions_list_error,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
-        handle_analyze_no_revisions_list_error,
-  uworker_msg_pb2.ANALYZE_CLOSE_INVALID_UPLOADED:
+    uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED:  # pylint: disable=no-member
         handle_analyze_close_invalid_uploaded,
 }).compose_with(
     setup.ERROR_HANDLER,

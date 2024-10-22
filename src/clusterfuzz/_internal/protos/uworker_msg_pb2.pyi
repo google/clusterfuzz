@@ -66,7 +66,6 @@ class _ErrorTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enum
     FUZZ_DATA_BUNDLE_SETUP_FAILURE: _ErrorType.ValueType  # 10
     FUZZ_NO_FUZZER: _ErrorType.ValueType  # 11
     FUZZ_NO_FUZZ_TARGET_SELECTED: _ErrorType.ValueType  # 13
-    FUZZ_BAD_BUILD: _ErrorType.ValueType  # 37
     PROGRESSION_REVISION_LIST_ERROR: _ErrorType.ValueType  # 14
     PROGRESSION_BUILD_NOT_FOUND: _ErrorType.ValueType  # 15
     PROGRESSION_NO_CRASH: _ErrorType.ValueType  # 16
@@ -90,6 +89,8 @@ class _ErrorTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enum
     LIBFUZZER_MINIMIZATION_FAILED: _ErrorType.ValueType  # 34
     CORPUS_PRUNING_FUZZER_SETUP_FAILED: _ErrorType.ValueType  # 35
     CORPUS_PRUNING_ERROR: _ErrorType.ValueType  # 36
+    FUZZ_BAD_BUILD: _ErrorType.ValueType  # 37
+    ANALYZE_CLOSE_INVALID_UPLOADED: _ErrorType.ValueType  # 38
 
 class ErrorType(_ErrorType, metaclass=_ErrorTypeEnumTypeWrapper): ...
 
@@ -106,7 +107,6 @@ FUZZ_BUILD_SETUP_FAILURE: ErrorType.ValueType  # 9
 FUZZ_DATA_BUNDLE_SETUP_FAILURE: ErrorType.ValueType  # 10
 FUZZ_NO_FUZZER: ErrorType.ValueType  # 11
 FUZZ_NO_FUZZ_TARGET_SELECTED: ErrorType.ValueType  # 13
-FUZZ_BAD_BUILD: ErrorType.ValueType  # 37
 PROGRESSION_REVISION_LIST_ERROR: ErrorType.ValueType  # 14
 PROGRESSION_BUILD_NOT_FOUND: ErrorType.ValueType  # 15
 PROGRESSION_NO_CRASH: ErrorType.ValueType  # 16
@@ -130,6 +130,8 @@ LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE: ErrorType.ValueType  # 33
 LIBFUZZER_MINIMIZATION_FAILED: ErrorType.ValueType  # 34
 CORPUS_PRUNING_FUZZER_SETUP_FAILED: ErrorType.ValueType  # 35
 CORPUS_PRUNING_ERROR: ErrorType.ValueType  # 36
+FUZZ_BAD_BUILD: ErrorType.ValueType  # 37
+ANALYZE_CLOSE_INVALID_UPLOADED: ErrorType.ValueType  # 38
 global___ErrorType = ErrorType
 
 @typing_extensions.final
