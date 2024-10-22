@@ -422,7 +422,7 @@ class Build(BaseBuild):
       fuzz_target = self.fuzz_target if self.fuzz_target is not None else 'N/A'
       labels = {
           'fuzz_target': fuzz_target,
-          'job_type': os.getenv('JOB_NAME'),
+          'job': os.getenv('JOB_NAME'),
           'platform': environment.platform(),
           'task': os.getenv('TASK_NAME'),
       }
