@@ -47,6 +47,7 @@ FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by fuzzer)'),
     field_spec=[
         monitor.StringField('fuzzer'),
+        monitor.StringField('platform'),
     ])
 
 JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
@@ -55,6 +56,7 @@ JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by job)'),
     field_spec=[
         monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -63,6 +65,7 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by job)'),
     field_spec=[
         monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
@@ -73,6 +76,7 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.IntegerField('return_code'),
         monitor.StringField('platform'),
+        monitor.StringField('job'),
     ],
 )
 
@@ -94,6 +98,7 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
+        monitor.StringField('platform'),
     ],
 )
 

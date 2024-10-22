@@ -73,7 +73,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'fuzzer': 'fuzzer',
             'return_code': 2,
             'platform': 'some_platform',
-            'job_type': 'job',
+            'job': 'job',
         }))
     self.assertEqual(
         1,
@@ -81,7 +81,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'fuzzer': 'fuzzer',
             'return_code': 0,
             'platform': 'some_platform',
-            'job_type': 'job',
+            'job': 'job',
         }))
     self.assertEqual(
         1,
@@ -89,7 +89,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'fuzzer': 'fuzzer',
             'return_code': -1,
             'platform': 'some_platform',
-            'job_type': 'job',
+            'job': 'job',
         }))
 
     testcase_count_ratio = (

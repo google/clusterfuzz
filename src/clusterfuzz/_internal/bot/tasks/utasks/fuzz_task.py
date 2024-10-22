@@ -445,7 +445,7 @@ def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
       'fuzzer': fuzzer_name,
       'return_code': return_code,
       'platform': environment.platform(),
-      'job_type': job_type,
+      'job': job_type,
   })
 
 
