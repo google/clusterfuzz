@@ -375,7 +375,7 @@ def configure_cloud_logging():
   # Note that CLOUD_PROJECT_ID is not used here, as it might differ from both
   #   the service account's project and the logging project.
   client = google.cloud.logging.Client(
-      project=os.getenv("LOGGING_CLOUD_PROJECT_ID"))
+      project=os.getenv('LOGGING_CLOUD_PROJECT_ID'))
   labels = {
       'compute.googleapis.com/resource_name': socket.getfqdn().lower(),
       'bot_name': os.getenv('BOT_NAME'),
@@ -402,7 +402,9 @@ def configure_cloud_logging():
         'location':
             json.dumps(
                 getattr(record, 'location', {'Error': True}),
-                default=_handle_unserializable)
+                default=_handle_unserializable),
+        'task_id':
+            os.getenv('CF_TASK_ID', 'null'),
     })
     return True
 
