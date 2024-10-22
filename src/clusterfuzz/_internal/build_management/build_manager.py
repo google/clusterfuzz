@@ -564,8 +564,6 @@ class Build(BaseBuild):
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
         elapsed_time,
         {
-            # The concept of a fuzz target does not apply
-            # to blackbox fuzzers
             'fuzz_target': self.fuzz_target,
             'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
@@ -901,8 +899,7 @@ class CustomBuild(Build):
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
         build_download_time,
         {
-            # The concept of a fuzz target does not apply
-            # to blackbox fuzzers
+            # Custom builds don't support fuzz targets.
             'fuzz_target': 'N/A',
             'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
