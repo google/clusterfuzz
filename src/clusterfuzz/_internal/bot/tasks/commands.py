@@ -14,6 +14,7 @@
 """Run command based on the current task."""
 
 import functools
+import os
 import sys
 import time
 import uuid
