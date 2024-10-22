@@ -15,6 +15,7 @@
 import collections
 import itertools
 import threading
+from typing import List
 import uuid
 
 from google.cloud import batch_v1 as batch
@@ -57,11 +58,6 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'gce_zone',
     'machine_type',
 ])
-
-_UNPRIVILEGED_TASKS = {
-    'analyze', 'corpus_pruning', 'symbolize', 'regression', 'variant',
-    'minimize', 'progression'
-}
 
 
 def _create_batch_client_new():
@@ -123,7 +119,7 @@ def _bunched(iterator, bunch_size):
     yield bunch
 
 
-def create_uworker_main_batch_jobs(batch_tasks):
+def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
@@ -278,12 +274,9 @@ def _get_spec_from_config(command, job_name):
   job = _get_job(job_name)
   config_name = job.platform
   if command == 'fuzz':
-    config_name += '-PREEMPTIBLE'
+    config_name += '-PREEMPTIBLE-UNPRIVILEGED'
   else:
-    config_name += '-NONPREEMPTIBLE'
-  # TODO(metzman): Get rid of this when we stop doing privileged operations in
-  # utasks.
-  config_name += '-UNPRIVILEGED'
+    config_name += '-NONPREEMPTIBLE-UNPRIVILEGED'
   batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
