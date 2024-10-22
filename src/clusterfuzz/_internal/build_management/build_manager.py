@@ -415,17 +415,18 @@ class Build(BaseBuild):
         # the gcs api returns string, and the local filesystem implementation
         # returns a datetime.datetime object normalized for UTC
         last_update_time = datetime.datetime.fromisoformat(last_update_time)
-      now = last_update_time = datetime.datetime.now(datetime.timezone.utc)
+      now = datetime.datetime.now(datetime.timezone.utc)
       elapsed_time = now - last_update_time
       elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
       # Fuzz targets do not apply for custom builds
       fuzz_target = self.fuzz_target if self.fuzz_target is not None else 'N/A'
-      monitoring_metrics.JOB_BUILD_AGE.add(
-          elapsed_time_in_hours, {
-              'fuzz_target': fuzz_target,
-              'job_type': os.getenv('JOB_TYPE'),
-              'platform': environment.platform(),
-          })
+      labels = {
+          'fuzz_target': fuzz_target,
+          'job_type': os.getenv('JOB_NAME'),
+          'platform': environment.platform(),
+          'task': os.getenv('TASK_NAME'),
+      }
+      monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
       # This field is expected as a datetime object
       # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
     except Exception as e:
