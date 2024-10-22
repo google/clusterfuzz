@@ -116,6 +116,12 @@ def handle_analyze_no_revision_index(output):
   handle_build_setup_error(output)
 
 
+def handle_analyze_close_invalid_uploaded(output):
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.close_invalid_uploaded_testcase(
+    testcase, testcase_upload_metadata, 'Irrelevant')
+
+
 def prepare_env_for_main(testcase_upload_metadata):
   """Prepares the environment for execute_task."""
   # Reset redzones.
@@ -411,14 +417,9 @@ def utask_main(uworker_input):
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
-    # TODO(metzman): Handle this by closing the testcase on the trusted worker.
-    # Also, deal with the other cases where we are updating testcase comment
-    # in untrusted.
-    data_handler.close_invalid_uploaded_testcase(
-        testcase, testcase_upload_metadata, 'Irrelevant')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         analyze_task_output=analyze_task_output,
-        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED)  # pylint: disable=no-member
 
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
@@ -473,6 +474,12 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_analyze_no_revision_index,
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
         handle_analyze_no_revisions_list_error,
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
+        handle_analyze_no_revisions_list_error,
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
+        handle_analyze_no_revisions_list_error,
+  uworker_msg_pb2.ANALYZE_CLOSE_INVALID_UPLOADED:
+        handle_analyze_close_invalid_uploaded,
 }).compose_with(
     setup.ERROR_HANDLER,
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
