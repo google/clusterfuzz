@@ -248,20 +248,20 @@ def oauth(func):
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self, *args, **kwargs):
     """Wrapper."""
     auth_header = request.headers.get('Authorization')
     if auth_header:
       email, returned_auth_header = get_email_and_access_token(auth_header)
       setattr(g, '_oauth_email', email)
 
-      response = make_response(func(self))
+      response = make_response(func(self, *args, **kwargs))
       response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
           returned_auth_header)
       response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
       return response
 
-    return func(self)
+    return func(self, *args, **kwargs)
 
   return wrapper
 
