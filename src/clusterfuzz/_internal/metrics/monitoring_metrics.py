@@ -206,6 +206,12 @@ ANDROID_UPTIME = monitor.CounterMetric(
     ],
 )
 
+CHROME_TEST_SYNCER_SUCCESS = monitor.CounterMetric(
+    'chrome_test_syncer_success',
+    description='Counter for successful test syncer exits.',
+    field_spec=[],
+)
+
 # Metrics related to issue lifecycle
 
 ISSUE_FILING = monitor.CounterMetric(
