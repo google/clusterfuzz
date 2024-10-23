@@ -454,7 +454,7 @@ def _should_update_data_bundle(data_bundle, data_bundle_directory):
 
 def _prepare_update_data_bundle(fuzzer, data_bundle):
   """Create necessary directories to download the data bundle."""
-  data_bundle_directory = get_data_bundle_directory(fuzzer, data_bundle)
+  data_bundle_directory = _get_data_bundle_directory(fuzzer, data_bundle)
   if not data_bundle_directory:
     logs.error('Failed to setup data bundle %s.' % data_bundle.name)
     return None
@@ -744,17 +744,21 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   return False
 
 
-def trusted_get_data_bundle_directory(fuzzer):
-  """For fuzz_task which doesn't get data bundles in an untrusted manner."""
-  # TODO(metzman): Delete this when fuzz_task is migrated.
-  # Check if we have a fuzzer-specific data bundle. Use it to calculate the
-  # data directory we will fetch our testcases from.
-  data_bundle = data_types.DataBundle.query(
-      data_types.DataBundle.name == fuzzer.data_bundle_name).get()
-  return get_data_bundle_directory(fuzzer, data_bundle)
+def get_data_bundle_directory(fuzzer, setup_input):
+  """Public interface for _get_data_bundle_directory."""
+  if not setup_input.data_bundle_corpuses:
+    data_bundle = None
+  else:
+    # TODO(metzman): The old behavior was to call .get() on a query and get an
+    # arbitrary data bundle. What should we actually do when there's more than
+    # one?
+    data_bundle = setup_input.data_bundle_corpuses[0].data_bundle
+    data_bundle = uworker_io.entity_from_protobuf(data_bundle,
+                                                  data_types.DataBundle)
+  return _get_data_bundle_directory(fuzzer, data_bundle)
 
 
-def get_data_bundle_directory(fuzzer, data_bundle):
+def _get_data_bundle_directory(fuzzer, data_bundle):
   """Return data bundle data directory."""
   # Store corpora for built-in fuzzers like libFuzzer in the same directory
   # as other local data bundles. This makes it easy to clear them when we run
