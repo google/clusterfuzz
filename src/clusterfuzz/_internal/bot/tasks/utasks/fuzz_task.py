@@ -1496,12 +1496,12 @@ class FuzzingSession:
       logs.info(f'Fuzzing round {fuzzing_round}.')
       try:
         with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
-                          self.job_type) as tracker:
-          result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
+                            self.job_type) as tracker:
+          result, cur_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
               engine_impl, self.fuzz_target.binary, sync_corpus_directory,
               self.testcase_directory)
           # Timeouts are only accounted for in libfuzzer, this can be None
-          tracker.timeout = True if result.timed_out else False
+          tracker.timeout = bool(result.timed_out)
       except FuzzTargetNotFoundError:
         # Ocassionally fuzz targets are deleted. This is pretty rare. Since
         # ClusterFuzz did nothing wrong, don't bubble up an exception, consider
@@ -1511,7 +1511,7 @@ class FuzzingSession:
         logs.error(f'{self.fuzz_target.binary} is not in the build.')
         return [], {}
 
-      fuzzer_metadata.update(current_fuzzer_metadata)
+      fuzzer_metadata.update(cur_fuzzer_metadata)
 
       # Prepare stats.
       testcase_run = engine_common.get_testcase_run(result.stats,
@@ -2049,8 +2049,7 @@ def _to_engine_output(output: str, return_code: int,
 def _upload_engine_output_log(engine_output):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
   testcase_manager.upload_log(engine_output.output.decode(),
-                              engine_output.return_code,
-                              timestamp)
+                              engine_output.return_code, timestamp)
 
 
 def utask_postprocess(output):
