@@ -550,6 +550,9 @@ class GcsCorpus:
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
     # don't sync it again and save some time.
+    # TODO(metzman): Consider removing this after migration is complete. It
+    # probably doesn't save much time as corpus syncing is super fast after
+    # async syncing was added.
     if not environment.is_uworker() and last_sync_time and os.path.exists(
         self._corpus_directory):
       last_update_time = storage.last_updated(self._get_gcs_url())

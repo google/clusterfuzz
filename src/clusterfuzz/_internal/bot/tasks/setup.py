@@ -746,6 +746,7 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
 
 def get_data_bundle_directory(fuzzer, setup_input):
   assert setup_input.data_bundle_corpuses[0].data_bundle
+  # There should only be one of these, get the first one.
   data_bundle = setup_input.data_bundle_corpuses[0].data_bundle
   data_bundle = uworker_io.entity_from_protobuf(data_bundle,
                                                 data_types.DataBundle)
