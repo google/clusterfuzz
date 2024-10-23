@@ -1229,7 +1229,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
         24 * 1024 * 1024 * 1024,
     ]
 
-    size = 1 * 1024 * 1024 * 1024  # 1 GB
+    size = 10 * 1024 * 1024 * 1024  # 10 GB
     self.assertTrue(build_manager._make_space(size, '/builds/build4'))
 
     self.assertTrue(os.path.isdir('/builds/build1'))
@@ -1246,7 +1246,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
         12 * 1024 * 1024 * 1024,
     ]
 
-    size = 1 * 1024 * 1024 * 1024  # 1 GB
+    size = 10 * 1024 * 1024 * 1024  # 10 GB
     self.assertTrue(build_manager._make_space(size, '/builds/build4'))
 
     self.assertTrue(os.path.isdir('/builds/build1'))
@@ -1264,7 +1264,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
         14 * 1024 * 1024 * 1024,
     ]
 
-    size = 1 * 1024 * 1024 * 1024  # 1 GB
+    size = 10 * 1024 * 1024 * 1024  # 10 GB
     self.assertTrue(build_manager._make_space(size, '/builds/build4'))
 
     self.assertFalse(os.path.isdir('/builds/build1'))
@@ -1279,10 +1279,10 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
         12 * 1024 * 1024 * 1024,
         17 * 1024 * 1024 * 1024,
         18 * 1024 * 1024 * 1024,
-        24 * 1024 * 1024 * 1024,
+        19 * 1024 * 1024 * 1024,
     ]
 
-    size = 20 * 1024 * 1024 * 1024  # 1 GB
+    size = 20 * 1024 * 1024 * 1024  # 20 GB
     self.assertFalse(build_manager._make_space(size, '/builds/build4'))
 
     self.assertFalse(os.path.isdir('/builds/build1'))
@@ -1301,7 +1301,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
         18 * 1024 * 1024 * 1024,
     ]
 
-    size = 20 * 1024 * 1024 * 1024  # 1 GB
+    size = 20 * 1024 * 1024 * 1024  # 20 GB
     self.assertFalse(build_manager._make_space(size, '/builds/build4'))
 
 
