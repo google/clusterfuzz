@@ -14,8 +14,10 @@
 """Run command based on the current task."""
 
 import functools
+import os
 import sys
 import time
+import uuid
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -91,6 +93,8 @@ def cleanup_task_state():
 
   # Call python's garbage collector.
   utils.python_gc()
+  if 'CF_TASK_ID' in os.environ:
+    del os.environ['CF_TASK_ID']
 
 
 def is_supported_cpu_arch_for_job():
@@ -249,6 +253,10 @@ def process_command(task):
                               task.high_end, task.is_command_override)
 
 
+def _get_task_id(task_name, task_argument, job_name):
+  return f'{task_name},{task_argument},{job_name},{uuid.uuid4()}'
+
+
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
@@ -263,6 +271,13 @@ def process_command_impl(task_name,
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
+  if task_name in {'uworker_main', 'postprocess'}:
+    # We want the id of the task we are processing, not "uworker_main", or
+    # "postprocess".
+    task_id = None
+  else:
+    task_id = _get_task_id(task_name, task_argument, job_name)
+  environment.set_value('CF_TASK_ID', task_id)
   if job_name != 'none':
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     # Job might be removed. In that case, we don't want an exception
@@ -285,8 +300,8 @@ def process_command_impl(task_name,
     # A misconfiguration led to this point. Clean up the job if necessary.
     # TODO(ochang): Remove the first part of this check once we migrate off the
     # old untrusted worker architecture.
-    # Comment this "if" out to run a task locally.
-    if (not environment.is_trusted_host(ensure_connected=False) and
+    if (not environment.get_value('DEBUG_TASK') and
+        not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix):
       # This happens rarely, store this as a hard exception.
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
@@ -412,6 +427,7 @@ def process_command_impl(task_name,
     uworker_env['TASK_NAME'] = task_name
     uworker_env['TASK_ARGUMENT'] = task_argument
     uworker_env['JOB_NAME'] = job_name
+    uworker_env['CF_TASK_ID'] = task_id
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
