@@ -1251,6 +1251,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.sync_from_gcs',
         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.upload_files',
         'clusterfuzz._internal.build_management.revisions.get_component_list',
+        'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
@@ -1304,7 +1305,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     os.environ['APP_REVISION'] = '1'
     os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
     os.environ['BOT_NAME'] = 'hostname.company.com'
-    os.environ['FUZZ_LOGS_BUCKET'] = '/fuzz-logs'
 
     expected_crashes = [engine.Crash('/input', 'stack', ['args'], 1.0)]
 
@@ -1336,6 +1336,14 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     }, fuzzer_metadata)
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)
+    log_call = mock.call(
+        b'Component revisions (build r1):\n'
+        b'component: rev\n\nBot name: hostname.company.com\n'
+        b'Return code: 1\n\n'
+        b'Command: cmd\nTime ran: 42.0\n\n'
+        b'logs\n'
+        b'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
+    self.mock.upload_log.assert_has_calls([log_call, log_call])
     self.mock.upload_testcase.assert_has_calls([
         mock.call('/input', log_time),
         mock.call('/input', log_time),
