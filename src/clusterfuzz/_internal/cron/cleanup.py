@@ -489,16 +489,18 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     logs.info(f'Mark issue {issue.id} as verified for '
               f'fixed testcase {testcase.key.id()}.')
     issue_filer.notify_issue_update(testcase, 'verified')
-    monitoring_metrics.ISSUE_CLOSING_SUCCESS.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_CLOSING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'success',
     })
   except Exception as e:
     logs.error(
         f'Failed to mark issue {issue.id} as verified for '
         f'fixed testcase {testcase.key.id()}.',
         extras={'exception': e})
-    monitoring_metrics.ISSUE_CLOSING_FAILED.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_CLOSING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'failed'
     })
     raise e
 

@@ -32,6 +32,8 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -293,6 +295,7 @@ def main():
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
 
   logs.info('Completed cycle, sleeping for %s seconds.' % sync_interval)
+  monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment(1)
   time.sleep(sync_interval)
 
 
@@ -306,7 +309,7 @@ if __name__ == '__main__':
   # Continue this forever.
   while True:
     try:
-      with ndb_init.context():
+      with monitor.wrap_with_monitoring(), ndb_init.context():
         main()
     except Exception:
       logs.error('Failed to sync tests.')

@@ -125,6 +125,7 @@ def _limit_corpus_size(corpus_url):
   corpus_size = 0
   deleted_corpus_count = 0
   bucket, _ = storage.get_bucket_name_and_path(corpus_url)
+  logs.info('Limiting corpus size.')
   for corpus_file in storage.get_blobs(corpus_url):
     corpus_count += 1
     corpus_size += corpus_file['size']
@@ -134,6 +135,7 @@ def _limit_corpus_size(corpus_url):
           bucket, corpus_file['name'])
       storage.delete(path_to_delete)
       deleted_corpus_count += 1
+  logs.info('Done limiting corpus size.')
 
   if deleted_corpus_count:
     logs.info('Removed %d files from oversized corpus: %s.' %

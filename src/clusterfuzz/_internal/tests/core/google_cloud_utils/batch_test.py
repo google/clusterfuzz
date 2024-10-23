@@ -54,12 +54,12 @@ class GetSpecFromConfigTest(unittest.TestCase):
     job.put()
     spec = batch._get_spec_from_config('fuzz', job.name)  # pylint: disable=protected-access
     expected_spec = batch.BatchWorkloadSpec(
-        clusterfuzz_release='candidate',
+        clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
         disk_size_gb=75,
         disk_type='pd-standard',
-        service_account_email='test-clusterfuzz-service-account-email',
+        service_account_email='test-unpriv-clusterfuzz-service-account-email',
         subnetwork=None,
         gce_zone='gce-zone',
         project='test-clusterfuzz',
