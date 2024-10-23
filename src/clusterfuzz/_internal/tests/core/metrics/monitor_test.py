@@ -229,6 +229,7 @@ class JonathanDebugTest(unittest.TestCase):
         'os_version': 'v5'
     }
     monitoring_metrics.BOT_COUNT.set(1, labels)
+    monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
     monitor.utils.get_application_id = lambda: 'google.com:clusterfuzz'
     os.environ['BOT_NAME'] = 'bot-1'
     monitor._initialize_monitored_resource()

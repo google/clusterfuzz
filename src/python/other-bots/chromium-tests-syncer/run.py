@@ -295,7 +295,7 @@ def main():
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
 
   logs.info('Completed cycle, sleeping for %s seconds.' % sync_interval)
-  monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment(1)
+  monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
   time.sleep(sync_interval)
 
 

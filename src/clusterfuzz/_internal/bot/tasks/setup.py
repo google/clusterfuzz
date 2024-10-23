@@ -745,11 +745,16 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
 
 
 def get_data_bundle_directory(fuzzer, setup_input):
-  assert setup_input.data_bundle_corpuses[0].data_bundle
-  # There should only be one of these, get the first one.
-  data_bundle = setup_input.data_bundle_corpuses[0].data_bundle
-  data_bundle = uworker_io.entity_from_protobuf(data_bundle,
-                                                data_types.DataBundle)
+  """Public interface for _get_data_bundle_directory."""
+  if not setup_input.data_bundle_corpuses:
+    data_bundle = None
+  else:
+    # TODO(metzman): The old behavior was to call .get() on a query and get an
+    # arbitrary data bundle. What should we actually do when there's more than
+    # one?
+    data_bundle = setup_input.data_bundle_corpuses[0].data_bundle
+    data_bundle = uworker_io.entity_from_protobuf(data_bundle,
+                                                  data_types.DataBundle)
   return _get_data_bundle_directory(fuzzer, data_bundle)
 
 

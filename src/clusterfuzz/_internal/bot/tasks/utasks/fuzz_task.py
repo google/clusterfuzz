@@ -2044,7 +2044,8 @@ def _to_engine_output(output: str, return_code: int,
 
 def _upload_engine_output_log(engine_output):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
-  testcase_manager.upload_log(engine_output.output, engine_output.return_code,
+  testcase_manager.upload_log(engine_output.output.decode(),
+                              engine_output.return_code,
                               timestamp)
 
 
@@ -2062,5 +2063,5 @@ def utask_postprocess(output):
   session.postprocess(output)
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
-  for engine_output in output.fuzz_task_output.engine_output:
+  for engine_output in output.fuzz_task_output.engine_outputs:
     _upload_engine_output_log(engine_output)
