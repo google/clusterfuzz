@@ -2062,5 +2062,5 @@ def utask_postprocess(output):
   session.postprocess(output)
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
-  for engine_output in output.fuzz_task_output.engine_output:
+  for engine_output in output.fuzz_task_output.engine_outputs:
     _upload_engine_output_log(engine_output)
