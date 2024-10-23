@@ -1495,9 +1495,13 @@ class FuzzingSession:
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.info(f'Fuzzing round {fuzzing_round}.')
       try:
-        result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
-            engine_impl, self.fuzz_target.binary, sync_corpus_directory,
-            self.testcase_directory)
+        with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
+                          self.job_type) as tracker:
+          result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
+              engine_impl, self.fuzz_target.binary, sync_corpus_directory,
+              self.testcase_directory)
+          # Timeouts are only accounted for in libfuzzer, this can be None
+          tracker.timeout = True if result.timed_out else False
       except FuzzTargetNotFoundError:
         # Ocassionally fuzz targets are deleted. This is pretty rare. Since
         # ClusterFuzz did nothing wrong, don't bubble up an exception, consider
