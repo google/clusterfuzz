@@ -236,12 +236,6 @@ message FuzzTaskCrashGroup {
   optional bool one_time_crasher_flag = 4;
 }
 
-message EngineOutput {
-  optional bytes output = 1;
-  optional int64 return_code = 2;
-  google.protobuf.Timestamp timestamp = 3;
-}
-
 message FuzzTaskOutput {
   // TODO(metzman): Remove this since tworkers should know what this is based on
   // the input.
@@ -256,8 +250,6 @@ message FuzzTaskOutput {
   repeated string testcase_run_jsons = 12;
   repeated FuzzTaskCrashGroup crash_groups = 13;
   optional BuildData build_data = 14;
-  optional int64 app_revision = 15;
-  repeated EngineOutput engine_outputs = 16;
 }
 
 message MinimizeTaskOutput {

@@ -124,9 +124,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
 
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
     log_time = testcase_manager._get_testcase_time(self.testcase_path)
-    testcase_manager.upload_log(crash_result.get_stacktrace(),
-                                crash_result.return_code, log_time)
+    testcase_manager.upload_log(log, log_time)
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
@@ -148,9 +149,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
         '"fuzzer": "fuzzer", "build_revision": 123}\n')
 
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
     log_time = testcase_manager._get_testcase_time(self.testcase_path)
-    testcase_manager.upload_log(crash_result.get_stacktrace(),
-                                crash_result.return_code, log_time)
+    testcase_manager.upload_log(log, log_time)
     self.mock.write_data.assert_called_once_with(
         b'Component revisions (build r123):\n'
         b'Component: REVISION\nComponent2: REVISION2\n\n'
@@ -172,9 +174,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
         '"fuzzer": "fuzzer", "build_revision": 123}\n')
 
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
     log_time = testcase_manager._get_testcase_time(self.testcase_path)
-    testcase_manager.upload_log(crash_result.get_stacktrace(),
-                                crash_result.return_code, log_time)
+    testcase_manager.upload_log(log, log_time)
     self.mock.write_data.assert_called_once_with(
         b'Component revisions (build r123):\n'
         b'Component: REVISION\nComponent2: REVISION2\n\n'
@@ -195,9 +198,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     environment.set_value('BOT_NAME', 'hostname.company.com')
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
     log_time = testcase_manager._get_testcase_time(self.testcase_path)
-    testcase_manager.upload_log(crash_result.get_stacktrace(),
-                                crash_result.return_code, log_time)
+    testcase_manager.upload_log(log, log_time)
     self.mock.write_data.assert_called_once_with(
         b'Component revisions (build r123):\n'
         b'Component: REVISION\nComponent2: REVISION2\n\n'
@@ -221,9 +225,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     environment.set_value('BOT_NAME', 'hostname.company.com')
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
     log_time = testcase_manager._get_testcase_time(self.testcase_path)
-    testcase_manager.upload_log(crash_result.get_stacktrace(),
-                                crash_result.return_code, log_time)
+    testcase_manager.upload_log(log, log_time)
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
