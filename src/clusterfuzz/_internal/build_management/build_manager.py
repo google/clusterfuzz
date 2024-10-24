@@ -407,7 +407,7 @@ class Build(BaseBuild):
       self._patch_rpaths(instrumented_library_paths)
 
   def _emit_build_age_metric(self, gcs_path):
-    """Emmits a metric to track the age of a build."""
+    """Emits a metric to track the age of a build."""
     try:
       last_update_time = storage.get(gcs_path).get('updated')
       # TODO(vitorguidi): standardize return type between fs and gcs.
@@ -431,7 +431,7 @@ class Build(BaseBuild):
       # This field is expected as a datetime object
       # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
     except Exception as e:
-      logs.error(f'Failed to emmit build age metric for {gcs_path}: {e}')
+      logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
 
   @contextlib.contextmanager
   def _download_and_open_build_archive(self, base_build_dir: str,
