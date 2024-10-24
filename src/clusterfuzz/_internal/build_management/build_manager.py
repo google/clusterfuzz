@@ -15,6 +15,7 @@
 
 from collections import namedtuple
 import contextlib
+import datetime
 import os
 import re
 import shutil
@@ -34,6 +35,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -404,6 +406,33 @@ class Build(BaseBuild):
     if instrumented_library_paths:
       self._patch_rpaths(instrumented_library_paths)
 
+  def _emit_build_age_metric(self, gcs_path):
+    """Emits a metric to track the age of a build."""
+    try:
+      last_update_time = storage.get(gcs_path).get('updated')
+      # TODO(vitorguidi): standardize return type between fs and gcs.
+      if isinstance(last_update_time, str):
+        # storage.get returns two different types for the updated field:
+        # the gcs api returns string, and the local filesystem implementation
+        # returns a datetime.datetime object normalized for UTC
+        last_update_time = datetime.datetime.fromisoformat(last_update_time)
+      now = datetime.datetime.now(datetime.timezone.utc)
+      elapsed_time = now - last_update_time
+      elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
+      # Fuzz targets do not apply for custom builds
+      fuzz_target = self.fuzz_target if self.fuzz_target else 'N/A'
+      labels = {
+          'fuzz_target': fuzz_target,
+          'job': os.getenv('JOB_NAME'),
+          'platform': environment.platform(),
+          'task': os.getenv('TASK_NAME'),
+      }
+      monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
+      # This field is expected as a datetime object
+      # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
+    except Exception as e:
+      logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
+
   @contextlib.contextmanager
   def _download_and_open_build_archive(self, base_build_dir: str,
                                        build_dir: str, build_url: str):
@@ -486,6 +515,7 @@ class Build(BaseBuild):
                     http_build_url=None):
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
+    self._emit_build_age_metric(build_url)
     start_time = time.time()
 
     unpack_everything = environment.get_value(
@@ -868,9 +898,13 @@ class CustomBuild(Build):
         os.makedirs(directory)
       gcs_path = f'/{custom_builds_bucket}/{self.custom_binary_key}'
       storage.copy_file_from(gcs_path, build_local_archive)
-    elif not blobs.read_blob_to_disk(self.custom_binary_key,
+    else:
+      gcs_path = blobs.get_gcs_path(self.custom_binary_key)
+      if not blobs.read_blob_to_disk(self.custom_binary_key,
                                      build_local_archive):
-      return False
+        return False
+
+    self._emit_build_age_metric(gcs_path)
 
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):

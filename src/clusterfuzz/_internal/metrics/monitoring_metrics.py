@@ -32,6 +32,19 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
         monitor.BooleanField('bad_build'),
     ])
 
+JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
+    'task/fuzz/job/build_age',
+    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    description=('Distribution of fuzz task\'s build age, in hours. '
+                 '(grouped by fuzzer/job)'),
+    field_spec=[
+        monitor.StringField('fuzz_target'),
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('task'),
+    ],
+)
+
 FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     'task/fuzz/fuzzer/known_crash_count',
     description=('Count of fuzz task\'s known crash count '
