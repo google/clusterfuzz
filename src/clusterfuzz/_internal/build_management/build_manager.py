@@ -406,7 +406,7 @@ class Build(BaseBuild):
     if instrumented_library_paths:
       self._patch_rpaths(instrumented_library_paths)
 
-  def _emmit_build_age_metric(self, gcs_path):
+  def _emit_build_age_metric(self, gcs_path):
     """Emmits a metric to track the age of a build."""
     try:
       last_update_time = storage.get(gcs_path).get('updated')
@@ -419,7 +419,7 @@ class Build(BaseBuild):
       elapsed_time = now - last_update_time
       elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
       # Fuzz targets do not apply for custom builds
-      fuzz_target = self.fuzz_target if self.fuzz_target is not None else 'N/A'
+      fuzz_target = self.fuzz_target if self.fuzz_target else 'N/A'
       labels = {
           'fuzz_target': fuzz_target,
           'job': os.getenv('JOB_NAME'),
@@ -514,7 +514,7 @@ class Build(BaseBuild):
                     http_build_url=None):
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
-    self._emmit_build_age_metric(build_url)
+    self._emit_build_age_metric(build_url)
     start_time = time.time()
 
     unpack_everything = environment.get_value(
@@ -903,7 +903,7 @@ class CustomBuild(Build):
                                      build_local_archive):
         return False
 
-    self._emmit_build_age_metric(gcs_path)
+    self._emit_build_age_metric(gcs_path)
 
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
