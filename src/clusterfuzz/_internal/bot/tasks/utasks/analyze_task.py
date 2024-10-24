@@ -34,6 +34,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
@@ -409,6 +410,13 @@ def utask_main(uworker_input):
   analyze_task_output.crash_stacktrace = testcase.crash_stacktrace
 
   if not crashed:
+    monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment(
+        labels={
+            'fuzzer_name': uworker_input.fuzzer_name,
+            'job': uworker_input.job_type,
+            'outcome': 'does_not_reproduce',
+            'platform': environment.platform(),
+        })
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
@@ -425,7 +433,18 @@ def utask_main(uworker_input):
 
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
-  analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
+  one_time_flag = testcase.one_time_crasher_flag
+
+  analyze_task_output.one_time_crasher_flag = one_time_flag
+  analyze_outcome = 'one_timer' if one_time_flag else 'reproduces'
+
+  monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment(
+      labels={
+          'fuzzer_name': uworker_input.fuzzer_name,
+          'job': uworker_input.job_type,
+          'outcome': analyze_outcome,
+          'platform': environment.platform(),
+      })
 
   fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
       fuzz_target)
