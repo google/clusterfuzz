@@ -410,6 +410,7 @@ class Build(BaseBuild):
     """Emmits a metric to track the age of a build."""
     try:
       last_update_time = storage.get(gcs_path).get('updated')
+      # TODO(vitorguidi): standardize return type between fs and gcs.
       if isinstance(last_update_time, str):
         # storage.get returns two different types for the updated field:
         # the gcs api returns string, and the local filesystem implementation
