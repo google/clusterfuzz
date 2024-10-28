@@ -208,13 +208,9 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
                            target_subdirectory)
 
 
-def main():
+def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
+               tests_directory: str):
   """Main sync routine."""
-  tests_archive_bucket = environment.get_value('TESTS_ARCHIVE_BUCKET')
-  tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
-  tests_directory = environment.get_value('TESTS_DIR')
-  sync_interval = environment.get_value('SYNC_INTERVAL')  # in seconds.
-
   shell.create_directory(tests_directory)
 
   # Sync old crash tests.
@@ -292,23 +288,36 @@ def main():
   subprocess.check_call(
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
 
-  logs.info('Completed cycle, sleeping for %s seconds.' % sync_interval)
+  logs.info('Sync complete.')
   monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
-  time.sleep(sync_interval)
 
 
-if __name__ == '__main__':
+def main():
   # Make sure environment is correctly configured.
   logs.configure('run_bot')
   environment.set_bot_environment()
 
+  tests_archive_bucket = environment.get_value('TESTS_ARCHIVE_BUCKET')
+  tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
+  tests_directory = environment.get_value('TESTS_DIR')
+
+  # Intervals are in seconds.
+  sync_interval = environment.get_value('SYNC_INTERVAL')
   fail_wait = environment.get_value('FAIL_WAIT')
 
-  # Continue this forever.
   while True:
+    sleep_secs = sync_interval
+
     try:
       with monitor.wrap_with_monitoring(), ndb_init.context():
-        main()
+        sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
     except Exception as e:
       logs.error(f'Failed to sync tests: {e}')
-      time.sleep(fail_wait)
+      sleep_secs = fail_wait
+
+    logs.info(f'Sleeping for {sleep_secs} seconds.')
+    time.sleep(sleep_secs)
+
+
+if __name__ == '__main__':
+  main()
