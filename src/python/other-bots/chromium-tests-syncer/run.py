@@ -44,8 +44,6 @@ MAX_TESTCASES = 25000
 TESTCASES_REPORT_INTERVAL = 2500
 STORED_TESTCASES_LIST = []
 
-# pylint: disable=broad-exception-raised
-
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""
@@ -136,8 +134,8 @@ def unpack_crash_testcases(crash_testcases_directory):
           os.path.dirname(file_path), stripped_file_name)
       try:
         os.rename(file_path, stripped_file_path)
-      except:
-        raise Exception('Failed to rename testcase %s.' % file_path)
+      except Exception as e:
+        raise RuntimeException(f'Failed to rename testcase {file_path}') from e
 
   # Remove empty files and dirs to avoid the case where a fuzzer randomly
   # chooses an empty dir/file and generates zero testcases.
@@ -157,7 +155,7 @@ def clone_git_repository(tests_directory, name, repo_url):
   if os.path.exists(directory):
     subprocess.check_call(['git', 'pull'], cwd=directory)
   else:
-    raise Exception('Unable to checkout %s tests.' % name)
+    raise RuntimeException(f'Unable to checkout {name} tests.')
 
 
 def create_symbolic_link(tests_directory, source_subdirectory,
@@ -166,8 +164,8 @@ def create_symbolic_link(tests_directory, source_subdirectory,
   source_directory = os.path.join(tests_directory, source_subdirectory)
   target_directory = os.path.join(tests_directory, target_subdirectory)
   if not os.path.exists(source_directory):
-    raise Exception('Unable to find source directory %s for symbolic link.' %
-                    source_directory)
+    raise RuntimeException(
+        f'Unable to find source directory {source_directory} for symlink.')
 
   if os.path.exists(target_directory):
     # Symbolic link already exists, bail out.
@@ -187,8 +185,8 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
   gecko_checkout_directory = os.path.join(tests_directory,
                                           gecko_checkout_subdirectory)
   if not os.path.exists(gecko_checkout_directory):
-    raise Exception(
-        'Unable to find Gecko source directory %s.' % gecko_checkout_directory)
+    raise RuntimeException(
+        f'Unable to find Gecko source directory {gecko_checkout_directory}.')
 
   web_platform_sub_directory = 'testing%sweb-platform%s' % (os.sep, os.sep)
   for root, directories, _ in os.walk(gecko_checkout_directory):
@@ -311,6 +309,6 @@ if __name__ == '__main__':
     try:
       with monitor.wrap_with_monitoring(), ndb_init.context():
         main()
-    except Exception:
-      logs.error('Failed to sync tests.')
+    except Exception as e:
+      logs.error(f'Failed to sync tests: {e}')
       time.sleep(fail_wait)
