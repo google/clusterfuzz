@@ -135,7 +135,7 @@ def unpack_crash_testcases(crash_testcases_directory):
       try:
         os.rename(file_path, stripped_file_path)
       except Exception as e:
-        raise RuntimeException(f'Failed to rename testcase {file_path}') from e
+        raise RuntimeError(f'Failed to rename testcase {file_path}') from e
 
   # Remove empty files and dirs to avoid the case where a fuzzer randomly
   # chooses an empty dir/file and generates zero testcases.
@@ -155,7 +155,7 @@ def clone_git_repository(tests_directory, name, repo_url):
   if os.path.exists(directory):
     subprocess.check_call(['git', 'pull'], cwd=directory)
   else:
-    raise RuntimeException(f'Unable to checkout {name} tests.')
+    raise RuntimeError(f'Unable to checkout {name} tests.')
 
 
 def create_symbolic_link(tests_directory, source_subdirectory,
@@ -164,7 +164,7 @@ def create_symbolic_link(tests_directory, source_subdirectory,
   source_directory = os.path.join(tests_directory, source_subdirectory)
   target_directory = os.path.join(tests_directory, target_subdirectory)
   if not os.path.exists(source_directory):
-    raise RuntimeException(
+    raise RuntimeError(
         f'Unable to find source directory {source_directory} for symlink.')
 
   if os.path.exists(target_directory):
@@ -185,7 +185,7 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
   gecko_checkout_directory = os.path.join(tests_directory,
                                           gecko_checkout_subdirectory)
   if not os.path.exists(gecko_checkout_directory):
-    raise RuntimeException(
+    raise RuntimeError(
         f'Unable to find Gecko source directory {gecko_checkout_directory}.')
 
   web_platform_sub_directory = 'testing%sweb-platform%s' % (os.sep, os.sep)
