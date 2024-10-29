@@ -437,7 +437,6 @@ class Build(BaseBuild):
       build_download_duration = time.time() - start_time
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
           build_download_duration, {
-              'fuzz_target': self.fuzz_target,
               'job': os.getenv('JOB_TYPE'),
               'platform': environment.platform(),
               'step': 'download',
@@ -553,7 +552,6 @@ class Build(BaseBuild):
 
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             unpack_elapsed_time, {
-                'fuzz_target': self.fuzz_target,
                 'job': os.getenv('JOB_TYPE'),
                 'platform': environment.platform(),
                 'step': 'unpack',
@@ -902,8 +900,6 @@ class CustomBuild(Build):
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
         build_download_time,
         {
-            # Custom builds don't support fuzz targets.
-            'fuzz_target': 'N/A',
             'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
             'step': 'download',
@@ -932,9 +928,6 @@ class CustomBuild(Build):
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             build_unpack_time,
             {
-                # The concept of a fuzz target does not apply
-                # to blackbox fuzzers
-                'fuzz_target': 'N/A',
                 'job': os.getenv('JOB_TYPE'),
                 'platform': environment.platform(),
                 'step': 'unpack',
