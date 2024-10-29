@@ -414,16 +414,18 @@ class _TrackFuzzTime:
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'fuzzer': self.fuzzer_name,
-            'timeout': self.timeout
+            'timeout': self.timeout,
+            'platform': environment.platform(),
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'job': self.job_type,
-            'timeout': self.timeout
+            'timeout': self.timeout,
+            'platform': environment.platform(),
         })
 
 
-def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
                              expected_testcase_count, return_code):
   """Track fuzzer run result"""
   if expected_testcase_count > 0:
@@ -444,6 +446,8 @@ def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
   monitoring_metrics.FUZZER_RETURN_CODE_COUNT.increment({
       'fuzzer': fuzzer_name,
       'return_code': return_code,
+      'platform': environment.platform(),
+      'job': job_type,
   })
 
 
@@ -462,16 +466,20 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
   monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
       known_crash_count, {
           'fuzzer': fuzzer,
+          'platform': environment.platform(),
       })
   monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
       new_crash_count, {
           'fuzzer': fuzzer,
+          'platform': environment.platform(),
       })
   monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(known_crash_count, {
       'job': job_type,
+      'platform': environment.platform(),
   })
   monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(new_crash_count, {
       'job': job_type,
+      'platform': environment.platform()
   })
 
 
@@ -1340,8 +1348,9 @@ class FuzzingSession:
 
     self.gcs_corpus.upload_files(filtered_new_files)
 
-  def generate_blackbox_testcases(self, fuzzer, fuzzer_directory, testcase_count
-                                 ) -> GenerateBlackboxTestcasesResult:
+  def generate_blackbox_testcases(
+      self, fuzzer, job_type, fuzzer_directory,
+      testcase_count) -> GenerateBlackboxTestcasesResult:
     """Run the blackbox fuzzer and generate testcases."""
     # Helper variables.
     fuzzer_name = fuzzer.name
@@ -1463,7 +1472,7 @@ class FuzzingSession:
     if fuzzer_run_results:
       self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
-      _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+      _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
                                testcase_count, fuzzer_return_code)
 
     # Make sure that there are testcases generated. If not, set the error flag.
@@ -1570,8 +1579,8 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
-    generate_result = self.generate_blackbox_testcases(fuzzer, fuzzer_directory,
-                                                       testcase_count)
+    generate_result = self.generate_blackbox_testcases(
+        fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
 
@@ -1902,17 +1911,20 @@ def _upload_testcase_run_jsons(testcase_run_jsons):
 
 
 def handle_fuzz_build_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.BUILD_SETUP_FAILED)
 
 
 def handle_fuzz_data_bundle_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
 
 def handle_fuzz_no_fuzzer(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
