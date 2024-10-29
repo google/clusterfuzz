@@ -230,7 +230,6 @@ ISSUE_CLOSING = monitor.CounterMetric(
         monitor.StringField('status'),
     ])
 
-
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',
     description='Outcome count for analyze task.',
