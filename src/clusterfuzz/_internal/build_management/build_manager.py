@@ -552,12 +552,12 @@ class Build(BaseBuild):
         unpack_elapsed_time = time.time() - unpack_start_time
 
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        unpack_start_time, {
-            'fuzz_target': self.fuzz_target,
-            'job': os.getenv('JOB_TYPE'),
-            'platform': environment.platform(),
-            'step': 'unpack',
-        })
+            unpack_elapsed_time, {
+                'fuzz_target': self.fuzz_target,
+                'job': os.getenv('JOB_TYPE'),
+                'platform': environment.platform(),
+                'step': 'unpack',
+            })
 
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_url}: {e}')
