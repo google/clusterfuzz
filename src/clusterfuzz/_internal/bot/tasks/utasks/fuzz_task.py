@@ -1718,6 +1718,7 @@ class FuzzingSession:
 
   def run(self):
     """Run the fuzzing session."""
+    start_time = time.time()
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -1870,6 +1871,14 @@ class FuzzingSession:
     self.fuzz_task_output.testcases_executed = testcases_executed
     self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
     self.fuzz_task_output.crash_groups.extend(crash_groups)
+
+    fuzzing_session_duration = time.time() - start_time
+    monitoring_metrics.FUZZING_SESSION_DURATION.add(
+        fuzzing_session_duration, {
+            'fuzzer': self.fuzzer_name,
+            'job': self.job_type,
+            'platform': environment.platform()
+        })
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
