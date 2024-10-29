@@ -44,8 +44,6 @@ MAX_TESTCASES = 25000
 TESTCASES_REPORT_INTERVAL = 2500
 STORED_TESTCASES_LIST = []
 
-# pylint: disable=broad-exception-raised
-
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""
@@ -136,8 +134,8 @@ def unpack_crash_testcases(crash_testcases_directory):
           os.path.dirname(file_path), stripped_file_name)
       try:
         os.rename(file_path, stripped_file_path)
-      except:
-        raise Exception('Failed to rename testcase %s.' % file_path)
+      except Exception as e:
+        raise RuntimeError(f'Failed to rename testcase {file_path}') from e
 
   # Remove empty files and dirs to avoid the case where a fuzzer randomly
   # chooses an empty dir/file and generates zero testcases.
@@ -157,7 +155,7 @@ def clone_git_repository(tests_directory, name, repo_url):
   if os.path.exists(directory):
     subprocess.check_call(['git', 'pull'], cwd=directory)
   else:
-    raise Exception('Unable to checkout %s tests.' % name)
+    raise RuntimeError(f'Unable to checkout {name} tests.')
 
 
 def create_symbolic_link(tests_directory, source_subdirectory,
@@ -166,8 +164,8 @@ def create_symbolic_link(tests_directory, source_subdirectory,
   source_directory = os.path.join(tests_directory, source_subdirectory)
   target_directory = os.path.join(tests_directory, target_subdirectory)
   if not os.path.exists(source_directory):
-    raise Exception('Unable to find source directory %s for symbolic link.' %
-                    source_directory)
+    raise RuntimeError(
+        f'Unable to find source directory {source_directory} for symlink.')
 
   if os.path.exists(target_directory):
     # Symbolic link already exists, bail out.
@@ -187,8 +185,8 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
   gecko_checkout_directory = os.path.join(tests_directory,
                                           gecko_checkout_subdirectory)
   if not os.path.exists(gecko_checkout_directory):
-    raise Exception(
-        'Unable to find Gecko source directory %s.' % gecko_checkout_directory)
+    raise RuntimeError(
+        f'Unable to find Gecko source directory {gecko_checkout_directory}.')
 
   web_platform_sub_directory = 'testing%sweb-platform%s' % (os.sep, os.sep)
   for root, directories, _ in os.walk(gecko_checkout_directory):
@@ -210,13 +208,9 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
                            target_subdirectory)
 
 
-def main():
+def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
+               tests_directory: str):
   """Main sync routine."""
-  tests_archive_bucket = environment.get_value('TESTS_ARCHIVE_BUCKET')
-  tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
-  tests_directory = environment.get_value('TESTS_DIR')
-  sync_interval = environment.get_value('SYNC_INTERVAL')  # in seconds.
-
   shell.create_directory(tests_directory)
 
   # Sync old crash tests.
@@ -294,23 +288,36 @@ def main():
   subprocess.check_call(
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
 
-  logs.info('Completed cycle, sleeping for %s seconds.' % sync_interval)
+  logs.info('Sync complete.')
   monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
-  time.sleep(sync_interval)
 
 
-if __name__ == '__main__':
+def main():
   # Make sure environment is correctly configured.
   logs.configure('run_bot')
   environment.set_bot_environment()
 
+  tests_archive_bucket = environment.get_value('TESTS_ARCHIVE_BUCKET')
+  tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
+  tests_directory = environment.get_value('TESTS_DIR')
+
+  # Intervals are in seconds.
+  sync_interval = environment.get_value('SYNC_INTERVAL')
   fail_wait = environment.get_value('FAIL_WAIT')
 
-  # Continue this forever.
   while True:
+    sleep_secs = sync_interval
+
     try:
       with monitor.wrap_with_monitoring(), ndb_init.context():
-        main()
-    except Exception:
-      logs.error('Failed to sync tests.')
-      time.sleep(fail_wait)
+        sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
+    except Exception as e:
+      logs.error(f'Failed to sync tests: {e}')
+      sleep_secs = fail_wait
+
+    logs.info(f'Sleeping for {sleep_secs} seconds.')
+    time.sleep(sleep_secs)
+
+
+if __name__ == '__main__':
+  main()
