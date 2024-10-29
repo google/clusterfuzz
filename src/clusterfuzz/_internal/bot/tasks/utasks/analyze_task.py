@@ -414,7 +414,8 @@ def utask_main(uworker_input):
         labels={
             'fuzzer_name': uworker_input.fuzzer_name,
             'job': uworker_input.job_type,
-            'outcome': 'does_not_reproduce',
+            'crashes': False,
+            'reproducible': False,
             'platform': environment.platform(),
         })
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -436,13 +437,13 @@ def utask_main(uworker_input):
   one_time_flag = testcase.one_time_crasher_flag
 
   analyze_task_output.one_time_crasher_flag = one_time_flag
-  analyze_outcome = 'one_timer' if one_time_flag else 'reproduces'
 
   monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment(
       labels={
           'fuzzer_name': uworker_input.fuzzer_name,
           'job': uworker_input.job_type,
-          'outcome': analyze_outcome,
+          'crashes': True,
+          'reproducible': not one_time_flag,
           'platform': environment.platform(),
       })
 
