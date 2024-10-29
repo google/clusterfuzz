@@ -898,8 +898,7 @@ class CustomBuild(Build):
 
     build_download_time = time.time() - download_start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        build_download_time,
-        {
+        build_download_time, {
             'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
             'step': 'download',
@@ -926,8 +925,7 @@ class CustomBuild(Build):
         build.unpack(self.build_dir, trusted=True)
         build_unpack_time = time.time() - unpack_start_time
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-            build_unpack_time,
-            {
+            build_unpack_time, {
                 'job': os.getenv('JOB_TYPE'),
                 'platform': environment.platform(),
                 'step': 'unpack',
