@@ -517,6 +517,7 @@ class Build(BaseBuild):
     try:
       with self._open_build_archive(base_build_dir, build_dir, build_url,
                                     http_build_url, unpack_everything) as build:
+        unpack_start_time = time.time()
         unpack_everything = environment.get_value(
             'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
@@ -548,6 +549,16 @@ class Build(BaseBuild):
             fuzz_target=fuzz_target_to_unpack,
             trusted=trusted)
 
+        unpack_elapsed_time = time.time() - unpack_start_time
+
+        monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+        unpack_start_time, {
+            'fuzz_target': self.fuzz_target,
+            'job': os.getenv('JOB_TYPE'),
+            'platform': environment.platform(),
+            'step': 'unpack',
+        })
+
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_url}: {e}')
       return False
@@ -561,13 +572,6 @@ class Build(BaseBuild):
       utils.write_data_to_file('', partial_build_file_path)
 
     elapsed_time = time.time() - start_time
-    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        elapsed_time, {
-            'fuzz_target': self.fuzz_target,
-            'job': os.getenv('JOB_TYPE'),
-            'platform': environment.platform(),
-            'step': 'unpack',
-        })
 
     elapsed_mins = elapsed_time / 60.
     log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
