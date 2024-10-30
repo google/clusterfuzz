@@ -195,6 +195,17 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
+TESTCASE_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
+    'uploaded_testcase_analysis/triage_duration_secs',
+    description = ('Time elapsed between testcase upload and completion'
+                    ' of relevant tasks in the triage lifecycle.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('step'),
+        monitor.StringField('job'),
+    ],  
+)
+
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/subtask_e2e_duration_secs',
     description=(
