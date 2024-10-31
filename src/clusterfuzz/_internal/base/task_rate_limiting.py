@@ -20,6 +20,10 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
 
+def _get_datetime_now():
+  return datetime.datetime.now()
+
+
 class TaskRateLimiter:
   """Rate limiter for tasks."""
   TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
@@ -56,7 +60,7 @@ class TaskRateLimiter:
     if self.task_name in {'uworker_main', 'postprocess', 'preprocess'}:
       # Don't rate limit these fake tasks.
       return False
-    window_start = datetime.datetime.now() - self.TASK_RATE_LIMIT_WINDOW
+    window_start = _get_datetime_now() - self.TASK_RATE_LIMIT_WINDOW
     query = data_types.WindowRateLimitTask.query(
         data_types.WindowRateLimitTask.task_name == self.task_name,
         data_types.WindowRateLimitTask.task_argument == self.task_argument,
