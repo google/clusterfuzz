@@ -15,6 +15,7 @@
    Determine whether or not a test case affects production branches."""
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks.commons import testcase_utils
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
@@ -326,4 +327,5 @@ def execute_task(testcase_id, job_type):
   impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
   testcase = data_handler.get_testcase_by_id(testcase_id)
   set_testcase_with_impacts(testcase, impacts)
+  testcase_utils.emit_testcase_triage_duration_metric(testcase_id, 'impact_completed')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
