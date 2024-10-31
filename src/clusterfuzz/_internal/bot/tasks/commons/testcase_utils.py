@@ -19,9 +19,14 @@ import os
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
+from typing import Optional
 
 
-def emit_testcase_triage_duration_metric(testcase_upload_metadata: data_types.TestcaseUploadMetadata, step: str):
+def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
+    testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
+    if not testcase_upload_metadata:
+       logs.error(f'No upload metadata found for testcase {testcase_id},'
+                   ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     if not testcase_upload_metadata.timestamp:
         logs.error(f'No timestamp for testcase {testcase_upload_metadata.testcase_id},'
                    ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
@@ -29,9 +34,8 @@ def emit_testcase_triage_duration_metric(testcase_upload_metadata: data_types.Te
         'analyze_launched', 'analyze_completed', 'minimize_completed',
         'regression_completed', 'impact_completed', 'issue_completed'
     ]
-    testcase_creation_time = testcase_upload_metadata.timestamp
     elapsed_time_since_upload = datetime.datetime.utcnow()
-    elapsed_time_since_upload -= testcase_creation_time
+    elapsed_time_since_upload -= testcase_upload_metadata.timestamp
     elapsed_time_since_upload = elapsed_time_since_upload.total_seconds()
 
     monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
@@ -41,3 +45,9 @@ def emit_testcase_triage_duration_metric(testcase_upload_metadata: data_types.Te
         'step': step,
         }
     )
+
+
+def query_testcase_upload_metadata(
+    testcase_id: str) -> Optional[data_types.TestcaseUploadMetadata]:
+  return data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()

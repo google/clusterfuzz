@@ -17,7 +17,6 @@ import datetime
 import json
 from typing import Dict
 from typing import Optional
-import os
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -36,7 +35,6 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
@@ -121,7 +119,7 @@ def handle_analyze_no_revision_index(output):
 
 def handle_analyze_close_invalid_uploaded(output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.close_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Irrelevant')
@@ -261,7 +259,7 @@ def handle_noncrash(output):
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
@@ -301,7 +299,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
+  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(testcase_id)
   if not testcase_upload_metadata:
     logs.error('Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
@@ -316,7 +314,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # elapsed between testcase upload and pulling the task from the queue.
 
   testcase_utils.emit_testcase_triage_duration_metric(
-    testcase_upload_metadata, 'analyze_launched')
+    testcase_id, 'analyze_launched')
 
   initialize_testcase_for_main(testcase, job_type)
 
@@ -489,7 +487,7 @@ def handle_build_setup_error(output):
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
     return
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
@@ -561,12 +559,7 @@ def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = query_testcase_upload_metadata(
-      output.uworker_input.testcase_id)
-  if testcase_upload_metadata:
-    testcase_utils.emit_testcase_triage_duration_metric(testcase_upload_metadata, 'analyze_completed')
-  else:
-    logs.info(f'No testcase upload metadata found for testcase {output.uworker_input.testcase_id}')
+  testcase_utils.emit_testcase_triage_duration_metric(output.uworker_input.testcase_id, 'analyze_completed')
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -624,9 +617,3 @@ def utask_postprocess(output):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
-
-
-def query_testcase_upload_metadata(
-    testcase_id: str) -> Optional[data_types.TestcaseUploadMetadata]:
-  return data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
