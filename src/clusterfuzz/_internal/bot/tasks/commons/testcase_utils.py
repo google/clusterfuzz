@@ -25,10 +25,10 @@ from typing import Optional
 def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
     testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
     if not testcase_upload_metadata:
-       logs.error(f'No upload metadata found for testcase {testcase_id},'
+       logs.warning(f'No upload metadata found for testcase {testcase_id},'
                    ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     if not testcase_upload_metadata.timestamp:
-        logs.error(f'No timestamp for testcase {testcase_upload_metadata.testcase_id},'
+        logs.warning(f'No timestamp for testcase {testcase_upload_metadata.testcase_id},'
                    ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     assert step in [
         'analyze_launched', 'analyze_completed', 'minimize_completed',
