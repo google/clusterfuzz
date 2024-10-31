@@ -333,6 +333,9 @@ class Build(BaseBuild):
     # This is used by users of the class to instruct the class which fuzz
     # target to unpack.
     self.fuzz_target = fuzz_target
+    # Every fetched build is a release one, except when SymbolizedBuild
+    # explicitly downloads a debug build
+    self._build_type = 'release'
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -440,6 +443,7 @@ class Build(BaseBuild):
               'job': os.getenv('JOB_TYPE'),
               'platform': environment.platform(),
               'step': 'download',
+              'build_type': self._build_type,
           })
     except Exception as e:
       logs.error(f'Unable to download build from {build_url}: {e}')
@@ -555,6 +559,7 @@ class Build(BaseBuild):
                 'job': os.getenv('JOB_TYPE'),
                 'platform': environment.platform(),
                 'step': 'unpack',
+                'build_type': self._build_type,
             })
 
     except Exception as e:
@@ -819,11 +824,14 @@ class SymbolizedBuild(Build):
       return False
 
     if self.release_build_url:
+      # Expect self._build_type to be set in the constructor for Build
+      assert self._build_type == 'release'
       if not self._unpack_build(self.base_build_dir, self.release_build_dir,
                                 self.release_build_url):
         return False
 
     if self.debug_build_url:
+      self._build_type = 'debug'
       if not self._unpack_build(self.base_build_dir, self.debug_build_dir,
                                 self.debug_build_url):
         return False
@@ -902,6 +910,7 @@ class CustomBuild(Build):
             'job': os.getenv('JOB_TYPE'),
             'platform': environment.platform(),
             'step': 'download',
+            'build_type': self._build_type,
         })
 
     # If custom binary is an archive, then unpack it.
@@ -929,6 +938,7 @@ class CustomBuild(Build):
                 'job': os.getenv('JOB_TYPE'),
                 'platform': environment.platform(),
                 'step': 'unpack',
+                'build_type': self._build_type,
             })
       except:
         build.close()

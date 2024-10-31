@@ -41,6 +41,7 @@ JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
         monitor.StringField('job'),
         monitor.StringField('step'),
         monitor.StringField('platform'),
+        monitor.StringField('build_type'),
     ],
 )
 
