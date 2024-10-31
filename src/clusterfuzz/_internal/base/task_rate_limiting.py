@@ -18,6 +18,7 @@ import datetime
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 
 def _get_datetime_now():
