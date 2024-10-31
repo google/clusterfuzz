@@ -1797,7 +1797,7 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
 
-    if engine_impl and fuzz_target.binary:
+    if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
       # Not applicable to engine fuzzers.
