@@ -1740,6 +1740,10 @@ class FuzzingSession:
       self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
       if not self.fuzz_task_output.fuzz_targets:
         logs.error('No fuzz targets.')
+      if not self.fuzz_target:
+        return uworker_msg_pb2.Output(  # pylint: disable=no-member
+            fuzz_task_output=self.fuzz_task_output,
+            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
@@ -1779,8 +1783,7 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
 
-    engine_impl = engine.get(self.fuzzer.name)
-    if engine_impl:
+    if engine_impl and fuzz_target.binary:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
       # Not applicable to engine fuzzers.
