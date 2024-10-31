@@ -15,6 +15,7 @@
 any other module in tasks to prevent circular imports and issues with
 appengine."""
 
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.system import environment
 
 
@@ -25,11 +26,21 @@ def get_command_from_module(full_module_name: str) -> str:
   return module_name[:-len('_task')]
 
 
-def is_remotely_executing_utasks() -> bool:
+def is_remotely_executing_utasks(task=None) -> bool:
   """Returns True if the utask_main portions of utasks are being remotely
   executed on Google cloud batch."""
-  return bool(environment.is_production() and
-              environment.get_value('REMOTE_UTASK_EXECUTION'))
+  if bool(environment.is_production() and
+          environment.get_value('REMOTE_UTASK_EXECUTION')):
+    return True
+  if task is None:
+    return False
+  return is_task_opted_into_uworker_execution(task)
+
+
+def is_task_opted_into_uworker_execution(task):
+  # TODO(metzman): Remove this after OSS-Fuzz and Chrome are at parity.
+  uworker_tasks = local_config.ProjectConfig().get('uworker_tasks', [])
+  return task in uworker_tasks
 
 
 class UworkerMsgParseError(RuntimeError):

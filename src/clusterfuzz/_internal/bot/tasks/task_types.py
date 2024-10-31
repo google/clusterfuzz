@@ -27,7 +27,8 @@ class BaseTask:
   """Base module for tasks."""
 
   @staticmethod
-  def is_execution_remote():
+  def is_execution_remote(command=None):
+    del command
     return False
 
   def __init__(self, module):
@@ -73,13 +74,13 @@ class BaseUTask(BaseTask):
 
 
 def is_no_privilege_workload(command, job):
-  if not COMMAND_TYPES[command].is_execution_remote():
+  if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
   return batch.is_no_privilege_workload(command, job)
 
 
 def is_remote_utask(command, job):
-  if not COMMAND_TYPES[command].is_execution_remote():
+  if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
 
   if environment.is_uworker():
@@ -117,8 +118,8 @@ class UTask(BaseUTask):
   opted-in. Otherwise executes locally."""
 
   @staticmethod
-  def is_execution_remote():
-    return task_utils.is_remotely_executing_utasks()
+  def is_execution_remote(command=None):
+    return task_utils.is_remotely_executing_utasks(command)
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask."""
