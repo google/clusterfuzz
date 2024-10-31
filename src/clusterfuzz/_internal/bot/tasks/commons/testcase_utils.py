@@ -16,17 +16,22 @@
 
 import datetime
 import os
-
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
 
-def emit_testcase_triage_duration_metric(testcase_upload_time: datetime.datetime, step: str):
+def emit_testcase_triage_duration_metric(testcase_upload_metadata: data_types.TestcaseUploadMetadata, step: str):
+    if not testcase_upload_metadata.timestamp:
+        logs.error(f'No timestamp for testcase {testcase_upload_metadata.testcase_id},'
+                   ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     assert step in [
         'analyze_launched', 'analyze_completed', 'minimize_completed',
         'regression_completed', 'impact_completed', 'issue_completed'
     ]
+    testcase_creation_time = testcase_upload_metadata.timestamp
     elapsed_time_since_upload = datetime.datetime.utcnow()
-    elapsed_time_since_upload -= testcase_upload_time
+    elapsed_time_since_upload -= testcase_creation_time
     elapsed_time_since_upload = elapsed_time_since_upload.total_seconds()
 
     monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
