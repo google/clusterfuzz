@@ -836,7 +836,8 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   testcase_id = output.uworker_input.testcase_id
-  testcase_utils.emit_testcase_triage_duration_metric(testcase_id, 'minimize_completed')
+  # testcase_id is string in the uworker input definition
+  testcase_utils.emit_testcase_triage_duration_metric(int(testcase_id), 'minimize_completed')
   update_testcase(output)
   _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member

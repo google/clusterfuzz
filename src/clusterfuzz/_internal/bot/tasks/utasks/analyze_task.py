@@ -314,7 +314,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # elapsed between testcase upload and pulling the task from the queue.
 
   testcase_utils.emit_testcase_triage_duration_metric(
-    testcase_id, 'analyze_launched')
+    int(testcase_id), 'analyze_launched')
 
   initialize_testcase_for_main(testcase, job_type)
 
@@ -559,7 +559,7 @@ def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_utils.emit_testcase_triage_duration_metric(output.uworker_input.testcase_id, 'analyze_completed')
+  testcase_utils.emit_testcase_triage_duration_metric(int(output.uworker_input.testcase_id), 'analyze_completed')
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
