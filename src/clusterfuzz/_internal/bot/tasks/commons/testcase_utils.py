@@ -29,7 +29,7 @@ def emit_testcase_triage_duration_metric(testcase_upload_time: datetime.datetime
     elapsed_time_since_upload -= testcase_upload_time
     elapsed_time_since_upload = elapsed_time_since_upload.total_seconds()
 
-    monitoring_metrics.TESTCASE_TRIAGE_DURATION.add(
+    monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
         elapsed_time_since_upload,
         labels = {
         'job': os.getenv('JOB_TYPE'),
