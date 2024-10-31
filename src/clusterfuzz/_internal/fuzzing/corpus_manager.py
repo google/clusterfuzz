@@ -404,7 +404,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   def rsync_from_disk(self,
                       directory,
                       timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                      delete=True):
+                      delete=True,
+                      real_corpus=True):
     """Upload local files to GCS and remove files which do not exist locally.
 
     Overridden to have additional logging.

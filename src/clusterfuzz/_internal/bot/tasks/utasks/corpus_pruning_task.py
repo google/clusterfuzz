@@ -662,7 +662,8 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   # Mapping of crash state -> CrashInfo
   crashes = pruner.process_bad_units(context.bad_units_path,
                                      context.quarantine_corpus_path)
-  context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path)
+  context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path,
+                                            protect_corpus=False)
 
   # Store corpus stats into CoverageInformation entity.
   project_qualified_name = context.fuzz_target.project_qualified_name()
