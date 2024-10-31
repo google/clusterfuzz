@@ -38,6 +38,7 @@ from clusterfuzz._internal.bot.minimizer import js_minimizer
 from clusterfuzz._internal.bot.minimizer import minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.commons import testcase_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
@@ -834,6 +835,8 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
+  testcase_id = output.uworker_input.testcase_id
+  testcase_utils.emit_testcase_triage_duration_metric(testcase_id, 'minimize_completed')
   update_testcase(output)
   _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
@@ -841,7 +844,7 @@ def utask_postprocess(output):
     return
 
   finalize_testcase(
-      output.uworker_input.testcase_id,
+      testcase_id,
       output.minimize_task_output.last_crash_result_dict,
       flaky_stack=output.minimize_task_output.flaky_stack)
 
