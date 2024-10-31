@@ -585,7 +585,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   Runs on a trusted worker.
   """
   testcase_id = output.uworker_input.testcase_id
-  testcase_utils.emit_testcase_triage_duration_metric(int(testcase_id), 'regression_completed')
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(testcase_id), 'regression_completed')
 
   if output.HasField('regression_task_output'):
     task_output = output.regression_task_output

@@ -914,7 +914,8 @@ def _update_issue_when_uploaded_testcase_is_processed(
 
   # Testcase is a data_types.Testcase
   testcase_id = testcase.key.id()
-  testcase_utils.emit_testcase_triage_duration_metric(testcase_id, 'issue_updated')
+  testcase_utils.emit_testcase_triage_duration_metric(testcase_id,
+                                                      'issue_updated')
 
 
 def notify_uploader_when_testcase_is_processed(policy, testcase, issue):

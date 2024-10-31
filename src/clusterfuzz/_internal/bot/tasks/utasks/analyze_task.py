@@ -299,7 +299,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(testcase_id)
+  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+      testcase_id)
   if not testcase_upload_metadata:
     logs.error('Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
@@ -314,7 +315,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # elapsed between testcase upload and pulling the task from the queue.
 
   testcase_utils.emit_testcase_triage_duration_metric(
-    int(testcase_id), 'analyze_launched')
+      int(testcase_id), 'analyze_launched')
 
   initialize_testcase_for_main(testcase, job_type)
 
@@ -455,7 +456,7 @@ def utask_main(uworker_input):
 
   fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
       fuzz_target)
-  
+
   return uworker_msg_pb2.Output(  # pylint: disable=no-member
       analyze_task_output=analyze_task_output,
       test_timeout=test_timeout,
@@ -559,7 +560,10 @@ def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_utils.emit_testcase_triage_duration_metric(int(output.uworker_input.testcase_id), 'analyze_completed')
+  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+      output.uworker_input.testcase_id)
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(output.uworker_input.testcase_id), 'analyze_completed')
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
