@@ -1035,9 +1035,9 @@ class IssueTracker(issue_tracker.IssueTracker):
     try:
       component = self._execute(
           self.client.components().get(componentId=str(component_id)))
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error('Failed to retrieve component.', component_id=component_id)
       return None
 
@@ -1058,9 +1058,9 @@ class IssueTracker(issue_tracker.IssueTracker):
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
       logs.info('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error('Failed to retrieve issue.', issue_id=issue_id)
       return None
 
@@ -1072,8 +1072,10 @@ class IssueTracker(issue_tracker.IssueTracker):
       logs.info('google_issue_tracker: get_description comments: %s' % comments)
       return [c for c in comments['issueComments'] if c['commentNumber'] == 1
              ][0]['comment']
-    except IssueTrackerNotFoundError as e:
-      logs.error('Failed to retrieve issue comments.', issue_id=issue_id)
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error('Failed to retrieve issue description.', issue_id=issue_id)
       return None
 
   def get_attachment_metadata(self, issue_id):
@@ -1084,9 +1086,9 @@ class IssueTracker(issue_tracker.IssueTracker):
       logs.info('google_issue_tracker: get_attachment_metadata: %s' %
                 attachment_metadata)
       return attachment_metadata['attachments']
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error(
           'Failed to retrieve issue attachment metadata.', issue_id=issue_id)
       return None
@@ -1100,9 +1102,9 @@ class IssueTracker(issue_tracker.IssueTracker):
       attachment = self._execute(http_request)
       logs.info('google_issue_tracker: get_attachment attachment downloaded')
       return attachment
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error(
           'Failed to retrieve attachment for resource name: %s' % resource_name)
       return None
