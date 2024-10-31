@@ -60,6 +60,9 @@ class TaskRateLimiter:
     if self.task_name in {'uworker_main', 'postprocess', 'preprocess'}:
       # Don't rate limit these fake tasks.
       return False
+    if environment.get_value('COMMAND_OVERRIDE'):
+      # A user wants to run this task.
+      return False
     window_start = _get_datetime_now() - self.TASK_RATE_LIMIT_WINDOW
     query = data_types.WindowRateLimitTask.query(
         data_types.WindowRateLimitTask.task_name == self.task_name,

@@ -217,10 +217,14 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   rate_limiter = task_rate_limiting.TaskRateLimiter(task_name, task_argument,
                                                     job_name)
   if rate_limiter.is_rate_limited():
+    logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
+    if task_name == 'fuzz':
+      # Wait 10 seconds. We don't want to try again immediately because if we
+      # tried to run a fuzz task then there is no other task to run.
+      time.sleep(environment.get_value('FAIL_WAIT'))
     return None
   try:
     result = task.execute(task_argument, job_name, uworker_env)
-    rate_limiter.record_task(success=True)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -233,8 +237,9 @@ def run_command(task_name, task_argument, job_name, uworker_env):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
       rate_limiter.record_task(success=False)
-
     raise
+  else:
+    rate_limiter.record_task(success=True)
 
   # Task completed successfully.
   if should_update_task_status(task_name):
@@ -324,8 +329,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
           logs.error('Failed to fix platform and re-add task.')
 
       # Add a wait interval to avoid overflowing task creation.
-      failure_wait_interval = environment.get_value('FAIL_WAIT')
-      time.sleep(failure_wait_interval)
+      time.sleep(environment.get_value('FAIL_WAIT'))
       return None
 
     if task_name != 'fuzz':
