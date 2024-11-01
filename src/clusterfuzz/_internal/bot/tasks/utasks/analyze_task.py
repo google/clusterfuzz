@@ -13,7 +13,6 @@
 # limitations under the License.
 """Analyze task for handling user uploads."""
 
-import datetime
 import json
 from typing import Dict
 from typing import Optional
