@@ -27,13 +27,15 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
   if not testcase_upload_metadata:
     logs.warning(f'No upload metadata found for testcase {testcase_id},'
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
+    return
   if not testcase_upload_metadata.timestamp:
     logs.warning(
         f'No timestamp for testcase {testcase_upload_metadata.testcase_id},'
         ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
+    return
   assert step in [
       'analyze_launched', 'analyze_completed', 'minimize_completed',
-      'regression_completed', 'impact_completed', 'issue_completed'
+      'regression_completed', 'impact_completed', 'issue_updated'
   ]
   elapsed_time_since_upload = datetime.datetime.utcnow()
   elapsed_time_since_upload -= testcase_upload_metadata.timestamp
