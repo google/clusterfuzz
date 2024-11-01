@@ -1144,14 +1144,16 @@ class GoogleIssueTrackerTest(unittest.TestCase):
   def test_find_issues_url(self):
     """Test find_issues_url."""
     url = self.issue_tracker.find_issues_url(
-        keywords=['abc', 'def', 'id:123', 'hotlistid:(4801165|4072748)'],
+        keywords=['abc', 'def'],
+        query_filters=['id:123', 'hotlistid:(4801165|4072748)'],
         only_open=True)
     self.assertEqual(
         'https://issues.chromium.org/issues?q=%22abc%22+%22def%22+id%3A123+hotlistid%3A%284801165%7C4072748%29+status%3Aopen',
         url,
     )
     url = self.issue_tracker.find_issues_url(
-        keywords=['abc', 'def', 'id:123', 'hotlistid:(4801165|4072748)'],
+        keywords=['abc', 'def'],
+        query_filters=['id:123', 'hotlistid:(4801165|4072748)'],
         only_open=False)
     self.assertEqual(
         'https://issues.chromium.org/issues?q=%22abc%22+%22def%22+id%3A123+hotlistid%3A%284801165%7C4072748%29',

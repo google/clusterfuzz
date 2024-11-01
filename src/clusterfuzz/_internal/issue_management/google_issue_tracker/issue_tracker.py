@@ -1063,12 +1063,12 @@ class IssueTracker(issue_tracker.IssueTracker):
       logs.error('Failed to retrieve issue.', issue_id=issue_id)
       return None
 
-  def find_issues(self, keywords=None, only_open=None):
+  def find_issues(self, keywords=None, query_filters=None, only_open=None):
     """Finds issues."""
     page_token = None
     while True:
       issues = self._execute(self.client.issues().list(
-          query=_get_query(keywords, only_open), pageToken=page_token))
+          query=_get_query(string_keywords=keywords, query_filters=query_filters, only_open=only_open), pageToken=page_token))
       if "issues" not in issues:
         return
       for issue in issues['issues']:
@@ -1078,10 +1078,10 @@ class IssueTracker(issue_tracker.IssueTracker):
       if not page_token:
         break
 
-  def find_issues_url(self, keywords=None, only_open=None):
+  def find_issues_url(self, keywords=None, query_filters=None, only_open=None):
     """Finds issues (web URL)."""
     return (self._url + '?' + urllib.parse.urlencode({
-        'q': _get_query(keywords, only_open),
+        'q': _get_query(string_keywords=keywords, query_filters=query_filters, only_open=only_open),
     }))
 
   def issue_url(self, issue_id):
@@ -1120,13 +1120,11 @@ def _parse_datetime(date_string):
   return datetime_obj
 
 
-def _get_query(keywords, only_open):
+def _get_query(string_keywords=[], query_filters=[], only_open=False):
   """Gets a search query."""
-  string_keywords = [word for word in keywords if ':' not in word]
-  query_keywords = [word for word in keywords if ':' in word]
   query = ' '.join('"{}"'.format(keyword) for keyword in string_keywords)
   query += ' '
-  query += ' '.join('{}'.format(keyword) for keyword in query_keywords)
+  query += ' '.join('{}'.format(keyword) for keyword in query_filters)
   if only_open:
     query += ' status:open'
   return query
