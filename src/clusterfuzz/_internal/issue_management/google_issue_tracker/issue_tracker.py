@@ -1122,7 +1122,11 @@ def _parse_datetime(date_string):
 
 def _get_query(keywords, only_open):
   """Gets a search query."""
-  query = ' '.join('"{}"'.format(keyword) for keyword in keywords)
+  string_keywords = [word for word in keywords if ':' not in word]
+  query_keywords = [word for word in keywords if ':' in word]
+  query = ' '.join('"{}"'.format(keyword) for keyword in string_keywords)
+  query += ' '
+  query += ' '.join('{}'.format(keyword) for keyword in query_keywords)
   if only_open:
     query += ' status:open'
   return query
