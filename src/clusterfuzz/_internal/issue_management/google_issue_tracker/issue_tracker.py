@@ -1070,8 +1070,10 @@ class IssueTracker(issue_tracker.IssueTracker):
       comments = self._execute(
           self.client.issues().comments().list(issueId=str(issue_id)))
       logs.info('google_issue_tracker: get_description comments: %s' % comments)
-      return [c for c in comments['issueComments'] if c['commentNumber'] == 1
-             ][0]['comment']
+      for comment in comments['issueComments']:
+        if comment['commentNumber'] == 1:
+          return comment['comment']
+      return None
     except IssueTrackerNotFoundError:
       return None
     except IssueTrackerError:
