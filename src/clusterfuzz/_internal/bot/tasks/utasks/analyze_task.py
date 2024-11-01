@@ -308,7 +308,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   # Store the bot name and timestamp in upload metadata.
   testcase_upload_metadata.bot_name = environment.get_value('BOT_NAME')
-  testcase_upload_metadata.timestamp = datetime.datetime.utcnow()
   testcase_upload_metadata.put()
 
   # Emmits a TESTCASE_TRIAGE_DURATION metric, in order to track the time
