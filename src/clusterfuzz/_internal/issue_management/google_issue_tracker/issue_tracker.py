@@ -969,7 +969,8 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._client = http_client
     self._default_component_id = config['default_component_id']
     self._type = config['type'] if hasattr(config, 'type') else None
-    self._url = config['url']
+    # self._url = config['url']
+    self._url = 'https://issues.chromium.org/issues'  #TODO(pgrace) dont update
 
   @property
   def client(self):
@@ -1168,7 +1169,7 @@ def _parse_datetime(date_string):
 
 def _get_query(keywords, only_open):
   """Gets a search query."""
-  query = ' '.join('"{}"'.format(keyword) for keyword in keywords)
+  query = ' '.join('{}'.format(keyword) for keyword in keywords)
   if only_open:
     query += ' status:open'
   return query

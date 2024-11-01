@@ -13,85 +13,10 @@
 # limitations under the License.
 """Tests for external_testcase_reader."""
 
-import datetime
 import unittest
 from unittest import mock
-
-from clusterfuzz._internal.issue_management import google_issue_tracker
-from clusterfuzz._internal.issue_management.google_issue_tracker import \
-    issue_tracker
-from clusterfuzz._internal.issue_management.google_issue_tracker import client
+from importlib.machinery import SourceFileLoader
 from clusterfuzz._internal.cron import external_testcase_reader
-EXTENSION_FIELDS = {
-    '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
-    '_ext_issue_access_limit': issue_tracker.IssueAccessLevel.LIMIT_VIEW,
-}
-TEST_CONFIG = {
-    'default_component_id': 1337,
-    'type': 'google-issue-tracker',
-    'url': 'https://issues.chromium.org/issues',
-}
-
-BASIC_ISSUE = {
-    'issueId': '68828938',
-    'issueState': {
-        'componentId': '29002',
-        'type': 'BUG',
-        'status': 'NEW',
-        'priority': 'P2',
-        'severity': 'S2',
-        'title': 'test',
-        'reporter': {
-            'emailAddress': 'user1@google.com',
-            'userGaiaStatus': 'ACTIVE'
-        },
-        'assignee': {
-            'emailAddress': 'assignee@google.com',
-            'userGaiaStatus': 'ACTIVE'
-        },
-        'retention': 'COMPONENT_DEFAULT',
-    },
-    'createdTime': '2019-06-25T01:29:30.021Z',
-    'modifiedTime': '2019-06-25T01:29:30.021Z',
-    'userData': {},
-    'accessLimit': {
-        'accessLevel': 'INTERNAL'
-    },
-    'etag': 'TmpnNE1qZzVNemd0TUMweA==',
-    'lastModifier': {
-        'emailAddress': 'user1@google.com',
-        'userGaiaStatus': 'ACTIVE'
-    },
-}
-
-BASIC_COMMENTS = {
-    'issueComments': [
-        {
-            'comment': 'test body',
-            'lastEditor': {
-                'emailAddress': 'user1@google.com',
-                'userGaiaStatus': 'ACTIVE',
-            },
-            'modifiedTime': '2019-06-25T01:29:30.021Z',
-            'issueId': '68828938',
-            'commentNumber': 1,
-            'formattingMode': 'PLAIN',
-        },
-        {
-            'comment': 'not test body',
-            'lastEditor': {
-                'emailAddress': 'user1@google.com',
-                'userGaiaStatus': 'ACTIVE',
-            },
-            'modifiedTime': '2019-06-25T02:29:30.021Z',
-            'issueId': '68828938',
-            'commentNumber': 2,
-            'formattingMode': 'PLAIN',
-        },
-    ],
-    'totalSize':
-        2,
-}
 
 BASIC_ATTACHMENT = {
     'attachmentId': '60127668',
@@ -105,33 +30,54 @@ BASIC_ATTACHMENT = {
 }
 
 
-class MockIssue():
-
-  def __init__(self, id):
-    self.id = id
-    self.status = ''
-
-  def save(self, new_comment, notify):
-    return None
-
-
 class ExternalTestcaseReaderTest(unittest.TestCase):
   """external_testcase_reader tests."""
 
   def setUp(self):
-    self.client_patcher = mock.patch('clusterfuzz._internal.issue_management.' +
-                                     'google_issue_tracker.client.build')
-    self.client_patcher.start()
-    self.client = client.build()
-    self.issue_tracker = google_issue_tracker.get_issue_tracker(
-        'google-issue-tracker', TEST_CONFIG)
+    self.issue_tracker = mock.MagicMock()
+    self.mock_submit_testcase = mock.MagicMock()
+    self.mock_close_invalid_issue = mock.MagicMock()
 
-  def tearDown(self):
-    self.client_patcher.stop()
+  def test_fetch_and_upload(self):
+    """Test a basic _fetch_and_upload."""
+    mock_iter = mock.MagicMock()
+    mock_iter.__iter__.return_value = [mock.MagicMock()]
+    self.issue_tracker.find_issues.return_value = mock_iter
+    self.mock_close_invalid_issue.return_value = 0
+    external_testcase_reader._close_invalid_issue = self.mock_close_invalid_issue
+    external_testcase_reader._submit_testcase = self.mock_submit_testcase
+
+    external_testcase_reader._fetch_and_upload(self.issue_tracker)
+    self.mock_close_invalid_issue.assert_called_once()
+    self.issue_tracker.get_attachment.assert_called_once()
+    self.mock_submit_testcase.assert_called_once()
+
+  def test_fetch_and_upload_invalid(self):
+    """Test a basic _fetch_and_upload where issue is invalid."""
+    mock_iter = mock.MagicMock()
+    mock_iter.__iter__.return_value = [mock.MagicMock()]
+    self.issue_tracker.find_issues.return_value = mock_iter
+    self.mock_close_invalid_issue.return_value = 1
+    external_testcase_reader._close_invalid_issue = self.mock_close_invalid_issue
+    external_testcase_reader._submit_testcase = self.mock_submit_testcase
+
+    external_testcase_reader._fetch_and_upload(self.issue_tracker)
+    self.mock_close_invalid_issue.assert_called_once()
+    self.issue_tracker.get_attachment.assert_not_called()
+    self.mock_submit_testcase.assert_not_called()
+
+  def test_fetch_and_upload_no_issues(self):
+    """Test a basic _fetch_and_upload that returns no issues."""
+    external_testcase_reader._close_invalid_issue = self.mock_close_invalid_issue
+
+    external_testcase_reader._fetch_and_upload(self.issue_tracker)
+    self.mock_close_invalid_issue.assert_not_called()
+    self.issue_tracker.get_attachment.assert_not_called()
+    self.mock_submit_testcase.assert_not_called()
 
   def test_close_invalid_issue_basic(self):
     """Test a basic _close_invalid_issue with valid flags."""
-    upload_request = MockIssue(123)
+    upload_request = mock.Mock()
     attachment_info = [BASIC_ATTACHMENT]
     description = "--flag-one --flag_two"
     self.assertEqual(
@@ -141,7 +87,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
 
   def test_close_invalid_issue_no_flag(self):
     """Test a basic _close_invalid_issue with no flags."""
-    upload_request = MockIssue(123)
+    upload_request = mock.Mock()
     attachment_info = [BASIC_ATTACHMENT]
     description = ""
     self.assertEqual(
@@ -151,7 +97,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
 
   def test_close_invalid_issue_too_many_attachments(self):
     """Test _close_invalid_issue with too many attachments."""
-    upload_request = MockIssue(123)
+    upload_request = mock.Mock()
     attachment_info = [BASIC_ATTACHMENT, BASIC_ATTACHMENT]
     description = ""
     self.assertEqual(
@@ -161,8 +107,25 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
 
   def test_close_invalid_issue_no_attachments(self):
     """Test _close_invalid_issue with no attachments."""
-    upload_request = MockIssue(123)
+    upload_request = mock.Mock()
     attachment_info = []
+    description = ""
+    self.assertEqual(
+        1,
+        external_testcase_reader._close_invalid_issue(
+            upload_request, attachment_info, description))
+
+  def test_close_invalid_issue_invalid_upload(self):
+    """Test _close_invalid_issue with an invalid upload."""
+    upload_request = mock.Mock()
+    attachment_info = [{
+        'attachmentId': '60127668',
+        'contentType': 'application/octet-stream',
+        'length': '458',
+        'filename': 'test.html',
+        'attachmentDataRef': {},
+        'etag': 'TXpjek9Ea3pNekV4TFRZd01USTNOalk0TFRjNE9URTROVFl4TlE9PQ=='
+    }]
     description = ""
     self.assertEqual(
         1,
@@ -171,7 +134,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
 
   def test_close_invalid_issue_invalid_content_type(self):
     """Test _close_invalid_issue with an invalid content type."""
-    upload_request = MockIssue(123)
+    upload_request = mock.Mock()
     attachment_info = [{
         'attachmentId': '60127668',
         'contentType': 'application/octet-stream',
