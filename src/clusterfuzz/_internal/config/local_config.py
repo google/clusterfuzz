@@ -34,7 +34,6 @@ BATCH_PATH = 'batch.batch'
 MONITORING_REGIONS_PATH = 'monitoring.regions'
 PROJECT_PATH = 'project'
 SWARMING_PATH = 'swarming.swarming'
-SWARMING_PATH = 'swarming.swarming'
 
 
 def _load_yaml_file(yaml_file_path):
