@@ -17,8 +17,8 @@ import datetime
 import os
 from typing import Optional
 
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -52,7 +52,7 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
   if not testcase.job_type:
     logs.warning(f'No job_type associated to testcase {testcase_id},'
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
-    return        
+    return
 
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
       elapsed_time_since_upload,
