@@ -1199,3 +1199,146 @@ class GoogleIssueTrackerTest(unittest.TestCase):
       self.assertEqual(
           case['expected'], actual, 'failed test %s. expected %s. actual %s' %
           (case['name'], case['expected'], actual))
+
+  def test_get_description(self):
+    """Test a basic get_description."""
+    self.client.issues().get().execute.return_value = BASIC_ISSUE
+    self.client.issues().comments().list().execute.return_value = {
+        'issueComments': [
+            {
+                'comment': 'test body',
+                'lastEditor': {
+                    'emailAddress': 'user1@google.com',
+                    'userGaiaStatus': 'ACTIVE',
+                },
+                'modifiedTime': '2019-06-25T01:29:30.021Z',
+                'issueId': '68828938',
+                'commentNumber': 1,
+                'formattingMode': 'PLAIN',
+            },
+            {
+                'comment': 'not test body',
+                'lastEditor': {
+                    'emailAddress': 'user1@google.com',
+                    'userGaiaStatus': 'ACTIVE',
+                },
+                'modifiedTime': '2019-06-25T02:29:30.021Z',
+                'issueId': '68828938',
+                'commentNumber': 2,
+                'formattingMode': 'PLAIN',
+            },
+        ],
+        'totalSize':
+            2,
+    }
+    description = self.issue_tracker.get_description(68828938)
+    self.assertEqual('test body', description)
+
+  def test_get_blank_description(self):
+    """Test a basic get_description."""
+    self.client.issues().get().execute.return_value = BASIC_ISSUE
+    self.client.issues().comments().list().execute.return_value = {
+        'issueComments': [
+            {
+                'comment': '',
+                'lastEditor': {
+                    'emailAddress': 'user1@google.com',
+                    'userGaiaStatus': 'ACTIVE',
+                },
+                'modifiedTime': '2019-06-25T01:29:30.021Z',
+                'issueId': '68828938',
+                'commentNumber': 1,
+                'formattingMode': 'PLAIN',
+            },
+            {
+                'comment': 'not test body',
+                'lastEditor': {
+                    'emailAddress': 'user1@google.com',
+                    'userGaiaStatus': 'ACTIVE',
+                },
+                'modifiedTime': '2019-06-25T02:29:30.021Z',
+                'issueId': '68828938',
+                'commentNumber': 2,
+                'formattingMode': 'PLAIN',
+            },
+        ],
+        'totalSize':
+            2,
+    }
+    description = self.issue_tracker.get_description(68828938)
+    self.assertEqual('', description)
+
+  def test_get_attachment_metadata(self):
+    """Test a basic get_attachment_metadata."""
+    self.client.issues().get().execute.return_value = BASIC_ISSUE
+    self.client.issues().attachments().list().execute.return_value = {
+        'attachments': [
+            {
+                'attachmentId':
+                    '60127668',
+                'contentType':
+                    'text/html',
+                'length':
+                    '458',
+                'filename':
+                    'test.html',
+                'attachmentDataRef': {
+                    'resourceName': 'attachment:373893311:60127668'
+                },
+                'etag':
+                    'TXpjek9Eb3pNekV4TFRZd01USTNOalk0TFRjNE9URTROVFl4TlE9PQ=='
+            },
+            {
+                'attachmentId':
+                    '2',
+                'contentType':
+                    'text/js',
+                'length':
+                    '125',
+                'filename':
+                    'test.js',
+                'attachmentDataRef': {
+                    'resourceName': 'attachment:373893311:2'
+                },
+                'etag':
+                    'TXetagk9Ea3pNekV4TFRZd01USTNOalk0TFRjNE9URTROVFl4TlE9PQ=='
+            },
+        ],
+        'totalSize':
+            2,
+    }
+    attachment_data = self.issue_tracker.get_attachment_metadata(68828938)
+    self.assertEqual('test.html', attachment_data[0]['filename'])
+    self.assertEqual('text/html', attachment_data[0]['contentType'])
+    self.assertEqual(2, len(attachment_data))
+
+  def test_get_no_attachment_metadata(self):
+    """Test an empty get_attachment_metadata."""
+    self.client.issues().get().execute.return_value = BASIC_ISSUE
+    self.client.issues().attachments().list().execute.return_value = {
+        'attachments': [],
+        'totalSize': 0,
+    }
+    attachment_data = self.issue_tracker.get_attachment_metadata(68828938)
+    self.assertEqual([], attachment_data)
+
+  def test_get_attachment(self):
+    """Test a basic get_attachment."""
+    self.client.media().download(
+        resourceName='attachment:373893311:60127668'
+    ).execute.return_value = ({
+        'content-type':
+            'application/octet-stream',
+        'content-length':
+            '458',
+        'content-disposition':
+            'attachment',
+        'status':
+            '200',
+        'content-location':
+            'https://issuetracker.googleapis.com/v1/media/attachment:373893311:60127668?alt=media'
+    }, b'<!DOCTYPE html>\n<html>hello world</html>')
+    attachment = self.issue_tracker.get_attachment(
+        'attachment:373893311:60127668')
+    self.assertEqual(b'<!DOCTYPE html>\n<html>hello world</html>',
+                     attachment[1])

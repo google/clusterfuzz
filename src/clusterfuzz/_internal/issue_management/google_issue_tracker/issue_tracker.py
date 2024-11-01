@@ -24,6 +24,7 @@ from typing import Tuple
 import urllib.parse
 
 from google.auth import exceptions
+import googleapiclient.http
 
 from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
@@ -968,7 +969,8 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._client = http_client
     self._default_component_id = config['default_component_id']
     self._type = config['type'] if hasattr(config, 'type') else None
-    self._url = config['url']
+    # self._url = config['url']
+    self._url = 'https://issues.chromium.org/issues'  #TODO(pgrace) dont update
 
   @property
   def client(self):
@@ -1034,9 +1036,9 @@ class IssueTracker(issue_tracker.IssueTracker):
     try:
       component = self._execute(
           self.client.components().get(componentId=str(component_id)))
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error('Failed to retrieve component.', component_id=component_id)
       return None
 
@@ -1057,10 +1059,55 @@ class IssueTracker(issue_tracker.IssueTracker):
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
       logs.info('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error('Failed to retrieve issue.', issue_id=issue_id)
+      return None
+
+  def get_description(self, issue_id):
+    """Gets the content of the description for the issue with the given ID."""
+    try:
+      comments = self._execute(
+          self.client.issues().comments().list(issueId=str(issue_id)))
+      logs.info('google_issue_tracker: get_description comments: %s' % comments)
+      return [c for c in comments['issueComments'] if c['commentNumber'] == 1
+             ][0]['comment']
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error('Failed to retrieve issue description.', issue_id=issue_id)
+      return None
+
+  def get_attachment_metadata(self, issue_id):
+    """Gets the attachment metadata of an issue with the given ID."""
+    try:
+      attachment_metadata = self._execute(
+          self.client.issues().attachments().list(issueId=str(issue_id)))
+      logs.info('google_issue_tracker: get_attachment_metadata: %s' %
+                attachment_metadata)
+      return attachment_metadata['attachments']
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error(
+          'Failed to retrieve issue attachment metadata.', issue_id=issue_id)
+      return None
+
+  def get_attachment(self, resource_name):
+    """Gets the attachment for the given resource name."""
+    try:
+      http_request = self.client.media().download(resourceName=resource_name)
+      http_request.uri = http_request.uri.replace('alt=json', 'alt=media')
+      http_request.postproc = googleapiclient.http.HttpRequest.null_postproc
+      attachment = self._execute(http_request)
+      logs.info('google_issue_tracker: get_attachment attachment downloaded')
+      return attachment
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error(
+          'Failed to retrieve attachment for resource name: %s' % resource_name)
       return None
 
   def find_issues(self, keywords=None, only_open=None):
@@ -1122,7 +1169,7 @@ def _parse_datetime(date_string):
 
 def _get_query(keywords, only_open):
   """Gets a search query."""
-  query = ' '.join('"{}"'.format(keyword) for keyword in keywords)
+  query = ' '.join('{}'.format(keyword) for keyword in keywords)
   if only_open:
     query += ' status:open'
   return query
