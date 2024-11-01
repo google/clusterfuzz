@@ -18,6 +18,7 @@ import os
 from typing import Optional
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -41,10 +42,22 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
   elapsed_time_since_upload -= testcase_upload_metadata.timestamp
   elapsed_time_since_upload = elapsed_time_since_upload.total_seconds()
 
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+
+  if not testcase:
+    logs.warning(f'No testcase found with id {testcase_id},'
+                 ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
+    return
+
+  if not testcase.job_type:
+    logs.warning(f'No job_type associated to testcase {testcase_id},'
+                 ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
+    return        
+
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
       elapsed_time_since_upload,
       labels={
-          'job': os.getenv('JOB_NAME'),
+          'job': testcase.job_type,
           'step': step,
       })
 
