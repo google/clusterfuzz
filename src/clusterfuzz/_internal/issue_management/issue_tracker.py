@@ -309,12 +309,26 @@ class IssueTracker:
 
     return original_issue
 
-  def find_issues(self, keywords=None, query_filters=None, only_open=None):
+  def find_issues(self, keywords=None, only_open=None):
     """Find issues."""
     raise NotImplementedError
 
-  def find_issues_url(self, keywords=None, query_filters=None, only_open=None):
+  def find_issues_with_filters(self,
+                               keywords=None,
+                               query_filters=None,
+                               only_open=None):
+    """Find issues."""
+    raise NotImplementedError
+
+  def find_issues_url(self, keywords=None, only_open=None):
     """Find issues (web URL)."""
+    raise NotImplementedError
+
+  def find_issues_url_with_filters(self,
+                                   keywords=None,
+                                   query_filters=None,
+                                   only_open=None):
+    """Find issues."""
     raise NotImplementedError
 
   def issue_url(self, issue_id):
