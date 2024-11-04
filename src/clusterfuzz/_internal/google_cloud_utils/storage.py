@@ -38,7 +38,6 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import fast_http
 from clusterfuzz._internal.system import shell
 
 from . import credentials
@@ -1310,7 +1309,7 @@ def download_signed_urls(signed_urls: List[str],
   ]
   logs.info('Downloading URLs.')
   with _pool() as pool:
-    result = list(
+    urls = list(
         pool.map(_error_tolerant_download_signed_url_to_file,
                  zip(signed_urls, filepaths)))
   download_results = [
