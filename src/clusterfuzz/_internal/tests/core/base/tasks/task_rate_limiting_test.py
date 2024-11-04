@@ -35,7 +35,7 @@ class TaskRateLimiterTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.task_rate_limiting._get_datetime_now',
     ])
-    self.mock._get_datetime_now.return_value = self.now
+    self.mock._get_datetime_now.return_value = self.now  # pylint: disable=protected-access
 
   def test_record_task(self):
     """Test record_task()."""
