@@ -29,13 +29,13 @@ class TaskRateLimiterTest(unittest.TestCase):
   """Tests for TaskRateLimiter."""
 
   def setUp(self):
-    self.now = datetime.datetime.utcnow()
+    self.now = datetime.datetime(year=2020, month=1, day=1, hour=6)
     self.rate_limiter = task_rate_limiting.TaskRateLimiter(
         'test_task', 'test_arg', 'test_job')
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.task_rate_limiting._get_datetime_now',
     ])
-    self.mock.return_value = self.now
+    self.mock._get_datetime_now.return_value = self.now
 
   def test_record_task(self):
     """Test record_task()."""
@@ -73,7 +73,7 @@ class TaskRateLimiterTest(unittest.TestCase):
 
     # Add enough tasks to trigger the error limit.
     self._create_n_tasks(
-        task_rate_limiting.TaskRateLimiter.TASK_RATE_LIMIT_MAX_ERRORS - 1,
+        task_rate_limiting.TaskRateLimiter.TASK_RATE_LIMIT_MAX_ERRORS,
         status=data_types.TaskState.ERROR)
 
     self.assertFalse(self.rate_limiter.is_rate_limited())
@@ -110,5 +110,5 @@ class TaskRateLimiterTest(unittest.TestCase):
           task_argument='test_arg',
           job_name='test_job',
           status=status,
-          timestamp=self.now)
+          timestamp=timestamp)
       task.put()

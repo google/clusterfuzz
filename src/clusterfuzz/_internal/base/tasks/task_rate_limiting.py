@@ -77,7 +77,7 @@ class TaskRateLimiter:
         data_types.WindowRateLimitTask.task_argument == self.task_argument,
         data_types.WindowRateLimitTask.job_name == self.job_name,
         data_types.WindowRateLimitTask.timestamp >= window_start)
-    tasks = ndb_utils.get_all_from_query(query.keys_only())
+    tasks = ndb_utils.get_all_from_query(query)
     completed_count = 0
     error_count = 0
     for task in tasks:
