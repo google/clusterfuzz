@@ -1115,15 +1115,21 @@ class TaskStatus(Model):
 
 
 class WindowRateLimitTask(Model):
-  """Records the completion of a task. This cannot be part of TaskStatus
-  because it will have a different lifecycle (it's not needed after the window
-  completes)."""
+  """Records the completion of a task. This cannot be part of TaskStatus because
+  it will have a different lifecycle (it's not needed after the window
+  completes). This should have a TTL as TASK_RATE_LIMIT_WINDOW in
+  task_rate_limiting.py (6 hours)."""
   # TODO(metzman): Consider using task_id.
-  timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  timestamp = ndb.DateTimeProperty(auto_now_add=True, indexed=True)
   task_name = ndb.StringProperty()
   task_argument = ndb.StringProperty()
   job_name = ndb.StringProperty()
   status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
+  __indexes__ = [
+      ndb.Index(
+          ('task_name', 'task_argument', 'job_name'),
+          name='task_name_argument_job_name_idx'),
+  ]
 
 
 class BuildMetadata(Model):

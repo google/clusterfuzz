@@ -20,9 +20,9 @@ import time
 import uuid
 
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import task_rate_limiting
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_rate_limiting
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import task_types

@@ -25,7 +25,7 @@ from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
 import google.protobuf.message
 
-from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2

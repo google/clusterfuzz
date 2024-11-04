@@ -25,10 +25,18 @@ def _get_datetime_now():
   return datetime.datetime.now()
 
 
+# Things that are sometimes run as tasks by commands.py but are really portions
+# of actual tasks.
+_UTASK_PSEUDO_TASKS = {'uworker_main', 'postprocess', 'preprocess'}
+
+
 class TaskRateLimiter:
-  """Rate limiter for tasks."""
+  """Rate limiter for tasks. This limits tasks to 100 erroneous runs or 2000
+  succesful runs in 6 hours. It keeps track of task completion when record_task
+  is called at the end of every task."""
   TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
   TASK_RATE_LIMIT_MAX_ERRORS = 100
+  # TODO(metzman): Reevaluate this number, it's probably too high.
   TASK_RATE_LIMIT_MAX_COMPLETIONS = 2000
 
   def __init__(self, task_name, task_argument, job_name):
@@ -41,7 +49,7 @@ class TaskRateLimiter:
 
   def record_task(self, success: bool) -> None:
     """Records a task and whether it completed succesfully."""
-    if self.task_name in {'uworker_main', 'postprocess', 'preprocess'}:
+    if self.task_name in _UTASK_PSEUDO_TASKS:
       # Don't rate limit these fake uworker tasks.
       return
     if success:
@@ -57,7 +65,7 @@ class TaskRateLimiter:
 
   def is_rate_limited(self) -> bool:
     """Checks if the given task is rate limited."""
-    if self.task_name in {'uworker_main', 'postprocess', 'preprocess'}:
+    if self.task_name in _UTASK_PSEUDO_TASKS:
       # Don't rate limit these fake tasks.
       return False
     if environment.get_value('COMMAND_OVERRIDE'):
@@ -69,7 +77,7 @@ class TaskRateLimiter:
         data_types.WindowRateLimitTask.task_argument == self.task_argument,
         data_types.WindowRateLimitTask.job_name == self.job_name,
         data_types.WindowRateLimitTask.timestamp >= window_start)
-    tasks = ndb_utils.get_all_from_query(query)
+    tasks = ndb_utils.get_all_from_query(query.keys_only())
     completed_count = 0
     error_count = 0
     for task in tasks:
