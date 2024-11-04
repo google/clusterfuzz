@@ -280,7 +280,6 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
   else:
     task_id = _get_task_id(task_name, task_argument, job_name)
   environment.set_value('CF_TASK_ID', task_id)
-
   if job_name != 'none':
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     # Job might be removed. In that case, we don't want an exception
