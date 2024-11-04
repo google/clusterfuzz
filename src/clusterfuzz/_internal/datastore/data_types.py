@@ -1125,11 +1125,6 @@ class WindowRateLimitTask(Model):
   task_argument = ndb.StringProperty(indexed=True)
   job_name = ndb.StringProperty(indexed=True)
   status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
-  __indexes__ = [
-      ndb.Index(
-          ('task_name', 'task_argument', 'job_name'),
-          name='task_name_argument_job_name_idx'),
-  ]
 
 
 class BuildMetadata(Model):

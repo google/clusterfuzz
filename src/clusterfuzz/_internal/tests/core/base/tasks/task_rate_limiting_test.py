@@ -33,7 +33,7 @@ class TaskRateLimiterTest(unittest.TestCase):
     self.rate_limiter = task_rate_limiting.TaskRateLimiter(
         'test_task', 'test_arg', 'test_job')
     helpers.patch(self, [
-        'clusterfuzz._internal.base.task_rate_limiting._get_datetime_now',
+        'clusterfuzz._internal.base.tasks.task_rate_limiting._get_datetime_now',
     ])
     self.mock.return_value = self.now
 
