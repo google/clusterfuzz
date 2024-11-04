@@ -247,6 +247,14 @@ class IssueTracker(issue_tracker.IssueTracker):
     issues = self._itm.get_issues(search_text, can=can)
     return [Issue(issue) for issue in issues]
 
+  def find_issues_with_filters(self,
+                               keywords=None,
+                               query_filters=None,
+                               only_open=None):
+    """Find issues given additional filters."""
+    # Monorail treats keywords and query filters the same for queries.
+    return self.find_issues(keywords + query_filters, only_open)
+
   def find_issues_url(self, keywords=None, only_open=False):
     """Find issues (web URL)."""
     if not keywords:
@@ -265,6 +273,13 @@ class IssueTracker(issue_tracker.IssueTracker):
             'can_id': can_id,
             'q': search_text,
         }))
+
+  def find_issues_url_with_filters(self,
+                                   keywords=None,
+                                   query_filters=None,
+                                   only_open=None):
+    # Monorail treats keywords and query filters the same for queries.
+    return self.find_issues_url(keywords + query_filters, only_open)
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
