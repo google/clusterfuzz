@@ -250,3 +250,13 @@ ISSUE_CLOSING = monitor.CounterMetric(
         monitor.StringField('fuzzer_name'),
         monitor.StringField('status'),
     ])
+
+ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
+    'task/analyze/reproducibility',
+    description='Outcome count for analyze task.',
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer_name'),
+        monitor.BooleanField('reproducible'),
+        monitor.BooleanField('crashes'),
+    ])
