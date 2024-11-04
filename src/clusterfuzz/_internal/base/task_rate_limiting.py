@@ -36,8 +36,7 @@ class TaskRateLimiter:
     self.task_argument = task_argument
     self.job_name = job_name
 
-  @property
-  def readable_name(self):
+  def __str__(self):
     return ' '.join([self.task_name, self.task_argument, self.job_name])
 
   def record_task(self, success: bool) -> None:
@@ -78,7 +77,7 @@ class TaskRateLimiter:
       completed_count += 1
       if completed_count > self.TASK_RATE_LIMIT_MAX_COMPLETIONS:
         logs.warning(
-            f'{self.readable_name} rate limited. '
+            f'{str(self)} rate limited. '
             f'It ran at least {self.TASK_RATE_LIMIT_MAX_COMPLETIONS} in window.'
         )
         return True
@@ -88,7 +87,7 @@ class TaskRateLimiter:
         error_count += 1
       if error_count > self.TASK_RATE_LIMIT_MAX_ERRORS:
         logs.warning(
-            f'{self.readable_name} rate limited. '
+            f'{str(self)} rate limited. '
             f'It errored at least {self.TASK_RATE_LIMIT_MAX_ERRORS} in window.')
         return True
 
