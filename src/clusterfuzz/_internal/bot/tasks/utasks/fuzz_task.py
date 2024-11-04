@@ -414,16 +414,18 @@ class _TrackFuzzTime:
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'fuzzer': self.fuzzer_name,
-            'timeout': self.timeout
+            'timeout': self.timeout,
+            'platform': environment.platform(),
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'job': self.job_type,
-            'timeout': self.timeout
+            'timeout': self.timeout,
+            'platform': environment.platform(),
         })
 
 
-def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
                              expected_testcase_count, return_code):
   """Track fuzzer run result"""
   if expected_testcase_count > 0:
@@ -444,6 +446,8 @@ def _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
   monitoring_metrics.FUZZER_RETURN_CODE_COUNT.increment({
       'fuzzer': fuzzer_name,
       'return_code': return_code,
+      'platform': environment.platform(),
+      'job': job_type,
   })
 
 
@@ -462,16 +466,20 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
   monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
       known_crash_count, {
           'fuzzer': fuzzer,
+          'platform': environment.platform(),
       })
   monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
       new_crash_count, {
           'fuzzer': fuzzer,
+          'platform': environment.platform(),
       })
   monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(known_crash_count, {
       'job': job_type,
+      'platform': environment.platform(),
   })
   monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(new_crash_count, {
       'job': job_type,
+      'platform': environment.platform()
   })
 
 
@@ -1340,8 +1348,9 @@ class FuzzingSession:
 
     self.gcs_corpus.upload_files(filtered_new_files)
 
-  def generate_blackbox_testcases(self, fuzzer, fuzzer_directory, testcase_count
-                                 ) -> GenerateBlackboxTestcasesResult:
+  def generate_blackbox_testcases(
+      self, fuzzer, job_type, fuzzer_directory,
+      testcase_count) -> GenerateBlackboxTestcasesResult:
     """Run the blackbox fuzzer and generate testcases."""
     # Helper variables.
     fuzzer_name = fuzzer.name
@@ -1463,7 +1472,7 @@ class FuzzingSession:
     if fuzzer_run_results:
       self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
-      _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+      _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
                                testcase_count, fuzzer_return_code)
 
     # Make sure that there are testcases generated. If not, set the error flag.
@@ -1495,9 +1504,13 @@ class FuzzingSession:
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.info(f'Fuzzing round {fuzzing_round}.')
       try:
-        result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
-            engine_impl, self.fuzz_target.binary, sync_corpus_directory,
-            self.testcase_directory)
+        with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
+                            self.job_type) as tracker:
+          result, cur_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
+              engine_impl, self.fuzz_target.binary, sync_corpus_directory,
+              self.testcase_directory)
+          # Timeouts are only accounted for in libfuzzer, this can be None
+          tracker.timeout = bool(result.timed_out)
       except FuzzTargetNotFoundError:
         # Ocassionally fuzz targets are deleted. This is pretty rare. Since
         # ClusterFuzz did nothing wrong, don't bubble up an exception, consider
@@ -1507,7 +1520,7 @@ class FuzzingSession:
         logs.error(f'{self.fuzz_target.binary} is not in the build.')
         return [], {}
 
-      fuzzer_metadata.update(current_fuzzer_metadata)
+      fuzzer_metadata.update(cur_fuzzer_metadata)
 
       # Prepare stats.
       testcase_run = engine_common.get_testcase_run(result.stats,
@@ -1566,8 +1579,8 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
-    generate_result = self.generate_blackbox_testcases(fuzzer, fuzzer_directory,
-                                                       testcase_count)
+    generate_result = self.generate_blackbox_testcases(
+        fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
 
@@ -1705,6 +1718,7 @@ class FuzzingSession:
 
   def run(self):
     """Run the fuzzing session."""
+    start_time = time.time()
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -1740,6 +1754,10 @@ class FuzzingSession:
       self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
       if not self.fuzz_task_output.fuzz_targets:
         logs.error('No fuzz targets.')
+      if not self.fuzz_target:
+        return uworker_msg_pb2.Output(  # pylint: disable=no-member
+            fuzz_task_output=self.fuzz_task_output,
+            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
@@ -1779,7 +1797,6 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
 
-    engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -1858,6 +1875,14 @@ class FuzzingSession:
     self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
+    fuzzing_session_duration = time.time() - start_time
+    monitoring_metrics.FUZZING_SESSION_DURATION.add(
+        fuzzing_session_duration, {
+            'fuzzer': self.fuzzer_name,
+            'job': self.job_type,
+            'platform': environment.platform()
+        })
+
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
   def postprocess(self, uworker_output):
@@ -1898,17 +1923,20 @@ def _upload_testcase_run_jsons(testcase_run_jsons):
 
 
 def handle_fuzz_build_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.BUILD_SETUP_FAILED)
 
 
 def handle_fuzz_data_bundle_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
 
 def handle_fuzz_no_fuzzer(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
+                           output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
@@ -2044,8 +2072,8 @@ def _to_engine_output(output: str, return_code: int,
 
 def _upload_engine_output_log(engine_output):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
-  testcase_manager.upload_log(engine_output.output, engine_output.return_code,
-                              timestamp)
+  testcase_manager.upload_log(engine_output.output.decode(),
+                              engine_output.return_code, timestamp)
 
 
 def utask_postprocess(output):

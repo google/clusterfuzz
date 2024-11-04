@@ -50,6 +50,9 @@ firebase:
   - google.com
   # - github.com
 
+uworker_tasks:
+  - analyze
+
 
 stacktrace:
   # Stack frames to ignore when determining the crash signature.

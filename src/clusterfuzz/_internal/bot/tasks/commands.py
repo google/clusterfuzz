@@ -124,12 +124,6 @@ def update_environment_for_job(environment_string):
   for key, value in env.items():
     environment.set_value(key, value)
 
-  # If we share the build with another job type, force us to be a custom binary
-  # job type.
-  if environment.get_value('SHARE_BUILD_WITH_JOB_TYPE'):
-    environment.set_value('CUSTOM_BINARY', True)
-    uworker_env['CUSTOM_BINARY'] = 'True'
-
   # Allow the default FUZZ_TEST_TIMEOUT and MAX_TESTCASES to be overridden on
   # machines that are preempted more often.
   fuzz_test_timeout_override = environment.get_value(

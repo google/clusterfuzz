@@ -187,6 +187,14 @@ class IssueTracker(issue_tracker.IssueTracker):
     issues = self._itm.get_issues(search_text)
     return [Issue(self._itm, issue) for issue in issues]
 
+  def find_issues_with_filters(self,
+                               keywords=None,
+                               query_filters=None,
+                               only_open=None):
+    """Find issues given query filters."""
+    # Jira treats keywords and query filters the same for queries.
+    return self.find_issues(keywords + query_filters, only_open)
+
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
     issue = self.get_issue(issue_id)
@@ -204,6 +212,14 @@ class IssueTracker(issue_tracker.IssueTracker):
       search_text += ' AND resolution = Unresolved'
     config = db_config.get()
     return urljoin(config.jira_url, f'/issues/?jql={search_text}')
+
+  def find_issues_url_with_filters(self,
+                                   keywords=None,
+                                   query_filters=None,
+                                   only_open=None):
+    """Return the issue URL with the given ID and additional query filters."""
+    # Jira treats keywords and query filters the same for queries.
+    return self.find_issues_url(keywords + query_filters, only_open)
 
 
 def _get_issue_tracker_manager_for_project(project_name):

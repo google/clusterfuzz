@@ -135,7 +135,7 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
                                           new_commit)
 
   repo_url = data_handler.get_main_repo(testcase.job_type) or ''
-  reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
+  reproducer = blobs.read_key(_get_keys(testcase))
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(pubsub_topic, [
       pubsub.Message(
@@ -196,3 +196,9 @@ def _get_commits(commit_range, job_type):
     old_commit = ''
 
   return old_commit, new_commit
+
+
+def _get_keys(testcase):
+  if testcase.minimized_keys and testcase.minimized_keys != 'NA':
+    return testcase.minimized_keys
+  return testcase.fuzzed_keys

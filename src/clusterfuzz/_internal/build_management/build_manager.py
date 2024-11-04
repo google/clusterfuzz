@@ -1277,17 +1277,7 @@ def setup_symbolized_builds(revision):
 
 def setup_custom_binary():
   """Set up the custom binary for a particular job."""
-  # Check if this build is dependent on any other custom job. If yes,
-  # then fake out our job name for setting up the build.
-  old_job_name = ''
-  share_build_job_type = environment.get_value('SHARE_BUILD_WITH_JOB_TYPE')
-  if share_build_job_type:
-    job_name = share_build_job_type
-    old_job_name = environment.get_value('JOB_NAME', '')
-    environment.set_value('JOB_NAME', job_name)
-  else:
-    job_name = environment.get_value('JOB_NAME', '')
-
+  job_name = environment.get_value('JOB_NAME')
   # Verify that this is really a custom binary job.
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job or not job.custom_binary_key or not job.custom_binary_filename:
@@ -1298,10 +1288,6 @@ def setup_custom_binary():
   base_build_dir = _base_build_dir('')
   build = CustomBuild(base_build_dir, job.custom_binary_key,
                       job.custom_binary_filename, job.custom_binary_revision)
-
-  # Revert back the actual job name.
-  if share_build_job_type:
-    environment.set_value('JOB_NAME', old_job_name)
 
   if build.setup():
     return build

@@ -33,3 +33,12 @@ class GetCommandFromModuleTest(unittest.TestCase):
       task_utils.get_command_from_module('postprocess')
     with self.assertRaises(ValueError):
       task_utils.get_command_from_module('uworker_main')
+
+
+class IsTaskOptedIntoUworkerExecution(unittest.TestCase):
+
+  def test_opt_in(self):
+    self.assertTrue(task_utils.is_task_opted_into_uworker_execution('analyze'))
+
+  def test_no_opt_in(self):
+    self.assertFalse(task_utils.is_task_opted_into_uworker_execution('fuzz'))
