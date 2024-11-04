@@ -1724,6 +1724,7 @@ class FuzzingSession:
             testcases_metadata, crashes)
 
   def run_common(self):
+    """Prepare to run either blackbox or engine fuzzing."""
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
