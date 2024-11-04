@@ -1248,6 +1248,15 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
+def _error_tolerant_download_signed_url_to_file(url_and_path):
+  url, path = url_and_path
+  try:
+    download_signed_url_to_file(url, path)
+    return url
+  except Exception:
+    return None
+
+
 def _error_tolerant_upload_signed_url(url_and_path) -> bool:
   url, path = url_and_path
   try:
@@ -1300,7 +1309,10 @@ def download_signed_urls(signed_urls: List[str],
       for idx in range(len(signed_urls))
   ]
   logs.info('Downloading URLs.')
-  urls = fast_http.download_urls(signed_urls, filepaths)
+  with _pool() as pool:
+    result = list(
+        pool.map(_error_tolerant_download_signed_url_to_file,
+                 zip(signed_urls, filepaths)))
   download_results = [
       SignedUrlDownloadResult(url, filepaths[idx])
       for idx, url in enumerate(urls)
