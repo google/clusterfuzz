@@ -16,7 +16,6 @@ import asyncio
 from concurrent import futures
 import contextlib
 import itertools
-import multiprocessing
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -26,7 +25,9 @@ import aiohttp
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-_POOL_SIZE = multiprocessing.cpu_count()
+# TODO(metzman): Use cpu_count() if we can rule this out as the cause of our NTP
+# trouble.
+_POOL_SIZE = 1
 
 
 @contextlib.contextmanager
