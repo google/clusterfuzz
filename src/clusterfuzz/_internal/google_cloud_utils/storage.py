@@ -33,6 +33,7 @@ from googleapiclient.errors import HttpError
 import requests
 import requests.exceptions
 
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -95,8 +96,6 @@ HTTP_TIMEOUT_SECONDS = 15
 # TODO(metzman): Figure out why this works on oss-fuzz and doesn't destroy
 # memory usage?
 _POOL_SIZE = 16
-
-_USES_ASYNC_HTTP = None
 
 _TRANSIENT_ERRORS = [
     google.cloud.exceptions.GoogleCloudError,
@@ -1158,15 +1157,11 @@ def blobs_bucket():
   return local_config.ProjectConfig().get('blobs.bucket')
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
 def use_async_http():
-  global _USES_ASYNC_HTTP
-  if _USES_ASYNC_HTTP is not None:
-    return _USES_ASYNC_HTTP
-  _USES_ASYNC_HTTP = local_config.ProjectConfig().get('async_http.enabled',
-                                                      False)
-  logs.info(f'Using async HTTP: {_USES_ASYNC_HTTP}')
-  assert _USES_ASYNC_HTTP is not None
-  return _USES_ASYNC_HTTP
+  enabled = local_config.ProjectConfig().get('async_http.enabled', False)
+  logs.info(f'Using async HTTP: {enabled}.')
+  return enabled
 
 
 def uworker_input_bucket():
