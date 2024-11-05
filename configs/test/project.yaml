@@ -42,6 +42,10 @@ monitoring:
   # Flag to indicate if Stackdriver monitoring is enabled or not (disabled by default).
   enabled: false
 
+async_http:
+  # WARNING: This can cause OOMs.
+  enabled: true
+
 firebase:
   # API key for Firebase (public).
   api_key: firebase-api-key
