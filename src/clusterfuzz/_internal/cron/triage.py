@@ -306,7 +306,13 @@ def _emmit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
   if not testcase.timestamp:
     return
   current_time = datetime.datetime.utcnow()
-  testcase_age = current_time - testcase.timestamp
+  # testcase.timestamp is mutated in analyze task.
+  # taking the minimum between these two timestamps
+  # avoids the need to backfill creation_timestamp
+  testcase_creation_time = testcase.timestamp
+  if testcase.creation_timestamp:
+    testcase_creation_time = testcase.creation_timestamp
+  testcase_age = current_time - testcase_creation_time
   testcase_age = testcase_age.total_seconds()
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
       testcase_age,

@@ -423,6 +423,9 @@ class Testcase(Model):
   # Timestamp.
   timestamp = ndb.DateTimeProperty()
 
+  # Original creation timestamp.
+  creation_timestamp = ndb.DateTimeProperty()
+
   # Does the testcase crash stack vary b/w crashes ?
   flaky_stack = ndb.BooleanProperty(default=False, indexed=False)
 
