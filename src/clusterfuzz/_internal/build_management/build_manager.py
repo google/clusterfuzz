@@ -406,33 +406,6 @@ class Build(BaseBuild):
     if instrumented_library_paths:
       self._patch_rpaths(instrumented_library_paths)
 
-  def _emit_build_age_metric(self, gcs_path):
-    """Emits a metric to track the age of a build."""
-    try:
-      last_update_time = storage.get(gcs_path).get('updated')
-      # TODO(vitorguidi): standardize return type between fs and gcs.
-      if isinstance(last_update_time, str):
-        # storage.get returns two different types for the updated field:
-        # the gcs api returns string, and the local filesystem implementation
-        # returns a datetime.datetime object normalized for UTC
-        last_update_time = datetime.datetime.fromisoformat(last_update_time)
-      now = datetime.datetime.now(datetime.timezone.utc)
-      elapsed_time = now - last_update_time
-      elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
-      # Fuzz targets do not apply for custom builds
-      fuzz_target = self.fuzz_target if self.fuzz_target else 'N/A'
-      labels = {
-          'fuzz_target': fuzz_target,
-          'job': os.getenv('JOB_NAME'),
-          'platform': environment.platform(),
-          'task': os.getenv('TASK_NAME'),
-      }
-      monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
-      # This field is expected as a datetime object
-      # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
-    except Exception as e:
-      logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
-
   @contextlib.contextmanager
   def _download_and_open_build_archive(self, base_build_dir: str,
                                        build_dir: str, build_url: str):
@@ -515,7 +488,6 @@ class Build(BaseBuild):
                     http_build_url=None):
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
-    self._emit_build_age_metric(build_url)
     start_time = time.time()
 
     unpack_everything = environment.get_value(
@@ -904,8 +876,6 @@ class CustomBuild(Build):
                                      build_local_archive):
         return False
 
-    self._emit_build_age_metric(gcs_path)
-
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
       try:
@@ -1182,12 +1152,54 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
+def _emit_build_age_metric(gcs_path):
+  """Emits a metric to track the age of a build."""
+  try:
+    last_update_time = storage.get(gcs_path).get('updated')
+    # TODO(vitorguidi): standardize return type between fs and gcs.
+    if isinstance(last_update_time, str):
+      # storage.get returns two different types for the updated field:
+      # the gcs api returns string, and the local filesystem implementation
+      # returns a datetime.datetime object normalized for UTC
+      last_update_time = datetime.datetime.fromisoformat(last_update_time)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    elapsed_time = now - last_update_time
+    elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
+    # Fuzz targets do not apply for custom builds
+    labels = {
+        'job': os.getenv('JOB_NAME'),
+        'platform': environment.platform(),
+        'task': os.getenv('TASK_NAME'),
+    }
+    monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
+    # This field is expected as a datetime object
+    # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
+  except Exception as e:
+    logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
+
+
+def _get_build_url(bucket_path: Optional[str], revision: int, job_type: Optional[str]):
+  build_urls = get_build_urls_list(bucket_path)
+  if not build_urls:
+    logs.error('Error getting build urls for job %s.' % job_type)
+    return None
+  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
+  if not build_url:
+    logs.error(
+        'Error getting build url for job %s (r%d).' % (job_type, revision))
+
+    return None
+
+
 def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
     logs.error('Unable to find a matching revision.')
     return None
+
+  build_gcs_path = _get_build_url(bucket_paths[0], latest_revision, environment.get_value('JOB_NAME'))
+  _emit_build_age_metric(build_gcs_path)
 
   build = setup_regular_build(
       latest_revision,
@@ -1210,17 +1222,8 @@ def setup_regular_build(revision,
     # Bucket path can be customized, otherwise get it from the default env var.
     bucket_path = get_bucket_path('RELEASE_BUILD_BUCKET_PATH')
 
-  build_urls = get_build_urls_list(bucket_path)
   job_type = environment.get_value('JOB_NAME')
-  if not build_urls:
-    logs.error('Error getting build urls for job %s.' % job_type)
-    return None
-  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
-  if not build_url:
-    logs.error(
-        'Error getting build url for job %s (r%d).' % (job_type, revision))
-
-    return None
+  build_url = _get_build_url(bucket_path, revision, job_type)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.

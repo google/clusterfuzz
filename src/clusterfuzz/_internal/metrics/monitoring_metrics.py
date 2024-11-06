@@ -38,7 +38,6 @@ JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
     description=('Distribution of fuzz task\'s build age, in hours. '
                  '(grouped by fuzzer/job)'),
     field_spec=[
-        monitor.StringField('fuzz_target'),
         monitor.StringField('job'),
         monitor.StringField('platform'),
         monitor.StringField('task'),
