@@ -19,6 +19,7 @@ import itertools
 import multiprocessing
 from typing import List
 from typing import Tuple
+from clusterfuzz._internal.base import utils
 
 import aiohttp
 
@@ -43,6 +44,7 @@ def _pool(pool_size=_POOL_SIZE):
 def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
   """Downloads multiple urls to filepaths in parallel and asynchronously.
   Tolerates errors. Returns a list of whether each download was successful."""
+  utils.python_gc()
   if len(urls_and_filepaths) == 0:
     # Do this to avoid issues with the range function.
     return []
@@ -51,12 +53,14 @@ def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
   batch_size = len(urls_and_filepaths) // _POOL_SIZE
   # Avoid issues with range when urls is less than _POOL_SIZE.
   batch_size = max(batch_size, len(urls_and_filepaths))
+  # Avoid OOMs by limiting the amount of concurrent downloads.
+  batch_size = min(5, batch_size)
 
   for idx in range(0, len(urls_and_filepaths), batch_size):
     batch = urls_and_filepaths[idx:idx + batch_size]
     batches.append(batch)
   with _pool() as pool:
-    return list(itertools.chain(*pool.map(_download_files, batches)))
+    return list(itertools.chain(*map(_download_files, batches)))
 
 
 def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
