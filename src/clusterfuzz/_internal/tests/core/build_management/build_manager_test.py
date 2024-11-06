@@ -1155,6 +1155,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
   def test_delete(self):
     """Test deleting this build."""
     os.environ['JOB_NAME'] = 'job_custom'
+    self.mock.time.return_value = 1000.0
     build = build_manager.setup_custom_binary()
     self.assertTrue(os.path.isdir('/builds/job_custom/custom'))
     build.delete()

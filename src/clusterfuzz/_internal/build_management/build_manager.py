@@ -34,6 +34,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -332,6 +333,9 @@ class Build(BaseBuild):
     # This is used by users of the class to instruct the class which fuzz
     # target to unpack.
     self.fuzz_target = fuzz_target
+    # Every fetched build is a release one, except when SymbolizedBuild
+    # explicitly downloads a debug build
+    self._build_type = 'release'
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -431,7 +435,16 @@ class Build(BaseBuild):
 
     logs.info(f'Downloading build from {build_url} to {build_local_archive}.')
     try:
+      start_time = time.time()
       storage.copy_file_from(build_url, build_local_archive)
+      build_download_duration = time.time() - start_time
+      monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+          build_download_duration, {
+              'job': os.getenv('JOB_TYPE'),
+              'platform': environment.platform(),
+              'step': 'download',
+              'build_type': self._build_type,
+          })
     except Exception as e:
       logs.error(f'Unable to download build from {build_url}: {e}')
       raise
@@ -475,6 +488,7 @@ class Build(BaseBuild):
     if not can_unzip_over_http:
       return self._download_and_open_build_archive(base_build_dir, build_dir,
                                                    build_url)
+    # We do not emmit a metric for build download time, if using http
     logs.info("Opening an archive over HTTP, skipping archive download.")
     assert http_build_url
     return build_archive.open_uri(http_build_url)
@@ -506,6 +520,7 @@ class Build(BaseBuild):
     try:
       with self._open_build_archive(base_build_dir, build_dir, build_url,
                                     http_build_url, unpack_everything) as build:
+        unpack_start_time = time.time()
         unpack_everything = environment.get_value(
             'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
@@ -537,6 +552,16 @@ class Build(BaseBuild):
             fuzz_target=fuzz_target_to_unpack,
             trusted=trusted)
 
+        unpack_elapsed_time = time.time() - unpack_start_time
+
+        monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+            unpack_elapsed_time, {
+                'job': os.getenv('JOB_TYPE'),
+                'platform': environment.platform(),
+                'step': 'unpack',
+                'build_type': self._build_type,
+            })
+
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_url}: {e}')
       return False
@@ -550,6 +575,7 @@ class Build(BaseBuild):
       utils.write_data_to_file('', partial_build_file_path)
 
     elapsed_time = time.time() - start_time
+
     elapsed_mins = elapsed_time / 60.
     log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
     log_func(f'Build took {elapsed_mins:0.02f} minutes to unpack.')
@@ -798,11 +824,14 @@ class SymbolizedBuild(Build):
       return False
 
     if self.release_build_url:
+      # Expect self._build_type to be set in the constructor for Build
+      assert self._build_type == 'release'
       if not self._unpack_build(self.base_build_dir, self.release_build_dir,
                                 self.release_build_url):
         return False
 
     if self.debug_build_url:
+      self._build_type = 'debug'
       if not self._unpack_build(self.base_build_dir, self.debug_build_dir,
                                 self.debug_build_url):
         return False
@@ -862,6 +891,9 @@ class CustomBuild(Build):
                                        self.custom_binary_filename)
     custom_builds_bucket = local_config.ProjectConfig().get(
         'custom_builds.bucket')
+
+    download_start_time = time.time()
+
     if custom_builds_bucket:
       directory = os.path.dirname(build_local_archive)
       if not os.path.exists(directory):
@@ -871,6 +903,15 @@ class CustomBuild(Build):
     elif not blobs.read_blob_to_disk(self.custom_binary_key,
                                      build_local_archive):
       return False
+
+    build_download_time = time.time() - download_start_time
+    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+        build_download_time, {
+            'job': os.getenv('JOB_TYPE'),
+            'platform': environment.platform(),
+            'step': 'download',
+            'build_type': self._build_type,
+        })
 
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
@@ -888,7 +929,17 @@ class CustomBuild(Build):
         logs.log_fatal_and_exit('Could not make space for build.')
 
       try:
+        # Unpack belongs to the BuildArchive class
+        unpack_start_time = time.time()
         build.unpack(self.build_dir, trusted=True)
+        build_unpack_time = time.time() - unpack_start_time
+        monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+            build_unpack_time, {
+                'job': os.getenv('JOB_TYPE'),
+                'platform': environment.platform(),
+                'step': 'unpack',
+                'build_type': self._build_type,
+            })
       except:
         build.close()
         logs.error('Unable to unpack build archive %s.' % build_local_archive)
