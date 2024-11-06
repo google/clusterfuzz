@@ -44,6 +44,7 @@ _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349507'
 _SEVERITY_LABEL_PREFIX = 'Security_Severity-'
 
 _DEFAULT_SEVERITY = 'S4'
+_DEFAULT_PRIORITY = 'P4'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -722,11 +723,10 @@ class Issue(issue_tracker.Issue):
     """Saves the issue."""
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
-      priority = _extract_label(self.labels, 'Pri-')
+      priority = _extract_label(self.labels, 'Pri-') or _DEFAULT_PRIORITY
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
       self._data['issueState']['type'] = issue_type
-      if priority:
-        self._data['issueState']['priority'] = priority
+      self._data['issueState']['priority'] = priority
 
       custom_field_entries = []
       oses = _sanitize_oses(_extract_all_labels(self.labels, 'OS-'))
