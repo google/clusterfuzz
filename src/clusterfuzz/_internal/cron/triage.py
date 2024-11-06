@@ -347,7 +347,6 @@ def main():
       continue
 
     critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
-    _emmit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
 
     # Skip if testcase's job is removed.
     if testcase.job_type not in all_jobs:
@@ -356,6 +355,9 @@ def main():
     # Skip if testcase's job is in exclusions list.
     if testcase.job_type in excluded_jobs:
       continue
+
+    # Emmit the metric for testcases that should be triaged.
+    _emmit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
 
     # Skip if we are running progression task at this time.
     if testcase.get_metadata('progression_pending'):
