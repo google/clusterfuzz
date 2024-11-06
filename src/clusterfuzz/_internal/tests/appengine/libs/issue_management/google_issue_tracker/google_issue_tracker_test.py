@@ -258,6 +258,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'hotlistIds': [12345],
                     'type': 'BUG',
                     'severity': 'S4',
+                    'priority': 'P4',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -300,7 +301,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'status': 'ASSIGNED',
                     'title': 'issue title',
                     'type': 'BUG',
-                    'severity': 'S4'
+                    'severity': 'S4',
+                    'priority': 'P4',
                 },
                 'issueComment': {
                     'comment': 'issue body'
@@ -371,6 +373,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'foundInVersions': ['123', '789'],
                     'severity':
                         'S4',
+                    'priority':
+                        'P4',
                 },
                 'issueComment': {
                     'comment': 'issue body'
@@ -403,6 +407,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'title': 'issue title',
                     'type': 'BUG',
                     'severity': 'S4',
+                    'priority': 'P4',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -471,6 +476,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'foundInVersions': ['123', '789'],
                     'severity':
                         'S4',
+                    'priority':
+                        'P4',
                 },
                 'issueComment': {
                     'comment': 'issue body'
@@ -535,6 +542,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'Bug-Security',
                     'severity':
                         'S4',
+                    'priority':
+                        'P4',
                 },
                 'issueComment': {
                     'comment': 'issue body'
