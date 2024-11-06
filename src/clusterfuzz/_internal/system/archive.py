@@ -181,6 +181,8 @@ class ArchiveReader(abc.ABC):
       if archive_file_unpack_count % 1000 == 0:
         logs.info('Unpacked %d/%d.' % (archive_file_unpack_count,
                                        archive_file_total_count))
+    logs.info('Unpacked %d/%d. Done.' % (archive_file_unpack_count,
+                                         archive_file_total_count))
 
     return not error_occurred
 
