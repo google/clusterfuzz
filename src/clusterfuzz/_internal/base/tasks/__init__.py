@@ -24,8 +24,8 @@ from typing import Optional
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils

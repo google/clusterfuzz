@@ -14,7 +14,7 @@
 """Tests for task_utils."""
 import unittest
 
-from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import commands
 
 

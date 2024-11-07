@@ -22,6 +22,7 @@ import uuid
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_rate_limiting
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import task_types
@@ -190,12 +191,8 @@ def start_web_server_if_needed():
     logs.error('Failed to start web server, skipping.')
 
 
-def run_command(task_name,
-                task_argument,
-                job_name,
-                uworker_env,
-                preprocess=False):
-  """Run the command."""
+def run_command(task_name, task_argument, job_name, uworker_env):
+  """Runs the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
     logs.error("Unknown command '%s'" % task_name)
@@ -211,23 +208,32 @@ def run_command(task_name,
       raise AlreadyRunningError
 
   result = None
+  rate_limiter = task_rate_limiting.TaskRateLimiter(task_name, task_argument,
+                                                    job_name)
+  if rate_limiter.is_rate_limited():
+    logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
+    if task_name == 'fuzz':
+      # Wait 10 seconds. We don't want to try again immediately because if we
+      # tried to run a fuzz task then there is no other task to run.
+      time.sleep(environment.get_value('FAIL_WAIT'))
+    return None
   try:
-    if not preprocess:
-      result = task.execute(task_argument, job_name, uworker_env)
-    else:
-      result = task.preprocess(task_argument, job_name, uworker_env)
+    result = task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
     logs.warning('Test case %s no longer exists.' % task_argument)
+    rate_limiter.record_task(success=False)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
-
+      rate_limiter.record_task(success=False)
     raise
+  else:
+    rate_limiter.record_task(success=True)
 
   # Task completed successfully.
   if should_update_task_status(task_name):
@@ -254,12 +260,8 @@ def _get_task_id(task_name, task_argument, job_name):
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
-def process_command_impl(task_name,
-                         task_argument,
-                         job_name,
-                         high_end,
-                         is_command_override,
-                         preprocess=False):
+def process_command_impl(task_name, task_argument, job_name, high_end,
+                         is_command_override):
   """Implementation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
@@ -320,8 +322,7 @@ def process_command_impl(task_name,
           logs.error('Failed to fix platform and re-add task.')
 
       # Add a wait interval to avoid overflowing task creation.
-      failure_wait_interval = environment.get_value('FAIL_WAIT')
-      time.sleep(failure_wait_interval)
+      time.sleep(environment.get_value('FAIL_WAIT'))
       return None
 
     if task_name != 'fuzz':
@@ -441,8 +442,7 @@ def process_command_impl(task_name,
   start_web_server_if_needed()
 
   try:
-    return run_command(task_name, task_argument, job_name, uworker_env,
-                       preprocess)
+    return run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
     cleanup_task_state()
