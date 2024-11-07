@@ -1228,7 +1228,9 @@ def _emit_build_age_metric(gcs_path):
     logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
 
 
-def _get_build_url(bucket_path: Optional[str], revision: int, job_type: Optional[str]):
+def _get_build_url(bucket_path: Optional[str], revision: int,
+                   job_type: Optional[str]):
+  """Returns the GCS url for a build, given a bucket path and revision"""
   build_urls = get_build_urls_list(bucket_path)
   if not build_urls:
     logs.error('Error getting build urls for job %s.' % job_type)
@@ -1237,19 +1239,31 @@ def _get_build_url(bucket_path: Optional[str], revision: int, job_type: Optional
   if not build_url:
     logs.error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
-
     return None
+  return build_url
 
 
-def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
+def _get_build_bucket_paths():
+  bucket_paths = []
+  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
+    bucket_path = get_bucket_path(env_var)
+    if bucket_path:
+      bucket_paths.append(bucket_path)
+    else:
+      logs.info('Bucket path not found for %s' % env_var)
+  return bucket_paths
+
+
+def setup_trunk_build(fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
+  bucket_paths = _get_build_bucket_paths()
+  if len(bucket_paths) == 0:
+    logs.error('Attempted a trunk build, but no bucket paths were found.')
+    return None
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
     logs.error('Unable to find a matching revision.')
     return None
-
-  build_gcs_path = _get_build_url(bucket_paths[0], latest_revision, environment.get_value('JOB_NAME'))
-  _emit_build_age_metric(build_gcs_path)
 
   build = setup_regular_build(
       latest_revision,
@@ -1274,6 +1288,16 @@ def setup_regular_build(revision,
 
   job_type = environment.get_value('JOB_NAME')
   build_url = _get_build_url(bucket_path, revision, job_type)
+
+  all_bucket_paths = _get_build_bucket_paths()
+  latest_revision = _get_latest_revision(all_bucket_paths)
+
+  if revision == latest_revision:
+    _emit_build_age_metric(build_url)
+
+  all_bucket_paths = _get_build_bucket_paths()
+  if revision == _get_latest_revision(all_bucket_paths):
+    _emit_build_age_metric(build_url)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.
@@ -1413,19 +1437,7 @@ def _setup_build(revision, fuzz_target):
     return setup_regular_build(revision, fuzz_target=fuzz_target)
 
   # If no revision is provided, we default to a trunk build.
-  bucket_paths = []
-  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
-    bucket_path = get_bucket_path(env_var)
-    if bucket_path:
-      bucket_paths.append(bucket_path)
-    else:
-      logs.info('Bucket path not found for %s' % env_var)
-
-  if len(bucket_paths) == 0:
-    logs.error('Attempted a trunk build, but no bucket paths were found.')
-    return None
-
-  return setup_trunk_build(bucket_paths, fuzz_target=fuzz_target)
+  return setup_trunk_build(fuzz_target=fuzz_target)
 
 
 def is_custom_binary():
