@@ -200,6 +200,8 @@ def format_record(record: logging.LogRecord) -> str:
       'name':
           record.name,
       'pid': os.getpid(),
+      'task_id':
+            os.getenv('CF_TASK_ID', 'null'),
   }
 
   initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
@@ -404,8 +406,6 @@ def configure_cloud_logging():
             json.dumps(
                 getattr(record, 'location', {'Error': True}),
                 default=_handle_unserializable),
-        'task_id':
-            os.getenv('CF_TASK_ID', 'null'),
     })
     return True
 
