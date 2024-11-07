@@ -1280,7 +1280,7 @@ def setup_trunk_build(fuzz_target, build_prefix=None):
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        fuzz_target=None) -> RegularBuild:
+                        fuzz_target=None) -> Optional[RegularBuild]:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1289,14 +1289,13 @@ def setup_regular_build(revision,
   job_type = environment.get_value('JOB_NAME')
   build_url = _get_build_url(bucket_path, revision, job_type)
 
+  if not build_url:
+    return None
+
   all_bucket_paths = _get_build_bucket_paths()
   latest_revision = _get_latest_revision(all_bucket_paths)
 
   if revision == latest_revision:
-    _emit_build_age_metric(build_url)
-
-  all_bucket_paths = _get_build_bucket_paths()
-  if revision == _get_latest_revision(all_bucket_paths):
     _emit_build_age_metric(build_url)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
