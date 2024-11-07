@@ -40,7 +40,10 @@ class GetSpecFromConfigTest(unittest.TestCase):
         disk_size_gb=110,
         disk_type='pd-standard',
         service_account_email='test-unpriv-clusterfuzz-service-account-email',
-        subnetwork=None,
+        subnetwork=
+        'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname',
+        network='projects/google.com:clusterfuzz/global/networks/networkname',
+        gce_region='gce-region',
         gce_zone='gce-zone',
         project='test-clusterfuzz',
         preemptible=False,
@@ -60,8 +63,11 @@ class GetSpecFromConfigTest(unittest.TestCase):
         disk_size_gb=75,
         disk_type='pd-standard',
         service_account_email='test-unpriv-clusterfuzz-service-account-email',
-        subnetwork=None,
+        subnetwork=
+        'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname',
+        network='projects/google.com:clusterfuzz/global/networks/networkname',
         gce_zone='gce-zone',
+        gce_region='gce-region',
         project='test-clusterfuzz',
         preemptible=True,
         machine_type='n1-standard-1')
