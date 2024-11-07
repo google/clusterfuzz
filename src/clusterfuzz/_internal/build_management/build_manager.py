@@ -1210,7 +1210,7 @@ def _emit_build_age_metric(gcs_path):
     if isinstance(last_update_time, str):
       # storage.get returns two different types for the updated field:
       # the gcs api returns string, and the local filesystem implementation
-      # returns a datetime.datetime object normalized for UTC
+      # returns a datetime.datetime object normalized for UTC.
       last_update_time = datetime.datetime.fromisoformat(last_update_time)
     now = datetime.datetime.now(datetime.timezone.utc)
     elapsed_time = now - last_update_time
