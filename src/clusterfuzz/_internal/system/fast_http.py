@@ -19,10 +19,10 @@ import itertools
 import multiprocessing
 from typing import List
 from typing import Tuple
-from clusterfuzz._internal.base import utils
 
 import aiohttp
 
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
