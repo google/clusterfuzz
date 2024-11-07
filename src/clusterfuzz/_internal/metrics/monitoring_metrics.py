@@ -43,7 +43,7 @@ JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
         monitor.StringField('task'),
     ],
 )
-      
+
 JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
