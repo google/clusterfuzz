@@ -60,7 +60,7 @@ def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
     batch = urls_and_filepaths[idx:idx + batch_size]
     batches.append(batch)
   with _pool() as pool:
-    return list(itertools.chain(*map(_download_files, batches)))
+    return list(itertools.chain(*pool.map(_download_files, batches)))
 
 
 def _download_files(urls_and_paths: List[Tuple[str, str]]) -> List[bool]:
