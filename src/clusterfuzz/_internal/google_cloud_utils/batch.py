@@ -57,6 +57,8 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'project',
     'gce_zone',
     'machine_type',
+    'network',
+    'subnetwork'
 ])
 
 
@@ -188,10 +190,8 @@ def _get_allocation_policy(spec):
   network_interface = batch.AllocationPolicy.NetworkInterface()
   network_interface.no_external_ip_address = True
   # TODO(metzman): Make configurable.
-  network_interface.network = (
-      'projects/google.com:clusterfuzz/global/networks/batch')
-  network_interface.subnetwork = (
-      'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1a')
+  network_interface.network = spec.network
+  network_interface.subnetwork = spec.subnetwork
 
   network_interfaces = [network_interface]
   network_policy = batch.AllocationPolicy.NetworkPolicy()
@@ -285,8 +285,6 @@ def _get_spec_from_config(command, job_name):
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
-  # low-privilege account.
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
@@ -297,6 +295,8 @@ def _get_spec_from_config(command, job_name):
       subnetwork=instance_spec['subnetwork'],
       gce_zone=instance_spec['gce_zone'],
       project=project_name,
+      network=instance_spec['network'],
+      subnetwork=instance_spec['subnetwork'],
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'])
   return spec
