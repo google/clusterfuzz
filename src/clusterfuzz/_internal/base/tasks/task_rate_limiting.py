@@ -20,7 +20,6 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-
 # TODO(metzman): This needs to be done better in utasks where main may return
 # an error rather than except. This needs to be handled in postprocess.
 
