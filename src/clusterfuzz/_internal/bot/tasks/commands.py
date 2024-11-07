@@ -203,8 +203,8 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   if should_update_task_status(task_name):
     if not data_handler.update_task_status(task_state_name,
                                            data_types.TaskState.STARTED):
-      logs.info('Another instance of "{}" already '
-                'running, exiting.'.format(task_state_name))
+      logs.info(f'Another instance of "{task_state_name}" already running, '
+                'exiting.')
       raise AlreadyRunningError
 
   result = None
@@ -227,10 +227,10 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     rate_limiter.record_task(success=False)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
+    rate_limiter.record_task(success=False)
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
-      rate_limiter.record_task(success=False)
     raise
   else:
     rate_limiter.record_task(success=True)

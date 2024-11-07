@@ -137,10 +137,12 @@ class FormatRecordTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self,
-                  ['clusterfuzz._internal.metrics.logs.update_entry_with_exc'])
+                  ['clusterfuzz._internal.metrics.logs.update_entry_with_exc',
+                   'os.getpid'])
     helpers.patch_environ(self)
 
     self.maxDiff = None
+    self.mock.getpid.return_value = 1337
 
   def get_record(self):
     """Make a fake record."""
@@ -173,6 +175,7 @@ class FormatRecordTest(unittest.TestCase):
         'task_payload': 'fuzz fuzzer1 job1',
         'fuzz_target': 'fuzz_target1',
         'name': 'logger_name',
+        'pid': 1337,
         'extras': {
             'a': 1,
         },
@@ -197,6 +200,7 @@ class FormatRecordTest(unittest.TestCase):
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
+        'pid': 1337,
         'location': {
             'path': 'path',
             'line': 123,
@@ -220,6 +224,7 @@ class FormatRecordTest(unittest.TestCase):
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
+        'pid': 1337,
         'location': {
             'path': 'path',
             'line': 123,

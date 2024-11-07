@@ -33,11 +33,13 @@ from googleapiclient.errors import HttpError
 import requests
 import requests.exceptions
 
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import fast_http
 from clusterfuzz._internal.system import shell
 
 from . import credentials
@@ -91,6 +93,8 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 # Timeout for HTTP operations.
 HTTP_TIMEOUT_SECONDS = 15
 
+# TODO(metzman): Figure out why this works on oss-fuzz and doesn't destroy
+# memory usage?
 _POOL_SIZE = 16
 
 _TRANSIENT_ERRORS = [
@@ -1153,6 +1157,13 @@ def blobs_bucket():
   return local_config.ProjectConfig().get('blobs.bucket')
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
+def use_async_http():
+  enabled = local_config.ProjectConfig().get('async_http.enabled', False)
+  logs.info(f'Using async HTTP: {enabled}.')
+  return enabled
+
+
 def uworker_input_bucket():
   """Returns the bucket where uworker input is done."""
   test_uworker_input_bucket = environment.get_value('TEST_UWORKER_INPUT_BUCKET')
@@ -1247,13 +1258,13 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
-def _error_tolerant_download_signed_url_to_file(url_and_path):
+def _error_tolerant_download_signed_url_to_file(url_and_path) -> bool:
   url, path = url_and_path
   try:
     download_signed_url_to_file(url, path)
-    return url
+    return True
   except Exception:
-    return None
+    return False
 
 
 def _error_tolerant_upload_signed_url(url_and_path) -> bool:
@@ -1308,13 +1319,24 @@ def download_signed_urls(signed_urls: List[str],
       for idx in range(len(signed_urls))
   ]
   logs.info('Downloading URLs.')
-  with _pool() as pool:
-    urls = list(
-        pool.map(_error_tolerant_download_signed_url_to_file,
-                 zip(signed_urls, filepaths)))
+
+  urls_and_filepaths = list(zip(signed_urls, filepaths))
+
+  def synchronous_download_urls(urls_and_filepaths):
+    with _pool() as pool:
+      return list(
+          pool.map(_error_tolerant_download_signed_url_to_file,
+                   urls_and_filepaths))
+
+  if use_async_http():
+    results = fast_http.download_urls(urls_and_filepaths)
+  else:
+    results = synchronous_download_urls(urls_and_filepaths)
+
   download_results = [
-      SignedUrlDownloadResult(url, filepaths[idx])
-      for idx, url in enumerate(urls)
+      SignedUrlDownloadResult(*urls_and_filepaths[idx])
+      for idx, result in enumerate(results)
+      if result
   ]
   return download_results
 
