@@ -21,8 +21,8 @@ import uuid
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs

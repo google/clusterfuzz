@@ -26,9 +26,9 @@ from google.cloud import ndb
 from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
