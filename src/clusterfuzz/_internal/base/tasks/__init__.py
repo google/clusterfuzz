@@ -285,7 +285,7 @@ def get_postprocess_task():
     return None
   # Postprocess is platform-agnostic, so we run all such tasks on our
   # most generic and plentiful bots only. In other words, we avoid
-  # wasting our precious non-linux bots on generic postprocess tasks.
+  # wasting our precious non-linux bots on generic postproces scltasks.
   if not environment.platform().lower() == 'linux':
     return None
   pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
@@ -601,6 +601,7 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
   initial_command = environment.get_value('TASK_PAYLOAD')
+  import pdb; pdb.set_trace()
   add_task(
       command,
       input_url,

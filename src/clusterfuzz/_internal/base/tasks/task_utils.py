@@ -40,6 +40,9 @@ def is_remotely_executing_utasks(task=None) -> bool:
 def is_task_opted_into_uworker_execution(task):
   # TODO(metzman): Remove this after OSS-Fuzz and Chrome are at parity.
   uworker_tasks = local_config.ProjectConfig().get('uworker_tasks', [])
+  import os
+  if 'skia' not in os.getenv('JOB_NAME'):
+    return False
   return task in uworker_tasks
 
 

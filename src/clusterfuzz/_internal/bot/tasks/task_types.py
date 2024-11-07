@@ -126,6 +126,7 @@ class UTask(BaseUTask):
     logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
     if not is_remote_utask(command, job_type):
+
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
