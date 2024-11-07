@@ -203,8 +203,8 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   if should_update_task_status(task_name):
     if not data_handler.update_task_status(task_state_name,
                                            data_types.TaskState.STARTED):
-      logs.info('Another instance of "{}" already '
-                'running, exiting.'.format(task_state_name))
+      logs.info(f'Another instance of "{task_state_name}" already running, '
+                'exiting.')
       raise AlreadyRunningError
 
   result = None
