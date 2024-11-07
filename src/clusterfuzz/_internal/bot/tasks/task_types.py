@@ -15,8 +15,8 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal import swarming
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
