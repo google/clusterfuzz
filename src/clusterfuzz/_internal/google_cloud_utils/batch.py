@@ -218,9 +218,9 @@ def _create_job(spec, input_urls):
   job_name = get_job_name()
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
-  project_id = spec['project']
+  project_id = spec.project
   create_request.parent = (
-      f'projects/{project_id}/locations/{spec["gce_region"]}')
+      f'projects/{project_id}/locations/{spec.gce_region}')
   job_result = _send_create_job_request(create_request)
   logs.info(f'Created batch job id={job_name}.', spec=spec)
   return job_result
