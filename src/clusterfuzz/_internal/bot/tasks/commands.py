@@ -227,11 +227,11 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     rate_limiter.record_task(success=False)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
+    rate_limiter.record_task(success=False)
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
     raise
-    rate_limiter.record_task(success=False)
   else:
     rate_limiter.record_task(success=True)
 

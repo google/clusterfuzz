@@ -48,7 +48,7 @@ MAX_CONCURRENT_VMS_PER_JOB = 1000
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
     'user_data', 'service_account_email', 'subnetwork', 'preemptible',
-    'project', 'gce_zone', 'machine_type', 'network', 'region'
+    'project', 'gce_zone', 'machine_type', 'network', 'gce_region'
 ])
 
 
@@ -219,7 +219,8 @@ def _create_job(spec, input_urls):
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = spec['project']
-  create_request.parent = f'projects/{project_id}/locations/{spec["region"]}'
+  create_request.parent = (
+      f'projects/{project_id}/locations/{spec["gce_region"]}')
   job_result = _send_create_job_request(create_request)
   logs.info(f'Created batch job id={job_name}.', spec=spec)
   return job_result
@@ -292,7 +293,7 @@ def _get_spec_from_config(command, job_name):
       disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
       gce_zone=instance_spec['gce_zone'],
-      region=instance_spec['region'],
+      gce_region=instance_spec['gce_region'],
       project=project_name,
       network=instance_spec['network'],
       subnetwork=instance_spec['subnetwork'],
