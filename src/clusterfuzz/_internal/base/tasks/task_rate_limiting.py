@@ -21,6 +21,10 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
+# TODO(metzman): This needs to be done better in utasks where main may return
+# an error rather than except. This needs to be handled in postprocess.
+
+
 def _get_datetime_now():
   return datetime.datetime.now()
 
