@@ -274,10 +274,11 @@
             },
           'pdf':
             {
-              'Linux': 'libfuzzer_pdfium_asan',
-              'Windows': 'libfuzzer_pdfium_asan',
-              'Mac': 'libfuzzer_pdfium_asan',
-              'Android': 'libfuzzer_pdfium_asan'
+              'Linux': 'libfuzzer_chrome_asan',
+              'Windows': 'windows_libfuzzer_chrome_asan',
+              'Mac': 'mac_libfuzzer_chrome_asan',
+              // android doesn't have libfuzzer builds, so we just stick with the linux one.
+              'Android': 'libfuzzer_chrome_asan'
             }
         }
 
@@ -290,7 +291,7 @@
         if (jobMapping[fileTypeKey] && jobMapping[fileTypeKey][platform]) {
           let newJob = jobMapping[fileTypeKey][platform];
           this.set('uploadParams.job', newJob);
-          if (newJob.includes('pdfium')) {
+          if (fileTypeKey == 'pdf') {
             this.set('uploadParams.target', 'pdfium_xfa_fuzzer')
           }
           return newJob;

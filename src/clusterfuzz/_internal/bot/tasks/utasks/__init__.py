@@ -22,7 +22,7 @@ from typing import Optional
 from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal import swarming
-from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.metrics import logs

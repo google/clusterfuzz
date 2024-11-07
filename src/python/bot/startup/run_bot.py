@@ -29,10 +29,10 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
@@ -191,6 +191,8 @@ def main():
     sys.exit(-1)
 
   fuzzers_init.run()
+
+  logs.info(f'PID is {os.getpid()}')
 
   if environment.is_trusted_host(ensure_connected=False):
     from clusterfuzz._internal.bot.untrusted_runner import host

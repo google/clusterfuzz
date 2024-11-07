@@ -43,6 +43,19 @@ JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
         monitor.StringField('task'),
     ],
 )
+      
+JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
+    'task/build_retrieval_time',
+    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    description=('Distribution of fuzz task\'s build retrieval times. '
+                 '(grouped by fuzzer/job)'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('step'),
+        monitor.StringField('platform'),
+        monitor.StringField('build_type'),
+    ],
+)
 
 FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     'task/fuzz/fuzzer/known_crash_count',
@@ -50,6 +63,7 @@ FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by fuzzer)'),
     field_spec=[
         monitor.StringField('fuzzer'),
+        monitor.StringField('platform'),
     ])
 
 FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -58,6 +72,7 @@ FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by fuzzer)'),
     field_spec=[
         monitor.StringField('fuzzer'),
+        monitor.StringField('platform'),
     ])
 
 JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
@@ -66,6 +81,7 @@ JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by job)'),
     field_spec=[
         monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -74,6 +90,7 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
                  '(grouped by job)'),
     field_spec=[
         monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
@@ -83,6 +100,8 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.IntegerField('return_code'),
+        monitor.StringField('platform'),
+        monitor.StringField('job'),
     ],
 )
 
@@ -93,6 +112,20 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
+        monitor.StringField('platform'),
+    ],
+)
+
+# This metric tracks fuzzer setup and data bundle update,
+# fuzzing time and the time to upload results to datastore
+FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
+    'task/fuzz/session/duration',
+    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    description=('Total duration of fuzzing session.'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
     ],
 )
 
@@ -103,6 +136,7 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
+        monitor.StringField('platform'),
     ],
 )
 
@@ -240,4 +274,14 @@ ISSUE_CLOSING = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer_name'),
         monitor.StringField('status'),
+    ])
+
+ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
+    'task/analyze/reproducibility',
+    description='Outcome count for analyze task.',
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer_name'),
+        monitor.BooleanField('reproducible'),
+        monitor.BooleanField('crashes'),
     ])
