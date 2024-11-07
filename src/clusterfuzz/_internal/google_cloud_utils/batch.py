@@ -46,17 +46,9 @@ TASK_COUNT_PER_NODE = 1
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release',
-    'disk_size_gb',
-    'disk_type',
-    'docker_image',
-    'user_data',
-    'service_account_email',
-    'subnetwork',
-    'preemptible',
-    'project',
-    'gce_zone',
-    'machine_type',
+    'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
+    'user_data', 'service_account_email', 'subnetwork', 'preemptible',
+    'project', 'gce_zone', 'machine_type', 'network', 'gce_region'
 ])
 
 
@@ -166,7 +158,6 @@ def _get_task_spec(batch_workload_spec):
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
-  # TODO(metzman): Change this for production.
   task_spec.max_run_duration = MAX_DURATION
   return task_spec
 
@@ -187,12 +178,8 @@ def _get_allocation_policy(spec):
   # unnecessary.
   network_interface = batch.AllocationPolicy.NetworkInterface()
   network_interface.no_external_ip_address = True
-  # TODO(metzman): Make configurable.
-  network_interface.network = (
-      'projects/google.com:clusterfuzz/global/networks/batch')
-  network_interface.subnetwork = (
-      'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1a')
-
+  network_interface.network = spec.network
+  network_interface.subnetwork = spec.subnetwork
   network_interfaces = [network_interface]
   network_policy = batch.AllocationPolicy.NetworkPolicy()
   network_policy.network_interfaces = network_interfaces
@@ -231,8 +218,9 @@ def _create_job(spec, input_urls):
   job_name = get_job_name()
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
-  project_id = 'google.com:clusterfuzz'
-  create_request.parent = f'projects/{project_id}/locations/us-west1'
+  project_id = spec.project
+  create_request.parent = (
+      f'projects/{project_id}/locations/{spec.gce_region}')
   job_result = _send_create_job_request(create_request)
   logs.info(f'Created batch job id={job_name}.', spec=spec)
   return job_result
@@ -269,14 +257,26 @@ def is_remote_task(command, job_name):
     return False
 
 
-def _get_spec_from_config(command, job_name):
-  """Gets the configured specifications for a batch workload."""
+def _get_config_name(command, job_name):
+  """Returns the name of the config for |command| and |job_name|."""
   job = _get_job(job_name)
-  config_name = job.platform
+  # As of this writing, batch only supports LINUX.
+  if utils.is_oss_fuzz():
+    # TODO(b/377885331): In OSS-Fuzz, the platform can't be used because, as of
+    # it includes the project name.
+    config_name = 'LINUX'
+  else:
+    config_name = job.platform
   if command == 'fuzz':
     config_name += '-PREEMPTIBLE-UNPRIVILEGED'
   else:
     config_name += '-NONPREEMPTIBLE-UNPRIVILEGED'
+  return config_name
+
+
+def _get_spec_from_config(command, job_name):
+  """Gets the configured specifications for a batch workload."""
+  config_name = _get_config_name(command, job_name)
   batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
@@ -285,8 +285,6 @@ def _get_spec_from_config(command, job_name):
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
-  # low-privilege account.
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
@@ -294,9 +292,11 @@ def _get_spec_from_config(command, job_name):
       disk_size_gb=instance_spec['disk_size_gb'],
       disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
-      subnetwork=instance_spec['subnetwork'],
       gce_zone=instance_spec['gce_zone'],
+      gce_region=instance_spec['gce_region'],
       project=project_name,
+      network=instance_spec['network'],
+      subnetwork=instance_spec['subnetwork'],
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'])
   return spec

@@ -43,6 +43,9 @@ def get_opted_in_tasks():
 
 def is_task_opted_into_uworker_execution(task):
   # TODO(metzman): Remove this after OSS-Fuzz and Chrome are at parity.
+  if 'skia' not in environment.get_value('JOB_NAME', ''):
+    # This is just for testing OSS-Fuzz.
+    return False
   uworker_tasks = get_opted_in_tasks()
   return task in uworker_tasks
 
