@@ -37,9 +37,13 @@ def is_remotely_executing_utasks(task=None) -> bool:
   return is_task_opted_into_uworker_execution(task)
 
 
+def get_opted_in_tasks():
+  return local_config.ProjectConfig().get('uworker_tasks', [])
+
+
 def is_task_opted_into_uworker_execution(task):
   # TODO(metzman): Remove this after OSS-Fuzz and Chrome are at parity.
-  uworker_tasks = local_config.ProjectConfig().get('uworker_tasks', [])
+  uworker_tasks = get_opted_in_tasks()
   return task in uworker_tasks
 
 
