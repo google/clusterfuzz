@@ -96,7 +96,6 @@ def schedule_utask_mains():
 
   logs.info(f'Combining {len(utask_mains)} batch tasks.')
 
-  batch_tasks = []
   with lease_all_tasks(utask_mains):
     batch_tasks = [
         batch.BatchTask(task.command, task.job, task.argument)
