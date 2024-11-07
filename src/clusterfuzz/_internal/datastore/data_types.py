@@ -1119,8 +1119,10 @@ class WindowRateLimitTask(Model):
   it will have a different lifecycle (it's not needed after the window
   completes). This should have a TTL as TASK_RATE_LIMIT_WINDOW in
   task_rate_limiting.py (6 hours)."""
-  # TODO(metzman): Consider using task_id.
   timestamp = ndb.DateTimeProperty(auto_now_add=True, indexed=True)
+  # Only use this for TTL. It should only be saved to by ClusterFuzz, not read.
+  ttl_expiry_timestamp = ndb.DateTimeProperty()
+  # TODO(metzman): Consider using task_id.
   task_name = ndb.StringProperty(indexed=True)
   task_argument = ndb.StringProperty(indexed=True)
   job_name = ndb.StringProperty(indexed=True)

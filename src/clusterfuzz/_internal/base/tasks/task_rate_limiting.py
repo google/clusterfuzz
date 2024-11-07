@@ -56,10 +56,12 @@ class TaskRateLimiter:
       status = data_types.TaskState.FINISHED
     else:
       status = data_types.TaskState.ERROR
+    expiry_timestamp = _get_datetime_now() + self.TASK_RATE_LIMIT_WINDOW
     window_task = data_types.WindowRateLimitTask(
         task_name=self.task_name,
         task_argument=self.task_argument,
         job_name=self.job_name,
+        ttl_expiry_timestamp=expiry_timestamp,
         status=status)
     window_task.put()
 
