@@ -601,7 +601,6 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
   initial_command = environment.get_value('TASK_PAYLOAD')
-  import pdb; pdb.set_trace()
   add_task(
       command,
       input_url,

@@ -257,6 +257,7 @@ def is_remote_task(command, job_name):
 
 
 def _get_config_name(command, job_name):
+  """Returns the name of the config for |command| and |job_name|."""
   job = _get_job(job_name)
   # As of this writing, batch only supports LINUX.
   if utils.is_oss_fuzz():
