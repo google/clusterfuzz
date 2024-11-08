@@ -118,7 +118,7 @@ def handle_analyze_no_revision_index(output):
 
 def handle_analyze_close_invalid_uploaded(output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.close_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Irrelevant')
@@ -258,7 +258,7 @@ def handle_noncrash(output):
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
-  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
@@ -298,7 +298,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       testcase_id)
   if not testcase_upload_metadata:
     logs.error('Testcase %s has no associated upload metadata.' % testcase_id)
@@ -486,7 +486,7 @@ def handle_build_setup_error(output):
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
     return
-  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
@@ -558,7 +558,7 @@ def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = testcase_utils.query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   testcase_utils.emit_testcase_triage_duration_metric(
       int(output.uworker_input.testcase_id), 'analyze_completed')

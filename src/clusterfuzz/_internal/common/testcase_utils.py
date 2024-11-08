@@ -62,7 +62,7 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
       })
 
 
-def query_testcase_upload_metadata(
+def get_testcase_upload_metadata(
     testcase_id: str) -> Optional[data_types.TestcaseUploadMetadata]:
   return data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
