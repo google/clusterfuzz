@@ -101,5 +101,5 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
           status=response.status,
       )
     with open(path, 'wb') as fp:
-      async for chunk in response.content.iter_any(1024):
+      async for chunk in response.content.iter_any():
         fp.write(chunk)
