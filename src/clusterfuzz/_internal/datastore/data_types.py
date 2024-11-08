@@ -1131,11 +1131,8 @@ class WindowRateLimitTask(Model):
   job_name = ndb.StringProperty(indexed=True)
   status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
 
-  @classmethod
-  def _pre_put_hook(cls, key, entity):
-    del cls
-    del entity
-    entity.ttl_expiry_timestamp = entity.timestamp + TASK_RATE_LIMIT_WINDOW
+  def _pre_put_hook(selfn):
+    self.ttl_expiry_timestamp = self.timestamp + TASK_RATE_LIMIT_WINDOW
 
 
 class BuildMetadata(Model):
