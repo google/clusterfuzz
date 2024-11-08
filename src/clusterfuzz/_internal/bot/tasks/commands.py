@@ -213,9 +213,9 @@ def run_command(task_name, task_argument, job_name, uworker_env):
                                                     job_name)
   if rate_limiter.is_rate_limited():
     monitoring_metrics.TASK_RATE_LIMIT_COUNT.increment(labels={
-      'job': job_name,
-      'task': task_name,
-      'argument': task_argument,
+        'job': job_name,
+        'task': task_name,
+        'argument': task_argument,
     })
     logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
     if task_name == 'fuzz':

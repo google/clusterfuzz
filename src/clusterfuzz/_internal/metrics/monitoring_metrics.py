@@ -201,9 +201,8 @@ TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
-        monitor.StringField('argument'),     
-    ]
-)
+        monitor.StringField('argument'),
+    ])
 
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/subtask_e2e_duration_secs',
