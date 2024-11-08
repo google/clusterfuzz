@@ -70,7 +70,8 @@ class TaskRateLimiter:
     if environment.get_value('COMMAND_OVERRIDE'):
       # A user wants to run this task.
       return False
-    window_start = _get_datetime_now() - data_types.WindowRateLimitTask.TASK_RATE_LIMIT_WINDOW
+    window_start = (_get_datetime_now() -
+                    data_types.WindowRateLimitTask.TASK_RATE_LIMIT_WINDOW)
     query = data_types.WindowRateLimitTask.query(
         data_types.WindowRateLimitTask.task_name == self.task_name,
         data_types.WindowRateLimitTask.task_argument == self.task_argument,
