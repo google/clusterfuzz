@@ -226,7 +226,7 @@ class FormatRecordTest(unittest.TestCase):
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
-        'task_id': 'null',
+        'task_id': 'job-1337',
         'pid': 1337,
         'location': {
             'path': 'path',
