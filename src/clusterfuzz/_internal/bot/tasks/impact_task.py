@@ -15,10 +15,10 @@
    Determine whether or not a test case affects production branches."""
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs

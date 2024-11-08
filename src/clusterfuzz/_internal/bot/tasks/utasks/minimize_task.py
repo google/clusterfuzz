@@ -38,13 +38,13 @@ from clusterfuzz._internal.bot.minimizer import js_minimizer
 from clusterfuzz._internal.bot.minimizer import minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
-from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
