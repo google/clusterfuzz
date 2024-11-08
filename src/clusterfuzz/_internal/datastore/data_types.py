@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes for objects stored in the datastore."""
 
+import datetime
 import re
 
 from google.cloud import ndb
@@ -1119,6 +1120,8 @@ class WindowRateLimitTask(Model):
   it will have a different lifecycle (it's not needed after the window
   completes). This should have a TTL as TASK_RATE_LIMIT_WINDOW in
   task_rate_limiting.py (6 hours)."""
+  TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
+
   timestamp = ndb.DateTimeProperty(auto_now_add=True, indexed=True)
   # Only use this for TTL. It should only be saved to by ClusterFuzz, not read.
   ttl_expiry_timestamp = ndb.DateTimeProperty()
@@ -1132,7 +1135,7 @@ class WindowRateLimitTask(Model):
   def _pre_put_hook(cls, key, entity):
     del cls
     del entity
-    entity.ttl_expiry_timestamp = entity.timestamp + timedelta(hours=6)
+    entity.ttl_expiry_timestamp = entity.timestamp + TASK_RATE_LIMIT_WINDOW
 
 
 class BuildMetadata(Model):
