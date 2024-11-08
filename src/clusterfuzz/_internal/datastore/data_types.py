@@ -1128,6 +1128,12 @@ class WindowRateLimitTask(Model):
   job_name = ndb.StringProperty(indexed=True)
   status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
 
+  @classmethod
+  def _pre_put_hook(cls, key, entity):
+    del cls
+    del entity
+    entity.ttl_expiry_timestamp = entity.timestamp + timedelta(hours=6)
+
 
 class BuildMetadata(Model):
   """Metadata associated with a particular archived build."""
