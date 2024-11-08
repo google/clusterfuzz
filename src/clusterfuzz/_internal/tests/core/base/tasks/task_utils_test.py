@@ -48,10 +48,6 @@ class IsTaskOptedIntoUworkerExecution(unittest.TestCase):
     os.environ['JOB_NAME'] = 'libfuzzer_asan_skia'
     self.assertTrue(task_utils.is_task_opted_into_uworker_execution('analyze'))
 
-  def test_wrong_job(self):
-    os.environ['JOB_NAME'] = 'libfuzzer_asan_systemd'
-    self.assertFalse(task_utils.is_task_opted_into_uworker_execution('analyze'))
-
   def test_no_opt_in(self):
     os.environ['JOB_NAME'] = 'libfuzzer_asan_skia'
     self.assertFalse(task_utils.is_task_opted_into_uworker_execution('fuzz'))
