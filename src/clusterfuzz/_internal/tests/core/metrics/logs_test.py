@@ -176,7 +176,7 @@ class FormatRecordTest(unittest.TestCase):
         'fuzz_target': 'fuzz_target1',
         'name': 'logger_name',
         'pid': 1337,
-        'task_id': 'job-1337'
+        'task_id': 'job-1337',
         'extras': {
             'a': 1,
         },
