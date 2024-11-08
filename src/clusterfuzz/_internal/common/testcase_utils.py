@@ -24,7 +24,7 @@ from clusterfuzz._internal.metrics import monitoring_metrics
 
 
 def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
-  testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
+  testcase_upload_metadata = get_testcase_upload_metadata(testcase_id)
   if not testcase_upload_metadata:
     logs.warning(f'No upload metadata found for testcase {testcase_id},'
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
@@ -63,6 +63,6 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
 
 
 def get_testcase_upload_metadata(
-    testcase_id: str) -> Optional[data_types.TestcaseUploadMetadata]:
+    testcase_id) -> Optional[data_types.TestcaseUploadMetadata]:
   return data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
