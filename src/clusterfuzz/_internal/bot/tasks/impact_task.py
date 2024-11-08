@@ -15,7 +15,7 @@
    Determine whether or not a test case affects production branches."""
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.commons import testcase_utils
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
