@@ -316,6 +316,45 @@ def _aggregate_fuzzer_jobs(
   _print_stats(others, total_weight)
 
 
+def _set_fuzzer_job_weight(
+    fuzzer: str,
+    job: str,
+    weight: float,
+) -> None:
+  """Sets the matching FuzzerJob's weight to the given value."""
+  fuzzer_jobs = list(
+      data_types.FuzzerJob.query(data_types.FuzzerJob.fuzzer == fuzzer,
+                                 data_types.FuzzerJob.job == job))
+
+  if not fuzzer_jobs:
+    print('No matching FuzzerJob entries found for ' +
+          f'fuzzer {fuzzer} and job {job}')
+    return
+
+  if len(fuzzer_jobs) > 1:
+    print('Bailing out! Multiple FuzzerJob entries found for ' +
+          f'fuzzer {fuzzer} and job {job}: {fuzzer_jobs}')
+    return
+
+  fj = fuzzer_jobs[0]
+
+  print(f'Fuzzer: {fj.fuzzer}')
+  print(f'Job: {fj.job}')
+  print(f'Platform: {fj.platform}')
+  print(f'Multiplier: {fj.multiplier}')
+  print(f'Old weight: {fj.weight}')
+  print(f'-> New weight: {weight}')
+
+  answer = input('Do you want to apply this mutation? [y,n] ')
+  if answer.lower() != 'y':
+    print('Not applying mutation.')
+    return
+
+  fj.weight = weight
+  fj.put()
+  print('Mutation applied.')
+
+
 def _set_fuzz_target_job_weight(
     fuzz_target_name: str,
     job: str,
@@ -362,6 +401,8 @@ def _execute_fuzzer_command(args) -> None:
       raise TypeError(f'--format {repr(args.format)} unrecognized')
   elif cmd == 'aggregate':
     _aggregate_fuzzer_jobs(args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
+  elif cmd == 'set':
+    _set_fuzzer_job_weight(args.fuzzer, args.job, args.weight)
   else:
     raise TypeError(f'weights fuzzer command {repr(cmd)} unrecognized')
 
