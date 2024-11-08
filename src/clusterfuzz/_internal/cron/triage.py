@@ -298,21 +298,15 @@ def _file_issue(testcase, issue_tracker, throttler):
   return filed
 
 
-def _emmit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
-                                         testcase: data_types.Testcase):
+def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
+                                        testcase: data_types.Testcase):
   """Emmits a metric to track age of untriaged testcases."""
   if critical_tasks_completed:
     return
   if not testcase.timestamp:
     return
   current_time = datetime.datetime.utcnow()
-  # testcase.timestamp is mutated in analyze task.
-  # taking the minimum between these two timestamps
-  # avoids the need to backfill creation_timestamp
-  testcase_creation_time = testcase.timestamp
-  if testcase.creation_timestamp:
-    testcase_creation_time = testcase.creation_timestamp
-  testcase_age = current_time - testcase_creation_time
+  testcase_age = current_time - testcase.get_created_time()
   testcase_age = testcase_age.total_seconds()
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
       testcase_age,
@@ -363,7 +357,7 @@ def main():
       continue
 
     # Emmit the metric for testcases that should be triaged.
-    _emmit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
+    _emit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
 
     # Skip if we are running progression task at this time.
     if testcase.get_metadata('progression_pending'):

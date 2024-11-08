@@ -420,11 +420,15 @@ class Testcase(Model):
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
 
-  # Timestamp.
+  # The time when a testcase is considered valid. This is the same as the
+  # creation time, except for analyze task, in which this field is a
+  # placeholder and will be refreshed.
   timestamp = ndb.DateTimeProperty()
 
-  # Original creation timestamp.
-  creation_timestamp = ndb.DateTimeProperty()
+  # Source of truth for creation time. This is missing for testcases
+  # created before it was introduced, in which case the timestamp
+  # field will be a proxy for creation time.
+  created = ndb.DateTimeProperty(indexed=False)
 
   # Does the testcase crash stack vary b/w crashes ?
   flaky_stack = ndb.BooleanProperty(default=False, indexed=False)
@@ -672,6 +676,12 @@ class Testcase(Model):
       cache = {}
 
     setattr(self, 'metadata_cache', cache)
+
+  # Returns testcase.created in case it is present, as it is
+  # the source of truth for creation time. If missing, returns
+  # testcase.timestamp as a proxy for creation time.
+  def get_created_time(self) -> ndb.DateTimeProperty:
+    return self.created if self.created else self.timestamp
 
   def get_metadata(self, key=None, default=None):
     """Get metadata for a test case. Slow on first access."""

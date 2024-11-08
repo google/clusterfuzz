@@ -788,7 +788,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.archive_filename = archive_filename
   testcase.http_flag = http_flag
   testcase.timestamp = datetime.datetime.utcnow()
-  testcase.creation_timestamp = testcase.timestamp
+  testcase.created = testcase.timestamp
   testcase.gestures = gestures
   testcase.redzone = redzone
   testcase.disable_ubsan = disable_ubsan
@@ -1378,7 +1378,7 @@ def create_user_uploaded_testcase(key,
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = utils.utcnow()
-  testcase.creation_timestamp = testcase.timestamp
+  testcase.created = testcase.timestamp
   testcase.uploader_email = uploader_email
   testcase.put()
 
