@@ -329,7 +329,9 @@ class Build(BaseBuild):
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
     # This is used by users of the class to learn the fuzz targets in the build.
-    self.fuzz_targets = None
+    self._fuzz_targets = None
+    self._unpack_everything = environment.get_value(
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES', default_value=False)
     # This is used by users of the class to instruct the class which fuzz
     # target to unpack.
     self.fuzz_target = fuzz_target
@@ -456,15 +458,12 @@ class Build(BaseBuild):
       shell.remove_file(build_local_archive)
 
   def _open_build_archive(self, base_build_dir: str, build_dir: str,
-                          build_url: str, http_build_url: Optional[str],
-                          unpack_everything: Optional[bool]):
+                          build_url: str, http_build_url: Optional[str]):
     """Gets a handle on a build archive for the current build. Depending on the
     provided parameters, this function might download the build archive into
     the build directory or directly use remote HTTP archive.
 
     Args:
-        unpack_everything: wether we should unpack the whole archive or try
-        selective unpacking.
         base_build_dir: the base build directory.
         build_dir: the current build directory.
         build_url: the build URL.
@@ -482,7 +481,8 @@ class Build(BaseBuild):
     allow_unpack_over_http = environment.get_value(
         'ALLOW_UNPACK_OVER_HTTP', default_value=False)
     can_unzip_over_http = (
-        allow_unpack_over_http and not unpack_everything and http_build_url and
+        allow_unpack_over_http and not self._unpack_everything and
+        http_build_url and
         build_archive.unzip_over_http_compatible(http_build_url))
 
     if not can_unzip_over_http:
@@ -502,9 +502,6 @@ class Build(BaseBuild):
     # Track time taken to unpack builds so that it doesn't silently regress.
     start_time = time.time()
 
-    unpack_everything = environment.get_value(
-        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-
     logs.info(f'Unpacking build from {build_url} into {build_dir}.')
 
     # Free up memory.
@@ -519,15 +516,12 @@ class Build(BaseBuild):
 
     try:
       with self._open_build_archive(base_build_dir, build_dir, build_url,
-                                    http_build_url, unpack_everything) as build:
+                                    http_build_url) as build:
         unpack_start_time = time.time()
-        unpack_everything = environment.get_value(
-            'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-
-        if not unpack_everything:
+        if not self._unpack_everything:
           # We will never unpack the full build so we need to get the targets
           # from the build archive.
-          self.fuzz_targets = list(build.list_fuzz_targets())
+          self._fuzz_targets = list(build.list_fuzz_targets())
           # We only want to unpack a single fuzz target if unpack_everything is
           # False.
           fuzz_target_to_unpack = self.fuzz_target
@@ -566,9 +560,7 @@ class Build(BaseBuild):
       logs.error(f'Unable to unpack build archive {build_url}: {e}')
       return False
 
-    if unpack_everything:
-      self.fuzz_targets = list(self._get_fuzz_targets_from_dir(build_dir))
-    else:
+    if not self._unpack_everything:
       # If this is partial build due to selected build files, then mark it as
       # such so that it is not re-used.
       partial_build_file_path = os.path.join(build_dir, PARTIAL_BUILD_FILE)
@@ -599,6 +591,14 @@ class Build(BaseBuild):
   def build_dir(self):
     """The build directory. Usually a subdirectory of base_build_dir."""
     raise NotImplementedError
+
+  @property
+  def fuzz_targets(self):
+    if not self._fuzz_targets and self._unpack_everything:
+      # we can lazily compute that when unpacking the whole archive, since we
+      # know all the fuzzers will be in the build directory.
+      self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+    return self._fuzz_targets
 
   def exists(self):
     """Check if build already exists."""
@@ -740,8 +740,8 @@ class RegularBuild(Build):
       # This list will be incomplete because the directory on disk does not have
       # all fuzz targets. This is fine. The way fuzz_targets are added to db, it
       # does not clobber complete lists.
-      assert self.fuzz_targets is None
-      self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+      assert self._fuzz_targets is None
+      self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
@@ -753,7 +753,7 @@ class SplitTargetBuild(RegularBuild):
 
   def setup(self, *args, **kwargs):
     result = super().setup(*args, **kwargs)
-    self.fuzz_targets = list(_split_target_build_list_targets())
+    self._fuzz_targets = list(_split_target_build_list_targets())
     return result
 
 
@@ -792,7 +792,7 @@ class FuchsiaBuild(RegularBuild):
 
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
-    self.fuzz_targets = list(fuzz_targets)
+    self._fuzz_targets = list(fuzz_targets)
     return True
 
 
@@ -971,7 +971,7 @@ class CustomBuild(Build):
     else:
       logs.info('Build already exists.')
 
-    self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+    self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
     return True
