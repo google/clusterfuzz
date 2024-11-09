@@ -39,6 +39,7 @@ from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -211,6 +212,11 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   rate_limiter = task_rate_limiting.TaskRateLimiter(task_name, task_argument,
                                                     job_name)
   if rate_limiter.is_rate_limited():
+    monitoring_metrics.TASK_RATE_LIMIT_COUNT.increment(labels={
+        'job': job_name,
+        'task': task_name,
+        'argument': task_argument,
+    })
     logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
     if task_name == 'fuzz':
       # Wait 10 seconds. We don't want to try again immediately because if we

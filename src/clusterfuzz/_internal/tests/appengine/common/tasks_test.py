@@ -52,11 +52,13 @@ class GetTaskTest(unittest.TestCase):
         'clusterfuzz._internal.base.persistent_cache.get_value',
         'clusterfuzz._internal.base.persistent_cache.set_value',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.base.tasks.task_utils.get_opted_in_tasks',
         'time.sleep',
     ])
 
     self.mock.get_value.return_value = None
     self.mock.sleep.return_value = None
+    self.mock.get_opted_in_tasks.return_value = False
     data_types.Job(name='job').put()
 
     client = pubsub.PubSubClient()

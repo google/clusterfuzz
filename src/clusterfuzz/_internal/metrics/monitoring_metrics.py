@@ -195,6 +195,15 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
+TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
+    'task/rate_limit',
+    description=('Counter for rate limit events.'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('argument'),
+    ])
+
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/subtask_e2e_duration_secs',
     description=(
