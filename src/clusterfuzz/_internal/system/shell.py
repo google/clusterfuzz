@@ -176,6 +176,8 @@ def clear_temp_directory(clear_user_profile_directories=True):
 @environment.local_noop
 def clear_system_temp_directory():
   """Clear system specific temp directory."""
+  if environment.get_value('DEBUG_TASK'):
+    return
 
   def _delete_object(path, delete_func):
     """Delete a object with its delete function, ignoring any error."""

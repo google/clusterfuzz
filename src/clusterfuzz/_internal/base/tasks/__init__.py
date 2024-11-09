@@ -281,7 +281,8 @@ class PubSubPuller:
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if not task_utils.is_remotely_executing_utasks():
+  if not (task_utils.is_remotely_executing_utasks() or
+          task_utils.get_opted_in_tasks()):
     return None
   # Postprocess is platform-agnostic, so we run all such tasks on our
   # most generic and plentiful bots only. In other words, we avoid
@@ -497,8 +498,6 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  if not task_utils.is_remotely_executing_utasks():
-    return None
   pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
