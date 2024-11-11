@@ -33,8 +33,6 @@ from . import credentials
 
 _local = threading.local()
 
-DEFAULT_MAX_RUN_DURATION = f'{6 * 60 * 60}s'
-CORPUS_PRUNING_MAX_RUN_DURATION = f'{24 * 60 * 60}s'
 RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
@@ -49,7 +47,8 @@ MAX_CONCURRENT_VMS_PER_JOB = 1000
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
     'user_data', 'service_account_email', 'subnetwork', 'preemptible',
-    'project', 'gce_zone', 'machine_type', 'network', 'gce_region'
+    'project', 'gce_zone', 'machine_type', 'network', 'gce_region',
+    'max_run_duration',
 ])
 
 
@@ -274,6 +273,11 @@ def _get_config_name(command, job_name):
   return config_name
 
 
+def _get_task_duration(command):
+  return tasks.TASK_LEASE_SECONDS_BY_COMMAND.get(
+      command, tasks.TASK_LEASE_SECONDS)
+
+
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
@@ -285,10 +289,7 @@ def _get_spec_from_config(command, job_name):
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
-  if job_name != 'corpus_pruning':
-    max_run_duration = DEFAULT_MAX_RUN_DURATION
-  else:
-    max_run_duration = CORPUS_PRUNING_MAX_RUN_DURATION
+  max_run_duration = f'{_get_task_duration(command)}s'
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
