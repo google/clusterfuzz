@@ -28,13 +28,18 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
+
+def _get_quotas():
+  compute.regions().get(  # pylint: disable=no-member
+      region=region,
+      project=utils.get_application_id()).execute().quotas
+
+
 def get_available_cpus(region: str) -> int:
   """Gets the number of available CPUs in the current GCE region."""
   gcp_credentials = credentials.get_default()
   compute = discovery.build('compute', 'v1', credentials=gcp_credentials)
-  quotas = compute.regions().get(  # pylint: disable=no-member
-      region=region,
-      project=utils.get_application_id()).execute().quotas
+  quotas = _get_quotas()
 
   # If preemptible quota is not defined, we need to use CPU quota instead.
   cpu_quota = None
