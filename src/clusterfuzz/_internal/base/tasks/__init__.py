@@ -609,10 +609,8 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       extra_info={'initial_command': initial_command})
 
 
-def bulk_add_tasks(
-    tasks,
-    queue=None,
-    eta_now=False):
+def bulk_add_tasks(tasks, queue=None, eta_now=False):
+  """Adds |tasks| in bulk to |queue|."""
 
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
@@ -628,17 +626,17 @@ def bulk_add_tasks(
     for task in tasks:
       task.eta = now
 
-  pubsub.PubSubClient()
+  pubsub_client = pubsub.PubSubClient()
+  pubsub_messages = [task.to_pubsub_message() for task in tasks]
   pubsub_client.publish(
-      pubsub.topic_name(utils.get_application_id(), queue),
-      [task.to_pubsub_message() for task in tasks])
-
+      pubsub.topic_name(utils.get_application_id(), queue), pubsub_messages)
 
 
 def add_task(command,
              argument,
              job_type,
              queue=None,
+             wait_time=None,
              extra_info=None):
   """Add a new task to the job queue."""
   if wait_time is None:

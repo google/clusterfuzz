@@ -46,9 +46,20 @@ TASK_COUNT_PER_NODE = 1
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
-    'user_data', 'service_account_email', 'subnetwork', 'preemptible',
-    'project', 'gce_zone', 'machine_type', 'network', 'gce_region', 'priority',
+    'clusterfuzz_release',
+    'disk_size_gb',
+    'disk_type',
+    'docker_image',
+    'user_data',
+    'service_account_email',
+    'subnetwork',
+    'preemptible',
+    'project',
+    'gce_zone',
+    'machine_type',
+    'network',
+    'gce_region',
+    'priority',
 ])
 
 
@@ -192,7 +203,7 @@ def _get_allocation_policy(spec):
   return allocation_policy
 
 
-def _create_job(spec, input_urls, priority):
+def _create_job(spec, input_urls):
   """Creates and starts a batch job from |spec| that executes all tasks."""
   task_group = batch.TaskGroup()
   task_group.task_count = len(input_urls)
@@ -220,8 +231,7 @@ def _create_job(spec, input_urls, priority):
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = spec.project
-  create_request.parent = (
-      f'projects/{project_id}/locations/{spec.gce_region}')
+  create_request.parent = f'projects/{project_id}/locations/{spec.gce_region}'
   job_result = _send_create_job_request(create_request)
   logs.info(f'Created batch job id={job_name}.', spec=spec)
   return job_result
@@ -287,8 +297,8 @@ def _get_spec_from_config(command, job_name):
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
 
-  # Lower numbers are lower priority
-  # From https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
+  # Lower numbers are lower priority. From:
+  # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
   low_priority = command == 'fuzz'
   priority = 0 if low_priority else 1
 

@@ -11,35 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Cron job to schedule fuzz tasks in ClusterFuzz."""
+"""Cron job to schedule fuzz tasks that run on batch."""
 
-import os
+import random
 import sys
 import time
 
 from googleapiclient import discovery
 
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base import tasks
-from clusterfuzz._internal.google_cloud_utils import credentials
-from clusterfuzz._internal.bot.tasks import task_creation
-from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import credentials
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 
 def get_available_cpus(region: str) -> int:
   """Gets the number of available CPUs in the current GCE region."""
   gcp_credentials = credentials.get_default()
   compute = discovery.build('compute', 'v1', credentials=gcp_credentials)
-  quotas = compute.regions().get(region=region,
-      project=project=utils.get_application_id()).execute().quotas
+  quotas = compute.regions().get(  # pylint: disable=no-member
+      region=region,
+      project=utils.get_application_id()).execute().quotas
 
   # If preemptible quota is not defined, we need to use CPU quota instead.
   cpu_quota = None
-  preemptible_cpu = None
+  preemptible_quota = None
 
   # Get preemptible_quota and cpu_quota from the list of quotas.
   for quota in quotas:
@@ -68,44 +67,44 @@ def _get_job_to_oss_fuzz_project_mapping():
   for job in ndb_utils.get_all_from_query(data_types.Job.query()):
     project_name = job.get_environment().get('PROJECT_NAME')
     assert project_name
-    mappping[job.name] = project_name
+    mapping[job.name] = project_name
   return mapping
 
 
-class FuzzTaskSchedulerBase:
+class BaseFuzzTaskScheduler:
+  """Base fuzz task scheduler for any deployment of ClusterFuzz."""
+
   def __init__(self, num_cpus):
     self.num_cpus = num_cpus
 
   def get_fuzz_tasks(self):
-    raise NotImplemented
+    raise NotImplementedError('Child class must implement.')
 
   def _get_cpus_per_fuzz_job(self, job_name):
     del job_name
     # TODO(metzman): Actually implement this.
     return 2
 
-  def get_fuzz_tasks(self, job_distributions):
-    pass
 
-
-class OssfuzzFuzzTaskScheduler(FuzzTaskSchedulerBase):
+class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
+  """Fuzz task scheduler for OSS-Fuzz."""
 
   def get_fuzz_tasks(self) -> [tasks.Task]:
     # TODO(metzman): Handle high end.
-    projects = list(ndb_utils.get_all_from_query(
-        data_types.OssFuzzProject.query()))
+    projects = list(
+        ndb_utils.get_all_from_query(data_types.OssFuzzProject.query()))
 
     total_cpu_weight = sum(project.cpu_weight for project in projects)
     project_weights = {}
     for project in projects:
       # Don't accidentally save this.
       project_weight = project.cpu_weight / total_cpu_weight
-      project_weights[name] = project_weight
+      project_weights[project.name] = project_weight
 
     platform = environment.platform()
-    fuzzer_jobs = list(ndb_utils.get_all_from_query(
-        query.filter(data_types.FuzzerJobs.platform == platform)))
-    fuzzer_jobs = {job.name for job in fuzzer_jobs}
+    fuzzer_job_query = ndb_utils.get_all_from_query(
+        data_types.FuzzerJobs.query(data_types.FuzzerJobs.platform == platform))
+    fuzzer_jobs = {job.name: job for job in fuzzer_job_query}
 
     job_to_project = _get_job_to_oss_fuzz_project_mapping()
     fuzzer_job_weights = {}
@@ -123,15 +122,14 @@ class OssfuzzFuzzTaskScheduler(FuzzTaskSchedulerBase):
     choices = random.choices(
         fuzzer_job_names, weights=fuzzer_job_weights, k=num_instances)
     fuzz_tasks = [
-        Task('fuzz',
-             fuzzer_jobs[fuzzer_job_name].fuzzer,
-             fuzzer_jobs[fuzzer_job_name].job)
+        tasks.Task('fuzz', fuzzer_jobs[fuzzer_job_name].fuzzer,
+                   fuzzer_jobs[fuzzer_job_name].job)
         for fuzzer_job_name in choices
     ]
     return fuzz_tasks
 
 
-def get_fuzz_tasks() -> [tasks.Task]:
+def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
   assert utils.is_oss_fuzz()
   scheduler = OssfuzzFuzzTaskScheduler(available_cpus)
   fuzz_tasks = scheduler.get_fuzz_tasks()
@@ -143,15 +141,16 @@ def schedule_fuzz_tasks() -> bool:
   # TODO(metzman): Remove this when we are ready to run on Chrome.
   start = time.time()
 
-  available_cpus = get_available_cpus()
+  # TODO(metzman): Make this configurable.
+  available_cpus = get_available_cpus('us-east4')
   # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = max(num_cpus, 50)
+  available_cpus = max(available_cpus, 50)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
     return False
-  bulk_add_tasks(fuzz_tasks)
-  logs.log_info('Scheduled %d fuzz tasks.', tasks_scheduled)
+  tasks.bulk_add_tasks(fuzz_tasks)
+  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
   end = time.time()
   total = end - start
@@ -160,7 +159,7 @@ def schedule_fuzz_tasks() -> bool:
 
 
 def main():
-  return return 0 if schedule_fuzz_tasks() else 1
+  return 0 if schedule_fuzz_tasks() else 1
 
 
 if __name__ == '__main__':
