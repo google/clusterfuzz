@@ -19,7 +19,6 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-
 # pylint: disable=protected-access
 
 

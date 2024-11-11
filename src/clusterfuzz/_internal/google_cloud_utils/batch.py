@@ -21,6 +21,7 @@ import uuid
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
@@ -45,9 +46,19 @@ TASK_COUNT_PER_NODE = 1
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
-    'user_data', 'service_account_email', 'subnetwork', 'preemptible',
-    'project', 'gce_zone', 'machine_type', 'network', 'gce_region',
+    'clusterfuzz_release',
+    'disk_size_gb',
+    'disk_type',
+    'docker_image',
+    'user_data',
+    'service_account_email',
+    'subnetwork',
+    'preemptible',
+    'project',
+    'gce_zone',
+    'machine_type',
+    'network',
+    'gce_region',
     'max_run_duration',
 ])
 
@@ -274,8 +285,8 @@ def _get_config_name(command, job_name):
 
 
 def _get_task_duration(command):
-  return tasks.TASK_LEASE_SECONDS_BY_COMMAND.get(
-      command, tasks.TASK_LEASE_SECONDS)
+  return tasks.TASK_LEASE_SECONDS_BY_COMMAND.get(command,
+                                                 tasks.TASK_LEASE_SECONDS)
 
 
 def _get_spec_from_config(command, job_name):
