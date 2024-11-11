@@ -48,7 +48,7 @@ MAX_CONCURRENT_VMS_PER_JOB = 1000
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
     'user_data', 'service_account_email', 'subnetwork', 'preemptible',
-    'project', 'gce_zone', 'machine_type', 'network', 'gce_region'
+    'project', 'gce_zone', 'machine_type', 'network', 'gce_region', 'priority',
 ])
 
 
@@ -192,7 +192,7 @@ def _get_allocation_policy(spec):
   return allocation_policy
 
 
-def _create_job(spec, input_urls):
+def _create_job(spec, input_urls, priority):
   """Creates and starts a batch job from |spec| that executes all tasks."""
   task_group = batch.TaskGroup()
   task_group.task_count = len(input_urls)
@@ -212,6 +212,7 @@ def _create_job(spec, input_urls):
   job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
   job.logs_policy.destination = batch.LogsPolicy.Destination.CLOUD_LOGGING
+  job.priority = spec.priority
 
   create_request = batch.CreateJobRequest()
   create_request.job = job
@@ -285,6 +286,12 @@ def _get_spec_from_config(command, job_name):
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
+
+  # Lower numbers are lower priority
+  # From https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
+  low_priority = command == 'fuzz'
+  priority = 0 if low_priority else 1
+
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
@@ -298,5 +305,6 @@ def _get_spec_from_config(command, job_name):
       network=instance_spec['network'],
       subnetwork=instance_spec['subnetwork'],
       preemptible=instance_spec['preemptible'],
-      machine_type=instance_spec['machine_type'])
+      machine_type=instance_spec['machine_type'],
+      priority=priority)
   return spec

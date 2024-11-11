@@ -125,7 +125,7 @@ def update_platform_for_job(job_name, new_platform):
   ndb_utils.put_multi(new_mappings)
 
 
-def get_fuzz_task_payload(platform=None):
+def get_fuzz_task_payloads(platform=None):
   """Select a fuzzer that can run on this platform."""
   if not platform:
     queue_override = environment.get_value('QUEUE_OVERRIDE')

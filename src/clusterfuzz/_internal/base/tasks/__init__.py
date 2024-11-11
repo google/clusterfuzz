@@ -609,18 +609,38 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       extra_info={'initial_command': initial_command})
 
 
+def bulk_add_tasks(
+    tasks,
+    queue=None,
+    eta_now=False):
+
+  # Old testcases may pass in queue=None explicitly, so we must check this here.
+  if queue is None:
+    queue = default_queue()
+
+  # If callers want delays, they must do it themselves, because this function is
+  # meant to be used for batch tasks which don't need this.
+  # Use an ETA of right now for batch because we don't need extra delay, there
+  # is natural delay added by batch, waiting for utask_main_scheduler,
+  # postprocess etc.
+  if eta_now:
+    now = utils.utcnow()
+    for task in tasks:
+      task.eta = now
+
+  pubsub.PubSubClient()
+  pubsub_client.publish(
+      pubsub.topic_name(utils.get_application_id(), queue),
+      [task.to_pubsub_message() for task in tasks])
+
+
+
 def add_task(command,
              argument,
              job_type,
              queue=None,
-             wait_time=None,
              extra_info=None):
   """Add a new task to the job queue."""
-  # Old testcases may pass in queue=None explicitly,
-  # so we must check this here.
-  if not queue:
-    queue = default_queue()
-
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
@@ -636,10 +656,7 @@ def add_task(command,
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
-  pubsub_client = pubsub.PubSubClient()
-  pubsub_client.publish(
-      pubsub.topic_name(utils.get_application_id(), queue),
-      [task.to_pubsub_message()])
+  bulk_add_tasks([task], queue=queue)
 
 
 def get_task_lease_timeout():

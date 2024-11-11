@@ -67,3 +67,7 @@ mapping:
     preemptible: true
     machine_type: n1-standard-1
 project: 'test-clusterfuzz'
+# TODO(metzman): Come up with a better system than this. I think a system where
+# we have a list of zones and associated config (such as subnets) to pick where
+# to launch tasks is ideal.
+zone: 'us-central1-a'
