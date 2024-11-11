@@ -21,6 +21,7 @@ from googleapiclient import discovery
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -28,18 +29,16 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-
-def _get_quotas():
-  compute.regions().get(  # pylint: disable=no-member
-      region=region,
-      project=utils.get_application_id()).execute().quotas
-
-
-def get_available_cpus(region: str) -> int:
-  """Gets the number of available CPUs in the current GCE region."""
+def _get_quotas(project, region):
   gcp_credentials = credentials.get_default()
   compute = discovery.build('compute', 'v1', credentials=gcp_credentials)
-  quotas = _get_quotas()
+  return compute.regions().get(  # pylint: disable=no-member
+      region=region, project=project).execute().quotas
+
+
+def get_available_cpus(project: str, region: str) -> int:
+  """Gets the number of available CPUs in the current GCE region."""
+  quotas = _get_quotas(project, region)
 
   # If preemptible quota is not defined, we need to use CPU quota instead.
   cpu_quota = None
@@ -102,13 +101,12 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     total_cpu_weight = sum(project.cpu_weight for project in projects)
     project_weights = {}
     for project in projects:
-      # Don't accidentally save this.
       project_weight = project.cpu_weight / total_cpu_weight
       project_weights[project.name] = project_weight
 
     platform = environment.platform()
     fuzzer_job_query = ndb_utils.get_all_from_query(
-        data_types.FuzzerJobs.query(data_types.FuzzerJobs.platform == platform))
+        data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
     fuzzer_jobs = {job.name: job for job in fuzzer_job_query}
 
     job_to_project = _get_job_to_oss_fuzz_project_mapping()
@@ -141,13 +139,22 @@ def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
   return fuzz_tasks
 
 
+def get_batch_regions(batch_config):
+  mapping = batch_config.get('mapping')
+  return list(set(config['gce_region'] for config in mapping.values()))
+
+
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   # TODO(metzman): Remove this when we are ready to run on Chrome.
   start = time.time()
 
-  # TODO(metzman): Make this configurable.
-  available_cpus = get_available_cpus('us-east4')
+  batch_config = local_config.BatchConfig()
+  regions = get_batch_regions(batch_config)
+  # TODO(metzman): Make it possible to use multiple regions.
+  assert len(regions) == 1
+  project = batch_config.get('project')
+  available_cpus = get_available_cpus(project, regions[0])
   # TODO(metzman): Remove this as we move from experimental code to production.
   available_cpus = max(available_cpus, 50)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
