@@ -16,74 +16,99 @@
 import unittest
 
 from clusterfuzz._internal.cron import schedule_fuzz
-from clusterfuzz._internal.tests.test_libs.helpers as test_helpers
-from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 # pylint: disable=protected-access
 
+
 @test_utils.with_cloud_emulators('datastore')
 class OssfuzzFuzzTaskScheduler(unittest.TestCase):
+  """Tests for OssfuzzFuzzTaskScheduler."""
+
   def setUp(self):
-    self.job_name = 'myjob'
-    project_name = 'myproject'
-    dead_job = data_types.Job(name='dead_job', environment_string=f'PROJECT_NAME = {self.project_name}', 
-                         )
-    dead_job.put()
-    job = data_types.Job(name=self.job_name, environment_string=f'PROJECT_NAME = {self.project_name}', 
-)
-    job.put()
-
-    dead_project_job = data_types.Job(name='dead_project_job', environment_string=f'PROJECT_NAME = dead_project', 
-                         )
-    dead_project_job.put()
-  
-    dead_job = data_types.FuzzerJob(name='dead_job', weight=0.0, platform='LINUX')
-    dead_job.put()
-    job = data_types.FuzzerJob(self.job_name, platform='LINUX')
-    job.put()
-    dead_project_job = data_types.FuzzerJob('dead_project_job', platform='LINUX')
-    dead_project_job.put()
-    data_types.OssFuzzProject(name=self.project_name).put()
-    data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
-
-    self.num_cpus = 10
-    self.scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(self.num_cpus)
-    
+    self.maxDiff = None
 
   def test_get_fuzz_tasks(self):
-    self.assertEqual(self.scheduler.get_fuzz_tasks(), [])
+    """"Tests that get_fuzz_tasks uses weights as intended."""
+    # A lot of set up.
+    job_name = 'myjob'
+    project_name = 'myproject'
+    dead_job = data_types.Job(
+        name='dead_job',
+        environment_string=f'PROJECT_NAME = {project_name}',
+    )
+    dead_job.put()
+    job = data_types.Job(
+        name=job_name,
+        environment_string=f'PROJECT_NAME = {project_name}',
+    )
+    job.put()
+
+    dead_project_job = data_types.Job(
+        name='dead_project_job',
+        environment_string='PROJECT_NAME = dead_project',
+    )
+    dead_project_job.put()
+
+    dead_job = data_types.FuzzerJob(
+        job='dead_job', weight=0.0, platform='LINUX', fuzzer='libFuzzer')
+    dead_job.put()
+    job = data_types.FuzzerJob(
+        job=job_name, platform='LINUX', fuzzer='libFuzzer')
+    job.put()
+    dead_project_job = data_types.FuzzerJob(
+        job='dead_project_job', platform='LINUX', fuzzer='libFuzzer')
+    dead_project_job.put()
+    data_types.OssFuzzProject(name=project_name).put()
+    data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
+
+    num_cpus = 10
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus)
+    results = [(task.command, task.argument, task.job)
+               for task in scheduler.get_fuzz_tasks()]
+
+    expected_results = [('fuzz', 'libFuzzer', 'myjob')] * 5
+    self.assertListEqual(results, expected_results)
 
 
 @test_utils.with_cloud_emulators('datastore')
 class TestGetJobToOssfuzzProjectMapping(unittest.TestCase):
+
   def test_get_job_to_oss_fuzz_project_mapping(self):
-    job = data_types.Job(name='job', environment_string='PROJECT_NAME = myproject')
+    job = data_types.Job(
+        name='job', environment_string='PROJECT_NAME = myproject')
     job.put()
     mapping = schedule_fuzz._get_job_to_oss_fuzz_project_mapping()
     self.assertDictEqual(mapping, {'job': 'myproject'})
 
-      
-  
+
 class TestGetAvailableCpus(unittest.TestCase):
   """Tests for get_available_cpus."""
 
   def setUp(self):
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.cron.schedule_fuzz._get_quotas'
-    ])
+    test_helpers.patch(self,
+                       ['clusterfuzz._internal.cron.schedule_fuzz._get_quotas'])
 
   def test_usage(self):
     """Tests that get_available_cpus handles usage properly."""
-    self.mock._get_quotas.return_value = [
-      {'metric': 'PREEMPTIBLE_CPUS', 'limit': 5, 'usage': 2}
-    ]
+    self.mock._get_quotas.return_value = [{
+        'metric': 'PREEMPTIBLE_CPUS',
+        'limit': 5,
+        'usage': 2
+    }]
     self.assertEqual(schedule_fuzz.get_available_cpus('project', 'region'), 3)
 
   def test_cpus_and_preemptible_cpus(self):
     """Tests that get_available_cpus handles usage properly."""
-    self.mock._get_quotas.return_value = [
-      {'metric': 'PREEMPTIBLE_CPUS', 'limit': 5, 'usage': 0},
-      {'metric': 'CPUS', 'limit': 5, 'usage': 5}
-    ]
+    self.mock._get_quotas.return_value = [{
+        'metric': 'PREEMPTIBLE_CPUS',
+        'limit': 5,
+        'usage': 0
+    }, {
+        'metric': 'CPUS',
+        'limit': 5,
+        'usage': 5
+    }]
     self.assertEqual(schedule_fuzz.get_available_cpus('region', 'project'), 5)

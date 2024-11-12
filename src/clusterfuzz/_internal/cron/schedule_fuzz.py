@@ -95,6 +95,8 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
   def get_fuzz_tasks(self) -> [tasks.Task]:
     # TODO(metzman): Handle high end.
+    # A job's weight is determined by its own weight and the weight of the
+    # project is a part of. First get project weights.
     projects = list(
         ndb_utils.get_all_from_query(data_types.OssFuzzProject.query()))
 
@@ -104,23 +106,28 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
       project_weight = project.cpu_weight / total_cpu_weight
       project_weights[project.name] = project_weight
 
+    # Then get fuzzer weights.
     platform = environment.platform()
     fuzzer_job_query = ndb_utils.get_all_from_query(
         data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
-    fuzzer_jobs = {job.name: job for job in fuzzer_job_query}
+    fuzzer_jobs = {
+        fuzzer_job.job: fuzzer_job for fuzzer_job in fuzzer_job_query
+    }
 
+    # Now make sure the project weight is factored into the weights of the jobs
+    # from which we pick one to run.
     job_to_project = _get_job_to_oss_fuzz_project_mapping()
     fuzzer_job_weights = {}
     for fuzzer_job in fuzzer_jobs.values():
-      project_name = job_to_project[fuzzer_job.name]
+      project_name = job_to_project[fuzzer_job.job]
       fuzzer_job_weight = (
           fuzzer_job.actual_weight * project_weights[project_name])
-      fuzzer_job_weights[fuzzer_job.name] = fuzzer_job_weight
+      fuzzer_job_weights[fuzzer_job.job] = fuzzer_job_weight
 
     # TODO(metzman): Handle different number of CPUs correctly.
     fuzzer_job_names = list(fuzzer_job_weights.keys())
-    fuzzer_job_weights = [fuzzer_job_weight[name] for name in fuzzer_job_names]
-    num_instances = self.num_cpus
+    fuzzer_job_weights = [fuzzer_job_weights[name] for name in fuzzer_job_names]
+    num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
 
     choices = random.choices(
         fuzzer_job_names, weights=fuzzer_job_weights, k=num_instances)
