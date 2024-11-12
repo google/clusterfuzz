@@ -156,6 +156,17 @@ class UTask(BaseUTask):
     return download_url
 
 
+# TODO(b/378684001): Remove this, it's needed for testing but is otherwise a bad
+# design.
+class UTaskMostlyLocalExecutor(UTask):
+
+  @staticmethod
+  def is_execution_remote(command=None):
+    if environment.get_value('IS_FROM_QUEUE'):
+      return True
+    return super().is_execution_remote(command=command)
+
+
 class PostprocessTask(BaseTask):
   """Represents postprocessing of an untrusted task."""
 
@@ -198,7 +209,7 @@ COMMAND_TYPES = {
     'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTask,
-    'fuzz': UTaskLocalExecutor,
+    'fuzz': UTaskMostlyLocalExecutor,
     'impact': TrustedTask,
     'minimize': UTask,
     'progression': UTask,

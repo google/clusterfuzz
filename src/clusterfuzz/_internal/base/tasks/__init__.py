@@ -300,8 +300,6 @@ def get_postprocess_task():
   return task
 
 
-
-
 def allow_all_tasks():
   return not environment.get_value('PREEMPTIBLE')
 
@@ -370,7 +368,8 @@ class Task:
                eta=None,
                is_command_override=False,
                high_end=False,
-               extra_info=None):
+               extra_info=None,
+               is_from_queue=False):
     self.command = command
     self.argument = argument
     self.job = job
@@ -378,7 +377,7 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
-
+    self.is_from_queue = is_from_queue
 
   def __repr__(self):
     return f'Task: {self.command} {self.argument} {self.job}'
@@ -420,11 +419,13 @@ class Task:
 class PubSubTask(Task):
   """A Pub/Sub task."""
 
-  def __init__(self, pubsub_message):
+  def __init__(self, pubsub_message, is_from_queue=False):
     self._pubsub_message = pubsub_message
     super().__init__(
-        self.attribute('command'), self.attribute('argument'),
-        self.attribute('job'))
+        self.attribute('command'),
+        self.attribute('argument'),
+        self.attribute('job'),
+        is_from_queue=is_from_queue)
 
     self.extra_info = {
         key: value
@@ -530,7 +531,7 @@ def initialize_task(message) -> PubSubTask:
   """Creates a task from |messages|."""
 
   if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return PubSubTask(message)
+    return PubSubTask(message, is_from_queue=True)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
@@ -539,7 +540,7 @@ def initialize_task(message) -> PubSubTask:
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message)
+  return PostprocessPubSubTask(output_url_argument, message, is_from_queue=True)
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -548,14 +549,21 @@ class PostprocessPubSubTask(PubSubTask):
   def __init__(self,
                output_url_argument,
                pubsub_message,
-               is_command_override=False):
+               is_command_override=False,
+               is_from_queue=False):
     command = 'postprocess'
     job_type = 'none'
     eta = None
     high_end = False
     grandparent_class = super(PubSubTask, self)
-    grandparent_class.__init__(command, output_url_argument, job_type, eta,
-                               is_command_override, high_end)
+    grandparent_class.__init__(
+        command,
+        output_url_argument,
+        job_type,
+        eta,
+        is_command_override,
+        high_end,
+        is_from_queue=is_from_queue)
     self._pubsub_message = pubsub_message
 
 

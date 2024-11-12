@@ -99,7 +99,12 @@ class FuzzerJob:
     self.weight = weight
 
   def copy(self):
-    return FuzzerJob(job=self.job, project=self.project, queue=self.queue, fuzzer=self.fuzzer, weight=self.weight)
+    return FuzzerJob(
+        job=self.job,
+        project=self.project,
+        queue=self.queue,
+        fuzzer=self.fuzzer,
+        weight=self.weight)
 
 
 class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
@@ -134,7 +139,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
         data_types.FuzzerJob.query())
 
     def get_fuzzer_job_key(fuzzer, job):
-      return f'{fuzzer_job.job},{fuzzer_job.fuzzer}'
+      return f'{job},{fuzzer}'
 
     for fuzzer_job_db in fuzzer_job_query:
       fuzzer_job = jobs[fuzzer_job_db.job].copy()
@@ -204,7 +209,7 @@ def schedule_fuzz_tasks() -> bool:
     logs.error('No fuzz tasks found to schedule.')
     return False
 
-  # TODO(metzman): Change this to using one queue when oss-fuzz's untrusted
+  # TODO(b/378684001): Change this to using one queue when oss-fuzz's untrusted
   # worker model is deleted.
   with concurrency.make_pool() as pool:
     list(pool.map(bulk_add, fuzz_tasks.items()))

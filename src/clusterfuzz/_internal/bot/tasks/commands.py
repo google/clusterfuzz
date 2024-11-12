@@ -211,7 +211,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   result = None
   rate_limiter = task_rate_limiting.TaskRateLimiter(task_name, task_argument,
                                                     job_name)
-  if rate_limiter.is_rate_limited():
+  if False and rate_limiter.is_rate_limited():
     monitoring_metrics.TASK_RATE_LIMIT_COUNT.increment(labels={
         'job': job_name,
         'task': task_name,
@@ -255,8 +255,10 @@ def process_command(task):
     logs.error('Empty task received.')
     return None
 
+  # TODO(b/378684001): Remove is_from_queue kludge.
   return process_command_impl(task.command, task.argument, task.job,
-                              task.high_end, task.is_command_override)
+                              task.high_end, task.is_command_override,
+                              task.is_from_queue)
 
 
 def _get_task_id(task_name, task_argument, job_name):
@@ -267,12 +269,13 @@ def _get_task_id(task_name, task_argument, job_name):
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
 def process_command_impl(task_name, task_argument, job_name, high_end,
-                         is_command_override):
+                         is_command_override, is_from_queue):
   """Implementation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
+  environment.set_value('IS_FROM_QUEUE', is_from_queue)
   if task_name in {'uworker_main', 'postprocess'}:
     # We want the id of the task we are processing, not "uworker_main", or
     # "postprocess".
