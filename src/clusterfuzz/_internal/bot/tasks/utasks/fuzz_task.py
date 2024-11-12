@@ -1534,11 +1534,9 @@ class FuzzingSession:
       crash_result_obj = crash_result.CrashResult(
           return_code, result.time_executed, result.logs)
       output = crash_result_obj.get_stacktrace()
+      # TODO(metzman): Consider uploading this with a signed URL.
       self.fuzz_task_output.engine_outputs.append(
-          _to_engine_output(output, return_code, log_time))
-
-      for crash in result.crashes:
-        testcase_manager.upload_testcase(crash.input_path, log_time)
+          _to_engine_output(output, crash.input_path, return_code, log_time))
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -2055,7 +2053,7 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_engine_output(output: str, return_code: int,
+def _to_engine_output(output: str, crash_path: str, return_code: int,
                       log_time: datetime.datetime):
   """Returns an EngineOutput proto."""
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
@@ -2067,13 +2065,18 @@ def _to_engine_output(output: str, return_code: int,
       output=bytes(truncated_output, 'utf-8'),
       return_code=return_code,
       timestamp=proto_timestamp)
+  if os.path.getsize(crash_path) > 10 * 1024**2:
+    return engine_output
+  with open(crash_path, 'rb'):
+    engine_output.crash.CopyFrom(crash_path.bread())
   return engine_output
 
 
-def _upload_engine_output_log(engine_output):
+def _upload_engine_output(engine_output):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
   testcase_manager.upload_log(engine_output.output.decode(),
                               engine_output.return_code, timestamp)
+  testcase_manager.upload_testcase(None, engine_output.testcase, log_time)
 
 
 def utask_postprocess(output):
@@ -2091,4 +2094,4 @@ def utask_postprocess(output):
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
   for engine_output in output.fuzz_task_output.engine_outputs:
-    _upload_engine_output_log(engine_output)
+    _upload_engine_output(engine_output)
