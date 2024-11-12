@@ -95,10 +95,6 @@ def cleanup_task_state():
 
   # Call python's garbage collector.
   utils.python_gc()
-  if 'CF_TASK_ID' in os.environ:
-    del os.environ['CF_TASK_ID']
-  if 'IS_FROM_QUEUE' in os.environ:
-    del os.environ['IS_FROM_QUEUE']
 
 
 def is_supported_cpu_arch_for_job():
@@ -457,3 +453,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
   finally:
     # Final clean up.
     cleanup_task_state()
+    if 'CF_TASK_ID' in os.environ:
+      del os.environ['CF_TASK_ID']
+    if 'IS_FROM_QUEUE' in os.environ:
+      del os.environ['IS_FROM_QUEUE']
