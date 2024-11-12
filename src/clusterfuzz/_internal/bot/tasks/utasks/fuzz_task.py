@@ -2077,7 +2077,7 @@ def _to_engine_output(output: str, crash_path: str, return_code: int,
   if os.path.getsize(crash_path) > 10 * 1024**2:
     return engine_output
   with open(crash_path, 'rb') as fp:
-    engine_output.crash.CopyFrom(fp.read())
+    engine_output.testcase.CopyFrom(fp.read())
 
   return engine_output
 
