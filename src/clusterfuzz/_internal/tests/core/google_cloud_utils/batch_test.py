@@ -47,12 +47,13 @@ class GetSpecFromConfigTest(unittest.TestCase):
         gce_zone='gce-zone',
         project='test-clusterfuzz',
         preemptible=False,
-        machine_type='n1-standard-1')
+        machine_type='n1-standard-1',
+        priority=1)
 
     self.assertCountEqual(spec, expected_spec)
 
-  def test_preemptible_get_spec_from_config(self):
-    """Tests that get_spec_from_config works for preemptibles as expected."""
+  def test_fuzz_get_spec_from_config(self):
+    """Tests that get_spec_from_config works for fuzz tasks as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
     spec = batch._get_spec_from_config('fuzz', job.name)  # pylint: disable=protected-access
@@ -70,6 +71,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
         gce_region='gce-region',
         project='test-clusterfuzz',
         preemptible=True,
-        machine_type='n1-standard-1')
+        machine_type='n1-standard-1',
+        priority=0)
 
     self.assertCountEqual(spec, expected_spec)
