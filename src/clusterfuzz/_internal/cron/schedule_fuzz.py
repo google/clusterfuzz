@@ -167,8 +167,11 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     logs.info(f'Scheduling {num_instances} fuzz tasks.')
 
     choices = random.choices(fuzzer_job_list, weights=weights, k=num_instances)
-    fuzz_tasks = [tasks.Task('fuzz', fuzzer_job.fuzzer, fuzzer_job.job) for fuzzer_job in choices]
-    return fuzz_tasks
+    queues_to_tasks = collections.defaultdict(list)
+    for fuzzer_job in choices:
+      queue_tasks = queues_to_tasks[fuzzer_job.queue]
+      queue_tasks.append(tasks.Task('fuzz', fuzzer_job.fuzzer, fuzzer_job.job))
+    return queues_to_tasks
 
 
 def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
@@ -203,7 +206,8 @@ def schedule_fuzz_tasks() -> bool:
 
   # TODO(metzman): Change this to using one queue when oss-fuzz's untrusted
   # worker model is deleted.
-  tasks.bulk_add_tasks(fuzz_tasks, queue='preprocess')
+  with concurrency.make_pool() as pool:
+    list(pool.map(bulk_add, fuzz_tasks.items()))
   logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
   end = time.time()
@@ -215,7 +219,7 @@ def schedule_fuzz_tasks() -> bool:
 def bulk_add(queue_and_tasks):
   queue, task_list = queue_and_tasks
   logs.info(f'Adding {task_list}.')
-
+  tasks.bulk_add_tasks(task_list, queue=queue)
 
 
 def main():
