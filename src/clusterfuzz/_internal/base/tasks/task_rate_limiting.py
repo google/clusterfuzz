@@ -37,7 +37,6 @@ class TaskRateLimiter:
   """Rate limiter for tasks. This limits tasks to 100 erroneous runs or 2000
   succesful runs in 6 hours. It keeps track of task completion when record_task
   is called at the end of every task."""
-  TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
   TASK_RATE_LIMIT_MAX_ERRORS = 100
   # TODO(metzman): Reevaluate this number, it's probably too high.
   TASK_RATE_LIMIT_MAX_COMPLETIONS = 2000
@@ -74,7 +73,9 @@ class TaskRateLimiter:
     if environment.get_value('COMMAND_OVERRIDE'):
       # A user wants to run this task.
       return False
-    window_start = _get_datetime_now() - self.TASK_RATE_LIMIT_WINDOW
+    window_start = (
+        _get_datetime_now() -
+        data_types.WindowRateLimitTask.TASK_RATE_LIMIT_WINDOW)
     query = data_types.WindowRateLimitTask.query(
         data_types.WindowRateLimitTask.task_name == self.task_name,
         data_types.WindowRateLimitTask.task_argument == self.task_argument,
