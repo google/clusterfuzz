@@ -225,8 +225,4 @@ def bulk_add(queue_and_tasks):
 
 
 def main():
-  return 0 if schedule_fuzz_tasks() else 1
-
-
-if __name__ == '__main__':
-  sys.exit(main())
+  return schedule_fuzz_tasks()
