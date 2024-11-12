@@ -30,10 +30,10 @@ from clusterfuzz._internal.system import environment
 
 
 def _get_quotas(project, region):
-  gcp_credentials = credentials.get_default()
+  gcp_credentials = credentials.get_default()[0]
   compute = discovery.build('compute', 'v1', credentials=gcp_credentials)
   return compute.regions().get(  # pylint: disable=no-member
-      region=region, project=project).execute().quotas
+      region=region, project=project).execute()['quotas']
 
 
 def get_available_cpus(project: str, region: str) -> int:
@@ -54,7 +54,7 @@ def get_available_cpus(project: str, region: str) -> int:
     if quota['metric'] == 'PREEMPTIBLE_CPUS':
       preemptible_quota = quota
       continue
-    assert preemptible_quota and cpu_quota
+  assert preemptible_quota or cpu_quota
 
   if not preemptible_quota['limit']:
     quota = cpu_quota
@@ -69,9 +69,7 @@ def _get_job_to_oss_fuzz_project_mapping():
   """Returns a mapping of jobs to OSS-Fuzz project."""
   mapping = {}
   for job in ndb_utils.get_all_from_query(data_types.Job.query()):
-    project_name = job.get_environment().get('PROJECT_NAME')
-    assert project_name
-    mapping[job.name] = project_name
+    mapping[job.name] = job.project
   return mapping
 
 
@@ -97,6 +95,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     # TODO(metzman): Handle high end.
     # A job's weight is determined by its own weight and the weight of the
     # project is a part of. First get project weights.
+    logs.info('Getting projects.')
     projects = list(
         ndb_utils.get_all_from_query(data_types.OssFuzzProject.query()))
 
@@ -106,31 +105,38 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
       project_weight = project.cpu_weight / total_cpu_weight
       project_weights[project.name] = project_weight
 
-    # Then get fuzzer weights.
+    # Then get FuzzerJob weights.
+    logs.info('Getting job weights.')
     platform = environment.platform()
+    # Ignore platform because of its wonkiness in OSS-Fuzz (e.g. skia runs on
+    # SKIA_LINUX).
     fuzzer_job_query = ndb_utils.get_all_from_query(
-        data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
+        data_types.FuzzerJob.query())
     fuzzer_jobs = {
         fuzzer_job.job: fuzzer_job for fuzzer_job in fuzzer_job_query
-    }
 
+    }
     # Now make sure the project weight is factored into the weights of the jobs
     # from which we pick one to run.
     job_to_project = _get_job_to_oss_fuzz_project_mapping()
     fuzzer_job_weights = {}
     for fuzzer_job in fuzzer_jobs.values():
       project_name = job_to_project[fuzzer_job.job]
+      project_weight = project_weights.get(project_name, None)
+      if project_weight is None:
+        continue
       fuzzer_job_weight = (
-          fuzzer_job.actual_weight * project_weights[project_name])
+          fuzzer_job.actual_weight * project_weight)
       fuzzer_job_weights[fuzzer_job.job] = fuzzer_job_weight
 
     # TODO(metzman): Handle different number of CPUs correctly.
     fuzzer_job_names = list(fuzzer_job_weights.keys())
-    fuzzer_job_weights = [fuzzer_job_weights[name] for name in fuzzer_job_names]
+    weights = [fuzzer_job_weights[name] for name in fuzzer_job_names]
     num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
+    logs.info(f'Scheduling {num_instances}.')
 
     choices = random.choices(
-        fuzzer_job_names, weights=fuzzer_job_weights, k=num_instances)
+        fuzzer_job_names, weights=weights, k=num_instances)
     fuzz_tasks = [
         tasks.Task('fuzz', fuzzer_jobs[fuzzer_job_name].fuzzer,
                    fuzzer_jobs[fuzzer_job_name].job)
@@ -163,7 +169,7 @@ def schedule_fuzz_tasks() -> bool:
   project = batch_config.get('project')
   available_cpus = get_available_cpus(project, regions[0])
   # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = max(available_cpus, 100)
+  available_cpus = min(available_cpus, 100)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
