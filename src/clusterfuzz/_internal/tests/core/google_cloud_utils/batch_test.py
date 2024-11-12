@@ -51,7 +51,8 @@ class GetSpecFromConfigTest(unittest.TestCase):
         preemptible=False,
         machine_type='n1-standard-1',
         priority=1,
-        max_run_duration='21600s',)
+        max_run_duration='21600s',
+    )
 
     self.assertCountEqual(spec, expected_spec)
 
@@ -76,7 +77,8 @@ class GetSpecFromConfigTest(unittest.TestCase):
         preemptible=True,
         machine_type='n1-standard-1',
         priority=0,
-        max_run_duration='21600s',)
+        max_run_duration='21600s',
+    )
 
     self.assertCountEqual(spec, expected_spec)
 

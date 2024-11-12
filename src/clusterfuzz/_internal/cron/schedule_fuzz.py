@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cron job to schedule fuzz tasks that run on batch."""
 
+import collections
 import random
 import sys
 import time
@@ -26,7 +27,6 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 
 
 def _get_quotas(project, region):
@@ -111,24 +111,35 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     # SKIA_LINUX).
     fuzzer_job_query = ndb_utils.get_all_from_query(
         data_types.FuzzerJob.query())
-    fuzzer_jobs = {
-        fuzzer_job.job: fuzzer_job for fuzzer_job in fuzzer_job_query
-    }
+    job_to_project = _get_job_to_oss_fuzz_project_mapping()
+
+    def fuzzer_job_to_project(fuzzer_job):
+      return job_to_project[fuzzer_job.job]
+
+    fuzzer_job_weight_by_project = collections.defaultdict(int)
+    fuzzer_jobs = {}
+    for fuzzer_job in fuzzer_job_query:
+      fuzzer_jobs[fuzzer_job.job] = fuzzer_job
+      fuzzer_job_weight_by_project[fuzzer_job_to_project(fuzzer_job)] += (
+          fuzzer_job.actual_weight)
+
     # Now make sure the project weight is factored into the weights of the jobs
     # from which we pick one to run.
-    job_to_project = _get_job_to_oss_fuzz_project_mapping()
     fuzzer_job_weights = {}
     for fuzzer_job in fuzzer_jobs.values():
-      project_name = job_to_project[fuzzer_job.job]
+      project_name = fuzzer_job_to_project(fuzzer_job)
       project_weight = project_weights.get(project_name, None)
       if project_weight is None:
+        logs.info(f'No project weight for {project_name}')
         continue
-      fuzzer_job_weight = fuzzer_job.actual_weight * project_weight
+      normalized_fuzzer_job_weight = (
+          fuzzer_job.actual_weight / fuzzer_job_weight_by_project[project_name])
+      fuzzer_job_weight = normalized_fuzzer_job_weight * project_weight
       fuzzer_job_weights[fuzzer_job.job] = fuzzer_job_weight
 
-    # TODO(metzman): Handle different number of CPUs correctly.
     fuzzer_job_names = list(fuzzer_job_weights.keys())
     weights = [fuzzer_job_weights[name] for name in fuzzer_job_names]
+    # TODO(metzman): Handle high-end jobs correctly.
     num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
     logs.info(f'Scheduling {num_instances}.')
 
@@ -170,7 +181,13 @@ def schedule_fuzz_tasks() -> bool:
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
     return False
-  tasks.bulk_add_tasks(fuzz_tasks)
+
+  # Hack because there's no single generic queue for every Linux task in
+  # oss-fuzz due to the old architecture. This will be changing.
+  # TODO(metzman): Change this to None for OSS-Fuzz once the old untrusted model
+  # is gone.
+  queue = 'postprocess' if utils.is_oss_fuzz() else None
+  tasks.bulk_add_tasks(fuzz_tasks, queue=queue)
   logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
   end = time.time()

@@ -325,5 +325,6 @@ def _get_spec_from_config(command, job_name):
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'],
       priority=priority,
-      max_run_duration=max_run_duration,)
+      max_run_duration=max_run_duration,
+  )
   return spec
