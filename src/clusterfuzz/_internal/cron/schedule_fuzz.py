@@ -15,7 +15,6 @@
 
 import collections
 import random
-import sys
 import time
 from typing import Dict
 
