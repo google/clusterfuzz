@@ -164,6 +164,8 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     fuzzer_job_list = []
     weights = []
     for fuzzer_job in fuzzer_jobs.values():
+      if 'netty-tc' not in fuzzer_job.job:
+        continue
       weights.append(fuzzer_job.weight)
       fuzzer_job_list.append(fuzzer_job)
 
@@ -173,8 +175,10 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
     choices = random.choices(fuzzer_job_list, weights=weights, k=num_instances)
     queues_to_tasks = collections.defaultdict(list)
+    import datetime
     for fuzzer_job in choices:
       queue_tasks = queues_to_tasks[fuzzer_job.queue]
+
       queue_tasks.append(tasks.Task('fuzz', fuzzer_job.fuzzer, fuzzer_job.job))
     return queues_to_tasks
 
@@ -203,7 +207,7 @@ def schedule_fuzz_tasks() -> bool:
   project = batch_config.get('project')
   available_cpus = get_available_cpus(project, regions[0])
   # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = min(available_cpus, 500)
+  available_cpus = min(available_cpus, 20)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
@@ -223,8 +227,8 @@ def schedule_fuzz_tasks() -> bool:
 
 def bulk_add(queue_and_tasks):
   queue, task_list = queue_and_tasks
-  logs.info(f'Adding {task_list}.')
-  tasks.bulk_add_tasks(task_list, queue=queue)
+  logs.info(f'Adding {task_list} to {queue}.')
+  tasks.bulk_add_tasks(task_list, queue=queue, eta_now=True)
 
 
 def main():

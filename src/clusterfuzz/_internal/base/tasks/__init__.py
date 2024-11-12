@@ -668,6 +668,7 @@ def add_task(command,
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
+
   bulk_add_tasks([task], queue=queue)
 
 
