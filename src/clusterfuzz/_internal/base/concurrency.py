@@ -20,6 +20,7 @@ from clusterfuzz._internal.system import environment
 
 POOL_SIZE = multiprocessing.cpu_count()
 
+
 @contextlib.contextmanager
 def make_pool(pool_size=POOL_SIZE):
   # Don't use processes on Windows and unittests to avoid hangs.
