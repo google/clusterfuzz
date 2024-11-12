@@ -140,7 +140,7 @@ class FormatRecordTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.logs.update_entry_with_exc', 'os.getpid'
     ])
     helpers.patch_environ(self)
-
+    os.environ['CF_TASK_ID'] = 'job-1337'
     self.maxDiff = None
     self.mock.getpid.return_value = 1337
 
@@ -176,6 +176,7 @@ class FormatRecordTest(unittest.TestCase):
         'fuzz_target': 'fuzz_target1',
         'name': 'logger_name',
         'pid': 1337,
+        'task_id': 'job-1337',
         'extras': {
             'a': 1,
         },
@@ -200,6 +201,7 @@ class FormatRecordTest(unittest.TestCase):
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
+        'task_id': 'job-1337',
         'pid': 1337,
         'location': {
             'path': 'path',
@@ -224,6 +226,7 @@ class FormatRecordTest(unittest.TestCase):
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
+        'task_id': 'job-1337',
         'pid': 1337,
         'location': {
             'path': 'path',

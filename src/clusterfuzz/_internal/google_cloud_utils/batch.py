@@ -21,6 +21,7 @@ import uuid
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
@@ -33,7 +34,6 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = f'{60 * 60 * 6}s'
 RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
@@ -60,6 +60,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'network',
     'gce_region',
     'priority',
+    'max_run_duration',
 ])
 
 
@@ -169,7 +170,7 @@ def _get_task_spec(batch_workload_spec):
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
-  task_spec.max_run_duration = MAX_DURATION
+  task_spec.max_run_duration = batch_workload_spec.max_duration
   return task_spec
 
 
@@ -285,6 +286,11 @@ def _get_config_name(command, job_name):
   return config_name
 
 
+def _get_task_duration(command):
+  return tasks.TASK_LEASE_SECONDS_BY_COMMAND.get(command,
+                                                 tasks.TASK_LEASE_SECONDS)
+
+
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
@@ -302,6 +308,8 @@ def _get_spec_from_config(command, job_name):
   low_priority = command == 'fuzz'
   priority = 0 if low_priority else 1
 
+  max_run_duration = f'{_get_task_duration(command)}s'
+
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
@@ -316,5 +324,6 @@ def _get_spec_from_config(command, job_name):
       subnetwork=instance_spec['subnetwork'],
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'],
-      priority=priority)
+      priority=priority,
+      max_run_duration=max_run_duration,)
   return spec
