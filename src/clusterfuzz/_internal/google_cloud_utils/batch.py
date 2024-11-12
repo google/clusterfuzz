@@ -317,6 +317,8 @@ def _get_spec_from_config(command, job_name):
       disk_size_gb=instance_spec['disk_size_gb'],
       disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
+      # TODO(metzman): Get rid of zone so that we can more easily run in
+      # multiple regions.
       gce_zone=instance_spec['gce_zone'],
       gce_region=instance_spec['gce_region'],
       project=project_name,
