@@ -21,6 +21,7 @@ import uuid
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
@@ -33,7 +34,6 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = f'{60 * 60 * 6}s'
 RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
@@ -46,9 +46,20 @@ TASK_COUNT_PER_NODE = 1
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release', 'disk_size_gb', 'disk_type', 'docker_image',
-    'user_data', 'service_account_email', 'subnetwork', 'preemptible',
-    'project', 'gce_zone', 'machine_type', 'network', 'gce_region'
+    'clusterfuzz_release',
+    'disk_size_gb',
+    'disk_type',
+    'docker_image',
+    'user_data',
+    'service_account_email',
+    'subnetwork',
+    'preemptible',
+    'project',
+    'gce_zone',
+    'machine_type',
+    'network',
+    'gce_region',
+    'max_run_duration',
 ])
 
 
@@ -158,7 +169,7 @@ def _get_task_spec(batch_workload_spec):
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
-  task_spec.max_run_duration = MAX_DURATION
+  task_spec.max_run_duration = batch_workload_spec.max_duration
   return task_spec
 
 
@@ -219,8 +230,7 @@ def _create_job(spec, input_urls):
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = spec.project
-  create_request.parent = (
-      f'projects/{project_id}/locations/{spec.gce_region}')
+  create_request.parent = f'projects/{project_id}/locations/{spec.gce_region}'
   job_result = _send_create_job_request(create_request)
   logs.info(f'Created batch job id={job_name}.', spec=spec)
   return job_result
@@ -274,6 +284,11 @@ def _get_config_name(command, job_name):
   return config_name
 
 
+def _get_task_duration(command):
+  return tasks.TASK_LEASE_SECONDS_BY_COMMAND.get(command,
+                                                 tasks.TASK_LEASE_SECONDS)
+
+
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
@@ -285,6 +300,7 @@ def _get_spec_from_config(command, job_name):
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
+  max_run_duration = f'{_get_task_duration(command)}s'
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
@@ -298,5 +314,6 @@ def _get_spec_from_config(command, job_name):
       network=instance_spec['network'],
       subnetwork=instance_spec['subnetwork'],
       preemptible=instance_spec['preemptible'],
-      machine_type=instance_spec['machine_type'])
+      machine_type=instance_spec['machine_type'],
+      max_run_duration=max_run_duration)
   return spec
