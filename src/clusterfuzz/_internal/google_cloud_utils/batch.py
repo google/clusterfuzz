@@ -55,7 +55,6 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'subnetwork',
     'preemptible',
     'project',
-    'gce_zone',
     'machine_type',
     'network',
     'gce_region',
@@ -289,10 +288,16 @@ def _get_task_duration(command):
                                                  tasks.TASK_LEASE_SECONDS)
 
 
+def _get_region(batch_config):
+  # TODO(metzman): Make this pick one at random or based on conditions.
+  return next(batch_config.get('regions').items())
+
+
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
   batch_config = _get_batch_config()
+  region_name, region_config = _get_region(batch_config)
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
@@ -308,11 +313,10 @@ def _get_spec_from_config(command, job_name):
       disk_size_gb=instance_spec['disk_size_gb'],
       disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
-      gce_zone=instance_spec['gce_zone'],
-      gce_region=instance_spec['gce_region'],
+      gce_region=region_name,
       project=project_name,
-      network=instance_spec['network'],
-      subnetwork=instance_spec['subnetwork'],
+      network=region_config['network'],
+      subnetwork=region_config['subnetwork'],
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'],
       max_run_duration=max_run_duration)
