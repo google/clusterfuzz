@@ -97,6 +97,8 @@ def cleanup_task_state():
   utils.python_gc()
   if 'CF_TASK_ID' in os.environ:
     del os.environ['CF_TASK_ID']
+  if 'IS_FROM_QUEUE' in os.environ:
+    del os.environ['IS_FROM_QUEUE']
 
 
 def is_supported_cpu_arch_for_job():
@@ -211,7 +213,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   result = None
   rate_limiter = task_rate_limiting.TaskRateLimiter(task_name, task_argument,
                                                     job_name)
-  if False and rate_limiter.is_rate_limited():
+  if rate_limiter.is_rate_limited():
     monitoring_metrics.TASK_RATE_LIMIT_COUNT.increment(labels={
         'job': job_name,
         'task': task_name,

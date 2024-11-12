@@ -67,13 +67,6 @@ def get_available_cpus(project: str, region: str) -> int:
   return quota['limit'] - quota['usage']
 
 
-def _get_job_to_oss_fuzz_project_mapping():
-  """Returns a mapping of jobs to OSS-Fuzz project."""
-  mapping = {}
-
-  return mapping
-
-
 class BaseFuzzTaskScheduler:
   """Base fuzz task scheduler for any deployment of ClusterFuzz."""
 
@@ -90,6 +83,9 @@ class BaseFuzzTaskScheduler:
 
 
 class FuzzerJob:
+  """Data class that holds more info about FuzzerJobs than the ndb.Models do.
+  Something like this would probably not be needed if we were using SQL and
+  could use joins."""
 
   def __init__(self, job, project, queue, fuzzer=None, weight=None):
     self.job = job
@@ -164,8 +160,6 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     fuzzer_job_list = []
     weights = []
     for fuzzer_job in fuzzer_jobs.values():
-      if 'netty-tc' not in fuzzer_job.job:
-        continue
       weights.append(fuzzer_job.weight)
       fuzzer_job_list.append(fuzzer_job)
 
@@ -175,7 +169,6 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
     choices = random.choices(fuzzer_job_list, weights=weights, k=num_instances)
     queues_to_tasks = collections.defaultdict(list)
-    import datetime
     for fuzzer_job in choices:
       queue_tasks = queues_to_tasks[fuzzer_job.queue]
 

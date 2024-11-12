@@ -23,7 +23,7 @@ spec:
     spec:
       activeDeadlineSeconds: 1200  # 20 minutes.
       template:
-        spec: 
+        spec:
           containers:
           - name: backup
             image: gcr.io/clusterfuzz-images/base:091c6c2-202409251610

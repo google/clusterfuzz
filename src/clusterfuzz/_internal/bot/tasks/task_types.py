@@ -162,9 +162,10 @@ class UTaskMostlyLocalExecutor(UTask):
 
   @staticmethod
   def is_execution_remote(command=None):
+    del command
     if environment.get_value('IS_FROM_QUEUE'):
       return True
-    return super().is_execution_remote(command=command)
+    return False
 
 
 class PostprocessTask(BaseTask):

@@ -38,17 +38,20 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     dead_job = data_types.Job(
         name='dead_job',
         environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
     )
     dead_job.put()
     job = data_types.Job(
         name=job_name,
         environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
     )
     job.put()
 
     dead_project_job = data_types.Job(
         name='dead_project_job',
         environment_string='PROJECT_NAME = dead_project',
+        platform='LINUX',
     )
     dead_project_job.put()
 
@@ -66,22 +69,17 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
 
     num_cpus = 10
     scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus)
-    results = [(task.command, task.argument, task.job)
-               for task in scheduler.get_fuzz_tasks()]
+    results = scheduler.get_fuzz_tasks()
+    comparable_results = []
+    for tasks in results.values():
+      comparable_tasks = []
+      for task in tasks:
+        comparable_tasks.append((task.command, task.argument, task.job))
+      comparable_results.append(comparable_tasks)
 
-    expected_results = [('fuzz', 'libFuzzer', 'myjob')] * 5
-    self.assertListEqual(results, expected_results)
-
-
-@test_utils.with_cloud_emulators('datastore')
-class TestGetJobToOssfuzzProjectMapping(unittest.TestCase):
-
-  def test_get_job_to_oss_fuzz_project_mapping(self):
-    job = data_types.Job(
-        name='job', environment_string='PROJECT_NAME = myproject')
-    job.put()
-    mapping = schedule_fuzz._get_job_to_oss_fuzz_project_mapping()
-    self.assertDictEqual(mapping, {'job': 'myproject'})
+    expected_results = [[('fuzz', 'libFuzzer', 'myjob')] * 5]
+    self.assertListEqual(list(results.keys()), ['jobs-linux'])
+    self.assertListEqual(comparable_results, expected_results)
 
 
 class TestGetAvailableCpus(unittest.TestCase):
