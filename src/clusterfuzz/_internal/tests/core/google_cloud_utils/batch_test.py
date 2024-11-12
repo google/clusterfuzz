@@ -34,7 +34,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
   def test_nonpreemptible(self):
     """Tests that get_spec_from_config works for non-preemptibles as
     expected."""
-    spec = batch._get_spec_from_config('corpus_pruning', self.job.name)
+    spec = batch._get_spec_from_config('analyze', self.job.name)
     expected_spec = batch.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
@@ -49,7 +49,8 @@ class GetSpecFromConfigTest(unittest.TestCase):
         gce_zone='gce-zone',
         project='test-clusterfuzz',
         preemptible=False,
-        machine_type='n1-standard-1')
+        machine_type='n1-standard-1',
+        max_run_duration='21600s')
 
     self.assertCountEqual(spec, expected_spec)
 
@@ -70,7 +71,8 @@ class GetSpecFromConfigTest(unittest.TestCase):
         gce_region='gce-region',
         project='test-clusterfuzz',
         preemptible=True,
-        machine_type='n1-standard-1')
+        machine_type='n1-standard-1',
+        max_run_duration='21600s')
 
     self.assertCountEqual(spec, expected_spec)
 
