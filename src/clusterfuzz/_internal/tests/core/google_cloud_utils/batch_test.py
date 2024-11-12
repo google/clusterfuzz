@@ -46,7 +46,6 @@ class GetSpecFromConfigTest(unittest.TestCase):
         'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname',
         network='projects/google.com:clusterfuzz/global/networks/networkname',
         gce_region='gce-region',
-        gce_zone='gce-zone',
         project='test-clusterfuzz',
         preemptible=False,
         machine_type='n1-standard-1',
@@ -67,7 +66,6 @@ class GetSpecFromConfigTest(unittest.TestCase):
         subnetwork=
         'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname',
         network='projects/google.com:clusterfuzz/global/networks/networkname',
-        gce_zone='gce-zone',
         gce_region='gce-region',
         project='test-clusterfuzz',
         preemptible=True,

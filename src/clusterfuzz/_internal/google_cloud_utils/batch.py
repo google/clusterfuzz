@@ -290,7 +290,7 @@ def _get_task_duration(command):
 
 def _get_region(batch_config):
   # TODO(metzman): Make this pick one at random or based on conditions.
-  return next(batch_config.get('regions').items())
+  return list(batch_config.get('regions').items())[0]
 
 
 def _get_spec_from_config(command, job_name):

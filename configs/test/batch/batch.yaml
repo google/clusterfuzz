@@ -60,6 +60,6 @@ mapping:
     machine_type: n1-standard-1
 project: 'test-clusterfuzz'
 regions:
-  - 'us-central1':
-      network: 'projects/google.com:clusterfuzz/global/networks/networkname'
-      subnetwork: 'projects/google.com:clusterfuzz/regions/us-central1/subnetworks/subnetworkname'
+  us-central1:
+    network: 'projects/google.com:clusterfuzz/global/networks/networkname'
+    subnetwork: 'projects/google.com:clusterfuzz/regions/us-central1/subnetworks/subnetworkname'
