@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: backup
+  name: schedule-fuzz
 spec:
   schedule: "*/30 * * * *"
   concurrencyPolicy: Forbid
