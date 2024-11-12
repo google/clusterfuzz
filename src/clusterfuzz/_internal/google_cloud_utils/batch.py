@@ -170,7 +170,7 @@ def _get_task_spec(batch_workload_spec):
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
-  task_spec.max_run_duration = batch_workload_spec.max_duration
+  task_spec.max_run_duration = batch_workload_spec.max_run_duration
   return task_spec
 
 
