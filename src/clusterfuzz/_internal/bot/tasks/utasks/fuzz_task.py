@@ -1535,8 +1535,16 @@ class FuzzingSession:
           return_code, result.time_executed, result.logs)
       output = crash_result_obj.get_stacktrace()
       # TODO(metzman): Consider uploading this with a signed URL.
-      self.fuzz_task_output.engine_outputs.append(
-          _to_engine_output(output, crash.input_path, return_code, log_time))
+      if result.crashes:
+        # We only upload the first, because they will clobber each other if we
+        # upload more.
+        result_crash = result.crashes[0].input_path
+      else:
+        result_crash = None
+
+      engine_output = _to_engine_output(output, result_crash, return_code,
+                                        log_time)
+      self.fuzz_task_output.engine_outputs.append(engine_output)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -2065,10 +2073,12 @@ def _to_engine_output(output: str, crash_path: str, return_code: int,
       output=bytes(truncated_output, 'utf-8'),
       return_code=return_code,
       timestamp=proto_timestamp)
+
   if os.path.getsize(crash_path) > 10 * 1024**2:
     return engine_output
-  with open(crash_path, 'rb'):
-    engine_output.crash.CopyFrom(crash_path.bread())
+  with open(crash_path, 'rb') as fp:
+    engine_output.crash.CopyFrom(fp.read())
+
   return engine_output
 
 
@@ -2076,7 +2086,7 @@ def _upload_engine_output(engine_output):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
   testcase_manager.upload_log(engine_output.output.decode(),
                               engine_output.return_code, timestamp)
-  testcase_manager.upload_testcase(None, engine_output.testcase, log_time)
+  testcase_manager.upload_testcase(None, engine_output.testcase, timestamp)
 
 
 def utask_postprocess(output):
