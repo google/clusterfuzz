@@ -17,7 +17,7 @@ kind: CronJob
 metadata:
   name: backup
 spec:
-  schedule: "*/20 * * * *"
+  schedule: "*/30 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
