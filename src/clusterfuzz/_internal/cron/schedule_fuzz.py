@@ -17,9 +17,11 @@ import collections
 import random
 import sys
 import time
+from typing import Dict
 
 from googleapiclient import discovery
 
+from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -68,8 +70,7 @@ def get_available_cpus(project: str, region: str) -> int:
 def _get_job_to_oss_fuzz_project_mapping():
   """Returns a mapping of jobs to OSS-Fuzz project."""
   mapping = {}
-  for job in ndb_utils.get_all_from_query(data_types.Job.query()):
-    mapping[job.name] = job.project
+
   return mapping
 
 
@@ -88,10 +89,23 @@ class BaseFuzzTaskScheduler:
     return 2
 
 
+class FuzzerJob:
+
+  def __init__(self, job, project, queue, fuzzer=None, weight=None):
+    self.job = job
+    self.project = project
+    self.queue = queue
+    self.fuzzer = fuzzer
+    self.weight = weight
+
+  def copy(self):
+    return FuzzerJob(job=self.job, project=self.project, queue=self.queue, fuzzer=self.fuzzer, weight=self.weight)
+
+
 class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
   """Fuzz task scheduler for OSS-Fuzz."""
 
-  def get_fuzz_tasks(self) -> [tasks.Task]:
+  def get_fuzz_tasks(self) -> Dict[str, tasks.Task]:
     # TODO(metzman): Handle high end.
     # A job's weight is determined by its own weight and the weight of the
     # project is a part of. First get project weights.
@@ -106,49 +120,54 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
       project_weights[project.name] = project_weight
 
     # Then get FuzzerJob weights.
-    logs.info('Getting job weights.')
-    # Ignore platform because of its wonkiness in OSS-Fuzz (e.g. skia runs on
-    # SKIA_LINUX).
-    fuzzer_job_query = ndb_utils.get_all_from_query(
-        data_types.FuzzerJob.query())
-    job_to_project = _get_job_to_oss_fuzz_project_mapping()
-
-    def fuzzer_job_to_project(fuzzer_job):
-      return job_to_project[fuzzer_job.job]
+    logs.info('Getting jobs.')
+    jobs = {}
+    for job in ndb_utils.get_all_from_query(data_types.Job.query()):
+      jobs[job.name] = FuzzerJob(
+          job=job.name,
+          project=job.project,
+          queue=tasks.queue_for_platform(job.platform))
 
     fuzzer_job_weight_by_project = collections.defaultdict(int)
     fuzzer_jobs = {}
-    for fuzzer_job in fuzzer_job_query:
-      fuzzer_jobs[fuzzer_job.job] = fuzzer_job
-      fuzzer_job_weight_by_project[fuzzer_job_to_project(fuzzer_job)] += (
-          fuzzer_job.actual_weight)
+    fuzzer_job_query = ndb_utils.get_all_from_query(
+        data_types.FuzzerJob.query())
 
-    # Now make sure the project weight is factored into the weights of the jobs
-    # from which we pick one to run.
-    fuzzer_job_weights = {}
-    for fuzzer_job in fuzzer_jobs.values():
-      project_name = fuzzer_job_to_project(fuzzer_job)
-      project_weight = project_weights.get(project_name, None)
+    def get_fuzzer_job_key(fuzzer, job):
+      return f'{fuzzer_job.job},{fuzzer_job.fuzzer}'
+
+    for fuzzer_job_db in fuzzer_job_query:
+      fuzzer_job = jobs[fuzzer_job_db.job].copy()
+      fuzzer_job.fuzzer = fuzzer_job_db.fuzzer
+      project_weight = project_weights.get(fuzzer_job.project, None)
       if project_weight is None:
-        logs.info(f'No project weight for {project_name}')
+        logs.info(f'No project weight for {fuzzer_job.project}')
         continue
-      normalized_fuzzer_job_weight = (
-          fuzzer_job.actual_weight / fuzzer_job_weight_by_project[project_name])
-      fuzzer_job_weight = normalized_fuzzer_job_weight * project_weight
-      fuzzer_job_weights[fuzzer_job.job] = fuzzer_job_weight
 
-    fuzzer_job_names = list(fuzzer_job_weights.keys())
-    weights = [fuzzer_job_weights[name] for name in fuzzer_job_names]
+      fuzzer_job.weight = fuzzer_job_db.actual_weight * project_weight
+      key = get_fuzzer_job_key(fuzzer_job_db.fuzzer, fuzzer_job_db.job)
+      fuzzer_jobs[key] = fuzzer_job
+
+      fuzzer_job_weight_by_project[fuzzer_job.project] += (
+          fuzzer_job_db.actual_weight)
+
+    for key, fuzzer_job in list(fuzzer_jobs.items()):
+      total_project_weight = fuzzer_job_weight_by_project[fuzzer_job.project]
+      fuzzer_job.weight /= total_project_weight
+
+    # Prepare lists for random.choice
+    fuzzer_job_list = []
+    weights = []
+    for fuzzer_job in fuzzer_jobs.values():
+      weights.append(fuzzer_job.weight)
+      fuzzer_job_list.append(fuzzer_job)
+
     # TODO(metzman): Handle high-end jobs correctly.
     num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
-    logs.info(f'Scheduling {num_instances}.')
+    logs.info(f'Scheduling {num_instances} fuzz tasks.')
 
-    choices = random.choices(fuzzer_job_names, weights=weights, k=num_instances)
-    fuzz_tasks = [
-        tasks.Task('fuzz', fuzzer_jobs[fuzzer_job_name].fuzzer,
-                   fuzzer_jobs[fuzzer_job_name].job)
-        for fuzzer_job_name in choices
-    ]
+    choices = random.choices(fuzzer_job_list, weights=weights, k=num_instances)
+    fuzz_tasks = [tasks.Task('fuzz', fuzzer_job.fuzzer, fuzzer_job.job) for fuzzer_job in choices]
     return fuzz_tasks
 
 
@@ -176,24 +195,27 @@ def schedule_fuzz_tasks() -> bool:
   project = batch_config.get('project')
   available_cpus = get_available_cpus(project, regions[0])
   # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = min(available_cpus, 100)
+  available_cpus = min(available_cpus, 500)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
     return False
 
-  # Hack because there's no single generic queue for every Linux task in
-  # oss-fuzz due to the old architecture. This will be changing.
-  # TODO(metzman): Change this to None for OSS-Fuzz once the old untrusted model
-  # is gone.
-  queue = 'postprocess' if utils.is_oss_fuzz() else None
-  tasks.bulk_add_tasks(fuzz_tasks, queue=queue)
+  # TODO(metzman): Change this to using one queue when oss-fuzz's untrusted
+  # worker model is deleted.
+  tasks.bulk_add_tasks(fuzz_tasks, queue='preprocess')
   logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
   end = time.time()
   total = end - start
   logs.info(f'Task scheduling took {total} seconds.')
   return True
+
+
+def bulk_add(queue_and_tasks):
+  queue, task_list = queue_and_tasks
+  logs.info(f'Adding {task_list}.')
+
 
 
 def main():

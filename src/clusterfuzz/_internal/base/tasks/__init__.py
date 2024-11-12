@@ -377,6 +377,10 @@ class Task:
     self.high_end = high_end
     self.extra_info = extra_info
 
+
+  def __repr__(self):
+    return f'Task: {self.command} {self.argument} {self.job}'
+
   def attribute(self, _):
     return None
 

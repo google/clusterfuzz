@@ -14,8 +14,6 @@
 """Functions for managing Google Cloud Storage."""
 
 import collections
-from concurrent import futures
-import contextlib
 import copy
 import datetime
 import json
@@ -33,6 +31,7 @@ from googleapiclient.errors import HttpError
 import requests
 import requests.exceptions
 
+from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -783,16 +782,6 @@ def _signing_creds():
   return _local.signing_creds
 
 
-# TODO(metzman): Move all parallel code to fast_http.
-@contextlib.contextmanager
-def _pool(pool_size=_POOL_SIZE):
-  if (environment.get_value('PY_UNITTESTS') or
-      environment.platform() == 'WINDOWS'):
-    yield futures.ThreadPoolExecutor(pool_size)
-  else:
-    yield futures.ProcessPoolExecutor(pool_size)
-
-
 def get_bucket_name_and_path(cloud_storage_file_path):
   """Return bucket name and path given a full cloud storage path."""
   filtered_path = utils.strip_from_left(cloud_storage_file_path, GS_PREFIX)
@@ -1294,7 +1283,7 @@ def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
   if not signed_urls:
     return []
   logs.info('Uploading URLs.')
-  with _pool() as pool:
+  with concurrency.make_pool(_POOL_SIZE) as pool:
     result = list(
         pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.info('Done uploading URLs.')
@@ -1323,7 +1312,7 @@ def download_signed_urls(signed_urls: List[str],
   urls_and_filepaths = list(zip(signed_urls, filepaths))
 
   def synchronous_download_urls(urls_and_filepaths):
-    with _pool() as pool:
+    with concurrency.make_pool(_POOL_SIZE) as pool:
       return list(
           pool.map(_error_tolerant_download_signed_url_to_file,
                    urls_and_filepaths))
@@ -1345,7 +1334,7 @@ def delete_signed_urls(urls):
   if not urls:
     return
   logs.info('Deleting URLs.')
-  with _pool() as pool:
+  with concurrency.make_pool(_POOL_SIZE) as pool:
     pool.map(_error_tolerant_delete_signed_url, urls)
   logs.info('Done deleting URLs.')
 
