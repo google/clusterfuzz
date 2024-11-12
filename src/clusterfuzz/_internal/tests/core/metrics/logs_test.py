@@ -136,9 +136,9 @@ class FormatRecordTest(unittest.TestCase):
   """Test format_record."""
 
   def setUp(self):
-    helpers.patch(self,
-                  ['clusterfuzz._internal.metrics.logs.update_entry_with_exc',
-                   'os.getpid'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.update_entry_with_exc', 'os.getpid'
+    ])
     helpers.patch_environ(self)
 
     self.maxDiff = None

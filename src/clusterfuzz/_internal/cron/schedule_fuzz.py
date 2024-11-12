@@ -107,14 +107,12 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
     # Then get FuzzerJob weights.
     logs.info('Getting job weights.')
-    platform = environment.platform()
     # Ignore platform because of its wonkiness in OSS-Fuzz (e.g. skia runs on
     # SKIA_LINUX).
     fuzzer_job_query = ndb_utils.get_all_from_query(
         data_types.FuzzerJob.query())
     fuzzer_jobs = {
         fuzzer_job.job: fuzzer_job for fuzzer_job in fuzzer_job_query
-
     }
     # Now make sure the project weight is factored into the weights of the jobs
     # from which we pick one to run.
@@ -125,8 +123,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
       project_weight = project_weights.get(project_name, None)
       if project_weight is None:
         continue
-      fuzzer_job_weight = (
-          fuzzer_job.actual_weight * project_weight)
+      fuzzer_job_weight = fuzzer_job.actual_weight * project_weight
       fuzzer_job_weights[fuzzer_job.job] = fuzzer_job_weight
 
     # TODO(metzman): Handle different number of CPUs correctly.
@@ -135,8 +132,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
     logs.info(f'Scheduling {num_instances}.')
 
-    choices = random.choices(
-        fuzzer_job_names, weights=weights, k=num_instances)
+    choices = random.choices(fuzzer_job_names, weights=weights, k=num_instances)
     fuzz_tasks = [
         tasks.Task('fuzz', fuzzer_jobs[fuzzer_job_name].fuzzer,
                    fuzzer_jobs[fuzzer_job_name].job)

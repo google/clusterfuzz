@@ -199,7 +199,8 @@ def format_record(record: logging.LogRecord) -> str:
           os.getenv('TASK_PAYLOAD'),
       'name':
           record.name,
-      'pid': os.getpid(),
+      'pid':
+          os.getpid(),
   }
 
   initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
