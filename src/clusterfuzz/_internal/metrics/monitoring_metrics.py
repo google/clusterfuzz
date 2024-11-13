@@ -207,6 +207,16 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
+TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
+    'uploaded_testcase_analysis/triage_duration_secs',
+    description=('Time elapsed between testcase upload and completion'
+                 ' of relevant tasks in the testcase upload lifecycle.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('step'),
+        monitor.StringField('job'),
+    ],
+)
 TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
     'task/rate_limit',
     description=('Counter for rate limit events.'),

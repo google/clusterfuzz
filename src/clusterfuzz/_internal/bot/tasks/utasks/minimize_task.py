@@ -44,6 +44,7 @@ from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -834,6 +835,9 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(output.uworker_input.testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_MINIMIZE_COMPLETED_STEP)
   update_testcase(output)
   _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
