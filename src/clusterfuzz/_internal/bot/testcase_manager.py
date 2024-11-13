@@ -430,7 +430,7 @@ def upload_testcase(testcase_path, testcase_data, log_time):
   if not fuzz_logs_bucket:
     return
 
-  assert not testcase_path and testcase_data
+  assert not (testcase_path and testcase_data)
   if testcase_path:
     if not os.path.exists(testcase_path):
       return
