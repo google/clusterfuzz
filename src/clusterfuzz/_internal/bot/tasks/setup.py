@@ -486,7 +486,8 @@ def update_data_bundle(
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
 
-    if not (environment.is_trusted_host() and data_bundle.sync_to_worker):
+    if not (environment.is_uworker() and environment.is_trusted_host() and
+            data_bundle.sync_to_worker):
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
     else:
@@ -710,8 +711,8 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   """Return true if the data bundle is up to date, false otherwise."""
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
 
-  if (not environment.is_uworker()
-      and environment.is_trusted_host() and data_bundle.sync_to_worker):
+  if (not environment.is_uworker() and environment.is_trusted_host() and
+      data_bundle.sync_to_worker):
     from clusterfuzz._internal.bot.untrusted_runner import file_host
     worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
     shell.remove_file(sync_file_path)
