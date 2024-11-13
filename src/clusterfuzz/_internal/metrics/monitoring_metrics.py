@@ -32,6 +32,18 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
         monitor.BooleanField('bad_build'),
     ])
 
+JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
+    'job/build_age',
+    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    description=('Distribution of latest build\'s age in hours. '
+                 '(grouped by fuzzer/job)'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('task'),
+    ],
+)
+
 JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
