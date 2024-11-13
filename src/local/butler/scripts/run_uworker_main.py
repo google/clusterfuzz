@@ -23,9 +23,9 @@ from clusterfuzz._internal.system import environment
 def execute(args):
   """Runs uworker_main on a uworker input URL."""
   del args
+  # To use: set this in the environment: 
+  # UWORKER_INPUT_DOWNLOAD_URL=<SIGNED UWORKER INPUT URL>
   environment.set_bot_environment()
   init.run()
-  os.environ[
-      'UWORKER_INPUT_DOWNLOAD_URL'] = '<PUT SIGNED UWORKER INPUT URL HERE>'
-
+  assert 'UWORKER_INPUT_DOWNLOAD_URL' in os.environ
   utasks.uworker_bot_main()
