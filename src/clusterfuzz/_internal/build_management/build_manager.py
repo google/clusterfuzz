@@ -441,7 +441,7 @@ class Build(BaseBuild):
       build_download_duration = time.time() - start_time
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
           build_download_duration, {
-              'job': os.getenv('JOB_TYPE'),
+              'job': os.getenv('JOB_NAME'),
               'platform': environment.platform(),
               'step': 'download',
               'build_type': self._build_type,
@@ -557,7 +557,7 @@ class Build(BaseBuild):
 
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             unpack_elapsed_time, {
-                'job': os.getenv('JOB_TYPE'),
+                'job': os.getenv('JOB_NAME'),
                 'platform': environment.platform(),
                 'step': 'unpack',
                 'build_type': self._build_type,
@@ -908,7 +908,7 @@ class CustomBuild(Build):
     build_download_time = time.time() - download_start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
         build_download_time, {
-            'job': os.getenv('JOB_TYPE'),
+            'job': os.getenv('JOB_NAME'),
             'platform': environment.platform(),
             'step': 'download',
             'build_type': self._build_type,
@@ -936,7 +936,7 @@ class CustomBuild(Build):
         build_unpack_time = time.time() - unpack_start_time
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             build_unpack_time, {
-                'job': os.getenv('JOB_TYPE'),
+                'job': os.getenv('JOB_NAME'),
                 'platform': environment.platform(),
                 'step': 'unpack',
                 'build_type': self._build_type,
