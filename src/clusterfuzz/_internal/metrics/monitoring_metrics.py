@@ -273,6 +273,17 @@ ISSUE_CLOSING = monitor.CounterMetric(
         monitor.StringField('status'),
     ])
 
+UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
+    'issues/untriaged_testcase_age',
+    description='Age of testcases that were not yet triaged '
+    '(have not yet completed analyze, regression,'
+    ' minimization, impact task), in seconds.',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+    ])
+
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',
     description='Outcome count for analyze task.',
