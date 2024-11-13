@@ -901,11 +901,9 @@ class CustomBuild(Build):
         os.makedirs(directory)
       gcs_path = f'/{custom_builds_bucket}/{self.custom_binary_key}'
       storage.copy_file_from(gcs_path, build_local_archive)
-    else:
-      gcs_path = blobs.get_gcs_path(self.custom_binary_key)
-      if not blobs.read_blob_to_disk(self.custom_binary_key,
+    elif not blobs.read_blob_to_disk(self.custom_binary_key,
                                      build_local_archive):
-        return False
+      return False
 
     build_download_time = time.time() - download_start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
@@ -1244,6 +1242,7 @@ def _get_build_url(bucket_path: Optional[str], revision: int,
 
 
 def _get_build_bucket_paths():
+  """Returns gcs bucket endpoints that contain the build of interest."""
   bucket_paths = []
   for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
     bucket_path = get_bucket_path(env_var)
@@ -1257,7 +1256,7 @@ def _get_build_bucket_paths():
 def setup_trunk_build(fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
   bucket_paths = _get_build_bucket_paths()
-  if len(bucket_paths) == 0:
+  if not bucket_path:
     logs.error('Attempted a trunk build, but no bucket paths were found.')
     return None
   latest_revision = _get_latest_revision(bucket_paths)
