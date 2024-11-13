@@ -305,11 +305,9 @@ def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
     return
   if not testcase.timestamp:
     return
-  current_time = datetime.datetime.utcnow()
-  testcase_age = current_time - testcase.get_created_time()
-  testcase_age = testcase_age.total_seconds()
+
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
-      testcase_age,
+      testcase.get_age_in_seconds(),
       labels={
           'job': testcase.job_type,
           'platform': testcase.platform,

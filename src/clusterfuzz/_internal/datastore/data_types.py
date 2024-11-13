@@ -684,6 +684,11 @@ class Testcase(Model):
   def get_created_time(self) -> ndb.DateTimeProperty:
     return self.created if self.created else self.timestamp
 
+  def get_age_in_seconds(self):
+    current_time = datetime.datetime.utcnow()
+    testcase_age = current_time - self.get_created_time()
+    return testcase_age.total_seconds()
+
   def get_metadata(self, key=None, default=None):
     """Get metadata for a test case. Slow on first access."""
     self._ensure_metadata_is_cached()

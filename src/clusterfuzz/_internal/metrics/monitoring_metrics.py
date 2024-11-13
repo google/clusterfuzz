@@ -276,7 +276,7 @@ ISSUE_CLOSING = monitor.CounterMetric(
 UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
     'issues/untriaged_testcase_age',
     description='Age of testcases that were not yet triaged '
-    '(have not yet completed analyze, progression,'
+    '(have not yet completed analyze, regression,'
     ' minimization, impact task), in seconds.',
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
