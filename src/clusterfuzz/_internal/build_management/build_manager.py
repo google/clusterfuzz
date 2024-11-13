@@ -1256,7 +1256,7 @@ def _get_build_bucket_paths():
 def setup_trunk_build(fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
   bucket_paths = _get_build_bucket_paths()
-  if not bucket_path:
+  if not bucket_paths:
     logs.error('Attempted a trunk build, but no bucket paths were found.')
     return None
   latest_revision = _get_latest_revision(bucket_paths)
