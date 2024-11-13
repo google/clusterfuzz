@@ -22,6 +22,13 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
+TESTCASE_TRIAGE_DURATION_ANALYZE_LAUNCHED_STEP = 'analyze_launched'
+TESTCASE_TRIAGE_DURATION_IMPACT_COMPLETED_STEP = 'impact_completed'
+TESTCASE_TRIAGE_DURATION_ANALYZE_COMPLETED_STEP = 'analyze_completed'
+TESTCASE_TRIAGE_DURATION_MINIMIZE_COMPLETED_STEP = 'minimize_completed'
+TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP = 'regression_completed'
+TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP = 'issue_updated'
+
 
 def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
   testcase_upload_metadata = get_testcase_upload_metadata(testcase_id)

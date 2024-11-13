@@ -314,7 +314,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # elapsed between testcase upload and pulling the task from the queue.
 
   testcase_utils.emit_testcase_triage_duration_metric(
-      int(testcase_id), 'analyze_launched')
+      int(testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_LAUNCHED_STEP)
 
   initialize_testcase_for_main(testcase, job_type)
 
@@ -562,7 +563,8 @@ def utask_postprocess(output):
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   testcase_utils.emit_testcase_triage_duration_metric(
-      int(output.uworker_input.testcase_id), 'analyze_completed')
+      int(output.uworker_input.testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_COMPLETED_STEP)
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)

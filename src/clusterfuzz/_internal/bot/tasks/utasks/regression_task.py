@@ -586,7 +586,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   """
   testcase_id = output.uworker_input.testcase_id
   testcase_utils.emit_testcase_triage_duration_metric(
-      int(testcase_id), 'regression_completed')
+      int(testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP)
 
   if output.HasField('regression_task_output'):
     task_output = output.regression_task_output
