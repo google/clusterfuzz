@@ -474,7 +474,6 @@ def update_data_bundle(
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
   logs.info('Setting up data bundle %s.' % data_bundle)
-
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):
@@ -486,7 +485,8 @@ def update_data_bundle(
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
 
-    if not (environment.is_trusted_host() and data_bundle.sync_to_worker):
+    if environment.is_uworker() or not (
+        environment.is_trusted_host() and data_bundle.sync_to_worker):
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
     else:
