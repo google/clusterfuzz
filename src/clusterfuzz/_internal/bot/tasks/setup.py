@@ -486,11 +486,13 @@ def update_data_bundle(
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
 
-    if not (environment.is_uworker() and environment.is_trusted_host() and
-            data_bundle.sync_to_worker):
+    if environment.is_uworker() or (and environment.is_trusted_host() and
+                                    data_bundle.sync_to_worker):
+      logs.info('Data bundles: normal path.')
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
     else:
+      logs.info('Data bundles: untrusted runner path.')
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as untrusted_corpus_manager
       from clusterfuzz._internal.bot.untrusted_runner import file_host
