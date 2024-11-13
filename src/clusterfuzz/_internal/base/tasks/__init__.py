@@ -281,7 +281,7 @@ class PubSubPuller:
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if not (task_utils.is_remotely_executing_utasks() or
+  if not (task_utils.is_remotely_executing_utasks() and
           task_utils.get_opted_in_tasks()):
     return None
   # Postprocess is platform-agnostic, so we run all such tasks on our
