@@ -28,6 +28,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
@@ -583,12 +584,16 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
 
   Runs on a trusted worker.
   """
+  testcase_id = output.uworker_input.testcase_id
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP)
+
   if output.HasField('regression_task_output'):
     task_output = output.regression_task_output
     _update_build_metadata(output.uworker_input.job_type,
                            task_output.build_data_list)
-    _save_current_regression_range_indices(task_output,
-                                           output.uworker_input.testcase_id)
+    _save_current_regression_range_indices(task_output, testcase_id)
     if task_output.is_testcase_reproducible:
       # Clear metadata from previous runs had it been marked as potentially
       # flaky.
