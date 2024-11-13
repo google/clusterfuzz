@@ -102,11 +102,13 @@ def serialize_and_upload_uworker_input(
     uworker_input: uworker_msg_pb2.Input) -> Tuple[str, str]:  # pylint: disable=no-member
   """Serializes input for the untrusted portion of a task."""
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
+  logs.info(f'input_gcs_url: {input_gcs_url}')
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
   # write its output. Also get a download URL in case the caller wants to read
   # the output.
   signed_output_upload_url, output_gcs_url = get_uworker_output_urls(
       input_gcs_url)
+  logs.info(f'output_gcs_url: {output_gcs_url}')
 
   assert not uworker_input.HasField('uworker_output_upload_url')
   uworker_input.uworker_output_upload_url = signed_output_upload_url
