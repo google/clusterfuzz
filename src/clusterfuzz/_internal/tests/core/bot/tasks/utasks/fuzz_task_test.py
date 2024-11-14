@@ -1356,7 +1356,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
             'owner1@email.com',
     }, fuzzer_metadata)
 
-    log_time = datetime.datetime(1970, 1, 1, 0, 0)
     self.assertEqual(2, len(crashes))
     for i in range(2):
       self.assertEqual('/input', crashes[i].file_path)
