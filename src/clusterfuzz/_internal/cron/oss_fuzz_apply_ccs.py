@@ -67,7 +67,11 @@ def main():
       logging.info('CCing %s on %s', cc, issue.id)
       issue.ccs.add(cc)
 
-    issue.save(notify=True)
+    try:
+      issue.save(notify=True)
+    except Exception as e:
+      logging.error('Failed to apply ccs for test case '
+                    f'{testcase.key}: {e}.')
 
   logging.info('OSS fuzz apply ccs succeeded.')
   return True
