@@ -142,18 +142,6 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   return jobs
 
 
-def create_uworker_main_batch_jobs_bunched(batch_tasks):
-  """Creates batch jobs 20 tasks at a time, lazily. This is helpful to use when
-  batch_tasks takes a very long time to create."""
-  # Use term bunch instead of "batch" since "batch" has nothing to do with the
-  # cloud service and is thus very confusing in this context.
-  jobs = [
-      create_uworker_main_batch_jobs(bunch)
-      for bunch in _bunched(batch_tasks, TASK_BUNCH_SIZE)
-  ]
-  return list(itertools.chain(jobs))
-
-
 def _get_task_spec(batch_workload_spec):
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()

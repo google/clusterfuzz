@@ -195,11 +195,14 @@ def schedule_fuzz_tasks() -> bool:
   batch_config = local_config.BatchConfig()
   regions = get_batch_regions(batch_config)
   # TODO(metzman): Make it possible to use multiple regions.
-  assert len(regions) == 1
+  if len(regions) > 1:
+    region = 'us-central1'
+  else:
+    region = regions[0]
   project = batch_config.get('project')
-  available_cpus = get_available_cpus(project, regions[0])
+  available_cpus = get_available_cpus(project, region)
   # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = min(available_cpus, 100)
+  available_cpus = min(available_cpus, 250)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
