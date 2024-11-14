@@ -287,7 +287,7 @@ def setup_testcase(testcase: data_types.Testcase, job_type: str,
     _copy_testcase_to_device_and_setup_environment(testcase, testcase_file_path)
 
   # Push testcases to worker.
-  if environment.is_trusted_host():
+  if take_trusted_host_path():
     from clusterfuzz._internal.bot.untrusted_runner import file_host
     file_host.push_testcases_to_worker()
 
@@ -467,6 +467,12 @@ def _prepare_update_data_bundle(fuzzer, data_bundle):
   return data_bundle_directory
 
 
+def take_trusted_host_path():
+  if environment.is_uworker():
+    return False
+  return environment.is_trusted_host()
+
+
 def update_data_bundle(
     fuzzer: data_types.Fuzzer,
     data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:  # pylint: disable=no-member
@@ -486,10 +492,12 @@ def update_data_bundle(
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
 
-    if not (environment.is_trusted_host() and data_bundle.sync_to_worker):
+    if not (take_trusted_host_path() and data_bundle.sync_to_worker):
+      logs.info('Data bundles: normal path.')
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
     else:
+      logs.info('Data bundles: untrusted runner path.')
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as untrusted_corpus_manager
       from clusterfuzz._internal.bot.untrusted_runner import file_host
@@ -515,7 +523,7 @@ def update_data_bundle(
   #  Write last synced time in the sync file.
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
   utils.write_data_to_file(time_before_sync_start, sync_file_path)
-  if environment.is_trusted_host() and data_bundle.sync_to_worker:
+  if take_trusted_host_path() and data_bundle.sync_to_worker:
     from clusterfuzz._internal.bot.untrusted_runner import file_host
     worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
     file_host.copy_file_to_worker(sync_file_path, worker_sync_file_path)
@@ -690,7 +698,7 @@ def update_fuzzer_and_data_bundles(
 
     # For launcher script usecase, we need the entire fuzzer directory on the
     # worker.
-    if environment.is_trusted_host():
+    if take_trusted_host_path():
       from clusterfuzz._internal.bot.untrusted_runner import file_host
       worker_fuzzer_directory = file_host.rebase_to_worker_root(
           fuzzer_directory)
@@ -710,7 +718,7 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   """Return true if the data bundle is up to date, false otherwise."""
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
 
-  if environment.is_trusted_host() and data_bundle.sync_to_worker:
+  if not (take_trusted_host_path() and data_bundle.sync_to_worker):
     from clusterfuzz._internal.bot.untrusted_runner import file_host
     worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
     shell.remove_file(sync_file_path)
