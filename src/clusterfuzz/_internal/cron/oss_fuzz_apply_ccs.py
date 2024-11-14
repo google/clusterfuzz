@@ -39,7 +39,8 @@ def cc_users_for_job(job_type, security_flag):
 
 
 def main():
-  """Cron handler for adding new CC's to oss-fuzz bugs.."""
+  """Cron handler for adding new CC's to oss-fuzz bugs."""
+  error_count = 0
   for testcase in get_open_testcases_with_bugs():
     issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
     if not issue_tracker:
@@ -70,8 +71,13 @@ def main():
     try:
       issue.save(notify=True)
     except Exception as e:
+      error_count += 1
       logging.error('Failed to apply ccs for test case '
-                    f'{testcase.key}: {e}.')
+                    '%s: %s.', testcase.key, e)
+
+  if error_count:
+    logging.error('OSS fuzz apply ccs failed.')
+    return False
 
   logging.info('OSS fuzz apply ccs succeeded.')
   return True
