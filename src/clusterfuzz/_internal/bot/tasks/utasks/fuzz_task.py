@@ -23,6 +23,7 @@ import time
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
 from google.cloud import ndb
 
@@ -313,7 +314,8 @@ class Crash:
     return crash
 
 
-def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
+def find_main_crash(crashes: List[Crash],
+                    fuzz_target: Optional[data_types.FuzzTarget],
                     test_timeout: int, upload_urls: UploadUrlCollection):
   """Find the first reproducible crash or the first valid crash. And return the
     crash and the one_time_crasher_flag."""
@@ -331,7 +333,6 @@ def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state parameters.
-    fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
     if testcase_manager.test_for_reproducibility(
         fuzz_target,
         crash.file_path,
@@ -364,13 +365,8 @@ class CrashGroup:
       assert crashes[0].security_flag == c.security_flag
 
     self.crashes = crashes
-    if context.fuzz_target:
-      fully_qualified_fuzzer_name = context.fuzz_target.fully_qualified_name()
-    else:
-      fully_qualified_fuzzer_name = context.fuzzer_name
-
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, fully_qualified_fuzzer_name, context.test_timeout, upload_urls)
+        crashes, context.fuzz_target, context.test_timeout, upload_urls)
 
     self.newly_created_testcase = None
 
