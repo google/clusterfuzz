@@ -13,7 +13,6 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
-import itertools
 import threading
 from typing import List
 import uuid

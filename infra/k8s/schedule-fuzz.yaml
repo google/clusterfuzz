@@ -17,11 +17,11 @@ kind: CronJob
 metadata:
   name: schedule-fuzz
 spec:
-  schedule: "*/30 * * * *"
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
-      activeDeadlineSeconds: 1200  # 20 minutes.
+      activeDeadlineSeconds: 900  # 15 minutes.
       template:
         spec:
           containers:

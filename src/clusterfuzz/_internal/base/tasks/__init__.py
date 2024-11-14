@@ -377,6 +377,15 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
+
+    # is_from_queue is a temporary hack to keep track of which fuzz tasks came
+    # from the queue. Previously all fuzz tasks were picked by the bot when
+    # there was nothing on the queue. With the rearchitecture, we want fuzz
+    # tasks that were put on the queue by the schedule_fuzz cron job to be
+    # executed on batch. is_from_queue is used to do this.
+    # TODO(b/378684001): This code is very ugly, get rid of it when no more
+    # fuzz tasks are executed on the bots themselves (i.e. when the rearch
+    # is complete).
     self.is_from_queue = is_from_queue
 
   def __repr__(self):
