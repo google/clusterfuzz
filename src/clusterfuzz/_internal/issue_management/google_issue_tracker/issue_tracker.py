@@ -79,12 +79,11 @@ def retry_on_invalid_gaia_accounts(func):
     try:
       return func(self, *args, **kwargs)
     except Exception as e:
-      if "HttpError 400" in str(e):
-        emails_to_skip = re.findall(r'[\w\.-]+@[\w\.-]+', str(e))
-        logs.info(f"Retrying after skipping emails: {emails_to_skip}")
-        return func(self, *args, **kwargs, skip_emails=emails_to_skip) 
-      else:
-        raise e  # Reraise the exception if it's not about invalid accounts
+      email_regex = r'[\w\.\-\+]+@[\w\.-]+'
+      emails_to_skip = re.findall(email_regex, str(e))
+      logs.info(f"Retrying after skipping emails: {emails_to_skip}")
+      return func(self, *args, **kwargs, skip_emails=emails_to_skip) 
+
   return wrapper
 
 
@@ -222,6 +221,8 @@ class Issue(issue_tracker.Issue):
     self._is_new = is_new
     self._issue_tracker = tracker
     ccs = data['issueState'].get('ccs', [])
+    # Remove whitespaces to prevent 400 over on buganizer
+    # Emails like 'foo@123.bar ' have caused issues in the past.
     self._ccs = issue_tracker.LabelStore(
         [user['emailAddress'] for user in ccs if 'emailAddress' in user])
     collaborators = data['issueState'].get('collaborators', [])
@@ -740,7 +741,7 @@ class Issue(issue_tracker.Issue):
     return result
 
   @retry_on_invalid_gaia_accounts
-  def save(self, skip_emails=[], new_comment=None, notify=True):
+  def save(self, new_comment=None, notify=True, skip_emails=[]):
     """Saves the issue."""
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
@@ -845,6 +846,10 @@ class Issue(issue_tracker.Issue):
       self._is_new = False
     else:
       logs.info('google_issue_tracker: Updating issue..')
+      # TODO(vitorguidi): remove this once we have a fix for GAIA.
+      # Remove all CCd users w/o GAIA accounts
+      for email in skip_emails:
+        self.ccs.remove(email)
       result = self._update_issue(new_comment=new_comment, notify=notify)
     self._reset_tracking()
     self._data = result
