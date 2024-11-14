@@ -611,9 +611,9 @@ def get_proto_data_bundle_corpus(
   data_bundle_corpus.data_bundle.CopyFrom(
       uworker_io.entity_to_protobuf(data_bundle))
   if task_types.task_main_runs_on_uworker():
-    # Slow path for when we need an untrusted worker to run a task.
-    # Note that the security of the system (only the correctness) depends on
-    # this path being taken. If it is not taken when we need to, utask_main will
+    # Slow path for when we need an untrusted worker to run a task. Note that
+    # the security of the system (only the correctness) does not depend on this
+    # path being taken. If it is not taken when we need to, utask_main will
     # simply fail as it tries to do privileged operation it does not have
     # permissions for.
     logs.info('Getting signed data bundle URLs.')
@@ -630,7 +630,8 @@ def get_proto_data_bundle_corpus(
 
 
 def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
-  if not task_types.task_main_runs_on_uworker():
+  if (not task_types.task_main_runs_on_uworker() and
+      not environment.is_uworker()):
     # Fast path for when we don't need an untrusted worker to run a task.
     return gsutil.GSUtilRunner().rsync(
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0

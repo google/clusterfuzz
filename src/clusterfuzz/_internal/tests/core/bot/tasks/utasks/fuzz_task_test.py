@@ -501,7 +501,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertTrue(fuzz_task._should_create_testcase(group, None))
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
 
     self.assertEqual(self.crashes[0], group.main_crash)
 
@@ -515,7 +515,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     # TODO(metzman): Replace group in calls to _should_create_testcase with a
     # proto group.
     self.assertFalse(
@@ -530,7 +530,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     self.assertTrue(
         fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
     self.assertFalse(group.one_time_crasher_flag)
@@ -548,7 +548,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     self.assertTrue(group.one_time_crasher_flag)
 
 
