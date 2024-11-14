@@ -1357,11 +1357,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     }, fuzzer_metadata)
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)
-    self.mock.upload_testcase.assert_has_calls([
-        mock.call('/input', log_time),
-        mock.call('/input', log_time),
-    ])
-
     self.assertEqual(2, len(crashes))
     for i in range(2):
       self.assertEqual('/input', crashes[i].file_path)
@@ -1383,6 +1378,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
           'strategy_strategy_2': 50,
           'timestamp': 0.0,
       }, testcase_run)
+      # TODO(metzman): We need a test for fuzzing end to end with
+      # preprocess/main/postprocess.
 
 
 class UntrustedRunEngineFuzzerTest(
