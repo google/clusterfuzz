@@ -17,6 +17,8 @@
 
 import datetime
 import enum
+import functools
+import re
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -66,6 +68,24 @@ def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
     logs.warning('Trying to set issue access level to incorrect value:'
                  f'LIMIT_{limit_view_label}. Ignoring.')
     return None
+
+
+def retry_on_invalid_gaia_accounts(func):
+  """Decorator to retry saving an issue, skipping CCs
+    without a GAIA account."""
+
+  @functools.wraps(func)
+  def wrapper(self, *args, **kwargs):
+    try:
+      return func(self, *args, **kwargs)
+    except Exception as e:
+      if "HttpError 400" in str(e):
+        emails_to_skip = re.findall(r'[\w\.-]+@[\w\.-]+', str(e))
+        logs.info(f"Retrying after skipping emails: {emails_to_skip}")
+        return func(self, *args, **kwargs, skip_emails=emails_to_skip) 
+      else:
+        raise e  # Reraise the exception if it's not about invalid accounts
+  return wrapper
 
 
 class IssueTrackerError(Exception):
@@ -719,7 +739,8 @@ class Issue(issue_tracker.Issue):
                                       issueId=str(self.id)))
     return result
 
-  def save(self, new_comment=None, notify=True):
+  @retry_on_invalid_gaia_accounts
+  def save(self, skip_emails=[], new_comment=None, notify=True):
     """Saves the issue."""
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
@@ -793,7 +814,9 @@ class Issue(issue_tracker.Issue):
 
       if self.component_id:
         self._data['issueState']['componentId'] = int(self.component_id)
-      ccs = list(self._ccs)
+      # TODO(vitorguidi): delete this hack once we have a solution for GAIA.
+      # Skip CCd users w/o a GAIA account
+      ccs = list(set(self._ccs) - set(skip_emails))
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
       collaborators = list(self._collaborators)
