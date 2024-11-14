@@ -535,7 +535,7 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
       # Don't upload uninteresting testcases (no crash) or if there is no log to
       # correlate it with (not upload_output).
       if upload_output:
-        upload_testcase(file_path, log_time, None)
+        upload_testcase(file_path, None, log_time)
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).
