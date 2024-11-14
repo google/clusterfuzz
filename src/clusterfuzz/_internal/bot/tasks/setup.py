@@ -472,6 +472,7 @@ def take_trusted_host_path():
     return False
   return environment.is_trusted_host()
 
+
 def update_data_bundle(
     fuzzer: data_types.Fuzzer,
     data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:  # pylint: disable=no-member
