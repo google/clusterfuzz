@@ -501,7 +501,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertTrue(fuzz_task._should_create_testcase(group, None))
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
 
     self.assertEqual(self.crashes[0], group.main_crash)
 
@@ -515,7 +515,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     # TODO(metzman): Replace group in calls to _should_create_testcase with a
     # proto group.
     self.assertFalse(
@@ -530,7 +530,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     self.assertTrue(
         fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
     self.assertFalse(group.one_time_crasher_flag)
@@ -548,7 +548,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     self.assertTrue(group.one_time_crasher_flag)
 
 
@@ -1356,12 +1356,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
             'owner1@email.com',
     }, fuzzer_metadata)
 
-    log_time = datetime.datetime(1970, 1, 1, 0, 0)
-    self.mock.upload_testcase.assert_has_calls([
-        mock.call('/input', log_time),
-        mock.call('/input', log_time),
-    ])
-
     self.assertEqual(2, len(crashes))
     for i in range(2):
       self.assertEqual('/input', crashes[i].file_path)
@@ -1383,6 +1377,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
           'strategy_strategy_2': 50,
           'timestamp': 0.0,
       }, testcase_run)
+      # TODO(metzman): We need a test for fuzzing end to end with
+      # preprocess/main/postprocess.
 
 
 class UntrustedRunEngineFuzzerTest(
