@@ -600,12 +600,12 @@ class Build(BaseBuild):
     elapsed_time = time.time() - start_time
 
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-            elapsed_time, {
-                'job': os.getenv('JOB_NAME'),
-                'platform': environment.platform(),
-                'step': 'total',
-                'build_type': self._build_type,
-            })    
+        elapsed_time, {
+            'job': os.getenv('JOB_NAME'),
+            'platform': environment.platform(),
+            'step': 'total',
+            'build_type': self._build_type,
+        })
 
     elapsed_mins = elapsed_time / 60.
     log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
@@ -965,7 +965,7 @@ class CustomBuild(Build):
         unpack_start_time = time.time()
         build.unpack(self.build_dir, trusted=True)
         build_unpack_time = (time.time() - unpack_start_time) / 60
-        # In minutes, as per metric definition.        
+        # In minutes, as per metric definition.
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             build_unpack_time, {
                 'job': os.getenv('JOB_NAME'),
@@ -984,13 +984,13 @@ class CustomBuild(Build):
 
     total_retrieval_time = time.time() - download_start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-            total_retrieval_time, {
-                'job': os.getenv('JOB_NAME'),
-                'platform': environment.platform(),
-                'step': 'total',
-                'build_type': self._build_type,
-            })
-    
+        total_retrieval_time, {
+            'job': os.getenv('JOB_NAME'),
+            'platform': environment.platform(),
+            'step': 'total',
+            'build_type': self._build_type,
+        })
+
     return True
 
   def setup(self):
