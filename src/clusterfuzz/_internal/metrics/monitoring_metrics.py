@@ -48,7 +48,7 @@ JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
     description=('Distribution of fuzz task\'s build retrieval times. '
-                 '(grouped by fuzzer/job)'),
+                 '(grouped by fuzzer/job, in minutes).'),
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('step'),

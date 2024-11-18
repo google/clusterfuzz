@@ -438,7 +438,8 @@ class Build(BaseBuild):
     try:
       start_time = time.time()
       storage.copy_file_from(build_url, build_local_archive)
-      build_download_duration = time.time() - start_time
+      # In minutes, as per metric definition.
+      build_download_duration = (time.time() - start_time) / 60
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
           build_download_duration, {
               'job': os.getenv('JOB_NAME'),
@@ -530,10 +531,10 @@ class Build(BaseBuild):
           # from the build archive.
           list_fuzz_target_start_time = time.time()
           self.fuzz_targets = list(build.list_fuzz_targets())
-          elapsed_time = time.time() - list_fuzz_target_start_time
-          elapsed_time_in_minutes = elapsed_time / 60
+          # In minutes, as per metric definition.
+          elapsed_time = (time.time() - list_fuzz_target_start_time) / 60
           monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-              elapsed_time_in_minutes, {
+              elapsed_time, {
                   'job': os.getenv('JOB_NAME'),
                   'platform': environment.platform(),
                   'step': 'list_fuzz_targets',
@@ -563,7 +564,8 @@ class Build(BaseBuild):
             fuzz_target=fuzz_target_to_unpack,
             trusted=trusted)
 
-        unpack_elapsed_time = time.time() - unpack_start_time
+        # In minutes, as per metric definition.
+        unpack_elapsed_time = (time.time() - unpack_start_time) / 60
 
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             unpack_elapsed_time, {
@@ -580,10 +582,10 @@ class Build(BaseBuild):
     if unpack_everything:
       list_fuzz_target_start_time = time.time()
       self.fuzz_targets = list(self._get_fuzz_targets_from_dir(build_dir))
-      elapsed_time = time.time() - list_fuzz_target_start_time
-      elapsed_time_in_minutes = elapsed_time / 60
+      # In minutes, as per metric definition.
+      elapsed_listing_time = (time.time() - list_fuzz_target_start_time) / 60
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-          elapsed_time_in_minutes, {
+          elapsed_listing_time, {
               'job': os.getenv('JOB_NAME'),
               'platform': environment.platform(),
               'step': 'list_fuzz_targets',
@@ -933,7 +935,8 @@ class CustomBuild(Build):
                                      build_local_archive):
       return False
 
-    build_download_time = time.time() - download_start_time
+    # In minutes, as per metric definition.
+    build_download_time = (time.time() - download_start_time) / 60
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
         build_download_time, {
             'job': os.getenv('JOB_NAME'),
@@ -961,7 +964,8 @@ class CustomBuild(Build):
         # Unpack belongs to the BuildArchive class
         unpack_start_time = time.time()
         build.unpack(self.build_dir, trusted=True)
-        build_unpack_time = time.time() - unpack_start_time
+        build_unpack_time = (time.time() - unpack_start_time) / 60
+        # In minutes, as per metric definition.        
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             build_unpack_time, {
                 'job': os.getenv('JOB_NAME'),
