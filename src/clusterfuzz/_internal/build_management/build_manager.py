@@ -528,7 +528,17 @@ class Build(BaseBuild):
         if not unpack_everything:
           # We will never unpack the full build so we need to get the targets
           # from the build archive.
+          list_fuzz_target_start_time = time.time()
           self.fuzz_targets = list(build.list_fuzz_targets())
+          elapsed_time = time.time() - list_fuzz_target_start_time
+          elapsed_time_in_minutes = elapsed_time / 60
+          monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+              elapsed_time_in_minutes, {
+                  'job': os.getenv('JOB_NAME'),
+                  'platform': environment.platform(),
+                  'step': 'list_fuzz_targets',
+                  'build_type': self._build_type,
+              })
           # We only want to unpack a single fuzz target if unpack_everything is
           # False.
           fuzz_target_to_unpack = self.fuzz_target
@@ -568,7 +578,17 @@ class Build(BaseBuild):
       return False
 
     if unpack_everything:
+      list_fuzz_target_start_time = time.time()
       self.fuzz_targets = list(self._get_fuzz_targets_from_dir(build_dir))
+      elapsed_time = time.time() - list_fuzz_target_start_time
+      elapsed_time_in_minutes = elapsed_time / 60
+      monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+          elapsed_time_in_minutes, {
+              'job': os.getenv('JOB_NAME'),
+              'platform': environment.platform(),
+              'step': 'list_fuzz_targets',
+              'build_type': self._build_type,
+          })
     else:
       # If this is partial build due to selected build files, then mark it as
       # such so that it is not re-used.
