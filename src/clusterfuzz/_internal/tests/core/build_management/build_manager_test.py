@@ -1741,6 +1741,9 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
       build_manager._pick_random_fuzz_target_for_split_build(
           target_weights={'target4': 1})
 
+    with self.assertRaises(errors.BuildNotFoundError):
+      build_manager.setup_build(fuzz_target='target4')
+
 
 class GetPrimaryBucketPathTest(unittest.TestCase):
   """Tests for get_primary_bucket_path."""
