@@ -545,12 +545,15 @@ def emit(level, message, exc_info=None, **extras):
 
     _add_appengine_trace(all_extras)
 
+  log_limit = STACKDRIVER_LOG_MESSAGE_LIMIT if _cloud_logging_enabled(
+  ) else LOCAL_LOG_MESSAGE_LIMIT
+
   # We need to make a dict out of it because member of the dict becomes the
   # first class attributes of LogEntry. It is very tricky to identify the extra
   # attributes. Therefore, we wrap extra fields under the attribute 'extras'.
   logger.log(
       level,
-      truncate(message, LOCAL_LOG_MESSAGE_LIMIT),
+      truncate(message, log_limit),
       exc_info=exc_info,
       extra={
           'extras': all_extras,
