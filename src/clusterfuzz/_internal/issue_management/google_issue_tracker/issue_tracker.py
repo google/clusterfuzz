@@ -32,7 +32,7 @@ from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
-_NUM_RETRIES = 3
+_NUM_RETRIES = 5
 
 # TODO: Make these configuration settings instead of hardcoded values in code.
 # These custom fields use repeated enums.
