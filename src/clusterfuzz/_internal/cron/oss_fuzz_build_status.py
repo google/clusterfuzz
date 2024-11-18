@@ -64,12 +64,12 @@ class OssFuzzBuildStatusError(Exception):
 def _get_issue_body(project_name, build_id, build_type):
   """Return the issue body for filing new bugs."""
   template = ('The last {num_builds} builds for {project} have been failing.\n'
-              '<b>Build log:</b> {log_link}\n'
+              'Build log: {log_link}\n'
               'Build type: {build_type}\n\n'
               'To reproduce locally, please see: '
               'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
               '#reproducing-build-failures\n\n'
-              '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b>'
+              '**This bug tracker is not being monitored by OSS-Fuzz team.**'
               ' If you have any questions, please create an issue at '
               'https://github.com/google/oss-fuzz/issues/new.\n\n'
               '**This bug will be automatically closed within a '
