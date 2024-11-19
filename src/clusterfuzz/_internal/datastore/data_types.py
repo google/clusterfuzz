@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes for objects stored in the datastore."""
 
+import datetime
 import re
 
 from google.cloud import ndb
@@ -420,8 +421,15 @@ class Testcase(Model):
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
 
-  # Timestamp.
+  # The time when a testcase is considered valid. This is the same as the
+  # creation time, except for analyze task, in which this field is a
+  # placeholder and will be refreshed.
   timestamp = ndb.DateTimeProperty()
+
+  # Source of truth for creation time. This is missing for testcases
+  # created before it was introduced, in which case the timestamp
+  # field will be a proxy for creation time.
+  created = ndb.DateTimeProperty(indexed=False)
 
   # Does the testcase crash stack vary b/w crashes ?
   flaky_stack = ndb.BooleanProperty(default=False, indexed=False)
@@ -669,6 +677,17 @@ class Testcase(Model):
       cache = {}
 
     setattr(self, 'metadata_cache', cache)
+
+  # Returns testcase.created in case it is present, as it is
+  # the source of truth for creation time. If missing, returns
+  # testcase.timestamp as a proxy for creation time.
+  def get_created_time(self) -> ndb.DateTimeProperty:
+    return self.created if self.created else self.timestamp
+
+  def get_age_in_seconds(self):
+    current_time = datetime.datetime.utcnow()
+    testcase_age = current_time - self.get_created_time()
+    return testcase_age.total_seconds()
 
   def get_metadata(self, key=None, default=None):
     """Get metadata for a test case. Slow on first access."""
@@ -1119,12 +1138,20 @@ class WindowRateLimitTask(Model):
   it will have a different lifecycle (it's not needed after the window
   completes). This should have a TTL as TASK_RATE_LIMIT_WINDOW in
   task_rate_limiting.py (6 hours)."""
-  # TODO(metzman): Consider using task_id.
+  TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
+
   timestamp = ndb.DateTimeProperty(auto_now_add=True, indexed=True)
+  # Only use this for TTL. It should only be saved to by ClusterFuzz, not read.
+  ttl_expiry_timestamp = ndb.DateTimeProperty()
+  # TODO(metzman): Consider using task_id.
   task_name = ndb.StringProperty(indexed=True)
   task_argument = ndb.StringProperty(indexed=True)
   job_name = ndb.StringProperty(indexed=True)
   status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.TASK_RATE_LIMIT_WINDOW)
 
 
 class BuildMetadata(Model):

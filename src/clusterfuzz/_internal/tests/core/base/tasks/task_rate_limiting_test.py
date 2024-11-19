@@ -91,7 +91,7 @@ class TaskRateLimiterTest(unittest.TestCase):
     """Test is_rate_limited() with old tasks outside the window."""
     # Add tasks outside the time window.
     window_start = (
-        self.now - task_rate_limiting.TaskRateLimiter.TASK_RATE_LIMIT_WINDOW)
+        self.now - data_types.WindowRateLimitTask.TASK_RATE_LIMIT_WINDOW)
     self._create_n_tasks(
         task_rate_limiting.TaskRateLimiter.TASK_RATE_LIMIT_MAX_COMPLETIONS + 1,
         timestamp=window_start - datetime.timedelta(minutes=10))

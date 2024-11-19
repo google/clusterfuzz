@@ -15,6 +15,7 @@
 
 from collections import namedtuple
 import contextlib
+import datetime
 import os
 import re
 import shutil
@@ -442,7 +443,7 @@ class Build(BaseBuild):
       build_download_duration = time.time() - start_time
       monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
           build_download_duration, {
-              'job': os.getenv('JOB_TYPE'),
+              'job': os.getenv('JOB_NAME'),
               'platform': environment.platform(),
               'step': 'download',
               'build_type': self._build_type,
@@ -550,7 +551,7 @@ class Build(BaseBuild):
 
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             unpack_elapsed_time, {
-                'job': os.getenv('JOB_TYPE'),
+                'job': os.getenv('JOB_NAME'),
                 'platform': environment.platform(),
                 'step': 'unpack',
                 'build_type': self._build_type,
@@ -907,7 +908,7 @@ class CustomBuild(Build):
     build_download_time = time.time() - download_start_time
     monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
         build_download_time, {
-            'job': os.getenv('JOB_TYPE'),
+            'job': os.getenv('JOB_NAME'),
             'platform': environment.platform(),
             'step': 'download',
             'build_type': self._build_type,
@@ -935,7 +936,7 @@ class CustomBuild(Build):
         build_unpack_time = time.time() - unpack_start_time
         monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
             build_unpack_time, {
-                'job': os.getenv('JOB_TYPE'),
+                'job': os.getenv('JOB_NAME'),
                 'platform': environment.platform(),
                 'step': 'unpack',
                 'build_type': self._build_type,
@@ -1155,7 +1156,13 @@ def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
   bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
   if not fuzz_target:
     raise BuildManagerError(
-        'Failed to choose a fuzz target (path=%s).' % bucket_path)
+        f'Failed to choose a fuzz target (path={bucket_path}).')
+
+  # Check this so that we handle deleted targets properly.
+  targets_list = _get_targets_list(bucket_path)
+  if fuzz_target not in targets_list:
+    raise errors.BuildNotFoundError(revision, environment.get_value('JOB_NAME'))
+
   fuzz_target_bucket_path = _full_fuzz_target_path(bucket_path, fuzz_target)
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
@@ -1199,8 +1206,65 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
-def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
+def _emit_build_age_metric(gcs_path):
+  """Emits a metric to track the age of a build."""
+  try:
+    last_update_time = storage.get(gcs_path).get('updated')
+    # TODO(vitorguidi): standardize return type between fs and gcs.
+    if isinstance(last_update_time, str):
+      # storage.get returns two different types for the updated field:
+      # the gcs api returns string, and the local filesystem implementation
+      # returns a datetime.datetime object normalized for UTC.
+      last_update_time = datetime.datetime.fromisoformat(last_update_time)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    elapsed_time = now - last_update_time
+    elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
+    # Fuzz targets do not apply for custom builds
+    labels = {
+        'job': os.getenv('JOB_NAME'),
+        'platform': environment.platform(),
+        'task': os.getenv('TASK_NAME'),
+    }
+    monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
+    # This field is expected as a datetime object
+    # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
+  except Exception as e:
+    logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
+
+
+def _get_build_url(bucket_path: Optional[str], revision: int,
+                   job_type: Optional[str]):
+  """Returns the GCS url for a build, given a bucket path and revision"""
+  build_urls = get_build_urls_list(bucket_path)
+  if not build_urls:
+    logs.error('Error getting build urls for job %s.' % job_type)
+    return None
+  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
+  if not build_url:
+    logs.error(
+        'Error getting build url for job %s (r%d).' % (job_type, revision))
+    return None
+  return build_url
+
+
+def _get_build_bucket_paths():
+  """Returns gcs bucket endpoints that contain the build of interest."""
+  bucket_paths = []
+  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
+    bucket_path = get_bucket_path(env_var)
+    if bucket_path:
+      bucket_paths.append(bucket_path)
+    else:
+      logs.info('Bucket path not found for %s' % env_var)
+  return bucket_paths
+
+
+def setup_trunk_build(fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
+  bucket_paths = _get_build_bucket_paths()
+  if not bucket_paths:
+    logs.error('Attempted a trunk build, but no bucket paths were found.')
+    return None
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
     logs.error('Unable to find a matching revision.')
@@ -1221,23 +1285,23 @@ def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        fuzz_target=None) -> RegularBuild:
+                        fuzz_target=None) -> Optional[RegularBuild]:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
     bucket_path = get_bucket_path('RELEASE_BUILD_BUCKET_PATH')
 
-  build_urls = get_build_urls_list(bucket_path)
   job_type = environment.get_value('JOB_NAME')
-  if not build_urls:
-    logs.error('Error getting build urls for job %s.' % job_type)
-    return None
-  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
-  if not build_url:
-    logs.error(
-        'Error getting build url for job %s (r%d).' % (job_type, revision))
+  build_url = _get_build_url(bucket_path, revision, job_type)
 
+  if not build_url:
     return None
+
+  all_bucket_paths = _get_build_bucket_paths()
+  latest_revision = _get_latest_revision(all_bucket_paths)
+
+  if revision == latest_revision:
+    _emit_build_age_metric(build_url)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.
@@ -1377,19 +1441,7 @@ def _setup_build(revision, fuzz_target):
     return setup_regular_build(revision, fuzz_target=fuzz_target)
 
   # If no revision is provided, we default to a trunk build.
-  bucket_paths = []
-  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
-    bucket_path = get_bucket_path(env_var)
-    if bucket_path:
-      bucket_paths.append(bucket_path)
-    else:
-      logs.info('Bucket path not found for %s' % env_var)
-
-  if len(bucket_paths) == 0:
-    logs.error('Attempted a trunk build, but no bucket paths were found.')
-    return None
-
-  return setup_trunk_build(bucket_paths, fuzz_target=fuzz_target)
+  return setup_trunk_build(fuzz_target=fuzz_target)
 
 
 def is_custom_binary():

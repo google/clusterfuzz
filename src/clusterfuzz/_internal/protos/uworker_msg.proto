@@ -240,6 +240,7 @@ message EngineOutput {
   optional bytes output = 1;
   optional int64 return_code = 2;
   google.protobuf.Timestamp timestamp = 3;
+  optional bytes testcase = 4;
 }
 
 message FuzzTaskOutput {

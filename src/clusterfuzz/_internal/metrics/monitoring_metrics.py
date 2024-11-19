@@ -32,6 +32,18 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
         monitor.BooleanField('bad_build'),
     ])
 
+JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
+    'job/build_age',
+    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    description=('Distribution of latest build\'s age in hours. '
+                 '(grouped by fuzzer/job)'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('task'),
+    ],
+)
+
 JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
@@ -195,6 +207,25 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
+TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
+    'uploaded_testcase_analysis/triage_duration_secs',
+    description=('Time elapsed between testcase upload and completion'
+                 ' of relevant tasks in the testcase upload lifecycle.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('step'),
+        monitor.StringField('job'),
+    ],
+)
+TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
+    'task/rate_limit',
+    description=('Counter for rate limit events.'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('argument'),
+    ])
+
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/subtask_e2e_duration_secs',
     description=(
@@ -262,6 +293,17 @@ ISSUE_CLOSING = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer_name'),
         monitor.StringField('status'),
+    ])
+
+UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
+    'issues/untriaged_testcase_age',
+    description='Age of testcases that were not yet triaged '
+    '(have not yet completed analyze, regression,'
+    ' minimization, impact task), in seconds.',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
