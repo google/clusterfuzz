@@ -600,7 +600,10 @@ class Build(BaseBuild):
     if not self._fuzz_targets and self._unpack_everything:
       # we can lazily compute that when unpacking the whole archive, since we
       # know all the fuzzers will be in the build directory.
+      start_time = time.time()
       self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+      _emit_job_build_retrieval_metric(start_time, 'list_fuzz_targets',
+                                       self._build_type)
     return self._fuzz_targets
 
   def exists(self):
