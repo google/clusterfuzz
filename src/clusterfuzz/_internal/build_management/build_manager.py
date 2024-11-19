@@ -299,6 +299,17 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
     logs.error(f'Could not find app {app_name!r} in search directories.')
 
 
+def _emit_job_build_retrieval_metric(start_time, step, build_type):
+  elapsed_minutes = (time.time() - start_time) / 60
+  monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+      elapsed_minutes, {
+          'job': os.getenv('JOB_NAME'),
+          'platform': environment.platform(),
+          'step': step,
+          'build_type': build_type,
+      })
+
+
 class BaseBuild:
   """Represents a build."""
 
@@ -438,15 +449,7 @@ class Build(BaseBuild):
     try:
       start_time = time.time()
       storage.copy_file_from(build_url, build_local_archive)
-      # In minutes, as per metric definition.
-      build_download_duration = (time.time() - start_time) / 60
-      monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-          build_download_duration, {
-              'job': os.getenv('JOB_NAME'),
-              'platform': environment.platform(),
-              'step': 'download',
-              'build_type': self._build_type,
-          })
+      _emit_job_build_retrieval_metric(start_time, 'download', self._build_type)
     except Exception as e:
       logs.error(f'Unable to download build from {build_url}: {e}')
       raise
@@ -532,14 +535,9 @@ class Build(BaseBuild):
           list_fuzz_target_start_time = time.time()
           self.fuzz_targets = list(build.list_fuzz_targets())
           # In minutes, as per metric definition.
-          elapsed_time = (time.time() - list_fuzz_target_start_time) / 60
-          monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-              elapsed_time, {
-                  'job': os.getenv('JOB_NAME'),
-                  'platform': environment.platform(),
-                  'step': 'list_fuzz_targets',
-                  'build_type': self._build_type,
-              })
+          _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
+                                           'list_fuzz_targets',
+                                           self._build_type)
           # We only want to unpack a single fuzz target if unpack_everything is
           # False.
           fuzz_target_to_unpack = self.fuzz_target
@@ -564,16 +562,8 @@ class Build(BaseBuild):
             fuzz_target=fuzz_target_to_unpack,
             trusted=trusted)
 
-        # In minutes, as per metric definition.
-        unpack_elapsed_time = (time.time() - unpack_start_time) / 60
-
-        monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-            unpack_elapsed_time, {
-                'job': os.getenv('JOB_NAME'),
-                'platform': environment.platform(),
-                'step': 'unpack',
-                'build_type': self._build_type,
-            })
+        _emit_job_build_retrieval_metric(unpack_start_time, 'unpack',
+                                         self._build_type)
 
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_url}: {e}')
@@ -582,30 +572,16 @@ class Build(BaseBuild):
     if unpack_everything:
       list_fuzz_target_start_time = time.time()
       self.fuzz_targets = list(self._get_fuzz_targets_from_dir(build_dir))
-      # In minutes, as per metric definition.
-      elapsed_listing_time = (time.time() - list_fuzz_target_start_time) / 60
-      monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-          elapsed_listing_time, {
-              'job': os.getenv('JOB_NAME'),
-              'platform': environment.platform(),
-              'step': 'list_fuzz_targets',
-              'build_type': self._build_type,
-          })
+      _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
+                                       'list_fuzz_targets', self._build_type)
     else:
       # If this is partial build due to selected build files, then mark it as
       # such so that it is not re-used.
       partial_build_file_path = os.path.join(build_dir, PARTIAL_BUILD_FILE)
       utils.write_data_to_file('', partial_build_file_path)
 
+    _emit_job_build_retrieval_metric(start_time, 'total', self._build_type)
     elapsed_time = time.time() - start_time
-
-    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        elapsed_time, {
-            'job': os.getenv('JOB_NAME'),
-            'platform': environment.platform(),
-            'step': 'total',
-            'build_type': self._build_type,
-        })
 
     elapsed_mins = elapsed_time / 60.
     log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
@@ -935,16 +911,8 @@ class CustomBuild(Build):
                                      build_local_archive):
       return False
 
-    # In minutes, as per metric definition.
-    build_download_time = (time.time() - download_start_time) / 60
-    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        build_download_time, {
-            'job': os.getenv('JOB_NAME'),
-            'platform': environment.platform(),
-            'step': 'download',
-            'build_type': self._build_type,
-        })
-
+    _emit_job_build_retrieval_metric(download_start_time, 'download',
+                                     self._build_type)
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
       try:
@@ -964,15 +932,8 @@ class CustomBuild(Build):
         # Unpack belongs to the BuildArchive class
         unpack_start_time = time.time()
         build.unpack(self.build_dir, trusted=True)
-        build_unpack_time = (time.time() - unpack_start_time) / 60
-        # In minutes, as per metric definition.
-        monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-            build_unpack_time, {
-                'job': os.getenv('JOB_NAME'),
-                'platform': environment.platform(),
-                'step': 'unpack',
-                'build_type': self._build_type,
-            })
+        _emit_job_build_retrieval_metric(unpack_start_time, 'unpack',
+                                         self._build_type)
       except:
         build.close()
         logs.error('Unable to unpack build archive %s.' % build_local_archive)
@@ -982,15 +943,8 @@ class CustomBuild(Build):
       # Remove the archive.
       shell.remove_file(build_local_archive)
 
-    total_retrieval_time = time.time() - download_start_time
-    monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
-        total_retrieval_time, {
-            'job': os.getenv('JOB_NAME'),
-            'platform': environment.platform(),
-            'step': 'total',
-            'build_type': self._build_type,
-        })
-
+    _emit_job_build_retrieval_metric(download_start_time, 'download',
+                                     self._build_type)
     return True
 
   def setup(self):
