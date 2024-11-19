@@ -39,8 +39,8 @@ from src.clusterfuzz._internal.datastore import ndb_init
 
 def _iter_weights(
     fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> Sequence[float]:
-  for fj in fuzzer_jobs:
-    yield fj.actual_weight
+  for fuzzer_job in fuzzer_jobs:
+    yield fuzzer_job.actual_weight
 
 
 def _sum_weights(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> float:
@@ -123,7 +123,8 @@ def _display_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
   printer = _print_with_prefix(prefix)
 
   fuzzer_jobs = list(fuzzer_jobs)
-  fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
+  fuzzer_jobs.sort(
+      key=lambda fuzzer_job: fuzzer_job.actual_weight, reverse=True)
 
   total_weight = _sum_weights(fuzzer_jobs)
 
@@ -336,13 +337,13 @@ def _set_fuzzer_job_weight(
           f'fuzzer {fuzzer} and job {job}: {fuzzer_jobs}')
     return
 
-  fj = fuzzer_jobs[0]
+  fuzzer_job = fuzzer_jobs[0]
 
-  print(f'Fuzzer: {fj.fuzzer}')
-  print(f'Job: {fj.job}')
-  print(f'Platform: {fj.platform}')
-  print(f'Multiplier: {fj.multiplier}')
-  print(f'Old weight: {fj.weight}')
+  print(f'Fuzzer: {fuzzer_job.fuzzer}')
+  print(f'Job: {fuzzer_job.job}')
+  print(f'Platform: {fuzzer_job.platform}')
+  print(f'Multiplier: {fuzzer_job.multiplier}')
+  print(f'Old weight: {fuzzer_job.weight}')
   print(f'-> New weight: {weight}')
 
   answer = input('Do you want to apply this mutation? [y,n] ')
@@ -350,8 +351,8 @@ def _set_fuzzer_job_weight(
     print('Not applying mutation.')
     return
 
-  fj.weight = weight
-  fj.put()
+  fuzzer_job.weight = weight
+  fuzzer_job.put()
   print('Mutation applied.')
 
 
