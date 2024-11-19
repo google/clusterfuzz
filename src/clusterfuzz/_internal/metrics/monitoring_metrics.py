@@ -150,7 +150,7 @@ TESTCASE_GENERATION_AVERAGE_TIME = monitor.CumulativeDistributionMetric(
         monitor.StringField('platform'),
         monitor.StringField('job'),
         monitor.StringField('fuzzer'),
-    ],    
+    ],
 )
 
 FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(

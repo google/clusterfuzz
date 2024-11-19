@@ -1581,22 +1581,25 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
-    testcase_generation_start_time = time.time()
+    testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
-    testcase_generation_finish_time = time.time()
-    elapsed_testcase_generation_time = testcase_generation_finish_time - testcase_generation_start_time
+    testcase_generation_finish = time.time()
+    elapsed_testcase_generation_time = testcase_generation_finish
+    elapsed_testcase_generation_time -= testcase_generation_start
     # Avoid division by zero
     if testcase_count:
-      average_time_per_testcase = elapsed_testcase_generation_time / testcase_count
+      average_time_per_testcase = elapsed_testcase_generation_time
+      average_time_per_testcase = average_time_per_testcase / testcase_count
       monitoring_metrics.TESTCASE_GENERATION_AVERAGE_TIME.add(
-        average_time_per_testcase, labels = {
-          'job': job_type,
-          'fuzzer': fuzzer,
-          'platform': environment.platform(),
-        })
+          average_time_per_testcase,
+          labels={
+              'job': job_type,
+              'fuzzer': fuzzer,
+              'platform': environment.platform(),
+          })
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
