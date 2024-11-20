@@ -15,6 +15,8 @@
 
 import datetime
 
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
@@ -31,6 +33,13 @@ def _get_datetime_now():
 # Things that are sometimes run as tasks by commands.py but are really portions
 # of actual tasks.
 _UTASK_PSEUDO_TASKS = {'uworker_main', 'postprocess', 'preprocess'}
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
+def optin_to_task_rate_limiting():
+  enabled = local_config.ProjectConfig().get('rate_limit_tasks.enabled', False)
+  logs.info(f'Using async HTTP: {enabled}.')
+  return enabled
 
 
 class TaskRateLimiter:
@@ -51,6 +60,8 @@ class TaskRateLimiter:
 
   def record_task(self, success: bool) -> None:
     """Records a task and whether it completed succesfully."""
+    if not optin_to_task_rate_limiting():
+      return
     if self.task_name in _UTASK_PSEUDO_TASKS:
       # Don't rate limit these fake uworker tasks.
       return
@@ -67,6 +78,8 @@ class TaskRateLimiter:
 
   def is_rate_limited(self) -> bool:
     """Checks if the given task is rate limited."""
+    if not optin_to_task_rate_limiting():
+      return False
     if self.task_name in _UTASK_PSEUDO_TASKS:
       # Don't rate limit these fake tasks.
       return False
