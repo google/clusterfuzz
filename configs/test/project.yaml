@@ -33,7 +33,6 @@ coverage:
     # Bucket to load code coverage information from.
     bucket: test-coverage-bucket
 
-
 rate_limit_tasks:
   enabled: true
 
