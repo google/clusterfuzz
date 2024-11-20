@@ -368,7 +368,8 @@ class Task:
                eta=None,
                is_command_override=False,
                high_end=False,
-               extra_info=None):
+               extra_info=None,
+               is_from_queue=False):
     self.command = command
     self.argument = argument
     self.job = job
@@ -376,6 +377,19 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
+
+    # is_from_queue is a temporary hack to keep track of which fuzz tasks came
+    # from the queue. Previously all fuzz tasks were picked by the bot when
+    # there was nothing on the queue. With the rearchitecture, we want fuzz
+    # tasks that were put on the queue by the schedule_fuzz cron job to be
+    # executed on batch. is_from_queue is used to do this.
+    # TODO(b/378684001): This code is very ugly, get rid of it when no more
+    # fuzz tasks are executed on the bots themselves (i.e. when the rearch
+    # is complete).
+    self.is_from_queue = is_from_queue
+
+  def __repr__(self):
+    return f'Task: {self.command} {self.argument} {self.job}'
 
   def attribute(self, _):
     return None
@@ -414,11 +428,13 @@ class Task:
 class PubSubTask(Task):
   """A Pub/Sub task."""
 
-  def __init__(self, pubsub_message):
+  def __init__(self, pubsub_message, is_from_queue=False):
     self._pubsub_message = pubsub_message
     super().__init__(
-        self.attribute('command'), self.attribute('argument'),
-        self.attribute('job'))
+        self.attribute('command'),
+        self.attribute('argument'),
+        self.attribute('job'),
+        is_from_queue=is_from_queue)
 
     self.extra_info = {
         key: value
@@ -524,7 +540,7 @@ def initialize_task(message) -> PubSubTask:
   """Creates a task from |messages|."""
 
   if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return PubSubTask(message)
+    return PubSubTask(message, is_from_queue=True)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
@@ -533,7 +549,7 @@ def initialize_task(message) -> PubSubTask:
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message)
+  return PostprocessPubSubTask(output_url_argument, message, is_from_queue=True)
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -542,14 +558,21 @@ class PostprocessPubSubTask(PubSubTask):
   def __init__(self,
                output_url_argument,
                pubsub_message,
-               is_command_override=False):
+               is_command_override=False,
+               is_from_queue=False):
     command = 'postprocess'
     job_type = 'none'
     eta = None
     high_end = False
     grandparent_class = super(PubSubTask, self)
-    grandparent_class.__init__(command, output_url_argument, job_type, eta,
-                               is_command_override, high_end)
+    grandparent_class.__init__(
+        command,
+        output_url_argument,
+        job_type,
+        eta,
+        is_command_override,
+        high_end,
+        is_from_queue=is_from_queue)
     self._pubsub_message = pubsub_message
 
 
@@ -609,6 +632,29 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       extra_info={'initial_command': initial_command})
 
 
+def bulk_add_tasks(tasks, queue=None, eta_now=False):
+  """Adds |tasks| in bulk to |queue|."""
+
+  # Old testcases may pass in queue=None explicitly, so we must check this here.
+  if queue is None:
+    queue = default_queue()
+
+  # If callers want delays, they must do it themselves, because this function is
+  # meant to be used for batch tasks which don't need this.
+  # Use an ETA of right now for batch because we don't need extra delay, there
+  # is natural delay added by batch, waiting for utask_main_scheduler,
+  # postprocess etc.
+  if eta_now:
+    now = utils.utcnow()
+    for task in tasks:
+      task.eta = now
+
+  pubsub_client = pubsub.PubSubClient()
+  pubsub_messages = [task.to_pubsub_message() for task in tasks]
+  pubsub_client.publish(
+      pubsub.topic_name(utils.get_application_id(), queue), pubsub_messages)
+
+
 def add_task(command,
              argument,
              job_type,
@@ -616,11 +662,6 @@ def add_task(command,
              wait_time=None,
              extra_info=None):
   """Add a new task to the job queue."""
-  # Old testcases may pass in queue=None explicitly,
-  # so we must check this here.
-  if not queue:
-    queue = default_queue()
-
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
@@ -636,10 +677,8 @@ def add_task(command,
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
-  pubsub_client = pubsub.PubSubClient()
-  pubsub_client.publish(
-      pubsub.topic_name(utils.get_application_id(), queue),
-      [task.to_pubsub_message()])
+
+  bulk_add_tasks([task], queue=queue)
 
 
 def get_task_lease_timeout():

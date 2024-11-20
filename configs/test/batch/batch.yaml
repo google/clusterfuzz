@@ -20,7 +20,6 @@ mapping:
     disk_size_gb: 110
     disk_type: pd-standard
     service_account_email: test-clusterfuzz-service-account-email
-    subnetwork: null
     gce_region: 'gce-region'
     gce_zone: 'gce-zone'
     network: 'projects/google.com:clusterfuzz/global/networks/networkname'

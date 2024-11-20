@@ -480,7 +480,6 @@ def update_data_bundle(
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
   logs.info('Setting up data bundle %s.' % data_bundle)
-
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):

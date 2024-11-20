@@ -616,12 +616,15 @@ def get_proto_data_bundle_corpus(
     # path being taken. If it is not taken when we need to, utask_main will
     # simply fail as it tries to do privileged operation it does not have
     # permissions for.
+    logs.info('Getting signed data bundle URLs.')
     urls = (f'{data_bundle_corpus.gcs_url}/{url}'
             for url in storage.list_blobs(data_bundle_corpus.gcs_url))
     data_bundle_corpus.corpus_urls.extend([
         url_pair[0] for url_pair in storage.sign_urls_for_existing_files(
             urls, include_delete_urls=False)
     ])
+  else:
+    logs.info('Not getting signed data bundle URLs.')
 
   return data_bundle_corpus
 
