@@ -46,6 +46,7 @@ class TrustedTask(BaseTask):
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
+    assert not enviornment.is_tworker()
     self.module.execute_task(task_argument, job_type)
 
 
@@ -58,6 +59,7 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
   def execute_locally(self, task_argument, job_type, uworker_env):
+    assert not enviornment.is_tworker()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
