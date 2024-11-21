@@ -196,12 +196,15 @@ def get_command_object(task_name):
   if not environment.is_tworker():
     return task
 
+  if task_name in {'postprocess', 'uworker_main'}:
+    return task
+
   if isinstance(task, task_types.TrustedTask):
     # We don't need to execute this remotely.
     return task
 
   # Force remote execution.
-  return task_types.UTask(task_name)
+  return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
 
 
 def run_command(task_name, task_argument, job_name, uworker_env):
