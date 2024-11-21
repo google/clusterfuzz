@@ -301,7 +301,8 @@ BUG_FILING_FROM_TESTCASE_ELAPSED_TIME = monitor.CumulativeDistributionMetric(
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('job'),
-    ]),
+        monitor.StringField('platform'),
+    ])
 
 UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
     'issues/untriaged_testcase_age',
