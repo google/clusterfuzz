@@ -128,8 +128,8 @@ class UTask(BaseUTask):
     """Executes a utask."""
     logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
-    # TODO(metzman): This is really complicated because of the need to test remote execution.
-    # This is no longer a need, so simplify this.
+    # TODO(metzman): This is really complicated because of the need to test
+    # remote execution. This is no longer a need, so simplify this.
     if not (environment.is_tworker() or is_remote_utask(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
