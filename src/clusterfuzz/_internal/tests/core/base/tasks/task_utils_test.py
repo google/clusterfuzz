@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for task_utils."""
-import os
 import unittest
 
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import commands
-from clusterfuzz._internal.tests.test_libs import helpers
 
 
 class GetCommandFromModuleTest(unittest.TestCase):

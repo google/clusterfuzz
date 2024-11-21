@@ -20,7 +20,6 @@ from typing import Dict
 
 from googleapiclient import discovery
 
-from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -167,14 +166,12 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
     choices = random.choices(
         fuzz_task_candidates, weights=weights, k=num_instances)
-    queues_to_tasks = collections.defaultdict(list)
-    for fuzz_task_candidate in choices:
-      queue_tasks = queues_to_tasks[fuzz_task_candidate.queue]
-
-      task = tasks.Task('fuzz', fuzz_task_candidate.fuzzer,
-                        fuzz_task_candidate.job)
-      queue_tasks.append(task)
-    return queues_to_tasks
+    fuzz_tasks = [
+        tasks.Task('fuzz', fuzz_task_candidate.fuzzer, fuzz_task_candidate.job)
+        for fuzz_task_candidate in choices
+    ]
+    # TODO(metzman): Remove the queue stuff if it's uneeded for Chrome.
+    return fuzz_tasks
 
 
 def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
@@ -210,22 +207,14 @@ def schedule_fuzz_tasks() -> bool:
     logs.error('No fuzz tasks found to schedule.')
     return False
 
-  # TODO(b/378684001): Change this to using one queue when oss-fuzz's untrusted
-  # worker model is deleted.
-  with concurrency.make_pool() as pool:
-    list(pool.map(bulk_add, fuzz_tasks.items()))
+  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
+  tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
   logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
   end = time.time()
   total = end - start
   logs.info(f'Task scheduling took {total} seconds.')
   return True
-
-
-def bulk_add(queue_and_tasks):
-  queue, task_list = queue_and_tasks
-  logs.info(f'Adding {task_list} to {queue}.')
-  tasks.bulk_add_tasks(task_list, queue=queue, eta_now=True)
 
 
 def main():
