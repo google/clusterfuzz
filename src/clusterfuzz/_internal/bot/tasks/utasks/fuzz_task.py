@@ -1604,8 +1604,8 @@ class FuzzingSession:
     if not generate_result.success:
       return None, None, None, None
 
-    self._emit_testcase_generation_time_metric(testcase_generation_start,
-                                               testcase_count, fuzzer.name, job_type)
+    self._emit_testcase_generation_time_metric(
+        testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
