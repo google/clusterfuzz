@@ -35,19 +35,3 @@ class GetCommandFromModuleTest(unittest.TestCase):
       task_utils.get_command_from_module('postprocess')
     with self.assertRaises(ValueError):
       task_utils.get_command_from_module('uworker_main')
-
-
-class IsTaskOptedIntoUworkerExecution(unittest.TestCase):
-  """Tests that is_task_opted_into_uworker_execution only returns True for the
-  tasks we are testing in oss-fuzz."""
-
-  def setUp(self):
-    helpers.patch_environ(self)
-
-  def test_opt_in(self):
-    os.environ['JOB_NAME'] = 'libfuzzer_asan_skia'
-    self.assertTrue(task_utils.is_task_opted_into_uworker_execution('analyze'))
-
-  def test_no_opt_in(self):
-    os.environ['JOB_NAME'] = 'libfuzzer_asan_skia'
-    self.assertFalse(task_utils.is_task_opted_into_uworker_execution('fuzz'))

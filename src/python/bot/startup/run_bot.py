@@ -136,9 +136,9 @@ def task_loop():
         continue
 
       if environment.is_tworker():
-        task = tasks.get_task()
-      else:
         task = tasks.tworker_get_task()
+      else:
+        task = tasks.get_task()
 
       if not task:
         continue
