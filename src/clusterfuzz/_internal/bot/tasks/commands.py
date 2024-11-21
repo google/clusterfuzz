@@ -201,7 +201,7 @@ def get_command_object(task_name):
     return task
 
   # Force remote execution.
-  return task_types.UTask(_COMMAND_MODULE_MAP[task])
+  return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
 
 
 def run_command(task_name, task_argument, job_name, uworker_env):
