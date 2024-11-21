@@ -190,11 +190,25 @@ def start_web_server_if_needed():
     logs.error('Failed to start web server, skipping.')
 
 
+def get_command_object(task_name):
+  """Returns the command object that execute can be called on."""
+  task = COMMAND_MAP.get(task_name)
+  if not environment.is_tworker():
+    return task
+
+  if isinstance(task, task_types.TrustedTask):
+    # We don't need to execute this remotely.
+    return task
+
+  # Force remote execution.
+  return task_types.UTask(task_name)
+
+
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Runs the command."""
-  task = COMMAND_MAP.get(task_name)
+  task = get_command_object(task_name)
   if not task:
-    logs.error("Unknown command '%s'" % task_name)
+    logs.error(f'Unknown command "{task_name}"')
     return None
 
   # If applicable, ensure this is the only instance of the task running.
@@ -253,10 +267,8 @@ def process_command(task):
     logs.error('Empty task received.')
     return None
 
-  # TODO(b/378684001): Remove is_from_queue kludge.
   return process_command_impl(task.command, task.argument, task.job,
-                              task.high_end, task.is_command_override,
-                              task.is_from_queue)
+                              task.high_end, task.is_command_override)
 
 
 def _get_task_id(task_name, task_argument, job_name):
@@ -267,13 +279,12 @@ def _get_task_id(task_name, task_argument, job_name):
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
 def process_command_impl(task_name, task_argument, job_name, high_end,
-                         is_command_override, is_from_queue):
+                         is_command_override):
   """Implementation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
-  environment.set_value('IS_FROM_QUEUE', is_from_queue)
   if task_name in {'uworker_main', 'postprocess'}:
     # We want the id of the task we are processing, not "uworker_main", or
     # "postprocess".
@@ -455,5 +466,3 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     cleanup_task_state()
     if 'CF_TASK_ID' in os.environ:
       del os.environ['CF_TASK_ID']
-    if 'IS_FROM_QUEUE' in os.environ:
-      del os.environ['IS_FROM_QUEUE']

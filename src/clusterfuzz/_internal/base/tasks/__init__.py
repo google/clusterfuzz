@@ -83,6 +83,7 @@ TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
 UTASK_MAINS_QUEUE = 'utask_main'
+PREPROCESS_QUEUE = 'preprocess'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
@@ -281,8 +282,7 @@ class PubSubPuller:
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if not (task_utils.is_remotely_executing_utasks() or
-          task_utils.get_opted_in_tasks()):
+  if not task_utils.is_remotely_executing_utasks():
     return None
   # Postprocess is platform-agnostic, so we run all such tasks on our
   # most generic and plentiful bots only. In other words, we avoid
@@ -304,9 +304,29 @@ def allow_all_tasks():
   return not environment.get_value('PREEMPTIBLE')
 
 
+def get_preprocess_task():
+  pubsub_puller = PubSubPuller(PREPROCESS_QUEUE)
+  messages = pubsub_puller.get_messages(max_messages=1)
+  if not messages:
+    return None
+  task = get_task_from_message(messages[0])
+  if task:
+    logs.info('Pulled from preprocess queue.')
+  return task
+
+
+def tworker_get_task():
+  assert environment.is_tworker()
+  task = get_postprocess_task()
+  if task:
+    return task
+
+  return get_preprocess_task()
+
+
 def get_task():
-  """Returns an ordinary (non-postprocess, non-utask_main) task that is pulled
-  from a ClusterFuzz task queue."""
+  """Returns an ordinary (non-utask_main) task that is pulled from a ClusterFuzz
+  task queue."""
   task = get_command_override()
   if task:
     return task
@@ -319,6 +339,7 @@ def get_task():
     task = get_postprocess_task()
     if task:
       return task
+
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
@@ -368,8 +389,7 @@ class Task:
                eta=None,
                is_command_override=False,
                high_end=False,
-               extra_info=None,
-               is_from_queue=False):
+               extra_info=None):
     self.command = command
     self.argument = argument
     self.job = job
@@ -377,16 +397,6 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
-
-    # is_from_queue is a temporary hack to keep track of which fuzz tasks came
-    # from the queue. Previously all fuzz tasks were picked by the bot when
-    # there was nothing on the queue. With the rearchitecture, we want fuzz
-    # tasks that were put on the queue by the schedule_fuzz cron job to be
-    # executed on batch. is_from_queue is used to do this.
-    # TODO(b/378684001): This code is very ugly, get rid of it when no more
-    # fuzz tasks are executed on the bots themselves (i.e. when the rearch
-    # is complete).
-    self.is_from_queue = is_from_queue
 
   def __repr__(self):
     return f'Task: {self.command} {self.argument} {self.job}'
@@ -428,13 +438,11 @@ class Task:
 class PubSubTask(Task):
   """A Pub/Sub task."""
 
-  def __init__(self, pubsub_message, is_from_queue=False):
+  def __init__(self, pubsub_message):
     self._pubsub_message = pubsub_message
     super().__init__(
-        self.attribute('command'),
-        self.attribute('argument'),
-        self.attribute('job'),
-        is_from_queue=is_from_queue)
+        self.attribute('command'), self.attribute('argument'),
+        self.attribute('job'))
 
     self.extra_info = {
         key: value
@@ -540,7 +548,7 @@ def initialize_task(message) -> PubSubTask:
   """Creates a task from |messages|."""
 
   if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return PubSubTask(message, is_from_queue=True)
+    return PubSubTask(message)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
@@ -549,7 +557,7 @@ def initialize_task(message) -> PubSubTask:
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message, is_from_queue=True)
+  return PostprocessPubSubTask(output_url_argument, message)
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -558,21 +566,14 @@ class PostprocessPubSubTask(PubSubTask):
   def __init__(self,
                output_url_argument,
                pubsub_message,
-               is_command_override=False,
-               is_from_queue=False):
+               is_command_override=False):
     command = 'postprocess'
     job_type = 'none'
     eta = None
     high_end = False
     grandparent_class = super(PubSubTask, self)
-    grandparent_class.__init__(
-        command,
-        output_url_argument,
-        job_type,
-        eta,
-        is_command_override,
-        high_end,
-        is_from_queue=is_from_queue)
+    grandparent_class.__init__(command, output_url_argument, job_type, eta,
+                               is_command_override, high_end)
     self._pubsub_message = pubsub_message
 
 
