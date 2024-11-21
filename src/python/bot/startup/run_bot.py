@@ -29,7 +29,7 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import tasks as taskslib
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -89,7 +89,7 @@ def schedule_utask_mains():
   from clusterfuzz._internal.google_cloud_utils import batch
 
   logs.info('Attempting to combine batch tasks.')
-  utask_mains = taskslib.get_utask_mains()
+  utask_mains = tasks.get_utask_mains()
   if not utask_mains:
     logs.info('No utask mains.')
     return
@@ -135,7 +135,11 @@ def task_loop():
         schedule_utask_mains()
         continue
 
-      task = taskslib.get_task()
+      if environment.is_tworker():
+        task = tasks.tworker_get_task()
+      else:
+        task = tasks.get_task()
+
       if not task:
         continue
 

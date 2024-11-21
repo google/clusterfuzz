@@ -46,6 +46,7 @@ class TrustedTask(BaseTask):
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
+    assert not environment.is_tworker()
     self.module.execute_task(task_argument, job_type)
 
 
@@ -58,6 +59,8 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
   def execute_locally(self, task_argument, job_type, uworker_env):
+    """Executes the utask locally (on this machine, not on batch)."""
+    assert not environment.is_tworker()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -119,7 +122,7 @@ class UTask(BaseUTask):
 
   @staticmethod
   def is_execution_remote(command=None):
-    return task_utils.is_remotely_executing_utasks(command)
+    return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask."""
@@ -154,19 +157,6 @@ class UTask(BaseUTask):
       return None
     logs.info('Utask: done with preprocess.')
     return download_url
-
-
-# TODO(b/378684001): Remove this, it's needed for testing but is otherwise a bad
-# design.
-class UTaskMostlyLocalExecutor(UTask):
-
-  @staticmethod
-  def is_execution_remote(command=None):
-    del command
-    if environment.get_value('IS_FROM_QUEUE'):
-      logs.info('IS FROM QUEUE')
-      return True
-    return False
 
 
 class PostprocessTask(BaseTask):
@@ -211,7 +201,7 @@ COMMAND_TYPES = {
     'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTask,
-    'fuzz': UTaskMostlyLocalExecutor,
+    'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
     'minimize': UTask,
     'progression': UTask,

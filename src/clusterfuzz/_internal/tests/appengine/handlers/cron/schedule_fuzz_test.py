@@ -69,16 +69,12 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
 
     num_cpus = 10
     scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus)
-    results = scheduler.get_fuzz_tasks()
+    tasks = scheduler.get_fuzz_tasks()
     comparable_results = []
-    for tasks in results.values():
-      comparable_tasks = []
-      for task in tasks:
-        comparable_tasks.append((task.command, task.argument, task.job))
-      comparable_results.append(comparable_tasks)
+    for task in tasks:
+      comparable_results.append((task.command, task.argument, task.job))
 
-    expected_results = [[('fuzz', 'libFuzzer', 'myjob')] * 5]
-    self.assertListEqual(list(results.keys()), ['jobs-linux'])
+    expected_results = [('fuzz', 'libFuzzer', 'myjob')] * 5
     self.assertListEqual(comparable_results, expected_results)
 
 
