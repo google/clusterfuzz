@@ -1307,8 +1307,7 @@ def setup_regular_build(revision,
 
   if revision == latest_revision:
     _emit_build_age_metric(build_url)
-
-  _emit_build_revision_metric(revision)
+    _emit_build_revision_metric(revision)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.
