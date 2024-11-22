@@ -14,8 +14,6 @@
 """Functions for managing Google Cloud Storage."""
 
 import collections
-from concurrent import futures
-import contextlib
 import copy
 import datetime
 import json
@@ -33,6 +31,7 @@ from googleapiclient.errors import HttpError
 import requests
 import requests.exceptions
 
+from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -783,16 +782,6 @@ def _signing_creds():
   return _local.signing_creds
 
 
-# TODO(metzman): Move all parallel code to fast_http.
-@contextlib.contextmanager
-def _pool(pool_size=_POOL_SIZE):
-  if (environment.get_value('PY_UNITTESTS') or
-      environment.platform() == 'WINDOWS'):
-    yield futures.ThreadPoolExecutor(pool_size)
-  else:
-    yield futures.ProcessPoolExecutor(pool_size)
-
-
 def get_bucket_name_and_path(cloud_storage_file_path):
   """Return bucket name and path given a full cloud storage path."""
   filtered_path = utils.strip_from_left(cloud_storage_file_path, GS_PREFIX)
@@ -1146,6 +1135,7 @@ def get_object_size(cloud_storage_file_path):
   return int(gcs_object['size'])
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
 def blobs_bucket():
   """Get the blobs bucket name."""
   # Allow tests to override blobs bucket name safely.
@@ -1294,7 +1284,7 @@ def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
   if not signed_urls:
     return []
   logs.info('Uploading URLs.')
-  with _pool() as pool:
+  with concurrency.make_pool(_POOL_SIZE) as pool:
     result = list(
         pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.info('Done uploading URLs.')
@@ -1323,7 +1313,7 @@ def download_signed_urls(signed_urls: List[str],
   urls_and_filepaths = list(zip(signed_urls, filepaths))
 
   def synchronous_download_urls(urls_and_filepaths):
-    with _pool() as pool:
+    with concurrency.make_pool(_POOL_SIZE) as pool:
       return list(
           pool.map(_error_tolerant_download_signed_url_to_file,
                    urls_and_filepaths))
@@ -1345,15 +1335,15 @@ def delete_signed_urls(urls):
   if not urls:
     return
   logs.info('Deleting URLs.')
-  with _pool() as pool:
+  with concurrency.make_pool(_POOL_SIZE) as pool:
     pool.map(_error_tolerant_delete_signed_url, urls)
   logs.info('Done deleting URLs.')
 
 
 def _sign_urls_for_existing_file(
-    corpus_element_url: str,
-    include_delete_urls: bool,
+    url_and_include_delete_urls: Tuple[str, bool],
     minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
+  corpus_element_url, include_delete_urls = url_and_include_delete_urls
   download_url = get_signed_download_url(corpus_element_url, minutes)
   if include_delete_urls:
     delete_url = sign_delete_url(corpus_element_url, minutes)
@@ -1362,18 +1352,24 @@ def _sign_urls_for_existing_file(
   return (download_url, delete_url)
 
 
+def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
+  url, include_delete_urls = url_and_include_delete_urls
+  return _sign_urls_for_existing_file(url, include_delete_urls)
+
+
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
-  result = [
-      _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
-  ]
+  args = ((url, include_delete_urls) for url in urls)
+  with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
+    result = pool.map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
-  return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+  return list(
+      get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
@@ -1401,6 +1397,8 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = [get_signed_upload_url(url) for url in urls]
+  with concurrency.make_pool(
+      _POOL_SIZE, cpu_bound=True, max_pool_size=2) as pool:
+    result = list(pool.map(get_signed_upload_url, urls))
   logs.info('Done signing URLs for arbitrary uploads.')
   return result

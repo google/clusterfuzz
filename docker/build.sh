@@ -27,6 +27,7 @@ IMAGES=(
   gcr.io/clusterfuzz-images/oss-fuzz/worker
   gcr.io/clusterfuzz-images/ci
   gcr.io/clusterfuzz-images/utask-main-scheduler
+  gcr.io/clusterfuzz-images/tworker
   gcr.io/clusterfuzz-images/fuchsia
 )
 
