@@ -1368,7 +1368,8 @@ def sign_urls_for_existing_files(urls,
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
-  return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+  return list(
+      get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
