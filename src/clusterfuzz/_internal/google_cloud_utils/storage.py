@@ -1352,6 +1352,11 @@ def _sign_urls_for_existing_file(
   return (download_url, delete_url)
 
 
+def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
+  url, include_delete_urls = url_and_include_delete_urls
+  return _sign_urls_for_existing_file(url, include_delete_urls)
+
+
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
