@@ -317,6 +317,11 @@ def get_preprocess_task():
 
 def tworker_get_task():
   assert environment.is_tworker()
+  # TODO(metzman): Pulling tasks is relatively expensive compared to
+  # preprocessing. It's too expensive to pull twice (once from the postproces
+  # queue that is probably empty) to do a single preprocess. Investigate
+  # combining preprocess and postprocess queues and allowing pulling of
+  # multiple messages.
   return get_preprocess_task()
 
 
