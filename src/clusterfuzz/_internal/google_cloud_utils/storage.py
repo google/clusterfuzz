@@ -1341,9 +1341,9 @@ def delete_signed_urls(urls):
 
 
 def _sign_urls_for_existing_file(
-    corpus_element_url: str,
-    include_delete_urls: bool,
+    url_and_include_delete_urls: Tuple[str, bool]
     minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
+  corpus_element_url, include_delete_urls = url_and_include_delete_urls
   download_url = get_signed_download_url(corpus_element_url, minutes)
   if include_delete_urls:
     delete_url = sign_delete_url(corpus_element_url, minutes)
@@ -1352,18 +1352,11 @@ def _sign_urls_for_existing_file(
   return (download_url, delete_url)
 
 
-def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
-  url, include_delete_urls = url_and_include_delete_urls
-  return _sign_urls_for_existing_file(url, include_delete_urls)
-
-
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
-  args = ((url, include_delete_urls) for url in urls)
   with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(
-      lambda url: _sign_urls_for_existing_file(url, include_delete_urls), urls)
+    result = pool.map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
