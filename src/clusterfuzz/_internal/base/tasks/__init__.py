@@ -15,7 +15,6 @@
 
 import contextlib
 import datetime
-import itertools
 import json
 import random
 import threading
