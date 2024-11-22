@@ -1341,7 +1341,7 @@ def delete_signed_urls(urls):
 
 
 def _sign_urls_for_existing_file(
-    url_and_include_delete_urls: Tuple[str, bool]
+    url_and_include_delete_urls: Tuple[str, bool],
     minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
   corpus_element_url, include_delete_urls = url_and_include_delete_urls
   download_url = get_signed_download_url(corpus_element_url, minutes)
