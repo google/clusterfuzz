@@ -1362,7 +1362,8 @@ def sign_urls_for_existing_files(urls,
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
   with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(_mappable_sign_urls_for_existing_file, args)
+    result = pool.map(
+      lambda url: _sign_urls_for_existing_file(url, include_delete_urls), urls)
   logs.info('Done signing URLs for existing files.')
   return result
 
