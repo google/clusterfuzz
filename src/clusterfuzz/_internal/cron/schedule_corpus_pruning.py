@@ -18,6 +18,14 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import fuzz_target_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
+
+
+def get_queue(job):
+  # TODO(metzman): Put this in queue_for_job.
+  if environment.is_tworker():
+    return tasks.PREPROCESS_QUEUE
+  return tasks.queue_for_job(job.name)
 
 
 def get_tasks_to_schedule():
@@ -26,7 +34,7 @@ def get_tasks_to_schedule():
     if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       continue
 
-    queue_name = tasks.queue_for_job(job.name)
+    queue_name = get_queue(job)
     for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job.name):
       task_target = target_job.fuzz_target_name
       yield (task_target, job.name, queue_name)
