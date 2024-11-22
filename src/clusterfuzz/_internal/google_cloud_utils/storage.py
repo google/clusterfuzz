@@ -1356,7 +1356,7 @@ def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
   with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(_sign_urls_for_existing_file, args)
+    result = pool.map(_sign_urls_for_existing_file, urls)
   logs.info('Done signing URLs for existing files.')
   return result
 
