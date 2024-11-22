@@ -659,12 +659,11 @@ def get_proto_corpus(bucket_name,
   urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
           for url in storage.list_blobs(gcs_url))
 
-  if max_download_urls is not None:
-    urls = itertools.islice(urls, max_download_urls)
   # TODO(metzman): Stop limiting URLs when pruning works on oss-fuzz
   # again.
-  corpus_urls = dict(
-      storage.sign_urls_for_existing_files(urls, include_delete_urls))
+  if max_download_urls is not None:
+    urls = itertools.islice(urls, max_download_urls)
+  corpus_urls = dict(storage.sign_urls_for_existing_files(urls, include_delete_urls))
 
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
