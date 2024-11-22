@@ -80,6 +80,11 @@ class AlreadyRunningError(Error):
 def cleanup_task_state():
   """Cleans state before and after a task is executed."""
   # Cleanup stale processes.
+
+  if environment.is_tworker():
+    # Nothing to clean.
+    return
+
   process_handler.cleanup_stale_processes()
 
   # Clear build urls, temp and testcase directories.
@@ -468,7 +473,6 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     return run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
-    if not environment.is_tworker():
-      cleanup_task_state()
+    cleanup_task_state()
     if 'CF_TASK_ID' in os.environ:
       del os.environ['CF_TASK_ID']

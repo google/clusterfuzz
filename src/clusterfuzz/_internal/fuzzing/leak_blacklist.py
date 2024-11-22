@@ -17,6 +17,7 @@ import os
 import re
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -65,8 +66,9 @@ def cleanup_global_blacklist():
   ndb_utils.delete_multi(blacklists_to_delete)
 
 
+@memoize.wrap(memoize.Memcache(60 * 10))
 def get_global_blacklisted_functions():
-  # Copy global blacklist into local blacklist.
+  """Get global blacklisted functions."""
   global_blacklists = data_types.Blacklist.query(
       data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
   blacklisted_functions = []

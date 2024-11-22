@@ -1388,13 +1388,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
     remote_directory = remote_directory + '/'
   # The remote_directory ends with slash.
   base_path = f'{remote_directory}{base_name}'
-  base_search_path = f'{base_path}*'
-  if exists(base_search_path):
-    # Raise the error and let retry go again. There is a vanishingly small
-    # chance that we get more collisions. This is vulnerable to races, but is
-    # probably unneeded anyway.
-    raise ValueError(f'UUID collision found {str(unique_id)}')
-
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
   with concurrency.make_pool(
