@@ -21,8 +21,9 @@ from clusterfuzz._internal.system import environment
 POOL_SIZE = multiprocessing.cpu_count()
 
 
-class InProcessPool:
-
+class SingleThreadPool:
+  """Single thread pool for when it's not worth using Python's thread
+  implementation."""
   def __init__(self, size):
     del size
 
