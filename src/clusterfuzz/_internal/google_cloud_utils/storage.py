@@ -16,6 +16,7 @@
 import collections
 import copy
 import datetime
+import itertools
 import json
 import os
 import shutil
@@ -125,7 +126,7 @@ class StorageProvider:
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -230,7 +231,7 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -246,7 +247,13 @@ class GcsProvider(StorageProvider):
     else:
       delimiter = '/'
 
-    iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
+    if names_only:
+      fields = 'items(name),nextPageToken'
+      iterator = bucket.list_blobs(
+        prefix=path, delimiter=delimiter, fields=fields)
+    else:
+      iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
+
     for blob in iterator:
       properties['bucket'] = bucket_name
       properties['name'] = blob.name
@@ -581,8 +588,9 @@ class FileSystemProvider(StorageProvider):
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
+    del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
@@ -1086,7 +1094,7 @@ def get_blobs(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
+  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive, names_only=True):
     yield blob['name']
 
 
@@ -1355,28 +1363,24 @@ def delete_signed_urls(urls):
   logs.info('Done deleting URLs.')
 
 
-def _sign_urls_for_existing_files(
-    urls_and_include_delete_urls: Tuple[List[str], bool],
+def _sign_urls_for_existing_file(
+    url_and_include_delete_urls: Tuple[List[str], bool],
     minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
-  corpus_element_urls, include_delete_urls = urls_and_include_delete_urls
-  signed_urls = []
-  for corpus_element_url in corpus_element_urls:
-    download_url = get_signed_download_url(corpus_element_url, minutes)
-    if include_delete_urls:
-      delete_url = sign_delete_url(corpus_element_url, minutes)
-    else:
-      delete_url = ''
-    signed_urls.append(download_url, delete_url)
-  return signed_urls
+  corpus_element_url, include_delete_urls = url_and_include_delete_urls
+  download_url = get_signed_download_url(corpus_element_url, minutes)
+  if include_delete_urls:
+    delete_url = sign_delete_url(corpus_element_url, minutes)
+  else:
+    delete_url = ''
+  return (download_url, delete_url)
 
 
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
-  url_batches = utils.batched(urls, 2)
-  args = ((url_batch, include_delete_urls) for url_batch in url_batches)
+  args = ((url, include_delete_urls) for url in urls)
   with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(_sign_urls_for_existing_files, args)
+    result = pool.map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1415,6 +1419,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
   with concurrency.make_pool(
       _POOL_SIZE, cpu_bound=True, max_pool_size=2) as pool:
     url_batches = utils.batched(urls, 2)
-    result = list(pool.map(get_signed_upload_urls, url_batches))
+    result = itertools.chain(*pool.map(get_signed_upload_urls, url_batches))
   logs.info('Done signing URLs for arbitrary uploads.')
   return result

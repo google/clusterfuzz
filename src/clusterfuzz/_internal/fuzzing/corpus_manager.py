@@ -665,7 +665,7 @@ def get_proto_corpus(bucket_name,
     urls = itertools.islice(urls, max_download_urls)
   corpus_urls = dict(
       storage.sign_urls_for_existing_files(urls, include_delete_urls))
-
+  
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
   corpus = uworker_msg_pb2.Corpus(  # pylint: disable=no-member
