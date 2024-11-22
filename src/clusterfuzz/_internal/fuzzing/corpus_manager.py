@@ -641,6 +641,12 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
   return len(fails) < MAX_SYNC_ERRORS
 
 
+def _last_updated(*args, **kwargs):
+  if environment.is_tworker():
+    return None
+  return storage.last_updated(*args, **kwargs)
+
+
 def get_proto_corpus(bucket_name,
                      bucket_path,
                      max_upload_urls,
@@ -660,7 +666,7 @@ def get_proto_corpus(bucket_name,
       upload_urls=upload_urls,
       gcs_url=gcs_url,
   )
-  last_updated = storage.last_updated(_get_gcs_url(bucket_name, bucket_path))
+  last_updated = _last_updated(_get_gcs_url(bucket_name, bucket_path))
   if last_updated:
     timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
     timestamp.FromDatetime(last_updated)
