@@ -104,24 +104,6 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
   return result[0]
 
 
-def _bunched(iterator, bunch_size):
-  """Implementation of itertools.py's batched that was added after Python3.7."""
-  # TODO(metzman): Replace this with itertools.batched.
-  assert bunch_size > -1
-  idx = 0
-  bunch = []
-  for item in iterator:
-    idx += 1
-    bunch.append(item)
-    if idx == bunch_size:
-      idx = 0
-      yield bunch
-      bunch = []
-
-  if bunch:
-    yield bunch
-
-
 def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
@@ -135,7 +117,8 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
 
   logs.info('Batching utask_mains.')
   for spec, input_urls in job_specs.items():
-    for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
+    for input_urls_portion in utils.batched(input_urls,
+                                            MAX_CONCURRENT_VMS_PER_JOB):
       jobs.append(_create_job(spec, input_urls_portion))
 
   return jobs
