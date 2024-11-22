@@ -233,7 +233,8 @@ def run_command(task_name, task_argument, job_name, uworker_env):
         'argument': task_argument,
     })
     logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
-    if task_name == 'fuzz':
+    if task_name == 'fuzz' and not environment.is_tworker():
+      # TODO(b/377885331): Get rid of this when oss-fuzz is migrated.
       # Wait 10 seconds. We don't want to try again immediately because if we
       # tried to run a fuzz task then there is no other task to run.
       time.sleep(environment.get_value('FAIL_WAIT'))
@@ -467,6 +468,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     return run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
-    cleanup_task_state()
+    if not environment.is_tworker():
+      cleanup_task_state()
     if 'CF_TASK_ID' in os.environ:
       del os.environ['CF_TASK_ID']

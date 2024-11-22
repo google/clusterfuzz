@@ -127,6 +127,15 @@ class UploadUrlCollection:
     return url
 
 
+def _get_max_testcases() -> int:
+  return environment.get_value('MAX_TESTCASES', 1)
+
+
+def _get_max_corpus_uploads_per_task():
+  number_of_fuzzer_runs = _get_max_testcases()
+  return MAX_NEW_CORPUS_FILES * number_of_fuzzer_runs
+
+
 class Crash:
   """Represents a crash (before creating a testcase)."""
 
@@ -1497,7 +1506,7 @@ class FuzzingSession:
 
     self.fuzz_task_output.app_revision = environment.get_value('APP_REVISION')
     # Do the actual fuzzing.
-    for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
+    for fuzzing_round in range(_get_max_testcases()):
       logs.info(f'Fuzzing round {fuzzing_round}.')
       try:
         with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
@@ -1572,7 +1581,7 @@ class FuzzingSession:
     thread_timeout = test_timeout
 
     # Determine number of testcases to process.
-    testcase_count = environment.get_value('MAX_TESTCASES')
+    testcase_count = _get_max_testcases()
 
     # For timeout multipler greater than 1, we need to decrease testcase count
     # to prevent exceeding task lease time.
@@ -2023,7 +2032,11 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
         uworker_io.entity_to_protobuf(fuzz_target))
     fuzz_task_input.corpus.CopyFrom(
         corpus_manager.get_fuzz_target_corpus(
-            fuzzer_name, fuzz_target.project_qualified_name()).serialize())
+            fuzzer_name,
+            fuzz_target.project_qualified_name(),
+            include_delete_urls=False,
+            max_upload_urls=_get_max_corpus_uploads_per_task(),
+            max_download_urls=25000).serialize())
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()

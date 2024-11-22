@@ -1135,6 +1135,7 @@ def get_object_size(cloud_storage_file_path):
   return int(gcs_object['size'])
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
 def blobs_bucket():
   """Get the blobs bucket name."""
   # Allow tests to override blobs bucket name safely.
@@ -1351,18 +1352,24 @@ def _sign_urls_for_existing_file(
   return (download_url, delete_url)
 
 
+def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
+  url, include_delete_urls = url_and_include_delete_urls
+  return _sign_urls_for_existing_file(url, include_delete_urls)
+
+
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
-  result = [
-      _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
-  ]
+  args = ((url, include_delete_urls) for url in urls)
+  with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
+    result = pool.map(_mappable_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
-  return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+  return list(
+      get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
@@ -1390,6 +1397,8 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = [get_signed_upload_url(url) for url in urls]
+  with concurrency.make_pool(
+      _POOL_SIZE, cpu_bound=True, max_pool_size=2) as pool:
+    result = list(pool.map(get_signed_upload_url, urls))
   logs.info('Done signing URLs for arbitrary uploads.')
   return result
