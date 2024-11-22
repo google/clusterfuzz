@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for corpus synchronization with GCS."""
 
+import itertools
 import os
 import re
 import shutil
@@ -656,6 +657,8 @@ def get_proto_corpus(bucket_name,
   # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
   urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
           for url in storage.list_blobs(gcs_url))
+  # TODO(metzman): Stop limiting URLs when pruning works on oss-fuzz
+  # again.
   corpus_urls = dict(
       storage.sign_urls_for_existing_files(urls, include_delete_urls))
 

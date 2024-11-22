@@ -1399,6 +1399,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
   logs.info('Signing URLs for arbitrary uploads.')
   with concurrency.make_pool(
       _POOL_SIZE, cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(get_signed_upload_url, urls)
+    result = list(pool.map(get_signed_upload_url, urls))
   logs.info('Done signing URLs for arbitrary uploads.')
   return result
