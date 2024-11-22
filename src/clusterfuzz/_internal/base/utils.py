@@ -1020,3 +1020,22 @@ def cpu_count():
 
   return environment.get_value('CPU_COUNT_OVERRIDE',
                                multiprocessing.cpu_count())
+
+
+def batched(iterator, batch_size):
+  """Implementation of itertools.py's batched that was added after
+  Python3.11."""
+  # TODO(metzman): Replace this with itertools.batched.
+  assert batch_size > -1
+  idx = 0
+  batch = []
+  for item in iterator:
+    idx += 1
+    batch.append(item)
+    if idx == batch_size:
+      idx = 0
+      yield batch
+      batch = []
+
+  if batch:
+    yield batch

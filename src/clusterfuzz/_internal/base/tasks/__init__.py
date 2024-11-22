@@ -48,6 +48,8 @@ HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
 
+MAX_PUBSUB_MESSAGES_PER_REQ = 1000
+
 # Various variables for task leasing and completion times (in seconds).
 TASK_COMPLETION_BUFFER = 90 * 60
 TASK_CREATION_WAIT_INTERVAL = 2 * 60
@@ -653,8 +655,9 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
 
   pubsub_client = pubsub.PubSubClient()
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
-  pubsub_client.publish(
-      pubsub.topic_name(utils.get_application_id(), queue), pubsub_messages)
+  topic_name = pubsub.topic_name(utils.get_application_id(), queue)
+  for batch in utils.batched(pubsub_messages, MAX_PUBSUB_MESSAGES_PER_REQ):
+    pubsub_client.publish(topic_name, batch)
 
 
 def add_task(command,
