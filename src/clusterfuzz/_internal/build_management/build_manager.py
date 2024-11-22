@@ -1226,16 +1226,17 @@ def _emit_build_age_metric(gcs_path):
   except Exception as e:
     logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
 
+
 def _emit_build_revision_metric(revision):
   """Emits a gauge metric to track the build revision."""
   monitoring_metrics.JOB_BUILD_REVISION.set(
-    revision,
-    labels = {
-        'job': os.getenv('JOB_NAME'),
-        'platform': environment.platform(),
-        'task': os.getenv('TASK_NAME'), 
-    }
-  )
+      revision,
+      labels={
+          'job': os.getenv('JOB_NAME'),
+          'platform': environment.platform(),
+          'task': os.getenv('TASK_NAME'),
+      })
+
 
 def _get_build_url(bucket_path: Optional[str], revision: int,
                    job_type: Optional[str]):
