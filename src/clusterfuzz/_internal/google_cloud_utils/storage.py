@@ -167,7 +167,9 @@ class StorageProvider:
     """Signs a download URL for a remote file."""
     raise NotImplementedError
 
-  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_upload_urls(self,
+                       remote_paths: List[str],
+                       minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs an upload URL for a remote file."""
     raise NotImplementedError
 
@@ -407,11 +409,11 @@ class GcsProvider(StorageProvider):
     """Signs a download URL for a remote file."""
     return _sign_url(remote_path, method='GET', minutes=minutes)
 
-  def sign_upload_url(self,
-                      remote_path: str,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES) -> str:
+  def sign_upload_urls(self,
+                       remote_paths: List[str],
+                       minutes=SIGNED_URL_EXPIRATION_MINUTES) -> List[str]:
     """Signs an upload URL for a remote file."""
-    return _sign_url(remote_path, method='PUT', minutes=minutes)
+    return _sign_urls(remote_paths, method='PUT', minutes=minutes)
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
@@ -438,21 +440,33 @@ def _sign_url(remote_path: str,
               minutes=SIGNED_URL_EXPIRATION_MINUTES,
               method='GET') -> str:
   """Returns a signed URL for |remote_path| with |method|."""
+  return _sign_urls([remote_path], minutes, method)[0]
+
+
+def _sign_urls(remote_paths: List[str],
+               minutes=SIGNED_URL_EXPIRATION_MINUTES,
+               method='GET') -> List[str]:
   if _integration_test_env_doesnt_support_signed_urls():
-    return remote_path
+    return remote_paths
   minutes = datetime.timedelta(minutes=minutes)
-  bucket_name, object_path = get_bucket_name_and_path(remote_path)
+
   signing_creds, access_token = _signing_creds()
   client = _storage_client()
-  bucket = client.bucket(bucket_name)
-  blob = bucket.blob(object_path)
-  return blob.generate_signed_url(
-      version='v4',
-      expiration=minutes,
-      method=method,
-      credentials=signing_creds,
-      access_token=access_token,
-      service_account_email=signing_creds.service_account_email)
+  urls = []
+  for remote_path in remote_paths:
+    bucket_name, object_path = get_bucket_name_and_path(remote_path)
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(object_path)
+
+    urls.append(
+        blob.generate_signed_url(
+            version='v4',
+            expiration=minutes,
+            method=method,
+            credentials=signing_creds,
+            access_token=access_token,
+            service_account_email=signing_creds.service_account_email))
+  return urls
 
 
 class FileSystemProvider(StorageProvider):
@@ -670,11 +684,13 @@ class FileSystemProvider(StorageProvider):
     del minutes
     return remote_path
 
-  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_upload_urls(self,
+                       remote_paths: List[str],
+                       minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
     upload."""
     del minutes
-    return remote_path
+    return remote_paths
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
@@ -1237,8 +1253,7 @@ def download_signed_url_to_file(url, filepath):
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed upload URL for |remote_path|. Does not download the
   contents."""
-  provider = _provider()
-  return provider.sign_upload_url(remote_path, minutes=minutes)
+  return get_signed_upload_urls([remote_path], minutes=minutes)[0]
 
 
 def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1340,29 +1355,28 @@ def delete_signed_urls(urls):
   logs.info('Done deleting URLs.')
 
 
-def _sign_urls_for_existing_file(
-    url_and_include_delete_urls: Tuple[str, bool],
+def _sign_urls_for_existing_files(
+    urls_and_include_delete_urls: Tuple[List[str], bool],
     minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
-  corpus_element_url, include_delete_urls = url_and_include_delete_urls
-  download_url = get_signed_download_url(corpus_element_url, minutes)
-  if include_delete_urls:
-    delete_url = sign_delete_url(corpus_element_url, minutes)
-  else:
-    delete_url = ''
-  return (download_url, delete_url)
-
-
-def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
-  url, include_delete_urls = url_and_include_delete_urls
-  return _sign_urls_for_existing_file(url, include_delete_urls)
+  corpus_element_urls, include_delete_urls = urls_and_include_delete_urls
+  signed_urls = []
+  for corpus_element_url in corpus_element_urls:
+    download_url = get_signed_download_url(corpus_element_url, minutes)
+    if include_delete_urls:
+      delete_url = sign_delete_url(corpus_element_url, minutes)
+    else:
+      delete_url = ''
+    signed_urls.append(download_url, delete_url)
+  return signed_urls
 
 
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
-  args = ((url, include_delete_urls) for url in urls)
+  url_batches = utils.batched(urls, 2)
+  args = ((url_batch, include_delete_urls) for url_batch in url_batches)
   with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(_sign_urls_for_existing_file, args)
+    result = pool.map(_sign_urls_for_existing_files, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1370,6 +1384,14 @@ def sign_urls_for_existing_files(urls,
 def get_arbitrary_signed_upload_url(remote_directory):
   return list(
       get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
+
+
+def get_signed_upload_urls(remote_paths: List[str],
+                           minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  """Returns a signed upload URL for |remote_path|. Does not download the
+  contents."""
+  provider = _provider()
+  return provider.sign_upload_urls(remote_paths, minutes=minutes)
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
@@ -1392,6 +1414,7 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
   logs.info('Signing URLs for arbitrary uploads.')
   with concurrency.make_pool(
       _POOL_SIZE, cpu_bound=True, max_pool_size=2) as pool:
-    result = list(pool.map(get_signed_upload_url, urls))
+    url_batches = utils.batched(urls, 2)
+    result = list(pool.map(get_signed_upload_urls, url_batches))
   logs.info('Done signing URLs for arbitrary uploads.')
   return result
