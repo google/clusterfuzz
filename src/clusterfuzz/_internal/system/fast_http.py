@@ -36,8 +36,6 @@ def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
   batch_size = len(urls_and_filepaths) // concurrency.POOL_SIZE
   # Avoid issues with range when urls is less than _POOL_SIZE.
   batch_size = max(batch_size, len(urls_and_filepaths))
-  # Avoid OOMs by limiting the amount of concurrent downloads.
-  batch_size = min(5, batch_size)
 
   for idx in range(0, len(urls_and_filepaths), batch_size):
     batch = urls_and_filepaths[idx:idx + batch_size]
