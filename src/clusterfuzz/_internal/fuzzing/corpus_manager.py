@@ -651,12 +651,16 @@ def _last_updated(*args, **kwargs):
 def get_proto_corpus(bucket_name,
                      bucket_path,
                      max_upload_urls,
-                     include_delete_urls=False):
+                     include_delete_urls=False,
+                     max_download_urls=None):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
   urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
           for url in storage.list_blobs(gcs_url))
+
+  if max_download_urls is not None:
+    urls = itertools.islice(urls, max_download_urls)
   # TODO(metzman): Stop limiting URLs when pruning works on oss-fuzz
   # again.
   corpus_urls = dict(
@@ -697,7 +701,8 @@ def get_fuzz_target_corpus(engine,
                            quarantine=False,
                            include_regressions=False,
                            include_delete_urls=False,
-                           max_upload_urls=10000):
+                           max_upload_urls=10000,
+                           max_download_urls=None):
   """Copies the corpus from gcs to disk. Can run on uworker."""
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()  # pylint: disable=no-member
   bucket_name, bucket_path = get_target_bucket_and_path(
@@ -706,7 +711,8 @@ def get_fuzz_target_corpus(engine,
       bucket_name,
       bucket_path,
       include_delete_urls=include_delete_urls,
-      max_upload_urls=max_upload_urls)
+      max_upload_urls=max_upload_urls,
+      max_download_urls=max_download_urls)
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
   assert not (include_regressions and quarantine)
@@ -716,7 +722,8 @@ def get_fuzz_target_corpus(engine,
         bucket_name,
         regressions_bucket_path,
         max_upload_urls=0,  # This is never uploaded to using this mechanism.
-        include_delete_urls=False)  # This is never deleted from.
+        include_delete_urls=False,  # This is never deleted from.
+        max_download_urls=max_download_urls)
     fuzz_target_corpus.regressions_corpus.CopyFrom(regressions_corpus)
 
   return ProtoFuzzTargetCorpus(engine, project_qualified_target_name,

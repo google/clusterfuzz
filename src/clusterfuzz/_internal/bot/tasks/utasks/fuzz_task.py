@@ -2035,7 +2035,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
             fuzzer_name,
             fuzz_target.project_qualified_name(),
             include_delete_urls=False,
-            max_upload_urls=_get_max_corpus_uploads_per_task()).serialize())
+            max_upload_urls=_get_max_corpus_uploads_per_task(),
+            max_download_urls=25000).serialize())
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()

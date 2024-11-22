@@ -24,6 +24,7 @@ POOL_SIZE = multiprocessing.cpu_count()
 class SingleThreadPool:
   """Single thread pool for when it's not worth using Python's thread
   implementation."""
+
   def __init__(self, size):
     del size
 
@@ -41,7 +42,7 @@ def make_pool(pool_size=POOL_SIZE, cpu_bound=False, max_pool_size=None):
   if (environment.get_value('PY_UNITTESTS') or
       environment.platform() == 'WINDOWS'):
     if cpu_bound:
-      yield InProcessPool(pool_size)
+      yield SingleThreadPool(pool_size)
     else:
       yield futures.ThreadPoolExecutor(pool_size)
   else:
