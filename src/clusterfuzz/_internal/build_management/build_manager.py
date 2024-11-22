@@ -1226,6 +1226,16 @@ def _emit_build_age_metric(gcs_path):
   except Exception as e:
     logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
 
+def _emit_build_revision_metric(revision):
+  """Emits a gauge metric to track the build revision."""
+  monitoring_metrics.JOB_BUILD_REVISION.set(
+    revision,
+    labels = {
+        'job': os.getenv('JOB_NAME'),
+        'platform': environment.platform(),
+        'task': os.getenv('TASK_NAME'), 
+    }
+  )
 
 def _get_build_url(bucket_path: Optional[str], revision: int,
                    job_type: Optional[str]):
@@ -1297,6 +1307,8 @@ def setup_regular_build(revision,
 
   if revision == latest_revision:
     _emit_build_age_metric(build_url)
+
+  _emit_build_revision_metric(revision)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.

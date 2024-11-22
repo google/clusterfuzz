@@ -44,6 +44,17 @@ JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
     ],
 )
 
+JOB_BUILD_REVISION = monitor.GaugeMetric(
+    'job/build_age',
+    description=('Gauge for revision of trunk build '
+                 '(grouped by job/platform/task).'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('task'),
+    ],
+)
+
 JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
