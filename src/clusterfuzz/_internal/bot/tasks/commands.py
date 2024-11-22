@@ -467,6 +467,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     return run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
-    cleanup_task_state()
+    if not environment.is_tworker():
+      cleanup_task_state()
     if 'CF_TASK_ID' in os.environ:
       del os.environ['CF_TASK_ID']

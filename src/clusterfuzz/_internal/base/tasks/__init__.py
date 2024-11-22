@@ -317,10 +317,6 @@ def get_preprocess_task():
 
 def tworker_get_task():
   assert environment.is_tworker()
-  task = get_postprocess_task()
-  if task:
-    return task
-
   return get_preprocess_task()
 
 
