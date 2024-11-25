@@ -309,6 +309,15 @@ ISSUE_CLOSING = monitor.CounterMetric(
         monitor.StringField('status'),
     ])
 
+BUG_FILING_FROM_TESTCASE_ELAPSED_TIME = monitor.CumulativeDistributionMetric(
+    'fuzzed_testcase_analysis/triage_duration_secs',
+    description='Time elapsed between testcase and bug creation, in minutes.',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+    ])
+
 UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
     'issues/untriaged_testcase_age',
     description='Age of testcases that were not yet triaged '
