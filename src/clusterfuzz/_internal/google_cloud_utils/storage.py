@@ -1361,8 +1361,7 @@ def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  with concurrency.make_pool(cpu_bound=True, max_pool_size=2) as pool:
-    result = pool.map(_sign_urls_for_existing_file, args)
+  result = list(map(_sign_urls_for_existing_file, args))
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1397,8 +1396,13 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
+<<<<<<< Updated upstream
   with concurrency.make_pool(
       _POOL_SIZE, cpu_bound=True, max_pool_size=2) as pool:
     result = list(pool.map(get_signed_upload_url, urls))
+=======
+  url_batches = utils.batched(urls, 2)
+  result = list(pool.map(get_signed_upload_urls, url_batches))
+>>>>>>> Stashed changes
   logs.info('Done signing URLs for arbitrary uploads.')
   return result
