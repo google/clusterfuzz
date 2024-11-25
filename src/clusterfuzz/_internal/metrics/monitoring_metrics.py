@@ -34,7 +34,7 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
 
 JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
     'job/build_age',
-    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    bucketer=monitor.GeometricBucketer(),
     description=('Distribution of latest build\'s age in hours. '
                  '(grouped by fuzzer/job)'),
     field_spec=[
@@ -46,7 +46,7 @@ JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
 
 JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
-    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    bucketer=monitor.GeometricBucketer(),
     description=('Distribution of fuzz task\'s build retrieval times. '
                  '(grouped by fuzzer/job, in minutes).'),
     field_spec=[
@@ -120,7 +120,7 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
 # fuzzing time and the time to upload results to datastore
 FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
     'task/fuzz/session/duration',
-    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    bucketer=monitor.GeometricBucketer(),
     description=('Total duration of fuzzing session.'),
     field_spec=[
         monitor.StringField('fuzzer'),
