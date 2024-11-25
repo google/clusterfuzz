@@ -144,6 +144,16 @@ def _get_task_spec(batch_workload_spec):
   return task_spec
 
 
+def _set_preemptible(instance_policy,
+                     batch_workload_spec: BatchWorkloadSpec) -> None:
+  if batch_workload_spec.preemptible:
+    instance_policy.provisioning_model = (
+        batch.AllocationPolicy.ProvisioningModel.PREEMPTIBLE)
+  else:
+    instance_policy.provisioning_model = (
+        batch.AllocationPolicy.ProvisioningModel.STANDARD)
+
+
 def _get_allocation_policy(spec):
   """Returns the allocation policy for a BatchWorkloadSpec."""
   disk = batch.AllocationPolicy.Disk()
@@ -153,6 +163,7 @@ def _get_allocation_policy(spec):
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
   instance_policy.machine_type = spec.machine_type
+  _set_preemptible(instance_policy, spec)
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
 
