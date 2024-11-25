@@ -1567,6 +1567,23 @@ class FuzzingSession:
 
     return crashes, fuzzer_metadata
 
+  def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
+                                            fuzzer, job):
+    testcase_generation_finish = time.time()
+    elapsed_testcase_generation_time = testcase_generation_finish
+    elapsed_testcase_generation_time -= start_time
+    # Avoid division by zero.
+    if testcase_count:
+      average_time_per_testcase = elapsed_testcase_generation_time
+      average_time_per_testcase = average_time_per_testcase / testcase_count
+      monitoring_metrics.TESTCASE_GENERATION_AVERAGE_TIME.add(
+          average_time_per_testcase,
+          labels={
+              'job': job,
+              'fuzzer': fuzzer,
+              'platform': environment.platform(),
+          })
+
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     # Set the thread timeout values.
@@ -1590,10 +1607,14 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
+    testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
+
+    self._emit_testcase_generation_time_metric(
+        testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 

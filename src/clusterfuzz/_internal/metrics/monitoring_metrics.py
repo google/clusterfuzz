@@ -140,6 +140,19 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+TESTCASE_GENERATION_AVERAGE_TIME = monitor.CumulativeDistributionMetric(
+    'task/fuzz/fuzzer/testcase_generation_duration',
+    bucketer=monitor.GeometricBucketer(),
+    description=('Distribution of blackbox fuzzer average testcase '
+                 ' generation time, in seconds '
+                 '(grouped by fuzzer, job and platform).'),
+    field_spec=[
+        monitor.StringField('platform'),
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer'),
+    ],
+)
+
 FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
     'task/fuzz/fuzzer/testcase_count_ratio',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
