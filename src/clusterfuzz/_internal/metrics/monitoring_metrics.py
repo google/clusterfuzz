@@ -35,7 +35,7 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
 JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
     'job/build_age',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
-    description=('Distribution of latest build\'s age in hours. '
+    description=('Distribution of latest build\'s age in seconds. '
                  '(grouped by fuzzer/job)'),
     field_spec=[
         monitor.StringField('job'),

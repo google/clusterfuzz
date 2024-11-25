@@ -301,16 +301,16 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
 
 def _emit_job_build_retrieval_metric(start_time, step, build_type):
   """Emits a metrick to track the distribution of build retrieval times."""
-  elapsed_minutes = (time.time() - start_time) / 60
+  elapsed_seconds = time.time() - start_time
   labels = {
       'job': os.getenv('JOB_NAME'),
       'platform': environment.platform(),
       'step': step,
       'build_type': build_type,
   }
-  logs.info(f'JOB_BUILD_RETRIEVAL_TIME: adding {elapsed_minutes} '
+  logs.info(f'JOB_BUILD_RETRIEVAL_TIME: adding {elapsed_seconds} '
             f'for labels {labels}.')
-  monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(elapsed_minutes, labels)
+  monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(elapsed_seconds, labels)
 
 
 class BaseBuild:
@@ -1216,15 +1216,15 @@ def _emit_build_age_metric(gcs_path):
       last_update_time = datetime.datetime.fromisoformat(last_update_time)
     now = datetime.datetime.now(datetime.timezone.utc)
     elapsed_time = now - last_update_time
-    elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
+    elapsed_time_in_seconds = elapsed_time.total_seconds()
     # Fuzz targets do not apply for custom builds
     labels = {
         'job': os.getenv('JOB_NAME'),
         'platform': environment.platform(),
         'task': os.getenv('TASK_NAME'),
     }
-    logs.info(f'JOB_BUILD_AGE: adding {elapsed_time_in_hours} for {labels}')
-    monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
+    logs.info(f'JOB_BUILD_AGE: adding {elapsed_time_in_seconds} for {labels}')
+    monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_seconds, labels)
     # This field is expected as a datetime object
     # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
   except Exception as e:
