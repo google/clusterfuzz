@@ -151,6 +151,19 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+TESTCASE_GENERATION_AVERAGE_TIME = monitor.CumulativeDistributionMetric(
+    'task/fuzz/fuzzer/testcase_generation_duration',
+    bucketer=monitor.GeometricBucketer(),
+    description=('Distribution of blackbox fuzzer average testcase '
+                 ' generation time, in seconds '
+                 '(grouped by fuzzer, job and platform).'),
+    field_spec=[
+        monitor.StringField('platform'),
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer'),
+    ],
+)
+
 FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
     'task/fuzz/fuzzer/testcase_count_ratio',
     bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
@@ -304,6 +317,15 @@ ISSUE_CLOSING = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer_name'),
         monitor.StringField('status'),
+    ])
+
+BUG_FILING_FROM_TESTCASE_ELAPSED_TIME = monitor.CumulativeDistributionMetric(
+    'fuzzed_testcase_analysis/triage_duration_secs',
+    description='Time elapsed between testcase and bug creation, in minutes.',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
