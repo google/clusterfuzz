@@ -61,17 +61,12 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     return
 
-  labels = {
-      'job': testcase.job_type,
-      'step': step,
-  }
-
-  logs.info(
-      f'TESTCASE_UPLOAD_TRIAGE_DURATION: adding {elapsed_time_since_upload} for {labels}.'
-  )
-
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
-      elapsed_time_since_upload, labels=labels)
+      elapsed_time_since_upload,
+      labels={
+          'job': testcase.job_type,
+          'step': step,
+      })
 
 
 def get_testcase_upload_metadata(

@@ -306,16 +306,12 @@ def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
   if not testcase.timestamp:
     return
 
-  labels = {
-      'job': testcase.job_type,
-      'platform': testcase.platform,
-  }
-
-  logs.info(f'UNTRIAGED_TESTCASE_AGE: adding {testcase.get_age_in_seconds()}'
-            ' for {labels}')
-
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
-      testcase.get_age_in_seconds(), labels=labels)
+      testcase.get_age_in_seconds(),
+      labels={
+          'job': testcase.job_type,
+          'platform': testcase.platform,
+      })
 
 
 def main():
