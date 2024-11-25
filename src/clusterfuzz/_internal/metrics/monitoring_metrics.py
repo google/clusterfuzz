@@ -45,7 +45,7 @@ JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
 )
 
 JOB_BUILD_REVISION = monitor.GaugeMetric(
-    'job/build_age',
+    'job/build_revision',
     description=('Gauge for revision of trunk build '
                  '(grouped by job/platform/task).'),
     field_spec=[
