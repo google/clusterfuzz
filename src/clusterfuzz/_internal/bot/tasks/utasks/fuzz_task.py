@@ -2008,6 +2008,7 @@ def _pick_fuzz_target():
 
 
 def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
+  """Gets or creates a FuzzTarget db entity."""
   project = data_handler.get_project_name(job_type)
   qualified_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, fuzz_target_binary)
@@ -2016,9 +2017,7 @@ def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
   if fuzz_target:
     return fuzz_target
   fuzz_target = data_types.FuzzTarget(
-    engine=engine_name,
-    binary=fuzz_target_binary,
-    project=project)
+      engine=engine_name, binary=fuzz_target_binary, project=project)
   fuzz_target.put()
   return fuzz_target
 
