@@ -476,6 +476,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # Convert this to a dict so proto's map doesn't return a default value for
     # missing keys (this hides errors).
     corpus_urls = dict(corpus.corpus_urls)
+
     for result in results:
       if not result.url:
         fails += 1

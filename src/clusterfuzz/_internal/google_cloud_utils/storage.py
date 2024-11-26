@@ -249,10 +249,11 @@ class GcsProvider(StorageProvider):
 
     if names_only:
       fields = 'items(name),nextPageToken'
-      iterator = bucket.list_blobs(
-        prefix=path, delimiter=delimiter, fields=fields)
     else:
-      iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
+      fields = None
+
+    iterator = bucket.list_blobs(
+        prefix=path, delimiter=delimiter, fields=fields)
 
     for blob in iterator:
       properties['bucket'] = bucket_name
