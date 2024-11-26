@@ -13,14 +13,17 @@
 # limitations under the License.
 """Run a task locally."""
 
+from clusterfuzz._internal.bot.fuzzers import init
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.bot.fuzzers import init
+
 # from local.butler.run_bot
+
 
 def execute(args):
   """Build keywords."""
   environment.set_bot_environment()
   init.run()
-  commands.process_command_impl('fuzz', 'libFuzzer', 'libfuzzer_asan_log4j2', True, True)
+  commands.process_command_impl('fuzz', 'libFuzzer', 'libfuzzer_asan_log4j2',
+                                True, True)
   pass
