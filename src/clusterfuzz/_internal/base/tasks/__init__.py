@@ -94,7 +94,7 @@ UTASK_QUEUE_PULL_SECONDS = 60
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 150
+MAX_UTASKS = 250
 
 UTASKS = {
     'analyze',
@@ -653,14 +653,11 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     queue = default_queue()
 
   # We can preprocess on the preprocess bots regardless of queue.
-  if utils.is_oss_fuzz():
+  if utils.is_oss_fuzz() and tasks[0].command in UTASKS:
     # TODO(metzman): Do this everywhere, not just oss-fuzz.
+    queue = PREPROCESS_QUEUE
     for task in tasks:
-      if task.command in UTASKS:
-        # TODO(metzman): Get rid of this log message after we get used to this.
-        logs.info(f'{task.command} was using {task.queue} now using '
-                  f'{PREPROCESS_QUEUE}')
-        task.queue = PREPROCESS_QUEUE
+      assert task.command in UTASKS
 
   # If callers want delays, they must do it themselves, because this function is
   # meant to be used for batch tasks which don't need this.
