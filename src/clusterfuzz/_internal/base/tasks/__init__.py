@@ -655,6 +655,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   # We can preprocess on the preprocess bots regardless of queue.
   if utils.is_oss_fuzz() and tasks[0].command in UTASKS:
     # TODO(metzman): Do this everywhere, not just oss-fuzz.
+    logs.info(f'Using {PREPROCESS_QUEUE}.')
     queue = PREPROCESS_QUEUE
     for task in tasks:
       assert task.command in UTASKS
