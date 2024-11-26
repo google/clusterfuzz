@@ -272,19 +272,21 @@ def _get_task_duration(command):
                                                  tasks.TASK_LEASE_SECONDS)
 
 
-def _get_subconfig(batch_config):
+def _get_subconfig(batch_config, instance_spec):
   # TODO(metzman): Make this pick one at random or based on conditions.
-  return random.choice(list(batch_config.get('regions'))
+  all_subconfigs = batch_config.get('subconfigs', {})
+  subconfig_name = random.choice(instance_spec['subconfigs'])
+  return all_subconfigs[subconfig_name]
 
 
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
   batch_config = _get_batch_config()
-  subconfig = _get_subconfig(batch_config)
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
+  subconfig = _get_subconfig(batch_config, instance_spec)
   project_name = batch_config.get('project')
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
