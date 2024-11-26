@@ -20,6 +20,9 @@ mapping:
     disk_size_gb: 110
     disk_type: pd-standard
     service_account_email: test-clusterfuzz-service-account-email
+    subconfigs:
+      - central1-network1
+      - central1-network2
     preemptible: false
     machine_type: n1-standard-1
   LINUX-NONPREEMPTIBLE-UNPRIVILEGED:
@@ -31,6 +34,10 @@ mapping:
     service_account_email: test-unpriv-clusterfuzz-service-account-email
     preemptible: false
     machine_type: n1-standard-1
+    subconfigs:
+      - central1-network1
+      - central1-network2
+      - east4-network2
   LINUX-PREEMPTIBLE:
     clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
@@ -40,6 +47,8 @@ mapping:
     service_account_email: test-clusterfuzz-service-account-email
     preemptible: true
     machine_type: n1-standard-1
+    subconfigs:
+      - east4-network2
   LINUX-PREEMPTIBLE-UNPRIVILEGED:
     clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
@@ -49,8 +58,19 @@ mapping:
     service_account_email: test-unpriv-clusterfuzz-service-account-email
     preemptible: true
     machine_type: n1-standard-1
+    subconfigs:
+      - east4-network2
 project: 'test-clusterfuzz'
-regions:
-  us-central1:
+subconfigs:
+  central1-network1:
+    region: 'us-central1'
     network: 'projects/project_name/global/networks/networkname'
     subnetwork: 'projects/project_name/regions/us-central1/subnetworks/subnetworkname'
+  central1-network2:
+    region: 'us-central1'
+    network: 'projects/project_name/global/networks/networkname2'
+    subnetwork: 'projects/project_name/regions/us-central1/subnetworks/subnetworkname2'
+  east4-network2:
+    region: 'us-east4'
+    network: 'projects/project_name/global/networks/networkname2'
+    subnetwork: 'projects/project_name/regions/us-east4/subnetworks/subnetworkname2'

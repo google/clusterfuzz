@@ -80,6 +80,8 @@ class AlreadyRunningError(Error):
 def cleanup_task_state():
   """Cleans state before and after a task is executed."""
   # Cleanup stale processes.
+  if environment.is_tworker():
+    return
   process_handler.cleanup_stale_processes()
 
   # Clear build urls, temp and testcase directories.
@@ -95,8 +97,6 @@ def cleanup_task_state():
 
   # Call python's garbage collector.
   utils.python_gc()
-  if 'CF_TASK_ID' in os.environ:
-    del os.environ['CF_TASK_ID']
 
 
 def is_supported_cpu_arch_for_job():
@@ -192,11 +192,28 @@ def start_web_server_if_needed():
     logs.error('Failed to start web server, skipping.')
 
 
+def get_command_object(task_name):
+  """Returns the command object that execute can be called on."""
+  task = COMMAND_MAP.get(task_name)
+  if not environment.is_tworker():
+    return task
+
+  if task_name in {'postprocess', 'uworker_main'}:
+    return task
+
+  if isinstance(task, task_types.TrustedTask):
+    # We don't need to execute this remotely.
+    return task
+
+  # Force remote execution.
+  return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
+
+
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Runs the command."""
-  task = COMMAND_MAP.get(task_name)
+  task = get_command_object(task_name)
   if not task:
-    logs.error("Unknown command '%s'" % task_name)
+    logs.error(f'Unknown command "{task_name}"')
     return None
 
   # If applicable, ensure this is the only instance of the task running.
@@ -218,7 +235,8 @@ def run_command(task_name, task_argument, job_name, uworker_env):
         'argument': task_argument,
     })
     logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
-    if task_name == 'fuzz':
+    if task_name == 'fuzz' and not environment.is_tworker():
+      # TODO(b/377885331): Get rid of this when oss-fuzz is migrated.
       # Wait 10 seconds. We don't want to try again immediately because if we
       # tried to run a fuzz task then there is no other task to run.
       time.sleep(environment.get_value('FAIL_WAIT'))
@@ -303,6 +321,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     # TODO(ochang): Remove the first part of this check once we migrate off the
     # old untrusted worker architecture.
     if (not environment.get_value('DEBUG_TASK') and
+        not environment.is_tworker() and
         not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix):
       # This happens rarely, store this as a hard exception.
@@ -452,3 +471,5 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
   finally:
     # Final clean up.
     cleanup_task_state()
+    if 'CF_TASK_ID' in os.environ:
+      del os.environ['CF_TASK_ID']

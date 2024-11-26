@@ -424,21 +424,22 @@ def _get_testcase_time(testcase_path):
   return None
 
 
-def upload_testcase(testcase_path, log_time):
+def upload_testcase(testcase_path, testcase_data, log_time):
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
     return
 
-  if not os.path.exists(testcase_path):
-    return
-
-  with open(testcase_path, 'rb') as file_handle:
-    testcase_contents = file_handle.read()
+  assert not (testcase_path and testcase_data)
+  if testcase_path:
+    if not os.path.exists(testcase_path):
+      return
+    with open(testcase_path, 'rb') as file_handle:
+      testcase_data = file_handle.read()
 
   fuzzer_logs.upload_to_logs(
       fuzz_logs_bucket,
-      testcase_contents,
+      testcase_data,
       time=log_time,
       file_extension='.testcase')
 
@@ -534,7 +535,7 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
       # Don't upload uninteresting testcases (no crash) or if there is no log to
       # correlate it with (not upload_output).
       if upload_output:
-        upload_testcase(file_path, log_time)
+        upload_testcase(file_path, None, log_time)
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).

@@ -13,32 +13,15 @@
 # limitations under the License.
 """Tools for fast HTTP operations."""
 import asyncio
-from concurrent import futures
-import contextlib
 import itertools
-import multiprocessing
 from typing import List
 from typing import Tuple
 
 import aiohttp
 
+from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
-
-_POOL_SIZE = multiprocessing.cpu_count()
-
-
-@contextlib.contextmanager
-def _pool(pool_size=_POOL_SIZE):
-  # TOOD(metzman): Move the multiprocessing code from _pool() in storage.py
-  # over.
-  # Don't use processes on Windows and unittests to avoid hangs.
-  if (environment.get_value('PY_UNITTESTS') or
-      environment.platform() == 'WINDOWS'):
-    yield futures.ThreadPoolExecutor(pool_size)
-  else:
-    yield futures.ProcessPoolExecutor(pool_size)
 
 
 def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
@@ -50,16 +33,14 @@ def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
     return []
   batches = []
 
-  batch_size = len(urls_and_filepaths) // _POOL_SIZE
+  batch_size = len(urls_and_filepaths) // concurrency.POOL_SIZE
   # Avoid issues with range when urls is less than _POOL_SIZE.
   batch_size = max(batch_size, len(urls_and_filepaths))
-  # Avoid OOMs by limiting the amount of concurrent downloads.
-  batch_size = min(5, batch_size)
 
   for idx in range(0, len(urls_and_filepaths), batch_size):
     batch = urls_and_filepaths[idx:idx + batch_size]
     batches.append(batch)
-  with _pool() as pool:
+  with concurrency.make_pool() as pool:
     return list(itertools.chain(*pool.map(_download_files, batches)))
 
 

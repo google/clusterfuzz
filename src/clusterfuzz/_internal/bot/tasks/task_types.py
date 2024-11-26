@@ -46,6 +46,7 @@ class TrustedTask(BaseTask):
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
+    assert not environment.is_tworker()
     self.module.execute_task(task_argument, job_type)
 
 
@@ -58,6 +59,8 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
   def execute_locally(self, task_argument, job_type, uworker_env):
+    """Executes the utask locally (on this machine, not on batch)."""
+    assert not environment.is_tworker()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -119,13 +122,15 @@ class UTask(BaseUTask):
 
   @staticmethod
   def is_execution_remote(command=None):
-    return task_utils.is_remotely_executing_utasks(command)
+    return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask."""
     logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
-    if not is_remote_utask(command, job_type):
+    # TODO(metzman): This is really complicated because of the need to test
+    # remote execution. This is no longer a need, so simplify this.
+    if not (environment.is_tworker() or is_remote_utask(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 

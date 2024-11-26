@@ -1177,3 +1177,7 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
                                                      current_platform_id)
 
   return False
+
+
+def is_tworker():
+  return get_value('TWORKER', False)

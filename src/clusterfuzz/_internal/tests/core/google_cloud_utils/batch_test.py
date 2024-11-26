@@ -49,13 +49,17 @@ class GetSpecFromConfigTest(unittest.TestCase):
         project='test-clusterfuzz',
         preemptible=False,
         machine_type='n1-standard-1',
-        max_run_duration='21600s')
+        priority=1,
+        max_run_duration='21600s',
+    )
 
     self.assertCountEqual(spec, expected_spec)
 
-  def test_preemptible(self):
-    """Tests that get_spec_from_config works for preemptibles as expected."""
-    spec = batch._get_spec_from_config('fuzz', self.job.name)
+  def test_fuzz_get_spec_from_config(self):
+    """Tests that get_spec_from_config works for fuzz tasks as expected."""
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    job.put()
+    spec = batch._get_spec_from_config('fuzz', job.name)  # pylint: disable=protected-access
     expected_spec = batch.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
@@ -70,7 +74,9 @@ class GetSpecFromConfigTest(unittest.TestCase):
         project='test-clusterfuzz',
         preemptible=True,
         machine_type='n1-standard-1',
-        max_run_duration='21600s')
+        priority=0,
+        max_run_duration='21600s',
+    )
 
     self.assertCountEqual(spec, expected_spec)
 

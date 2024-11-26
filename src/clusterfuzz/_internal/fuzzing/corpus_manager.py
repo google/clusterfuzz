@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for corpus synchronization with GCS."""
 
+import itertools
 import os
 import re
 import shutil
@@ -611,23 +612,27 @@ def get_proto_data_bundle_corpus(
   data_bundle_corpus.data_bundle.CopyFrom(
       uworker_io.entity_to_protobuf(data_bundle))
   if task_types.task_main_runs_on_uworker():
-    # Slow path for when we need an untrusted worker to run a task.
-    # Note that the security of the system (only the correctness) depends on
-    # this path being taken. If it is not taken when we need to, utask_main will
+    # Slow path for when we need an untrusted worker to run a task. Note that
+    # the security of the system (only the correctness) does not depend on this
+    # path being taken. If it is not taken when we need to, utask_main will
     # simply fail as it tries to do privileged operation it does not have
     # permissions for.
+    logs.info('Getting signed data bundle URLs.')
     urls = (f'{data_bundle_corpus.gcs_url}/{url}'
             for url in storage.list_blobs(data_bundle_corpus.gcs_url))
     data_bundle_corpus.corpus_urls.extend([
         url_pair[0] for url_pair in storage.sign_urls_for_existing_files(
             urls, include_delete_urls=False)
     ])
+  else:
+    logs.info('Not getting signed data bundle URLs.')
 
   return data_bundle_corpus
 
 
 def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
-  if not task_types.task_main_runs_on_uworker():
+  if (not task_types.task_main_runs_on_uworker() and
+      not environment.is_uworker()):
     # Fast path for when we don't need an untrusted worker to run a task.
     return gsutil.GSUtilRunner().rsync(
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
@@ -637,15 +642,27 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
   return len(fails) < MAX_SYNC_ERRORS
 
 
+def _last_updated(*args, **kwargs):
+  if environment.is_tworker():
+    return None
+  return storage.last_updated(*args, **kwargs)
+
+
 def get_proto_corpus(bucket_name,
                      bucket_path,
                      max_upload_urls,
-                     include_delete_urls=False):
+                     include_delete_urls=False,
+                     max_download_urls=None):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
   urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
           for url in storage.list_blobs(gcs_url))
+
+  # TODO(metzman): Stop limiting URLs when pruning works on oss-fuzz
+  # again.
+  if max_download_urls is not None:
+    urls = itertools.islice(urls, max_download_urls)
   corpus_urls = dict(
       storage.sign_urls_for_existing_files(urls, include_delete_urls))
 
@@ -656,7 +673,7 @@ def get_proto_corpus(bucket_name,
       upload_urls=upload_urls,
       gcs_url=gcs_url,
   )
-  last_updated = storage.last_updated(_get_gcs_url(bucket_name, bucket_path))
+  last_updated = _last_updated(_get_gcs_url(bucket_name, bucket_path))
   if last_updated:
     timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
     timestamp.FromDatetime(last_updated)
@@ -684,7 +701,8 @@ def get_fuzz_target_corpus(engine,
                            quarantine=False,
                            include_regressions=False,
                            include_delete_urls=False,
-                           max_upload_urls=10000):
+                           max_upload_urls=10000,
+                           max_download_urls=None):
   """Copies the corpus from gcs to disk. Can run on uworker."""
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()  # pylint: disable=no-member
   bucket_name, bucket_path = get_target_bucket_and_path(
@@ -693,7 +711,8 @@ def get_fuzz_target_corpus(engine,
       bucket_name,
       bucket_path,
       include_delete_urls=include_delete_urls,
-      max_upload_urls=max_upload_urls)
+      max_upload_urls=max_upload_urls,
+      max_download_urls=max_download_urls)
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
   assert not (include_regressions and quarantine)
@@ -703,7 +722,8 @@ def get_fuzz_target_corpus(engine,
         bucket_name,
         regressions_bucket_path,
         max_upload_urls=0,  # This is never uploaded to using this mechanism.
-        include_delete_urls=False)  # This is never deleted from.
+        include_delete_urls=False,  # This is never deleted from.
+        max_download_urls=max_download_urls)
     fuzz_target_corpus.regressions_corpus.CopyFrom(regressions_corpus)
 
   return ProtoFuzzTargetCorpus(engine, project_qualified_target_name,

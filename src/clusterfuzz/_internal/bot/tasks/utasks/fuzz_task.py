@@ -23,6 +23,7 @@ import time
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
 from google.cloud import ndb
 
@@ -124,6 +125,15 @@ class UploadUrlCollection:
     url = self.upload_urls[0]
     self.upload_urls = self.upload_urls[1:]
     return url
+
+
+def _get_max_testcases() -> int:
+  return environment.get_value('MAX_TESTCASES', 1)
+
+
+def _get_max_corpus_uploads_per_task():
+  number_of_fuzzer_runs = _get_max_testcases()
+  return MAX_NEW_CORPUS_FILES * number_of_fuzzer_runs
 
 
 class Crash:
@@ -313,7 +323,8 @@ class Crash:
     return crash
 
 
-def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
+def find_main_crash(crashes: List[Crash],
+                    fuzz_target: Optional[data_types.FuzzTarget],
                     test_timeout: int, upload_urls: UploadUrlCollection):
   """Find the first reproducible crash or the first valid crash. And return the
     crash and the one_time_crasher_flag."""
@@ -331,7 +342,6 @@ def find_main_crash(crashes: List[Crash], full_fuzzer_name: str,
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state parameters.
-    fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
     if testcase_manager.test_for_reproducibility(
         fuzz_target,
         crash.file_path,
@@ -364,13 +374,8 @@ class CrashGroup:
       assert crashes[0].security_flag == c.security_flag
 
     self.crashes = crashes
-    if context.fuzz_target:
-      fully_qualified_fuzzer_name = context.fuzz_target.fully_qualified_name()
-    else:
-      fully_qualified_fuzzer_name = context.fuzzer_name
-
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, fully_qualified_fuzzer_name, context.test_timeout, upload_urls)
+        crashes, context.fuzz_target, context.test_timeout, upload_urls)
 
     self.newly_created_testcase = None
 
@@ -1501,7 +1506,7 @@ class FuzzingSession:
 
     self.fuzz_task_output.app_revision = environment.get_value('APP_REVISION')
     # Do the actual fuzzing.
-    for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
+    for fuzzing_round in range(_get_max_testcases()):
       logs.info(f'Fuzzing round {fuzzing_round}.')
       try:
         with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
@@ -1534,11 +1539,17 @@ class FuzzingSession:
       crash_result_obj = crash_result.CrashResult(
           return_code, result.time_executed, result.logs)
       output = crash_result_obj.get_stacktrace()
-      self.fuzz_task_output.engine_outputs.append(
-          _to_engine_output(output, return_code, log_time))
+      # TODO(metzman): Consider uploading this with a signed URL.
+      if result.crashes:
+        # We only upload the first, because they will clobber each other if we
+        # upload more.
+        result_crash = result.crashes[0].input_path
+      else:
+        result_crash = None
 
-      for crash in result.crashes:
-        testcase_manager.upload_testcase(crash.input_path, log_time)
+      engine_output = _to_engine_output(output, result_crash, return_code,
+                                        log_time)
+      self.fuzz_task_output.engine_outputs.append(engine_output)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -1556,6 +1567,23 @@ class FuzzingSession:
 
     return crashes, fuzzer_metadata
 
+  def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
+                                            fuzzer, job):
+    testcase_generation_finish = time.time()
+    elapsed_testcase_generation_time = testcase_generation_finish
+    elapsed_testcase_generation_time -= start_time
+    # Avoid division by zero.
+    if testcase_count:
+      average_time_per_testcase = elapsed_testcase_generation_time
+      average_time_per_testcase = average_time_per_testcase / testcase_count
+      monitoring_metrics.TESTCASE_GENERATION_AVERAGE_TIME.add(
+          average_time_per_testcase,
+          labels={
+              'job': job,
+              'fuzzer': fuzzer,
+              'platform': environment.platform(),
+          })
+
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     # Set the thread timeout values.
@@ -1570,7 +1598,7 @@ class FuzzingSession:
     thread_timeout = test_timeout
 
     # Determine number of testcases to process.
-    testcase_count = environment.get_value('MAX_TESTCASES')
+    testcase_count = _get_max_testcases()
 
     # For timeout multipler greater than 1, we need to decrease testcase count
     # to prevent exceeding task lease time.
@@ -1579,10 +1607,14 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
+    testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
+
+    self._emit_testcase_generation_time_metric(
+        testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
@@ -1993,18 +2025,25 @@ def _pick_fuzz_target():
   return build_manager.pick_random_fuzz_target(target_weights)
 
 
-def _get_fuzz_target_from_db(engine_name, fuzz_target_binary, job_type):
+def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
+  """Gets or creates a FuzzTarget db entity."""
   project = data_handler.get_project_name(job_type)
   qualified_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, fuzz_target_binary)
   key = ndb.Key(data_types.FuzzTarget, qualified_name)
-  return key.get()
+  fuzz_target = key.get()
+  if fuzz_target:
+    return fuzz_target
+  fuzz_target = data_types.FuzzTarget(
+      engine=engine_name, binary=fuzz_target_binary, project=project)
+  fuzz_target.put()
+  return fuzz_target
 
 
 def _preprocess_get_fuzz_target(fuzzer_name, job_type):
   fuzz_target_name = _pick_fuzz_target()
   if fuzz_target_name:
-    return _get_fuzz_target_from_db(fuzzer_name, fuzz_target_name, job_type)
+    return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
   return None
 
 
@@ -2021,7 +2060,11 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
         uworker_io.entity_to_protobuf(fuzz_target))
     fuzz_task_input.corpus.CopyFrom(
         corpus_manager.get_fuzz_target_corpus(
-            fuzzer_name, fuzz_target.project_qualified_name()).serialize())
+            fuzzer_name,
+            fuzz_target.project_qualified_name(),
+            include_delete_urls=False,
+            max_upload_urls=_get_max_corpus_uploads_per_task(),
+            max_download_urls=25000).serialize())
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
@@ -2055,7 +2098,7 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_engine_output(output: str, return_code: int,
+def _to_engine_output(output: str, crash_path: str, return_code: int,
                       log_time: datetime.datetime):
   """Returns an EngineOutput proto."""
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
@@ -2067,13 +2110,22 @@ def _to_engine_output(output: str, return_code: int,
       output=bytes(truncated_output, 'utf-8'),
       return_code=return_code,
       timestamp=proto_timestamp)
+
+  if crash_path is None:
+    return engine_output
+  if os.path.getsize(crash_path) > 10 * 1024**2:
+    return engine_output
+  with open(crash_path, 'rb') as fp:
+    engine_output.testcase = fp.read()
+
   return engine_output
 
 
-def _upload_engine_output_log(engine_output):
+def _upload_engine_output(engine_output):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
   testcase_manager.upload_log(engine_output.output.decode(),
                               engine_output.return_code, timestamp)
+  testcase_manager.upload_testcase(None, engine_output.testcase, timestamp)
 
 
 def utask_postprocess(output):
@@ -2091,4 +2143,4 @@ def utask_postprocess(output):
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
   for engine_output in output.fuzz_task_output.engine_outputs:
-    _upload_engine_output_log(engine_output)
+    _upload_engine_output(engine_output)

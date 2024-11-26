@@ -254,6 +254,16 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
+def _emit_bug_filing_from_testcase_elapsed_time_metric(testcase):
+  testcase_age = testcase.get_age_in_seconds()
+  monitoring_metrics.BUG_FILING_FROM_TESTCASE_ELAPSED_TIME.add(
+      testcase_age,
+      labels={
+          'job': testcase.job_type,
+          'platform': testcase.platform,
+      })
+
+
 def _file_issue(testcase, issue_tracker, throttler):
   """File an issue for the testcase."""
   logs.info(f'_file_issue for {testcase.key.id()}')
@@ -282,6 +292,7 @@ def _file_issue(testcase, issue_tracker, throttler):
         'fuzzer_name': testcase.fuzzer_name,
         'status': 'success',
     })
+    _emit_bug_filing_from_testcase_elapsed_time_metric(testcase)
   except Exception as e:
     file_exception = e
 
@@ -296,6 +307,22 @@ def _file_issue(testcase, issue_tracker, throttler):
         f'Failed to file issue due to exception: {str(file_exception)}')
 
   return filed
+
+
+def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
+                                        testcase: data_types.Testcase):
+  """Emmits a metric to track age of untriaged testcases."""
+  if critical_tasks_completed:
+    return
+  if not testcase.timestamp:
+    return
+
+  monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
+      testcase.get_age_in_seconds(),
+      labels={
+          'job': testcase.job_type,
+          'platform': testcase.platform,
+      })
 
 
 def main():
@@ -328,6 +355,8 @@ def main():
       # Already deleted.
       continue
 
+    critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
+
     # Skip if testcase's job is removed.
     if testcase.job_type not in all_jobs:
       continue
@@ -335,6 +364,9 @@ def main():
     # Skip if testcase's job is in exclusions list.
     if testcase.job_type in excluded_jobs:
       continue
+
+    # Emmit the metric for testcases that should be triaged.
+    _emit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
 
     # Skip if we are running progression task at this time.
     if testcase.get_metadata('progression_pending'):
@@ -351,7 +383,7 @@ def main():
 
     # Require that all tasks like minimizaton, regression testing, etc have
     # finished.
-    if not data_handler.critical_tasks_completed(testcase):
+    if not critical_tasks_completed:
       continue
 
     # For testcases that are not part of a group, wait an additional time to

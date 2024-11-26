@@ -13,7 +13,7 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
-import itertools
+import random
 import threading
 from typing import List
 import uuid
@@ -58,6 +58,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
     'network',
     'gce_region',
+    'priority',
     'max_run_duration',
 ])
 
@@ -103,24 +104,6 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
   return result[0]
 
 
-def _bunched(iterator, bunch_size):
-  """Implementation of itertools.py's batched that was added after Python3.7."""
-  # TODO(metzman): Replace this with itertools.batched.
-  assert bunch_size > -1
-  idx = 0
-  bunch = []
-  for item in iterator:
-    idx += 1
-    bunch.append(item)
-    if idx == bunch_size:
-      idx = 0
-      yield bunch
-      bunch = []
-
-  if bunch:
-    yield bunch
-
-
 def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
@@ -134,22 +117,11 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
 
   logs.info('Batching utask_mains.')
   for spec, input_urls in job_specs.items():
-    for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
+    for input_urls_portion in utils.batched(input_urls,
+                                            MAX_CONCURRENT_VMS_PER_JOB):
       jobs.append(_create_job(spec, input_urls_portion))
 
   return jobs
-
-
-def create_uworker_main_batch_jobs_bunched(batch_tasks):
-  """Creates batch jobs 20 tasks at a time, lazily. This is helpful to use when
-  batch_tasks takes a very long time to create."""
-  # Use term bunch instead of "batch" since "batch" has nothing to do with the
-  # cloud service and is thus very confusing in this context.
-  jobs = [
-      create_uworker_main_batch_jobs(bunch)
-      for bunch in _bunched(batch_tasks, TASK_BUNCH_SIZE)
-  ]
-  return list(itertools.chain(jobs))
 
 
 def _get_task_spec(batch_workload_spec):
@@ -172,6 +144,16 @@ def _get_task_spec(batch_workload_spec):
   return task_spec
 
 
+def _set_preemptible(instance_policy,
+                     batch_workload_spec: BatchWorkloadSpec) -> None:
+  if batch_workload_spec.preemptible:
+    instance_policy.provisioning_model = (
+        batch.AllocationPolicy.ProvisioningModel.PREEMPTIBLE)
+  else:
+    instance_policy.provisioning_model = (
+        batch.AllocationPolicy.ProvisioningModel.STANDARD)
+
+
 def _get_allocation_policy(spec):
   """Returns the allocation policy for a BatchWorkloadSpec."""
   disk = batch.AllocationPolicy.Disk()
@@ -181,6 +163,7 @@ def _get_allocation_policy(spec):
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
   instance_policy.machine_type = spec.machine_type
+  _set_preemptible(instance_policy, spec)
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
 
@@ -222,6 +205,7 @@ def _create_job(spec, input_urls):
   job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
   job.logs_policy.destination = batch.LogsPolicy.Destination.CLOUD_LOGGING
+  job.priority = spec.priority
 
   create_request = batch.CreateJobRequest()
   create_request.job = job
@@ -288,16 +272,16 @@ def _get_task_duration(command):
                                                  tasks.TASK_LEASE_SECONDS)
 
 
-def _get_region(batch_config):
+def _get_subconfig(batch_config):
   # TODO(metzman): Make this pick one at random or based on conditions.
-  return list(batch_config.get('regions').items())[0]
+  return random.choice(list(batch_config.get('regions'))
 
 
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
   batch_config = _get_batch_config()
-  region_name, region_config = _get_region(batch_config)
+  subconfig = _get_subconfig(batch_config)
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
@@ -305,7 +289,14 @@ def _get_spec_from_config(command, job_name):
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
+
+  # Lower numbers are lower priority. From:
+  # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
+  low_priority = command == 'fuzz'
+  priority = 0 if low_priority else 1
+
   max_run_duration = f'{_get_task_duration(command)}s'
+
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
       docker_image=docker_image,
@@ -313,11 +304,13 @@ def _get_spec_from_config(command, job_name):
       disk_size_gb=instance_spec['disk_size_gb'],
       disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
-      gce_region=region_name,
+      gce_region=subconfig['region'],
       project=project_name,
-      network=region_config['network'],
-      subnetwork=region_config['subnetwork'],
+      network=subconfig['network'],
+      subnetwork=subconfig['subnetwork'],
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'],
-      max_run_duration=max_run_duration)
+      priority=priority,
+      max_run_duration=max_run_duration,
+  )
   return spec

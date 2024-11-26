@@ -13,7 +13,6 @@
 # limitations under the License.
 """Analyze task for handling user uploads."""
 
-import datetime
 import json
 from typing import Dict
 from typing import Optional
@@ -28,6 +27,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
@@ -119,7 +119,7 @@ def handle_analyze_no_revision_index(output):
 
 def handle_analyze_close_invalid_uploaded(output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.close_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Irrelevant')
@@ -259,7 +259,7 @@ def handle_noncrash(output):
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
@@ -299,7 +299,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
+      testcase_id)
   if not testcase_upload_metadata:
     logs.error('Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
@@ -307,8 +308,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   # Store the bot name and timestamp in upload metadata.
   testcase_upload_metadata.bot_name = environment.get_value('BOT_NAME')
-  testcase_upload_metadata.timestamp = datetime.datetime.utcnow()
   testcase_upload_metadata.put()
+
+  # Emmits a TESTCASE_TRIAGE_DURATION metric, in order to track the time
+  # elapsed between testcase upload and pulling the task from the queue.
+
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_LAUNCHED_STEP)
 
   initialize_testcase_for_main(testcase, job_type)
 
@@ -434,16 +441,15 @@ def utask_main(uworker_input):
 
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
-  one_time_flag = testcase.one_time_crasher_flag
 
-  analyze_task_output.one_time_crasher_flag = one_time_flag
+  analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
 
   monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment(
       labels={
           'fuzzer_name': uworker_input.fuzzer_name,
           'job': uworker_input.job_type,
           'crashes': True,
-          'reproducible': not one_time_flag,
+          'reproducible': not testcase.one_time_crasher_flag,
           'platform': environment.platform(),
       })
 
@@ -481,7 +487,7 @@ def handle_build_setup_error(output):
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
     return
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
@@ -552,12 +558,16 @@ def _update_testcase(output):
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(output.uworker_input.testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_COMPLETED_STEP)
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
+
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = query_testcase_upload_metadata(
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
@@ -612,9 +622,3 @@ def utask_postprocess(output):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
-
-
-def query_testcase_upload_metadata(
-    testcase_id: str) -> Optional[data_types.TestcaseUploadMetadata]:
-  return data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()

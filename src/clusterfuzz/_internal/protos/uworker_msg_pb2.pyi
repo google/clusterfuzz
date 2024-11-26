@@ -1199,23 +1199,28 @@ class EngineOutput(google.protobuf.message.Message):
     OUTPUT_FIELD_NUMBER: builtins.int
     RETURN_CODE_FIELD_NUMBER: builtins.int
     TIMESTAMP_FIELD_NUMBER: builtins.int
+    TESTCASE_FIELD_NUMBER: builtins.int
     output: builtins.bytes
     return_code: builtins.int
     @property
     def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    testcase: builtins.bytes
     def __init__(
         self,
         *,
         output: builtins.bytes | None = ...,
         return_code: builtins.int | None = ...,
         timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        testcase: builtins.bytes | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_output", b"_output", "_return_code", b"_return_code", "output", b"output", "return_code", b"return_code", "timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_output", b"_output", "_return_code", b"_return_code", "output", b"output", "return_code", b"return_code", "timestamp", b"timestamp"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_output", b"_output", "_return_code", b"_return_code", "_testcase", b"_testcase", "output", b"output", "return_code", b"return_code", "testcase", b"testcase", "timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_output", b"_output", "_return_code", b"_return_code", "_testcase", b"_testcase", "output", b"output", "return_code", b"return_code", "testcase", b"testcase", "timestamp", b"timestamp"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_output", b"_output"]) -> typing_extensions.Literal["output"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_return_code", b"_return_code"]) -> typing_extensions.Literal["return_code"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcase", b"_testcase"]) -> typing_extensions.Literal["testcase"] | None: ...
 
 global___EngineOutput = EngineOutput
 

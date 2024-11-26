@@ -32,11 +32,34 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
         monitor.BooleanField('bad_build'),
     ])
 
+JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
+    'job/build_age',
+    bucketer=monitor.GeometricBucketer(),
+    description=('Distribution of latest build\'s age in hours. '
+                 '(grouped by fuzzer/job)'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('task'),
+    ],
+)
+
+JOB_BUILD_REVISION = monitor.GaugeMetric(
+    'job/build_revision',
+    description=('Gauge for revision of trunk build '
+                 '(grouped by job/platform/task).'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('task'),
+    ],
+)
+
 JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
     'task/build_retrieval_time',
-    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    bucketer=monitor.GeometricBucketer(),
     description=('Distribution of fuzz task\'s build retrieval times. '
-                 '(grouped by fuzzer/job)'),
+                 '(grouped by fuzzer/job, in minutes).'),
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('step'),
@@ -108,7 +131,7 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
 # fuzzing time and the time to upload results to datastore
 FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
     'task/fuzz/session/duration',
-    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+    bucketer=monitor.GeometricBucketer(),
     description=('Total duration of fuzzing session.'),
     field_spec=[
         monitor.StringField('fuzzer'),
@@ -125,6 +148,19 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+    ],
+)
+
+TESTCASE_GENERATION_AVERAGE_TIME = monitor.CumulativeDistributionMetric(
+    'task/fuzz/fuzzer/testcase_generation_duration',
+    bucketer=monitor.GeometricBucketer(),
+    description=('Distribution of blackbox fuzzer average testcase '
+                 ' generation time, in seconds '
+                 '(grouped by fuzzer, job and platform).'),
+    field_spec=[
+        monitor.StringField('platform'),
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer'),
     ],
 )
 
@@ -195,6 +231,16 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
+TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
+    'uploaded_testcase_analysis/triage_duration_secs',
+    description=('Time elapsed between testcase upload and completion'
+                 ' of relevant tasks in the testcase upload lifecycle.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('step'),
+        monitor.StringField('job'),
+    ],
+)
 TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
     'task/rate_limit',
     description=('Counter for rate limit events.'),
@@ -271,6 +317,26 @@ ISSUE_CLOSING = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer_name'),
         monitor.StringField('status'),
+    ])
+
+BUG_FILING_FROM_TESTCASE_ELAPSED_TIME = monitor.CumulativeDistributionMetric(
+    'fuzzed_testcase_analysis/triage_duration_secs',
+    description='Time elapsed between testcase and bug creation, in minutes.',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+    ])
+
+UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
+    'issues/untriaged_testcase_age',
+    description='Age of testcases that were not yet triaged '
+    '(have not yet completed analyze, regression,'
+    ' minimization, impact task), in seconds.',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
     ])
 
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(

@@ -48,6 +48,8 @@ HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
 
+MAX_PUBSUB_MESSAGES_PER_REQ = 1000
+
 # Various variables for task leasing and completion times (in seconds).
 TASK_COMPLETION_BUFFER = 90 * 60
 TASK_CREATION_WAIT_INTERVAL = 2 * 60
@@ -83,6 +85,7 @@ TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
 UTASK_MAINS_QUEUE = 'utask_main'
+PREPROCESS_QUEUE = 'preprocess'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
@@ -281,8 +284,7 @@ class PubSubPuller:
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if not (task_utils.is_remotely_executing_utasks() and
-          task_utils.get_opted_in_tasks()):
+  if not task_utils.is_remotely_executing_utasks():
     return None
   # Postprocess is platform-agnostic, so we run all such tasks on our
   # most generic and plentiful bots only. In other words, we avoid
@@ -304,9 +306,30 @@ def allow_all_tasks():
   return not environment.get_value('PREEMPTIBLE')
 
 
+def get_preprocess_task():
+  pubsub_puller = PubSubPuller(PREPROCESS_QUEUE)
+  messages = pubsub_puller.get_messages(max_messages=1)
+  if not messages:
+    return None
+  task = get_task_from_message(messages[0])
+  if task:
+    logs.info('Pulled from preprocess queue.')
+  return task
+
+
+def tworker_get_task():
+  assert environment.is_tworker()
+  # TODO(metzman): Pulling tasks is relatively expensive compared to
+  # preprocessing. It's too expensive to pull twice (once from the postproces
+  # queue that is probably empty) to do a single preprocess. Investigate
+  # combining preprocess and postprocess queues and allowing pulling of
+  # multiple messages.
+  return get_preprocess_task()
+
+
 def get_task():
-  """Returns an ordinary (non-postprocess, non-utask_main) task that is pulled
-  from a ClusterFuzz task queue."""
+  """Returns an ordinary (non-utask_main) task that is pulled from a ClusterFuzz
+  task queue."""
   task = get_command_override()
   if task:
     return task
@@ -319,6 +342,7 @@ def get_task():
     task = get_postprocess_task()
     if task:
       return task
+
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
@@ -376,6 +400,9 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
+
+  def __repr__(self):
+    return f'Task: {self.command} {self.argument} {self.job}'
 
   def attribute(self, _):
     return None
@@ -609,6 +636,30 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       extra_info={'initial_command': initial_command})
 
 
+def bulk_add_tasks(tasks, queue=None, eta_now=False):
+  """Adds |tasks| in bulk to |queue|."""
+
+  # Old testcases may pass in queue=None explicitly, so we must check this here.
+  if queue is None:
+    queue = default_queue()
+
+  # If callers want delays, they must do it themselves, because this function is
+  # meant to be used for batch tasks which don't need this.
+  # Use an ETA of right now for batch because we don't need extra delay, there
+  # is natural delay added by batch, waiting for utask_main_scheduler,
+  # postprocess etc.
+  if eta_now:
+    now = utils.utcnow()
+    for task in tasks:
+      task.eta = now
+
+  pubsub_client = pubsub.PubSubClient()
+  pubsub_messages = [task.to_pubsub_message() for task in tasks]
+  topic_name = pubsub.topic_name(utils.get_application_id(), queue)
+  for batch in utils.batched(pubsub_messages, MAX_PUBSUB_MESSAGES_PER_REQ):
+    pubsub_client.publish(topic_name, batch)
+
+
 def add_task(command,
              argument,
              job_type,
@@ -616,11 +667,6 @@ def add_task(command,
              wait_time=None,
              extra_info=None):
   """Add a new task to the job queue."""
-  # Old testcases may pass in queue=None explicitly,
-  # so we must check this here.
-  if not queue:
-    queue = default_queue()
-
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
@@ -636,10 +682,8 @@ def add_task(command,
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
-  pubsub_client = pubsub.PubSubClient()
-  pubsub_client.publish(
-      pubsub.topic_name(utils.get_application_id(), queue),
-      [task.to_pubsub_message()])
+
+  bulk_add_tasks([task], queue=queue)
 
 
 def get_task_lease_timeout():

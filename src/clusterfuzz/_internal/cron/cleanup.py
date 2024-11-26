@@ -24,6 +24,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.chrome import build_info
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_comparer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.cron.libs import mail
@@ -910,6 +911,11 @@ def _update_issue_when_uploaded_testcase_is_processed(
   comment = description + _update_issue_security_severity_and_get_comment(
       policy, testcase, issue)
   issue.save(new_comment=comment, notify=notify)
+
+  # Testcase is a data_types.Testcase
+  testcase_id = testcase.key.id()
+  testcase_utils.emit_testcase_triage_duration_metric(
+      testcase_id, testcase_utils.TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP)
 
 
 def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
