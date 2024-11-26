@@ -441,16 +441,15 @@ def utask_main(uworker_input):
 
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
-  one_time_flag = testcase.one_time_crasher_flag
 
-  analyze_task_output.one_time_crasher_flag = one_time_flag
+  analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
 
   monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment(
       labels={
           'fuzzer_name': uworker_input.fuzzer_name,
           'job': uworker_input.job_type,
           'crashes': True,
-          'reproducible': not one_time_flag,
+          'reproducible': not testcase.one_time_crasher_flag,
           'platform': environment.platform(),
       })
 
@@ -559,9 +558,6 @@ def _update_testcase(output):
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
-      output.uworker_input.testcase_id)
   testcase_utils.emit_testcase_triage_duration_metric(
       int(output.uworker_input.testcase_id),
       testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_COMPLETED_STEP)
@@ -569,6 +565,10 @@ def utask_postprocess(output):
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
     return
+
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
+      output.uworker_input.testcase_id)
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
