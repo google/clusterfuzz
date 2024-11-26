@@ -2025,18 +2025,25 @@ def _pick_fuzz_target():
   return build_manager.pick_random_fuzz_target(target_weights)
 
 
-def _get_fuzz_target_from_db(engine_name, fuzz_target_binary, job_type):
+def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
+  """Gets or creates a FuzzTarget db entity."""
   project = data_handler.get_project_name(job_type)
   qualified_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, fuzz_target_binary)
   key = ndb.Key(data_types.FuzzTarget, qualified_name)
-  return key.get()
+  fuzz_target = key.get()
+  if fuzz_target:
+    return fuzz_target
+  fuzz_target = data_types.FuzzTarget(
+      engine=engine_name, binary=fuzz_target_binary, project=project)
+  fuzz_target.put()
+  return fuzz_target
 
 
 def _preprocess_get_fuzz_target(fuzzer_name, job_type):
   fuzz_target_name = _pick_fuzz_target()
   if fuzz_target_name:
-    return _get_fuzz_target_from_db(fuzzer_name, fuzz_target_name, job_type)
+    return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
   return None
 
 
