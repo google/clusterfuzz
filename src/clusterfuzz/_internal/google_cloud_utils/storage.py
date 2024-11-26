@@ -1369,7 +1369,7 @@ def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  result = list(map(_sign_urls_for_existing_file, args))
+  result = maybe_parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1377,6 +1377,19 @@ def sign_urls_for_existing_files(urls,
 def get_arbitrary_signed_upload_url(remote_directory):
   return list(
       get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
+
+
+def maybe_parallel_map(func, arguments):
+  """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
+  will OOM."""
+  if not environment.is_tworker():
+    # TODO(b/metzman): When the rearch is done, internal google CF won't have
+    # tworkers, but maybe should be using parallel.
+    return list(map(func, arguments))
+
+  max_size = 2
+  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
+    return list(pool.map(func, arguments))
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
@@ -1404,6 +1417,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = list(map(get_signed_upload_url, urls))
+  result = maybe_parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
   return result

@@ -36,7 +36,7 @@ class SingleThreadPool:
 def make_pool(pool_size=POOL_SIZE, cpu_bound=False, max_pool_size=None):
   """Returns a pool that can (usually) execute tasks concurrently."""
   if max_pool_size is not None:
-    pool_size = max(pool_size, max_pool_size)
+    pool_size = min(pool_size, max_pool_size)
 
   # Don't use processes on Windows and unittests to avoid hangs.
   if (environment.get_value('PY_UNITTESTS') or
