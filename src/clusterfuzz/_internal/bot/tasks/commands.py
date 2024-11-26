@@ -80,7 +80,7 @@ class AlreadyRunningError(Error):
 def cleanup_task_state():
   """Cleans state before and after a task is executed."""
   # Cleanup stale processes.
-  if not environment.is_tworker():
+  if environment.is_tworker():
     return
   process_handler.cleanup_stale_processes()
 
