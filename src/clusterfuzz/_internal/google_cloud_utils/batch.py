@@ -36,8 +36,6 @@ _local = threading.local()
 
 RETRY_COUNT = 0
 
-TASK_BUNCH_SIZE = 20
-
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
 TASK_COUNT_PER_NODE = 1
