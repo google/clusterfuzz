@@ -254,6 +254,16 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
+def _emit_bug_filing_from_testcase_elapsed_time_metric(testcase):
+  testcase_age = testcase.get_age_in_seconds()
+  monitoring_metrics.BUG_FILING_FROM_TESTCASE_ELAPSED_TIME.add(
+      testcase_age,
+      labels={
+          'job': testcase.job_type,
+          'platform': testcase.platform,
+      })
+
+
 def _file_issue(testcase, issue_tracker, throttler):
   """File an issue for the testcase."""
   logs.info(f'_file_issue for {testcase.key.id()}')
@@ -282,6 +292,7 @@ def _file_issue(testcase, issue_tracker, throttler):
         'fuzzer_name': testcase.fuzzer_name,
         'status': 'success',
     })
+    _emit_bug_filing_from_testcase_elapsed_time_metric(testcase)
   except Exception as e:
     file_exception = e
 
@@ -306,16 +317,12 @@ def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
   if not testcase.timestamp:
     return
 
-  labels = {
-      'job': testcase.job_type,
-      'platform': testcase.platform,
-  }
-
-  logs.info(f'UNTRIAGED_TESTCASE_AGE: adding {testcase.get_age_in_seconds()}'
-            ' for {labels}')
-
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
-      testcase.get_age_in_seconds(), labels=labels)
+      testcase.get_age_in_seconds(),
+      labels={
+          'job': testcase.job_type,
+          'platform': testcase.platform,
+      })
 
 
 def main():

@@ -125,7 +125,7 @@ class StorageProvider:
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -228,7 +228,7 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -244,7 +244,13 @@ class GcsProvider(StorageProvider):
     else:
       delimiter = '/'
 
-    iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
+    if names_only:
+      fields = 'items(name),nextPageToken'
+    else:
+      fields = None
+
+    iterator = bucket.list_blobs(
+        prefix=path, delimiter=delimiter, fields=fields)
     for blob in iterator:
       properties['bucket'] = bucket_name
       properties['name'] = blob.name
@@ -567,8 +573,9 @@ class FileSystemProvider(StorageProvider):
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
+    del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
@@ -1070,7 +1077,8 @@ def get_blobs(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
+  for blob in _provider().list_blobs(
+      cloud_storage_path, recursive=recursive, names_only=True):
     yield blob['name']
 
 
@@ -1361,7 +1369,7 @@ def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  result = list(map(_sign_urls_for_existing_file, args))
+  result = maybe_parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1369,6 +1377,19 @@ def sign_urls_for_existing_files(urls,
 def get_arbitrary_signed_upload_url(remote_directory):
   return list(
       get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
+
+
+def maybe_parallel_map(func, arguments):
+  """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
+  will OOM."""
+  if not environment.is_tworker():
+    # TODO(b/metzman): When the rearch is done, internal google CF won't have
+    # tworkers, but maybe should be using parallel.
+    return list(map(func, arguments))
+
+  max_size = 2
+  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
+    return list(pool.map(func, arguments))
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
@@ -1396,6 +1417,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = list(map(get_signed_upload_url, urls))
+  result = maybe_parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
   return result

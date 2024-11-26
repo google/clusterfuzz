@@ -1567,6 +1567,23 @@ class FuzzingSession:
 
     return crashes, fuzzer_metadata
 
+  def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
+                                            fuzzer, job):
+    testcase_generation_finish = time.time()
+    elapsed_testcase_generation_time = testcase_generation_finish
+    elapsed_testcase_generation_time -= start_time
+    # Avoid division by zero.
+    if testcase_count:
+      average_time_per_testcase = elapsed_testcase_generation_time
+      average_time_per_testcase = average_time_per_testcase / testcase_count
+      monitoring_metrics.TESTCASE_GENERATION_AVERAGE_TIME.add(
+          average_time_per_testcase,
+          labels={
+              'job': job,
+              'fuzzer': fuzzer,
+              'platform': environment.platform(),
+          })
+
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     # Set the thread timeout values.
@@ -1590,10 +1607,14 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
+    testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
     if not generate_result.success:
       return None, None, None, None
+
+    self._emit_testcase_generation_time_metric(
+        testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
@@ -1887,15 +1908,12 @@ class FuzzingSession:
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
     fuzzing_session_duration = time.time() - start_time
-    labels = {
-        'fuzzer': self.fuzzer_name,
-        'job': self.job_type,
-        'platform': environment.platform()
-    }
-    logs.info(f'FUZZING_SESSION_DURATION: add {fuzzing_session_duration} '
-              'for {labels}.')
-    monitoring_metrics.FUZZING_SESSION_DURATION.add(fuzzing_session_duration,
-                                                    labels)
+    monitoring_metrics.FUZZING_SESSION_DURATION.add(
+        fuzzing_session_duration, {
+            'fuzzer': self.fuzzer_name,
+            'job': self.job_type,
+            'platform': environment.platform()
+        })
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
@@ -2007,18 +2025,25 @@ def _pick_fuzz_target():
   return build_manager.pick_random_fuzz_target(target_weights)
 
 
-def _get_fuzz_target_from_db(engine_name, fuzz_target_binary, job_type):
+def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
+  """Gets or creates a FuzzTarget db entity."""
   project = data_handler.get_project_name(job_type)
   qualified_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, fuzz_target_binary)
   key = ndb.Key(data_types.FuzzTarget, qualified_name)
-  return key.get()
+  fuzz_target = key.get()
+  if fuzz_target:
+    return fuzz_target
+  fuzz_target = data_types.FuzzTarget(
+      engine=engine_name, binary=fuzz_target_binary, project=project)
+  fuzz_target.put()
+  return fuzz_target
 
 
 def _preprocess_get_fuzz_target(fuzzer_name, job_type):
   fuzz_target_name = _pick_fuzz_target()
   if fuzz_target_name:
-    return _get_fuzz_target_from_db(fuzzer_name, fuzz_target_name, job_type)
+    return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
   return None
 
 
