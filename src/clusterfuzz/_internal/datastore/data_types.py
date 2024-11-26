@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes for objects stored in the datastore."""
 
+import datetime
 import re
 
 from google.cloud import ndb
