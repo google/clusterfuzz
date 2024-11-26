@@ -366,7 +366,8 @@ def main():
       continue
 
     # Emmit the metric for testcases that should be triaged.
-    _emit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
+    # TODO(https://crbug.com/380707237) This is causing the job to fail.
+    #  _emit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
 
     # Skip if we are running progression task at this time.
     if testcase.get_metadata('progression_pending'):
