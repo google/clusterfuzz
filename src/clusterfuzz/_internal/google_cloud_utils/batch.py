@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
+import random
 import threading
 from typing import List
 import uuid
@@ -35,8 +36,6 @@ _local = threading.local()
 
 RETRY_COUNT = 0
 
-TASK_BUNCH_SIZE = 20
-
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
 TASK_COUNT_PER_NODE = 1
@@ -54,7 +53,6 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'subnetwork',
     'preemptible',
     'project',
-    'gce_zone',
     'machine_type',
     'network',
     'gce_region',
@@ -272,6 +270,13 @@ def _get_task_duration(command):
                                                  tasks.TASK_LEASE_SECONDS)
 
 
+def _get_subconfig(batch_config, instance_spec):
+  # TODO(metzman): Make this pick one at random or based on conditions.
+  all_subconfigs = batch_config.get('subconfigs', {})
+  subconfig_name = random.choice(instance_spec['subconfigs'])
+  return all_subconfigs[subconfig_name]
+
+
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   config_name = _get_config_name(command, job_name)
@@ -279,6 +284,7 @@ def _get_spec_from_config(command, job_name):
   instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
+  subconfig = _get_subconfig(batch_config, instance_spec)
   project_name = batch_config.get('project')
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
@@ -298,13 +304,10 @@ def _get_spec_from_config(command, job_name):
       disk_size_gb=instance_spec['disk_size_gb'],
       disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
-      # TODO(metzman): Get rid of zone so that we can more easily run in
-      # multiple regions.
-      gce_zone=instance_spec['gce_zone'],
-      gce_region=instance_spec['gce_region'],
+      gce_region=subconfig['region'],
       project=project_name,
-      network=instance_spec['network'],
-      subnetwork=instance_spec['subnetwork'],
+      network=subconfig['network'],
+      subnetwork=subconfig['subnetwork'],
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'],
       priority=priority,
