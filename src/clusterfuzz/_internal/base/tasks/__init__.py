@@ -96,6 +96,15 @@ UTASK_QUEUE_PULL_SECONDS = 60
 # scheduling on batch.
 MAX_UTASKS = 150
 
+UTASKS = {
+    'analyze',
+    'corpus_pruning',
+    'minimize',
+    'progression',
+    'regression',
+    'variant',
+}
+
 
 class Error(Exception):
   """Base exception class."""
@@ -642,6 +651,16 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
+
+  # We can preprocess on the preprocess bots regardless of queue.
+  if utils.is_oss_fuzz():
+    # TODO(metzman): Do this everywhere, not just oss-fuzz.
+    for task in tasks:
+      if task.command in UTASKS:
+        # TODO(metzman): Get rid of this log message after we get used to this.
+        logs.info(f'{task.command} was using {task.queue} now using '
+                  f'{PREPROCESS_QUEUE}')
+        task.queue = PREPROCESS_QUEUE
 
   # If callers want delays, they must do it themselves, because this function is
   # meant to be used for batch tasks which don't need this.
