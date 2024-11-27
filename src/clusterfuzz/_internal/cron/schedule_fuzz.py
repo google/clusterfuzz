@@ -191,7 +191,7 @@ def schedule_fuzz_tasks() -> bool:
   # TODO(metzman): Put the CPU-based scheduling in tworkers.
   available_cpus = get_available_cpus(project, 'us-east4')
   # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = min(available_cpus, 4000)
+  available_cpus = min(available_cpus, 6000)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
