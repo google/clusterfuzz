@@ -147,7 +147,7 @@ class Crash:
           get_unsymbolized_crash_stacktrace(crash.stack_file_path))
     except Exception:
       logs.error(
-          'Unable to read stacktrace from file %s.' % crash.stack_file_path)
+          f'Unable to read stacktrace from file {crash.stack_file_path}.')
       return None
 
     # If there are per-testcase additional flags, we need to store them.
@@ -230,8 +230,7 @@ class Crash:
     self.crash_categories = state.crash_categories
     self.security_flag = crash_analyzer.is_security_issue(
         self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
-    self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
-                             self.security_flag)  # pylint: disable=attribute-defined-outside-init
+    self.key = f'{self.crash_type},{self.crash_state},{self.security_flag}'
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
@@ -278,9 +277,9 @@ class Crash:
       return f'Functional crash is ignored: {self.crash_state}'
 
     if self.should_be_ignored:
-      return ('False crash: %s\n\n---%s\n\n---%s' %
-              (self.crash_state, self.unsymbolized_crash_stacktrace,
-               self.crash_stacktrace))
+      return (f'False crash: {self.crash_state}\n\n'
+              f'---{self.unsymbolized_crash_stacktrace}\n\n'
+              f'---{self.crash_stacktrace}')
 
     if self.is_uploaded() and not self.fuzzed_key:
       return f'Unable to store testcase in blobstore: {self.crash_state}'
@@ -503,7 +502,7 @@ def _last_sync_time(sync_file_path):
     last_sync_time = datetime.datetime.utcfromtimestamp(float(file_contents))
   except Exception as e:
     logs.error(
-        'Malformed last sync file: "%s".' % str(e),
+        f'Malformed last sync file: "{e}".',
         path=sync_file_path,
         contents=file_contents)
 
@@ -551,7 +550,7 @@ class GcsCorpus:
     """Update sync state after a sync from GCS."""
     already_synced = False
     sync_file_path = os.path.join(
-        self._data_directory, '.%s_sync' % self._project_qualified_target_name)
+        self._data_directory, f'.{self._project_qualified_target_name}_sync')
 
     # Get last time we synced corpus.
     if environment.is_trusted_host():
@@ -658,7 +657,7 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
 
   # Create output strings.
   generated_testcase_string = (
-      'Generated %d/%d testcases.' % (generated_testcase_count, testcase_count))
+      f'Generated {generated_testcase_count}/{testcase_count} testcases.')
 
   # Log the number of testcases generated.
   logs.info(generated_testcase_string)
@@ -754,7 +753,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   # Store fuzzer console output.
   bot_name = environment.get_value('BOT_NAME')
   if fuzzer_return_code is not None:
-    fuzzer_return_code_string = 'Return code (%d).' % fuzzer_return_code
+    fuzzer_return_code_string = f'Return code ({fuzzer_return_code}).'
   else:
     fuzzer_return_code_string = 'Fuzzer timed out.'
   truncated_fuzzer_output = truncate_fuzzer_output(fuzzer_output,
@@ -1151,8 +1150,8 @@ def process_crashes(crashes: List[Crash], context: Context,
     # Archiving testcase to blobstore might fail for all crashes within this
     # group.
     if not group.main_crash:
-      logs.info('Unable to store testcase in blobstore: %s' %
-                group.crashes[0].crash_state)
+      logs.info('Unable to store testcase in blobstore: '
+                f'{group.crashes[0].crash_state}')
       continue
 
     group_proto = uworker_msg_pb2.FuzzTaskCrashGroup(
@@ -1379,6 +1378,7 @@ class FuzzingSession:
     # Make sure we have a file to execute for the fuzzer.
     if not fuzzer.executable_path:
       logs.error(f'Fuzzer {fuzzer_name} does not have an executable path.')
+
       return error_return_value
 
     # Get the fuzzer executable and chdir to its base directory. This helps to
@@ -1410,7 +1410,7 @@ class FuzzingSession:
     fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
 
     # Run the fuzzer.
-    logs.info('Running fuzzer - %s.' % fuzzer_command)
+    logs.info(f'Running fuzzer - {fuzzer_command}.')
     fuzzer_return_code, fuzzer_duration, fuzzer_output = (
         process_handler.run_process(
             fuzzer_command,
@@ -1655,10 +1655,10 @@ class FuzzingSession:
     trial_selector.setup_additional_args_for_app()
 
     logs.info('Starting to process testcases.')
-    logs.info('Redzone is %d bytes.' % self.redzone)
-    logs.info('Timeout multiplier is %s.' % str(self.timeout_multiplier))
-    logs.info('App launch command is %s.' %
-              testcase_manager.get_command_line_for_application())
+    logs.info(f'Redzone is {self.redzone} bytes.')
+    logs.info(f'Timeout multiplier is {self.timeout_multiplier}.')
+    logs.info('App launch command is '
+              f'{testcase_manager.get_command_line_for_application()}.')
 
     # Start processing the testcases.
     while test_number < len(testcase_file_paths):
@@ -1718,9 +1718,7 @@ class FuzzingSession:
         crashes.append(temp_queue.get())
 
       process_handler.close_queue(temp_queue)
-
-      logs.info('Upto %d' % test_number)
-
+      logs.info(f'Upto {test_number}')
       if thread_error_occurred:
         break
 
@@ -1824,10 +1822,9 @@ class FuzzingSession:
     self.data_directory = setup.get_data_bundle_directory(
         self.fuzzer, self.uworker_input.setup_input)
     if not self.data_directory:
-      logs.error(
-          'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
+      logs.error(f'Unable to setup data bundle {self.fuzzer.data_bundle_name}.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
