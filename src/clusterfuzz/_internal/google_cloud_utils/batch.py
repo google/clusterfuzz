@@ -281,8 +281,8 @@ def _get_subconfig(batch_config, instance_spec):
       WeightedSubconfig(subconfig['name'], subconfig['weight'])
       for subconfig in instance_subconfigs
   ]
-  subconfig = utils.random_weighted_choice(weighted_subconfigs)
-  return all_subconfigs[subconfig.name]
+  weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
+  return all_subconfigs[weighted_subconfig.name]
 
 
 def _get_spec_from_config(command, job_name):

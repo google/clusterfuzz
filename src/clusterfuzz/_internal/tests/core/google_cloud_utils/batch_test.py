@@ -32,9 +32,12 @@ class GetSpecFromConfigTest(unittest.TestCase):
     self.job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     self.job.put()
     helpers.patch(self, [
-        'random.choice',
+        'clusterfuzz._internal.base.utils.random_weighted_choice',
     ])
-    self.mock.choice.return_value = 'east4-network2'
+    self.mock.random_weighted_choice.return_value = batch.WeightedSubconfig(
+        name='east4-network2',
+        weight=1,
+    )
 
   def test_nonpreemptible(self):
     """Tests that get_spec_from_config works for non-preemptibles as
