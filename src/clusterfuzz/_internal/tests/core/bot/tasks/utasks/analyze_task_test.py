@@ -19,7 +19,9 @@ import tempfile
 import unittest
 
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz._internal.tests.test_libs import utask_helpers
@@ -186,3 +188,57 @@ class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
     # testcase = self.testcase.key.get(use_cache=False, use_memcache=False)
     # self.assertTrue(testcase.status, 'Processed')
     # self.assertIn('SCARINESS', testcase.crash_stacktrace)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskPostprocessTest(unittest.TestCase):
+  """Tests for analyze_task.utask_postprocess."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task._ERROR_HANDLER.handle',
+        'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task._add_default_issue_metadata'
+    ])
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase_metadata = data_types.TestcaseUploadMetadata(
+        testcase_id=self.testcase.key.id())
+    self.testcase_metadata.put()
+    self.uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(self.testcase.key.id()))
+
+  def test_error_handling_called_on_error(self):
+    """Checks that an output with an error is handled properly."""
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
+    analyze_task.utask_postprocess(uworker_output)
+    self.assertTrue(self.mock.handle.called)
+
+  def test_processed_testcase_flow(self):
+    """Tests utask_postprocess behaviour when there is a crash on latest revision."""
+    analyze_task_output = uworker_msg_pb2.AnalyzeTaskOutput(
+        crash_revision=123,
+        absolute_path='absolute_path',
+        minimized_arguments='minimized_arguments')
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        analyze_task_output=analyze_task_output,
+        issue_metadata='{}')
+
+    testcase = data_handler.get_testcase_by_id(
+        uworker_output.uworker_input.testcase_id)
+    self.assertEqual(testcase.crash_revision, 1)
+    self.assertEqual(testcase.absolute_path, '/a/b/c/test.html')
+    self.assertEqual(testcase.minimized_arguments, '')
+    analyze_task.utask_postprocess(uworker_output)
+    testcase = data_handler.get_testcase_by_id(
+        uworker_output.uworker_input.testcase_id)
+    self.assertFalse(self.mock.handle.called)
+    # Make sure the testcase is updated with analyze_task output
+    self.assertEqual(testcase.crash_revision, 123)
+    self.assertEqual(testcase.absolute_path, 'absolute_path')
+    self.assertEqual(testcase.minimized_arguments, 'minimized_arguments')
+    self.assertTrue(self.mock._add_default_issue_metadata.called)  # pylint: disable=protected-access
+    self.assertTrue(self.mock.create_tasks.called)
