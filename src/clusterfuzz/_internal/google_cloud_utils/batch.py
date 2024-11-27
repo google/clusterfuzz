@@ -13,7 +13,6 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
-import random
 import threading
 from typing import List
 import uuid
@@ -277,11 +276,20 @@ def _get_task_duration(command):
                                                  tasks.TASK_LEASE_SECONDS)
 
 
+WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
+                                           ['name', 'weight'])
+
+
 def _get_subconfig(batch_config, instance_spec):
   # TODO(metzman): Make this pick one at random or based on conditions.
   all_subconfigs = batch_config.get('subconfigs', {})
-  subconfig_name = random.choice(instance_spec['subconfigs'])
-  return all_subconfigs[subconfig_name]
+  instance_subconfigs = instance_spec['subconfigs']
+  weighted_subconfigs = [
+      WeightedSubconfig(subconfig['name'], subconfig['weight'])
+      for subconfig in instance_subconfigs
+  ]
+  weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
+  return all_subconfigs[weighted_subconfig.name]
 
 
 def _get_spec_from_config(command, job_name):
