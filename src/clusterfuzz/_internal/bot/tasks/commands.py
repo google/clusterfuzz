@@ -208,6 +208,12 @@ def get_command_object(task_name):
   # Force remote execution.
   return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
 
+def _emit_task_outcome_metric(task, job, outcome):
+  monitoring_metrics.TASK_OUTCOME_COUNT.increment(labels={
+    'job': job,
+    'task': task,
+    'outcome': outcome,
+  })
 
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Runs the command."""
@@ -249,14 +255,17 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     # where a test case is reloaded from the datastore, just abort the task.
     logs.warning('Test case %s no longer exists.' % task_argument)
     rate_limiter.record_task(success=False)
+    _emit_task_outcome_metric(task_name, job_name, 'failure')
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
     rate_limiter.record_task(success=False)
+    _emit_task_outcome_metric(task_name, job_name, 'failure')
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
     raise
   else:
+    _emit_task_outcome_metric(task_name, job_name, 'success')
     rate_limiter.record_task(success=True)
 
   # Task completed successfully.
