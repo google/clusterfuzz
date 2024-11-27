@@ -503,7 +503,7 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
-def get_task_from_message(message) -> Optional[PubSubTask]:
+def get_task_from_message(message, can_defer=True) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
@@ -516,7 +516,7 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
 
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
-  if task.defer():
+  if can_defer and task.defer():
     return None
 
   return task
@@ -536,7 +536,7 @@ def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   bot."""
   tasks = []
   for message in messages:
-    task = get_task_from_message(message)
+    task = get_task_from_message(message, can_defer=False)
     if task is None:
       continue
     tasks.append(task)
