@@ -208,12 +208,14 @@ def get_command_object(task_name):
   # Force remote execution.
   return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
 
+
 def _emit_task_outcome_metric(task, job, outcome):
   monitoring_metrics.TASK_OUTCOME_COUNT.increment(labels={
-    'job': job,
-    'task': task,
-    'outcome': outcome,
+      'job': job,
+      'task': task,
+      'outcome': outcome,
   })
+
 
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Runs the command."""

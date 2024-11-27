@@ -258,8 +258,7 @@ TASK_OUTCOME_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
-    ]
-)
+    ])
 
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/subtask_e2e_duration_secs',
