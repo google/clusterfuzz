@@ -21,8 +21,12 @@ mapping:
     disk_type: pd-standard
     service_account_email: test-clusterfuzz-service-account-email
     subconfigs:
-      - central1-network1
-      - central1-network2
+      -
+        name: central1-network1
+        weight: .5
+      -
+        name: central1-network2
+        weight: .5
     preemptible: false
     machine_type: n1-standard-1
   LINUX-NONPREEMPTIBLE-UNPRIVILEGED:
@@ -36,9 +40,15 @@ mapping:
     machine_type: n1-standard-1
     retry: true
     subconfigs:
-      - central1-network1
-      - central1-network2
-      - east4-network2
+      -
+        name: central1-network1
+        weight: .2
+      -
+        name: central1-network2
+        weight: .3
+      -
+        name: east4-network2
+        weight: .5
   LINUX-PREEMPTIBLE:
     clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
@@ -49,7 +59,9 @@ mapping:
     preemptible: true
     machine_type: n1-standard-1
     subconfigs:
-      - east4-network2
+      -
+        name: east4-network2
+        weight: 1
   LINUX-PREEMPTIBLE-UNPRIVILEGED:
     clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
@@ -60,7 +72,9 @@ mapping:
     preemptible: true
     machine_type: n1-standard-1
     subconfigs:
-      - east4-network2
+      -
+        name: east4-network2
+        weight: 1
 project: 'test-clusterfuzz'
 subconfigs:
   central1-network1:
