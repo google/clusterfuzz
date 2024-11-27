@@ -181,25 +181,15 @@ def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
   return fuzz_tasks
 
 
-def get_batch_regions(batch_config):
-  mapping = batch_config.get('mapping')
-  return list(set(config['gce_region'] for config in mapping.values()))
-
-
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   # TODO(metzman): Remove this when we are ready to run on Chrome.
   start = time.time()
 
   batch_config = local_config.BatchConfig()
-  regions = get_batch_regions(batch_config)
-  # TODO(metzman): Make it possible to use multiple regions.
-  if len(regions) > 1:
-    region = 'us-central1'
-  else:
-    region = regions[0]
   project = batch_config.get('project')
-  available_cpus = get_available_cpus(project, region)
+  # TODO(metzman): Put the CPU-based scheduling in tworkers.
+  available_cpus = get_available_cpus(project, 'us-east4')
   # TODO(metzman): Remove this as we move from experimental code to production.
   available_cpus = min(available_cpus, 6000)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
