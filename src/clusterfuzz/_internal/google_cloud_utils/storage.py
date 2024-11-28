@@ -1396,24 +1396,16 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
                                      num_uploads: int) -> List[str]:
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
-  # We verify there are no collisions for uuid4s in CF because it would be bad
-  # if there is a collision and in most cases it's cheap (and because we
-  # probably didn't understand the likelihood of this happening when we started,
-  # see https://stackoverflow.com/a/24876263). It is not cheap if we had to do
-  # this 10,000 times. Instead create a prefix filename and check that no file
-  # has that name. Then the arbitrary names will all use that prefix.
+  # We don't verify there are no collisions for uuid4s because it's extremely
+  # unlikely, takes time, and it's basically benign if it happens (it
+  # won't) since we will just clobber some other corpus uploads from
+  # the same day.
   unique_id = uuid.uuid4()
   base_name = unique_id.hex
   if not remote_directory.endswith('/'):
     remote_directory = remote_directory + '/'
   # The remote_directory ends with slash.
   base_path = f'{remote_directory}{base_name}'
-  base_search_path = f'{base_path}*'
-  if exists(base_search_path):
-    # Raise the error and let retry go again. There is a vanishingly small
-    # chance that we get more collisions. This is vulnerable to races, but is
-    # probably unneeded anyway.
-    raise ValueError(f'UUID collision found {str(unique_id)}')
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
