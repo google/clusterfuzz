@@ -14,7 +14,9 @@
 """Cloud Batch helpers."""
 import collections
 import threading
+from typing import Dict
 from typing import List
+from typing import Tuple
 import uuid
 
 from google.cloud import batch_v1 as batch
@@ -25,6 +27,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
 # TODO(metzman): Change to from . import credentials when we are done
@@ -104,9 +107,10 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
 def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
+  specs = _get_specs_from_config(batch_tasks)
   for batch_task in batch_tasks:
     logs.info(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
-    spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
+    spec = specs[(batch_task.command, batch_task.job_type)]
     job_specs[spec].append(batch_task.input_download_url)
 
   logs.info('Creating batch jobs.')
@@ -241,27 +245,33 @@ def is_no_privilege_workload(command, job_name):
 
 def is_remote_task(command, job_name):
   try:
-    _get_spec_from_config(command, job_name)
+    _get_specs_from_config([BatchTask(command, job_name, None)])
     return True
   except ValueError:
     return False
 
 
-def _get_config_name(command, job_name):
-  """Returns the name of the config for |command| and |job_name|."""
-  job = _get_job(job_name)
-  # As of this writing, batch only supports LINUX.
-  if utils.is_oss_fuzz():
-    # TODO(b/377885331): In OSS-Fuzz, the platform can't be used because, as of
-    # it includes the project name.
-    config_name = 'LINUX'
-  else:
-    config_name = job.platform
-  if command == 'fuzz':
-    config_name += '-PREEMPTIBLE-UNPRIVILEGED'
-  else:
-    config_name += '-NONPREEMPTIBLE-UNPRIVILEGED'
-  return config_name
+def _get_config_names(
+    batch_tasks: List[BatchTask]) -> Dict[Tuple[str, str], str]:
+  """"Gets the name of the configs for each batch_task. Returns a dict
+  that is indexed by command and job_type for efficient lookup."""
+  job_names = {task.job_type for task in batch_tasks}
+  query = data_types.Job.query(data_types.Job.name.IN(list(job_names)))
+  jobs = ndb_utils.get_all_from_query(query)
+  job_map = {job.name: job for job in jobs}
+  config_map = {}
+  for task in batch_tasks:
+    if task.job_type not in job_map:
+      logs.error(f'{task.job_type} doesn\'t exist.')
+      continue
+    if task.command == 'fuzz':
+      suffix = '-PREEMPTIBLE-UNPRIVILEGED'
+    else:
+      suffix = '-NONPREEMPTIBLE-UNPRIVILEGED'
+    job = job_map[task.job_type]
+    platform = job.platform if not utils.is_oss_fuzz() else 'LINUX'
+    config_map[(task.command, task.job_type)] = f'{platform}{suffix}'
+  return config_map
 
 
 def _get_task_duration(command):
@@ -285,40 +295,50 @@ def _get_subconfig(batch_config, instance_spec):
   return all_subconfigs[weighted_subconfig.name]
 
 
-def _get_spec_from_config(command, job_name):
+def _get_specs_from_config(batch_tasks):
   """Gets the configured specifications for a batch workload."""
-  config_name = _get_config_name(command, job_name)
   batch_config = _get_batch_config()
-  instance_spec = batch_config.get('mapping').get(config_name, None)
-  if instance_spec is None:
-    raise ValueError(f'No mapping for {config_name}')
-  subconfig = _get_subconfig(batch_config, instance_spec)
-  project_name = batch_config.get('project')
-  docker_image = instance_spec['docker_image']
-  user_data = instance_spec['user_data']
-  clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
+  config_map = _get_config_names(batch_tasks)
+  specs = {}
+  subconfig_map = {}
+  for task in batch_tasks:
+    if (task.command, task.job_type) in specs:
+      # Don't repeat work for no reason.
+      continue
+    config_name = config_map[(task.command, task.job_type)]
 
-  # Lower numbers are lower priority. From:
-  # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
-  low_priority = command == 'fuzz'
-  priority = 0 if low_priority else 1
+    instance_spec = batch_config.get('mapping').get(config_name)
+    if instance_spec is None:
+      raise ValueError(f'No mapping for {config_name}')
+    config_name = config_map[(task.command, task.job_type)]
+    project_name = batch_config.get('project')
+    clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
+    # Lower numbers are a lower priority, meaning less likely to run From:
+    # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
+    priority = 0 if task.command == 'fuzz' else 1
+    max_run_duration = f'{_get_task_duration(task.command)}s'
+    # This saves us time and reduces fragementation, e.g. every linux fuzz task
+    # run in this call will run in the same zone.
+    if config_name not in subconfig_map:
+      subconfig = _get_subconfig(batch_config, instance_spec)
+      subconfig_map[config_name] = subconfig
 
-  max_run_duration = f'{_get_task_duration(command)}s'
-
-  spec = BatchWorkloadSpec(
-      clusterfuzz_release=clusterfuzz_release,
-      docker_image=docker_image,
-      user_data=user_data,
-      disk_size_gb=instance_spec['disk_size_gb'],
-      disk_type=instance_spec['disk_type'],
-      service_account_email=instance_spec['service_account_email'],
-      gce_region=subconfig['region'],
-      project=project_name,
-      network=subconfig['network'],
-      subnetwork=subconfig['subnetwork'],
-      preemptible=instance_spec['preemptible'],
-      machine_type=instance_spec['machine_type'],
-      priority=priority,
-      max_run_duration=max_run_duration,
-  )
-  return spec
+    subconfig = subconfig_map[config_name]
+    spec = BatchWorkloadSpec(
+        docker_image=instance_spec['docker_image'],
+        disk_size_gb=instance_spec['disk_size_gb'],
+        disk_type=instance_spec['disk_type'],
+        user_data=instance_spec['user_data'],
+        service_account_email=instance_spec['service_account_email'],
+        preemptible=instance_spec['preemptible'],
+        machine_type=instance_spec['machine_type'],
+        gce_region=subconfig['region'],
+        network=subconfig['network'],
+        subnetwork=subconfig['subnetwork'],
+        project=project_name,
+        clusterfuzz_release=clusterfuzz_release,
+        priority=priority,
+        max_run_duration=max_run_duration,
+    )
+    specs[(task.command, task.job_type)] = spec
+  return specs
