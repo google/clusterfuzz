@@ -306,7 +306,10 @@ def _get_specs_from_config(batch_tasks):
       # Don't repeat work for no reason.
       continue
     config_name = config_map[(task.command, task.job_type)]
+
     instance_spec = batch_config.get('mapping').get(config_name)
+    if instance_spec is None:
+      raise ValueError(f'No mapping for {config_name}')
     config_name = config_map[(task.command, task.job_type)]
     project_name = batch_config.get('project')
     clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
