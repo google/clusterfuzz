@@ -90,11 +90,11 @@ PREPROCESS_QUEUE = 'preprocess'
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_QUEUE_PULL_SECONDS = 120
+UTASK_QUEUE_PULL_SECONDS = 150
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 800
+MAX_UTASKS = 3000
 
 UTASKS = {
     'analyze',
