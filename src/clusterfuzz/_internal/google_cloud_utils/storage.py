@@ -1234,7 +1234,6 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_file(url, filepath):
-  # print('filepath', filepath)
   contents = download_signed_url(url)
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
@@ -1365,8 +1364,7 @@ def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
   return _sign_urls_for_existing_file(url, include_delete_urls)
 
 
-def sign_urls_for_existing_files(urls,
-                                 include_delete_urls) -> List[Tuple[str, str]]:
+def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
   result = maybe_parallel_map(_sign_urls_for_existing_file, args)
@@ -1385,15 +1383,14 @@ def maybe_parallel_map(func, arguments):
   if not environment.is_tworker():
     # TODO(b/metzman): When the rearch is done, internal google CF won't have
     # tworkers, but maybe should be using parallel.
-    return list(map(func, arguments))
+    return map(func, arguments)
 
   max_size = 2
   with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
-    return list(pool.map(func, arguments))
+    return pool.imap_unordered(func, arguments)
 
 
-def get_arbitrary_signed_upload_urls(remote_directory: str,
-                                     num_uploads: int) -> List[str]:
+def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
   # We verify there are no collisions for uuid4s in CF because it would be bad
