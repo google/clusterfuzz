@@ -14,7 +14,9 @@
 """Cloud Batch helpers."""
 import collections
 import threading
+from typing import Dict
 from typing import List
+from typing import Tuple
 import uuid
 
 from google.cloud import batch_v1 as batch
@@ -249,7 +251,10 @@ def is_remote_task(command, job_name):
     return False
 
 
-def _get_config_names(batch_tasks):
+def _get_config_names(
+    batch_tasks: List[BatchTask]) -> Dict[Tuple[str, str], str]:
+  """"Gets the name of the configs for each batch_task. Returns a dict
+  that is indexed by command and job_type for efficient lookup."""
   job_names = {task.job_type for task in batch_tasks}
   query = data_types.Job.query(data_types.Job.name.IN(list(job_names)))
   jobs = ndb_utils.get_all_from_query(query)
@@ -317,20 +322,20 @@ def _get_specs_from_config(batch_tasks):
 
     subconfig = subconfig_map[config_name]
     spec = BatchWorkloadSpec(
-      docker_image=instance_spec['docker_image'],
-      disk_size_gb=instance_spec['disk_size_gb'],
-      disk_type=instance_spec['disk_type'],
-      user_data=instance_spec['user_data'],
-      service_account_email=instance_spec['service_account_email'],
-      preemptible=instance_spec['preemptible'],
-      machine_type=instance_spec['machine_type'],
-      gce_region=subconfig['region'],
-      network=subconfig['network'],
-      subnetwork=subconfig['subnetwork'],
-      project=project_name,
-      clusterfuzz_release=clusterfuzz_release,
-      priority=priority,
-      max_run_duration=max_run_duration,
+        docker_image=instance_spec['docker_image'],
+        disk_size_gb=instance_spec['disk_size_gb'],
+        disk_type=instance_spec['disk_type'],
+        user_data=instance_spec['user_data'],
+        service_account_email=instance_spec['service_account_email'],
+        preemptible=instance_spec['preemptible'],
+        machine_type=instance_spec['machine_type'],
+        gce_region=subconfig['region'],
+        network=subconfig['network'],
+        subnetwork=subconfig['subnetwork'],
+        project=project_name,
+        clusterfuzz_release=clusterfuzz_release,
+        priority=priority,
+        max_run_duration=max_run_duration,
     )
     specs[(task.command, task.job_type)] = spec
   return specs
