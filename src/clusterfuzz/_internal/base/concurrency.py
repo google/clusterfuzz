@@ -31,6 +31,9 @@ class SingleThreadPool:
   def map(self, f, l):
     return list(map(f, l))
 
+  def imap_unordered(self, f, l):
+    return list(map(f, l))
+
 
 @contextlib.contextmanager
 def make_pool(pool_size=POOL_SIZE, cpu_bound=False, max_pool_size=None):
@@ -46,7 +49,7 @@ def make_pool(pool_size=POOL_SIZE, cpu_bound=False, max_pool_size=None):
     else:
       yield futures.ThreadPoolExecutor(pool_size)
   else:
-    yield futures.ProcessPoolExecutor(pool_size)
+    yield multiprocessing.Pool(pool_size)
 
 
 # TODO(metzman): Find out if batching makes things even faster.
