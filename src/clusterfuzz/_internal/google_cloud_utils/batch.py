@@ -277,9 +277,6 @@ def _get_task_duration(command):
                                                  tasks.TASK_LEASE_SECONDS)
 
 
-<<<<<<< Updated upstream
-def _get_spec_from_config(command, job_name):
-=======
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
                                            ['name', 'weight'])
 
@@ -297,18 +294,8 @@ def _get_subconfig(batch_config, instance_spec):
 
 
 def _get_specs_from_config(batch_tasks):
->>>>>>> Stashed changes
   """Gets the configured specifications for a batch workload."""
   batch_config = _get_batch_config()
-<<<<<<< Updated upstream
-  instance_spec = batch_config.get('mapping').get(config_name, None)
-  if instance_spec is None:
-    raise ValueError(f'No mapping for {config_name}')
-  project_name = batch_config.get('project')
-  docker_image = instance_spec['docker_image']
-  user_data = instance_spec['user_data']
-  clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
-=======
   config_map = _get_config_names(batch_tasks)
   specs = {}
   subconfig_map = {}
@@ -325,7 +312,6 @@ def _get_specs_from_config(batch_tasks):
     # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
     priority = 0 if task.command == 'fuzz' else 1
     max_run_duration = f'{_get_task_duration(task.command)}s'
->>>>>>> Stashed changes
 
     # This saves us time and reduces fragementation, e.g. every linux fuzz task
     # run in this call will run in the same zone.
@@ -340,16 +326,6 @@ def _get_specs_from_config(batch_tasks):
       disk_type=instance_spec['disk_type'],
       user_data=instance_spec['user_data'],
       service_account_email=instance_spec['service_account_email'],
-<<<<<<< Updated upstream
-      # TODO(metzman): Get rid of zone so that we can more easily run in
-      # multiple regions.
-      gce_zone=instance_spec['gce_zone'],
-      gce_region=instance_spec['gce_region'],
-      project=project_name,
-      network=instance_spec['network'],
-      subnetwork=instance_spec['subnetwork'],
-=======
->>>>>>> Stashed changes
       preemptible=instance_spec['preemptible'],
       machine_type=instance_spec['machine_type'],
       gce_region=subconfig['region'],
