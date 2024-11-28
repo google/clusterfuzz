@@ -36,8 +36,6 @@ _local = threading.local()
 
 RETRY_COUNT = 0
 
-TASK_BUNCH_SIZE = 20
-
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
 TASK_COUNT_PER_NODE = 1
@@ -55,7 +53,6 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'subnetwork',
     'preemptible',
     'project',
-    'gce_zone',
     'machine_type',
     'network',
     'gce_region',
@@ -312,7 +309,6 @@ def _get_specs_from_config(batch_tasks):
     # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
     priority = 0 if task.command == 'fuzz' else 1
     max_run_duration = f'{_get_task_duration(task.command)}s'
-
     # This saves us time and reduces fragementation, e.g. every linux fuzz task
     # run in this call will run in the same zone.
     if config_name not in subconfig_map:

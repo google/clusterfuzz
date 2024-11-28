@@ -17,6 +17,7 @@ import unittest
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
+from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 # pylint: disable=protected-access
@@ -30,6 +31,13 @@ class GetSpecFromConfigTest(unittest.TestCase):
     self.maxDiff = None
     self.job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     self.job.put()
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.random_weighted_choice',
+    ])
+    self.mock.random_weighted_choice.return_value = batch.WeightedSubconfig(
+        name='east4-network2',
+        weight=1,
+    )
 
   def test_nonpreemptible(self):
     """Tests that get_spec_from_config works for non-preemptibles as
@@ -43,10 +51,9 @@ class GetSpecFromConfigTest(unittest.TestCase):
         disk_type='pd-standard',
         service_account_email='test-unpriv-clusterfuzz-service-account-email',
         subnetwork=
-        'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname',
-        network='projects/google.com:clusterfuzz/global/networks/networkname',
-        gce_region='gce-region',
-        gce_zone='gce-zone',
+        'projects/project_name/regions/us-east4/subnetworks/subnetworkname2',
+        network='projects/project_name/global/networks/networkname2',
+        gce_region='us-east4',
         project='test-clusterfuzz',
         preemptible=False,
         machine_type='n1-standard-1',
@@ -69,10 +76,9 @@ class GetSpecFromConfigTest(unittest.TestCase):
         disk_type='pd-standard',
         service_account_email='test-unpriv-clusterfuzz-service-account-email',
         subnetwork=
-        'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname',
-        network='projects/google.com:clusterfuzz/global/networks/networkname',
-        gce_zone='gce-zone',
-        gce_region='gce-region',
+        'projects/project_name/regions/us-east4/subnetworks/subnetworkname2',
+        network='projects/project_name/global/networks/networkname2',
+        gce_region='us-east4',
         project='test-clusterfuzz',
         preemptible=True,
         machine_type='n1-standard-1',
