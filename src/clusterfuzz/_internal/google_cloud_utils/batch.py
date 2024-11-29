@@ -33,7 +33,7 @@ from . import credentials
 
 _local = threading.local()
 
-RETRY_COUNT = 0
+DEFAULT_RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
 
@@ -60,6 +60,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'gce_region',
     'priority',
     'max_run_duration',
+    'retry',
 ])
 
 
@@ -139,7 +140,13 @@ def _get_task_spec(batch_workload_spec):
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
-  task_spec.max_retry_count = RETRY_COUNT
+  if batch_workload_spec.retry:
+    # Tasks in general have 6 hours to run (except pruning which has 24).
+    # Our signed URLs last 24 hours. Therefore, the maxiumum number of retries
+    # is 4. This is a temporary solution anyway.
+    task_spec.max_retry_count = 4
+  else:
+    task_spec.max_retry_count = DEFAULT_RETRY_COUNT
   task_spec.max_run_duration = batch_workload_spec.max_run_duration
   return task_spec
 
@@ -282,6 +289,7 @@ def _get_spec_from_config(command, job_name):
   project_name = batch_config.get('project')
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']
+  should_retry = instance_spec.get('retry', False)
   clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
 
   # Lower numbers are lower priority. From:
@@ -290,6 +298,8 @@ def _get_spec_from_config(command, job_name):
   priority = 0 if low_priority else 1
 
   max_run_duration = f'{_get_task_duration(command)}s'
+  if command == 'corpus_pruning':
+    should_retry = False  # It is naturally retried the next day.
 
   spec = BatchWorkloadSpec(
       clusterfuzz_release=clusterfuzz_release,
@@ -309,5 +319,6 @@ def _get_spec_from_config(command, job_name):
       machine_type=instance_spec['machine_type'],
       priority=priority,
       max_run_duration=max_run_duration,
+      retry=should_retry,
   )
   return spec

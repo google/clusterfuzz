@@ -39,6 +39,7 @@ mapping:
     subnetwork: 'projects/google.com:clusterfuzz/regions/gce-region/subnetworks/subnetworkname'
     preemptible: false
     machine_type: n1-standard-1
+    retry: true
   LINUX-PREEMPTIBLE:
     clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
