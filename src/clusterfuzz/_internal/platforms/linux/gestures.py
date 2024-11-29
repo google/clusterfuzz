@@ -22,7 +22,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import shell
 
 MAX_CHARS_TO_TYPE = 20
-RELOAD_GESTURE = 'key,F5'
 
 COORDINATE_DELTA_MIN = -100
 COORDINATE_DELTA_MAX = 200
