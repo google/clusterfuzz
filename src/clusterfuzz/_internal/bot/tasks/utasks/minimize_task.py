@@ -452,6 +452,9 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
   required_arguments = environment.get_value('REQUIRED_APP_ARGS', '')
 
+  logs.info('Warming up for minimization, checking for crashes ' +
+            f'(thread count: {max_threads}).')
+
   # Add any testcase-specific required arguments if needed.
   additional_required_arguments = testcase.get_metadata(
       'additional_required_app_args')
@@ -474,6 +477,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
   saved_unsymbolized_crash_state, flaky_stack, crash_times = (
       check_for_initial_crash(test_runner, crash_retries, testcase))
+  logs.info(f'Warmup crashed {crash_times}/{crash_retries} times.')
 
   # If the warmup crash occurred but we couldn't reproduce this in with
   # multiple processes running in parallel, try to minimize single threaded.
@@ -490,6 +494,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
     saved_unsymbolized_crash_state, flaky_stack, crash_times = (
         check_for_initial_crash(test_runner, crash_retries, testcase))
+    logs.info(f'Single-threaded warmup crashed {crash_times} times.')
 
   if not crash_times:
     # We didn't crash at all. This might be a legitimately unreproducible
@@ -519,12 +524,13 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
   # Use the max crash time unless this would be greater than the max timeout.
   test_timeout = min(max(crash_times), max_timeout) + 1
-  logs.info(f'Using timeout {test_timeout} (was {max_timeout})')
+  logs.info(f'Using per-test timeout {test_timeout} (was {max_timeout})')
   test_runner.timeout = test_timeout
 
-  logs.info('Starting minimization.')
+  logs.info(f'Starting minimization with overall {deadline}s timeout.')
 
   if should_attempt_phase(testcase, MinimizationPhase.GESTURES):
+    logs.info('Starting gesture minimization phase.')
     gestures = minimize_gestures(test_runner, testcase)
 
     # We can't call check_deadline_exceeded_and_store_partial_minimized_testcase
@@ -547,23 +553,29 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     minimize_task_output.minimization_phase = MinimizationPhase.MAIN_FILE
 
     if time.time() > test_runner.deadline:
+      logs.info('Timed out during gesture minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           minimize_task_output=minimize_task_output,
           error_type=uworker_msg_pb2.ErrorType.  # pylint: disable=no-member
           MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE)
 
+    logs.info('Minimized gestures.')
+
   # Minimize the main file.
   data = utils.get_file_contents_with_fatal_error_on_failure(testcase_file_path)
   if should_attempt_phase(testcase, MinimizationPhase.MAIN_FILE):
+    logs.info('Starting main file minimization phase.')
     data = minimize_main_file(test_runner, testcase_file_path, data)
 
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, testcase, input_directory, file_list, data,
         testcase_file_path, minimize_task_input, minimize_task_output):
+      logs.info('Timed out during main file minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
           minimize_task_output=minimize_task_output)
 
+    logs.info('Minimized main file.')
     testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST,
                           False)
     minimize_task_output.minimization_phase = MinimizationPhase.FILE_LIST
@@ -571,15 +583,18 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   # Minimize the file list.
   if should_attempt_phase(testcase, MinimizationPhase.FILE_LIST):
     if environment.get_value('MINIMIZE_FILE_LIST', True):
+      logs.info('Starting file list minimization phase.')
       file_list = minimize_file_list(test_runner, file_list, input_directory,
                                      testcase_file_path)
 
       if check_deadline_exceeded_and_store_partial_minimized_testcase(
           deadline, testcase, input_directory, file_list, data,
           testcase_file_path, minimize_task_input, minimize_task_output):
+        logs.info('Timed out during file list minimization.')
         return uworker_msg_pb2.Output(  # pylint: disable=no-member
             error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
             minimize_task_output=minimize_task_output)
+      logs.info('Minimized file list.')
     else:
       logs.info('Skipping minimization of file list.')
 
@@ -590,6 +605,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   # Minimize any files remaining in the file list.
   if should_attempt_phase(testcase, MinimizationPhase.RESOURCES):
     if environment.get_value('MINIMIZE_RESOURCES', True):
+      logs.info('Starting resources minimization phase.')
       for dependency in file_list:
         minimize_resource(test_runner, dependency, input_directory,
                           testcase_file_path)
@@ -597,9 +613,12 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
         if check_deadline_exceeded_and_store_partial_minimized_testcase(
             deadline, testcase, input_directory, file_list, data,
             testcase_file_path, minimize_task_input, minimize_task_output):
+          logs.info('Timed out during resources minimization.')
           return uworker_msg_pb2.Output(  # pylint: disable=no-member
               error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
               minimize_task_output=minimize_task_output)
+
+      logs.info('Minimized resources.')
     else:
       logs.info('Skipping minimization of resources.')
 
@@ -608,6 +627,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     minimize_task_output.minimization_phase = MinimizationPhase.ARGUMENTS
 
   if should_attempt_phase(testcase, MinimizationPhase.ARGUMENTS):
+    logs.info('Starting arguments minimization phase.')
     app_arguments = minimize_arguments(test_runner, app_arguments)
 
     # Arguments must be stored here in case we time out below.
@@ -617,9 +637,14 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, testcase, input_directory, file_list, data,
         testcase_file_path, minimize_task_input, minimize_task_output):
+      logs.info('Timed out during arguments minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
           minimize_task_output=minimize_task_output)
+
+    logs.info('Minimized arguments.')
+
+  logs.info('Finished minization.')
 
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
