@@ -557,7 +557,8 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           minimize_task_output=minimize_task_output,
           error_type=uworker_msg_pb2.ErrorType.  # pylint: disable=no-member
-          MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE)
+          MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,
+          error_message='Timed out during gesture minimization.')
 
     logs.info('Minimized gestures.')
 
@@ -573,6 +574,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
       logs.info('Timed out during main file minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+          error_message='Timed out during main file minimization.',
           minimize_task_output=minimize_task_output)
 
     logs.info('Minimized main file.')
@@ -593,6 +595,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
         logs.info('Timed out during file list minimization.')
         return uworker_msg_pb2.Output(  # pylint: disable=no-member
             error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+            error_message='Timed out during file list minimization.',
             minimize_task_output=minimize_task_output)
       logs.info('Minimized file list.')
     else:
@@ -616,6 +619,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
           logs.info('Timed out during resources minimization.')
           return uworker_msg_pb2.Output(  # pylint: disable=no-member
               error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+              error_message='Timed out during resources minimization.',
               minimize_task_output=minimize_task_output)
 
       logs.info('Minimized resources.')
@@ -640,6 +644,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
       logs.info('Timed out during arguments minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+          error_message='Timed out during arguments minimization.',
           minimize_task_output=minimize_task_output)
 
     logs.info('Minimized arguments.')
@@ -773,6 +778,10 @@ def handle_minimize_crash_too_flaky(output):
 def handle_minimize_deadline_exceeded_in_main_file_phase(output):
   """Reschedules the minimize task when the deadline is exceeded just before
   starting the main file phase."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.WIP,
+      'Timed out before even minimizing the main file. Retrying.')
   tasks.add_task('minimize', output.uworker_input.testcase_id,
                  output.uworker_input.job_type)
 
@@ -787,6 +796,9 @@ def handle_minimize_deadline_exceeded(output: uworker_msg_pb2.Output):  # pylint
     _skip_minimization(testcase,
                        'Exceeded minimization deadline too many times.')
   else:
+    data_handler.update_testcase_comment(
+        testcase, data_types.TaskState.WIP,
+        output.error_message + f' Retrying (attempt #{attempts + 1}).')
     testcase.set_metadata('minimization_deadline_exceeded_attempts',
                           attempts + 1)
     tasks.add_task('minimize', output.uworker_input.testcase_id,
