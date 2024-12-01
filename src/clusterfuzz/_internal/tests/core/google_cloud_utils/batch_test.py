@@ -51,6 +51,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
         preemptible=False,
         machine_type='n1-standard-1',
         priority=1,
+        retry=True,
         max_run_duration='21600s',
     )
 
@@ -77,6 +78,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
         preemptible=True,
         machine_type='n1-standard-1',
         priority=0,
+        retry=False,
         max_run_duration='21600s',
     )
 
