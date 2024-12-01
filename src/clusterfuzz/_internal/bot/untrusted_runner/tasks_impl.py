@@ -19,7 +19,6 @@ from google.protobuf.any_pb2 import Any  # pylint: disable=no-name-in-module
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
