@@ -97,27 +97,6 @@ def prune_corpus(request, _):
       cross_pollination_stats=cross_pollination_stats)
 
 
-def process_testcase(request, _):
-  """Process testcase."""
-  tool_name_map = {
-      untrusted_runner_pb2.ProcessTestcaseRequest.MINIMIZE: 'minimize',
-      untrusted_runner_pb2.ProcessTestcaseRequest.CLEANSE: 'cleanse',
-  }
-
-  # TODO(ochang): Support other engines.
-  assert request.engine == 'libFuzzer'
-  assert request.operation in tool_name_map
-
-  result = minimize_task.run_libfuzzer_engine(
-      tool_name_map[request.operation], request.target_name, request.arguments,
-      request.testcase_path, request.output_path, request.timeout)
-
-  return untrusted_runner_pb2.EngineReproduceResult(
-      return_code=result.return_code,
-      time_executed=result.time_executed,
-      output=result.output)
-
-
 def _pack_values(values):
   """Pack protobuf values."""
   packed = {}
