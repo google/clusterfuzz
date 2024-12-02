@@ -14,6 +14,7 @@
 """Logging functions."""
 
 import datetime
+import functools
 import json
 import logging
 from logging import config
@@ -30,6 +31,29 @@ LOCAL_LOG_LIMIT = 500000
 _logger = None
 _is_already_handling_uncaught = False
 _default_extras = {}
+
+
+@functools.cache
+def _current_source_version():
+  """Return the current source version:
+    - Arbitrary value local runs
+    - from base.utils.current_source_version():
+      - SOURCE_VERSION_OVERRIDE if set
+      - from the package's clusterfuzz-source.manifest if present
+      - None"""
+  # local imports to avoid circular imports
+  # (base.memoize > base.persistent_cache > base.utils > base.memoize)
+  from clusterfuzz._internal.base.utils import current_source_version
+  from clusterfuzz._internal.base.utils import utcnow
+  if os.getenv('PY_UNITTESTS'):
+    timestamp = utcnow().strftime('%Y%m%d%H%M%S-utc')
+    components = [timestamp, "PY_UNITTESTS"]
+    return '-'.join(components)
+  if _is_local():
+    timestamp = utcnow().strftime('%Y%m%d%H%M%S-utc')
+    components = [timestamp, os.environ['USER'], "LOCAL"]
+    return '-'.join(components)
+  return current_source_version()
 
 
 def _is_running_on_k8s():
@@ -151,6 +175,8 @@ def get_logging_config_dict(name):
           get_handler_config('bot/logs/android_heartbeat.log', 1),
       'run_cron':
           get_handler_config('bot/logs/run_cron.log', 1),
+      'root':
+          get_handler_config('bot/logs/root.log', 1),
   }
 
   return {
@@ -229,6 +255,8 @@ def format_record(record: logging.LogRecord) -> str:
   if (entry['severity'] in ['ERROR', 'CRITICAL'] and
       'IOError: [Errno 4] Interrupted function call' in entry['message']):
     entry['severity'] = 'WARNING'
+
+  entry['clusterfuzz_version'] = _current_source_version()
 
   return json.dumps(entry, default=_handle_unserializable)
 
@@ -350,6 +378,8 @@ def configure_k8s():
                   'functionName': record.funcName,
               }
           },
+          'clusterfuzz_version':
+              _current_source_version()
       })
 
     return record
