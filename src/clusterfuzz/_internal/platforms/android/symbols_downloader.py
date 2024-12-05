@@ -180,10 +180,10 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
   """Downloads and extracts Trusted App ELF files"""
   ab_target = ''
   device = settings.get_build_parameters().get('target')
-  if "cheetah" in device or "panther" in device:
-    ab_target = "cloudripper-fuzz-test-debug"
-  elif "oriole" in device or "raven" in device or "bluejay" in device:
-    ab_target = "slider-fuzz-test-debug"
+  if 'cheetah' in device or 'panther' in device:
+    ab_target = 'cloudripper-fuzz-test-debug'
+  elif 'oriole' in device or 'raven' in device or 'bluejay' in device:
+    ab_target = 'slider-fuzz-test-debug'
   else:
     logs.error(f'Unsupported device {device}.')
 
