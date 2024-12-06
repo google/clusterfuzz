@@ -353,19 +353,22 @@ def main():
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
       # Already deleted.
-      logs.info(f'Skipping testcase {testcase_id}, since it was already deleted.')
+      logs.info(
+          f'Skipping testcase {testcase_id}, since it was already deleted.')
       continue
 
     critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
 
     # Skip if testcase's job is removed.
     if testcase.job_type not in all_jobs:
-      logs.info(f'Skipping testcase {testcase_id}, since its job was removed ({testcase.job_type})')
+      logs.info(f'Skipping testcase {testcase_id}, since its job was removed '
+                f' ({testcase.job_type})')
       continue
 
     # Skip if testcase's job is in exclusions list.
     if testcase.job_type in excluded_jobs:
-      logs.info(f'Skipping testcase {testcase_id}, since its job is in the exclusion list ({testcase.job_type})')
+      logs.info(f'Skipping testcase {testcase_id}, since its job is in the'
+                f' exclusion list ({testcase.job_type})')
       continue
 
     # Emmit the metric for testcases that should be triaged.
@@ -378,19 +381,22 @@ def main():
 
     # If the testcase has a bug filed already, no triage is needed.
     if _is_bug_filed(testcase):
-      logs.info(f'Skipping testcase {testcase_id}, since a bug was already filed.')
+      logs.info(
+          f'Skipping testcase {testcase_id}, since a bug was already filed.')
       continue
 
     # Check if the crash is important, i.e. it is either a reproducible crash
     # or an unreproducible crash happening frequently.
     if not _is_crash_important(testcase):
-      logs.info(f'Skipping testcase {testcase_id}, since the crash is not important.')
+      logs.info(
+          f'Skipping testcase {testcase_id}, since the crash is not important.')
       continue
 
     # Require that all tasks like minimizaton, regression testing, etc have
     # finished.
     if not critical_tasks_completed:
-      logs.info(f'Skipping testcase {testcase_id}, critical tasks still pending.')
+      logs.info(
+          f'Skipping testcase {testcase_id}, critical tasks still pending.')
       continue
 
     # For testcases that are not part of a group, wait an additional time to
@@ -417,14 +423,16 @@ def main():
     # file this crash anywhere.
     issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
     if not issue_tracker:
-      logs.info(f'No issue tracker detected for testcase {testcase_id}, publishing message.')
+      logs.info(f'No issue tracker detected for testcase {testcase_id}, '
+                'publishing message.')
       issue_filer.notify_issue_update(testcase, 'new')
       continue
 
     # If there are similar issues to this test case already filed or recently
     # closed, skip filing a duplicate bug.
     if _check_and_update_similar_bug(testcase, issue_tracker):
-      logs.info(f'Skipping testcase {testcase_id}, since a similar bug was already filed.')
+      logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
+                ' was already filed.')
       continue
 
     # Clean up old triage messages that would be not applicable now.
