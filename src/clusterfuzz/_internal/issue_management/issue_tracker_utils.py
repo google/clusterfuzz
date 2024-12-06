@@ -45,7 +45,7 @@ def _get_issue_tracker_project_name(testcase=None):
   from clusterfuzz._internal.datastore import data_handler
   job_type = testcase.job_type if testcase else None
   issue_tracker_name = data_handler.get_issue_tracker_name(job_type)
-  logs.info(f'For testcase {testcase}, using issue tracker {issue_tracker_name}')
+  logs.info(f'For testcase {testcase.key}, using issue tracker {issue_tracker_name}')
   return issue_tracker_name
 
 
