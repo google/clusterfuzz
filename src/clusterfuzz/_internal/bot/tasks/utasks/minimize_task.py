@@ -293,10 +293,6 @@ class TestRunner:
     # the device.
     if environment.is_android():
       android.device.push_testcases_to_device()
-    elif environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      file_host.push_testcases_to_worker()
-
     # If we need to write a command line file, only do so if the arguments have
     # changed.
     arguments_changed = arguments != self._previous_arguments
@@ -1378,11 +1374,6 @@ def _run_libfuzzer_testcase(fuzz_target,
   process_handler.cleanup_stale_processes()
   shell.clear_temp_directory()
 
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.copy_file_to_worker(
-        testcase_file_path, file_host.rebase_to_worker_root(testcase_file_path))
-
   test_timeout = environment.get_value('TEST_TIMEOUT',
                                        process_handler.DEFAULT_TEST_TIMEOUT)
   return testcase_manager.test_for_crash_with_retries(
@@ -1397,15 +1388,6 @@ def _run_libfuzzer_testcase(fuzz_target,
 def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
                          output_path, timeout):
   """Run the libFuzzer engine."""
-  arguments = list(arguments)
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-
-    # TODO(ochang): Remove hardcode.
-    return tasks_host.process_testcase('libFuzzer', tool_name, target_name,
-                                       arguments, testcase_path, output_path,
-                                       timeout)
-
   target_path = engine_common.find_fuzzer_path(
       environment.get_value('BUILD_DIR'), target_name)
   if not target_path:
@@ -1418,7 +1400,7 @@ def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
     assert tool_name == 'cleanse'
     func = engine_impl.cleanse
 
-  return func(target_path, arguments, testcase_path, output_path, timeout)
+  return func(target_path, list(arguments), testcase_path, output_path, timeout)
 
 
 def _run_libfuzzer_tool(
