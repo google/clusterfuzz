@@ -327,25 +327,25 @@ def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
 
 def main():
   """Files bugs."""
-  # try:
-  #   logs.info('Grouping testcases.')
-  #   grouper.group_testcases()
-  #   logs.info('Grouping done.')
-  # except:
-  #   logs.error('Error occurred while grouping test cases.')
-  #   return False
+  try:
+    logs.info('Grouping testcases.')
+    grouper.group_testcases()
+    logs.info('Grouping done.')
+  except:
+    logs.error('Error occurred while grouping test cases.')
+    return False
 
-  # # Free up memory after group task run.
-  # utils.python_gc()
+  # Free up memory after group task run.
+  utils.python_gc()
 
-  # # Get a list of jobs excluded from bug filing.
-  # excluded_jobs = _get_excluded_jobs()
+  # Get a list of jobs excluded from bug filing.
+  excluded_jobs = _get_excluded_jobs()
 
-  # # Get a list of all jobs. This is used to filter testcases whose jobs have
-  # # been removed.
-  # all_jobs = data_handler.get_all_job_type_names()
+  # Get a list of all jobs. This is used to filter testcases whose jobs have
+  # been removed.
+  all_jobs = data_handler.get_all_job_type_names()
 
-  # throttler = Throttler()
+  throttler = Throttler()
 
   for testcase_id in data_handler.get_open_testcase_id_iterator():
     logs.info(f'Triaging {testcase_id}')
@@ -355,57 +355,57 @@ def main():
       # Already deleted.
       continue
 
-    # critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
+    critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
 
-    # # # Skip if testcase's job is removed.
-    # # if testcase.job_type not in all_jobs:
-    # #   continue
+    # Skip if testcase's job is removed.
+    if testcase.job_type not in all_jobs:
+      continue
 
-    # # # Skip if testcase's job is in exclusions list.
-    # # if testcase.job_type in excluded_jobs:
-    # #   continue
+    # Skip if testcase's job is in exclusions list.
+    if testcase.job_type in excluded_jobs:
+      continue
 
-    # # Emmit the metric for testcases that should be triaged.
-    # # _emit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
+    # Emmit the metric for testcases that should be triaged.
+    _emit_untriaged_testcase_age_metric(critical_tasks_completed, testcase)
 
-    # # Skip if we are running progression task at this time.
-    # if testcase.get_metadata('progression_pending'):
-    #   continue
+    # Skip if we are running progression task at this time.
+    if testcase.get_metadata('progression_pending'):
+      continue
 
-    # # If the testcase has a bug filed already, no triage is needed.
-    # if _is_bug_filed(testcase):
-    #   continue
+    # If the testcase has a bug filed already, no triage is needed.
+    if _is_bug_filed(testcase):
+      continue
 
-    # # Check if the crash is important, i.e. it is either a reproducible crash
-    # # or an unreproducible crash happening frequently.
-    # if not _is_crash_important(testcase):
-    #   continue
+    # Check if the crash is important, i.e. it is either a reproducible crash
+    # or an unreproducible crash happening frequently.
+    if not _is_crash_important(testcase):
+      continue
 
-    # # Require that all tasks like minimizaton, regression testing, etc have
-    # # finished.
-    # if not critical_tasks_completed:
-    #   continue
+    # Require that all tasks like minimizaton, regression testing, etc have
+    # finished.
+    if not critical_tasks_completed:
+      continue
 
-    # # For testcases that are not part of a group, wait an additional time to
-    # # make sure it is grouped.
-    # # The grouper runs prior to this step in the same cron, but there is a
-    # # window of time where new testcases can come in after the grouper starts.
-    # # This delay needs to be longer than the maximum time the grouper can take
-    # # to account for that.
-    # # FIXME: In future, grouping might be dependent on regression range, so we
-    # # would have to add an additional wait time.
-    # # TODO(ochang): Remove this after verifying that the `ran_grouper`
-    # # metadata works well.
-    # if not testcase.group_id and not dates.time_has_expired(
-    #     testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
-    #   continue
+    # For testcases that are not part of a group, wait an additional time to
+    # make sure it is grouped.
+    # The grouper runs prior to this step in the same cron, but there is a
+    # window of time where new testcases can come in after the grouper starts.
+    # This delay needs to be longer than the maximum time the grouper can take
+    # to account for that.
+    # FIXME: In future, grouping might be dependent on regression range, so we
+    # would have to add an additional wait time.
+    # TODO(ochang): Remove this after verifying that the `ran_grouper`
+    # metadata works well.
+    if not testcase.group_id and not dates.time_has_expired(
+        testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
+      continue
 
-    # if not testcase.get_metadata('ran_grouper'):
-    #   # Testcase should be considered by the grouper first before filing.
-    #   continue
+    if not testcase.get_metadata('ran_grouper'):
+      # Testcase should be considered by the grouper first before filing.
+      continue
 
-    # # If this project does not have an associated issue tracker, we cannot
-    # # file this crash anywhere.
+    # If this project does not have an associated issue tracker, we cannot
+    # file this crash anywhere.
     issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
     if not issue_tracker:
       issue_filer.notify_issue_update(testcase, 'new')
@@ -420,8 +420,8 @@ def main():
     testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
     # # File the bug first and then create filed bug metadata.
-    # if not _file_issue(testcase, issue_tracker, throttler):
-    #   continue
+    if not _file_issue(testcase, issue_tracker, throttler):
+      continue
 
     _create_filed_bug_metadata(testcase)
     issue_filer.notify_issue_update(testcase, 'new')
