@@ -98,8 +98,8 @@ def _is_bug_filed(testcase):
   return False
 
 
-def _is_startup_crash(testcase):
-  """Check if job contains both libfuzzer and android"""
+def _is_libfuzzer_android_startup_crash(testcase):
+  """Checks if the given testcase is an android libfuzzer crash"""
   if testcase.job_type.startswith(
       'libfuzzer') and 'android' in testcase.job_type:
     # Get crash statistics data on this unreproducible crash for last X days.
@@ -429,7 +429,7 @@ def main():
     if not _is_crash_important(testcase):
       # Check if the crash is a startup crash, i.e. it is causing the fuzzer
       # to crash on startup and not allowing the fuzzer to run longer
-      if not _is_startup_crash(testcase):
+      if not _is_libfuzzer_android_startup_crash(testcase):
         continue
 
     # Require that all tasks like minimizaton, regression testing, etc have

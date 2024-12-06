@@ -26,8 +26,8 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @test_utils.with_cloud_emulators('datastore')
-class StartupCrashTest(unittest.TestCase):
-  """Tests for _is_crash_important."""
+class LibfuzzerAndroidStartupCrashTest(unittest.TestCase):
+  """Tests for _is_libfuzzer_android_startup_crash."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -37,7 +37,7 @@ class StartupCrashTest(unittest.TestCase):
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 
-  def test_is_startup_crash_1(self):
+  def test_is_libfuzzer_android_startup_crash_1(self):
     """If this unreproducible testcase (libfuzzer) is crashing frequently,
     then it is an important crash."""
     self.mock.get_last_successful_hour.return_value = 417325
@@ -58,9 +58,9 @@ class StartupCrashTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
 
-    self.assertTrue(triage._is_startup_crash(testcase))
+    self.assertTrue(triage._is_libfuzzer_android_startup_crash(testcase))
 
-  def test_is_startup_crash_2(self):
+  def test_is_libfuzzer_android_startup_crash_2(self):
     """If this unreproducible testcase (libfuzzer) is less than the
     total crash threshold, then it is not important."""
     self.mock.get_last_successful_hour.return_value = 417325
@@ -81,7 +81,7 @@ class StartupCrashTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
 
-    self.assertFalse(triage._is_startup_crash(testcase))
+    self.assertFalse(triage._is_libfuzzer_android_startup_crash(testcase))
 
 
 @test_utils.with_cloud_emulators('datastore')
