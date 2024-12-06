@@ -295,8 +295,10 @@ def _get_subconfig(batch_config, instance_spec):
   return all_subconfigs[weighted_subconfig.name]
 
 
-def _get_specs_from_config(batch_tasks):
+def _get_specs_from_config(batch_tasks) -> Dict:
   """Gets the configured specifications for a batch workload."""
+  if not batch_tasks:
+    return {}
   batch_config = _get_batch_config()
   config_map = _get_config_names(batch_tasks)
   specs = {}
