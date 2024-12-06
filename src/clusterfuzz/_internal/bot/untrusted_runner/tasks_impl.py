@@ -18,32 +18,10 @@ from google.protobuf.any_pb2 import Any  # pylint: disable=no-name-in-module
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
 
 # pylint:disable=no-member
-
-
-def process_testcase(request, _):
-  """Process testcase."""
-  tool_name_map = {
-      untrusted_runner_pb2.ProcessTestcaseRequest.MINIMIZE: 'minimize',
-      untrusted_runner_pb2.ProcessTestcaseRequest.CLEANSE: 'cleanse',
-  }
-
-  # TODO(ochang): Support other engines.
-  assert request.engine == 'libFuzzer'
-  assert request.operation in tool_name_map
-
-  result = minimize_task.run_libfuzzer_engine(
-      tool_name_map[request.operation], request.target_name, request.arguments,
-      request.testcase_path, request.output_path, request.timeout)
-
-  return untrusted_runner_pb2.EngineReproduceResult(
-      return_code=result.return_code,
-      time_executed=result.time_executed,
-      output=result.output)
 
 
 def _pack_values(values):
