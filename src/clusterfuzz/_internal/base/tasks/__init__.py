@@ -654,9 +654,8 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False, utask_main=False):
     queue = default_queue()
 
   # We can preprocess on the preprocess bots regardless of queue.
-  if (utils.is_oss_fuzz()
-      and queue != UTASK_MAIN_QUEUE and tasks[0].command in UTASKS
-      and not utask_main):
+  if (utils.is_oss_fuzz() and queue != UTASK_MAIN_QUEUE and
+      tasks[0].command in UTASKS and not utask_main):
     # TODO(metzman): `queue != UTASK_MAIN_QUEUE` and `not utask_main` are
     # probably redundant. Get rid of the former.
     # TODO(metzman): Do this everywhere, not just oss-fuzz.
