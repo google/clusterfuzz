@@ -347,6 +347,8 @@ def main():
 
   throttler = Throttler()
 
+  return_code = True
+
   for testcase_id in data_handler.get_open_testcase_id_iterator():
     logs.info(f'Triaging {testcase_id}')
     try:
@@ -428,19 +430,31 @@ def main():
       issue_filer.notify_issue_update(testcase, 'new')
       continue
 
-    # If there are similar issues to this test case already filed or recently
-    # closed, skip filing a duplicate bug.
-    if _check_and_update_similar_bug(testcase, issue_tracker):
-      logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
-                ' was already filed.')
+    try:
+      # If there are similar issues to this test case already filed or recently
+      # closed, skip filing a duplicate bug.
+      if _check_and_update_similar_bug(testcase, issue_tracker):
+        logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
+                  ' was already filed.')
+        continue
+    except Exception as e:
+      logs.error(f'Failed to check testcase {testcase.id.key()}'
+                 f' for similar bugs: {e}')
+      return_code = False
       continue
 
     # Clean up old triage messages that would be not applicable now.
     testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
-    # # File the bug first and then create filed bug metadata.
-    if not _file_issue(testcase, issue_tracker, throttler):
-      logs.info(f'Issue filing failed for testcase id {testcase_id}')
+    try:
+      # # File the bug first and then create filed bug metadata.
+      if not _file_issue(testcase, issue_tracker, throttler):
+        logs.info(f'Issue filing failed for testcase id {testcase_id}')
+        continue
+    except Exception as e:
+      logs.error('Failed to file issue for testcase '
+                 f'{testcase.id.key()}: {e}')
+      return_code = False
       continue
 
     _create_filed_bug_metadata(testcase)
@@ -449,8 +463,12 @@ def main():
     logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
                                                        testcase_id))
 
-  logs.info('Triage testcases succeeded.')
-  return True
+  if return_code:
+    logs.info('Triage testcases succeeded.')
+  else:
+    logs.error('Triage testcases failed.')
+
+  return return_code
 
 
 class Throttler:
