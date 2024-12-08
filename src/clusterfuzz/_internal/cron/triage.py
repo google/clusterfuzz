@@ -421,7 +421,10 @@ def main():
 
     # If this project does not have an associated issue tracker, we cannot
     # file this crash anywhere.
-    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+    try:
+      issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+    except ValueError:
+      issue_tracker = None
     if not issue_tracker:
       logs.info(f'No issue tracker detected for testcase {testcase_id}, '
                 'publishing message.')
