@@ -426,9 +426,10 @@ def group_testcases():
         try:
           issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
               testcase)
-          logs.info(
-              f'Running grouping with issue tracker {issue_tracker.project}, '
-              f' for testcase {testcase_id}')
+          if issue_tracker:
+            logs.info(
+                f'Running grouping with issue tracker {issue_tracker.project}, '
+                f' for testcase {testcase_id}')
         except ValueError:
           logs.error('Couldn\'t get issue tracker for issue.')
           del testcase_map[testcase_id]
