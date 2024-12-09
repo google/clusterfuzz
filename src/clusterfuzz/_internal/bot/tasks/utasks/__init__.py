@@ -25,9 +25,9 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
-from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 # Define an alias to appease pylint.
@@ -236,7 +236,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
       return None
 
     # NOTE: Keep this in sync with `uworker_main()`.
-    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
       recorder.saw_failure = True
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
@@ -318,7 +318,7 @@ def uworker_main(input_download_url) -> None:
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
 
-    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
       recorder.saw_failure = True
 
     # NOTE: Keep this in sync with `uworker_main_no_io()`.
