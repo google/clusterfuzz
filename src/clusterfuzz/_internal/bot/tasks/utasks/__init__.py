@@ -25,6 +25,7 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
@@ -80,6 +81,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self.start_time_ns = time.time_ns()
     self._subtask = subtask
     self._labels = None
+    self.saw_failure = False
 
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
@@ -138,7 +140,10 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.add(
         e2e_duration_secs, self._labels)
 
-    outcome = 'error' if _exc_type else 'success'
+    # The only case where a task might fail without throwing, is in
+    # utask_main, by returning an ErrorType proto which indicates
+    # failure.
+    outcome = 'error' if _exc_type or self.saw_failure else 'success'
     monitoring_metrics.TASK_OUTCOME_COUNT.increment({
         **self._labels, 'outcome': outcome
     })
@@ -231,6 +236,8 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
       return None
 
     # NOTE: Keep this in sync with `uworker_main()`.
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+      recorder.saw_failure = True
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
 
@@ -310,6 +317,9 @@ def uworker_main(input_download_url) -> None:
 
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
+
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+      recorder.saw_failure = True
 
     # NOTE: Keep this in sync with `uworker_main_no_io()`.
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
