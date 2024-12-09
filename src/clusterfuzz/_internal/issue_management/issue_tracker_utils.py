@@ -21,6 +21,7 @@ from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import jira
 from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
@@ -43,7 +44,10 @@ def _get_issue_tracker_project_name(testcase=None):
   """Return issue tracker project name given a testcase or default."""
   from clusterfuzz._internal.datastore import data_handler
   job_type = testcase.job_type if testcase else None
-  return data_handler.get_issue_tracker_name(job_type)
+  issue_tracker_name = data_handler.get_issue_tracker_name(job_type)
+  logs.info(
+      f'For testcase {testcase.key}, using issue tracker {issue_tracker_name}')
+  return issue_tracker_name
 
 
 def request_or_task_cache(func):
@@ -66,8 +70,12 @@ def get_issue_tracker(project_name=None):
   issue_project_config = issue_tracker_config.get(project_name)
   if not issue_project_config:
     raise ValueError('Issue tracker for {} does not exist'.format(project_name))
+  logs.info(f'Issue tracker = {project_name}, issue tracker config = '
+            f'{issue_project_config}')
 
-  constructor = _ISSUE_TRACKER_CONSTRUCTORS.get(issue_project_config['type'])
+  issue_tracker_type = issue_project_config['type']
+  constructor = _ISSUE_TRACKER_CONSTRUCTORS.get(issue_tracker_type)
+  logs.info(f'Using the issue tracker constructor for {issue_tracker_type}')
   if not constructor:
     raise ValueError('Invalid issue tracker type: ' +
                      issue_project_config['type'])

@@ -385,6 +385,8 @@ def main():
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
       # Already deleted.
+      logs.info(
+          f'Skipping testcase {testcase_id}, since it was already deleted.')
       continue
 
     critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
@@ -410,6 +412,7 @@ def main():
       _emit_untriaged_testcase_age_metric(testcase)
       _increment_untriaged_testcase_count(testcase.job_type,
                                           PENDING_PROGRESSION)
+      logs.info(f'Skipping testcase {testcase_id}, progression pending')
       continue
 
     # If the testcase has a bug filed already, no triage is needed.
@@ -466,8 +469,14 @@ def main():
 
     # If this project does not have an associated issue tracker, we cannot
     # file this crash anywhere.
-    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+    try:
+      issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+          testcase)
+    except ValueError:
+      issue_tracker = None
     if not issue_tracker:
+      logs.info(f'No issue tracker detected for testcase {testcase_id}, '
+                'publishing message.')
       issue_filer.notify_issue_update(testcase, 'new')
       continue
 
