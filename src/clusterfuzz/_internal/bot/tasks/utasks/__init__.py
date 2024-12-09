@@ -75,6 +75,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   Members:
     start_time_ns (int): The time at which this recorder was constructed, in
       nanoseconds since the Unix epoch.
+    saw_failure: indicates if utask_main returned an error code as a value.
   """
 
   def __init__(self, subtask: _Subtask):
