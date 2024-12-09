@@ -43,17 +43,13 @@ def _current_source_version():
       - None"""
   # local imports to avoid circular imports
   # (base.memoize > base.persistent_cache > base.utils > base.memoize)
-  from clusterfuzz._internal.base.utils import current_source_version
-  from clusterfuzz._internal.base.utils import utcnow
+  from clusterfuzz._internal.base import utils
   if os.getenv('PY_UNITTESTS'):
-    timestamp = utcnow().strftime('%Y%m%d%H%M%S-utc')
-    components = [timestamp, "PY_UNITTESTS"]
-    return '-'.join(components)
+    return 'PY_UNITTESTS'
   if _is_local():
-    timestamp = utcnow().strftime('%Y%m%d%H%M%S-utc')
-    components = [timestamp, os.environ['USER'], "LOCAL"]
+    components = [os.environ['USER'], 'LOCAL']
     return '-'.join(components)
-  return current_source_version()
+  return utils.current_source_version()
 
 
 def _is_running_on_k8s():
