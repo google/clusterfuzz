@@ -442,7 +442,7 @@ def main():
     # Clean up old triage messages that would be not applicable now.
     testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
-    # # File the bug first and then create filed bug metadata.
+    # File the bug first and then create filed bug metadata.
     if not _file_issue(testcase, issue_tracker, throttler):
       logs.info(f'Issue filing failed for testcase id {testcase_id}')
       continue
