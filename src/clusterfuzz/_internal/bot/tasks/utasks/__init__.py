@@ -33,14 +33,6 @@ from clusterfuzz._internal.system import environment
 Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
 
 
-def _emit_task_outcome_metric(task, job, outcome):
-  monitoring_metrics.TASK_OUTCOME_COUNT.increment(labels={
-      'job': job,
-      'task': task,
-      'outcome': outcome,
-  })
-
-
 class Mode(enum.Enum):
   """The execution mode of `uworker_main` tasks in a bot process."""
 
@@ -147,7 +139,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         e2e_duration_secs, self._labels)
 
     outcome = 'error' if _exc_type else 'success'
-    monitoring_metrics.TASK_OUTCOME_COUNT.increment({**self._labels, 'outcome': outcome})
+    monitoring_metrics.TASK_OUTCOME_COUNT.increment({
+        **self._labels, 'outcome': outcome
+    })
 
 
 def ensure_uworker_env_type_safety(uworker_env):
