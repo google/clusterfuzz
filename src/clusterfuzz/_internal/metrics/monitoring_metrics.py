@@ -257,6 +257,9 @@ TASK_OUTCOME_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
         monitor.StringField('outcome'),
     ])
 

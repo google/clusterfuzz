@@ -146,6 +146,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.add(
         e2e_duration_secs, self._labels)
 
+    outcome = 'error' if _exc_type else 'success'
+    monitoring_metrics.TASK_OUTCOME_COUNT.increment({**self._labels, 'outcome': outcome})
+
 
 def ensure_uworker_env_type_safety(uworker_env):
   """Converts all values in |uworker_env| to str types.
