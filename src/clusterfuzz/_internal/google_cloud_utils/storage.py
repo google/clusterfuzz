@@ -117,7 +117,7 @@ SignedUrlDownloadResult = collections.namedtuple('SignedUrlDownloadResult',
 class StorageProvider:
   """Core storage provider interface."""
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     raise NotImplementedError
 
@@ -198,7 +198,7 @@ class GcsProvider(StorageProvider):
 
     return None
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     project_id = utils.get_application_id()
     request_body = {'name': name}
@@ -207,6 +207,9 @@ class GcsProvider(StorageProvider):
 
     if cors:
       request_body['cors'] = cors
+
+    if location:
+      request_body['location'] = location
 
     client = create_discovery_storage_client()
     try:
@@ -543,7 +546,7 @@ class FileSystemProvider(StorageProvider):
 
     return fs_path
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     bucket_path = self._fs_bucket_path(name)
     if os.path.exists(bucket_path):
@@ -905,13 +908,16 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
   return None
 
 
-def create_bucket_if_needed(bucket_name, object_lifecycle=None, cors=None):
+def create_bucket_if_needed(bucket_name,
+                            object_lifecycle=None,
+                            cors=None,
+                            location=None):
   """Creates a GCS bucket."""
   provider = _provider()
   if provider.get_bucket(bucket_name):
     return True
 
-  if not provider.create_bucket(bucket_name, object_lifecycle, cors):
+  if not provider.create_bucket(bucket_name, object_lifecycle, cors, location):
     return False
 
   time.sleep(CREATE_BUCKET_DELAY)
