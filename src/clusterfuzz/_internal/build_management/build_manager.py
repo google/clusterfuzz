@@ -485,12 +485,11 @@ class Build(BaseBuild):
     # if the HTTP URL is compatible with remote unzipping.
     allow_unpack_over_http = environment.get_value(
         'ALLOW_UNPACK_OVER_HTTP', default_value=False)
-    can_unzip_over_http = (
-        allow_unpack_over_http and not self._unpack_everything and
-        http_build_url and
+    can_unpack_over_http = (
+        allow_unpack_over_http and http_build_url and
         build_archive.unzip_over_http_compatible(http_build_url))
 
-    if not can_unzip_over_http:
+    if not can_unpack_over_http:
       return self._download_and_open_build_archive(base_build_dir, build_dir,
                                                    build_url)
     # We do not emmit a metric for build download time, if using http
