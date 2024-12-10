@@ -263,6 +263,18 @@ TASK_OUTCOME_COUNT = monitor.CounterMetric(
         monitor.StringField('outcome'),
     ])
 
+TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
+    'task/outcome_by_error_type',
+    description=('Counter metric for task outcome, with error type.'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+        monitor.StringField('outcome'),
+        monitor.StringField('error_condition'),
+    ])
+
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/subtask_e2e_duration_secs',
     description=(

@@ -75,14 +75,15 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   Members:
     start_time_ns (int): The time at which this recorder was constructed, in
       nanoseconds since the Unix epoch.
-    saw_failure: indicates if utask_main returned an error code as a value.
+    utask_main_failure: this class stores the uworker_output.ErrorType object returned
+      by utask_main, and uses it to emmit a metric.
   """
 
   def __init__(self, subtask: _Subtask):
     self.start_time_ns = time.time_ns()
     self._subtask = subtask
     self._labels = None
-    self.saw_failure = False
+    self.utask_main_failure = None
 
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
@@ -144,10 +145,25 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
     # failure.
-    outcome = 'error' if _exc_type or self.saw_failure else 'success'
+    outcome = 'error' if _exc_type or self.utask_main_failure else 'success'
     monitoring_metrics.TASK_OUTCOME_COUNT.increment({
         **self._labels, 'outcome': outcome
     })
+    if outcome == "success":
+      error_condition = 'N/A'
+    elif _exc_type:
+      error_condition = 'UNHANDLED_EXCEPTION'
+    else:
+      error_condition = uworker_msg_pb2.ErrorType.Name(self.utask_main_failure)
+    # Get rid of job as a label, so we can have another metric to make 
+    # error conditions more explicit, respecting the 30k distinct
+    # labels limit recommended by gcp.
+    trimmed_labels = self._labels
+    del trimmed_labels['job']
+    trimmed_labels['outcome'] = outcome
+    trimmed_labels['error_condition'] = error_condition
+    monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(trimmed_labels)
+
 
 
 def ensure_uworker_env_type_safety(uworker_env):
@@ -238,7 +254,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
     # NOTE: Keep this in sync with `uworker_main()`.
     if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-      recorder.saw_failure = True
+      recorder.utask_main_failure = uworker_output.error_type
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
 
@@ -320,7 +336,7 @@ def uworker_main(input_download_url) -> None:
     uworker_output = utask_module.utask_main(uworker_input)
 
     if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-      recorder.saw_failure = True
+      recorder.utask_main_failure = uworker_output.error_type
 
     # NOTE: Keep this in sync with `uworker_main_no_io()`.
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
