@@ -156,15 +156,15 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     else:
       error_condition = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
           self.utask_main_failure)
-    # Get rid of job as a label, so we can have another metric to make 
+    # Get rid of job as a label, so we can have another metric to make
     # error conditions more explicit, respecting the 30k distinct
     # labels limit recommended by gcp.
     trimmed_labels = self._labels
     del trimmed_labels['job']
     trimmed_labels['outcome'] = outcome
     trimmed_labels['error_condition'] = error_condition
-    monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(trimmed_labels)
-
+    monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
+        trimmed_labels)
 
 
 def ensure_uworker_env_type_safety(uworker_env):
