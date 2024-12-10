@@ -75,8 +75,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   Members:
     start_time_ns (int): The time at which this recorder was constructed, in
       nanoseconds since the Unix epoch.
-    utask_main_failure: this class stores the uworker_output.ErrorType object returned
-      by utask_main, and uses it to emmit a metric.
+    utask_main_failure: this class stores the uworker_output.ErrorType 
+      object returned by utask_main, and uses it to emmit a metric.
   """
 
   def __init__(self, subtask: _Subtask):
@@ -154,7 +154,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     elif _exc_type:
       error_condition = 'UNHANDLED_EXCEPTION'
     else:
-      error_condition = uworker_msg_pb2.ErrorType.Name(self.utask_main_failure)
+      error_condition = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+          self.utask_main_failure)
     # Get rid of job as a label, so we can have another metric to make 
     # error conditions more explicit, respecting the 30k distinct
     # labels limit recommended by gcp.
