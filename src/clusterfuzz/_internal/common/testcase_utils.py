@@ -31,24 +31,8 @@ TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP = 'issue_updated'
 
 
 def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
-  testcase_upload_metadata = get_testcase_upload_metadata(testcase_id)
-  if not testcase_upload_metadata:
-    logs.warning(f'No upload metadata found for testcase {testcase_id},'
-                 ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
-    return
-  if not testcase_upload_metadata.timestamp:
-    logs.warning(
-        f'No timestamp for testcase {testcase_upload_metadata.testcase_id},'
-        ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
-    return
-  assert step in [
-      'analyze_launched', 'analyze_completed', 'minimize_completed',
-      'regression_completed', 'impact_completed', 'issue_updated'
-  ]
-  elapsed_time_since_upload = datetime.datetime.utcnow()
-  elapsed_time_since_upload -= testcase_upload_metadata.timestamp
-  elapsed_time_since_upload = elapsed_time_since_upload.total_seconds()
-
+  '''Finds out if a testcase is fuzzer generated or manually uploaded,
+      and emits the TESTCASE_UPLOAD_TRIAGE_DURATION metric.'''
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if not testcase:
@@ -61,11 +45,19 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     return
 
+  from_fuzzer = not get_testcase_upload_metadata(testcase_id)
+
+  assert step in [
+      'analyze_launched', 'analyze_completed', 'minimize_completed',
+      'regression_completed', 'impact_completed', 'issue_updated'
+  ]
+
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
-      elapsed_time_since_upload,
+      testcase.get_age_in_seconds(),
       labels={
           'job': testcase.job_type,
           'step': step,
+          'origin': 'fuzzer' if from_fuzzer else 'manually_uploaded'
       })
 
 
