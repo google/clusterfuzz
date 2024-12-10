@@ -1078,7 +1078,7 @@ def get_blobs(cloud_storage_path, recursive=True):
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
   for blob in _provider().list_blobs(
-      cloud_storage_path, recursive=recursive, names_only=True):
+      cloud_storage_path, recursive=recursive):
     yield blob['name']
 
 
