@@ -485,7 +485,7 @@ class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
     exceeds limit and an upload_url is provided."""
     blob_name = blobs.generate_new_blob_name()
     blobs_bucket = 'blobs_bucket'
-    storage._provider().create_bucket(blobs_bucket, None, None)  # pylint: disable=protected-access
+    storage._provider().create_bucket(blobs_bucket, None, None, None)  # pylint: disable=protected-access
 
     gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
     signed_upload_url = storage.get_signed_upload_url(gcs_path)
