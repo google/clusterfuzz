@@ -52,6 +52,11 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
       'regression_completed', 'impact_completed', 'issue_updated'
   ]
 
+  if not testcase.get_age_in_seconds():
+    logs.warning(f'No timestamp associated to testcase {testcase_id},'
+                 ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
+    return
+
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
       testcase.get_age_in_seconds(),
       labels={
