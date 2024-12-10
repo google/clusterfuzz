@@ -978,7 +978,7 @@ def create_data_bundle_bucket_and_iams(data_bundle_name, emails):
   """Creates a data bundle bucket and adds iams for access."""
   bucket_name = get_data_bundle_bucket_name(data_bundle_name)
   location = local_config.ProjectConfig().get('data_bundle_bucket_location')
-  if not storage.create_bucket_if_needed(bucket_name, location):
+  if not storage.create_bucket_if_needed(bucket_name, location=location):
     return False
 
   client = storage.create_discovery_storage_client()
