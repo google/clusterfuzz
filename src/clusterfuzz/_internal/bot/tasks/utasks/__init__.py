@@ -169,8 +169,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     if error_condition != 'UNHANDLED_EXCEPTION':
       task = self._labels['task']
       subtask = self._labels['subtask']
-      logs.info(f'Task {task}, at subtask {subtask}, '
-                'finished successfully.')
+      logs.info(f'Task {task}, at subtask {subtask}, finished successfully.')
 
 
 def ensure_uworker_env_type_safety(uworker_env):
