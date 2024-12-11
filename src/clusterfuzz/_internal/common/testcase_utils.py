@@ -47,7 +47,7 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
   ]
   elapsed_time_since_upload = datetime.datetime.utcnow()
   elapsed_time_since_upload -= testcase_upload_metadata.timestamp
-  elapsed_time_since_upload = elapsed_time_since_upload.total_seconds()
+  elapsed_time_since_upload = elapsed_time_since_upload.total_seconds() / 3600
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
