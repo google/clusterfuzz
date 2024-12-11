@@ -149,8 +149,6 @@ def create_regression_task_if_needed(testcase):
 
 def create_variant_tasks_if_needed(testcase):
   """Creates a variant task if needed."""
-  # TODO(https://b.corp.google.com/issues/328691756): Allow untrusted
-  # testcases to only run untrusted variants.
   if testcase.duplicate_of:
     # If another testcase exists with same params, no need to spend cycles on
     # calculating variants again.
@@ -169,6 +167,8 @@ def create_variant_tasks_if_needed(testcase):
   num_variant_tasks = 0
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
+    if 'libfuzzer' in job.name:
+      import pdb; pdb.set_trace()
     job_type = job.name
     if testcase.job_type == job_type:
       continue

@@ -1,1 +1,0 @@
-Placeholder for user profile directories for an application.
