@@ -41,7 +41,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
   def test_handle_testcases(self):
     """Test a basic handle_testcases where issue is valid."""
     mock_iter = mock.MagicMock()
-    mock_iter.__iter__.return_value = [mock.MagicMock()]
+    mock_iter.return_value = [mock.MagicMock()]
     self.issue_tracker.find_issues.return_value = mock_iter
     self.mock_close_invalid_issue.return_value = False
     external_testcase_reader.close_invalid_issue = self.mock_close_invalid_issue

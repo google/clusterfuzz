@@ -32,7 +32,7 @@ def close_invalid_issue(upload_request, attachment_info, description):
   """Closes any invalid upload requests with a helpful message."""
   comment_messsage = (
       'Hello, this issue is automatically closed. Please file a new bug after'
-      'fixing the following issues:\n\n')
+      ' fixing the following issues:\n\n')
   invalid = False
 
   # TODO(pgrace) remove after testing.
@@ -51,9 +51,9 @@ def close_invalid_issue(upload_request, attachment_info, description):
       comment_messsage += (
           'Please provide an attachment of type: html, js, pdf, or zip.\n')
       invalid = True
-    if not attachment_info[0]['attachmentDataRef'] or \
+    if (not attachment_info[0]['attachmentDataRef'] or
       not attachment_info[0]['attachmentDataRef']['resourceName'] \
-        or not attachment_info[0]['filename']:
+        or not attachment_info[0]['filename']):
       comment_messsage += \
         'Please check that the attachment uploaded successfully.\n'
       invalid = True
@@ -69,7 +69,7 @@ def close_invalid_issue(upload_request, attachment_info, description):
   if invalid:
     comment_messsage += (
         '\nPlease see the new bug template for more information on how to use'
-        'Clusterfuzz direct uploads.')
+        ' Clusterfuzz direct uploads.')
     upload_request.status = 'not_reproducible'
     upload_request.save(new_comment=comment_messsage, notify=True)
 
@@ -111,7 +111,7 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
   }
 
   return requests.post(
-      "https://clusterfuzz.com/upload-testcase/upload", data=data, timeout=10)
+      'https://clusterfuzz.com/upload-testcase/upload', data=data, timeout=10)
 
 
 def handle_testcases(tracker):
