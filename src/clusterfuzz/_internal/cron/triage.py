@@ -317,6 +317,8 @@ def _emit_untriaged_testcase_age_metric(critical_tasks_completed: bool,
   if not testcase.timestamp:
     return
 
+  logs.info(f'Emiting UNTRIAGED_TESTCASE_AGE for testcase {testcase.key.id()} '
+            f'(age = {testcase.get_age_in_seconds()})')
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
       testcase.get_age_in_seconds(),
       labels={
