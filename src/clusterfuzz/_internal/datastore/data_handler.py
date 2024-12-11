@@ -109,15 +109,11 @@ def get_domain():
   return local_config.GAEConfig().get('domains.main', default=default_domain)
 
 
-def get_testcase_by_id(testcase_id):
+def get_testcase_by_id(testcase_id: str) -> data_types.Testcase:
   """Return the testcase with the given id.
   Raises InvalidTestcaseError if no such testcase exists.
   """
-  try:
-    parsed_id = int(testcase_id)
-  except ValueError:
-    raise errors.InvalidTestcaseError(testcase_id)
-
+  parsed_id = int(testcase_id)
   if parsed_id == 0:
     raise errors.InvalidTestcaseError(0)
 
