@@ -61,6 +61,10 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     return
 
+  logs.info('Emiting TESTCASE_UPLOAD_TRIAGE_DURATION metric for testcase '
+            f'{testcase_id} (age = {elapsed_time_since_upload}) '
+            'in step {step}.')
+
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
       elapsed_time_since_upload,
       labels={
