@@ -98,6 +98,60 @@ def _is_bug_filed(testcase):
   return False
 
 
+def _is_blocking_progress(testcase):
+  """Checks the crash frequency if it is reported on libfuzzer"""
+  if testcase.job_type.startswith('libfuzzer'):
+    # Get crash statistics data on this unreproducible crash for last X days.
+    last_hour = crash_stats.get_last_successful_hour()
+    if not last_hour:
+      # No crash stats available, skip.
+      return False
+
+    _, rows = crash_stats.get(
+        end=last_hour,
+        block='day',
+        days=data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
+        group_by='reproducible_flag',
+        where_clause=(
+            'crash_type = %s AND crash_state = %s AND security_flag = %s' %
+            (json.dumps(testcase.crash_type), json.dumps(testcase.crash_state),
+             json.dumps(testcase.security_flag))),
+        group_having_clause='',
+        sort_by='total_count',
+        offset=0,
+        limit=1)
+
+    # Calculate total crash count and crash days count.
+    crash_days_indices = set()
+    total_crash_count = 0
+    for row in rows:
+      if 'groups' not in row:
+        continue
+
+      total_crash_count += row['totalCount']
+      for group in row['groups']:
+        for index in group['indices']:
+          crash_days_indices.add(index['hour'])
+
+    crash_days_count = len(crash_days_indices)
+    # Considers an unreproducible testcase as important if the crash
+    # occurred at least once everyday for the last 14 days and total
+    # crash count exceeded 14.
+    return (crash_days_count ==
+            data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE and
+            total_crash_count >=
+            data_types.FILE_UNREPRODUCIBLE_TESTCASE_MIN_STARTUP_CRASH_THRESHOLD)
+
+  return False
+
+
+def is_crash_important_android(testcase):
+  """"Indicate if the android crash is important to file."""
+  if _is_blocking_progress(testcase):
+    return True
+  return False
+
+
 def _is_crash_important(testcase):
   """Indicate if the crash is important to file."""
   if not testcase.one_time_crasher_flag:
@@ -388,9 +442,17 @@ def main():
     # Check if the crash is important, i.e. it is either a reproducible crash
     # or an unreproducible crash happening frequently.
     if not _is_crash_important(testcase):
-      logs.info(
-          f'Skipping testcase {testcase_id}, since the crash is not important.')
-      continue
+      # Check if the crash is a startup crash, i.e. it is causing the fuzzer
+      # to crash on startup and not allowing the fuzzer to run longer
+      if testcase.platform == "android" and is_crash_important_android(
+          testcase):
+        logs.info(
+            f'Considering testcase {testcase_id}, since it is a startup crash'
+            ' on android platform.')
+      else:
+        logs.info(
+            f'Skipping testcase {testcase_id}, since the crash is unimportant.')
+        continue
 
     # Require that all tasks like minimizaton, regression testing, etc have
     # finished.
