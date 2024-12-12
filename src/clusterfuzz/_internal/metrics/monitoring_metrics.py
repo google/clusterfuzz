@@ -370,10 +370,7 @@ UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
     description='Number of testcases that were not yet triaged '
     '(have not yet completed analyze, regression,'
     ' minimization, impact task), in hours.',
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.StringField('platform'),
-    ])
+    field_spec=[])
 
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',
