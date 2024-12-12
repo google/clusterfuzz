@@ -448,11 +448,13 @@ def main():
     # Clean up old triage messages that would be not applicable now.
     testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
+    # A testcase is untriaged, until immediately before a bug is opened
+    _emit_untriaged_testcase_age_metric(testcase)
+    untriaged_testcases += 1
+
     # File the bug first and then create filed bug metadata.
     if not _file_issue(testcase, issue_tracker, throttler):
       logs.info(f'Issue filing failed for testcase id {testcase_id}')
-      _emit_untriaged_testcase_age_metric(testcase)
-      untriaged_testcases += 1
       continue
 
     _create_filed_bug_metadata(testcase)
