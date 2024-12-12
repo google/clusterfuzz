@@ -309,22 +309,11 @@ def _file_issue(testcase, issue_tracker, throttler):
   return filed
 
 
-untriaged_testcase_count = {}
-
-
-def _increment_untriaged_testcase_count(testcase: data_types.Testcase):
-  identifier = (testcase.job_type, testcase.platform)
-  if identifier not in untriaged_testcase_count:
-    untriaged_testcase_count[identifier] = 0
-  untriaged_testcase_count[identifier] += 1
-
-
 def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
   """Emmits a metric to track age of untriaged testcases."""
   if not testcase.timestamp:
     return
 
-  _increment_untriaged_testcase_count(testcase)
   logs.info(f'Emiting UNTRIAGED_TESTCASE_AGE for testcase {testcase.key.id()} '
             f'(age = {testcase.get_age_in_seconds()})')
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
@@ -333,16 +322,6 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
           'job': testcase.job_type,
           'platform': testcase.platform,
       })
-
-
-def _emit_untriaged_testcase_count_metric():
-  for (job, platform) in untriaged_testcase_count:
-    monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
-        untriaged_testcase_count[(job, platform)],
-        labels={
-            'job': job,
-            'platform': platform,
-        })
 
 
 def main():
@@ -366,6 +345,8 @@ def main():
   all_jobs = data_handler.get_all_job_type_names()
 
   throttler = Throttler()
+
+  untriaged_testcases = 0
 
   for testcase_id in data_handler.get_open_testcase_id_iterator():
     logs.info(f'Triaging {testcase_id}')
@@ -395,6 +376,7 @@ def main():
     if testcase.get_metadata('progression_pending'):
       logs.info(f'Skipping testcase {testcase_id}, progression pending')
       _emit_untriaged_testcase_age_metric(testcase)
+      untriaged_testcases += 1
       continue
 
     # If the testcase has a bug filed already, no triage is needed.
@@ -414,6 +396,7 @@ def main():
     # finished.
     if not critical_tasks_completed:
       _emit_untriaged_testcase_age_metric(testcase)
+      untriaged_testcases += 1
       logs.info(
           f'Skipping testcase {testcase_id}, critical tasks still pending.')
       continue
@@ -431,12 +414,14 @@ def main():
     if not testcase.group_id and not dates.time_has_expired(
         testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
       _emit_untriaged_testcase_age_metric(testcase)
+      untriaged_testcases += 1
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
       continue
 
     if not testcase.get_metadata('ran_grouper'):
       # Testcase should be considered by the grouper first before filing.
       _emit_untriaged_testcase_age_metric(testcase)
+      untriaged_testcases += 1
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
       continue
 
@@ -463,10 +448,13 @@ def main():
     # Clean up old triage messages that would be not applicable now.
     testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
+    # A testcase is untriaged, until immediately before a bug is opened
+    _emit_untriaged_testcase_age_metric(testcase)
+    untriaged_testcases += 1
+
     # File the bug first and then create filed bug metadata.
     if not _file_issue(testcase, issue_tracker, throttler):
       logs.info(f'Issue filing failed for testcase id {testcase_id}')
-      _emit_untriaged_testcase_age_metric(testcase)
       continue
 
     _create_filed_bug_metadata(testcase)
@@ -475,7 +463,8 @@ def main():
     logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
                                                        testcase_id))
 
-  _emit_untriaged_testcase_count_metric()
+    monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
+        untriaged_testcases, labels={})
 
   logs.info('Triage testcases succeeded.')
   return True
