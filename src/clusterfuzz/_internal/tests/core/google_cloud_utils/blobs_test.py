@@ -182,7 +182,7 @@ class BlobSignedURLTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
-    self.provider.create_bucket('blobs-bucket', None, None)
+    self.provider.create_bucket('blobs-bucket', None, None, None)
 
   def test_get_blob_signed_upload_url_then_delete_blob(self):
     """Tests get_blob_signed_upload_url."""
