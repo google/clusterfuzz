@@ -354,6 +354,16 @@ UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
         monitor.StringField('platform'),
     ])
 
+UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
+    'issues/untriaged_testcase_count',
+    description='Number of testcases that were not yet triaged '
+    '(have not yet completed analyze, regression,'
+    ' minimization, impact task), in hours.',
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+    ])
+
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',
     description='Outcome count for analyze task.',
