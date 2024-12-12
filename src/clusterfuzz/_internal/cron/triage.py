@@ -314,7 +314,7 @@ untriaged_testcase_count = {}
 
 def _increment_untriaged_testcase_count(testcase: data_types.Testcase):
   identifier = (testcase.job_type, testcase.platform)
-  if not identifier in untriaged_testcase_count:
+  if identifier not in untriaged_testcase_count:
     untriaged_testcase_count[identifier] = 0
   untriaged_testcase_count[identifier] += 1
 
@@ -338,12 +338,11 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
 def _emit_untriaged_testcase_count_metric():
   for (job, platform) in untriaged_testcase_count:
     monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
-      untriaged_testcase_count[(job, platform)],
-      labels = {
-        'job': job,
-        'platform': platform,
-      }
-    )
+        untriaged_testcase_count[(job, platform)],
+        labels={
+            'job': job,
+            'platform': platform,
+        })
 
 
 def main():
