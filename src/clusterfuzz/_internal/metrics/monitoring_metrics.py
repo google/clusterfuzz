@@ -236,7 +236,7 @@ TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
     description=('Time elapsed between testcase upload and completion'
                  ' of relevant tasks in the testcase upload lifecycle.'
                  ' Origin can be either from a fuzzer, or a manual'
-                 ' upload.'),
+                 ' upload. Measured in hours.'),
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('step'),
@@ -244,6 +244,7 @@ TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
         monitor.StringField('origin'),
     ],
 )
+
 TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
     'task/rate_limit',
     description=('Counter for rate limit events.'),
@@ -251,6 +252,30 @@ TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
         monitor.StringField('task'),
         monitor.StringField('job'),
         monitor.StringField('argument'),
+    ])
+
+TASK_OUTCOME_COUNT = monitor.CounterMetric(
+    'task/outcome',
+    description=('Counter metric for task outcome (success/failure).'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+        monitor.StringField('outcome'),
+    ])
+
+TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
+    'task/outcome_by_error_type',
+    description=('Counter metric for task outcome, with error type.'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+        monitor.StringField('outcome'),
+        monitor.StringField('error_condition'),
     ])
 
 UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
@@ -335,12 +360,20 @@ UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
     'issues/untriaged_testcase_age',
     description='Age of testcases that were not yet triaged '
     '(have not yet completed analyze, regression,'
-    ' minimization, impact task), in seconds.',
+    ' minimization, impact task), in hours.',
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
     ])
+
+UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
+    'issues/untriaged_testcase_count',
+    description='Number of testcases that were not yet triaged '
+    '(have not yet completed analyze, regression,'
+    ' minimization, impact task), in hours.',
+    field_spec=[],
+)
 
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',

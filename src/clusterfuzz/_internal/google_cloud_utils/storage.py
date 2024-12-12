@@ -1077,8 +1077,7 @@ def get_blobs(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(
-      cloud_storage_path, recursive=recursive, names_only=True):
+  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
     yield blob['name']
 
 
