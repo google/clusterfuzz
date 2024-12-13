@@ -84,6 +84,52 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self._subtask = subtask
     self._labels = None
     self.utask_main_failure = None
+    self._utask_success_conditions = [
+      uworker_msg_pb2.ErrorType.NO_ERROR,
+      uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
+      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,
+      uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH,
+      uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE,
+      uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH,
+      uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,
+      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,
+      uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,
+    ]
+    self._utask_maybe_retry_conditions = [
+      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
+      uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
+      uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP,
+      uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE,
+      uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED,
+      uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,
+      uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,
+      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
+      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR,
+      uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
+      uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR,
+      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
+      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,
+
+
+    ]
+    self._utask_failure_conditions = [
+      uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX,
+      uworker_msg_pb2.ErrorType.UNHANDLED,
+      uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
+      uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,
+      uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER,
+      uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR,
+      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND,
+      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
+      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
+      uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR,
+      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,
+      uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED,
+      uworker_msg_pb2.ErrorType.CORPUS_PRUNING_ERROR,
+      uworker_msg_pb2.ErrorType.FUZZ_BAD_BUILD,
+    ]
 
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
