@@ -17,7 +17,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
   display_name = "ClusterFuzz General Health"
   dashboard_json = <<JSON
 {
-  "displayName": "ClusterFuzz General Health",
+  "displayName": "vitor-experimentation-sli",
   "mosaicLayout": {
     "columns": 48,
     "tiles": [
@@ -599,7 +599,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 108,
+        "yPos": 124,
         "width": 16,
         "height": 16,
         "widget": {
@@ -636,7 +636,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 16,
-        "yPos": 108,
+        "yPos": 124,
         "width": 16,
         "height": 16,
         "widget": {
@@ -673,7 +673,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 32,
-        "yPos": 108,
+        "yPos": 124,
         "width": 16,
         "height": 16,
         "widget": {
@@ -709,7 +709,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 124,
+        "yPos": 140,
         "width": 16,
         "height": 16,
         "widget": {
@@ -746,7 +746,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 16,
-        "yPos": 124,
+        "yPos": 140,
         "width": 16,
         "height": 16,
         "widget": {
@@ -783,7 +783,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 32,
-        "yPos": 124,
+        "yPos": 140,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1587,7 +1587,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 16,
-        "yPos": 140,
+        "yPos": 108,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1602,6 +1602,63 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"error\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
+                  "unitOverride": "%"
+                }
+              }
+            ],
+            "thresholds": [],
+            "yAxis": {
+              "label": "",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 32,
+        "yPos": 108,
+        "width": 16,
+        "height": 16,
+        "widget": {
+          "title": "uworker_main overall retry rate (by task) - CAN BE DRILLED BY JOB",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "dataSets": [
+              {
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"maybe_retry\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
+                  "unitOverride": "%"
+                }
+              }
+            ],
+            "thresholds": [],
+            "yAxis": {
+              "label": "",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "yPos": 108,
+        "width": 16,
+        "height": 16,
+        "widget": {
+          "title": "uworker_main overall success rate (by task) - CAN BE DRILLED BY JOB",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "dataSets": [
+              {
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"success\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
                   "unitOverride": "%"
                 }
               }
