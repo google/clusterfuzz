@@ -110,8 +110,6 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR,
       uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
       uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,
-
-
     ]
     self._utask_failure_conditions = [
       uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX,
@@ -171,6 +169,17 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
+  def _infer_uworker_main_outcome(self, _exc_type, uworker_error):
+    '''Infers, on a best effort basis, whether an uworker output implies success or
+      failure. If an unequivocal response is not possible, classifies as maybe_retry.'''
+    if _exc_type or uworker_error in self._utask_failure_conditions:
+      outcome = 'error'
+    elif uworker_error in self._utask_maybe_retry_conditions:
+      outcome = 'maybe_retry'
+    else:
+      outcome='success'
+    return outcome
+
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
 
@@ -191,7 +200,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
     # failure.
-    outcome = 'error' if _exc_type or self.utask_main_failure else 'success'
+    outcome = self._infer_uworker_main_outcome(_exc_type, self.utask_main_failure)
     monitoring_metrics.TASK_OUTCOME_COUNT.increment({
         **self._labels, 'outcome': outcome
     })
