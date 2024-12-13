@@ -580,6 +580,9 @@ class Testcase(Model):
   # corpus.
   trusted = ndb.BooleanProperty(default=False)
 
+  # Tracks if a testcase is stuck during triage.
+  stuck_in_triage = ndb.BooleanProperty(default=False)
+
   def is_chromium(self):
     return self.project_name in ('chromium', 'chromium-testing')
 
