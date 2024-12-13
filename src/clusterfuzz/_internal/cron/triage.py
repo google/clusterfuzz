@@ -322,7 +322,7 @@ def _increment_untriaged_testcase_count(job, status):
 def _emit_untriaged_testcase_count_metric():
   for (job, status) in untriaged_testcases:
     monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
-        untriaged_testcases, labels={
+        untriaged_testcases[(job, status)], labels={
             'job': job,
             'status': status,
         })
