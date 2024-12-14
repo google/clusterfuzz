@@ -194,7 +194,9 @@ class TestFindMinRevision(unittest.TestCase):
         'time.time',
     ])
 
-    self.mock.time.return_value = 0.
+    self.mock_time = 0.
+    self.mock.time.side_effect = lambda: self.mock_time
+
     self.deadline = 1.
 
     # Keep a dummy test case. Values are not important, but we need an id.
@@ -233,7 +235,7 @@ class TestFindMinRevision(unittest.TestCase):
     self.assertIsNone(max_index)
     self.assertIsNotNone(output)
     self.assertEqual(output.regression_task_output.regression_range_start, 0)
-    self.assertEqual(output.regression_task_output.regression_range_end, 2)
+    self.assertEqual(output.regression_task_output.regression_range_end, 1)
 
   def test_regressed_at_min_good_revision(self):
     """Ensures that `find_min_revision` returns a result if we reproduce
@@ -276,8 +278,8 @@ class TestFindMinRevision(unittest.TestCase):
     self.assertIsNone(output)
 
     self.assertLess(min_index, max_index)
-    min_revision = self.revision[min_index]
-    max_revision = self.revision[max_index]
+    min_revision = self.revision_list[min_index]
+    max_revision = self.revision_list[max_index]
 
     self.assertLess(min_revision, 10)
     self.assertGreater(max_revision, 10)
@@ -301,6 +303,7 @@ class TestFindMinRevision(unittest.TestCase):
     self.reproduces_in_revision = repros
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    regression_task_output.last_regression_max = self.revision_list[-1]
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
@@ -309,8 +312,8 @@ class TestFindMinRevision(unittest.TestCase):
     self.assertIsNone(output)
 
     self.assertLess(min_index, max_index)
-    min_revision = self.revision[min_index]
-    max_revision = self.revision[max_index]
+    min_revision = self.revision_list[min_index]
+    max_revision = self.revision_list[max_index]
 
     self.assertEqual(min_revision, 1)
     self.assertEqual(max_revision, 22)
@@ -342,12 +345,10 @@ class TestFindMinRevision(unittest.TestCase):
   def test_timeout(self):
     """Ensures that `find_min_revision` stops after its deadline."""
     # Set up mock time such that we will time out after checking 3 revisions.
-    mock_time = 0.
-
     def get_mock_time():
-      nonlocal mock_time
-      mock_time += 1.
-      return mock_time
+      self.mock_time += 1.
+      print(f'Advancing time to {self.mock_time}')
+      return self.mock_time
 
     self.mock.time.side_effect = get_mock_time
     deadline = 3.
@@ -357,8 +358,9 @@ class TestFindMinRevision(unittest.TestCase):
         error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR))
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    regression_task_output.last_regression_max = self.revision_list[-1]
     min_index, max_index, output = regression_task.find_min_revision(
-        self.testcase, '/a/b', 'job_name', None, self.deadline,
+        self.testcase, '/a/b', 'job_name', None, deadline,
         self.revision_list,
         len(self.revision_list) - 1, None, regression_task_output)
 
@@ -369,9 +371,9 @@ class TestFindMinRevision(unittest.TestCase):
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
 
-    self.assertIsNone(output.regression_task_output.last_regression_min)
+    self.assertFalse(output.regression_task_output.HasField('last_regression_min'))
     self.assertGreater(output.regression_task_output.last_regression_next, 1)
-    self.assertGreater(output.regression_task_output.last_regression_max, 1)
+    self.assertEqual(output.regression_task_output.last_regression_max, self.revision_list[-1])
 
 
 def _sample(input_list, count):
