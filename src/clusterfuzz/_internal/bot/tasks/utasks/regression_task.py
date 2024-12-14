@@ -202,13 +202,15 @@ def check_latest_revisions(
   return None
 
 
-def find_earliest_good_revision(
+def find_min_revision(
     testcase: data_types.Testcase,
     testcase_file_path: str,
     job_type: str,
-    revision_range: List[int],
     fuzz_target: Optional[data_types.FuzzTarget],
     deadline: float,
+    revision_list: List[int],
+    max_index: int,
+    next_revision: Optional[int],
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Finds the earliest good build and checks if it crashes.
@@ -218,7 +220,7 @@ def find_earliest_good_revision(
     testcase_file_path: Passed to `_testcase_reproduces_in_revision()`.
     job_type: Passed to `_testcase_reproduces_in_revision()`.
     fuzz_target: Passed to `_testcase_reproduces_in_revision()`.
-    revision_range: The range of revisions in which to search. Must not be
+    revision_list: The range of revisions in which to search. Must not be
       empty. It is assumed that the last element / max revision is good and
       crashes.
     regression_task_output: Output argument. Any bad builds encountered while
@@ -238,6 +240,23 @@ def find_earliest_good_revision(
        is set to the next revision that should be checked.
     b. Some other error occurred.
   """
+  if next_revision:
+    next_index = 0  # TODO: find <= next revision
+  else:
+    next_revision = revision_list[max_index - 1]
+    next_index = max_index - 1
+
+  return None, None, uworker_msg_pb2.Output(
+      error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,
+      regression_task_output=regression_task_output)
+
+  while time.time() < deadline:
+    # test next_revision
+    # if crashes: update max index
+    # if  not crashes: found it, stop
+    # if bad build: next--
+    break
+
   # Skip over the max revision, which is assumed to be good and crash.
   for revision in revision_range[:-1]:
     # In case we time out, next time we should start from here.
@@ -344,34 +363,37 @@ def find_regression_range(
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)  # pylint: disable=no-member
 
-  # Pick up where left off in a previous run if necessary.
+  # Pick up where left off in a previous run if necessary. Possible cases:
+  #
+  # - min and max are None: start from scratch, search exponentially backwards
+  # - max is not None, min is None: we are searching exponentially
+  #   backwards for a good revision. `next_revision` is the next version we
+  #   should test, and is not None
+  # - max and min are not None: we are bisecting. `next_revision` can be
+  #   ignored.
+  #
   min_revision = testcase.get_metadata('last_regression_min')
   max_revision = testcase.get_metadata('last_regression_max')
-  had_last_regression_min = min_revision is not None
-  had_last_regression_max = max_revision is not None
+  next_revision = testcase.get_metadata('last_regression_next')
 
-  if not min_revision:
-    min_revision = revisions.get_first_revision_in_list(revision_list)
+  # Notice that regardless of whether `max_revision` was None or not, if
+  # `min_revision` is None then we should search exponentially backwards. Even
+  # though we are overwriting `max_revision` here, `next_revision` will tell us
+  # whether we should start from scratch or whether we should pick up where we
+  # left off.
   if not max_revision:
     max_revision = testcase.crash_revision
 
-  min_index = revisions.find_min_revision_index(revision_list, min_revision)
-  if min_index is None:
-    error_message = f'Could not find good min revision <= {min_revision}.'
-    return uworker_msg_pb2.Output(  # pylint: disable=no-member
-        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,  # pylint: disable=no-member
-        error_message=error_message)
-
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
   if max_index is None:
-    error_message = f'Could not find good max revision >= {max_revision}.'
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,  # pylint: disable=no-member
-        error_message=error_message)
+        error_message=f'Could not find good max revision >= {max_revision}.')
 
-  # Make sure that the revision where we noticed the crash, still crashes at
-  # that revision. Otherwise, our binary search algorithm won't work correctly.
-  max_revision = revision_list[max_index]
+  known_crash_revision = max_revision
+  max_revision = revision_list[max_index]  # Might be > `known_crash_revision`.
+
+  # Check invariant: max revision crashes.
   regression_task_output = uworker_msg_pb2.RegressionTaskOutput()  # pylint: disable=no-member
   crashes_in_max_revision, error = _testcase_reproduces_in_revision(
       testcase,
@@ -384,7 +406,13 @@ def find_regression_range(
   if error:
     return error
   if not crashes_in_max_revision:
-    error_message = f'Known crash revision {max_revision} did not crash'
+    if known_crash_revision == max_revision:
+      error_message = f'Known crash revision {max_revision} did not crash.'
+    else:
+      error_message = (f'Max revision {max_revision} did not crash. ' +
+                       f'Known crash revision was {known_crash_revision}. ' +
+                       'Crash is either flaky or fixed in ' +
+                       f'{known_crash_revision}:{max_revision}.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         regression_task_output=regression_task_output,
         error_message=error_message,
@@ -392,29 +420,27 @@ def find_regression_range(
 
   # If we've made it this far, the test case appears to be reproducible.
   regression_task_output.is_testcase_reproducible = True
+  regression_task.output.last_regression_max = max_revision
 
-  if not had_last_regression_max:
-    result = check_latest_revisions(testcase, testcase_file_path, job_type,
-                                    revision_list[min_index:max_index + 1],
-                                    fuzz_target, regression_task_output)
-    if result:
-      return result
+  min_index = None
+  if min_revision:
+    min_index = revisions.find_min_revision_index(revision_list, min_revision)
+    if not min_index:
+      # The min revision we previously found to be good no longer exists, nor
+      # do any earlier revisions. This is a weird case, but we can recover by
+      # searching for a good revision once more.
+      logs.warn(f'Min revision {min_revision} no longer exists, nor do any '
+                'earlier revisions. Restarting search for a good revision. ')
+      next_revision = None
 
-    # If we used slices below instead of indices, we could avoid having to
-    # perform this lookup.
-    max_index = revision_list.index(regression_task_output.last_regression_max)
-
-  if not had_last_regression_min:
-    result = find_earliest_good_revision(testcase, testcase_file_path, job_type,
-                                         revision_list[min_index:max_index + 1],
-                                         fuzz_target, deadline,
-                                         regression_task_output)
-    if result:
-      return result
-
-    # If we used slices below instead of indices, we could avoid having to
-    # perform this lookup.
-    min_index = revision_list.index(regression_task_output.last_regression_min)
+  if not min_index:
+    min_index, max_index, output = find_min_revision(
+        testcase, testcase_file_path, job_type, fuzz_target, deadline,
+        revision_list, max_index, next_revision, regression_task_output)
+    if output:
+      # Either we encountered an error, or there is no good revision and the
+      # regression range is `0:revision_list[0]`.
+      return output
 
   while time.time() < deadline:
     min_revision = revision_list[min_index]
