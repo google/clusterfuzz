@@ -213,84 +213,162 @@ def find_min_revision(
     next_revision: Optional[int],
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
-  """Finds the earliest good build and checks if it crashes.
+  """Attempts to find a min revision to start bisecting from. Such a revision
+  must be good and the testcase must not reproduce at that revision.
 
   Args:
     testcase: Passed to `_testcase_reproduces_in_revision()`.
     testcase_file_path: Passed to `_testcase_reproduces_in_revision()`.
     job_type: Passed to `_testcase_reproduces_in_revision()`.
     fuzz_target: Passed to `_testcase_reproduces_in_revision()`.
-    revision_list: The range of revisions in which to search. Must not be
-      empty. It is assumed that the last element / max revision is good and
-      crashes.
+    deadline: The timestamp (comparable to `time.time()`) past which we should
+      stop the search and time out.
+    revision_list: The list of all revisions known to exist.
+    max_index: The index of the known max revision for bisection. Must be a
+      valid index within `revision_list`. It is assumed that the testcase
+      reproduces at the pointed-to revision.
+    next_revision: The next revision at which to continue searching backwards
+      for a min revision. Can be used to resume execution after timing out. If
+      specified, the returned `min_index` will always point to a lower revision.
     regression_task_output: Output argument. Any bad builds encountered while
       searching for the earliest good build are appended to `build_data_list`.
       See also below for values set in different return conditions.
 
   Returns:
-    None if the earliest good build does not crash, in which case
-    `regression_task_output.last_regression_min` is set to that revision.
+    a. If successful:
 
-    An output proto otherwise, which means one of three things:
+        min_index, max_index, None
 
-    a. The earliest good build crashes, in which case:
-       - `regression_task_output.regression_range_start` is set to 0
-       - `regression_task_output.regression_range_end` is set to that revision
-    b. We timed out, in which case `regression_task_output.last_regression_min`
-       is set to the next revision that should be checked.
-    b. Some other error occurred.
+      Where `min_index` points to the min revision in `revision_list`, and
+      `max_index` points to a potentially-new max revision in `revision_list`
+      (if we encountered lower revisions at which the testcase still
+      reproduced).
+
+      In this case, `regression_task_output` is modified in the following ways:
+
+        regression_task_output.last_regression_min is set
+        regression_task_output.last_regression_max is set
+
+    a. If no such revision can be found - i.e. the earliest good revision X
+      still reproduces the testcase:
+
+        None, None, output
+
+      where:
+
+        output.regression_task_output.regression_range_start = 0
+        output.regression_task_output.regression_range_end = X
+
+    b. If we timed out:
+
+        None, None, output
+
+    d. If another error occurred:
+
+        None, None, output
+
   """
-  if next_revision:
-    next_index = 0  # TODO: find <= next revision
-  else:
-    next_revision = revision_list[max_index - 1]
-    next_index = max_index - 1
+  # Save this value so we can calculate exponential distances correctly even if
+  # we find earlier builds that reproduce.
+  original_max_index = max_index
 
-  return None, None, uworker_msg_pb2.Output(
-      error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,
-      regression_task_output=regression_task_output)
+  # TODO: Handle resumption.
+  next_index = max_index - 1
+
+  iterations = 0
 
   while time.time() < deadline:
-    # test next_revision
-    # if crashes: update max index
-    # if  not crashes: found it, stop
-    # if bad build: next--
-    break
+    # If we fall off the end of the revision list, try the earliest revision.
+    # Note that if the earliest revision is bad, we will skip it and try the
+    # next one. This will go on until we find the first good revision, at which
+    # point we will stop looping.
+    if next_index < 0:
+      print('Ran off')
+      next_index = 0
 
-  # Skip over the max revision, which is assumed to be good and crash.
-  for revision in revision_range[:-1]:
-    # In case we time out, next time we should start from here.
-    regression_task_output.last_regression_min = revision
+    next_revision = revision_list[next_index]
+    regression_task_output.last_regression_next = next_revision
 
-    if time.time() > deadline:
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
+    print({
+        'next_index': next_index,
+        'next_revision': next_revision,
+        'max_index': max_index,
+        'last_max': regression_task_output.last_regression_max,
+        'revision_list': revision_list[:],
+    })
+    iterations += 1
+    if iterations > 20:
+      raise Exception(iterations)
+
+    if next_index == max_index:
+      # The first good build crashes, there is no min revision to be found.
+      print('First good build crashes')
+      regression_task_output.regression_range_start = 0
+      regression_task_output.regression_range_end = next_revision
+      return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
           regression_task_output=regression_task_output)
 
     is_crash, error = _testcase_reproduces_in_revision(
         testcase,
         testcase_file_path,
         job_type,
-        revision,
+        next_revision,
         regression_task_output,
         fuzz_target,
         should_log=False)
 
     if error:
-      # Skip bad build errors only.
+      # If this revision contains a bad build, skip it and try the previous one.
+      # Remove the revision from the list so we don't try using it again during
+      # this run.
       if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
+        print(f'Skipping bad build r{next_revision}')
+        del revision_list[next_index]
+        next_index -= 1
+        max_index -= 1
         continue
-      return error
 
-    if is_crash:
-      # The first good build crashes.
-      regression_task_output.regression_range_start = 0
-      regression_task_output.regression_range_end = revision
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          regression_task_output=regression_task_output)
+      # For all other errors, stop here.
+      return None, None, error
 
-    # The first good build does not crash.
-    return None
+    if not is_crash:
+      # We found a suitable min revision, success!
+      regression_task_output.last_regression_min = next_revision
+      return next_index, max_index, None
+
+    # This is the new max revision. Remember it for later bisection.
+    max_index = next_index
+    regression_task_output.last_regression_max = next_revision
+
+    # Continue exponential search backwards. Double the distance (in indices)
+    # from our start point.
+    #
+    # Note that this means we search exponentially through the indices in the
+    # revision list, not through the revisions themselves. If revisions are
+    # fairly evenly distributed, then this distinction is irrelevant. If however
+    # there are large irregular gaps in between revisions, this might appear a
+    # bit strange at a glance. Consider:
+    #
+    #   Revisions:    1, 2, 3, 4, 5, 50, 51, 127, 128
+    #   Search order: 4           3       2    1
+    #
+    #   Appears as trying: 127, 51, 5, 1
+    #   Instead of:        127, 126, 124, 120, 112, 96, 64, 1
+    #
+    # Both would work, but searching through indices in the revision list is
+    # both easier to express in code and more efficient since what we care
+    # about is searching through revisions that we *can* test against, not
+    # through all revisions in the source code.
+    #
+    # The later bisection stage (once we have found a min revision) similarly
+    # operates on indices and not revisions.
+    distance = original_max_index - next_index
+    next_index -= distance
+    print('Doubling distance')
+
+  return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+      error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
+      regression_task_output=regression_task_output)
 
   # If we get here, it means all builds except the max were bad. In other words,
   # the first good build crashes.
