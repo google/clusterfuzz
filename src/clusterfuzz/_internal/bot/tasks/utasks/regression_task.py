@@ -272,8 +272,17 @@ def find_min_revision(
   # we find earlier builds that reproduce.
   original_max_index = max_index
 
-  # TODO: Handle resumption.
-  next_index = max_index - 1
+  if next_revision is None:
+    # Start from the top.
+    next_index = max_index - 1
+  else:
+    # Find the index of `next_revision`, or the next earlier revision's index
+    # if `next_revision` does not exist anymore.
+    next_index = revisions.find_min_revision_index(revision_list, next_revision)
+
+    # If there is no good revision <= next_revision, use the earliest revision.
+    if next_index is None:
+      next_index = 0
 
   iterations = 0
 
@@ -283,12 +292,13 @@ def find_min_revision(
     # next one. This will go on until we find the first good revision, at which
     # point we will stop looping.
     if next_index < 0:
-      print('Ran off')
+      print('Ran off')  # TODO: Remove
       next_index = 0
 
     next_revision = revision_list[next_index]
     regression_task_output.last_regression_next = next_revision
 
+    # TODO: Remove
     print({
         'next_index': next_index,
         'next_revision': next_revision,
@@ -298,11 +308,11 @@ def find_min_revision(
     })
     iterations += 1
     if iterations > 20:
-      raise Exception(iterations)
+      raise RuntimeError(iterations)
 
     if next_index == max_index:
       # The first good build crashes, there is no min revision to be found.
-      print('First good build crashes')
+      print('First good build crashes')  # TODO: Remove
       regression_task_output.regression_range_start = 0
       regression_task_output.regression_range_end = next_revision
       return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -322,7 +332,7 @@ def find_min_revision(
       # Remove the revision from the list so we don't try using it again during
       # this run.
       if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
-        print(f'Skipping bad build r{next_revision}')
+        print(f'Skipping bad build r{next_revision}')  # TODO: Remove
         del revision_list[next_index]
         next_index -= 1
         max_index -= 1
@@ -364,17 +374,11 @@ def find_min_revision(
     # operates on indices and not revisions.
     distance = original_max_index - next_index
     next_index -= distance
-    print('Doubling distance')
+    print('Doubling distance')  # TODO: Remove
 
   return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
       error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
       regression_task_output=regression_task_output)
-
-  # If we get here, it means all builds except the max were bad. In other words,
-  # the first good build crashes.
-  regression_task_output.regression_range_start = 0
-  regression_task_output.regression_range_end = revision_range[-1]
-  return uworker_msg_pb2.Output(regression_task_output=regression_task_output)  # pylint: disable=no-member
 
 
 def validate_regression_range(
@@ -498,7 +502,7 @@ def find_regression_range(
 
   # If we've made it this far, the test case appears to be reproducible.
   regression_task_output.is_testcase_reproducible = True
-  regression_task.output.last_regression_max = max_revision
+  regression_task_output.last_regression_max = max_revision
 
   min_index = None
   if min_revision:
@@ -507,8 +511,9 @@ def find_regression_range(
       # The min revision we previously found to be good no longer exists, nor
       # do any earlier revisions. This is a weird case, but we can recover by
       # searching for a good revision once more.
-      logs.warn(f'Min revision {min_revision} no longer exists, nor do any '
-                'earlier revisions. Restarting search for a good revision. ')
+      logs.warning(f'Min revision {min_revision} no longer exists, nor do any '
+                   'earlier revisions. Restarting search for a good revision. ')
+      min_revision = None
       next_revision = None
 
   if not min_index:
