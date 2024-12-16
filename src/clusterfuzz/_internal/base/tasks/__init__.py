@@ -84,17 +84,26 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAINS_QUEUE = 'utask_main'
+UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_QUEUE_PULL_SECONDS = 60
+UTASK_QUEUE_PULL_SECONDS = 150
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 150
+MAX_UTASKS = 3000
+
+UTASKS = {
+    'analyze',
+    'corpus_pruning',
+    'minimize',
+    'progression',
+    'regression',
+    'variant',
+}
 
 
 class Error(Exception):
@@ -503,7 +512,7 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
-def get_task_from_message(message) -> Optional[PubSubTask]:
+def get_task_from_message(message, can_defer=True) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
@@ -516,7 +525,7 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
 
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
-  if task.defer():
+  if can_defer and task.defer():
     return None
 
   return task
@@ -525,7 +534,7 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  pubsub_puller = PubSubPuller(UTASK_MAIN_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
   return handle_multiple_utask_main_messages(messages)
@@ -536,7 +545,7 @@ def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   bot."""
   tasks = []
   for message in messages:
-    task = get_task_from_message(message)
+    task = get_task_from_message(message, can_defer=False)
     if task is None:
       continue
     tasks.append(task)
@@ -631,17 +640,29 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       command,
       input_url,
       job_type,
-      queue=UTASK_MAINS_QUEUE,
+      queue=UTASK_MAIN_QUEUE,
+      utask_main=True,
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 
 
-def bulk_add_tasks(tasks, queue=None, eta_now=False):
+def bulk_add_tasks(tasks, queue=None, eta_now=False, utask_main=False):
   """Adds |tasks| in bulk to |queue|."""
 
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
+
+  # We can preprocess on the preprocess bots regardless of queue.
+  if (utils.is_oss_fuzz() and queue != UTASK_MAIN_QUEUE and
+      tasks[0].command in UTASKS and not utask_main):
+    # TODO(metzman): `queue != UTASK_MAIN_QUEUE` and `not utask_main` are
+    # probably redundant. Get rid of the former.
+    # TODO(metzman): Do this everywhere, not just oss-fuzz.
+    logs.info(f'Using {PREPROCESS_QUEUE}.')
+    queue = PREPROCESS_QUEUE
+    for task in tasks:
+      assert task.command in UTASKS
 
   # If callers want delays, they must do it themselves, because this function is
   # meant to be used for batch tasks which don't need this.
@@ -665,7 +686,8 @@ def add_task(command,
              job_type,
              queue=None,
              wait_time=None,
-             extra_info=None):
+             extra_info=None,
+             utask_main=False):
   """Add a new task to the job queue."""
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
@@ -683,7 +705,7 @@ def add_task(command,
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
 
-  bulk_add_tasks([task], queue=queue)
+  bulk_add_tasks([task], queue=queue, utask_main=utask_main)
 
 
 def get_task_lease_timeout():

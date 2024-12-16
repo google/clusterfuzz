@@ -350,7 +350,7 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
           'platform': testcase.platform,
       })
 
-
+  
 PENDING_CRITICAL_TASKS = 'pending_critical_tasks'
 PENDING_PROGRESSION = 'pending_progression'
 PENDING_GROUPING = 'pending_grouping'

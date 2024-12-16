@@ -644,8 +644,7 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
         cross_pollination_stats=None)
 
     corpus_pruning_task._upload_corpus_crashes_zip(
-        None, result, self.corpus_crashes_blob_name,
-        self.corpus_crashes_upload_url)
+        result, self.corpus_crashes_blob_name, self.corpus_crashes_upload_url)
 
     corpus_crashes_zip_local_path = os.path.join(
         self.temp_dir, f'{self.corpus_crashes_blob_name}.zip')
