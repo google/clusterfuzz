@@ -316,6 +316,25 @@ def _set_testcase_stuck_state(testcase: data_types.Testcase, state: bool):
   testcase.put()
 
 
+untriaged_testcases = {}
+
+
+def _increment_untriaged_testcase_count(job, status):
+  identifier = (job, status)
+  if identifier not in untriaged_testcases:
+    untriaged_testcases[identifier] = 0
+  untriaged_testcases[identifier] += 1
+
+
+def _emit_untriaged_testcase_count_metric():
+  for (job, status) in untriaged_testcases:
+    monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
+        untriaged_testcases[(job, status)], labels={
+            'job': job,
+            'status': status,
+        })
+
+
 def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
   """Emmits a metric to track age of untriaged testcases."""
   if not testcase.timestamp:
@@ -329,6 +348,12 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
           'job': testcase.job_type,
           'platform': testcase.platform,
       })
+
+
+PENDING_CRITICAL_TASKS = 'pending_critical_tasks'
+PENDING_PROGRESSION = 'pending_progression'
+PENDING_GROUPING = 'pending_grouping'
+PENDING_FILING = 'pending_filing'
 
 
 def main():
@@ -352,8 +377,6 @@ def main():
   all_jobs = data_handler.get_all_job_type_names()
 
   throttler = Throttler()
-
-  untriaged_testcases = 0
 
   for testcase_id in data_handler.get_open_testcase_id_iterator():
     logs.info(f'Triaging {testcase_id}')
@@ -386,7 +409,8 @@ def main():
       _set_testcase_stuck_state(testcase, True)
       logs.info(f'Skipping testcase {testcase_id}, progression pending')
       _emit_untriaged_testcase_age_metric(testcase)
-      untriaged_testcases += 1
+      _increment_untriaged_testcase_count(testcase.job_type,
+                                          PENDING_PROGRESSION)
       continue
 
     # If the testcase has a bug filed already, no triage is needed.
@@ -410,6 +434,8 @@ def main():
       _emit_untriaged_testcase_age_metric(testcase)
       untriaged_testcases += 1
       _set_testcase_stuck_state(testcase, True)
+      _increment_untriaged_testcase_count(testcase.job_type,
+                                          PENDING_CRITICAL_TASKS)
       logs.info(
           f'Skipping testcase {testcase_id}, critical tasks still pending.')
       continue
@@ -429,6 +455,7 @@ def main():
       _emit_untriaged_testcase_age_metric(testcase)
       untriaged_testcases += 1
       _set_testcase_stuck_state(testcase, True)
+      _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
       continue
 
@@ -437,6 +464,7 @@ def main():
       _emit_untriaged_testcase_age_metric(testcase)
       untriaged_testcases += 1
       _set_testcase_stuck_state(testcase, True)
+      _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
       continue
 
@@ -468,6 +496,7 @@ def main():
     _emit_untriaged_testcase_age_metric(testcase)
     untriaged_testcases += 1
     _set_testcase_stuck_state(testcase, False)
+    _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
 
     # File the bug first and then create filed bug metadata.
     if not _file_issue(testcase, issue_tracker, throttler):
@@ -480,9 +509,7 @@ def main():
     logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
                                                        testcase_id))
 
-    monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
-        untriaged_testcases, labels={})
-
+  _emit_untriaged_testcase_count_metric()
   logs.info('Triage testcases succeeded.')
   return True
 

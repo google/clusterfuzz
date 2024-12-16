@@ -84,6 +84,50 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self._subtask = subtask
     self._labels = None
     self.utask_main_failure = None
+    self._utask_success_conditions = [
+        uworker_msg_pb2.ErrorType.NO_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
+    ]
+    self._utask_maybe_retry_conditions = [
+        uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.TESTCASE_SETUP,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_SETUP,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,  # pylint: disable=no-member
+    ]
+    self._utask_failure_conditions = [
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.UNHANDLED,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.CORPUS_PRUNING_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.FUZZ_BAD_BUILD,  # pylint: disable=no-member
+    ]
 
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
@@ -125,6 +169,18 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
+  def _infer_uworker_main_outcome(self, exc_type, uworker_error):
+    '''Infers, on a best effort basis, whether an uworker output implies
+      success or failure. If an unequivocal response is not possible,
+      classifies as maybe_retry.'''
+    if exc_type or uworker_error in self._utask_failure_conditions:
+      outcome = 'error'
+    elif uworker_error in self._utask_maybe_retry_conditions:
+      outcome = 'maybe_retry'
+    else:
+      outcome = 'success'
+    return outcome
+
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
 
@@ -145,7 +201,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
     # failure.
-    outcome = 'error' if _exc_type or self.utask_main_failure else 'success'
+    outcome = self._infer_uworker_main_outcome(_exc_type,
+                                               self.utask_main_failure)
     monitoring_metrics.TASK_OUTCOME_COUNT.increment({
         **self._labels, 'outcome': outcome
     })
@@ -165,11 +222,6 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     trimmed_labels['error_condition'] = error_condition
     monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
         trimmed_labels)
-
-    if error_condition != 'UNHANDLED_EXCEPTION':
-      task = self._labels['task']
-      subtask = self._labels['subtask']
-      logs.info(f'Task {task}, at subtask {subtask}, finished successfully.')
 
 
 def ensure_uworker_env_type_safety(uworker_env):
