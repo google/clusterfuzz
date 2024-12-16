@@ -210,6 +210,7 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
 
 
 def create_fuzzilli_tests_directory(tests_directory):
+  """Create Fuzzilli tests directory from the autozilli GCS archives."""
   logs.info('Syncing fuzzilli tests.')
   fuzzilli_tests_directory = os.path.join(tests_directory, 'fuzzilli')
   remote_archive_tmpl = 'gs://autozilli/autozilli-%d.tgz'
@@ -217,7 +218,7 @@ def create_fuzzilli_tests_directory(tests_directory):
   # Ensure we have an empty directory with no leftovers from a previous run.
   shell.remove_directory(fuzzilli_tests_directory, recreate=True)
 
-  def filter(member, path):
+  def filter_members(member, path):
     # We only need JS files and the settings.json from the archive.
     if member.name.endswith('fzil') or member.name.startswith('fuzzdir/stats'):
       return None
@@ -232,7 +233,7 @@ def create_fuzzilli_tests_directory(tests_directory):
 
     # Extract relevant files.
     with tarfile.open(local_archive) as tar:
-      tar.extractall(path=fuzzilli_tests_directory, filter=filter)
+      tar.extractall(path=fuzzilli_tests_directory, filter=filter_members)
 
     # Clean up.
     os.rename(
