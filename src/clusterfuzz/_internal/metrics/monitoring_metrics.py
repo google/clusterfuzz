@@ -234,12 +234,14 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
 TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
     'uploaded_testcase_analysis/triage_duration_secs',
     description=('Time elapsed between testcase upload and completion'
-                 ' of relevant tasks in the testcase upload lifecycle, '
-                 'in hours.'),
+                 ' of relevant tasks in the testcase upload lifecycle.'
+                 ' Origin can be either from a fuzzer, or a manual'
+                 ' upload. Measured in hours.'),
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('step'),
         monitor.StringField('job'),
+        monitor.StringField('origin'),
     ],
 )
 

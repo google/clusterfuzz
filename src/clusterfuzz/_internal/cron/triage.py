@@ -309,6 +309,13 @@ def _file_issue(testcase, issue_tracker, throttler):
   return filed
 
 
+def _set_testcase_stuck_state(testcase: data_types.Testcase, state: bool):
+  if testcase.stuck_in_triage == state:
+    return
+  testcase.stuck_in_triage = state
+  testcase.put()
+
+
 untriaged_testcases = {}
 
 
@@ -322,7 +329,8 @@ def _increment_untriaged_testcase_count(job, status):
 def _emit_untriaged_testcase_count_metric():
   for (job, status) in untriaged_testcases:
     monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
-        untriaged_testcases[(job, status)], labels={
+        untriaged_testcases[(job, status)],
+        labels={
             'job': job,
             'status': status,
         })
@@ -385,18 +393,21 @@ def main():
 
     # Skip if testcase's job is removed.
     if testcase.job_type not in all_jobs:
+      _set_testcase_stuck_state(testcase, False)
       logs.info(f'Skipping testcase {testcase_id}, since its job was removed '
                 f' ({testcase.job_type})')
       continue
 
     # Skip if testcase's job is in exclusions list.
     if testcase.job_type in excluded_jobs:
+      _set_testcase_stuck_state(testcase, False)
       logs.info(f'Skipping testcase {testcase_id}, since its job is in the'
                 f' exclusion list ({testcase.job_type})')
       continue
 
     # Skip if we are running progression task at this time.
     if testcase.get_metadata('progression_pending'):
+      _set_testcase_stuck_state(testcase, True)
       logs.info(f'Skipping testcase {testcase_id}, progression pending')
       _emit_untriaged_testcase_age_metric(testcase)
       _increment_untriaged_testcase_count(testcase.job_type,
@@ -405,6 +416,7 @@ def main():
 
     # If the testcase has a bug filed already, no triage is needed.
     if _is_bug_filed(testcase):
+      _set_testcase_stuck_state(testcase, False)
       logs.info(
           f'Skipping testcase {testcase_id}, since a bug was already filed.')
       continue
@@ -412,6 +424,7 @@ def main():
     # Check if the crash is important, i.e. it is either a reproducible crash
     # or an unreproducible crash happening frequently.
     if not _is_crash_important(testcase):
+      _set_testcase_stuck_state(testcase, False)
       logs.info(
           f'Skipping testcase {testcase_id}, since the crash is not important.')
       continue
@@ -420,6 +433,7 @@ def main():
     # finished.
     if not critical_tasks_completed:
       _emit_untriaged_testcase_age_metric(testcase)
+      _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type,
                                           PENDING_CRITICAL_TASKS)
       logs.info(
@@ -439,6 +453,7 @@ def main():
     if not testcase.group_id and not dates.time_has_expired(
         testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
       _emit_untriaged_testcase_age_metric(testcase)
+      _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
       continue
@@ -446,6 +461,7 @@ def main():
     if not testcase.get_metadata('ran_grouper'):
       # Testcase should be considered by the grouper first before filing.
       _emit_untriaged_testcase_age_metric(testcase)
+      _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
       continue
@@ -466,6 +482,7 @@ def main():
     # If there are similar issues to this test case already filed or recently
     # closed, skip filing a duplicate bug.
     if _check_and_update_similar_bug(testcase, issue_tracker):
+      _set_testcase_stuck_state(testcase, False)
       logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
                 ' was already filed.')
       continue
@@ -475,6 +492,7 @@ def main():
 
     # A testcase is untriaged, until immediately before a bug is opened
     _emit_untriaged_testcase_age_metric(testcase)
+    _set_testcase_stuck_state(testcase, False)
     _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
 
     # File the bug first and then create filed bug metadata.
