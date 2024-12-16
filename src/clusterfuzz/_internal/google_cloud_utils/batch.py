@@ -332,6 +332,10 @@ def _get_specs_from_config(batch_tasks) -> Dict:
       subconfig = _get_subconfig(batch_config, instance_spec)
       subconfig_map[config_name] = subconfig
 
+    should_retry = instance_spec.get('retry', False)
+    if should_retry and task.command == 'corpus_pruning':
+      should_retry = False  # It is naturally retried the next day.
+
     subconfig = subconfig_map[config_name]
     spec = BatchWorkloadSpec(
         docker_image=instance_spec['docker_image'],
@@ -348,7 +352,7 @@ def _get_specs_from_config(batch_tasks) -> Dict:
         clusterfuzz_release=clusterfuzz_release,
         priority=priority,
         max_run_duration=max_run_duration,
-        should_retry=instance_spec.get('retry', False),
+        retry=should_retry,
     )
     specs[(task.command, task.job_type)] = spec
   return specs
