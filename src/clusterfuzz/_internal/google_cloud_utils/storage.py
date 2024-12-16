@@ -237,7 +237,6 @@ class GcsProvider(StorageProvider):
 
     client = _storage_client()
     bucket = client.bucket(bucket_name)
-    properties = {}
 
     if recursive:
       delimiter = None
@@ -249,22 +248,36 @@ class GcsProvider(StorageProvider):
     else:
       fields = None
 
-    iterator = bucket.list_blobs(
-        prefix=path, delimiter=delimiter, fields=fields)
-    for blob in iterator:
-      properties['bucket'] = bucket_name
-      properties['name'] = blob.name
-      properties['updated'] = blob.updated
-      properties['size'] = blob.size
+    iterations = 0
+    while True:
+      iterations += 1
+      iterator = bucket.list_blobs(
+          prefix=path, delimiter=delimiter, fields=fields)
+      for blob in iterator:
+        properties = {
+            'bucket': bucket_name,
+            'name': blob.name,
+            'updated': blob.updated,
+            'size': blob.size,
+        }
 
-      yield properties
-
-    if not recursive:
-      # When doing delimiter listings, the "directories" will be in `prefixes`.
-      for prefix in iterator.prefixes:
-        properties['bucket'] = bucket_name
-        properties['name'] = prefix
         yield properties
+
+      if not recursive:
+        # When doing delimiter listings, the "directories" will be in
+        # `prefixes`.
+        for prefix in iterator.prefixes:
+          properties = {
+              'bucket': bucket_name,
+              'name': prefix,
+          }
+          yield properties
+
+      next_page_token = iterator.next_page_token
+      if next_page_token is None:
+        break
+      if iterations % 50 == 0:
+        logs.error('Might be infinite looping.')
 
   def copy_file_from(self, remote_path, local_path):
     """Copy file from a remote path to a local path."""
