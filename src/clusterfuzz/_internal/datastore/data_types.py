@@ -58,6 +58,9 @@ ENTITY_SIZE_LIMIT = 900000
 # Minimum number of unreproducible crashes to see before filing it.
 FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD = 100
 
+# Minimum number of unreproducible crashes to see before filing it for android.
+FILE_UNREPRODUCIBLE_TESTCASE_MIN_STARTUP_CRASH_THRESHOLD = 14
+
 # Heartbeat wait interval.
 HEARTBEAT_WAIT_INTERVAL = 10 * 60
 

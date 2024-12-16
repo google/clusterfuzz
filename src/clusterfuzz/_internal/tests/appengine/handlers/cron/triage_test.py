@@ -26,6 +26,67 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @test_utils.with_cloud_emulators('datastore')
+class AndroidCrashImportantTest(unittest.TestCase):
+  """Tests for is_crash_important_android."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.crash_stats.get_last_successful_hour',
+        'clusterfuzz._internal.metrics.crash_stats.get',
+        'clusterfuzz._internal.base.utils.utcnow',
+    ])
+    self.mock.utcnow.return_value = test_utils.CURRENT_TIME
+
+  def test_is_crash_important_android_1(self):
+    """If this unreproducible testcase (libfuzzer) is crashing frequently,
+    then it is an important crash."""
+    self.mock.get_last_successful_hour.return_value = 417325
+    indices = [{
+        'count': 1,
+        'hour': day_index
+    } for day_index in range(417325, 416989, -24)]
+
+    self.mock.get.return_value = (1, [{
+        'totalCount': 14,
+        'groups': [{
+            'indices': indices,
+            'name': 'false',
+        },]
+    }])
+    testcase = test_utils.create_generic_testcase()
+    testcase.job_type = 'libfuzzer_test'
+    testcase.platform = 'android'
+    testcase.one_time_crasher_flag = True
+    testcase.put()
+
+    self.assertTrue(triage.is_crash_important_android(testcase))
+
+  def test_is_crash_important_android_2(self):
+    """If this unreproducible testcase (libfuzzer) is less than the
+    total crash threshold, then it is not important."""
+    self.mock.get_last_successful_hour.return_value = 417325
+    indices = [{
+        'count': day_index % 5 == 0,
+        'hour': day_index
+    } for day_index in range(417325, 416989, -24)]
+
+    self.mock.get.return_value = (1, [{
+        'totalCount': 3,
+        'groups': [{
+            'indices': indices,
+            'name': 'false',
+        },]
+    }])
+    testcase = test_utils.create_generic_testcase()
+    testcase.job_type = 'libfuzzer_test'
+    testcase.platform = 'android'
+    testcase.one_time_crasher_flag = True
+    testcase.put()
+
+    self.assertFalse(triage.is_crash_important_android(testcase))
+
+
+@test_utils.with_cloud_emulators('datastore')
 class CrashImportantTest(unittest.TestCase):
   """Tests for _is_crash_important."""
 
