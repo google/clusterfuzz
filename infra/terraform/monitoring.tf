@@ -31,7 +31,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task) (rate(custom_googleapis_com:utask_subtask_duration_secs_count{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[1h]))",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -67,7 +67,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task) (rate(custom_googleapis_com:utask_subtask_duration_secs_count{monitored_resource=\"gce_instance\",subtask=\"preprocess\"}[1h]))",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"preprocess\"}[${__interval}]))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -104,7 +104,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task) (rate(custom_googleapis_com:utask_subtask_duration_secs_count{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[1h]))",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"postprocess\"}[${__interval}]))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -1468,27 +1468,35 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         "width": 16,
         "height": 16,
         "widget": {
-          "title": "preprocess unhandled exception rate (by task)",
           "xyChart": {
-            "chartOptions": {
-              "mode": "COLOR"
-            },
             "dataSets": [
               {
-                "plotType": "LINE",
-                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"preprocess\", error_condition=\"UNHANDLED_EXCEPTION\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"preprocess\"}[${__interval}]))",
-                  "unitOverride": "%"
-                }
+                  "unitOverride": "%",
+                  "outputFullDuration": false
+                },
+                "plotType": "LINE",
+                "legendTemplate": "",
+                "targetAxis": "Y1",
+                "dimensions": [],
+                "measures": [],
+                "breakdowns": []
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
+            },
+            "chartOptions": {
+              "mode": "COLOR",
+              "showLegend": false,
+              "displayHorizontal": false
             }
-          }
+          },
+          "title": "preprocess unhandled exception rate (by task)",
+          "id": ""
         }
       },
       {
@@ -1497,27 +1505,35 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         "width": 16,
         "height": 16,
         "widget": {
-          "title": "uworker_main unhandled exception rate (by task)",
           "xyChart": {
-            "chartOptions": {
-              "mode": "COLOR"
-            },
             "dataSets": [
               {
-                "plotType": "LINE",
-                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", error_condition=\"UNHANDLED_EXCEPTION\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
-                  "unitOverride": "%"
-                }
+                  "unitOverride": "%",
+                  "outputFullDuration": false
+                },
+                "plotType": "LINE",
+                "legendTemplate": "",
+                "targetAxis": "Y1",
+                "dimensions": [],
+                "measures": [],
+                "breakdowns": []
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
+            },
+            "chartOptions": {
+              "mode": "COLOR",
+              "showLegend": false,
+              "displayHorizontal": false
             }
-          }
+          },
+          "title": "uworker_main unhandled exception rate (by task)",
+          "id": ""
         }
       },
       {
@@ -1526,27 +1542,35 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         "width": 16,
         "height": 16,
         "widget": {
-          "title": "postprocess unhandled exception rate (by task)",
           "xyChart": {
-            "chartOptions": {
-              "mode": "COLOR"
-            },
             "dataSets": [
               {
-                "plotType": "LINE",
-                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\", subtask=\"postprocess\", error_condition=\"UNHANDLED_EXCEPTION\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\", subtask=\"postprocess\"}[${__interval}]))",
-                  "unitOverride": "%"
-                }
+                  "unitOverride": "%",
+                  "outputFullDuration": false
+                },
+                "plotType": "LINE",
+                "legendTemplate": "",
+                "targetAxis": "Y1",
+                "dimensions": [],
+                "measures": [],
+                "breakdowns": []
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
+            },
+            "chartOptions": {
+              "mode": "COLOR",
+              "showLegend": false,
+              "displayHorizontal": false
             }
-          }
+          },
+          "title": "postprocess unhandled exception rate (by task)",
+          "id": ""
         }
       },
       {
@@ -1558,7 +1582,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "last_over_time(custom_googleapis_com:issues_untriaged_testcase_count{monitored_resource=\"gce_instance\"}[2h])\n",
+                  "prometheusQuery": "sum by (status)(last_over_time((custom_googleapis_com:issues_untriaged_testcase_count{monitored_resource=\"gce_instance\"}[2h])))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -1581,7 +1605,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "Untriaged testcase count",
+          "title": "Untriaged testcase count (by status)",
           "id": ""
         }
       },
@@ -1591,27 +1615,35 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         "width": 16,
         "height": 16,
         "widget": {
-          "title": "uworker_main overall failure rate (by task) - CAN BE DRILLED BY JOB",
           "xyChart": {
-            "chartOptions": {
-              "mode": "COLOR"
-            },
             "dataSets": [
               {
-                "plotType": "LINE",
-                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"error\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
-                  "unitOverride": "%"
-                }
+                  "unitOverride": "%",
+                  "outputFullDuration": false
+                },
+                "plotType": "LINE",
+                "legendTemplate": "",
+                "targetAxis": "Y1",
+                "dimensions": [],
+                "measures": [],
+                "breakdowns": []
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
+            },
+            "chartOptions": {
+              "mode": "COLOR",
+              "showLegend": false,
+              "displayHorizontal": false
             }
-          }
+          },
+          "title": "uworker_main overall failure rate (by task) - CAN BE DRILLED BY JOB",
+          "id": ""
         }
       },
       {
@@ -1620,27 +1652,35 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         "width": 16,
         "height": 16,
         "widget": {
-          "title": "uworker_main overall retry rate (by task) - CAN BE DRILLED BY JOB",
           "xyChart": {
-            "chartOptions": {
-              "mode": "COLOR"
-            },
             "dataSets": [
               {
-                "plotType": "LINE",
-                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"maybe_retry\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
-                  "unitOverride": "%"
-                }
+                  "unitOverride": "%",
+                  "outputFullDuration": false
+                },
+                "plotType": "LINE",
+                "legendTemplate": "",
+                "targetAxis": "Y1",
+                "dimensions": [],
+                "measures": [],
+                "breakdowns": []
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
+            },
+            "chartOptions": {
+              "mode": "COLOR",
+              "showLegend": false,
+              "displayHorizontal": false
             }
-          }
+          },
+          "title": "uworker_main overall retry rate (by task) - CAN BE DRILLED BY JOB",
+          "id": ""
         }
       },
       {
@@ -1648,27 +1688,35 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         "width": 16,
         "height": 16,
         "widget": {
-          "title": "uworker_main overall success rate (by task) - CAN BE DRILLED BY JOB",
           "xyChart": {
-            "chartOptions": {
-              "mode": "COLOR"
-            },
             "dataSets": [
               {
-                "plotType": "LINE",
-                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"success\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
-                  "unitOverride": "%"
-                }
+                  "unitOverride": "%",
+                  "outputFullDuration": false
+                },
+                "plotType": "LINE",
+                "legendTemplate": "",
+                "targetAxis": "Y1",
+                "dimensions": [],
+                "measures": [],
+                "breakdowns": []
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
+            },
+            "chartOptions": {
+              "mode": "COLOR",
+              "showLegend": false,
+              "displayHorizontal": false
             }
-          }
+          },
+          "title": "uworker_main overall success rate (by task) - CAN BE DRILLED BY JOB",
+          "id": ""
         }
       }
     ]
