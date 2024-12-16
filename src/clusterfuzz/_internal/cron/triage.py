@@ -433,7 +433,6 @@ def main():
     # finished.
     if not critical_tasks_completed:
       _emit_untriaged_testcase_age_metric(testcase)
-      untriaged_testcases += 1
       _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type,
                                           PENDING_CRITICAL_TASKS)
@@ -454,7 +453,6 @@ def main():
     if not testcase.group_id and not dates.time_has_expired(
         testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
       _emit_untriaged_testcase_age_metric(testcase)
-      untriaged_testcases += 1
       _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
@@ -463,7 +461,6 @@ def main():
     if not testcase.get_metadata('ran_grouper'):
       # Testcase should be considered by the grouper first before filing.
       _emit_untriaged_testcase_age_metric(testcase)
-      untriaged_testcases += 1
       _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
@@ -495,7 +492,6 @@ def main():
 
     # A testcase is untriaged, until immediately before a bug is opened
     _emit_untriaged_testcase_age_metric(testcase)
-    untriaged_testcases += 1
     _set_testcase_stuck_state(testcase, False)
     _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
 

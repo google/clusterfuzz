@@ -47,9 +47,6 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
       'analyze_launched', 'analyze_completed', 'minimize_completed',
       'regression_completed', 'impact_completed', 'issue_updated'
   ]
-  elapsed_time_since_upload = datetime.datetime.utcnow()
-  elapsed_time_since_upload -= testcase_upload_metadata.timestamp
-  elapsed_time_since_upload = elapsed_time_since_upload.total_seconds() / 3600
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
@@ -74,12 +71,15 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
     logs.warning(f'No timestamp associated to testcase {testcase_id},'
                  ' failed to emit TESTCASE_UPLOAD_TRIAGE_DURATION metric.')
     return
+  
+  testcase_age_in_hours = testcase.get_age_in_seconds() / 3600
+
   logs.info('Emiting TESTCASE_UPLOAD_TRIAGE_DURATION metric for testcase '
-            f'{testcase_id} (age = {elapsed_time_since_upload}) '
+            f'{testcase_id} (age = {testcase_age_in_hours} hours.) '
             'in step {step}.')
 
   monitoring_metrics.TESTCASE_UPLOAD_TRIAGE_DURATION.add(
-      testcase.get_age_in_seconds(),
+      testcase_age_in_hours,
       labels={
           'job': testcase.job_type,
           'step': step,
