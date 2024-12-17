@@ -82,7 +82,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
 
   def test_create_bucket(self):
     """Test create_bucket."""
-    self.provider.create_bucket('test-bucket', None, None)
+    self.provider.create_bucket('test-bucket', None, None, None)
     self.assertTrue(os.path.isdir('/local/test-bucket'))
 
   def test_get_bucket(self):
@@ -281,7 +281,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
   def test_upload_signed_url(self):
     """Tests upload_signed_url."""
     contents = b'aa'
-    self.provider.create_bucket('test-bucket', None, None)
+    self.provider.create_bucket('test-bucket', None, None, None)
     self.provider.upload_signed_url(contents, 'gs://test-bucket/a')
     with open('/local/test-bucket/objects/a', 'rb') as fp:
       return self.assertEqual(fp.read(), contents)
