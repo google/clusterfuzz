@@ -276,7 +276,7 @@ class GcsProvider(StorageProvider):
       next_page_token = iterator.next_page_token
       if next_page_token is None:
         break
-      if iterations % 50 == 0:
+      if iterations and iterations % 50 == 0:
         logs.error('Might be infinite looping.')
 
   def copy_file_from(self, remote_path, local_path):
