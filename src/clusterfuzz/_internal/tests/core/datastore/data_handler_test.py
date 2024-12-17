@@ -23,7 +23,6 @@ from google.cloud import ndb
 import parameterized
 from pyfakefs import fake_filesystem_unittest
 
-from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -73,13 +72,26 @@ class DataHandlerTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
-    project_config_get = local_config.ProjectConfig.get
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.default_project_name',
         'clusterfuzz._internal.config.db_config.get',
-        ('project_config_get',
-         'clusterfuzz._internal.config.local_config.ProjectConfig.get'),
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
+        ('get_storage_provider',
+         'clusterfuzz._internal.google_cloud_utils.storage._provider'),
+        'clusterfuzz._internal.google_cloud_utils.storage.create_discovery_storage_client',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_bucket_iam_policy',
     ])
+
+    self.mock.default_project_name.return_value = 'project'
+
+    self.storage_provider = mock.Mock()
+    self.mock.get_storage_provider.return_value = self.storage_provider
+
+    self.project_config = {}
+    self.mock.ProjectConfig.return_value = self.project_config
+
+    # Disable artificial delay when creating buckets.
+    storage.CREATE_BUCKET_DELAY = 0
 
     self.job = data_types.Job(
         name='linux_asan_chrome',
@@ -175,8 +187,6 @@ class DataHandlerTest(unittest.TestCase):
 
     environment.set_value('FUZZ_DATA', '/tmp/inputs/fuzzer-common-data-bundles')
     environment.set_value('FUZZERS_DIR', '/tmp/inputs/fuzzers')
-    self.mock.default_project_name.return_value = 'project'
-    self.mock.project_config_get.side_effect = project_config_get
 
   def test_find_testcase(self):
     """Ensure that find_testcase behaves as expected."""
@@ -449,6 +459,26 @@ class DataHandlerTest(unittest.TestCase):
         summary, 'project: Bad-cast to blink::LayoutBlock from '
         'blink::LayoutTableSection')
 
+  def test_create_data_bundle_bucket_and_iams(self):
+    self.storage_provider.get_bucket.return_value = None
+    self.storage_provider.create_bucket.return_value = True
+
+    self.assertTrue(data_handler.create_data_bundle_bucket_and_iams('test', []))
+
+    self.storage_provider.create_bucket.assert_called_with(
+        'test-corpus.test-clusterfuzz.appspot.com', None, None, None)
+
+  def test_create_data_bundle_bucket_and_iams_with_location(self):
+    self.storage_provider.get_bucket.return_value = None
+    self.storage_provider.create_bucket.return_value = True
+
+    self.project_config['data_bundle_bucket_location'] = 'NORTH-POLE'
+
+    self.assertTrue(data_handler.create_data_bundle_bucket_and_iams('test', []))
+
+    self.storage_provider.create_bucket.assert_called_with(
+        'test-corpus.test-clusterfuzz.appspot.com', None, None, 'NORTH-POLE')
+
   def test_get_data_bundle_name_default(self):
     """Test getting the default data bundle bucket name."""
     self.assertEqual('test-corpus.test-clusterfuzz.appspot.com',
@@ -456,8 +486,7 @@ class DataHandlerTest(unittest.TestCase):
 
   def test_get_data_bundle_name_custom_suffix(self):
     """Test getting the data bundle bucket name with custom suffix."""
-    self.mock.project_config_get.side_effect = None
-    self.mock.project_config_get.return_value = 'custom.suffix.com'
+    self.project_config['bucket_domain_suffix'] = 'custom.suffix.com'
     self.assertEqual('test-corpus.custom.suffix.com',
                      data_handler.get_data_bundle_bucket_name('test'))
 
@@ -485,7 +514,7 @@ class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
     exceeds limit and an upload_url is provided."""
     blob_name = blobs.generate_new_blob_name()
     blobs_bucket = 'blobs_bucket'
-    storage._provider().create_bucket(blobs_bucket, None, None)  # pylint: disable=protected-access
+    storage._provider().create_bucket(blobs_bucket, None, None, None)  # pylint: disable=protected-access
 
     gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
     signed_upload_url = storage.get_signed_upload_url(gcs_path)
