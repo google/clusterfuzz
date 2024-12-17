@@ -751,8 +751,13 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
                    job_type, archived, archive_filename, http_flag, gestures,
                    redzone, disable_ubsan, window_argument, timeout_multiplier,
+<<<<<<< Updated upstream
                    minimized_arguments, trusted):
   """Create a testcase and store it in the datastore using remote api."""
+=======
+                   minimized_arguments):
+  """Create a testcase and store it in the datastore."""
+>>>>>>> Stashed changes
   # Initialize variable to prevent invalid values.
   if archived:
     archive_state = data_types.ArchiveStatus.FUZZED

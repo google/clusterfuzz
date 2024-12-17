@@ -137,6 +137,10 @@ def _get_task_spec(batch_workload_spec):
       f'-e CLUSTERFUZZ_RELEASE={clusterfuzz_release} '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
       '-e UWORKER_INPUT_DOWNLOAD_URL')
+
+  if batch_workload_spec.is_unprivileged:
+    runnable.container.options += ' -e UNTRUSTED_UWORKER=True'
+    
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]

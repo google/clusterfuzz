@@ -921,7 +921,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   comment = (f'Fuzzer {fully_qualified_fuzzer_name} generated testcase crashed '
              f'in {crash.crash_time} seconds '
              f'(r{uworker_output.fuzz_task_output.crash_revision})')
-  testcase_id = data_handler.store_testcase(
+  testcase_id = data_handler.nstore_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key or None,
       minimized_keys=get_fixed_or_minimized_key(group.one_time_crasher_flag),
@@ -943,10 +943,14 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       window_argument=group.context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
           group.context.timeout_multiplier, crash, group.context.test_timeout),
+<<<<<<< Updated upstream
       minimized_arguments=crash.arguments,
       # TODO(https://github.com/google/clusterfuzz/issues/4175): Before enabling
       # oss-fuzz-on-demand change this.
       trusted=True)
+=======
+      minimized_arguments=crash.arguments)
+>>>>>>> Stashed changes
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if group.context.fuzzer_metadata:
