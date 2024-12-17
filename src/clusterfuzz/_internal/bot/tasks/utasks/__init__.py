@@ -83,7 +83,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self.start_time_ns = time.time_ns()
     self._subtask = subtask
     self._labels = None
-    self.utask_main_failure = uworker_msg_pb2.ErrorType.NO_ERROR
+    self.utask_main_failure = None
     self._utask_success_conditions = [
         None, # This can be a successful return value in, ie, fuzz task
         uworker_msg_pb2.ErrorType.NO_ERROR,  # pylint: disable=no-member
