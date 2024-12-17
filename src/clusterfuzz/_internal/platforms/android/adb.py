@@ -697,6 +697,9 @@ def run_command(cmd, log_output=False, timeout=None, recover=True):
     wait_until_fully_booted()
     output = execute_command(get_adb_command_line(cmd), timeout)
 
+  if log_output:
+    logs.info('Output: (%s)' % output)
+
   return output
 
 
