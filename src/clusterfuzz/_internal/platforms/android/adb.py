@@ -61,6 +61,7 @@ LSUSB_SERIAL_RE = re.compile(r'\s+iSerial\s+\d\s+(.*)')
 USBDEVFS_RESET = ord('U') << 8 | 20
 
 RAMOOPS_READER_GCS_PATH = 'gs://haiku-storage/trusty/ramoops_reader.py'
+TRUSTY_FASTBOOT_PATH = '/usr/bin/fastboot'
 
 
 def bad_state_reached():
@@ -242,6 +243,9 @@ def get_fastboot_command_line(fastboot_cmd):
 
 def get_fastboot_path():
   """Return path to fastboot binary."""
+  if environment.is_android_emulator():
+    return TRUSTY_FASTBOOT_PATH
+
   return os.path.join(environment.get_platform_resources_directory(),
                       'fastboot')
 
