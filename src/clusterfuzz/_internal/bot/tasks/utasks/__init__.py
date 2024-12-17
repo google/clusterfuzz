@@ -95,7 +95,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
     ]
-  
+
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
     else:
