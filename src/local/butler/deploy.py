@@ -521,6 +521,8 @@ def execute(args):
     print('gsutil not found in PATH.')
     sys.exit(1)
 
+  _enforce_safe_day_to_deploy()
+
   # Build templates before deployment.
   appengine.build_templates()
 
