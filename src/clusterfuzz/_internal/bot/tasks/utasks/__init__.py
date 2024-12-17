@@ -85,7 +85,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self._labels = None
     self.utask_main_failure = None
     self._utask_success_conditions = [
-        None, # This can be a successful return value in, ie, fuzz task
+        None,  # This can be a successful return value in, ie, fuzz task
         uworker_msg_pb2.ErrorType.NO_ERROR,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,  # pylint: disable=no-member
