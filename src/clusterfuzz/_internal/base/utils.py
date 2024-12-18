@@ -599,21 +599,10 @@ def random_number(start, end):
   return random.SystemRandom().randint(start, end)
 
 
-# pylint: disable=inconsistent-return-statements
 def random_weighted_choice(element_list, weight_attribute='weight'):
   """Returns a random element from list taking its weight into account."""
-  total = sum(getattr(e, weight_attribute) for e in element_list)
-  random_pick = random.SystemRandom().uniform(0, total)
-  temp = 0
-  for element in element_list:
-    element_weight = getattr(element, weight_attribute)
-    if element_weight == 0:
-      continue
-    if temp + element_weight >= random_pick:
-      return element
-    temp += element_weight
-
-  assert False, 'Failed to make a random weighted choice.'
+  weights = [getattr(element, weight_attribute) for element in element_list]
+  return random.SystemRandom().choices(element_list, weights, k=1)[0]
 
 
 def read_data_from_file(file_path, eval_data=True, default=None):
