@@ -316,6 +316,8 @@ def get_hard_timeout(total_timeout=None):
   """Get the hard timeout for fuzzing."""
   if total_timeout is None:
     total_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+    if total_timeout is not None:
+      total_timeout = float(total_timeout)
 
   return get_overridable_timeout(total_timeout, 'HARD_TIMEOUT_OVERRIDE')
 
