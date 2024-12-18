@@ -120,7 +120,7 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   logs.info('Batching utask_mains.')
   for spec, input_urls in job_specs.items():
     for input_urls_portion in utils.batched(input_urls,
-                                            MAX_CONCURRENT_VMS_PER_JOB):
+                                            MAX_CONCURRENT_VMS_PER_JOB - 1):
       jobs.append(_create_job(spec, input_urls_portion))
 
   return jobs
@@ -210,7 +210,6 @@ def _create_job(spec, input_urls):
   job = batch.Job()
   job.task_groups = [task_group]
   job.allocation_policy = _get_allocation_policy(spec)
-  job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
   job.logs_policy.destination = batch.LogsPolicy.Destination.CLOUD_LOGGING
   job.priority = spec.priority
