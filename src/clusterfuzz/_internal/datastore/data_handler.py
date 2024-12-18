@@ -1671,7 +1671,7 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   jobs = get_or_create_multi_entities_from_keys(job_mapping)
 
   for job in jobs:
-    # TODO(metzman): Decide if we want to handle unused fuzzers differentlyo.
+    # TODO(metzman): Decide if we want to handle unused fuzzers differently.
     job.last_run = utils.utcnow()
 
   ndb_utils.put_multi(jobs)
