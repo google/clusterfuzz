@@ -138,9 +138,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       assert self._preprocess_start_time_ns is not None
 
   def _infer_uworker_main_outcome(self, exc_type, uworker_error):
-    '''Infers, on a best effort basis, whether an uworker output implies
-      success or failure. If an unequivocal response is not possible,
-      classifies as maybe_retry.'''
+    """Classifies the uworker output as success or error."""
     if exc_type or uworker_error not in self._utask_success_conditions:
       outcome = 'error'
     else:
