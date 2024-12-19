@@ -14,13 +14,16 @@
 """Cron job to schedule fuzz tasks that run on batch."""
 
 import collections
+import multiprocessing
 import random
 import time
 from typing import Dict
 from typing import List
 
+from google.cloud import monitoring_v3
 from googleapiclient import discovery
 
+from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -34,26 +37,43 @@ from clusterfuzz._internal.metrics import logs
 CPUS_PER_FUZZ_JOB = 2
 
 
-def _get_quotas(project, region):
-  gcp_credentials = credentials.get_default()[0]
-  compute = discovery.build('compute', 'v1', credentials=gcp_credentials)
+def _get_quotas(creds, project, region):
+  compute = discovery.build('compute', 'v1', credentials=creds)
   return compute.regions().get(  # pylint: disable=no-member
       region=region, project=project).execute()['quotas']
 
 
-def count_unacked(project: str, topic: str):
-  creds, _ = credentials.get_default()
-  subscription_path = f'projects/{project}/subscriptions/{topic}'
-  client = discovery.build('pubsub', 'v1', credentials=creds)
-  sub = client.projects().subscriptions().get(  # pylint: disable=no-member
-      subscription=subscription_path).execute()
+def count_unacked(creds, project_id, subscription_id):
+  """Counts the unacked messages in |subscription_id|."""
   # TODO(metzman): Not all of these are fuzz_tasks. Deal with that.
-  return float(sub.get('numUnackedMessages', 0))
+  metric = 'pubsub.googleapis.com/subscription/num_undelivered_messages'
+  query_filter = (f'metric.type="{metric}" AND '
+                  f'resource.labels.subscription_id="{subscription_id}"')
+  time_now = time.time()
+  # Get the last 5 minutes.
+  time_interval = monitoring_v3.TimeInterval(
+      end_time={'seconds': int(time_now)},
+      start_time={'seconds': int(time_now - 5 * 60)},
+  )
+  client = monitoring_v3.MetricServiceClient(credentials=creds)
+  results = client.list_time_series(
+      request={
+          'filter': query_filter,
+          'interval': time_interval,
+          'name': f'projects/{project_id}',
+          # "view": monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+      })
+  # Get the latest point.
+  for result in results:
+    if len(result.points) == 0:
+      continue
+    return int(result.points[0].value.int64_value)
 
 
-def get_available_cpus_for_region(project: str, region: str) -> int:
+def get_available_cpus_for_region(creds, project: str, region: str) -> int:
   """Returns the number of available CPUs in the current GCE region."""
-  quotas = _get_quotas(project, region)
+
+  quotas = _get_quotas(creds, project, region)
 
   # Sometimes, the preemptible quota is 0, which means the number of preemptible
   # CPUs is actually limited by the CPU quota.
@@ -81,8 +101,11 @@ def get_available_cpus_for_region(project: str, region: str) -> int:
   assert quota['limit'], quota
 
   # TODO(metzman): Do this in a more configurable way.
-  limit = min(quota['limit'], 100_000)
-  return limit - quota['usage']
+  # We need this because us-central1 and us-east4 have different numbers of
+  # cores alloted to us in their quota. Treat them the same to simplify things.
+  limit = quota['limit']
+  limit -= quota['usage']
+  return min(limit, 100_000)
 
 
 class BaseFuzzTaskScheduler:
@@ -198,37 +221,63 @@ def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
 
 
 def get_batch_regions(batch_config):
-  mapping = batch_config.get('mapping')
-  return list(set(config['gce_region'] for config in mapping.values()))
+  fuzz_subconf_names = {
+      subconf['name'] for subconf in batch_config.get(
+          'mapping.LINUX-PREEMPTIBLE-UNPRIVILEGED.subconfigs')
+  }
+
+  subconfs = batch_config.get('subconfigs')
+  return list(
+      set(subconfs[subconf]['region']
+          for subconf in subconfs
+          if subconf in fuzz_subconf_names))
 
 
 def get_available_cpus(project: str, regions: List[str]) -> int:
   """Returns the available CPUs for fuzz tasks."""
   # TODO(metzman): This doesn't distinguish between fuzz and non-fuzz
   # tasks (nor preemptible and non-preemptible CPUs). Fix this.
-  waiting_tasks = sum(
-      batch.count_queued_or_scheduled_tasks(project, region)
-      for region in regions)
-  waiting_tasks += count_unacked(project, 'preprocess')
-  waiting_tasks += count_unacked(project, 'utasks_main')
+  # Get total scheduled and queued.
+  creds = credentials.get_default()[0]
+  count_args = ((project, region) for region in regions)
+  with concurrency.make_pool() as pool:
+    # These calls are extremely slow.
+    result = pool.starmap_async(batch.count_queued_or_scheduled_tasks,
+                                count_args)
+    waiting_tasks = count_unacked(creds, project, 'preprocess')
+    waiting_tasks += count_unacked(creds, project, 'utask_main')
+    region_counts = zip(*result.get())  #  Group all queued and all scheduled.
+
+  # Add up all queued and scheduled.
+  region_counts = [sum(tup) for tup in region_counts]
+  logs.info(f'Region counts: {region_counts}')
+  if region_counts[0] > 1000:
+    # Check queued tasks.
+    logs.info('Too many jobs queued, not scheduling more fuzzing.')
+    return 0
+  waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
   soon_commited_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
   logs.info(f'Soon committed CPUs: {soon_commited_cpus}')
   available_cpus = sum(
-      get_available_cpus_for_region(project, region) for region in regions)
+      get_available_cpus_for_region(creds, project, region)
+      for region in regions)
+  logs.info('Actually free CPUs (before subtracting soon '
+            f'occupied): {available_cpus}')
   available_cpus = max(available_cpus - soon_commited_cpus, 0)
 
-  # Don't schedule more than 7.5K tasks at once. So we don't overload
+  # Don't schedule more than 5K tasks at once. So we don't overload
   # batch.
-  available_cpus = min(available_cpus, 15_000 * len(regions))
+  available_cpus = min(available_cpus, 10_000 * len(regions))
   return available_cpus
 
 
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
+  multiprocessing.set_start_method('spawn')
   start = time.time()
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
-  regions = set(get_batch_regions(batch_config))
+  regions = get_batch_regions(batch_config)
   available_cpus = get_available_cpus(project, regions)
   logs.error(f'{available_cpus} available CPUs.')
   if not available_cpus:
