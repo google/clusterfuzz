@@ -59,13 +59,15 @@ def get_available_cpus(project: str, region: str) -> int:
   assert preemptible_quota or cpu_quota
 
   if not preemptible_quota['limit']:
-    # Preemptible quota is not set. Obey the CPU quota since that limitss us.
+    # Preemptible quota is not set. Obey the CPU quota since that limits us.
     quota = cpu_quota
   else:
     quota = preemptible_quota
   assert quota['limit'], quota
 
-  return quota['limit'] - quota['usage']
+  # TODO(metzman): Do this in a more configurable way.
+  limit = min(quota['limit'], 100_000)
+  return limit - quota['usage']
 
 
 class BaseFuzzTaskScheduler:
@@ -188,10 +190,7 @@ def schedule_fuzz_tasks() -> bool:
 
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
-  # TODO(metzman): Put the CPU-based scheduling in tworkers.
   available_cpus = get_available_cpus(project, 'us-east4')
-  # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = min(available_cpus, 4000)
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
