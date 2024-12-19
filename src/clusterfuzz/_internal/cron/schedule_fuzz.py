@@ -194,7 +194,7 @@ def schedule_fuzz_tasks() -> bool:
   project = batch_config.get('project')
   available_cpus = sum(
       get_available_cpus_for_region(project, region) for region in regions)
-  available_cpus = min(available_cpus, 3500 * len(reginos))
+  available_cpus = min(available_cpus, 3500 * len(regions))
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
