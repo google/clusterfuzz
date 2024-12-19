@@ -17,6 +17,7 @@ import collections
 import random
 import time
 from typing import Dict
+from typing import List
 
 from googleapiclient import discovery
 
@@ -25,8 +26,12 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
+
+# TODO(metzman): Actually implement this.
+CPUS_PER_FUZZ_JOB = 2
 
 
 def _get_quotas(project, region):
@@ -34,6 +39,16 @@ def _get_quotas(project, region):
   compute = discovery.build('compute', 'v1', credentials=gcp_credentials)
   return compute.regions().get(  # pylint: disable=no-member
       region=region, project=project).execute()['quotas']
+
+
+def count_unacked(project: str, topic: str):
+  creds, _ = credentials.get_default()
+  subscription_path = f'projects/{project}/subscriptions/{topic}'
+  client = discovery.build('pubsub', 'v1', credentials=creds)
+  sub = client.projects().subscriptions().get(  # pylint: disable=no-member
+      subscription=subscription_path).execute()
+  # TODO(metzman): Not all of these are fuzz_tasks. Deal with that.
+  return float(sub.get('numUnackedMessages', 0))
 
 
 def get_available_cpus_for_region(project: str, region: str) -> int:
@@ -81,8 +96,7 @@ class BaseFuzzTaskScheduler:
 
   def _get_cpus_per_fuzz_job(self, job_name):
     del job_name
-    # TODO(metzman): Actually implement this.
-    return 2
+    return CPUS_PER_FUZZ_JOB
 
 
 class FuzzTaskCandidate:
@@ -188,16 +202,38 @@ def get_batch_regions(batch_config):
   return list(set(config['gce_region'] for config in mapping.values()))
 
 
+def get_available_cpus(project: str, regions: List[str]) -> int:
+  """Returns the available CPUs for fuzz tasks."""
+  # TODO(metzman): This doesn't distinguish between fuzz and non-fuzz
+  # tasks (nor preemptible and non-preemptible CPUs). Fix this.
+  waiting_tasks = sum(
+      batch.count_queued_or_scheduled_tasks(project, region)
+      for region in regions)
+  waiting_tasks += count_unacked(project, 'preprocess')
+  waiting_tasks += count_unacked(project, 'utasks_main')
+  soon_commited_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
+  logs.info(f'Soon committed CPUs: {soon_commited_cpus}')
+  available_cpus = sum(
+      get_available_cpus_for_region(project, region) for region in regions)
+  available_cpus = max(available_cpus - soon_commited_cpus, 0)
+
+  # Don't schedule more than 7.5K tasks at once. So we don't overload
+  # batch.
+  available_cpus = min(available_cpus, 15_000 * len(regions))
+  return available_cpus
+
+
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   start = time.time()
   batch_config = local_config.BatchConfig()
-  regions = set(get_batch_regions(batch_config))
   project = batch_config.get('project')
-  available_cpus = sum(
-      get_available_cpus_for_region(project, region) for region in regions)
-  # Don't schedule more than 5K tasks at once.
-  available_cpus = min(available_cpus, 10_000 * len(regions))
+  regions = set(get_batch_regions(batch_config))
+  available_cpus = get_available_cpus(project, regions)
+  logs.error(f'{available_cpus} available CPUs.')
+  if not available_cpus:
+    return False
+
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
