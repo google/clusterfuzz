@@ -66,10 +66,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
 
 def _create_batch_client_new():
   """Creates a batch client."""
-  creds, project = credentials.get_default()
-  if not project:
-    project = utils.get_application_id()
-
+  creds, _ = credentials.get_default()
   return batch.BatchServiceClient(credentials=creds)
 
 
@@ -299,6 +296,14 @@ def _get_subconfig(batch_config, instance_spec):
   ]
   weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
   return all_subconfigs[weighted_subconfig.name]
+
+
+def count_queued_or_scheduled_tasks(project, region):
+  region = f'projects/{project}/locations/{region}'
+  jobs_filter = 'status.state=SCHEDULED OR status.state=QUEUED'
+  req = batch.types.ListJobsRequest(parent=region, filter=jobs_filter)
+  return sum(job.task_groups[0].task_count
+             for job in _batch_client().list_jobs(request=req))
 
 
 def _get_specs_from_config(batch_tasks) -> Dict:
