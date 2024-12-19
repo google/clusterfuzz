@@ -36,7 +36,7 @@ def _get_quotas(project, region):
       region=region, project=project).execute()['quotas']
 
 
-def get_available_cpus(project: str, region: str) -> int:
+def get_available_cpus_for_region(project: str, region: str) -> int:
   """Returns the number of available CPUs in the current GCE region."""
   quotas = _get_quotas(project, region)
 
@@ -181,17 +181,20 @@ def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
   return fuzz_tasks
 
 
+def get_batch_regions(batch_config):
+  mapping = batch_config.get('mapping')
+  return list(set(config['gce_region'] for config in mapping.values()))
+
+
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
-  # TODO(metzman): Remove this when we are ready to run on Chrome.
   start = time.time()
-
   batch_config = local_config.BatchConfig()
+  regions = set(get_batch_regions(batch_config))
   project = batch_config.get('project')
-  # TODO(metzman): Put the CPU-based scheduling in tworkers.
-  available_cpus = get_available_cpus(project, 'us-east4')
-  # TODO(metzman): Remove this as we move from experimental code to production.
-  available_cpus = min(available_cpus, 2750)
+  available_cpus = sum(
+      get_available_cpus_for_region(project, region) for region in regions)
+  available_cpus = min(available_cpus, 3500 * len(regions))
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
