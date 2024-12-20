@@ -91,7 +91,6 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE,  # pylint: disable=no-member
-        uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
