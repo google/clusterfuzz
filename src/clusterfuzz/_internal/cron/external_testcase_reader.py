@@ -13,6 +13,7 @@
 # limitations under the License.
 """Automated ingestion of testcases via IssueTracker."""
 
+import datetime
 import re
 
 import requests
@@ -26,54 +27,73 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import \
 ACCEPTED_FILETYPES = [
     'text/javascript', 'application/pdf', 'text/html', 'application/zip'
 ]
+ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
+ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
 
 
-def close_invalid_issue(upload_request, attachment_info, description):
+def close_issue_if_invalid(upload_request, attachment_info, description):
   """Closes any invalid upload requests with a helpful message."""
-  comment_messsage = (
+  comment_message = (
       'Hello, this issue is automatically closed. Please file a new bug after'
-      'fixing the following issues:\n\n')
+      ' fixing the following issues:\n\n')
   invalid = False
 
-  # TODO(pgrace) remove after testing.
-  if upload_request.id == '373893311':
+  # TODO(pgrace) Remove after testing.
+  if upload_request.id == 373893311:
     return False
 
-  # TODO(pgrace) add secondary check for authorized reporters.
+  # TODO(pgrace) Add secondary check for authorized reporters.
 
   # Issue must have exactly one attachment.
   if len(attachment_info) != 1:
-    comment_messsage += 'Please provide exactly one attachment.\n'
+    comment_message += 'Please provide exactly one attachment.\n'
     invalid = True
   else:
     # Issue must use one of the supported testcase file types.
     if attachment_info[0]['contentType'] not in ACCEPTED_FILETYPES:
-      comment_messsage += (
+      comment_message += (
           'Please provide an attachment of type: html, js, pdf, or zip.\n')
       invalid = True
-    if not attachment_info[0]['attachmentDataRef'] or \
-      not attachment_info[0]['attachmentDataRef']['resourceName'] \
-        or not attachment_info[0]['filename']:
-      comment_messsage += \
+    if (not attachment_info[0]['attachmentDataRef'] or
+        not attachment_info[0]['attachmentDataRef']['resourceName'] or
+        not attachment_info[0]['filename']):
+      comment_message += \
         'Please check that the attachment uploaded successfully.\n'
       invalid = True
 
   # Issue must have valid flags as the description.
   flag_format = re.compile(r'^([ ]?\-\-[A-Za-z\-\_]*){50}$')
   if flag_format.match(description):
-    comment_messsage += (
+    comment_message += (
         'Please provide flags in the format: "--test_flag_one --testflagtwo",\n'
     )
     invalid = True
 
   if invalid:
-    comment_messsage += (
+    comment_message += (
         '\nPlease see the new bug template for more information on how to use'
         'Clusterfuzz direct uploads.')
-    upload_request.status = 'not_reproducible'
-    upload_request.save(new_comment=comment_messsage, notify=True)
+    upload_request.status = ISSUETRACKER_WONTFIX_STATE
+    upload_request.save(new_comment=comment_message, notify=True)
 
   return invalid
+
+
+def close_issue_if_not_reproducible(issue):
+  if issue.status == ISSUETRACKER_ACCEPTED_STATE and filed_one_day_ago(
+      issue.created_time):
+    comment_message = ('Clusterfuzz failed to reproduce - '
+                       'please check testcase details for more info.')
+    issue.status = ISSUETRACKER_WONTFIX_STATE
+    issue.save(new_comment=comment_message, notify=True)
+    return True
+  return False
+
+
+def filed_one_day_ago(issue_created_time_string):
+  created_time = datetime.datetime.strptime(issue_created_time_string,
+                                            '%Y-%m-%dT%H:%M:%S.%fZ')
+  return datetime.datetime.now() - created_time > datetime.timedelta(days=1)
 
 
 def submit_testcase(issue_id, file, filename, filetype, cmds):
@@ -102,7 +122,7 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
       'platform': 'Linux',
       'csrf_token': form.generate_csrf_token(),
       'upload_key': upload_info['key'],
-      # TODO(pgrace) replace with upload_info['bucket'] once testing complete.
+      # TODO(pgrace) Replace with upload_info['bucket'] once testing complete.
       'bucket': 'clusterfuzz-test-bucket',
       'key': upload_info['key'],
       'GoogleAccessId': upload_info['google_access_id'],
@@ -111,32 +131,45 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
   }
 
   return requests.post(
-      "https://clusterfuzz.com/upload-testcase/upload", data=data, timeout=10)
+      'https://clusterfuzz.com/upload-testcase/upload', data=data, timeout=10)
 
 
 def handle_testcases(tracker):
   """Fetches and submits testcases from bugs or closes unnecssary bugs."""
-  # TODO(pgrace) replace once testing complete with
-  # tracker.get_issues(["componentid:1600865"], is_open=True).
-  issues = [tracker.get_issue(373893311)]
+  # TODO(pgrace) remove ID filter once done testing.
+  issues = tracker.find_issues_with_filters(
+      keywords=[],
+      query_filters=['componentid:1600865', 'id:373893311'],
+      only_open=True)
 
-  # TODO(pgrace) implement rudimentary rate limiting
+  # TODO(pgrace) Implement rudimentary rate limiting.
 
   for issue in issues:
-    # TODO(pgrace) close out older bugs that may have failed to reproduce
+    # Close out older bugs that may have failed to reproduce.
+    if close_issue_if_not_reproducible(issue):
+      helpers.log('Closing issue {issue_id} as it failed to reproduce',
+                  issue.id)
+      continue
 
+    # Close out invalid bugs.
     attachment_metadata = tracker.get_attachment_metadata(issue.id)
     commandline_flags = tracker.get_description(issue.id)
-    if close_invalid_issue(issue, attachment_metadata, commandline_flags):
-      helpers.log("Closing issue {issue_id} as it is invalid", issue.id)
+    if close_issue_if_invalid(issue, attachment_metadata, commandline_flags):
+      helpers.log('Closing issue {issue_id} as it is invalid', issue.id)
       continue
+
+    # Submit valid testcases.
     # TODO(pgrace) replace with 0 once testing is complete
     attachment_metadata = attachment_metadata[6]
     attachment = tracker.get_attachment(
         attachment_metadata['attachmentDataRef']['resourceName'])
     submit_testcase(issue.id, attachment, attachment_metadata['filename'],
                     attachment_metadata['contentType'], commandline_flags)
-    helpers.log("Submitted testcase file for issue {issue_id}", issue.id)
+    comment_message = 'Testcase submitted to clusterfuzz'
+    issue.status = ISSUETRACKER_ACCEPTED_STATE
+    issue.assignee = 'clusterfuzz@chromium.org'
+    issue.save(new_comment=comment_message, notify=True)
+    helpers.log('Submitted testcase file for issue {issue_id}', issue.id)
 
 
 def main():
