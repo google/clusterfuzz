@@ -61,13 +61,15 @@ def count_unacked(creds, project_id, subscription_id):
           'filter': query_filter,
           'interval': time_interval,
           'name': f'projects/{project_id}',
-          # "view": monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+          'view': monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
       })
   # Get the latest point.
   for result in results:
     if len(result.points) == 0:
       continue
-    return int(result.points[0].value.int64_value)
+    result = int(result.points[0].value.int64_value)
+    logs.info(f'Unacked in {subscription_id}: {result}')
+    return result
 
 
 def get_available_cpus_for_region(creds, project: str, region: str) -> int:
@@ -265,9 +267,9 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
             f'occupied): {available_cpus}')
   available_cpus = max(available_cpus - soon_commited_cpus, 0)
 
-  # Don't schedule more than 5K tasks at once. So we don't overload
-  # batch.
-  available_cpus = min(available_cpus, 10_000 * len(regions))
+  # Don't schedule more than 10K tasks at once. So we don't overload batch.
+  print('len_regions', len(regions))
+  available_cpus = min(available_cpus, 20_000 * len(regions))
   return available_cpus
 
 
