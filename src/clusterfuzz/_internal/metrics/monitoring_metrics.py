@@ -263,7 +263,7 @@ TASK_OUTCOME_COUNT = monitor.CounterMetric(
         monitor.StringField('subtask'),
         monitor.StringField('mode'),
         monitor.StringField('platform'),
-        monitor.StringField('outcome'),
+        monitor.BooleanField('task_succeeded'),
     ])
 
 TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
@@ -274,7 +274,7 @@ TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
         monitor.StringField('subtask'),
         monitor.StringField('mode'),
         monitor.StringField('platform'),
-        monitor.StringField('outcome'),
+        monitor.BooleanField('task_succeeded'),
         monitor.StringField('error_condition'),
     ])
 
