@@ -695,9 +695,11 @@ def get_engine_for_job(job_name=None):
 def is_minimization_supported():
   """Return True if the current job supports minimization.
 
-  Currently blackbox-fuzzer jobs or libfuzzer support minimization.
+  Currently blackbox-fuzzer jobs or libfuzzer support minimization, unless
+  skipped using the SKIP_MINIMIZATION environment variable.
   """
-  return not is_engine_fuzzer_job() or is_libfuzzer_job()
+  skipped = get_value('SKIP_MINIMIZATION', False)
+  return not skipped and (not is_engine_fuzzer_job() or is_libfuzzer_job())
 
 
 def is_posix():
