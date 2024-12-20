@@ -242,6 +242,10 @@ def get_fastboot_command_line(fastboot_cmd):
 
 def get_fastboot_path():
   """Return path to fastboot binary."""
+  fastboot_path = environment.get_value('FASTBOOT')
+  if fastboot_path:
+    return fastboot_path
+
   return os.path.join(environment.get_platform_resources_directory(),
                       'fastboot')
 
