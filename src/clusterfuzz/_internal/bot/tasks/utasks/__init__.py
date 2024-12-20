@@ -137,13 +137,11 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
-  def _infer_uworker_main_outcome(self, exc_type, uworker_error):
-    """Classifies the uworker output as success or error."""
+  def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
+    """Returns True if task succeeded, False otherwise."""
     if exc_type or uworker_error not in self._utask_success_conditions:
-      outcome = 'error'
-    else:
-      outcome = 'success'
-    return outcome
+      return False
+    return True
 
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
@@ -165,12 +163,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
     # failure.
-    outcome = self._infer_uworker_main_outcome(_exc_type,
-                                               self.utask_main_failure)
+    task_succeeded = self._infer_uworker_main_outcome(_exc_type,
+                                                      self.utask_main_failure)
     monitoring_metrics.TASK_OUTCOME_COUNT.increment({
-        **self._labels, 'outcome': outcome
+        **self._labels, 'task_succeeded': task_succeeded
     })
-    if outcome == "success":
+    if task_succeeded:
       error_condition = 'N/A'
     elif _exc_type:
       error_condition = 'UNHANDLED_EXCEPTION'
@@ -182,7 +180,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # labels limit recommended by gcp.
     trimmed_labels = self._labels
     del trimmed_labels['job']
-    trimmed_labels['outcome'] = outcome
+    trimmed_labels['task_succeeded'] = task_succeeded
     trimmed_labels['error_condition'] = error_condition
     monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
         trimmed_labels)
