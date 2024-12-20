@@ -39,8 +39,8 @@ from src.clusterfuzz._internal.datastore import ndb_init
 
 def _iter_weights(
     fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> Sequence[float]:
-  for fj in fuzzer_jobs:
-    yield fj.actual_weight
+  for fuzzer_job in fuzzer_jobs:
+    yield fuzzer_job.actual_weight
 
 
 def _sum_weights(fuzzer_jobs: Sequence[data_types.FuzzerJob]) -> float:
@@ -123,7 +123,8 @@ def _display_fuzzer_jobs(fuzzer_jobs: Sequence[data_types.FuzzerJob],
   printer = _print_with_prefix(prefix)
 
   fuzzer_jobs = list(fuzzer_jobs)
-  fuzzer_jobs.sort(key=lambda fj: fj.actual_weight, reverse=True)
+  fuzzer_jobs.sort(
+      key=lambda fuzzer_job: fuzzer_job.actual_weight, reverse=True)
 
   total_weight = _sum_weights(fuzzer_jobs)
 
@@ -316,6 +317,45 @@ def _aggregate_fuzzer_jobs(
   _print_stats(others, total_weight)
 
 
+def _set_fuzzer_job_weight(
+    fuzzer: str,
+    job: str,
+    weight: float,
+) -> None:
+  """Sets the matching FuzzerJob's weight to the given value."""
+  fuzzer_jobs = list(
+      data_types.FuzzerJob.query(data_types.FuzzerJob.fuzzer == fuzzer,
+                                 data_types.FuzzerJob.job == job))
+
+  if not fuzzer_jobs:
+    print('No matching FuzzerJob entries found for ' +
+          f'fuzzer {fuzzer} and job {job}')
+    return
+
+  if len(fuzzer_jobs) > 1:
+    print('Bailing out! Multiple FuzzerJob entries found for ' +
+          f'fuzzer {fuzzer} and job {job}: {fuzzer_jobs}')
+    return
+
+  fuzzer_job = fuzzer_jobs[0]
+
+  print(f'Fuzzer: {fuzzer_job.fuzzer}')
+  print(f'Job: {fuzzer_job.job}')
+  print(f'Platform: {fuzzer_job.platform}')
+  print(f'Multiplier: {fuzzer_job.multiplier}')
+  print(f'Old weight: {fuzzer_job.weight}')
+  print(f'-> New weight: {weight}')
+
+  answer = input('Do you want to apply this mutation? [y,n] ')
+  if answer.lower() != 'y':
+    print('Not applying mutation.')
+    return
+
+  fuzzer_job.weight = weight
+  fuzzer_job.put()
+  print('Mutation applied.')
+
+
 def _set_fuzz_target_job_weight(
     fuzz_target_name: str,
     job: str,
@@ -362,6 +402,8 @@ def _execute_fuzzer_command(args) -> None:
       raise TypeError(f'--format {repr(args.format)} unrecognized')
   elif cmd == 'aggregate':
     _aggregate_fuzzer_jobs(args.platform, fuzzers=args.fuzzers, jobs=args.jobs)
+  elif cmd == 'set':
+    _set_fuzzer_job_weight(args.fuzzer, args.job, args.weight)
   else:
     raise TypeError(f'weights fuzzer command {repr(cmd)} unrecognized')
 

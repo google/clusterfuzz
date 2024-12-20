@@ -132,6 +132,25 @@ def _add_weights_fuzzer_subparser(weights_subparsers):
   aggregate_parser.add_argument(
       '-j', '--jobs', help='Which jobs to aggregate.', nargs='+')
 
+  set_parser = subparsers.add_parser(
+      'set', help='Set the weight of a FuzzerJob entry.')
+  set_parser.add_argument(
+      '-f',
+      '--fuzzer',
+      help='The fuzzer field of the entry to modify.',
+      required=True)
+  set_parser.add_argument(
+      '-j',
+      '--job',
+      help='The job field of the entry to modify.',
+      required=True)
+  set_parser.add_argument(
+      '-w',
+      '--weight',
+      help='The new weight to set.',
+      type=float,
+      required=True)
+
 
 def _add_weights_batches_subparser(weights_subparsers):
   """Adds a parser for the `weights fuzzer-batch` command."""
