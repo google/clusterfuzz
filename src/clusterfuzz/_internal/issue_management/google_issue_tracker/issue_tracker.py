@@ -17,6 +17,8 @@
 
 import datetime
 import enum
+import functools
+import re
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -65,6 +67,24 @@ def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
     logs.warning('Trying to set issue access level to incorrect value:'
                  f'LIMIT_{limit_view_label}. Ignoring.')
     return None
+
+
+def retry_on_invalid_gaia_accounts(func):
+  """Decorator to retry saving an issue, skipping CCs
+    without a GAIA account."""
+
+  @functools.wraps(func)
+  def wrapper(self, *args, **kwargs):
+    try:
+      return func(self, *args, **kwargs)
+    except Exception as e:
+      # Try to handle the case where a 400 buganizer response is
+      # received due to a non gaia email.
+      email_regex = r'[\w\.\-\+]+@[\w\.-]+'
+      emails_to_skip = re.findall(email_regex, str(e))
+      return func(self, *args, **kwargs, skip_emails=emails_to_skip)
+
+  return wrapper
 
 
 class IssueTrackerError(Exception):
@@ -718,8 +738,10 @@ class Issue(issue_tracker.Issue):
                                       issueId=str(self.id)))
     return result
 
-  def save(self, new_comment=None, notify=True):
+  @retry_on_invalid_gaia_accounts
+  def save(self, new_comment=None, notify=True, skip_emails=[]):  # pylint: disable=dangerous-default-value
     """Saves the issue."""
+    logs.info(f'Skipping supposed non gaia emails emails: {skip_emails}.')
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-')
@@ -793,7 +815,9 @@ class Issue(issue_tracker.Issue):
 
       if self.component_id:
         self._data['issueState']['componentId'] = int(self.component_id)
-      ccs = list(self._ccs)
+      # TODO(vitorguidi): delete this hack once we have a solution for GAIA.
+      # Skip CCd users w/o a GAIA account
+      ccs = list(set(self._ccs) - set(skip_emails))
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
       collaborators = list(self._collaborators)
@@ -822,6 +846,10 @@ class Issue(issue_tracker.Issue):
       self._is_new = False
     else:
       logs.info('google_issue_tracker: Updating issue..')
+      # TODO(vitorguidi): remove this once we have a fix for GAIA.
+      # Remove all CCd users w/o GAIA accounts
+      for email in skip_emails:
+        self.ccs.remove(email)
       result = self._update_issue(new_comment=new_comment, notify=notify)
     self._reset_tracking()
     self._data = result
