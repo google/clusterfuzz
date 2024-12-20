@@ -273,6 +273,8 @@ def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
 
   create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
 
+  create_fuzzilli_tests_directory(tests_directory)
+
   # Upload tests archive to google cloud storage.
   logs.info('Uploading tests archive to cloud.')
   tests_archive_local = os.path.join(tests_directory, tests_archive_name)
