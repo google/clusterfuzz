@@ -373,14 +373,14 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
         'The last 3 builds for proj2 have been failing.\n'
-        '<b>Build log:</b> '
+        'Build log: '
         'https://oss-fuzz-build-logs.storage.googleapis.com/'
         'log-proj2-id-f.txt\n'
         'Build type: fuzzing\n\n'
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
+        '**This bug tracker is not being monitored by OSS-Fuzz team.** '
         'If you have any questions, please create an issue at '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
@@ -394,14 +394,14 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
         'The last 3 builds for proj6 have been failing.\n'
-        '<b>Build log:</b> '
+        'Build log: '
         'https://oss-fuzz-build-logs.storage.googleapis.com/'
         'log-proj6-id-c.txt\n'
         'Build type: coverage\n\n'
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
+        '**This bug tracker is not being monitored by OSS-Fuzz team.** '
         'If you have any questions, please create an issue at '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
