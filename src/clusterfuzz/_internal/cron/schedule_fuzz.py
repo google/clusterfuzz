@@ -243,9 +243,9 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   creds = credentials.get_default()[0]
   count_args = ((project, region) for region in regions)
   with concurrency.make_pool() as pool:
-    # These calls are extremely slow.
-    result = pool.starmap_async(batch.count_queued_or_scheduled_tasks,
-                                count_args)
+    # These calls are extremely slow (about 1 minute total).
+    result = pool.starmap_async(  # pylint: disable=no-member
+        batch.count_queued_or_scheduled_tasks, count_args)
     waiting_tasks = count_unacked(creds, project, 'preprocess')
     waiting_tasks += count_unacked(creds, project, 'utask_main')
     region_counts = zip(*result.get())  #  Group all queued and all scheduled.
@@ -258,14 +258,14 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
     logs.info('Too many jobs queued, not scheduling more fuzzing.')
     return 0
   waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
-  soon_commited_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
-  logs.info(f'Soon committed CPUs: {soon_commited_cpus}')
+  soon_occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
+  logs.info(f'Soon occupied CPUs: {soon_occupied_cpus}')
   available_cpus = sum(
       get_available_cpus_for_region(creds, project, region)
       for region in regions)
   logs.info('Actually free CPUs (before subtracting soon '
             f'occupied): {available_cpus}')
-  available_cpus = max(available_cpus - soon_commited_cpus, 0)
+  available_cpus = max(available_cpus - soon_occupied_cpus, 0)
 
   # Don't schedule more than 10K tasks at once. So we don't overload batch.
   print('len_regions', len(regions))
@@ -276,28 +276,28 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   multiprocessing.set_start_method('spawn')
-  start = time.time()
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
   regions = get_batch_regions(batch_config)
-  available_cpus = get_available_cpus(project, regions)
-  logs.error(f'{available_cpus} available CPUs.')
-  if not available_cpus:
-    return False
+  while True:
+    start = time.time()
+    available_cpus = get_available_cpus(project, regions)
+    logs.error(f'{available_cpus} available CPUs.')
+    if not available_cpus:
+      continue
 
-  fuzz_tasks = get_fuzz_tasks(available_cpus)
-  if not fuzz_tasks:
-    logs.error('No fuzz tasks found to schedule.')
-    return False
+    fuzz_tasks = get_fuzz_tasks(available_cpus)
+    if not fuzz_tasks:
+      logs.error('No fuzz tasks found to schedule.')
+      continue
 
-  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
-  tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+    logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
+    tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
+    logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
-  end = time.time()
-  total = end - start
-  logs.info(f'Task scheduling took {total} seconds.')
-  return True
+    end = time.time()
+    total = end - start
+    logs.info(f'Task scheduling took {total} seconds.')
 
 
 def main():

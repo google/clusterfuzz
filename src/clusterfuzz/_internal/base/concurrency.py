@@ -14,7 +14,6 @@
 """Tools for concurrency/parallelism."""
 from concurrent import futures
 import contextlib
-import itertools
 import multiprocessing
 import multiprocessing.pool
 
@@ -35,11 +34,6 @@ class SingleThreadPool:
 
   def imap_unordered(self, f, l):
     return list(map(f, l))
-
-  def starmap_async(self, f, l):
-    async_result = multiprocessing.pool.AsyncResult()
-    async_result._set(list(starmap(f, l)))
-    return async_result
 
 
 @contextlib.contextmanager
