@@ -15,7 +15,6 @@
 from concurrent import futures
 import contextlib
 import multiprocessing
-import multiprocessing.pool
 
 from clusterfuzz._internal.system import environment
 
