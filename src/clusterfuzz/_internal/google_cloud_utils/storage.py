@@ -117,7 +117,7 @@ SignedUrlDownloadResult = collections.namedtuple('SignedUrlDownloadResult',
 class StorageProvider:
   """Core storage provider interface."""
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     raise NotImplementedError
 
@@ -198,7 +198,7 @@ class GcsProvider(StorageProvider):
 
     return None
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     project_id = utils.get_application_id()
     request_body = {'name': name}
@@ -207,6 +207,9 @@ class GcsProvider(StorageProvider):
 
     if cors:
       request_body['cors'] = cors
+
+    if location:
+      request_body['location'] = location
 
     client = create_discovery_storage_client()
     try:
@@ -237,7 +240,6 @@ class GcsProvider(StorageProvider):
 
     client = _storage_client()
     bucket = client.bucket(bucket_name)
-    properties = {}
 
     if recursive:
       delimiter = None
@@ -249,22 +251,36 @@ class GcsProvider(StorageProvider):
     else:
       fields = None
 
-    iterator = bucket.list_blobs(
-        prefix=path, delimiter=delimiter, fields=fields)
-    for blob in iterator:
-      properties['bucket'] = bucket_name
-      properties['name'] = blob.name
-      properties['updated'] = blob.updated
-      properties['size'] = blob.size
+    iterations = 0
+    while True:
+      iterations += 1
+      iterator = bucket.list_blobs(
+          prefix=path, delimiter=delimiter, fields=fields)
+      for blob in iterator:
+        properties = {
+            'bucket': bucket_name,
+            'name': blob.name,
+            'updated': blob.updated,
+            'size': blob.size,
+        }
 
-      yield properties
-
-    if not recursive:
-      # When doing delimiter listings, the "directories" will be in `prefixes`.
-      for prefix in iterator.prefixes:
-        properties['bucket'] = bucket_name
-        properties['name'] = prefix
         yield properties
+
+      if not recursive:
+        # When doing delimiter listings, the "directories" will be in
+        # `prefixes`.
+        for prefix in iterator.prefixes:
+          properties = {
+              'bucket': bucket_name,
+              'name': prefix,
+          }
+          yield properties
+
+      next_page_token = iterator.next_page_token
+      if next_page_token is None:
+        break
+      if iterations and iterations % 50 == 0:
+        logs.error('Might be infinite looping.')
 
   def copy_file_from(self, remote_path, local_path):
     """Copy file from a remote path to a local path."""
@@ -543,7 +559,7 @@ class FileSystemProvider(StorageProvider):
 
     return fs_path
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     bucket_path = self._fs_bucket_path(name)
     if os.path.exists(bucket_path):
@@ -905,13 +921,16 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
   return None
 
 
-def create_bucket_if_needed(bucket_name, object_lifecycle=None, cors=None):
+def create_bucket_if_needed(bucket_name,
+                            object_lifecycle=None,
+                            cors=None,
+                            location=None):
   """Creates a GCS bucket."""
   provider = _provider()
   if provider.get_bucket(bucket_name):
     return True
 
-  if not provider.create_bucket(bucket_name, object_lifecycle, cors):
+  if not provider.create_bucket(bucket_name, object_lifecycle, cors, location):
     return False
 
   time.sleep(CREATE_BUCKET_DELAY)

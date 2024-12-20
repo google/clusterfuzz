@@ -57,7 +57,7 @@ class BaseTest:
     self.local_gcs_buckets_path = tempfile.mkdtemp()
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
     os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
-    storage._provider().create_bucket('blobs-bucket', None, None)
+    storage._provider().create_bucket('blobs-bucket', None, None, None)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
