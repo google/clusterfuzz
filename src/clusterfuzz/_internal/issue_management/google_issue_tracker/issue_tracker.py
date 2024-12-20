@@ -426,6 +426,11 @@ class Issue(issue_tracker.Issue):
     self._data['issueState']['assignee'] = _make_user(new_assignee)
 
   @property
+  def created_time(self):
+    """The time at which this issue was created."""
+    return self._data['createdTime']
+
+  @property
   def ccs(self):
     """The issue CC list."""
     return self._ccs
