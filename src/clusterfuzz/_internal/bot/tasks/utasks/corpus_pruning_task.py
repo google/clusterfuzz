@@ -744,8 +744,8 @@ def _upload_corpus_crashes_zip(result: CorpusPruningResult,
 
 def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
-  if not output.corpus_pruning_task_output.crashes:
-    return
+  # if not output.corpus_pruning_task_output.crashes:
+  return
 
   corpus_pruning_output = output.corpus_pruning_task_output
   crash_revision = corpus_pruning_output.crash_revision
