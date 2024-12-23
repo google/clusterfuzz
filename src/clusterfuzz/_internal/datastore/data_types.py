@@ -689,8 +689,6 @@ class Testcase(Model):
 
   def get_age_in_seconds(self):
     current_time = datetime.datetime.utcnow()
-    if not self.get_created_time():
-      return None
     testcase_age = current_time - self.get_created_time()
     return testcase_age.total_seconds()
 
