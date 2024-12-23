@@ -921,7 +921,7 @@ def critical_tasks_completed(testcase):
     return testcase.minimized_keys and testcase.regression
 
   return bool(testcase.minimized_keys and testcase.regression and
-              testcase.is_impact_set_flag)
+              testcase.is_impact_set_flag and not testcase.analyze_pending)
 
 
 # ------------------------------------------------------------------------------
@@ -1380,6 +1380,7 @@ def create_user_uploaded_testcase(key,
 
   testcase.timestamp = utils.utcnow()
   testcase.created = testcase.timestamp
+  testcase.analyze_pending = True
   testcase.uploader_email = uploader_email
   testcase.put()
 
