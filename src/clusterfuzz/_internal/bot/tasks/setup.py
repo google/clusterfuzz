@@ -479,8 +479,6 @@ def update_data_bundle(
   # No need to sync anything if this is a search index data bundle. In that
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
-
-    logs.info('Data bundles: normal path.')
     result = corpus_manager.sync_data_bundle_corpus_to_disk(
         data_bundle_corpus, data_bundle_directory)
     if not result:
