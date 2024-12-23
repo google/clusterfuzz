@@ -1380,6 +1380,7 @@ def create_user_uploaded_testcase(key,
 
   testcase.timestamp = utils.utcnow()
   testcase.created = testcase.timestamp
+  testcase.analyze_pending = True
   testcase.uploader_email = uploader_email
   testcase.put()
 
