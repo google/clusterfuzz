@@ -46,7 +46,7 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
     return
 
   from_fuzzer = not get_testcase_upload_metadata(testcase_id)
-  testcase_age_in_hours = testcase.get_age_in_seconds() / (60*60)
+  testcase_age_in_hours = testcase.get_age_in_seconds() / (60 * 60)
 
   logs.info('Emiting TESTCASE_TRIAGE_DURATION metric for testcase '
             f'{testcase_id} (age = {testcase_age_in_hours} hours.) '

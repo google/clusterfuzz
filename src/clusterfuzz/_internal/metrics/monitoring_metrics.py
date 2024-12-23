@@ -245,7 +245,6 @@ TESTCASE_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
     ],
 )
 
-
 TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
     'task/rate_limit',
     description=('Counter for rate limit events.'),
@@ -366,6 +365,7 @@ UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('step'),
     ])
 
 UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(

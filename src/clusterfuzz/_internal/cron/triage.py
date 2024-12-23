@@ -343,7 +343,8 @@ PENDING_GROUPING = 'pending_grouping'
 PENDING_FILING = 'pending_filing'
 
 
-def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase, step: str):
+def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
+                                        step: str):
   """Emmits a metric to track age of untriaged testcases."""
   if not testcase.timestamp:
     return
@@ -355,6 +356,7 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase, step: str
       labels={
           'job': testcase.job_type,
           'platform': testcase.platform,
+          'step': step,
       })
 
 
@@ -436,7 +438,7 @@ def main():
       status = PENDING_ANALYZE if testcase.analyze_pending else PENDING_CRITICAL_TASKS
       _emit_untriaged_testcase_age_metric(testcase, status)
       _set_testcase_stuck_state(testcase, True)
-      _increment_untriaged_testcase_count(testcase.job_type,
+      _increment_untriaged_testcase_count(testcase.job_type, 
                                           status)
       logs.info(
           f'Skipping testcase {testcase_id}, critical tasks still pending.')
