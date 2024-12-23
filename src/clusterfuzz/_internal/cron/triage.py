@@ -336,7 +336,14 @@ def _emit_untriaged_testcase_count_metric():
         })
 
 
-def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
+PENDING_ANALYZE = 'pending_analyze'
+PENDING_CRITICAL_TASKS = 'pending_critical_tasks'
+PENDING_PROGRESSION = 'pending_progression'
+PENDING_GROUPING = 'pending_grouping'
+PENDING_FILING = 'pending_filing'
+
+
+def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase, step: str):
   """Emmits a metric to track age of untriaged testcases."""
   if not testcase.timestamp:
     return
@@ -349,12 +356,6 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase):
           'job': testcase.job_type,
           'platform': testcase.platform,
       })
-
-
-PENDING_CRITICAL_TASKS = 'pending_critical_tasks'
-PENDING_PROGRESSION = 'pending_progression'
-PENDING_GROUPING = 'pending_grouping'
-PENDING_FILING = 'pending_filing'
 
 
 def main():
@@ -409,7 +410,7 @@ def main():
     if testcase.get_metadata('progression_pending'):
       _set_testcase_stuck_state(testcase, True)
       logs.info(f'Skipping testcase {testcase_id}, progression pending')
-      _emit_untriaged_testcase_age_metric(testcase)
+      _emit_untriaged_testcase_age_metric(testcase, PENDING_PROGRESSION)
       _increment_untriaged_testcase_count(testcase.job_type,
                                           PENDING_PROGRESSION)
       continue
@@ -432,10 +433,11 @@ def main():
     # Require that all tasks like minimizaton, regression testing, etc have
     # finished.
     if not critical_tasks_completed:
-      _emit_untriaged_testcase_age_metric(testcase)
+      status = PENDING_ANALYZE if testcase.analyze_pending else PENDING_CRITICAL_TASKS
+      _emit_untriaged_testcase_age_metric(testcase, status)
       _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type,
-                                          PENDING_CRITICAL_TASKS)
+                                          status)
       logs.info(
           f'Skipping testcase {testcase_id}, critical tasks still pending.')
       continue
@@ -452,7 +454,7 @@ def main():
     # metadata works well.
     if not testcase.group_id and not dates.time_has_expired(
         testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
-      _emit_untriaged_testcase_age_metric(testcase)
+      _emit_untriaged_testcase_age_metric(testcase, PENDING_GROUPING)
       _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
@@ -460,7 +462,7 @@ def main():
 
     if not testcase.get_metadata('ran_grouper'):
       # Testcase should be considered by the grouper first before filing.
-      _emit_untriaged_testcase_age_metric(testcase)
+      _emit_untriaged_testcase_age_metric(testcase, PENDING_GROUPING)
       _set_testcase_stuck_state(testcase, True)
       _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
       logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
@@ -490,15 +492,14 @@ def main():
     # Clean up old triage messages that would be not applicable now.
     testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
-    # A testcase is untriaged, until immediately before a bug is opened
-    _emit_untriaged_testcase_age_metric(testcase)
-    _set_testcase_stuck_state(testcase, False)
-    _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
-
     # File the bug first and then create filed bug metadata.
     if not _file_issue(testcase, issue_tracker, throttler):
+      _emit_untriaged_testcase_age_metric(testcase, PENDING_FILING)
+      _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
       logs.info(f'Issue filing failed for testcase id {testcase_id}')
       continue
+
+    _set_testcase_stuck_state(testcase, False)
 
     _create_filed_bug_metadata(testcase)
     issue_filer.notify_issue_update(testcase, 'new')

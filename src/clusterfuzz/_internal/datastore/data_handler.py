@@ -921,7 +921,7 @@ def critical_tasks_completed(testcase):
     return testcase.minimized_keys and testcase.regression
 
   return bool(testcase.minimized_keys and testcase.regression and
-              testcase.is_impact_set_flag)
+              testcase.is_impact_set_flag and not testcase.analyze_pending)
 
 
 # ------------------------------------------------------------------------------
