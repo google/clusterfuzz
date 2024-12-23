@@ -352,7 +352,7 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
     return
 
   logs.info(f'Emiting UNTRIAGED_TESTCASE_AGE for testcase {testcase.key.id()} '
-            f'(age = {testcase.get_age_in_seconds()})')
+            f'(age = {testcase.get_age_in_seconds()}), step = {step}')
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
       testcase.get_age_in_seconds() / 3600,
       labels={
