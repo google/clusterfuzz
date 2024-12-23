@@ -256,6 +256,8 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
 def _emit_bug_filing_from_testcase_elapsed_time_metric(testcase):
   testcase_age = testcase.get_age_in_seconds()
+  if not testcase_age:
+    return
   monitoring_metrics.BUG_FILING_FROM_TESTCASE_ELAPSED_TIME.add(
       testcase_age,
       labels={
@@ -346,7 +348,7 @@ PENDING_FILING = 'pending_filing'
 def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
                                         step: str):
   """Emmits a metric to track age of untriaged testcases."""
-  if not testcase.timestamp:
+  if not testcase.get_age_in_seconds():
     return
 
   logs.info(f'Emiting UNTRIAGED_TESTCASE_AGE for testcase {testcase.key.id()} '
@@ -435,11 +437,12 @@ def main():
     # Require that all tasks like minimizaton, regression testing, etc have
     # finished.
     if not critical_tasks_completed:
-      status = PENDING_ANALYZE if testcase.analyze_pending else PENDING_CRITICAL_TASKS
+      status = PENDING_CRITICAL_TASKS
+      if testcase.analyze_pending:
+        status = PENDING_ANALYZE
       _emit_untriaged_testcase_age_metric(testcase, status)
       _set_testcase_stuck_state(testcase, True)
-      _increment_untriaged_testcase_count(testcase.job_type, 
-                                          status)
+      _increment_untriaged_testcase_count(testcase.job_type, status)
       logs.info(
           f'Skipping testcase {testcase_id}, critical tasks still pending.')
       continue
