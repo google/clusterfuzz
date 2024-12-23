@@ -16,10 +16,8 @@
 import copy
 import datetime
 import os
-import queue
 import subprocess
 import sys
-import threading
 import time
 
 from clusterfuzz._internal.base import utils
@@ -107,7 +105,6 @@ def cleanup_defunct_processes():
         break
 
 
-# Note: changes to this function may require changes to untrusted_runner.proto.
 # This should only be used for running target black box applications which
 # return text output.
 def run_process(cmdline,
@@ -119,12 +116,6 @@ def run_process(cmdline,
                 testcase_run=True,
                 ignore_children=True):
   """Executes a process with a given command line and other parameters."""
-  if environment.is_trusted_host() and testcase_run:
-    from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
-    return remote_process_host.run_process(
-        cmdline, current_working_directory, timeout, need_shell, gestures,
-        env_copy, testcase_run, ignore_children)
-
   if gestures is None:
     gestures = []
 
@@ -360,10 +351,6 @@ def cleanup_stale_processes():
 
 def close_queue(queue_to_close):
   """Close the queue."""
-  if environment.is_trusted_host():
-    # We don't use multiprocessing.Queue on trusted hosts.
-    return
-
   try:
     queue_to_close.close()
   except:
@@ -372,10 +359,6 @@ def close_queue(queue_to_close):
 
 def get_process():
   """Return a multiprocessing process object (with bug fixes)."""
-  if environment.is_trusted_host():
-    # forking/multiprocessing is unsupported because of the RPC connection.
-    return threading.Thread
-
   # FIXME(unassigned): Remove this hack after real bug is fixed.
   # pylint: disable=protected-access
   multiprocessing.current_process()._identity = ()
@@ -406,11 +389,6 @@ def get_runtime_snapshot():
 
 def get_queue():
   """Return a multiprocessing queue object."""
-  if environment.is_trusted_host():
-    # We don't use multiprocessing.Process on trusted hosts. No need to use
-    # multiprocessing.Queue.
-    return queue.Queue()
-
   try:
     result_queue = multiprocessing.Queue()
   except:
@@ -432,13 +410,6 @@ def terminate_hung_threads(threads):
     time.sleep(0.1)
 
   logs.warning('Hang detected.', snapshot=get_runtime_snapshot())
-
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import host
-
-    # Bail out on trusted hosts since we're using threads and can't clean up.
-    host.host_exit_no_return()
-
   # Terminate all threads that are still alive.
   try:
     [thread.terminate() for thread in threads if thread.is_alive()]
@@ -492,11 +463,6 @@ def terminate_multiprocessing_children():
 
 def terminate_stale_application_instances():
   """Kill stale instances of the application running for this command."""
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
-    remote_process_host.terminate_stale_application_instances()
-    return
-
   # Stale instance cleanup is sometimes disabled for local testing.
   if not environment.get_value('KILL_STALE_INSTANCES', True):
     return

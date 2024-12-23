@@ -57,16 +57,8 @@ class BuiltinFuzzer:
 def get_corpus_directory(input_directory, project_qualified_name):
   """Get the corpus directory given a project qualified fuzz target name."""
   corpus_directory = os.path.join(input_directory, project_qualified_name)
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    corpus_directory = file_host.rebase_to_worker_root(corpus_directory)
-
   # Create corpus directory if it does not exist already.
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.create_directory(corpus_directory, create_intermediates=True)
-  else:
-    shell.create_directory(corpus_directory)
+  shell.create_directory(corpus_directory)
   return corpus_directory
 
 

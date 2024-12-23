@@ -106,9 +106,6 @@ def rename_file_to_sha(filepath, directory=None):
 def legalize_filenames(filepaths):
   """Convert the name of every file in |filepaths| a name that is legal on
   Windows. Returns list of legally named files."""
-  if environment.is_trusted_host():
-    return filepaths
-
   illegal_chars = {'<', '>', ':', '\\', '|', '?', '*'}
   legally_named = []
   failed_to_move_filepaths = []
