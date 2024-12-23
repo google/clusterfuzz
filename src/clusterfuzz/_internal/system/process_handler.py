@@ -107,7 +107,6 @@ def cleanup_defunct_processes():
         break
 
 
-# Note: changes to this function may require changes to untrusted_runner.proto.
 # This should only be used for running target black box applications which
 # return text output.
 def run_process(cmdline,
@@ -119,12 +118,6 @@ def run_process(cmdline,
                 testcase_run=True,
                 ignore_children=True):
   """Executes a process with a given command line and other parameters."""
-  if environment.is_trusted_host() and testcase_run:
-    from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
-    return remote_process_host.run_process(
-        cmdline, current_working_directory, timeout, need_shell, gestures,
-        env_copy, testcase_run, ignore_children)
-
   if gestures is None:
     gestures = []
 
@@ -432,13 +425,6 @@ def terminate_hung_threads(threads):
     time.sleep(0.1)
 
   logs.warning('Hang detected.', snapshot=get_runtime_snapshot())
-
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import host
-
-    # Bail out on trusted hosts since we're using threads and can't clean up.
-    host.host_exit_no_return()
-
   # Terminate all threads that are still alive.
   try:
     [thread.terminate() for thread in threads if thread.is_alive()]
@@ -492,11 +478,6 @@ def terminate_multiprocessing_children():
 
 def terminate_stale_application_instances():
   """Kill stale instances of the application running for this command."""
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
-    remote_process_host.terminate_stale_application_instances()
-    return
-
   # Stale instance cleanup is sometimes disabled for local testing.
   if not environment.get_value('KILL_STALE_INSTANCES', True):
     return

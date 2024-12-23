@@ -496,11 +496,6 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
     return_code, crash_time, output = run_testcase(thread_index, file_path,
                                                    gestures, env_copy)
 
-    # Pull testcase directory to host to get any stats files.
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      file_host.pull_testcases_from_worker()
-
     # Analyze the crash.
     crash_output = _get_crash_output(output)
     crash_result = CrashResult(return_code, crash_time, crash_output)
@@ -549,10 +544,6 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
 def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
                      arguments, timeout) -> engine.ReproduceResult:
   """Do engine reproduction."""
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.engine_reproduce(engine_impl, target_name, testcase_path,
-                                       arguments, timeout)
   build_dir = environment.get_value('BUILD_DIR')
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if not target_path:
@@ -954,12 +945,6 @@ def get_command_line_for_application(file_to_run='',
 
   # Start creating the command line.
   command = ''
-
-  # Rebase the file_to_run and launcher paths to the worker's root.
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_to_run = file_host.rebase_to_worker_root(file_to_run)
-    launcher = file_host.rebase_to_worker_root(launcher)
 
   # Default case.
   testcase_path = file_to_run

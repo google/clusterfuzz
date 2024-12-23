@@ -345,8 +345,6 @@ class ProcessRunner:
         stdout_file=stdout_file,
         interactive=interactive)
 
-  # Note: changes to this function may require changes to
-  # untrusted_runner.proto.
   def run_and_wait(self,
                    additional_args=None,
                    timeout=None,

@@ -366,10 +366,6 @@ def run():
   try:
     # If there is a newer revision, exit and let run.py update the source code.
     if get_newer_source_revision() is not None:
-      if environment.is_trusted_host():
-        from clusterfuzz._internal.bot.untrusted_runner import host
-        host.update_worker()
-
       sys.exit(0)
 
     # Run platform specific initialization scripts.

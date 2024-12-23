@@ -1315,10 +1315,7 @@ def setup_regular_build(revision,
   base_build_dir = _base_build_dir(bucket_path)
 
   build_class = RegularBuild
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteRegularBuild
-  elif environment.platform() == 'FUCHSIA':
+  if environment.platform() == 'FUCHSIA':
     build_class = FuchsiaBuild
   elif get_bucket_path('FUZZ_TARGET_BUILD_BUCKET_PATH'):
     build_class = SplitTargetBuild

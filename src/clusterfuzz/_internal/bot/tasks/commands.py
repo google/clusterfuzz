@@ -139,11 +139,6 @@ def update_environment_for_job(environment_string):
     uworker_env['MAX_TESTCASES'] = max_testcases_override
 
   uworker_env['JOB_NAME'] = environment.get_value('JOB_NAME')
-  if environment.is_trusted_host():
-    env['JOB_NAME'] = environment.get_value('JOB_NAME')
-    from clusterfuzz._internal.bot.untrusted_runner import \
-        environment as worker_environment
-    worker_environment.update_environment(env)
   return uworker_env
 
 

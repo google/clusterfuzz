@@ -194,19 +194,6 @@ def main():
     sys.exit(-1)
 
   fuzzers_init.run()
-  if environment.is_trusted_host(ensure_connected=False):
-    from clusterfuzz._internal.bot.untrusted_runner import host
-    host.init()
-
-  if environment.is_untrusted_worker():
-    # Track revision since we won't go into the task_loop.
-    update_task.track_revision()
-
-    from clusterfuzz._internal.bot.untrusted_runner import \
-        untrusted as untrusted_worker
-    untrusted_worker.start_server()
-    assert False, 'Unreachable code'
-
   while True:
     # task_loop should be an infinite loop,
     # unless we run into an exception.

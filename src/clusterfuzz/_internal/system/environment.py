@@ -815,11 +815,6 @@ def reset_environment():
     # Add shared variables with values from _initial_environment.
     os.environ.update(_initial_environment)
 
-  if is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import \
-        environment as untrusted_env
-    untrusted_env.reset_environment()
-
 
 def set_common_environment_variables():
   """Sets environment variables common for different memory debugging tools."""

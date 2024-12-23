@@ -18,7 +18,6 @@ import os
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import builtin
-from clusterfuzz._internal.system import environment
 
 # The name of the file that run.py puts in the input directory so AFL doesn't
 # complain, since it needs at least one input file.
@@ -30,11 +29,7 @@ def write_dummy_file(input_dir):
   files. So write the bare minimum to get afl to run if there is no corpus
   yet."""
   dummy_input_path = os.path.join(input_dir, AFL_DUMMY_INPUT)
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.write_data_to_worker(b' ', dummy_input_path)
-  else:
-    utils.write_data_to_file(' ', dummy_input_path)
+  utils.write_data_to_file(' ', dummy_input_path)
 
 
 class Afl(builtin.EngineFuzzer):

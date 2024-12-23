@@ -86,10 +86,6 @@ def clear_build_urls_directory():
   """Clears the build url directory."""
   remove_directory(environment.get_value('BUILD_URLS_DIR'), recreate=True)
 
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.clear_build_urls_directory()
-
 
 def clear_crash_stacktraces_directory():
   """Clears the crash stacktraces directory."""
@@ -159,10 +155,6 @@ def clear_temp_directory(clear_user_profile_directories=True):
   if test_temp_directory != temp_directory:
     remove_directory(test_temp_directory, recreate=True)
 
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.clear_temp_directory()
-
   if not clear_user_profile_directories:
     return
 
@@ -217,9 +209,6 @@ def clear_testcase_directories():
   if environment.is_android():
     from clusterfuzz._internal.platforms import android
     android.device.clear_testcase_directory()
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.clear_testcase_directories()
 
 
 def close_open_file_handles_if_needed(path):
