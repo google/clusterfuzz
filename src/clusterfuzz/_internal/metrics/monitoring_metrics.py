@@ -232,7 +232,7 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
 )
 
 TESTCASE_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
-    'testcase_analysis/triage_duration_secs',
+    'testcase_analysis/triage_duration_hours',
     description=('Time elapsed between testcase upload and completion'
                  ' of relevant tasks in the testcase lifecycle.'
                  ' Origin can be either from a fuzzer, or a manual'
