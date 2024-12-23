@@ -85,6 +85,17 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self._subtask = subtask
     self._labels = None
     self.utask_main_failure = None
+    self._utask_success_conditions = [
+        None,  # This can be a successful return value in, ie, fuzz task
+        uworker_msg_pb2.ErrorType.NO_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
+    ]
 
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
@@ -126,6 +137,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
+  def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
+    """Returns True if task succeeded, False otherwise."""
+    if exc_type or uworker_error not in self._utask_success_conditions:
+      return False
+    return True
+
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
 
@@ -146,11 +163,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
     # failure.
-    outcome = 'error' if _exc_type or self.utask_main_failure else 'success'
+    task_succeeded = self._infer_uworker_main_outcome(_exc_type,
+                                                      self.utask_main_failure)
     monitoring_metrics.TASK_OUTCOME_COUNT.increment({
-        **self._labels, 'outcome': outcome
+        **self._labels, 'task_succeeded': task_succeeded
     })
-    if outcome == "success":
+    if task_succeeded:
       error_condition = 'N/A'
     elif _exc_type:
       error_condition = 'UNHANDLED_EXCEPTION'
@@ -162,15 +180,10 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # labels limit recommended by gcp.
     trimmed_labels = self._labels
     del trimmed_labels['job']
-    trimmed_labels['outcome'] = outcome
+    trimmed_labels['task_succeeded'] = task_succeeded
     trimmed_labels['error_condition'] = error_condition
     monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
         trimmed_labels)
-
-    if error_condition != 'UNHANDLED_EXCEPTION':
-      task = self._labels['task']
-      subtask = self._labels['subtask']
-      logs.info(f'Task {task}, at subtask {subtask}, finished successfully.')
 
 
 def ensure_uworker_env_type_safety(uworker_env):
