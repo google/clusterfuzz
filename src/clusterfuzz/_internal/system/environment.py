@@ -705,12 +705,6 @@ def is_posix():
   return os.name == 'posix'
 
 
-def is_trusted_host(ensure_connected=True):
-  """Return whether or not the current bot is a trusted host."""
-  return get_value('TRUSTED_HOST') and (not ensure_connected or
-                                        get_value('WORKER_BOT_NAME'))
-
-
 def is_untrusted_worker():
   """Return whether or not the current bot is an untrusted worker."""
   return get_value('UNTRUSTED_WORKER')
@@ -938,11 +932,7 @@ def set_bot_environment():
 
   # Set some default directories. These can be overriden by config files below.
   bot_dir = os.path.join(root_dir, 'bot')
-  if is_trusted_host(ensure_connected=False):
-    worker_root_dir = os.environ['WORKER_ROOT_DIR']
-    os.environ['BUILDS_DIR'] = os.path.join(worker_root_dir, 'bot', 'builds')
-  else:
-    os.environ['BUILDS_DIR'] = os.path.join(bot_dir, 'builds')
+  os.environ['BUILDS_DIR'] = os.path.join(bot_dir, 'builds')
 
   os.environ['BUILD_URLS_DIR'] = os.path.join(bot_dir, 'build-urls')
   os.environ['LOG_DIR'] = os.path.join(bot_dir, 'logs')
@@ -1015,12 +1005,6 @@ def set_value(environment_variable, value, env=None):
   environment_variable_str = str(environment_variable)
   value_str = value_str.replace('%ROOT_DIR%', os.getenv('ROOT_DIR', ''))
   env[environment_variable_str] = value_str
-
-  if is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import \
-        environment as untrusted_env
-    untrusted_env.forward_environment_variable(environment_variable_str,
-                                               value_str)
 
 
 def get_initial_task_name():

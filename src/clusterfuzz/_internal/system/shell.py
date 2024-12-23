@@ -43,11 +43,6 @@ _system_temp_dir = None
 
 def _low_disk_space_threshold():
   """Get the low disk space threshold."""
-  if environment.is_trusted_host(ensure_connected=False):
-    # Trusted hosts can run with less free space as they do not store builds or
-    # corpora.
-    return _TRUSTED_HOST_LOW_DISK_SPACE_THRESHOLD
-
   return _DEFAULT_LOW_DISK_SPACE_THRESHOLD
 
 

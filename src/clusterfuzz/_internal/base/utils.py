@@ -563,10 +563,6 @@ def is_valid_testcase_file(file_path,
 def maximum_parallel_processes_allowed():
   """Return maximum number of parallel processes allowed. Adjust it based
   on thread multiplier."""
-  if environment.is_trusted_host():
-    # gRPC only supports 1 thread/process.
-    return 1
-
   max_parallel_process_count = environment.get_value('MAX_FUZZ_THREADS', 1)
   thread_multiplier = environment.get_value('THREAD_MULTIPLIER', 1)
 

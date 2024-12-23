@@ -317,7 +317,6 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     # old untrusted worker architecture.
     if (not environment.get_value('DEBUG_TASK') and
         not environment.is_tworker() and
-        not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix):
       # This happens rarely, store this as a hard exception.
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %

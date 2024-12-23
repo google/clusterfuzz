@@ -16,10 +16,8 @@
 import copy
 import datetime
 import os
-import queue
 import subprocess
 import sys
-import threading
 import time
 
 from clusterfuzz._internal.base import utils
@@ -353,10 +351,6 @@ def cleanup_stale_processes():
 
 def close_queue(queue_to_close):
   """Close the queue."""
-  if environment.is_trusted_host():
-    # We don't use multiprocessing.Queue on trusted hosts.
-    return
-
   try:
     queue_to_close.close()
   except:
@@ -365,10 +359,6 @@ def close_queue(queue_to_close):
 
 def get_process():
   """Return a multiprocessing process object (with bug fixes)."""
-  if environment.is_trusted_host():
-    # forking/multiprocessing is unsupported because of the RPC connection.
-    return threading.Thread
-
   # FIXME(unassigned): Remove this hack after real bug is fixed.
   # pylint: disable=protected-access
   multiprocessing.current_process()._identity = ()
@@ -399,11 +389,6 @@ def get_runtime_snapshot():
 
 def get_queue():
   """Return a multiprocessing queue object."""
-  if environment.is_trusted_host():
-    # We don't use multiprocessing.Process on trusted hosts. No need to use
-    # multiprocessing.Queue.
-    return queue.Queue()
-
   try:
     result_queue = multiprocessing.Queue()
   except:
