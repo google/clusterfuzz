@@ -1097,8 +1097,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
 
   def test_sync(self):
     """Test corpus sync."""
-    corpus = fuzz_task.GcsCorpus('parent', 'child', '/dir', '/dir1',
-                                 self.corpus)
+    corpus = fuzz_task.GcsCorpus('child', '/dir', '/dir1', self.corpus)
 
     self.mock.rsync_to_disk.side_effect = self._write_corpus_files
     corpus.upload_files(corpus.get_new_files())
@@ -1116,8 +1115,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
 
   def test_no_sync(self):
     """Test no corpus sync when bundle is not updated since last sync."""
-    corpus = fuzz_task.GcsCorpus('parent', 'child', '/dir', '/dir1',
-                                 self.corpus)
+    corpus = fuzz_task.GcsCorpus('child', '/dir', '/dir1', self.corpus)
 
     utils.write_data_to_file(time.time(), '/dir1/.child_sync')
     self.mock.last_updated.return_value = (
@@ -1127,8 +1125,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
 
   def test_sync_with_failed_last_update(self):
     """Test corpus sync when failed to get last update info from gcs."""
-    corpus = fuzz_task.GcsCorpus('parent', 'child', '/dir', '/dir1',
-                                 self.corpus)
+    corpus = fuzz_task.GcsCorpus('child', '/dir', '/dir1', self.corpus)
 
     utils.write_data_to_file(time.time(), '/dir1/.child_sync')
     self.mock.last_updated.return_value = None
