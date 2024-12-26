@@ -231,17 +231,17 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
-TESTCASE_UPLOAD_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
-    'uploaded_testcase_analysis/triage_duration_secs',
+TESTCASE_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
+    'testcase_analysis/triage_duration_hours',
     description=('Time elapsed between testcase upload and completion'
-                 ' of relevant tasks in the testcase upload lifecycle.'
+                 ' of relevant tasks in the testcase lifecycle.'
                  ' Origin can be either from a fuzzer, or a manual'
                  ' upload. Measured in hours.'),
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('step'),
         monitor.StringField('job'),
-        monitor.StringField('origin'),
+        monitor.BooleanField('from_fuzzer'),
     ],
 )
 
@@ -263,7 +263,7 @@ TASK_OUTCOME_COUNT = monitor.CounterMetric(
         monitor.StringField('subtask'),
         monitor.StringField('mode'),
         monitor.StringField('platform'),
-        monitor.StringField('outcome'),
+        monitor.BooleanField('task_succeeded'),
     ])
 
 TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
@@ -274,7 +274,7 @@ TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
         monitor.StringField('subtask'),
         monitor.StringField('mode'),
         monitor.StringField('platform'),
-        monitor.StringField('outcome'),
+        monitor.BooleanField('task_succeeded'),
         monitor.StringField('error_condition'),
     ])
 
@@ -365,6 +365,7 @@ UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('step'),
     ])
 
 UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
