@@ -335,6 +335,8 @@ def tworker_get_task():
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
+  if random.random() < .5:
+    return get_postprocess_task()
   return get_preprocess_task()
 
 
