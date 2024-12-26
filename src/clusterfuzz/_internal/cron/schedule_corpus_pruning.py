@@ -17,12 +17,13 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import fuzz_target_utils
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
 
 def get_tasks_to_schedule():
   """Return (task_target, job_name, queue_name) arguments to schedule a task."""
-  for job in data_types.Job.query():
+  for job in ndb_utils.get_all_from_query(data_types.Job.query()):
     if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       continue
 
