@@ -120,6 +120,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertCountEqual([], issue.components)
     self.assertCountEqual([], issue.ccs)
     self.assertEqual('test body', issue.body)
+    self.assertEqual('2019-06-25T01:29:30.021Z', issue.created_time)
 
   def test_closed(self):
     """Test a closed issue."""

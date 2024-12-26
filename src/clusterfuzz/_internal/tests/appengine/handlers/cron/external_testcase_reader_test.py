@@ -17,6 +17,8 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.cron import external_testcase_reader
+from clusterfuzz._internal.issue_management.google_issue_tracker import \
+    issue_tracker
 
 BASIC_ATTACHMENT = {
     'attachmentId': '60127668',
@@ -34,90 +36,107 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
   """external_testcase_reader tests."""
 
   def setUp(self):
-    self.issue_tracker = mock.MagicMock()
-    self.mock_submit_testcase = mock.MagicMock()
-    self.mock_close_invalid_issue = mock.MagicMock()
+    self.mock_basic_issue = mock.MagicMock()
+    self.mock_basic_issue.created_time = '2024-06-25T01:29:30.021Z'
+    self.mock_basic_issue.status = 'NEW'
+    external_testcase_reader.submit_testcase = mock.MagicMock()
 
   def test_handle_testcases(self):
-    """Test a basic handle_testcases where issue is valid."""
-    mock_iter = mock.MagicMock()
-    mock_iter.__iter__.return_value = [mock.MagicMock()]
-    self.issue_tracker.find_issues.return_value = mock_iter
-    self.mock_close_invalid_issue.return_value = False
-    external_testcase_reader.close_invalid_issue = self.mock_close_invalid_issue
-    external_testcase_reader.submit_testcase = self.mock_submit_testcase
+    """Test a basic handle_testcases where issue is fit for submission."""
+    mock_it = mock.create_autospec(issue_tracker.IssueTracker)
+    mock_it.find_issues_with_filters.return_value = [self.mock_basic_issue]
+    external_testcase_reader.close_issue_if_invalid = mock.MagicMock()
+    external_testcase_reader.close_issue_if_invalid.return_value = False
 
-    external_testcase_reader.handle_testcases(self.issue_tracker)
-    self.mock_close_invalid_issue.assert_called_once()
-    self.issue_tracker.get_attachment.assert_called_once()
-    self.mock_submit_testcase.assert_called_once()
+    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.close_issue_if_invalid.assert_called_once()
+    mock_it.get_attachment.assert_called_once()
+    external_testcase_reader.submit_testcase.assert_called_once()
 
   def test_handle_testcases_invalid(self):
     """Test a basic handle_testcases where issue is invalid."""
-    mock_iter = mock.MagicMock()
-    mock_iter.__iter__.return_value = [mock.MagicMock()]
-    self.issue_tracker.find_issues.return_value = mock_iter
-    self.mock_close_invalid_issue.return_value = True
-    external_testcase_reader.close_invalid_issue = self.mock_close_invalid_issue
-    external_testcase_reader.submit_testcase = self.mock_submit_testcase
+    mock_it = mock.create_autospec(issue_tracker.IssueTracker)
+    mock_it.find_issues_with_filters.return_value = [self.mock_basic_issue]
+    external_testcase_reader.close_issue_if_invalid = mock.MagicMock()
+    external_testcase_reader.close_issue_if_invalid.return_value = True
 
-    external_testcase_reader.handle_testcases(self.issue_tracker)
-    self.mock_close_invalid_issue.assert_called_once()
-    self.issue_tracker.get_attachment.assert_not_called()
-    self.mock_submit_testcase.assert_not_called()
+    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.close_issue_if_invalid.assert_called_once()
+    mock_it.get_attachment.assert_not_called()
+    external_testcase_reader.submit_testcase.assert_not_called()
+
+  def test_handle_testcases_not_reproducible(self):
+    """Test a basic handle_testcases where issue is not reprodiclbe."""
+    mock_it = mock.create_autospec(issue_tracker.IssueTracker)
+    mock_it.find_issues_with_filters.return_value = [self.mock_basic_issue]
+    external_testcase_reader.close_issue_if_not_reproducible = mock.MagicMock()
+    external_testcase_reader.close_issue_if_not_reproducible.return_value = True
+    external_testcase_reader.close_issue_if_invalid = mock.MagicMock()
+
+    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.close_issue_if_invalid.assert_not_called()
+    mock_it.get_attachment.assert_not_called()
+    external_testcase_reader.submit_testcase.assert_not_called()
 
   def test_handle_testcases_no_issues(self):
     """Test a basic handle_testcases that returns no issues."""
-    self.issue_tracker.find_issues.return_value = None
+    mock_it = mock.create_autospec(issue_tracker.IssueTracker)
+    mock_it.find_issues_with_filters.return_value = []
+    external_testcase_reader.close_issue_if_invalid = mock.MagicMock()
 
-    external_testcase_reader.handle_testcases(self.issue_tracker)
-    self.mock_close_invalid_issue.assert_not_called()
-    self.issue_tracker.get_attachment.assert_not_called()
-    self.mock_submit_testcase.assert_not_called()
+    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.close_issue_if_invalid.assert_not_called()
+    mock_it.get_attachment.assert_not_called()
+    external_testcase_reader.submit_testcase.assert_not_called()
 
-  def test_close_invalid_issue_basic(self):
-    """Test a basic _close_invalid_issue with valid flags."""
-    upload_request = mock.Mock()
+  def test_close_issue_if_not_reproducible_true(self):
+    """Test a basic close_issue_if_invalid with valid flags."""
+    external_testcase_reader.filed_one_day_ago = mock.MagicMock()
+    external_testcase_reader.filed_one_day_ago.return_value = True
+    self.mock_basic_issue.status = 'ACCEPTED'
+    self.assertEqual(
+        True,
+        external_testcase_reader.close_issue_if_not_reproducible(
+            self.mock_basic_issue))
+
+  def test_close_issue_if_invalid_basic(self):
+    """Test a basic close_issue_if_invalid with valid flags."""
     attachment_info = [BASIC_ATTACHMENT]
     description = '--flag-one --flag_two'
     self.assertEqual(
         False,
-        external_testcase_reader.close_invalid_issue(
-            upload_request, attachment_info, description))
+        external_testcase_reader.close_issue_if_invalid(
+            self.mock_basic_issue, attachment_info, description))
 
-  def test_close_invalid_issue_no_flag(self):
-    """Test a basic _close_invalid_issue with no flags."""
-    upload_request = mock.Mock()
+  def test_close_issue_if_invalid_no_flag(self):
+    """Test a basic close_issue_if_invalid with no flags."""
     attachment_info = [BASIC_ATTACHMENT]
     description = ''
     self.assertEqual(
         False,
-        external_testcase_reader.close_invalid_issue(
-            upload_request, attachment_info, description))
+        external_testcase_reader.close_issue_if_invalid(
+            self.mock_basic_issue, attachment_info, description))
 
-  def test_close_invalid_issue_too_many_attachments(self):
-    """Test _close_invalid_issue with too many attachments."""
-    upload_request = mock.Mock()
+  def test_close_issue_if_invalid_too_many_attachments(self):
+    """Test close_issue_if_invalid with too many attachments."""
     attachment_info = [BASIC_ATTACHMENT, BASIC_ATTACHMENT]
     description = ''
     self.assertEqual(
         True,
-        external_testcase_reader.close_invalid_issue(
-            upload_request, attachment_info, description))
+        external_testcase_reader.close_issue_if_invalid(
+            self.mock_basic_issue, attachment_info, description))
 
-  def test_close_invalid_issue_no_attachments(self):
-    """Test _close_invalid_issue with no attachments."""
-    upload_request = mock.Mock()
+  def test_close_issue_if_invalid_no_attachments(self):
+    """Test close_issue_if_invalid with no attachments."""
     attachment_info = []
     description = ''
     self.assertEqual(
         True,
-        external_testcase_reader.close_invalid_issue(
-            upload_request, attachment_info, description))
+        external_testcase_reader.close_issue_if_invalid(
+            self.mock_basic_issue, attachment_info, description))
 
-  def test_close_invalid_issue_invalid_upload(self):
-    """Test _close_invalid_issue with an invalid upload."""
-    upload_request = mock.Mock()
+  def test_close_issue_if_invalid_invalid_upload(self):
+    """Test close_issue_if_invalid with an invalid upload."""
     attachment_info = [{
         'attachmentId': '60127668',
         'contentType': 'application/octet-stream',
@@ -129,12 +148,11 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     description = ''
     self.assertEqual(
         True,
-        external_testcase_reader.close_invalid_issue(
-            upload_request, attachment_info, description))
+        external_testcase_reader.close_issue_if_invalid(
+            self.mock_basic_issue, attachment_info, description))
 
-  def test_close_invalid_issue_invalid_content_type(self):
-    """Test _close_invalid_issue with an invalid content type."""
-    upload_request = mock.Mock()
+  def test_close_issue_if_invalid_invalid_content_type(self):
+    """Test close_issue_if_invalid with an invalid content type."""
     attachment_info = [{
         'attachmentId': '60127668',
         'contentType': 'application/octet-stream',
@@ -148,5 +166,5 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     description = ''
     self.assertEqual(
         True,
-        external_testcase_reader.close_invalid_issue(
-            upload_request, attachment_info, description))
+        external_testcase_reader.close_issue_if_invalid(
+            self.mock_basic_issue, attachment_info, description))
