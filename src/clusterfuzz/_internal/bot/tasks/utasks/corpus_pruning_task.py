@@ -744,9 +744,10 @@ def _upload_corpus_crashes_zip(result: CorpusPruningResult,
 
 def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
+  # TODO(metzman): Fix this function after the holiday break.
   # if not output.corpus_pruning_task_output.crashes:
   return
-
+  # pylint: disable=unreachable
   corpus_pruning_output = output.corpus_pruning_task_output
   crash_revision = corpus_pruning_output.crash_revision
   fuzz_target = data_handler.get_fuzz_target(output.uworker_input.fuzzer_name)
