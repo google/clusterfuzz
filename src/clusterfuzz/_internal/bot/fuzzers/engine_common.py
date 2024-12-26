@@ -342,11 +342,6 @@ def get_issue_owners(fuzz_target_path):
   """
   owners_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
                                                       OWNERS_FILE_EXTENSION)
-
-  if environment.is_trusted_host():
-    owners_file_path = fuzzer_utils.get_file_from_untrusted_worker(
-        owners_file_path)
-
   if not os.path.exists(owners_file_path):
     return []
 
@@ -381,11 +376,6 @@ def get_issue_metadata(fuzz_target_path, extension):
   """Get issue metadata."""
   metadata_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
                                                         extension)
-
-  if environment.is_trusted_host():
-    metadata_file_path = fuzzer_utils.get_file_from_untrusted_worker(
-        metadata_file_path)
-
   if not os.path.exists(metadata_file_path):
     return []
 
@@ -409,11 +399,6 @@ def get_additional_issue_metadata(fuzz_target_path):
   will be a JSON-formatted dictionary."""
   metadata_file_path = fuzzer_utils.get_supporting_file(
       fuzz_target_path, METADATA_FILE_EXTENSION)
-
-  if environment.is_trusted_host():
-    metadata_file_path = fuzzer_utils.get_file_from_untrusted_worker(
-        metadata_file_path)
-
   if not os.path.exists(metadata_file_path):
     return {}
 
@@ -452,11 +437,6 @@ def get_fuzz_target_issue_metadata(fuzz_target):
   """Get issue related metadata given a testcase."""
   if fuzz_target is None:
     return None
-
-  if environment.is_trusted_host():
-    # Not applicable.
-    return None
-
   build_dir = environment.get_value('BUILD_DIR')
   target_path = find_fuzzer_path(build_dir, fuzz_target.binary)
   if not target_path:
