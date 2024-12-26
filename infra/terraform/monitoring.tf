@@ -17,12 +17,11 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
   display_name = "ClusterFuzz General Health"
   dashboard_json = <<JSON
 {
-  "displayName": "vitor-experimentation-sli",
+  "displayName": "Clusterfuzz Relability Metrics",
   "mosaicLayout": {
     "columns": 48,
     "tiles": [
       {
-        "xPos": 16,
         "yPos": 76,
         "width": 16,
         "height": 16,
@@ -59,7 +58,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 76,
+        "yPos": 108,
         "width": 16,
         "height": 16,
         "widget": {
@@ -95,8 +94,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "xPos": 32,
-        "yPos": 76,
+        "yPos": 140,
         "width": 16,
         "height": 16,
         "widget": {
@@ -175,7 +173,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 156,
+        "yPos": 172,
         "width": 48,
         "height": 4,
         "widget": {
@@ -389,140 +387,119 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 176,
+        "yPos": 192,
         "width": 16,
         "height": 16,
         "widget": {
+          "title": "Untriaged testcase age (p50 - hours)",
           "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
             "dataSets": [
               {
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "timeSeriesFilter": {
-                    "filter": "metric.type=\"custom.googleapis.com/issues/untriaged_testcase_age\" resource.type=\"gce_instance\"",
                     "aggregation": {
                       "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_DELTA",
                       "crossSeriesReducer": "REDUCE_PERCENTILE_50",
-                      "groupByFields": []
-                    }
-                  },
-                  "unitOverride": "",
-                  "outputFullDuration": false
-                },
-                "plotType": "LINE",
-                "legendTemplate": "",
-                "minAlignmentPeriod": "60s",
-                "targetAxis": "Y1",
-                "dimensions": [],
-                "measures": [],
-                "breakdowns": []
+                      "groupByFields": [
+                        "metric.label.\"step\""
+                      ],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "filter": "metric.type=\"custom.googleapis.com/issues/untriaged_testcase_age\" resource.type=\"gce_instance\""
+                  }
+                }
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
-            },
-            "chartOptions": {
-              "mode": "COLOR",
-              "showLegend": false,
-              "displayHorizontal": false
             }
-          },
-          "title": "Untriaged testcase age (p50 - hours)",
-          "id": ""
+          }
         }
       },
       {
         "xPos": 16,
-        "yPos": 176,
+        "yPos": 192,
         "width": 16,
         "height": 16,
         "widget": {
+          "title": "Untriaged testcase age (p95 - hours)",
           "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
             "dataSets": [
               {
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "timeSeriesFilter": {
-                    "filter": "metric.type=\"custom.googleapis.com/issues/untriaged_testcase_age\" resource.type=\"gce_instance\"",
                     "aggregation": {
                       "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_DELTA",
                       "crossSeriesReducer": "REDUCE_PERCENTILE_95",
-                      "groupByFields": []
-                    }
-                  },
-                  "unitOverride": "",
-                  "outputFullDuration": false
-                },
-                "plotType": "LINE",
-                "legendTemplate": "",
-                "minAlignmentPeriod": "60s",
-                "targetAxis": "Y1",
-                "dimensions": [],
-                "measures": [],
-                "breakdowns": []
+                      "groupByFields": [
+                        "metric.label.\"step\""
+                      ],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "filter": "metric.type=\"custom.googleapis.com/issues/untriaged_testcase_age\" resource.type=\"gce_instance\""
+                  }
+                }
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
-            },
-            "chartOptions": {
-              "mode": "COLOR",
-              "showLegend": false,
-              "displayHorizontal": false
             }
-          },
-          "title": "Untriaged testcase age (p95 - hours)",
-          "id": ""
+          }
         }
       },
       {
         "xPos": 32,
-        "yPos": 176,
+        "yPos": 192,
         "width": 16,
         "height": 16,
         "widget": {
+          "title": "Untriaged testcase age (p99 - hours)",
           "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
             "dataSets": [
               {
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "timeSeriesFilter": {
-                    "filter": "metric.type=\"custom.googleapis.com/issues/untriaged_testcase_age\" resource.type=\"gce_instance\"",
                     "aggregation": {
                       "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_DELTA",
                       "crossSeriesReducer": "REDUCE_PERCENTILE_99",
-                      "groupByFields": []
-                    }
-                  },
-                  "unitOverride": "",
-                  "outputFullDuration": false
-                },
-                "plotType": "LINE",
-                "legendTemplate": "",
-                "minAlignmentPeriod": "60s",
-                "targetAxis": "Y1",
-                "dimensions": [],
-                "measures": [],
-                "breakdowns": []
+                      "groupByFields": [
+                        "metric.label.\"step\""
+                      ],
+                      "perSeriesAligner": "ALIGN_DELTA"
+                    },
+                    "filter": "metric.type=\"custom.googleapis.com/issues/untriaged_testcase_age\" resource.type=\"gce_instance\""
+                  }
+                }
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
-            },
-            "chartOptions": {
-              "mode": "COLOR",
-              "showLegend": false,
-              "displayHorizontal": false
             }
-          },
-          "title": "Untriaged testcase age (p99 - hours)",
-          "id": ""
+          }
         }
       },
       {
@@ -630,13 +607,12 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "p50 preprocess duration by task",
+          "title": "p50 preprocess duration by task (seconds)",
           "id": ""
         }
       },
       {
-        "xPos": 16,
-        "yPos": 124,
+        "yPos": 92,
         "width": 16,
         "height": 16,
         "widget": {
@@ -667,13 +643,12 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "p50 utask_main duration by task",
+          "title": "p50 utask_main duration by task (seconds)",
           "id": ""
         }
       },
       {
-        "xPos": 32,
-        "yPos": 124,
+        "yPos": 156,
         "width": 16,
         "height": 16,
         "widget": {
@@ -704,12 +679,13 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "p50 postprocess duration by task",
+          "title": "p50 postprocess duration by task (seconds)",
           "id": ""
         }
       },
       {
-        "yPos": 140,
+        "xPos": 16,
+        "yPos": 124,
         "width": 16,
         "height": 16,
         "widget": {
@@ -740,13 +716,13 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "p95 preprocess duration by task",
+          "title": "p95 preprocess duration by task (seconds)",
           "id": ""
         }
       },
       {
         "xPos": 16,
-        "yPos": 140,
+        "yPos": 92,
         "width": 16,
         "height": 16,
         "widget": {
@@ -777,13 +753,13 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "p95 utask_main duration by task",
+          "title": "p95 utask_main duration by task (seconds)",
           "id": ""
         }
       },
       {
-        "xPos": 32,
-        "yPos": 140,
+        "xPos": 16,
+        "yPos": 156,
         "width": 16,
         "height": 16,
         "widget": {
@@ -814,12 +790,12 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "p95 postprocess duration by task",
+          "title": "p95 postprocess duration by task (seconds)",
           "id": ""
         }
       },
       {
-        "yPos": 160,
+        "yPos": 176,
         "width": 16,
         "height": 16,
         "widget": {
@@ -827,7 +803,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.50,\n  sum by (le, step) (\n    increase(custom_googleapis_com:uploaded_testcase_analysis_triage_duration_secs_bucket{\n      monitored_resource=\"gce_instance\",\n    }[1h])\n  )\n)",
+                  "prometheusQuery": "histogram_quantile(0.50,\n  sum by (le, step) (\n    increase(custom_googleapis_com:testcase_analysis_triage_duration_hours_bucket{\n      monitored_resource=\"gce_instance\",\n    }[1h])\n  )\n)\n\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -850,13 +826,13 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "Testcase triage duration (p50) - by step",
+          "title": "Testcase triage duration (p50 - hours) - by step",
           "id": ""
         }
       },
       {
         "xPos": 16,
-        "yPos": 160,
+        "yPos": 176,
         "width": 16,
         "height": 16,
         "widget": {
@@ -864,7 +840,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.90,\n  sum by (le, step) (\n    increase(custom_googleapis_com:uploaded_testcase_analysis_triage_duration_secs_bucket{\n      monitored_resource=\"gce_instance\",\n    }[1h])\n  )\n)",
+                  "prometheusQuery": "histogram_quantile(0.90,\n  sum by (le, step) (\n    increase(custom_googleapis_com:testcase_analysis_triage_duration_hours_bucket{\n      monitored_resource=\"gce_instance\",\n    }[1h])\n  )\n)\n\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -887,13 +863,13 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "Testcase triage duration (p90) - by step",
+          "title": "Testcase triage duration (p90 - hours) - by step",
           "id": ""
         }
       },
       {
         "xPos": 32,
-        "yPos": 160,
+        "yPos": 176,
         "width": 16,
         "height": 16,
         "widget": {
@@ -901,7 +877,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.95,\n  sum by (le, step) (\n    increase(custom_googleapis_com:uploaded_testcase_analysis_triage_duration_secs_bucket{\n      monitored_resource=\"gce_instance\",\n    }[1h])\n  )\n)",
+                  "prometheusQuery": "histogram_quantile(0.95,\n  sum by (le, step) (\n    increase(custom_googleapis_com:testcase_analysis_triage_duration_hours_bucket{\n      monitored_resource=\"gce_instance\",\n    }[1h])\n  )\n)\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -924,12 +900,12 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
               "displayHorizontal": false
             }
           },
-          "title": "Testcase triage duration (p95) - by step",
+          "title": "Testcase triage duration (p95 - hours) - by step",
           "id": ""
         }
       },
       {
-        "yPos": 208,
+        "yPos": 224,
         "width": 48,
         "height": 4,
         "widget": {
@@ -951,7 +927,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 212,
+        "yPos": 228,
         "width": 16,
         "height": 16,
         "widget": {
@@ -999,7 +975,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 16,
-        "yPos": 212,
+        "yPos": 228,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1036,7 +1012,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 32,
-        "yPos": 212,
+        "yPos": 228,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1083,7 +1059,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 232,
+        "yPos": 248,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1131,7 +1107,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 16,
-        "yPos": 232,
+        "yPos": 248,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1167,7 +1143,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 248,
+        "yPos": 264,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1204,7 +1180,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 32,
-        "yPos": 232,
+        "yPos": 248,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1252,7 +1228,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 16,
-        "yPos": 248,
+        "yPos": 264,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1289,7 +1265,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
       },
       {
         "xPos": 32,
-        "yPos": 248,
+        "yPos": 264,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1325,7 +1301,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 228,
+        "yPos": 244,
         "width": 48,
         "height": 4,
         "widget": {
@@ -1464,7 +1440,8 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 92,
+        "xPos": 16,
+        "yPos": 108,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1500,8 +1477,8 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "xPos": 16,
-        "yPos": 92,
+        "xPos": 32,
+        "yPos": 76,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1537,8 +1514,8 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "xPos": 32,
-        "yPos": 92,
+        "xPos": 16,
+        "yPos": 140,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1574,44 +1551,36 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
         }
       },
       {
-        "yPos": 192,
+        "yPos": 208,
         "width": 16,
         "height": 16,
         "widget": {
+          "title": "Untriaged testcase count (by status)",
           "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
             "dataSets": [
               {
-                "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (status)(last_over_time((custom_googleapis_com:issues_untriaged_testcase_count{monitored_resource=\"gce_instance\"}[2h])))\n",
-                  "unitOverride": "",
-                  "outputFullDuration": false
-                },
                 "plotType": "LINE",
-                "legendTemplate": "",
                 "targetAxis": "Y1",
-                "dimensions": [],
-                "measures": [],
-                "breakdowns": []
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (status)(last_over_time((custom_googleapis_com:issues_untriaged_testcase_count{monitored_resource=\"gce_instance\"}[1h])))\n",
+                  "unitOverride": ""
+                }
               }
             ],
             "thresholds": [],
             "yAxis": {
               "label": "",
               "scale": "LINEAR"
-            },
-            "chartOptions": {
-              "mode": "COLOR",
-              "showLegend": false,
-              "displayHorizontal": false
             }
-          },
-          "title": "Untriaged testcase count (by status)",
-          "id": ""
+          }
         }
       },
       {
         "xPos": 16,
-        "yPos": 108,
+        "yPos": 76,
         "width": 16,
         "height": 16,
         "widget": {
@@ -1619,7 +1588,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"error\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
+                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", task_succeeded=\"false\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },
@@ -1643,79 +1612,6 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             }
           },
           "title": "uworker_main overall failure rate (by task) - CAN BE DRILLED BY JOB",
-          "id": ""
-        }
-      },
-      {
-        "xPos": 32,
-        "yPos": 108,
-        "width": 16,
-        "height": 16,
-        "widget": {
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"maybe_retry\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
-                  "unitOverride": "%",
-                  "outputFullDuration": false
-                },
-                "plotType": "LINE",
-                "legendTemplate": "",
-                "targetAxis": "Y1",
-                "dimensions": [],
-                "measures": [],
-                "breakdowns": []
-              }
-            ],
-            "thresholds": [],
-            "yAxis": {
-              "label": "",
-              "scale": "LINEAR"
-            },
-            "chartOptions": {
-              "mode": "COLOR",
-              "showLegend": false,
-              "displayHorizontal": false
-            }
-          },
-          "title": "uworker_main overall retry rate (by task) - CAN BE DRILLED BY JOB",
-          "id": ""
-        }
-      },
-      {
-        "yPos": 108,
-        "width": 16,
-        "height": 16,
-        "widget": {
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", outcome=\"success\"}[${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[${__interval}]))",
-                  "unitOverride": "%",
-                  "outputFullDuration": false
-                },
-                "plotType": "LINE",
-                "legendTemplate": "",
-                "targetAxis": "Y1",
-                "dimensions": [],
-                "measures": [],
-                "breakdowns": []
-              }
-            ],
-            "thresholds": [],
-            "yAxis": {
-              "label": "",
-              "scale": "LINEAR"
-            },
-            "chartOptions": {
-              "mode": "COLOR",
-              "showLegend": false,
-              "displayHorizontal": false
-            }
-          },
-          "title": "uworker_main overall success rate (by task) - CAN BE DRILLED BY JOB",
           "id": ""
         }
       }
