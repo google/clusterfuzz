@@ -786,7 +786,7 @@ def timeout(duration):
       return func
 
     @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
+    def _wrapper(*args, **kwargs):  # pylint: disable=inconsistent-return-statements
       """Wrapper."""
       # FIXME: Weird exceptions in imports, might be something relating to our
       # reload module. Needs further investigation, try this as a temporary fix.

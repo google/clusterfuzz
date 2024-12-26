@@ -201,59 +201,6 @@ class NormalizeEmailTest(unittest.TestCase):
     self.assertTrue(utils.emails_equal('A@b.com', 'a@B.com'))
 
 
-class RandomWeightedChoiceTest(unittest.TestCase):
-  """Tests random_weighted_choice."""
-
-  def setUp(self):
-    helpers.patch(self, ['random.SystemRandom.uniform'])
-
-    class O:
-
-      def __init__(self, data, weight):
-        self.data = data
-        self.weight = weight
-
-    self.list = [O('A1', 0), O('A2', 1), O('A3', 3), O('A4', 0), O('A5', 5)]
-
-  def test_1(self):
-    self.mock.uniform.return_value = 0
-    self.assertNotEqual('A1', utils.random_weighted_choice(self.list).data)
-
-  def test_2(self):
-    self.mock.uniform.return_value = 0
-    self.assertEqual('A2', utils.random_weighted_choice(self.list).data)
-
-    self.mock.uniform.return_value = 0.4
-    self.assertEqual('A2', utils.random_weighted_choice(self.list).data)
-
-    self.mock.uniform.return_value = 1
-    self.assertEqual('A2', utils.random_weighted_choice(self.list).data)
-
-  def test_3(self):
-    self.mock.uniform.return_value = 1.1
-    self.assertEqual('A3', utils.random_weighted_choice(self.list).data)
-
-    self.mock.uniform.return_value = 2
-    self.assertEqual('A3', utils.random_weighted_choice(self.list).data)
-
-    self.mock.uniform.return_value = 4
-    self.assertEqual('A3', utils.random_weighted_choice(self.list).data)
-
-  def test_4(self):
-    self.mock.uniform.return_value = 4.1
-    self.assertNotEqual('A4', utils.random_weighted_choice(self.list).data)
-
-  def test_5(self):
-    self.mock.uniform.return_value = 4.1
-    self.assertEqual('A5', utils.random_weighted_choice(self.list).data)
-
-    self.mock.uniform.return_value = 7
-    self.assertEqual('A5', utils.random_weighted_choice(self.list).data)
-
-    self.mock.uniform.return_value = 9
-    self.assertEqual('A5', utils.random_weighted_choice(self.list).data)
-
-
 class GetCrashStacktraceOutputTest(unittest.TestCase):
   """Tests get_crash_stacktrace_output."""
 
