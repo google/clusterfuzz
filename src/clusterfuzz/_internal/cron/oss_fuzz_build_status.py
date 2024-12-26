@@ -22,6 +22,7 @@ import requests
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 
@@ -135,7 +136,7 @@ def get_build_time(build):
       stripped_timestamp.group(0), TIMESTAMP_FORMAT)
 
 
-def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
+def file_bug(issue_tracker, policy, project_name, build_id, ccs, build_type):
   """File a new bug for a build failure."""
   logs.info('Filing bug for new build failure (project=%s, build_type=%s, '
             'build_id=%s).' % (project_name, build_type, build_id))
@@ -144,8 +145,7 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
   issue.title = '{project_name}: {build_type} build failure'.format(
       project_name=project_name, build_type=build_type.capitalize())
   issue.body = _get_issue_body(project_name, build_id, build_type)
-  issue.status = 'New'
-  issue.labels.add('Proj-' + project_name)
+  issue.status = policy.status('new')
 
   for cc in ccs:
     issue.ccs.add(cc)
@@ -154,13 +154,13 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
   return str(issue.id)
 
 
-def close_bug(issue_tracker, issue_id, project_name):
+def close_bug(issue_tracker, policy, issue_id, project_name):
   """Close a build failure bug."""
   logs.info('Closing build failure bug (project=%s, issue_id=%s).' %
             (project_name, issue_id))
 
   issue = issue_tracker.get_original_issue(issue_id)
-  issue.status = 'Fixed'
+  issue.status = policy.status('verified')
   issue.save(
       new_comment='The latest build has succeeded, closing this issue.',
       notify=True)
@@ -184,6 +184,8 @@ def _close_fixed_builds(projects, build_type):
   if not issue_tracker:
     raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 
+  policy = issue_tracker_policy.get('oss-fuzz')
+
   for project in projects:
     project_name = project['name']
     builds = project['history']
@@ -205,7 +207,7 @@ def _close_fixed_builds(projects, build_type):
       continue
 
     if build_failure.issue_id is not None:
-      close_bug(issue_tracker, build_failure.issue_id, project_name)
+      close_bug(issue_tracker, policy, build_failure.issue_id, project_name)
 
     close_build_failure(build_failure)
 
@@ -215,6 +217,8 @@ def _process_failures(projects, build_type):
   issue_tracker = issue_tracker_utils.get_issue_tracker()
   if not issue_tracker:
     raise OssFuzzBuildStatusError('Failed to get issue tracker.')
+
+  policy = issue_tracker_policy.get('oss-fuzz')
 
   for project in projects:
     project_name = project['name']
@@ -255,7 +259,7 @@ def _process_failures(projects, build_type):
               'Project %s is disabled, skipping bug filing.' % project_name)
           continue
 
-        build_failure.issue_id = file_bug(issue_tracker, project_name,
+        build_failure.issue_id = file_bug(issue_tracker, policy, project_name,
                                           build['build_id'],
                                           oss_fuzz_project.ccs, build_type)
       elif (build_failure.consecutive_failures -
