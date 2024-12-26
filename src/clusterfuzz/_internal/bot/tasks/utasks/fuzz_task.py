@@ -513,16 +513,10 @@ def _last_sync_time(sync_file_path):
 class GcsCorpus:
   """Sync state for a corpus."""
 
-  def __init__(self, engine_name, project_qualified_target_name,
-               corpus_directory, data_directory, proto_corpus):
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import \
-          corpus_manager as remote_corpus_manager
-      self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
-          engine_name, project_qualified_target_name)
-    else:
-      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus.deserialize(
-          proto_corpus)
+  def __init__(self, project_qualified_target_name, corpus_directory,
+               data_directory, proto_corpus):
+    self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus.deserialize(
+        proto_corpus)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -530,13 +524,9 @@ class GcsCorpus:
     self._synced_files = set()
 
   def _walk(self):
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      yield from file_host.list_files(self._corpus_directory, recursive=True)
-    else:
-      for root, _, files in shell.walk(self._corpus_directory):
-        for filename in files:
-          yield os.path.join(root, filename)
+    for root, _, files in shell.walk(self._corpus_directory):
+      for filename in files:
+        yield os.path.join(root, filename)
 
   def _get_gcs_url(self):
     # TODO(https://github.com/google/clusterfuzz/issues/3726): Get rid of this
@@ -554,11 +544,6 @@ class GcsCorpus:
         self._data_directory, '.%s_sync' % self._project_qualified_target_name)
 
     # Get last time we synced corpus.
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
-      shell.remove_file(sync_file_path)
-      file_host.copy_file_from_worker(worker_sync_file_path, sync_file_path)
     last_sync_time = _last_sync_time(sync_file_path)
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
@@ -584,11 +569,6 @@ class GcsCorpus:
     # On success of rsync, update the last sync file with current timestamp.
     if result and self._synced_files and not already_synced:
       utils.write_data_to_file(time_before_sync_start, sync_file_path)
-
-      if environment.is_trusted_host():
-        from clusterfuzz._internal.bot.untrusted_runner import file_host
-        worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
-        file_host.copy_file_to_worker(sync_file_path, worker_sync_file_path)
 
     return result
 
@@ -1213,14 +1193,6 @@ def _add_issue_metadata_from_environment(metadata):
 def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                       testcase_directory):
   """Run engine for fuzzing."""
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    logs.info('Running remote engine fuzz.')
-    result = tasks_host.engine_fuzz(engine_impl, target_name,
-                                    sync_corpus_directory, testcase_directory)
-    logs.info('Done remote engine fuzz.')
-    return result
-
   logs.info('Worker engine fuzz.')
   build_dir = environment.get_value('BUILD_DIR')
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
@@ -1308,8 +1280,7 @@ class FuzzingSession:
   def sync_corpus(self, sync_corpus_directory):
     """Sync corpus from GCS."""
     # Corpus should always be set at this point.
-    self.gcs_corpus = GcsCorpus(self.fuzzer_name,
-                                self.fuzz_target.project_qualified_name(),
+    self.gcs_corpus = GcsCorpus(self.fuzz_target.project_qualified_name(),
                                 sync_corpus_directory, self.data_directory,
                                 self.uworker_input.fuzz_task_input.corpus)
     if not self.gcs_corpus.sync_from_gcs():
@@ -1318,13 +1289,7 @@ class FuzzingSession:
           (self.fuzz_target.project_qualified_name(), self.job_type))
 
   def _file_size(self, file_path):
-    """Return file size depending on whether file is local or remote (untrusted
-    worker)."""
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      stat_result = file_host.stat(file_path)
-      return stat_result.st_size if stat_result else None
-
+    """Return file size."""
     return os.path.getsize(file_path)
 
   def sync_new_corpus_files(self):
@@ -1434,10 +1399,6 @@ class FuzzingSession:
     # the device.
     if environment.is_android():
       android.device.push_testcases_to_device()
-
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      file_host.push_testcases_to_worker()
 
     fuzzer_metadata = get_fuzzer_metadata_from_output(fuzzer_output)
     _add_issue_metadata_from_environment(fuzzer_metadata)
@@ -1723,12 +1684,6 @@ class FuzzingSession:
 
       if thread_error_occurred:
         break
-
-    # Pull testcase directory to host. The testcase file contents could have
-    # been changed (by e.g. libFuzzer) and stats files could have been written.
-    if environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      file_host.pull_testcases_from_worker()
 
     # Currently, the decision to do fuzzing or running the testcase is based on
     # the value of |FUZZ_CORPUS_DIR|. Reset it to None, so that later runs of
