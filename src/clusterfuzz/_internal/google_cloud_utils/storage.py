@@ -14,6 +14,7 @@
 """Functions for managing Google Cloud Storage."""
 
 import collections
+from concurrent import futures
 import copy
 import datetime
 import json
@@ -1367,7 +1368,7 @@ def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
 def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  result = maybe_parallel_map(_sign_urls_for_existing_file, args)
+  result = parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1377,17 +1378,24 @@ def get_arbitrary_signed_upload_url(remote_directory):
       get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
 
 
-def maybe_parallel_map(func, arguments):
+def parallel_map(func, argument_list):
   """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
   will OOM."""
-  if not environment.is_tworker():
-    # TODO(b/metzman): When the rearch is done, internal google CF won't have
-    # tworkers, but maybe should be using parallel.
-    return map(func, arguments)
-
   max_size = 2
-  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
-    return pool.imap_unordered(func, arguments)
+  timeout = 120
+  with concurrency.make_pool(max_pool_size=max_size) as pool:
+    calls = {pool.submit(func, argument) for argument in argument_list}
+    while calls:
+      finished_calls, _ = futures.wait(
+          calls, timeout=timeout, return_when=futures.FIRST_COMPLETED)
+      if not finished_calls:
+        logs.error('No call completed.')
+        for call in calls:
+          call.cancel()
+        raise TimeoutError(f'Nothing completed within {timeout} seconds')
+      for call in finished_calls:
+        calls.remove(call)
+        yield call.result(timeout=timeout)
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
@@ -1406,6 +1414,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = maybe_parallel_map(get_signed_upload_url, urls)
+  result = parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
   return result
