@@ -15,6 +15,10 @@ variable "project_id" {
   description = "The project id"
 }
 
+variable "secondary_project_id" {
+  description = "Alternative project id, to accomodate the old chrome deployment"
+}
+
 variable "region" {
   description = "The region"
 }
