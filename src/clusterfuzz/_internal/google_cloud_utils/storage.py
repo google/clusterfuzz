@@ -1383,7 +1383,7 @@ def parallel_map(func, argument_list):
   will OOM."""
   max_size = 2
   timeout = 120
-  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
+  with concurrency.make_pool(max_pool_size=max_size) as pool:
     calls = {pool.submit(func, argument) for argument in argument_list}
     while calls:
       finished_calls, _ = futures.wait(
