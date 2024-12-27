@@ -516,6 +516,38 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
+class PubSubTTask(PubSubTask):
+  """TTask that won't repeat on timeout."""
+  TTASK_TIMEOUT = 15 * 60
+
+  @contextlib.contextmanager
+  def lease(self, _event=None):  # pylint: disable=arguments-differ
+    """Maintain a lease for the task."""
+    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
+        self.command, get_task_lease_timeout())
+
+    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
+    track_task_start(self, task_lease_timeout)
+    if _event is None:
+      _event = threading.Event()
+    if task.command != 'fuzz':
+      leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
+                                          task_lease_timeout)
+    else:
+      leaser_thread = _PubSubLeaserThread(
+          self._pubsub_message, _event, self.TTASK_TIMEOUT, ack_on_timeout=True)
+    leaser_thread.start()
+    try:
+      yield leaser_thread
+    finally:
+      _event.set()
+      leaser_thread.join()
+
+    # If we get here the task succeeded in running. Acknowledge the message.
+    self._pubsub_message.ack()
+    track_task_end()
+
+
 def get_task_from_message(message, can_defer=True) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
@@ -598,13 +630,18 @@ class _PubSubLeaserThread(threading.Thread):
 
   EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
 
-  def __init__(self, message, done_event, max_lease_seconds):
+  def __init__(self,
+               message,
+               done_event,
+               max_lease_seconds,
+               ack_on_timeout=False):
     super().__init__()
 
     self.daemon = True
     self._message = message
     self._done_event = done_event
     self._max_lease_seconds = max_lease_seconds
+    self._ack_on_timeout = ack_on_timeout
 
   def run(self):
     """Run the leaser thread."""
@@ -616,6 +653,9 @@ class _PubSubLeaserThread(threading.Thread):
         if time_left <= 0:
           logs.info('Lease reached maximum lease time of {} seconds, '
                     'stopping renewal.'.format(self._max_lease_seconds))
+          if self._ack_on_timeout:
+            logs.info('Acking on timeout')
+            self._message.ack()
           break
 
         extension_seconds = min(self.EXTENSION_TIME_SECONDS, time_left)
