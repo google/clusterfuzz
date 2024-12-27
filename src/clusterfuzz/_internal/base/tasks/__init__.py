@@ -518,7 +518,7 @@ class PubSubTask(Task):
 
 class PubSubTTask(PubSubTask):
   """TTask that won't repeat on timeout."""
-  TTASK_TIMEOUT = 15 * 60
+  TTASK_TIMEOUT = 30 * 60
 
   @contextlib.contextmanager
   def lease(self, _event=None):  # pylint: disable=arguments-differ
