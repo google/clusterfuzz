@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+provider "google" {
+  alias = "monitoring"
+  project = var.secondary_project_id
+  region  = var.region
+}
+
 resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
+  provider = google.monitoring
   dashboard_json = <<JSON
 {
   "displayName": "Clusterfuzz Relability Metrics",
