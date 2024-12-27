@@ -49,7 +49,7 @@ def make_pool(pool_size=POOL_SIZE, cpu_bound=False, max_pool_size=None):
     else:
       yield futures.ThreadPoolExecutor(pool_size)
   else:
-    yield multiprocessing.Pool(pool_size)
+    yield futures.ProcessPoolExecutor(pool_size)
 
 
 # TODO(metzman): Find out if batching makes things even faster.

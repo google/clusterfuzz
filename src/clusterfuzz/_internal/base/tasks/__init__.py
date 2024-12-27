@@ -322,7 +322,7 @@ def get_preprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0])
+  task = get_task_from_message(messages[0], task_cls=PubSubTTask)
   if task:
     logs.info('Pulled from preprocess queue.')
   return task
@@ -530,7 +530,7 @@ class PubSubTTask(PubSubTask):
     track_task_start(self, task_lease_timeout)
     if _event is None:
       _event = threading.Event()
-    if task.command != 'fuzz':
+    if self.command != 'fuzz':
       leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
                                           task_lease_timeout)
     else:
@@ -548,12 +548,13 @@ class PubSubTTask(PubSubTask):
     track_task_end()
 
 
-def get_task_from_message(message, can_defer=True) -> Optional[PubSubTask]:
+def get_task_from_message(message, can_defer=True,
+                          task_cls=None) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
   try:
-    task = initialize_task(message)
+    task = initialize_task(message, task_cls=task_cls)
   except KeyError:
     logs.error('Received an invalid task, discarding...')
     message.ack()
@@ -592,11 +593,13 @@ def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   return tasks
 
 
-def initialize_task(message) -> PubSubTask:
+def initialize_task(message, task_cls=None) -> PubSubTask:
   """Creates a task from |messages|."""
+  if task_cls is None:
+    task_cls = PubSubTask
 
   if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return PubSubTask(message)
+    return task_cls(message)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
