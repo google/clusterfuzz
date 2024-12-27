@@ -552,6 +552,8 @@ def _update_testcase(output):
   if analyze_task_output.platform_id:
     testcase.platform_id = analyze_task_output.platform_id
 
+  testcase.analyze_pending = False
+
   testcase.put()
 
 
