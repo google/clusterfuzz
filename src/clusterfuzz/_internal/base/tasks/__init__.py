@@ -322,7 +322,7 @@ def get_preprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0], task_cls=PubSubTTask)
+  task = get_task_from_message(messages[0])
   if task:
     logs.info('Pulled from preprocess queue.')
   return task
@@ -516,45 +516,12 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
-class PubSubTTask(PubSubTask):
-  """TTask that won't repeat on timeout."""
-  TTASK_TIMEOUT = 30 * 60
-
-  @contextlib.contextmanager
-  def lease(self, _event=None):  # pylint: disable=arguments-differ
-    """Maintain a lease for the task."""
-    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
-        self.command, get_task_lease_timeout())
-
-    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
-    track_task_start(self, task_lease_timeout)
-    if _event is None:
-      _event = threading.Event()
-    if self.command != 'fuzz':
-      leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
-                                          task_lease_timeout)
-    else:
-      leaser_thread = _PubSubLeaserThread(
-          self._pubsub_message, _event, self.TTASK_TIMEOUT, ack_on_timeout=True)
-    leaser_thread.start()
-    try:
-      yield leaser_thread
-    finally:
-      _event.set()
-      leaser_thread.join()
-
-    # If we get here the task succeeded in running. Acknowledge the message.
-    self._pubsub_message.ack()
-    track_task_end()
-
-
-def get_task_from_message(message, can_defer=True,
-                          task_cls=None) -> Optional[PubSubTask]:
+def get_task_from_message(message, can_defer=True) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
   try:
-    task = initialize_task(message, task_cls=task_cls)
+    task = initialize_task(message)
   except KeyError:
     logs.error('Received an invalid task, discarding...')
     message.ack()
@@ -593,13 +560,11 @@ def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   return tasks
 
 
-def initialize_task(message, task_cls=None) -> PubSubTask:
+def initialize_task(message) -> PubSubTask:
   """Creates a task from |messages|."""
-  if task_cls is None:
-    task_cls = PubSubTask
 
   if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return task_cls(message)
+    return PubSubTask(message)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
@@ -633,18 +598,13 @@ class _PubSubLeaserThread(threading.Thread):
 
   EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
 
-  def __init__(self,
-               message,
-               done_event,
-               max_lease_seconds,
-               ack_on_timeout=False):
+  def __init__(self, message, done_event, max_lease_seconds):
     super().__init__()
 
     self.daemon = True
     self._message = message
     self._done_event = done_event
     self._max_lease_seconds = max_lease_seconds
-    self._ack_on_timeout = ack_on_timeout
 
   def run(self):
     """Run the leaser thread."""
@@ -656,9 +616,6 @@ class _PubSubLeaserThread(threading.Thread):
         if time_left <= 0:
           logs.info('Lease reached maximum lease time of {} seconds, '
                     'stopping renewal.'.format(self._max_lease_seconds))
-          if self._ack_on_timeout:
-            logs.info('Acking on timeout')
-            self._message.ack()
           break
 
         extension_seconds = min(self.EXTENSION_TIME_SECONDS, time_left)
