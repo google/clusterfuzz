@@ -182,8 +182,15 @@ def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
 
 
 def get_batch_regions(batch_config):
-  mapping = batch_config.get('mapping')
-  return list(set(config['gce_region'] for config in mapping.values()))
+  fuzz_subconf_names = {
+      subconf['name'] for subconf in batch_config.get(
+          'mapping.LINUX-PREEMPTIBLE-UNPRIVILEGED.subconfigs')
+  }
+  subconfs = batch_config.get('subconfigs')
+  return list(
+      set(subconfs[subconf]['region']
+          for subconf in subconfs
+          if subconf in fuzz_subconf_names))
 
 
 def schedule_fuzz_tasks() -> bool:
