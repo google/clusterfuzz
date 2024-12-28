@@ -17,7 +17,6 @@ import unittest
 
 from clusterfuzz._internal.cron import schedule_fuzz
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -85,7 +84,6 @@ class TestGetAvailableCpusForRegion(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self,
                        ['clusterfuzz._internal.cron.schedule_fuzz._get_quotas'])
-    self.creds = credentials.get_default()
 
   def test_usage(self):
     """Tests that get_available_cpus_for_region handles usage properly."""
@@ -95,8 +93,7 @@ class TestGetAvailableCpusForRegion(unittest.TestCase):
         'usage': 2
     }]
     self.assertEqual(
-        schedule_fuzz.get_available_cpus_for_region(self.creds, 'project',
-                                                    'region'), 3)
+        schedule_fuzz.get_available_cpus_for_region('project', 'region'), 3)
 
   def test_cpus_and_preemptible_cpus(self):
     """Tests that get_available_cpus_for_region handles usage properly."""
@@ -110,5 +107,4 @@ class TestGetAvailableCpusForRegion(unittest.TestCase):
         'usage': 5
     }]
     self.assertEqual(
-        schedule_fuzz.get_available_cpus_for_region(self.creds, 'region',
-                                                    'project'), 5)
+        schedule_fuzz.get_available_cpus_for_region('region', 'project'), 5)

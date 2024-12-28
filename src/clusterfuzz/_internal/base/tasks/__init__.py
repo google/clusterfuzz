@@ -48,9 +48,7 @@ HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
 
-# The stated limit is 1000, but in reality meassages do not get delivered
-# around this limit. We should probably switch to the real client library.
-MAX_PUBSUB_MESSAGES_PER_REQ = 250
+MAX_PUBSUB_MESSAGES_PER_REQ = 1000
 
 # Various variables for task leasing and completion times (in seconds).
 TASK_COMPLETION_BUFFER = 90 * 60
