@@ -184,7 +184,8 @@ class FormatRecordTest(unittest.TestCase):
             'path': 'path',
             'line': 123,
             'method': 'func'
-        }
+        },
+        'clusterfuzz_version': 'PY_UNITTESTS'
     }, json.loads(logs.format_record(record)))
 
     self.mock.update_entry_with_exc.assert_called_once_with(
@@ -207,7 +208,8 @@ class FormatRecordTest(unittest.TestCase):
             'path': 'path',
             'line': 123,
             'method': 'func'
-        }
+        },
+        'clusterfuzz_version': 'PY_UNITTESTS'
     }, json.loads(logs.format_record(record)))
     self.mock.update_entry_with_exc.assert_called_once_with(
         mock.ANY, 'exc_info')
@@ -232,7 +234,8 @@ class FormatRecordTest(unittest.TestCase):
             'path': 'path',
             'line': 123,
             'method': 'func'
-        }
+        },
+        'clusterfuzz_version': 'PY_UNITTESTS'
     }, json.loads(logs.format_record(record)))
     self.mock.update_entry_with_exc.assert_called_once_with(
         mock.ANY, 'exc_info')
