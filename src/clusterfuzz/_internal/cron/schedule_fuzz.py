@@ -23,7 +23,6 @@ from typing import List
 from google.cloud import monitoring_v3
 from googleapiclient import discovery
 
-from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -242,7 +241,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   # Get total scheduled and queued.
   creds = credentials.get_default()[0]
   count_args = ((project, region) for region in regions)
-  with concurrency.make_pool() as pool:
+  with multiprocessing.Pool(2) as pool:
     # These calls are extremely slow (about 1 minute total).
     result = pool.starmap_async(  # pylint: disable=no-member
         batch.count_queued_or_scheduled_tasks, count_args)
