@@ -18,18 +18,20 @@ import unittest
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.google_cloud_utils import storage
 
-class TestErrorInList(unittest.TestCase):
 
-    def test_error_in_list(self):
-        try:
-            raise storage.ExpiredSignedUrlError(
-                'Expired token, failed to download uworker_input: https://google.com',
-                'https://google.com',
-                'Response text here'
-            )
-        except storage.ExpiredSignedUrlError as e:
-            self.assertTrue(errors.error_in_list(str(e), errors.BOT_ERROR_TERMINATION_LIST))
-    
-    def test_arbitrary_error(self):
-        """Tests proper handling of errors not in the list."""
-        self.assertFalse(errors.error_in_list('RuntimeError', errors.BOT_ERROR_TERMINATION_LIST))
+class TestErrorInList(unittest.TestCase):
+  """Tests error_in_list."""
+
+  def test_error_in_list(self):
+    try:
+      raise storage.ExpiredSignedUrlError(
+          'Expired token, failed to download uworker_input: https://google.com',
+          'https://google.com', 'Response text here')
+    except storage.ExpiredSignedUrlError as e:
+      self.assertTrue(
+          errors.error_in_list(str(e), errors.BOT_ERROR_TERMINATION_LIST))
+
+  def test_arbitrary_error(self):
+    """Tests proper handling of errors not in the list."""
+    self.assertFalse(
+        errors.error_in_list('RuntimeError', errors.BOT_ERROR_TERMINATION_LIST))
