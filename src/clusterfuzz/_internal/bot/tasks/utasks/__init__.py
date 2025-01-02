@@ -25,6 +25,7 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
@@ -324,7 +325,12 @@ def uworker_bot_main():
   """The entrypoint for a uworker."""
   logs.info('Starting utask_main on untrusted worker.')
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
-  uworker_main(input_download_url)
+  try:
+    uworker_main(input_download_url)
+  except storage.ExpiredSignedUrlError as e:
+    raise storage.ExpiredSignedUrlError(
+        f'Failed to download uworker_input: {e.url}. {e.response_text}', e.url,
+        e.response_text)
   return 0
 
 
