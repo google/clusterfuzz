@@ -278,25 +278,27 @@ def schedule_fuzz_tasks() -> bool:
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
   regions = get_batch_regions(batch_config)
-  while True:
-    start = time.time()
-    available_cpus = get_available_cpus(project, regions)
-    logs.error(f'{available_cpus} available CPUs.')
-    if not available_cpus:
-      continue
+  start = time.time()
+  available_cpus = get_available_cpus(project, regions)
+  logs.error(f'{available_cpus} available CPUs.')
+  if not available_cpus:
+    # Not clear if this should be False or True.
+    # TODO(metzman): Revisit this.
+    return False
 
-    fuzz_tasks = get_fuzz_tasks(available_cpus)
-    if not fuzz_tasks:
-      logs.error('No fuzz tasks found to schedule.')
-      continue
+  fuzz_tasks = get_fuzz_tasks(available_cpus)
+  if not fuzz_tasks:
+    logs.error('No fuzz tasks found to schedule.')
+    return False
 
-    logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
-    tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
-    logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
+  tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
+  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
-    end = time.time()
-    total = end - start
-    logs.info(f'Task scheduling took {total} seconds.')
+  end = time.time()
+  total = end - start
+  logs.info(f'Task scheduling took {total} seconds.')
+  return True
 
 
 def main():
