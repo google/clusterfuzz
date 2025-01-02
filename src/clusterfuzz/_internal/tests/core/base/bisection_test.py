@@ -82,6 +82,7 @@ class RequestBisectionTest(unittest.TestCase):
 
   def _test(self, sanitizer, old_commit='old', new_commit='new', repo_url=''):
     """Test task publication."""
+    assert 1 == 3
     bisection.request_bisection(self.testcase)
     publish_calls = self.mock.publish.call_args_list
     bisect_types = ('regressed', 'fixed')
