@@ -358,7 +358,7 @@ def count_queued_or_scheduled_tasks(project: str,
                                     region: str) -> Tuple[int, int]:
   """Counts the number of queued and scheduled tasks."""
   region = f'projects/{project}/locations/{region}'
-  jobs_filter = 'Status.State="SCHEDULED" OR Status.State="QUEUED"'
+  jobs_filter = 'status.state="SCHEDULED" OR status.state="QUEUED"'
   req = batch.types.ListJobsRequest(parent=region, filter=jobs_filter)
   queued = 0
   scheduled = 0

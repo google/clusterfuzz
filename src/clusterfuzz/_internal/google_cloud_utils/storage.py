@@ -1226,6 +1226,8 @@ def _download_url(url):
       if error == 'ExpiredToken':
         raise ExpiredSignedUrlError('Expired token for signed URL.', url,
                                     response.text)
+    except ExpiredSignedUrlError:
+      raise
     except:
       pass
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
