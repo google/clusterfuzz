@@ -358,13 +358,13 @@ def count_queued_or_scheduled_tasks(project: str,
                                     region: str) -> Tuple[int, int]:
   """Counts the number of queued and scheduled tasks."""
   region = f'projects/{project}/locations/{region}'
-  jobs_filter = 'status.state="SCHEDULED" OR status.state="QUEUED"'
+  jobs_filter = 'Status.State="SCHEDULED" OR Status.State="QUEUED"'
   req = batch.types.ListJobsRequest(parent=region, filter=jobs_filter)
   queued = 0
   scheduled = 0
   for job in _batch_client().list_jobs(request=req):
-    if job.status.state == 'SCHEDULED':
+    if job.status.state == batch.JobStatus.State.SCHEDULED:
       scheduled += job.task_groups[0].task_count
-    elif job.status.state == 'QUEUED':
+    elif job.status.state == batch.JobStatus.State.QUEUED:
       queued += job.task_groups[0].task_count
   return (queued, scheduled)
