@@ -530,8 +530,6 @@ def execute(args):
   _enforce_tests_pass()
   _enforce_safe_day_to_deploy()
 
-  assert False
-
   # Build templates before deployment.
   appengine.build_templates()
 
