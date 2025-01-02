@@ -334,8 +334,13 @@ def uworker_main(input_download_url) -> None:
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
   with _MetricRecorder(_Subtask.UWORKER_MAIN) as recorder:
-    uworker_input = uworker_io.download_and_deserialize_uworker_input(
-        input_download_url)
+    try:
+      uworker_input = uworker_io.download_and_deserialize_uworker_input(
+          input_download_url)
+    except storage.ExpiredSignedUrlError as e:
+      raise storage.ExpiredSignedUrlError(
+          'Expired token, failed to download uworker_input: '
+          f'{e.url}. {e.response_text}', e.url, e.response_text)
     uworker_output_upload_url = uworker_input.uworker_output_upload_url
     uworker_input.ClearField('uworker_output_upload_url')
 
@@ -376,12 +381,7 @@ def uworker_bot_main():
   """The entrypoint for a uworker."""
   logs.info('Starting utask_main on untrusted worker.')
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
-  try:
-    uworker_main(input_download_url)
-  except storage.ExpiredSignedUrlError as e:
-    raise storage.ExpiredSignedUrlError(
-        f'Failed to download uworker_input: {e.url}. {e.response_text}', e.url,
-        e.response_text)
+  uworker_main(input_download_url)
   return 0
 
 
