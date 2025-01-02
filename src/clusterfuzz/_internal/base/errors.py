@@ -27,7 +27,7 @@ BOT_ERROR_TERMINATION_LIST = [
     'interrupted function call',
     'out of memory',
     'systemexit:',
-    'Failed to download uworker_input, expired signed url',
+    'Expired token, failed to download uworker_input',
 ]
 
 
