@@ -217,7 +217,12 @@ def run_tests_parallel(pattern, unsuppress_output, test_directory,
     sys.exit(1)
 
 
-def run_tests(target, config_dir, verbose, pattern, unsuppress_output, parallel):
+def run_tests(target=None,
+              config_dir=None,
+              verbose=None,
+              pattern=None,
+              unsuppress_output=None,
+              parallel=None):
   """Run Python unit tests. For unittests involved appengine, sys.path needs
   certain modification."""
   os.environ['PY_UNITTESTS'] = 'True'
