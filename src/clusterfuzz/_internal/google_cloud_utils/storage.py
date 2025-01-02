@@ -25,6 +25,7 @@ import time
 from typing import List
 from typing import Tuple
 import uuid
+from xml.etree import ElementTree as ET
 
 import google.auth.exceptions
 from googleapiclient.discovery import build
@@ -33,6 +34,7 @@ import requests
 import requests.exceptions
 
 from clusterfuzz._internal.base import concurrency
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -1197,6 +1199,15 @@ def _integration_test_env_doesnt_support_signed_urls():
       'UNTRUSTED_RUNNER_TESTS')
 
 
+class ExpiredSignedUrlError(errors.Error):
+  """Expired Signed URL."""
+
+  def __init__(self, message, url=None, response_text=None):
+    super().__init__(message)
+    self.url = url
+    self.response_text = response_text
+
+
 # Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
     retries=1,
@@ -1207,11 +1218,19 @@ def _download_url(url):
   """Downloads |url| and returns the contents."""
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
-  request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
-  if not request.ok:
+  response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
+  if not response.ok:
+    try:
+      element_tree = ET.fromstring(response.text)
+      error = element_tree.find('Code').text
+      if error == 'ExpiredToken':
+        raise ExpiredSignedUrlError('Expired token for signed URL.', url,
+                                    response.text)
+    except:
+      pass
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
-                       (url, request.status_code, request.reason))
-  return request.content
+                       (url, response.status_code, response.text))
+  return response.content
 
 
 @retry.wrap(
