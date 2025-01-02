@@ -126,25 +126,27 @@ def run_one_test_parallel(args):
     raise
 
 
-def run_tests_single_core(args, test_directory, top_level_dir):
+def run_tests_single_core(pattern, unsuppress_output, test_directory,
+                          top_level_dir):
   """Run tests (single CPU)."""
   suites = unittest.loader.TestLoader().discover(
-      test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
+      test_directory, pattern=pattern, top_level_dir=top_level_dir)
 
   # TODO(mbarbella): Re-implement code coverage after migrating to Python 3.
   # Verbosity=2 since we want to see real-time test execution with test name
   # and result.
   result = TrackedTestRunner(
-      verbosity=2, buffer=not args.unsuppress_output).run(suites)
+      verbosity=2, buffer=not unsuppress_output).run(suites)
 
   if result.errors or result.failures:
     sys.exit(1)
 
 
-def run_tests_parallel(args, test_directory, top_level_dir):
+def run_tests_parallel(pattern, unsuppress_output, test_directory,
+                       top_level_dir):
   """Run tests (multiple CPUs)."""
   suites = unittest.loader.TestLoader().discover(
-      test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
+      test_directory, pattern=pattern, top_level_dir=top_level_dir)
 
   test_classes = []  # pylint: disable=protected-access
   for suite in suites:
@@ -181,7 +183,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
   tests_per_cpu = max(1, len(test_modules) // cpu_count)
   for i in range(0, len(test_modules), tests_per_cpu):
     group = test_modules[i:i + tests_per_cpu]
-    test_args.append((group, not args.unsuppress_output))
+    test_args.append((group, not unsuppress_output))
 
   results = pool.map_async(run_one_test_parallel, test_args)
 
@@ -215,7 +217,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
     sys.exit(1)
 
 
-def execute(args):
+def run_tests(target, config_dir, verbose, pattern, unsuppress_output, parallel):
   """Run Python unit tests. For unittests involved appengine, sys.path needs
   certain modification."""
   os.environ['PY_UNITTESTS'] = 'True'
@@ -235,7 +237,7 @@ def execute(args):
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join('.', 'configs', 'test')
 
   top_level_dir = os.path.join('src', 'clusterfuzz', '_internal')
-  if args.target == 'appengine':
+  if target == 'appengine':
     # Build template files.
     appengine.build_templates()
 
@@ -248,12 +250,12 @@ def execute(args):
         sys.path[i] = os.path.abspath(
             os.path.join('src', 'appengine', 'third_party'))
 
-  elif args.target == 'core':
+  elif target == 'core':
     test_directory = CORE_TEST_DIRECTORY
   else:
     # Config module tests.
-    os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
-    test_directory = os.path.join(args.config_dir, 'modules')
+    os.environ['CONFIG_DIR_OVERRIDE'] = config_dir
+    test_directory = os.path.join(config_dir, 'modules')
     top_level_dir = None
 
     # Modules may use libs from our App Engine directory.
@@ -269,17 +271,29 @@ def execute(args):
   # Needed for NDB to work with cloud datastore emulator.
   os.environ['DATASTORE_USE_PROJECT_ID_AS_APP_ID'] = 'true'
 
-  if args.verbose:
+  if verbose:
     # Force logging to console for this process and child processes.
     os.environ['LOG_TO_CONSOLE'] = 'True'
   else:
     # Disable logging.
     logging.disable(logging.CRITICAL)
 
-  if args.pattern is None:
-    args.pattern = '*_test.py'
+  if pattern is None:
+    pattern = '*_test.py'
 
-  if args.parallel:
-    run_tests_parallel(args, test_directory, top_level_dir)
+  if parallel:
+    run_tests_parallel(pattern, unsuppress_output, test_directory,
+                       top_level_dir)
   else:
-    run_tests_single_core(args, test_directory, top_level_dir)
+    run_tests_single_core(pattern, unsuppress_output, test_directory,
+                          top_level_dir)
+
+
+def execute(args):
+  run_tests(
+      target=args.target,
+      config_dir=args.config_dir,
+      verbose=args.verbose,
+      pattern=args.pattern,
+      unsuppress_output=args.unsuppress_output,
+      parallel=args.parallel)
