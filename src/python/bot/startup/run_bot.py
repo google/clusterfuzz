@@ -223,6 +223,7 @@ def main():
         clean_exit or errors.error_in_list(error_stacktrace,
                                            errors.BOT_ERROR_TERMINATION_LIST))
     if should_terminate:
+      logs.info('Not retrying.')
       return
 
     logs.error(
