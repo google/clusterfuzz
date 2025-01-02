@@ -30,6 +30,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.system import environment
 from libs import access
 from libs import auth
@@ -96,11 +97,12 @@ def cron():
       if not self.is_cron():
         raise helpers.AccessDeniedError('You are not a cron.')
 
-      result = func(self)
-      if result is None:
-        return 'OK'
+      with monitor.wrap_with_monitoring():
+        result = func(self)
+        if result is None:
+          return 'OK'
 
-      return result
+        return result
 
     return wrapper
 
