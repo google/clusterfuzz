@@ -2751,6 +2751,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_notreached_log_message(self):
+    """Tests Chromium NOTREACHED()s as CHECK failures."""
+    data = self._read_test_data('notreached_log_message.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'failed to open UTS46 data with error: U_FILE_ACCESS_ERROR. If you see this error\n'
+        'url::CreateIDNA\n'
+        'url::IDNToASCII\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_asan_container_overflow(self):
     """Test an ASan container overflow."""
     data = self._read_test_data('asan_container_overflow_read.txt')

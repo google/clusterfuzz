@@ -1,0 +1,52 @@
+[1201/130354.771719:FATAL:url_idna_icu.cc(58)] NOTREACHED hit. failed to open UTS46 data with error: U_FILE_ACCESS_ERROR. If you see this error message in a test environment your test environment likely lacks the required data tables for libicu. See https://crbug.com/778929.
+#0 0x7ab1dca041f2 base::debug::CollectStackTrace()
+#1 0x7ab1dc9d69fd base::debug::StackTrace::StackTrace()
+#2 0x7ab1dc847fd3 logging::LogMessage::~LogMessage()
+#3 0x7ab1dc849348 logging::LogMessage::~LogMessage()
+#4 0x7ab1dc810b84 logging::CheckError::~CheckError()
+#5 0x7ab1dbbdb465 url::(anonymous namespace)::CreateIDNA()
+#6 0x7ab1dbbdb2fa url::IDNToASCII()
+#7 0x7ab1dbbb9a31 url::(anonymous namespace)::DoIDNHost()
+#8 0x7ab1dbbb8ce1 url::(anonymous namespace)::DoComplexHost()
+#9 0x7ab1dbbb7b9f url::(anonymous namespace)::DoHost<>()
+#10 0x7ab1dbbb7adc url::CanonicalizeHost()
+#11 0x7ab1dbbca588 url::(anonymous namespace)::DoCanonicalizeStandardURL<>()
+#12 0x7ab1dbbca202 url::CanonicalizeStandardURL()
+#13 0x7ab1dbbd2e06 url::(anonymous namespace)::DoCanonicalize<>()
+#14 0x7ab1dbbd26be url::Canonicalize()
+#15 0x7ab1dbb9c9cf GURL::InitCanonical<>()
+#16 0x563f6f97750e privacy_sandbox::ParseAttestationsFromStream()
+#17 0x563f6f976306 LLVMFuzzerTestOneInput
+#18 0x563f6f99fbdc fuzzer::Fuzzer::ExecuteCallback()
+#19 0x563f6f98b720 fuzzer::RunOneTest()
+#20 0x563f6f990370 fuzzer::FuzzerDriver()
+#21 0x563f6f984b2b main
+#22 0x7ab1c6c42083 __libc_start_main
+#23 0x563f6f95eb4a _start
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==2282163==ERROR: UndefinedBehaviorSanitizer: TRAP on unknown address 0x000000000000 (pc 0x7ab1dc849177 bp 0x7ffc8f7379c0 sp 0x7ffc8f736920 T2282163)
+    #0 0x7ab1dc849177 in ImmediateCrash base/immediate_crash.h:146:3
+    #1 0x7ab1dc849177 in logging::LogMessage::~LogMessage() base/logging.cc:954:7
+    #2 0x7ab1dc849347 in logging::LogMessage::~LogMessage() base/logging.cc:699:27
+    #3 0x7ab1dc810b83 in logging::NotReachedError::~NotReachedError() base/check.cc:267:3
+    #4 0x7ab1dbbdb464 in url::(anonymous namespace)::CreateIDNA(bool) url/url_idna_icu.cc:58:5
+    #5 0x7ab1dbbdb2f9 in GetUIDNA url/url_idna_icu.cc:0
+    #6 0x7ab1dbbdb2f9 in url::IDNToASCII(std::__Cr::basic_string_view<char16_t, std::__Cr::char_traits<char16_t>>, url::CanonOutputT<char16_t>*) url/url_idna_icu.cc:97:18
+    #7 0x7ab1dbbb9a30 in url::(anonymous namespace)::DoIDNHost(char16_t const*, unsigned long, url::CanonOutputT<char>*) url/url_canon_host.cc:217:8
+    #8 0x7ab1dbbb8ce0 in url::(anonymous namespace)::DoComplexHost(char const*, unsigned long, bool, bool, url::CanonOutputT<char>*) url/url_canon_host.cc:318:10
+    #9 0x7ab1dbbb7b9e in void url::(anonymous namespace)::DoHost<char, unsigned char>(char const*, url::Component const&, url::CanonOutputT<char>*, url::CanonHostInfo*) url/url_canon_host.cc:393:7
+    #10 0x7ab1dbbb7adb in url::CanonicalizeHost(char const*, url::Component const&, url::CanonOutputT<char>*, url::Component*) url/url_canon_host.cc:424:3
+    #11 0x7ab1dbbca587 in bool url::(anonymous namespace)::DoCanonicalizeStandardURL<char, unsigned char>(url::URLComponentSource<char> const&, url::Parsed const&, url::SchemeType, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*) url/url_canon_stdurl.cc:57:16
+    #12 0x7ab1dbbca201 in url::CanonicalizeStandardURL(char const*, int, url::Parsed const&, url::SchemeType, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*) url/url_canon_stdurl.cc:152:10
+    #13 0x7ab1dbbd2e05 in bool url::(anonymous namespace)::DoCanonicalize<char>(char const*, int, bool, url::(anonymous namespace)::WhitespaceRemovalPolicy, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*) url/url_util.cc:283:15
+    #14 0x7ab1dbbd26bd in url::Canonicalize(char const*, int, bool, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*) url/url_util.cc:774:10
+    #15 0x7ab1dbb9c9ce in void GURL::InitCanonical<std::__Cr::basic_string_view<char, std::__Cr::char_traits<char>>, char>(std::__Cr::basic_string_view<char, std::__Cr::char_traits<char>>, bool) url/gurl.cc:76:15
+    #16 0x563f6f97750d in privacy_sandbox::ParseAttestationsFromStream(std::__Cr::basic_istream<char, std::__Cr::char_traits<char>>&) components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations_parser.cc:86:28
+    #17 0x563f6f976305 in TestOneProtoInput components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations_parser_proto_fuzzer.cc:29:3
+    #18 0x563f6f976305 in LLVMFuzzerTestOneInput components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations_parser_proto_fuzzer.cc:19:1
+    #19 0x563f6f99fbdb in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:614:13
+    #20 0x563f6f98b71f in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:327:6
+    #21 0x563f6f99036f in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:862:9
+    #22 0x563f6f984b2a in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #23 0x7ab1c6c42082 in __libc_start_main /build/glibc-BHL3KM/glibc-2.31/csu/libc-start.c:308:16
+    #24 0x563f6f95eb49 in _start
