@@ -268,7 +268,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
 
   # Don't schedule more than 10K tasks at once. So we don't overload batch.
   print('len_regions', len(regions))
-  available_cpus = min(available_cpus, 20_000 * len(regions))
+  available_cpus = min(available_cpus, 27_500 * len(regions))
   return available_cpus
 
 
