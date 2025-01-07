@@ -14,10 +14,15 @@
 """Centipede engine interface."""
 
 from collections import namedtuple
+import csv
 import os
 import pathlib
 import re
 import shutil
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -28,6 +33,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
+from clusterfuzz.stacktraces import constants as stacktraces_constants
 
 _CLEAN_EXIT_SECS = 10
 
@@ -72,8 +78,78 @@ def _set_sanitizer_options(fuzzer_path):
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
+def _parse_centipede_stats(
+    stats_file: str) -> Optional[Dict[str, Union[int, float]]]:
+  """Parses the Centipede stats file and returns a dictionary with labels
+  and their respective values.
+
+  Args:
+      stats_file: the path to Centipede stats file.
+
+  Returns:
+      a dictionary containing the stats.
+  """
+  try:
+    with open(stats_file, 'r') as statsfile:
+      csvreader = csv.reader(statsfile)
+      rows = list(csvreader)
+      # If the binary could not run at all, the file will be empty or with only
+      # the column description line.
+      if len(rows) <= 1:
+        return None
+      # The format we're parsing looks like this:
+      # NumCoveredPcs_Min,NumCoveredPcs_Max,NumCoveredPcs_Avg,NumExecs_Min,[...]
+      # 0,0,0,0,[...]
+      # 123,1233,43234,5433
+      # The stats a periodically dumped, hence there can be multiple lines. The
+      # stats are cumulative, so taking the last line will give us the latest
+      # numbers.
+      desc = rows[0][:-1]
+      latest_stats = rows[-1][:-1]
+
+      def to_number(x: str) -> Union[int, float]:
+        return int(x) if x.isdigit() else float(x)
+
+      return {desc[i]: to_number(latest_stats[i]) for i in range(0, len(desc))}
+  except Exception as e:
+    logs.error(f'Failed to parse centipede stats file: {str(e)}')
+    return None
+
+
+def _parse_centipede_logs(log_lines: List[str]) -> Dict[str, int]:
+  """Parses Centipede outputs and generates stats for it.
+
+  Args:
+      log_lines: the log lines.
+
+  Returns:
+      the stats.
+  """
+  stats = {
+      'crash_count': 0,
+      'timeout_count': 0,
+      'oom_count': 0,
+      'leak_count': 0,
+  }
+  for line in log_lines:
+    if re.search(stacktraces_constants.CENTIPEDE_TIMEOUT_REGEX, line):
+      stats['timeout_count'] = 1
+      continue
+    if re.search(stacktraces_constants.OUT_OF_MEMORY_REGEX, line):
+      stats['oom_count'] = 1
+      continue
+    if re.search(CRASH_REGEX, line):
+      stats['crash_count'] = 1
+      continue
+  return stats
+
+
 class Engine(engine.Engine):
   """Centipede engine implementation."""
+
+  def __init__(self):
+    super().__init__()
+    self.workdir = self._create_temp_dir('workdir')
 
   @property
   def name(self):
@@ -126,8 +202,7 @@ class Engine(engine.Engine):
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
-    workdir = self._create_temp_dir('workdir')
-    arguments[constants.WORKDIR_FLAGNAME] = str(workdir)
+    arguments[constants.WORKDIR_FLAGNAME] = str(self.workdir)
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
     arguments[constants.CORPUS_DIR_FLAGNAME] = corpus_dir
@@ -214,6 +289,7 @@ class Engine(engine.Engine):
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
+    log_lines = fuzz_result.output.splitlines()
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
@@ -224,8 +300,20 @@ class Engine(engine.Engine):
               str(reproducer_path), fuzz_result.output, [],
               int(fuzz_result.time_executed)))
 
-    # Stats report is not available in Centipede yet.
-    stats = None
+    stats_filename = f'fuzzing-stats-{os.path.basename(target_path)}.000000.csv'
+    stats_file = os.path.join(self.workdir, stats_filename)
+    stats = _parse_centipede_stats(stats_file)
+    if not stats:
+      stats = {}
+    actual_duration = int(
+        stats.get('FuzzTimeSec_Avg', fuzz_result.time_executed or 0.0))
+    fuzzing_time_percent = 100 * actual_duration / float(max_time)
+    stats.update({
+        'expected_duration': int(max_time),
+        'actual_duration': actual_duration,
+        'fuzzing_time_percent': fuzzing_time_percent,
+    })
+    stats.update(_parse_centipede_logs(log_lines))
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
@@ -412,10 +500,9 @@ class Engine(engine.Engine):
       TimeoutError: If the testcase minimization exceeds max_time.
     """
     runner = _get_runner(target_path)
-    workdir = self._create_temp_dir('workdir')
     args = [
         f'--binary={target_path}',
-        f'--workdir={workdir}',
+        f'--workdir={self.workdir}',
         f'--minimize_crash={input_path}',
         f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
         '--seed=1',
@@ -425,7 +512,7 @@ class Engine(engine.Engine):
       logs.warning(
           'Testcase minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
-    minimum_testcase = self._get_smallest_crasher(workdir)
+    minimum_testcase = self._get_smallest_crasher(self.workdir)
     if minimum_testcase:
       shutil.copyfile(minimum_testcase, output_path)
     else:
