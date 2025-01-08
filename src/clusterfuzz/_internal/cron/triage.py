@@ -98,7 +98,7 @@ def _is_bug_filed(testcase):
   return False
 
 
-def _is_blocking_progress(testcase):
+def _is_blocking_progress_android(testcase):
   """Checks the crash frequency if it is reported on libfuzzer"""
   if testcase.job_type.startswith('libfuzzer'):
     # Get crash statistics data on this unreproducible crash for last X days.
@@ -147,7 +147,7 @@ def _is_blocking_progress(testcase):
 
 def is_crash_important_android(testcase):
   """"Indicate if the android crash is important to file."""
-  if _is_blocking_progress(testcase):
+  if _is_blocking_progress_android(testcase):
     return True
   return False
 
