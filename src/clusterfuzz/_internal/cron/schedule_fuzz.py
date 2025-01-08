@@ -66,9 +66,10 @@ def count_unacked(creds, project_id, subscription_id):
   for result in results:
     if len(result.points) == 0:
       continue
-    result = int(result.points[0].value.int64_value)
+    size = int(result.points[0].value.int64_value)
     logs.info(f'Unacked in {subscription_id}: {result}')
-    return result
+    return size
+  return 0
 
 
 def get_available_cpus_for_region(creds, project: str, region: str) -> int:
