@@ -493,8 +493,7 @@ def main():
       else:
         _set_testcase_stuck_state(testcase, False)
         logs.info(
-            f'Skipping testcase {testcase_id}, since the crash is not important.'
-        )
+            f'Skipping testcase {testcase_id}, as the crash is not important.')
         continue
 
     # Require that all tasks like minimizaton, regression testing, etc have

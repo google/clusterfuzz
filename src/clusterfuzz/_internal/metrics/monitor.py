@@ -314,9 +314,8 @@ class Metric:
     for key, value in labels.items():
       metric.labels[key] = str(value)
 
-    if not environment.is_running_on_k8s():
-      bot_name = environment.get_value('BOT_NAME', None)
-      metric.labels['region'] = _get_region(bot_name)
+    bot_name = environment.get_value('BOT_NAME', None)
+    metric.labels['region'] = _get_region(bot_name)
 
     return metric
 
@@ -626,6 +625,9 @@ def metrics_store():
 
 def _get_region(bot_name):
   """Get bot region."""
+  if not bot_name:
+    return 'unknown'
+
   try:
     regions = local_config.MonitoringRegionsConfig()
   except errors.BadConfigError:
