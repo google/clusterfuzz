@@ -145,7 +145,10 @@ def wrap_with_monitoring():
   """Wraps execution so we flush metrics on exit"""
   try:
     initialize()
-    signal.signal(signal.SIGTERM, handle_sigterm)
+    # Signals can only be handled in the main thread/interpreter
+    # GAE crons do not satisfy this condition
+    if not environment.is_running_on_app_engine():
+      signal.signal(signal.SIGTERM, handle_sigterm)
     yield
   finally:
     stop()
