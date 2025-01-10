@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Corpus pruning task."""
-
 import collections
 import datetime
 import json
@@ -595,15 +594,11 @@ def _record_cross_pollination_stats(output):
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
-def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
+def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
-
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.do_corpus_pruning(uworker_input, context, revision)
 
   if not build_manager.setup_build(
       revision=revision, fuzz_target=context.fuzz_target.binary):
@@ -729,23 +724,7 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
       cross_pollination_stats=cross_pollination_stats)
 
 
-def _update_crash_unit_path(context, crash):
-  """If running on a trusted host, updates the crash unit_path after copying
-  the file locally."""
-  if not environment.is_trusted_host():
-    return
-  from clusterfuzz._internal.bot.untrusted_runner import file_host
-  unit_path = os.path.join(context.bad_units_path,
-                           os.path.basename(crash.unit_path))
-  # Prevent the worker from escaping out of |context.bad_units_path|.
-  if not file_host.is_directory_parent(unit_path, context.bad_units_path):
-    raise CorpusPruningError('Invalid units path from worker.')
-
-  file_host.copy_file_from_worker(crash.unit_path, unit_path)
-  crash.unit_path = unit_path
-
-
-def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
+def _upload_corpus_crashes_zip(result: CorpusPruningResult,
                                corpus_crashes_blob_name,
                                corpus_crashes_upload_url):
   """Packs the corpus crashes in a zip file. The file is then uploaded
@@ -754,7 +733,6 @@ def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
   zip_filename = os.path.join(temp_dir, corpus_crashes_blob_name)
   with zipfile.ZipFile(zip_filename, 'w') as zip_file:
     for crash in result.crashes:
-      _update_crash_unit_path(context, crash)
       unit_name = os.path.basename(crash.unit_path)
       zip_file.write(crash.unit_path, unit_name, zipfile.ZIP_DEFLATED)
 
@@ -766,9 +744,10 @@ def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
 
 def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
-  if not output.corpus_pruning_task_output.crashes:
-    return
-
+  # TODO(metzman): Fix this function after the holiday break.
+  # if not output.corpus_pruning_task_output.crashes:
+  return
+  # pylint: disable=unreachable
   corpus_pruning_output = output.corpus_pruning_task_output
   crash_revision = corpus_pruning_output.crash_revision
   fuzz_target = data_handler.get_fuzz_target(output.uworker_input.fuzzer_name)
@@ -1007,13 +986,14 @@ def utask_main(uworker_input):
 
   uworker_output = None
   try:
-    result = do_corpus_pruning(uworker_input, context, revision)
+    result = do_corpus_pruning(context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
-    _upload_corpus_crashes_zip(
-        context, result,
-        uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
-        uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
+    # TODO(metzman): Fix this issue.
+    # _upload_corpus_crashes_zip(
+    #     result,
+    #     uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
+    #     uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
     uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
         corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(  # pylint: disable=no-member
             coverage_info=_extract_coverage_information(context, result),

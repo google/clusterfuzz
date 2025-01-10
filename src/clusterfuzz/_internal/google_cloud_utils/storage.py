@@ -14,6 +14,7 @@
 """Functions for managing Google Cloud Storage."""
 
 import collections
+from concurrent import futures
 import copy
 import datetime
 import json
@@ -24,6 +25,7 @@ import time
 from typing import List
 from typing import Tuple
 import uuid
+from xml.etree import ElementTree as ET
 
 import google.auth.exceptions
 from googleapiclient.discovery import build
@@ -32,6 +34,7 @@ import requests
 import requests.exceptions
 
 from clusterfuzz._internal.base import concurrency
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -1096,7 +1099,8 @@ def get_blobs(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
+  for blob in _provider().list_blobs(
+      cloud_storage_path, recursive=recursive, names_only=True):
     yield blob['name']
 
 
@@ -1214,6 +1218,15 @@ def _integration_test_env_doesnt_support_signed_urls():
       'UNTRUSTED_RUNNER_TESTS')
 
 
+class ExpiredSignedUrlError(errors.Error):
+  """Expired Signed URL."""
+
+  def __init__(self, message, url=None, response_text=None):
+    super().__init__(message)
+    self.url = url
+    self.response_text = response_text
+
+
 # Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
     retries=1,
@@ -1224,11 +1237,21 @@ def _download_url(url):
   """Downloads |url| and returns the contents."""
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
-  request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
-  if not request.ok:
+  response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
+  if not response.ok:
+    try:
+      element_tree = ET.fromstring(response.text)
+      error = element_tree.find('Code').text
+      if error == 'ExpiredToken':
+        raise ExpiredSignedUrlError('Expired token for signed URL.', url,
+                                    response.text)
+    except ExpiredSignedUrlError:
+      raise
+    except:
+      pass
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
-                       (url, request.status_code, request.reason))
-  return request.content
+                       (url, response.status_code, response.text))
+  return response.content
 
 
 @retry.wrap(
@@ -1252,7 +1275,6 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_file(url, filepath):
-  # print('filepath', filepath)
   contents = download_signed_url(url)
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
@@ -1383,11 +1405,10 @@ def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
   return _sign_urls_for_existing_file(url, include_delete_urls)
 
 
-def sign_urls_for_existing_files(urls,
-                                 include_delete_urls) -> List[Tuple[str, str]]:
+def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  result = maybe_parallel_map(_sign_urls_for_existing_file, args)
+  result = parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
@@ -1397,21 +1418,27 @@ def get_arbitrary_signed_upload_url(remote_directory):
       get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
 
 
-def maybe_parallel_map(func, arguments):
+def parallel_map(func, argument_list):
   """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
   will OOM."""
-  if not environment.is_tworker():
-    # TODO(b/metzman): When the rearch is done, internal google CF won't have
-    # tworkers, but maybe should be using parallel.
-    return list(map(func, arguments))
-
   max_size = 2
-  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
-    return list(pool.map(func, arguments))
+  timeout = 120
+  with concurrency.make_pool(max_pool_size=max_size) as pool:
+    calls = {pool.submit(func, argument) for argument in argument_list}
+    while calls:
+      finished_calls, _ = futures.wait(
+          calls, timeout=timeout, return_when=futures.FIRST_COMPLETED)
+      if not finished_calls:
+        logs.error('No call completed.')
+        for call in calls:
+          call.cancel()
+        raise TimeoutError(f'Nothing completed within {timeout} seconds')
+      for call in finished_calls:
+        calls.remove(call)
+        yield call.result(timeout=timeout)
 
 
-def get_arbitrary_signed_upload_urls(remote_directory: str,
-                                     num_uploads: int) -> List[str]:
+def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
   # We don't verify there are no collisions for uuid4s because it's extremely
@@ -1427,6 +1454,6 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = maybe_parallel_map(get_signed_upload_url, urls)
+  result = parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
   return result

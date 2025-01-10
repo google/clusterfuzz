@@ -214,3 +214,6 @@ COMMAND_TYPES = {
     'uworker_main': UworkerMainTask,
     'variant': UTask,
 }
+
+for task in tasks.UTASKS:
+  assert COMMAND_TYPES[task] == UTask

@@ -663,21 +663,21 @@ def get_proto_corpus(bucket_name,
   # again.
   if max_download_urls is not None:
     urls = itertools.islice(urls, max_download_urls)
-  corpus_urls = dict(
-      storage.sign_urls_for_existing_files(urls, include_delete_urls))
-
+  corpus_urls = storage.sign_urls_for_existing_files(urls, include_delete_urls)
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
   corpus = uworker_msg_pb2.Corpus(  # pylint: disable=no-member
-      corpus_urls=corpus_urls,
-      upload_urls=upload_urls,
-      gcs_url=gcs_url,
-  )
+      gcs_url=gcs_url,)
   last_updated = _last_updated(_get_gcs_url(bucket_name, bucket_path))
   if last_updated:
     timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
     timestamp.FromDatetime(last_updated)
     corpus.last_updated_time.CopyFrom(timestamp)
+  # Iterate over imap_unordered results.
+  for upload_url in upload_urls:
+    corpus.upload_urls.append(upload_url)
+  for download_url, delete_url in corpus_urls:
+    corpus.corpus_urls[download_url] = delete_url
 
   return corpus
 

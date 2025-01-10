@@ -17,6 +17,7 @@ import unittest
 
 from clusterfuzz._internal.cron import schedule_fuzz
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -78,24 +79,27 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     self.assertListEqual(comparable_results, expected_results)
 
 
-class TestGetAvailableCpus(unittest.TestCase):
-  """Tests for get_available_cpus."""
+class TestGetAvailableCpusForRegion(unittest.TestCase):
+  """Tests for get_available_cpus_for_region."""
 
   def setUp(self):
     test_helpers.patch(self,
                        ['clusterfuzz._internal.cron.schedule_fuzz._get_quotas'])
+    self.creds = credentials.get_default()
 
   def test_usage(self):
-    """Tests that get_available_cpus handles usage properly."""
+    """Tests that get_available_cpus_for_region handles usage properly."""
     self.mock._get_quotas.return_value = [{
         'metric': 'PREEMPTIBLE_CPUS',
         'limit': 5,
         'usage': 2
     }]
-    self.assertEqual(schedule_fuzz.get_available_cpus('project', 'region'), 3)
+    self.assertEqual(
+        schedule_fuzz.get_available_cpus_for_region(self.creds, 'project',
+                                                    'region'), 3)
 
   def test_cpus_and_preemptible_cpus(self):
-    """Tests that get_available_cpus handles usage properly."""
+    """Tests that get_available_cpus_for_region handles usage properly."""
     self.mock._get_quotas.return_value = [{
         'metric': 'PREEMPTIBLE_CPUS',
         'limit': 5,
@@ -105,4 +109,6 @@ class TestGetAvailableCpus(unittest.TestCase):
         'limit': 5,
         'usage': 5
     }]
-    self.assertEqual(schedule_fuzz.get_available_cpus('region', 'project'), 5)
+    self.assertEqual(
+        schedule_fuzz.get_available_cpus_for_region(self.creds, 'region',
+                                                    'project'), 5)
