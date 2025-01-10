@@ -282,6 +282,38 @@ class CentipedeDefaults(BaseBuiltinFuzzerDefaults):
     super().__init__()
     self.name = 'centipede'
     self.key_id = 1342
+    # Use single quotes since the string ends in a double quote.
+    # pylint: disable=line-too-long
+    self.stats_column_descriptions = '''fuzzer: "Fuzz target"
+tests_executed: "Number of testcases executed during this time period"
+new_crashes: "Number of new unique crashes observed during this time period"
+edge_coverage: "Coverage for this fuzz target (number of edges/total)"
+cov_report: "Link to coverage report"
+corpus_size: "Size of the minimized corpus generated based on code coverage (number of testcases and total size on disk)"
+avg_exec_per_sec: "Average number of testcases executed per second"
+fuzzing_time_percent: "Percent of expected fuzzing time that is actually spent fuzzing."
+regular_crash_percent: "Percent of fuzzing runs that had regular crashes (other than ooms, leaks, timeouts, startup and bad instrumentation crashes)"
+oom_percent: "Percent of fuzzing runs that crashed on OOMs (should be 0)"
+leak_percent: "Percent of fuzzing runs that crashed on memory leaks (should be 0)"
+timeout_percent: "Percent of fuzzing runs that had testcases timeout (should be 0)"
+total_fuzzing_time_hrs: "Total time in hours for which the fuzzer(s) ran. Will be lower if fuzzer hits a crash frequently."
+logs: "Link to fuzzing logs"
+corpus_backup: "Backup copy of the minimized corpus generated based on code coverage"'''
+
+    self.stats_columns = """sum(t.number_of_executed_units) as tests_executed,
+custom(j.new_crashes) as new_crashes,
+_EDGE_COV as edge_coverage,
+_COV_REPORT as cov_report,
+_CORPUS_SIZE as corpus_size,
+avg(t.FuzzTimeSec_Avg / t.NumExecs_Avg) as avg_exec_per_sec,
+avg(t.fuzzing_time_percent) as fuzzing_time_percent,
+avg(t.crash_count*100) as regular_crash_percent,
+avg(t.oom_count*100) as oom_percent,
+avg(t.leak_count*100) as leak_percent,
+avg(t.timeout_count*100) as timeout_percent,
+sum(t.actual_duration/3600.0) as total_fuzzing_time_hrs,
+_FUZZER_RUN_LOGS as logs,
+_CORPUS_BACKUP as corpus_backup,"""
 
 
 def setup_config(non_dry_run):
