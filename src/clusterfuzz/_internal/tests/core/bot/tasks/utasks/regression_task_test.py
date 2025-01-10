@@ -627,10 +627,37 @@ class UtaskMainTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.get_task_completion_deadline',
         'clusterfuzz._internal.bot.tasks.setup.setup_testcase',
         'clusterfuzz._internal.build_management.build_manager.get_primary_bucket_path',
         'clusterfuzz._internal.build_management.build_manager.get_revisions_list',
+        'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
+        'time.time',
     ])
+
+    self.reproduces_in_revision = lambda revision: (True, None)
+    self.mock._testcase_reproduces_in_revision.side_effect = (
+        self._testcase_reproduces)
+
+    # Timeout in secs.
+    self.mock_time = 0.
+    self.deadline = 1.
+
+    self.mock.time.side_effect = lambda: self.mock_time
+    self.mock.get_task_completion_deadline.side_effect = lambda: self.deadline
+
+  def _testcase_reproduces(self,
+                           testcase,
+                           testcase_file_path,
+                           job_type,
+                           revision,
+                           fuzz_target,
+                           regression_task_output,
+                           should_log=True,
+                           min_revision=None,
+                           max_revision=None):
+    """Mock for `regression_task._testcase_reproduces_in_revision()`."""
+    return self.reproduces_in_revision(revision)
 
   def test_setup_error(self):
     """Verifies that if setting up the testcase fails, the task bails out."""
@@ -675,29 +702,6 @@ class UtaskMainTest(unittest.TestCase):
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
 
-  def test_min_revision_not_found(self):
-    """Verifies that if the minimum revision in the regression range is not
-    found, the task fails."""
-    testcase = test_utils.create_generic_testcase()
-    testcase.set_metadata('last_regression_min', 100)
-    uworker_input = uworker_msg_pb2.Input(
-        testcase_id=str(testcase.key.id()),
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        job_type='foo-job',
-        setup_input=uworker_msg_pb2.SetupInput(),
-        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
-    )
-
-    self.mock.setup_testcase.return_value = (None, None, None)
-    self.mock.get_revisions_list.return_value = [101]
-
-    output = regression_task.utask_main(uworker_input)
-
-    self.assertEqual(output.error_type,
-                     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
-    self.assertEqual(output.error_message,
-                     'Could not find good min revision <= 100.')
-
   def test_max_revision_not_found(self):
     """Verifies that if the maximum revision in the regression range is not
     found, the task fails."""
@@ -721,6 +725,276 @@ class UtaskMainTest(unittest.TestCase):
     self.assertEqual(output.error_message,
                      'Could not find good max revision >= 101.')
 
+  def test_success(self):
+    """Verifies that in the simple case where the testcase regressed once and
+    in the absence of bad builds, the task identifies the regression range.
+    """
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+    testcase.put()
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    self.reproduces_in_revision = lambda revision: (revision > 50, None)
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_message, "")
+    self.assertEqual(output.error_type, uworker_msg_pb2.ErrorType.NO_ERROR)
+
+    self.assertEqual(output.regression_task_output.regression_range_start, 50)
+    self.assertEqual(output.regression_task_output.regression_range_end, 52)
+
+  def test_min_revision_not_found(self):
+    """Verifies that if the minimum revision in the regression range is not
+    found, the task restarts the search for a minimum revision."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100  # put() called by set_metadata()
+    testcase.set_metadata('last_regression_max', 100)
+    testcase.set_metadata('last_regression_min', 10)
+    testcase.set_metadata('last_regression_next', 10)
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(20, 102, 2))
+
+    self.reproduces_in_revision = lambda revision: (revision > 50, None)
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_message, "")
+    self.assertEqual(output.error_type, uworker_msg_pb2.ErrorType.NO_ERROR)
+
+    self.assertEqual(output.regression_task_output.regression_range_start, 50)
+    self.assertEqual(output.regression_task_output.regression_range_end, 52)
+
+  def test_timeout_immediate(self):
+    """Verifies that regression task can time out before even starting the
+    search for a min revision. This is just a special case of the search being
+    interrupted midway.
+    """
+    # Deadline is already in the past.
+    self.deadline = 0.
+    self.mock_time = 1.
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+
+    # Keep these in sync with `UtaskPostprocessTest.test_timeout_immediate`.
+    self.assertEqual(output.regression_task_output.last_regression_max, 100)
+    self.assertEqual(output.regression_task_output.last_regression_next, 98)
+    self.assertFalse(
+        output.regression_task_output.HasField('last_regression_min'))
+
+  def test_timeout_min_search(self):
+    """Verifies that regression task can time out during the search for a min
+    revision.
+    """
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    def repros(revision):
+      # Time out after searching a few revision back.
+      if revision < 95:
+        self.mock_time = self.deadline + 1.
+
+      return revision > 50, None
+
+    self.reproduces_in_revision = repros
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+
+    # Keep these in sync with `test_resume_min_search` and
+    # `UtaskPostprocessTest.test_timeout_min_search`.
+    self.assertEqual(output.regression_task_output.last_regression_max, 92)
+    self.assertEqual(output.regression_task_output.last_regression_next, 84)
+    self.assertFalse(
+        output.regression_task_output.HasField('last_regression_min'))
+
+  def test_resume_min_search(self):
+    """Verifies that regression task can resume after a timed out search for
+    a min revision.
+    """
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    # Pick up where `test_resume_min_search` left off.
+    testcase.set_metadata('last_regression_max', 92)
+    testcase.set_metadata('last_regression_next', 84)
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    self.reproduces_in_revision = lambda revision: (revision > 50, None)
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_message, "")
+    self.assertEqual(output.error_type, uworker_msg_pb2.ErrorType.NO_ERROR)
+
+    self.assertEqual(output.regression_task_output.regression_range_start, 50)
+    self.assertEqual(output.regression_task_output.regression_range_end, 52)
+
+  def test_timeout_bisect(self):
+    """Verifies that regression task can time out during bisection.
+    """
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    def repros(revision):
+      if revision < 50:
+        # Time out after finding the min revision.
+        self.mock_time = self.deadline + 1.
+        return False, None
+
+      return True, None
+
+    self.reproduces_in_revision = repros
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+
+    # 68 = 100 - 32, 36 = 100 - 64
+    self.assertEqual(output.regression_task_output.last_regression_max, 68)
+    self.assertEqual(output.regression_task_output.last_regression_next, 36)
+    self.assertEqual(output.regression_task_output.last_regression_min, 36)
+
+  def test_resume_bisect(self):
+    """Verifies that regression task can resume after a timed out bisection.
+    """
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    # Pick up where `test_timeout_bisect` left off.
+    testcase.set_metadata('last_regression_max', 68)
+    testcase.set_metadata('last_regression_next', 36)
+    testcase.set_metadata('last_regression_min', 36)
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    self.reproduces_in_revision = lambda revision: (revision > 50, None)
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_message, "")
+    self.assertEqual(output.error_type, uworker_msg_pb2.ErrorType.NO_ERROR)
+
+    self.assertEqual(output.regression_task_output.regression_range_start, 50)
+    self.assertEqual(output.regression_task_output.regression_range_end, 52)
+
+  def test_skips_bad_builds(self):
+    """Verifies that regression task can succeed even if most builds are bad.
+    """
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+
+    def reproduces(revision):
+      if revision == 100:
+        return True, None
+      if revision == 50:
+        return False, None
+
+      # Literally ever other build is bad.
+      return False, uworker_msg_pb2.Output(
+          error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)
+
+    self.reproduces_in_revision = reproduces
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_message, "")
+    self.assertEqual(output.error_type, uworker_msg_pb2.ErrorType.NO_ERROR)
+
+    self.assertEqual(output.regression_task_output.regression_range_start, 50)
+    self.assertEqual(output.regression_task_output.regression_range_end, 100)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UtaskPostprocessTest(unittest.TestCase):
@@ -729,6 +1003,9 @@ class UtaskPostprocessTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
+        'clusterfuzz._internal.bot.tasks.task_creation.create_blame_task_if_needed',
+        'clusterfuzz._internal.bot.tasks.task_creation.create_impact_task_if_needed',
+        'clusterfuzz._internal.google_cloud_utils.big_query.write_range',
     ])
 
   def test_error_testcase_setup(self):
@@ -783,3 +1060,108 @@ class UtaskPostprocessTest(unittest.TestCase):
     testcase = testcase.key.get()
     self.assertEqual(testcase.regression, 'NA')
     self.assertRegex(testcase.comments, 'foo.$')
+
+  def test_timeout_min_search(self):
+    """Verifies that if the task timed out while searching for the min revision,
+    we reschedule it."""
+    testcase = test_utils.create_generic_testcase()
+    testcase_id = str(testcase.key.id())
+
+    # Output of `UtaskMainTest.test_timeout_min_search`.
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            testcase_id=testcase_id,
+            module_name=regression_task.__name__,
+            job_type='foo_job',
+        ),
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
+        regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
+            last_regression_max=92,
+            last_regression_next=84,
+        ),
+    )
+
+    regression_task.utask_postprocess(output)
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.regression, '')
+
+    self.assertEqual(testcase.get_metadata('last_regression_max'), 92)
+    self.assertEqual(testcase.get_metadata('last_regression_next'), 84)
+    self.assertIsNone(testcase.get_metadata('last_regression_min'))
+
+    self.mock.add_task.assert_called_once_with('regression', testcase_id,
+                                               'foo_job')
+
+    self.mock.write_range.assert_not_called()
+    self.mock.create_blame_task_if_needed.assert_not_called()
+    self.mock.create_impact_task_if_needed.assert_not_called()
+
+  def test_timeout_bisect(self):
+    """Verifies that if the task timed out while bisecting, we reschedule it."""
+    testcase = test_utils.create_generic_testcase()
+    testcase_id = str(testcase.key.id())
+
+    # Output of `UtaskMainTest.test_timeout_bisect`.
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            testcase_id=testcase_id,
+            module_name=regression_task.__name__,
+            job_type='foo_job',
+        ),
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
+        regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
+            last_regression_max=68,
+            last_regression_next=36,
+            last_regression_min=36,
+        ),
+    )
+
+    regression_task.utask_postprocess(output)
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.regression, '')
+
+    self.assertEqual(testcase.get_metadata('last_regression_max'), 68)
+    self.assertEqual(testcase.get_metadata('last_regression_next'), 36)
+    self.assertEqual(testcase.get_metadata('last_regression_min'), 36)
+
+    self.mock.add_task.assert_called_once_with('regression', testcase_id,
+                                               'foo_job')
+
+    self.mock.write_range.assert_not_called()
+    self.mock.create_blame_task_if_needed.assert_not_called()
+    self.mock.create_impact_task_if_needed.assert_not_called()
+
+  def test_success(self):
+    """Verifies that if the task succeeded, we store the regression range."""
+    testcase = test_utils.create_generic_testcase()
+
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
+        error_type=uworker_msg_pb2.ErrorType.NO_ERROR,
+        regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
+            regression_range_start=13,
+            regression_range_end=37,
+            last_regression_min=12,
+            last_regression_max=38,
+            last_regression_next=14,
+        ),
+    )
+
+    regression_task.utask_postprocess(output)
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.regression, '13:37')
+    self.assertRegex(testcase.comments, 'regressed in range 13:37.$')
+
+    self.assertEqual(testcase.get_metadata('last_regression_min'), 12)
+    self.assertEqual(testcase.get_metadata('last_regression_max'), 38)
+    self.assertEqual(testcase.get_metadata('last_regression_next'), 14)
+
+    self.mock.write_range.assert_called()
+
+    self.mock.create_blame_task_if_needed.assert_called()
+    self.mock.create_impact_task_if_needed.assert_called()
