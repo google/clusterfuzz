@@ -160,59 +160,6 @@ def _testcase_reproduces_in_revision(
   return result.is_crash(), None
 
 
-def check_latest_revisions(
-    testcase: data_types.Testcase,
-    testcase_file_path: str,
-    job_type: str,
-    revision_range: List[int],
-    fuzz_target: Optional[data_types.FuzzTarget],
-    output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
-) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
-  """Check if the regression happened near the last revision in a range.
-
-  Args:
-    testcase: Passed to `_testcase_reproduces_in_revision()`.
-    testcase_file_path: Passed to `_testcase_reproduces_in_revision()`.
-    job_type: Passed to `_testcase_reproduces_in_revision()`.
-    fuzz_target: Passed to `_testcase_reproduces_in_revision()`.
-    revision_range: The range of revisions in which to search. Must not be
-      empty. It is assumed that the last element / max revision is good and
-      crashes.
-    output: Output argument. Any bad builds encountered while searching for the
-      latest passing revision are appended to `build_data_list`.
-      See also below for values set in different return conditions.
-
-  Returns:
-    An output proto if the regression was found or in case of error.
-    None otherwise, in which case `output.last_regression_max` is set to the
-    lowest revision which reproduces the crash - at most `revision_range[-1]`.
-  """
-  output.last_regression_max = revision_range[-1]
-
-  for revision in reversed(revision_range[-EXTREME_REVISIONS_TO_TEST - 1:-1]):
-    # If we don't crash in a recent revision, we regressed in one of the
-    # commits between the current revision and the next.
-    is_crash, error = _testcase_reproduces_in_revision(
-        testcase, testcase_file_path, job_type, revision, output, fuzz_target)
-
-    if error:
-      # Skip this revision only on bad build errors.
-      if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
-        continue
-      return error
-
-    if not is_crash:
-      # We've found the latest passing revision, no need to binary search.
-      output.regression_range_start = revision
-      output.regression_range_end = output.last_regression_max
-      return uworker_msg_pb2.Output(regression_task_output=output)  # pylint: disable=no-member
-
-    output.last_regression_max = revision
-
-  # All most recent revisions crash.
-  return None
-
-
 def find_min_revision(
     testcase: data_types.Testcase,
     testcase_file_path: str,
