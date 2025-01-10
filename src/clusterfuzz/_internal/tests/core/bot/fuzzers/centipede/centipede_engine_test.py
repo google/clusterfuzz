@@ -328,6 +328,15 @@ class IntegrationTest(unittest.TestCase):
     # Check the prefix was trimmed.
     self.assertNotRegex(results.logs, 'CRASH LOG:.*')
 
+    self.assertIsNotNone(results.stats)
+
+    if content == 'oom':
+      self.assertEqual(results.stats['oom_count'], 1)
+    elif content == 'slo':
+      self.assertEqual(results.stats['timeout_count'], 1)
+    else:
+      self.assertEqual(results.stats['crash_count'], 1)
+
     # Check the correct input was saved.
     with open(crash.input_path) as f:
       self.assertEqual(content, f.read())

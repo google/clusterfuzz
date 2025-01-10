@@ -35,7 +35,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome\\{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"\\}[$\\{__interval\\}]))\n",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[$${__interval}]))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -71,7 +71,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome\\{monitored_resource=\"gce_instance\",subtask=\"preprocess\"\\}[$\\{__interval\\}]))\n",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"preprocess\"}[$${__interval}]))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -107,7 +107,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome\\{monitored_resource=\"gce_instance\",subtask=\"postprocess\"\\}[$\\{__interval\\}]))\n",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"postprocess\"}[$${__interval}]))\n",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -254,7 +254,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "topk(10, sum by (job)(rate(custom_googleapis_com:task_fuzz_job_total_time\\{monitored_resource=\"gce_instance\"\\}[$\\{__interval\\}])))",
+                  "prometheusQuery": "topk(10, sum by (job)(rate(custom_googleapis_com:task_fuzz_job_total_time{monitored_resource=\"gce_instance\"}[$${__interval}])))",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -291,7 +291,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "topk(10, sum by (fuzzer)(rate(custom_googleapis_com:task_fuzz_fuzzer_total_time\\{monitored_resource=\"gce_instance\"\\}[$\\{__interval\\}])))",
+                  "prometheusQuery": "topk(10, sum by (fuzzer)(rate(custom_googleapis_com:task_fuzz_fuzzer_total_time{monitored_resource=\"gce_instance\"}[$${__interval}])))",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -988,7 +988,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "100 * (sum by (method)(rate(storage_googleapis_com:api_request_count\\{monitored_resource=\"gcs_bucket\", response_code!=\"OK\"\\}[$\\{__interval\\}])) \n/\nsum by (method)(rate(storage_googleapis_com:api_request_count\\{monitored_resource=\"gcs_bucket\"\\}[$\\{__interval\\}])))",
+                  "prometheusQuery": "100 * (sum by (method)(rate(storage_googleapis_com:api_request_count{monitored_resource=\"gcs_bucket\", response_code!=\"OK\"}[$${__interval}])) \n/\nsum by (method)(rate(storage_googleapis_com:api_request_count{monitored_resource=\"gcs_bucket\"}[$${__interval}])))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },
@@ -1120,7 +1120,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": " 100 * sum by (api_method)(rate(datastore_googleapis_com:api_request_count\\{monitored_resource=\"datastore_request\", response_code!='OK'\\}[$\\{__interval\\}])) /\nsum by (api_method)(rate(datastore_googleapis_com:api_request_count\\{monitored_resource=\"datastore_request\"\\}[$\\{__interval\\}]))",
+                  "prometheusQuery": " 100 * sum by (api_method)(rate(datastore_googleapis_com:api_request_count{monitored_resource=\"datastore_request\", response_code!='OK'}[$${__interval}])) /\nsum by (api_method)(rate(datastore_googleapis_com:api_request_count{monitored_resource=\"datastore_request\"}[$${__interval}]))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },
@@ -1156,7 +1156,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.50,sum by (api_method,le)(increase(firestore_googleapis_com:api_request_latencies_bucket\\{monitored_resource=\"firestore.googleapis.com/Database\"\\}[$\\{__interval\\}])))",
+                  "prometheusQuery": "histogram_quantile(0.50,sum by (api_method,le)(increase(firestore_googleapis_com:api_request_latencies_bucket{monitored_resource=\"firestore.googleapis.com/Database\"}[$${__interval}])))",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -1241,7 +1241,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.90,sum by (api_method,le)(increase(firestore_googleapis_com:api_request_latencies_bucket\\{monitored_resource=\"firestore.googleapis.com/Database\"\\}[$\\{__interval\\}])))",
+                  "prometheusQuery": "histogram_quantile(0.90,sum by (api_method,le)(increase(firestore_googleapis_com:api_request_latencies_bucket{monitored_resource=\"firestore.googleapis.com/Database\"}[$${__interval}])))",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -1278,7 +1278,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.95,sum by (api_method,le)(increase(firestore_googleapis_com:api_request_latencies_bucket\\{monitored_resource=\"firestore.googleapis.com/Database\"\\}[$\\{__interval\\}])))",
+                  "prometheusQuery": "histogram_quantile(0.95,sum by (api_method,le)(increase(firestore_googleapis_com:api_request_latencies_bucket{monitored_resource=\"firestore.googleapis.com/Database\"}[$${__interval}])))",
                   "unitOverride": "",
                   "outputFullDuration": false
                 },
@@ -1454,7 +1454,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type\\{monitored_resource=\"gce_instance\",subtask=\"preprocess\", error_condition=\"UNHANDLED_EXCEPTION\"\\}[$\\{__interval\\}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type\\{monitored_resource=\"gce_instance\",subtask=\"preprocess\"\\}[$\\{__interval\\}]))",
+                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"preprocess\", error_condition=\"UNHANDLED_EXCEPTION\"}[$${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"preprocess\"}[$${__interval}]))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },
@@ -1491,7 +1491,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type\\{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", error_condition=\"UNHANDLED_EXCEPTION\"\\}[$\\{__interval\\}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type\\{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"\\}[$\\{__interval\\}]))",
+                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", error_condition=\"UNHANDLED_EXCEPTION\"}[$${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[$${__interval}]))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },
@@ -1528,7 +1528,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type\\{monitored_resource=\"gce_instance\", subtask=\"postprocess\", error_condition=\"UNHANDLED_EXCEPTION\"\\}[$\\{__interval\\}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type\\{monitored_resource=\"gce_instance\", subtask=\"postprocess\"\\}[$\\{__interval\\}]))",
+                  "prometheusQuery": "sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\", subtask=\"postprocess\", error_condition=\"UNHANDLED_EXCEPTION\"}[$${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome_by_error_type{monitored_resource=\"gce_instance\", subtask=\"postprocess\"}[$${__interval}]))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },
@@ -1593,7 +1593,7 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome\\{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", task_succeeded=\"false\"\\}[$\\{__interval\\}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome\\{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"\\}[$\\{__interval\\}]))",
+                  "prometheusQuery": "100 * sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\", task_succeeded=\"false\"}[$${__interval}]))\n/ sum by (task)(rate(custom_googleapis_com:task_outcome{monitored_resource=\"gce_instance\",subtask=\"uworker_main\"}[$${__interval}]))",
                   "unitOverride": "%",
                   "outputFullDuration": false
                 },

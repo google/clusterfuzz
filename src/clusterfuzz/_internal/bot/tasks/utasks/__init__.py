@@ -177,10 +177,11 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     # Get rid of job as a label, so we can have another metric to make
     # error conditions more explicit, respecting the 30k distinct
     # labels limit recommended by gcp.
-    trimmed_labels = self._labels
+    trimmed_labels = {
+        **self._labels, 'task_succeeded': task_succeeded,
+        'error_condition': error_condition
+    }
     del trimmed_labels['job']
-    trimmed_labels['task_succeeded'] = task_succeeded
-    trimmed_labels['error_condition'] = error_condition
     monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
         trimmed_labels)
 
