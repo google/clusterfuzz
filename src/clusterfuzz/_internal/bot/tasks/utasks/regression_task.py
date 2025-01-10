@@ -295,35 +295,18 @@ def find_min_revision(
     if next_index is None:
       next_index = 0
 
-  iterations = 0
-
-  print(f'Deadline: {deadline}')
   while True:
     # If we fall off the end of the revision list, try the earliest revision.
     # Note that if the earliest revision is bad, we will skip it and try the
     # next one. This will go on until we find the first good revision, at which
     # point we will stop looping.
     if next_index < 0:
-      print('Ran off')  # TODO: Remove
       next_index = 0
 
     next_revision = revision_list[next_index]
     regression_task_output.last_regression_next = next_revision
 
-    # TODO: Remove
-    print({
-        'next_index': next_index,
-        'next_revision': next_revision,
-        'max_index': max_index,
-        'last_max': regression_task_output.last_regression_max,
-        'revision_list': revision_list[:],
-    })
-    iterations += 1
-    if iterations > 100:
-      raise RuntimeError(iterations)
-
     if time.time() > deadline:
-      print('Timed out')
       return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
           error_message='Timed out searching for min revision. ' +
@@ -333,7 +316,6 @@ def find_min_revision(
 
     if next_index == max_index:
       # The first good build crashes, there is no min revision to be found.
-      print('First good build crashes')  # TODO: Remove
       regression_task_output.regression_range_start = 0
       regression_task_output.regression_range_end = next_revision
       return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -353,7 +335,6 @@ def find_min_revision(
       # Remove the revision from the list so we don't try using it again during
       # this run.
       if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
-        print(f'Skipping bad build r{next_revision}')  # TODO: Remove
         del revision_list[next_index]
         next_index -= 1
         max_index -= 1
@@ -396,7 +377,6 @@ def find_min_revision(
     # operates on indices and not revisions.
     distance = original_max_index - next_index
     next_index -= distance
-    print('Doubling distance')  # TODO: Remove
 
 
 def validate_regression_range(
