@@ -69,12 +69,7 @@ def _save_current_regression_range_indices(
   if task_output.HasField('last_regression_max'):
     last_regression_max = task_output.last_regression_max
 
-  last_regression_next = None
-  if task_output.HasField('last_regression_next'):
-    last_regression_next = task_output.last_regression_next
-
-  if (last_regression_min is None and last_regression_max is None and
-      last_regression_next is None):
+  if last_regression_min is None and last_regression_max is None:
     return  # Optimization to avoid useless load/put.
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -84,9 +79,6 @@ def _save_current_regression_range_indices(
 
   testcase.set_metadata(
       'last_regression_max', last_regression_max, update_testcase=False)
-
-  testcase.set_metadata(
-      'last_regression_next', last_regression_next, update_testcase=False)
 
   testcase.put()
 
@@ -168,7 +160,6 @@ def find_min_revision(
     deadline: float,
     revision_list: List[int],
     max_index: int,
-    next_revision: Optional[int],
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Attempts to find a min revision to start bisecting from. Such a revision
@@ -185,8 +176,6 @@ def find_min_revision(
     max_index: The index of the known max revision for bisection. Must be a
       valid index within `revision_list`. It is assumed that the testcase
       reproduces at the pointed-to revision.
-    next_revision: The next revision at which to continue searching backwards
-      for a min revision. Can be used to resume execution after timing out.
     regression_task_output: Output argument. Any bad builds encountered while
       searching for the earliest good build are appended to `build_data_list`.
       See also below for values set in different return conditions.
@@ -205,7 +194,6 @@ def find_min_revision(
 
         regression_task_output.last_regression_min is set
         regression_task_output.last_regression_max is set
-        regression_task_output.last_regression_next is cleared
 
     b. If no such revision can be found - i.e. the earliest good revision X
       still reproduces the testcase:
@@ -227,7 +215,6 @@ def find_min_revision(
         output.error_type = REGRESSION_TIMED_OUT
         output.regression_task_output = regression_task_output
         output.regression_task_output.last_regression_max is set
-        output.regression_task_output.last_regression_next is set
 
     d. If another error occurred:
 
@@ -238,24 +225,60 @@ def find_min_revision(
         output.error_type indicates the error that occurred
         output.regression_task_output = regression_task_output
         output.regression_task_output.last_regression_max is set
-        output.regression_task_output.last_regression_next is set
 
   """
-  # Save this value so we can calculate exponential distances correctly even if
-  # we find earlier builds that reproduce.
-  original_max_index = max_index
+  assert max_index >= 0, max_index
+  assert max_index < len(revision_list), max_index
 
-  if next_revision is None:
-    # Start from the top.
+  # Note that we search exponentially through the indices in the revision list,
+  # not through the revisions themselves. If revisions are fairly evenly
+  # distributed, then this distinction is irrelevant. If however there are large
+  # irregular gaps in between revisions, this might appear a bit strange at a
+  # glance. Consider:
+  #
+  #   Revisions:    1, 2, 3, 4, 5, 50, 51, 127, 128
+  #   Search order: 4           3       2    1
+  #
+  #   Appears as trying: 127, 51, 5, 1
+  #   Instead of:        127, 126, 124, 120, 112, 96, 64, 1
+  #
+  # Both would work, but searching through indices in the revision list is both
+  # easier to express in code and more efficient since what we care about is
+  # searching through revisions that we *can* test against, not through all
+  # revisions in the source code.
+  #
+  # The later bisection stage (once we have found a min revision) similarly
+  # operates on indices and not revisions.
+
+  # Find the index of the original crashing revision so that we can keep
+  # doubling the step size in our exponential search backwards.
+  crash_index = revisions.find_max_revision_index(revision_list,
+                                                  testcase.crash_revision)
+  if crash_index is None:
+    # If the crash revision is no longer in the revision list, nor does there
+    # exist any later revision, just use the last revision in the list instead.
+    # This will reduce the step size for our exponential search by as little as
+    # possible.
+    crash_index = len(revision_list) - 1
+
+  if max_index == crash_index:
+    # Starting from scratch.
     next_index = max_index - 1
+  elif crash_index > max_index:
+    # Double the distance to the original crash index.
+    distance = crash_index - max_index
+    next_index = max_index - distance
   else:
-    # Find the index of `next_revision`, or the next earlier revision's index
-    # if `next_revision` does not exist anymore.
-    next_index = revisions.find_min_revision_index(revision_list, next_revision)
+    # If `max_index` is higher than `crash_index`, this means that in some
+    # previous iteration the original crash revision could not be found, so a
+    # higher revision was used instead, *and* we timed out before we could
+    # search below `crash_revision`. Now, for some reason, the crash revision is
+    # found again, so just use it and restart from scratch.
+    max_index = crash_index
+    next_index = max_index - 1
 
-    # If there is no good revision <= next_revision, use the earliest revision.
-    if next_index is None:
-      next_index = 0
+  assert next_index < max_index, (next_index, max_index)
+  assert max_index <= crash_index, (max_index, crash_index)
 
   while True:
     # If we fall off the end of the revision list, try the earliest revision.
@@ -263,9 +286,14 @@ def find_min_revision(
     # next one. This will go on until we find the first good revision, at which
     # point we will stop looping.
     next_index = max(next_index, 0)
-
     next_revision = revision_list[next_index]
-    regression_task_output.last_regression_next = next_revision
+
+    if next_index == max_index:
+      # The first good build crashes, there is no min revision to be found.
+      regression_task_output.regression_range_start = 0
+      regression_task_output.regression_range_end = next_revision
+      return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+          regression_task_output=regression_task_output)
 
     if time.time() > deadline:
       return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -273,13 +301,6 @@ def find_min_revision(
           error_message='Timed out searching for min revision. ' +
           f'Current max: r{regression_task_output.last_regression_max}, ' +
           f'next revision: r{next_revision}',
-          regression_task_output=regression_task_output)
-
-    if next_index == max_index:
-      # The first good build crashes, there is no min revision to be found.
-      regression_task_output.regression_range_start = 0
-      regression_task_output.regression_range_end = next_revision
-      return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
           regression_task_output=regression_task_output)
 
     is_crash, error = _testcase_reproduces_in_revision(
@@ -306,7 +327,6 @@ def find_min_revision(
 
     if not is_crash:
       # We found a suitable min revision, success!
-      regression_task_output.ClearField('last_regression_next')
       regression_task_output.last_regression_min = next_revision
       return next_index, max_index, None
 
@@ -316,28 +336,12 @@ def find_min_revision(
 
     # Continue exponential search backwards. Double the distance (in indices)
     # from our start point.
-    #
-    # Note that this means we search exponentially through the indices in the
-    # revision list, not through the revisions themselves. If revisions are
-    # fairly evenly distributed, then this distinction is irrelevant. If however
-    # there are large irregular gaps in between revisions, this might appear a
-    # bit strange at a glance. Consider:
-    #
-    #   Revisions:    1, 2, 3, 4, 5, 50, 51, 127, 128
-    #   Search order: 4           3       2    1
-    #
-    #   Appears as trying: 127, 51, 5, 1
-    #   Instead of:        127, 126, 124, 120, 112, 96, 64, 1
-    #
-    # Both would work, but searching through indices in the revision list is
-    # both easier to express in code and more efficient since what we care
-    # about is searching through revisions that we *can* test against, not
-    # through all revisions in the source code.
-    #
-    # The later bisection stage (once we have found a min revision) similarly
-    # operates on indices and not revisions.
-    distance = original_max_index - next_index
+    distance = crash_index - next_index
     next_index -= distance
+
+    # Assert forward progress.
+    # Note that `max_index` stores the previous value of `next_index`.
+    assert distance >= 0, (distance, crash_index, max_index)
 
 
 def validate_regression_range(
@@ -407,45 +411,28 @@ def find_regression_range(
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
   max_revision = testcase.get_metadata('last_regression_max')
-  next_revision = testcase.get_metadata('last_regression_next')
 
   logs.info('Build set up, starting search for regression range. State: ' +
             f'crash_revision = {testcase.crash_revision}, ' +
             f'max_revision = {max_revision}, ' +
-            f'min_revision = {min_revision}, ' +
-            f'next_revision = {next_revision}. ')
+            f'min_revision = {min_revision}.')
 
   if max_revision is None:
     logs.info('Starting search for min revision from scratch.')
 
-    if min_revision is not None or next_revision is not None:
+    if min_revision is not None:
       logs.error('Inconsistent regression state: ' +
-                 'resetting min_revision and next_revision to None.')
+                 'resetting min_revision to None.')
       min_revision = None
-      next_revision = None
 
   elif min_revision is None:
     # max_revision is not None.
     logs.info('Resuming search for min revision.')
 
-    if next_revision is None:
-      logs.error('Inconsistent regression state: missing next_revision. ' +
-                 'Restarting search from scratch.')
-
   else:
     # max_revision and min_revision are not None.
     logs.info('Resuming bisection.')
 
-    if next_revision is not None:
-      logs.error('Inconsistent regression state. ' +
-                 'Resetting next_revision to None.')
-      next_revision = None
-
-  # Notice that regardless of whether `max_revision` was None or not, if
-  # `min_revision` is None then we should search exponentially backwards. Even
-  # though we are overwriting `max_revision` here, `next_revision` will tell us
-  # whether we should start from scratch or whether we should pick up where we
-  # left off.
   if not max_revision:
     max_revision = testcase.crash_revision
 
@@ -501,7 +488,7 @@ def find_regression_range(
   if not min_index:
     min_index, max_index, output = find_min_revision(
         testcase, testcase_file_path, job_type, fuzz_target, deadline,
-        revision_list, max_index, next_revision, regression_task_output)
+        revision_list, max_index, regression_task_output)
     if output:
       # Either we encountered an error, or there is no good revision and the
       # regression range is `0:revision_list[0]`.
