@@ -291,7 +291,7 @@ def find_min_revision(
 
   iterations = 0
 
-  while time.time() < deadline:
+  while True:
     # If we fall off the end of the revision list, try the earliest revision.
     # Note that if the earliest revision is bad, we will skip it and try the
     # next one. This will go on until we find the first good revision, at which
@@ -314,6 +314,12 @@ def find_min_revision(
     iterations += 1
     if iterations > 20:
       raise RuntimeError(iterations)
+
+    if time.time() > deadline:
+      print('Timed out')
+      return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
+          regression_task_output=regression_task_output)
 
     if next_index == max_index:
       # The first good build crashes, there is no min revision to be found.
@@ -380,10 +386,6 @@ def find_min_revision(
     distance = original_max_index - next_index
     next_index -= distance
     print('Doubling distance')  # TODO: Remove
-
-  return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
-      error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
-      regression_task_output=regression_task_output)
 
 
 def validate_regression_range(
