@@ -459,6 +459,9 @@ def _is_safe_deploy_day():
 
 
 def _enforce_tests_pass():
+  config = local_config.Config()
+  if not config.get('project.enforce_tests_before_deploy', False):
+    return
   py_unittest.run_tests(target='core', parallel=True)
   py_unittest.run_tests(target='appengine', parallel=True)
 
