@@ -648,6 +648,8 @@ def handle_regression_build_setup_error(output: uworker_msg_pb2.Output):  # pyli
       wait_time=build_fail_wait)
 
 
+# TODO: Delete this once all uworkers are past
+#   https://github.com/google/clusterfuzz/pull/3934.
 def handle_regression_bad_build_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   # Though bad builds when narrowing the range are recoverable, certain builds
   # being marked as bad may be unrecoverable. Recoverable ones should not
