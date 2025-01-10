@@ -291,6 +291,7 @@ def find_min_revision(
 
   iterations = 0
 
+  print(f'Deadline: {deadline}')
   while True:
     # If we fall off the end of the revision list, try the earliest revision.
     # Note that if the earliest revision is bad, we will skip it and try the
@@ -312,7 +313,7 @@ def find_min_revision(
         'revision_list': revision_list[:],
     })
     iterations += 1
-    if iterations > 20:
+    if iterations > 100:
       raise RuntimeError(iterations)
 
     if time.time() > deadline:
