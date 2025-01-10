@@ -326,6 +326,9 @@ def find_min_revision(
       print('Timed out')
       return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
+          error_message='Timed out searching for min revision. ' +
+          f'Current max: r{regression_task_output.last_regression_max}, ' +
+          f'next revision: r{next_revision}',
           regression_task_output=regression_task_output)
 
     if next_index == max_index:

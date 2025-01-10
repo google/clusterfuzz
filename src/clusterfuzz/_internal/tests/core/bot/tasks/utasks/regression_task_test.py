@@ -359,7 +359,7 @@ class TestFindMinRevision(unittest.TestCase):
         error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR))
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    regression_task_output.last_regression_max = self.revision_list[-1]
+    regression_task_output.last_regression_max = 22
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, deadline, self.revision_list,
         len(self.revision_list) - 1, None, regression_task_output)
@@ -370,12 +370,14 @@ class TestFindMinRevision(unittest.TestCase):
     self.assertIsNotNone(output)
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+    self.assertEqual(
+        output.error_message, 'Timed out searching for min revision. ' +
+        'Current max: r22, next revision: r12')
 
     self.assertFalse(
         output.regression_task_output.HasField('last_regression_min'))
-    self.assertGreater(output.regression_task_output.last_regression_next, 1)
-    self.assertEqual(output.regression_task_output.last_regression_max,
-                     self.revision_list[-1])
+    self.assertEqual(output.regression_task_output.last_regression_next, 12)
+    self.assertEqual(output.regression_task_output.last_regression_max, 22)
 
   def test_resume(self):
     """Ensures that `find_min_revision` can continue after a timeout."""
@@ -811,6 +813,9 @@ class UtaskMainTest(unittest.TestCase):
 
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+    self.assertEqual(
+        output.error_message, 'Timed out searching for min revision. ' +
+        'Current max: r100, next revision: r98')
 
     # Keep these in sync with `UtaskPostprocessTest.test_timeout_immediate`.
     self.assertEqual(output.regression_task_output.last_regression_max, 100)
@@ -849,6 +854,9 @@ class UtaskMainTest(unittest.TestCase):
 
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+    self.assertEqual(
+        output.error_message, 'Timed out searching for min revision. ' +
+        'Current max: r92, next revision: r84')
 
     # Keep these in sync with `test_resume_min_search` and
     # `UtaskPostprocessTest.test_timeout_min_search`.
@@ -920,6 +928,7 @@ class UtaskMainTest(unittest.TestCase):
 
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
+    self.assertEqual(output.error_message, 'Timed out, current range r36:r68')
 
     # Keep these in sync with `test_resume_bisect` and
     # `test_timeout_restart_min_search`.
@@ -1071,7 +1080,6 @@ class UtaskMainTest(unittest.TestCase):
 
     output = regression_task.utask_main(uworker_input)
 
-    self.assertEqual(output.error_message, "")
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
 
@@ -1109,7 +1117,6 @@ class UtaskMainTest(unittest.TestCase):
 
     output = regression_task.utask_main(uworker_input)
 
-    self.assertEqual(output.error_message, "")
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
 
@@ -1147,7 +1154,6 @@ class UtaskMainTest(unittest.TestCase):
 
     output = regression_task.utask_main(uworker_input)
 
-    self.assertEqual(output.error_message, "")
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
 
@@ -1189,7 +1195,6 @@ class UtaskMainTest(unittest.TestCase):
 
     output = regression_task.utask_main(uworker_input)
 
-    self.assertEqual(output.error_message, 'Timed out, current range r36:r64')
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
 
@@ -1279,6 +1284,7 @@ class UtaskPostprocessTest(unittest.TestCase):
             job_type='foo_job',
         ),
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
+        error_message='foo error',
         regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
             last_regression_max=92,
             last_regression_next=84,
@@ -1289,6 +1295,7 @@ class UtaskPostprocessTest(unittest.TestCase):
 
     testcase = testcase.key.get()
     self.assertEqual(testcase.regression, '')
+    self.assertRegex(testcase.comments, 'foo error.$')
 
     self.assertEqual(testcase.get_metadata('last_regression_max'), 92)
     self.assertEqual(testcase.get_metadata('last_regression_next'), 84)
@@ -1319,6 +1326,7 @@ class UtaskPostprocessTest(unittest.TestCase):
             job_type='foo_job',
         ),
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
+        error_message='foo error',
         regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
             last_regression_max=52,
             last_regression_min=40,
@@ -1329,6 +1337,7 @@ class UtaskPostprocessTest(unittest.TestCase):
 
     testcase = testcase.key.get()
     self.assertEqual(testcase.regression, '')
+    self.assertRegex(testcase.comments, 'foo error.$')
 
     self.assertEqual(testcase.get_metadata('last_regression_max'), 52)
     self.assertEqual(testcase.get_metadata('last_regression_min'), 40)
@@ -1354,6 +1363,7 @@ class UtaskPostprocessTest(unittest.TestCase):
             job_type='foo_job',
         ),
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
+        error_message='foo error',
         regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
             last_regression_max=68,
             last_regression_next=36,
@@ -1365,6 +1375,7 @@ class UtaskPostprocessTest(unittest.TestCase):
 
     testcase = testcase.key.get()
     self.assertEqual(testcase.regression, '')
+    self.assertRegex(testcase.comments, 'foo error.$')
 
     self.assertEqual(testcase.get_metadata('last_regression_max'), 68)
     self.assertEqual(testcase.get_metadata('last_regression_next'), 36)
