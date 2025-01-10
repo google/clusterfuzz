@@ -300,8 +300,7 @@ def find_min_revision(
     # Note that if the earliest revision is bad, we will skip it and try the
     # next one. This will go on until we find the first good revision, at which
     # point we will stop looping.
-    if next_index < 0:
-      next_index = 0
+    next_index = max(next_index, 0)
 
     next_revision = revision_list[next_index]
     regression_task_output.last_regression_next = next_revision
