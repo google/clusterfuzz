@@ -119,10 +119,12 @@ class TestFindMinRevision(unittest.TestCase):
 
     # Keep a dummy test case. Values are not important, but we need an id.
     self.testcase = data_types.Testcase()
+    self.testcase.crash_revision = 128
     self.testcase.put()
 
-    self.revision_list = [1, 2, 5, 8, 9, 12, 15, 19, 21, 22]
+    self.revision_list = list(range(2, 130, 2))  # [2, 4, 6, ..., 126, 128]
     self.reproduces_in_revision = lambda revision: (True, None)
+    self.reproduces_calls = []
     self.mock._testcase_reproduces_in_revision.side_effect = (
         self._testcase_reproduces)
 
@@ -137,6 +139,7 @@ class TestFindMinRevision(unittest.TestCase):
                            min_revision=None,
                            max_revision=None):
     """Mock for `regression_task._testcase_reproduces_in_revision()`."""
+    self.reproduces_calls.append(revision)
     return self.reproduces_in_revision(revision)
 
   def test_regressed_at_min_revision(self):
@@ -147,13 +150,16 @@ class TestFindMinRevision(unittest.TestCase):
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
-        len(self.revision_list) - 1, None, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(min_index)
     self.assertIsNone(max_index)
+
     self.assertIsNotNone(output)
     self.assertEqual(output.regression_task_output.regression_range_start, 0)
-    self.assertEqual(output.regression_task_output.regression_range_end, 1)
+    self.assertEqual(output.regression_task_output.regression_range_end, 2)
+
+    self.assertEqual(self.reproduces_calls, [126, 124, 120, 112, 96, 64, 2])
 
   def test_regressed_at_min_good_revision(self):
     """Ensures that `find_min_revision` returns a result if we reproduce
@@ -173,25 +179,29 @@ class TestFindMinRevision(unittest.TestCase):
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
-        len(self.revision_list) - 1, None, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(min_index)
     self.assertIsNone(max_index)
+
     self.assertIsNotNone(output)
     self.assertEqual(output.regression_task_output.regression_range_start, 0)
-    self.assertEqual(output.regression_task_output.regression_range_end, 12)
+    self.assertEqual(output.regression_task_output.regression_range_end, 10)
+
+    self.assertEqual(self.reproduces_calls,
+                     [126, 124, 120, 112, 96, 64, 2, 4, 6, 8, 10])
 
   def test_regressed_in_middle(self):
     """Ensures that `find_min_revision` finds a min revision that does not
     crash in the simple case when all revisions are good.
     """
-    self.reproduces_in_revision = lambda revision: (revision > 10, None)
+    self.reproduces_in_revision = lambda revision: (revision > 64, None)
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
-        len(self.revision_list) - 1, None, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(output)
 
@@ -199,12 +209,13 @@ class TestFindMinRevision(unittest.TestCase):
     min_revision = self.revision_list[min_index]
     max_revision = self.revision_list[max_index]
 
-    self.assertLess(min_revision, 10)
-    self.assertGreater(max_revision, 10)
+    self.assertEqual(max_revision, 96)
+    self.assertEqual(min_revision, 64)
 
     self.assertEqual(regression_task_output.last_regression_min, min_revision)
     self.assertEqual(regression_task_output.last_regression_max, max_revision)
-    self.assertFalse(regression_task_output.HasField('last_regression_next'))
+
+    self.assertEqual(self.reproduces_calls, [126, 124, 120, 112, 96, 64])
 
   def test_skips_bad_builds(self):
     """Ensures that `find_min_revision` skips over all bad builds. If all
@@ -212,7 +223,7 @@ class TestFindMinRevision(unittest.TestCase):
     """
 
     def repros(revision):
-      if revision == 1:
+      if revision == 2:
         return False, None
 
       return False, uworker_msg_pb2.Output(
@@ -225,7 +236,7 @@ class TestFindMinRevision(unittest.TestCase):
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
-        len(self.revision_list) - 1, None, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(output)
 
@@ -233,12 +244,14 @@ class TestFindMinRevision(unittest.TestCase):
     min_revision = self.revision_list[min_index]
     max_revision = self.revision_list[max_index]
 
-    self.assertEqual(min_revision, 1)
-    self.assertEqual(max_revision, 22)
+    self.assertEqual(min_revision, 2)
+    self.assertEqual(max_revision, 128)
 
-    self.assertEqual(regression_task_output.last_regression_min, 1)
-    self.assertEqual(regression_task_output.last_regression_max, 22)
-    self.assertFalse(regression_task_output.HasField('last_regression_next'))
+    self.assertEqual(regression_task_output.last_regression_min, 2)
+    self.assertEqual(regression_task_output.last_regression_max, 128)
+
+    # We try all revisions in reverse order.
+    self.assertEqual(self.reproduces_calls, list(range(126, 0, -2)))
 
   def test_revisions_all_bad(self):
     """Ensures that `find_min_revision` identifies that the max
@@ -251,14 +264,17 @@ class TestFindMinRevision(unittest.TestCase):
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
-        len(self.revision_list) - 1, None, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(min_index)
     self.assertIsNone(max_index)
 
     self.assertIsNotNone(output)
     self.assertEqual(output.regression_task_output.regression_range_start, 0)
-    self.assertEqual(output.regression_task_output.regression_range_end, 22)
+    self.assertEqual(output.regression_task_output.regression_range_end, 128)
+
+    # We try all revisions in reverse order.
+    self.assertEqual(self.reproduces_calls, list(range(126, 0, -2)))
 
   def test_timeout(self):
     """Ensures that `find_min_revision` stops after its deadline."""
@@ -277,10 +293,10 @@ class TestFindMinRevision(unittest.TestCase):
         error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR))
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    regression_task_output.last_regression_max = 22
+    regression_task_output.last_regression_max = 128
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, deadline, self.revision_list,
-        len(self.revision_list) - 1, None, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(min_index)
     self.assertIsNone(max_index)
@@ -290,36 +306,27 @@ class TestFindMinRevision(unittest.TestCase):
                      uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR)
     self.assertEqual(
         output.error_message, 'Timed out searching for min revision. ' +
-        'Current max: r22, next revision: r12')
+        'Current max: r128, next revision: r120')
 
     self.assertFalse(
         output.regression_task_output.HasField('last_regression_min'))
-    self.assertEqual(output.regression_task_output.last_regression_next, 12)
-    self.assertEqual(output.regression_task_output.last_regression_max, 22)
+    self.assertEqual(output.regression_task_output.last_regression_max, 128)
+
+    self.assertEqual(self.reproduces_calls, [126, 124, 122])
 
   def test_resume(self):
     """Ensures that `find_min_revision` can continue after a timeout."""
-
-    def reproduces(revision):
-      # If we attempt to reproduces at a higher revision than where we left off,
-      # return an error that makes the whole regression attempt fail.
-      if revision > 10:
-        return False, uworker_msg_pb2.Output(
-            error_type=uworker_msg_pb2.REGRESSION_BUILD_SETUP_ERROR)
-
-      return revision > 5, None
-
-    self.reproduces_in_revision = reproduces
-
-    next_revision = 10
+    self.reproduces_in_revision = lambda revision: (revision > 64, None)
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    regression_task_output.last_regression_max = 22
+    regression_task_output.last_regression_max = 112
+
+    max_index = 55
+    self.assertEqual(self.revision_list[max_index], 112)
 
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
-        self.revision_list,
-        len(self.revision_list) - 1, next_revision, regression_task_output)
+        self.revision_list, max_index, regression_task_output)
 
     self.assertIsNone(output)
 
@@ -327,39 +334,32 @@ class TestFindMinRevision(unittest.TestCase):
     min_revision = self.revision_list[min_index]
     max_revision = self.revision_list[max_index]
 
-    self.assertGreaterEqual(min_revision, 0)
-    self.assertLessEqual(min_revision, 5)
-    self.assertGreater(max_revision, 5)
-    self.assertLessEqual(max_revision, 10)
+    self.assertEqual(min_revision, 64)
+    self.assertEqual(max_revision, 96)
 
     self.assertEqual(regression_task_output.last_regression_min, min_revision)
     self.assertEqual(regression_task_output.last_regression_max, max_revision)
-    self.assertFalse(regression_task_output.HasField('last_regression_next'))
 
-  def test_resume_can_go_higher(self):
-    """Ensures that if all earlier builds are bad, `find_min_revision` checks
-    builds after `next_revision`.
-    """
+    # Exponentiation picks up where it left off.
+    self.assertEqual(self.reproduces_calls, [96, 64])
 
-    def reproduces(revision):
-      if revision <= 10:
-        return False, uworker_msg_pb2.Output(
-            error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)
+  def test_missing_crash_revision(self):
+    """Ensures that `find_min_revision` can make progress even if the crash
+    revision is no longer available."""
+    # Precondition for setup.
+    self.assertEqual(self.testcase.crash_revision, 128)
 
-      # Revisions above 10 do not reproduce, we should find one of them.
-      return False, None
-
-    self.reproduces_in_revision = reproduces
-
-    next_revision = 10
+    self.revision_list = list(range(2, 122, 2))
+    self.reproduces_in_revision = lambda revision: (revision > 64, None)
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    regression_task_output.last_regression_max = 22
+    regression_task_output.last_regression_max = 120
+    self.assertEqual(self.revision_list[-1], 120)
 
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
         self.revision_list,
-        len(self.revision_list) - 1, next_revision, regression_task_output)
+        len(self.revision_list) - 1, regression_task_output)
 
     self.assertIsNone(output)
 
@@ -367,27 +367,33 @@ class TestFindMinRevision(unittest.TestCase):
     min_revision = self.revision_list[min_index]
     max_revision = self.revision_list[max_index]
 
-    self.assertGreater(min_revision, 10)
-    self.assertLess(min_revision, 22)
-    self.assertEqual(max_revision, 22)
+    self.assertEqual(min_revision, 56)
+    self.assertEqual(max_revision, 88)
 
-  def test_resume_missing_next_revision(self):
-    """Ensures that `find_min_revision` can resume execution even if there no
-    longer exists any build <= `next_revision`.
-    """
-    # Testcase never reproduces.
-    self.reproduces_in_revision = lambda revision: (False, None)
+    self.assertEqual(regression_task_output.last_regression_min, min_revision)
+    self.assertEqual(regression_task_output.last_regression_max, max_revision)
 
-    self.revision_list = list(range(11, 20))
-    next_revision = 10
+    # Exponentiation restarts from 120 with step size 1.
+    self.assertEqual(self.reproduces_calls, [118, 116, 112, 104, 88, 56])
+
+  def test_resume_missing_crash_revision(self):
+    """Ensures that `find_min_revision` can resume execution even if the crash
+    revision is no longer available."""
+    # Precondition for setup.
+    self.assertEqual(self.testcase.crash_revision, 128)
+
+    self.revision_list = list(range(2, 122, 2))
+    self.reproduces_in_revision = lambda revision: (revision > 64, None)
 
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    regression_task_output.last_regression_max = 20
+    regression_task_output.last_regression_max = 112
+
+    max_index = 55
+    self.assertEqual(self.revision_list[max_index], 112)
 
     min_index, max_index, output = regression_task.find_min_revision(
         self.testcase, '/a/b', 'job_name', None, self.deadline,
-        self.revision_list,
-        len(self.revision_list) - 1, next_revision, regression_task_output)
+        self.revision_list, max_index, regression_task_output)
 
     self.assertIsNone(output)
 
@@ -395,8 +401,47 @@ class TestFindMinRevision(unittest.TestCase):
     min_revision = self.revision_list[min_index]
     max_revision = self.revision_list[max_index]
 
-    self.assertGreater(min_revision, 10)
-    self.assertEqual(max_revision, 19)
+    self.assertEqual(min_revision, 56)
+    self.assertEqual(max_revision, 88)
+
+    self.assertEqual(regression_task_output.last_regression_min, min_revision)
+    self.assertEqual(regression_task_output.last_regression_max, max_revision)
+
+    # Exponentiation continues assuming crash revision is 120, the maximum
+    # revision in the list. 120 - 112 = 8, so the first try is 112 - 8 = 104.
+    # Then 104 - 16 = 88, and 88 - 32 = 56.
+    self.assertEqual(self.reproduces_calls, [104, 88, 56])
+
+  def test_resume_from_higher_than_crash_revision(self):
+    """Ensures that `find_min_revision` can resume execution even if the max
+    revision given as input is higher than the crash revision (which must have
+    gone missing during a previous execution, then resurfaced)."""
+    self.reproduces_in_revision = lambda revision: (revision > 64, None)
+
+    self.revision_list = list(range(2, 258, 2))
+
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    regression_task_output.last_regression_max = 256
+
+    min_index, max_index, output = regression_task.find_min_revision(
+        self.testcase, '/a/b', 'job_name', None, self.deadline,
+        self.revision_list,
+        len(self.revision_list) - 1, regression_task_output)
+
+    self.assertIsNone(output)
+
+    self.assertLess(min_index, max_index)
+    min_revision = self.revision_list[min_index]
+    max_revision = self.revision_list[max_index]
+
+    self.assertEqual(min_revision, 64)
+    self.assertEqual(max_revision, 96)
+
+    self.assertEqual(regression_task_output.last_regression_min, min_revision)
+    self.assertEqual(regression_task_output.last_regression_max, max_revision)
+
+    # Exponentiation starts back from crash revision with step size 1.
+    self.assertEqual(self.reproduces_calls, [126, 124, 120, 112, 96, 64])
 
 
 def _sample(input_list, count):
@@ -552,10 +597,12 @@ class UtaskMainTest(unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager.get_primary_bucket_path',
         'clusterfuzz._internal.build_management.build_manager.get_revisions_list',
         'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
+        'random.sample',
         'time.time',
     ])
 
     self.reproduces_in_revision = lambda revision: (True, None)
+    self.reproduces_calls = []
     self.mock._testcase_reproduces_in_revision.side_effect = (
         self._testcase_reproduces)
 
@@ -565,6 +612,9 @@ class UtaskMainTest(unittest.TestCase):
 
     self.mock.time.side_effect = lambda: self.mock_time
     self.mock.get_task_completion_deadline.side_effect = lambda: self.deadline
+
+    # Makes `_validate_regresion_range` deterministic.
+    self.mock.sample.side_effect = _sample
 
   def _testcase_reproduces(self,
                            testcase,
@@ -577,6 +627,7 @@ class UtaskMainTest(unittest.TestCase):
                            min_revision=None,
                            max_revision=None):
     """Mock for `regression_task._testcase_reproduces_in_revision()`."""
+    self.reproduces_calls.append(revision)
     return self.reproduces_in_revision(revision)
 
   def test_setup_error(self):
@@ -674,6 +725,17 @@ class UtaskMainTest(unittest.TestCase):
     self.assertEqual(output.regression_task_output.regression_range_start, 50)
     self.assertEqual(output.regression_task_output.regression_range_end, 52)
 
+    self.assertEqual(
+        self.reproduces_calls,
+        # Check that the testcase still reproduces.
+        [100] +
+        # Search for min.
+        [98, 96, 92, 84, 68, 36] +
+        # Bisect.
+        [52, 44, 48, 50] +
+        # Validate regression range.
+        [30, 32])
+
   def test_min_revision_not_found(self):
     """Verifies that if the minimum revision in the regression range is not
     found, the task restarts the search for a minimum revision."""
@@ -681,7 +743,6 @@ class UtaskMainTest(unittest.TestCase):
     testcase.crash_revision = 100  # put() called by set_metadata()
     testcase.set_metadata('last_regression_max', 100)
     testcase.set_metadata('last_regression_min', 10)
-    testcase.set_metadata('last_regression_next', 10)
 
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
@@ -735,9 +796,7 @@ class UtaskMainTest(unittest.TestCase):
         output.error_message, 'Timed out searching for min revision. ' +
         'Current max: r100, next revision: r98')
 
-    # Keep these in sync with `UtaskPostprocessTest.test_timeout_immediate`.
     self.assertEqual(output.regression_task_output.last_regression_max, 100)
-    self.assertEqual(output.regression_task_output.last_regression_next, 98)
     self.assertFalse(
         output.regression_task_output.HasField('last_regression_min'))
 
@@ -779,7 +838,6 @@ class UtaskMainTest(unittest.TestCase):
     # Keep these in sync with `test_resume_min_search` and
     # `UtaskPostprocessTest.test_timeout_min_search`.
     self.assertEqual(output.regression_task_output.last_regression_max, 92)
-    self.assertEqual(output.regression_task_output.last_regression_next, 84)
     self.assertFalse(
         output.regression_task_output.HasField('last_regression_min'))
 
@@ -792,7 +850,6 @@ class UtaskMainTest(unittest.TestCase):
 
     # Pick up where `test_resume_min_search` left off.
     testcase.set_metadata('last_regression_max', 92)
-    testcase.set_metadata('last_regression_next', 84)
 
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
@@ -852,8 +909,6 @@ class UtaskMainTest(unittest.TestCase):
     # `test_timeout_restart_min_search`.
     self.assertEqual(output.regression_task_output.last_regression_max, 68)
     self.assertEqual(output.regression_task_output.last_regression_min, 36)
-    self.assertFalse(
-        output.regression_task_output.HasField('last_regression_next'))
 
   def test_resume_bisect(self):
     """Verifies that regression task can resume after a timed out bisection.
@@ -897,12 +952,9 @@ class UtaskMainTest(unittest.TestCase):
     self.mock.get_revisions_list.return_value = list(range(40, 102, 2))
 
     def repros(revision):
-      if revision < 50:
-        # Time out after finding the min revision.
-        self.mock_time = self.deadline + 1.
-        return False, None
-
-      return True, None
+      # Time out before finding the min revision.
+      self.mock_time = self.deadline + 1.
+      return revision > 50, None
 
     self.reproduces_in_revision = repros
 
@@ -928,10 +980,9 @@ class UtaskMainTest(unittest.TestCase):
 
     # Keep these in sync with
     # `UtaskPostprocessTest.test_timeout_restart_min_search`.
-    self.assertEqual(output.regression_task_output.last_regression_max, 52)
-    self.assertEqual(output.regression_task_output.last_regression_min, 40)
+    self.assertEqual(output.regression_task_output.last_regression_max, 68)
     self.assertFalse(
-        output.regression_task_output.HasField('last_regression_next'))
+        output.regression_task_output.HasField('last_regression_min'))
 
   def test_skips_bad_builds(self):
     """Verifies that regression task can succeed even if most builds are bad.
@@ -970,43 +1021,6 @@ class UtaskMainTest(unittest.TestCase):
     self.assertEqual(output.regression_task_output.regression_range_start, 50)
     self.assertEqual(output.regression_task_output.regression_range_end, 100)
 
-  def test_inconsistent_state_max_none_next_not_none(self):
-    """Verifies that when last_regression_max is None and last_regression_next
-    is not None, we ignore the latter and restart from scratch."""
-    testcase = test_utils.create_generic_testcase()
-    testcase.crash_revision = 100
-    testcase.put()
-
-    # `last_regression_max` is missing, but next is not, unexpectedly.
-    testcase.set_metadata('last_regression_next', 50)
-
-    # Time out immediately so that we can observe that `last_regression_next`
-    # was ignored.
-    self.deadline = 0.
-    self.mock_time = 1.
-
-    uworker_input = uworker_msg_pb2.Input(
-        testcase_id=str(testcase.key.id()),
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        job_type='foo-job',
-        setup_input=uworker_msg_pb2.SetupInput(),
-        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
-    )
-
-    self.mock.setup_testcase.return_value = (None, None, None)
-    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
-
-    output = regression_task.utask_main(uworker_input)
-
-    self.assertEqual(output.error_type,
-                     uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
-
-    # State invariants restored, will be fixed in testcase in postprocess.
-    self.assertEqual(output.regression_task_output.last_regression_max, 100)
-    self.assertEqual(output.regression_task_output.last_regression_next, 98)
-    self.assertFalse(
-        output.regression_task_output.HasField('last_regression_min'))
-
   def test_inconsistent_state_max_none_min_not_none(self):
     """Verifies that when last_regression_max is None and last_regression_min
     is not None, we ignore the latter and restart from scratch."""
@@ -1040,87 +1054,8 @@ class UtaskMainTest(unittest.TestCase):
 
     # State invariants restored, will be fixed in testcase in postprocess.
     self.assertEqual(output.regression_task_output.last_regression_max, 100)
-    self.assertEqual(output.regression_task_output.last_regression_next, 98)
     self.assertFalse(
         output.regression_task_output.HasField('last_regression_min'))
-
-  def test_inconsistent_state_max_not_none_min_next_none(self):
-    """Verifies that when last_regression_max is not None yet both
-    last_regression_min and last_regression_next are None, we resume the search
-    for min from last_regression_max."""
-    testcase = test_utils.create_generic_testcase()
-    testcase.crash_revision = 100
-    testcase.put()
-
-    testcase.set_metadata('last_regression_max', 92)
-    # `last_regression_next` and `last_regression_min` are unexpectedly missing.
-
-    # Time out immediately so that we can observe the algorithm's next move.
-    self.deadline = 0.
-    self.mock_time = 1.
-
-    uworker_input = uworker_msg_pb2.Input(
-        testcase_id=str(testcase.key.id()),
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        job_type='foo-job',
-        setup_input=uworker_msg_pb2.SetupInput(),
-        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
-    )
-
-    self.mock.setup_testcase.return_value = (None, None, None)
-    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
-
-    output = regression_task.utask_main(uworker_input)
-
-    self.assertEqual(output.error_type,
-                     uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
-
-    # State invariants restored, will be fixed in testcase in postprocess.
-    self.assertEqual(output.regression_task_output.last_regression_max, 92)
-    # Note: The exponential search has restarted from the max revision. One
-    # could reasonably expect this to be 84 instead, as if we had never timed
-    # out, but that's not what we implemented.
-    self.assertEqual(output.regression_task_output.last_regression_next, 90)
-    self.assertFalse(
-        output.regression_task_output.HasField('last_regression_min'))
-
-  def test_inconsistent_state_max_not_none_min_next_not_none(self):
-    """Verifies that when last_regression_max is not None yet both
-    last_regression_min and last_regression_next are not None, we ignore
-    last_regression_next and resume bisection."""
-    testcase = test_utils.create_generic_testcase()
-    testcase.crash_revision = 100
-    testcase.put()
-
-    testcase.set_metadata('last_regression_max', 64)
-    testcase.set_metadata('last_regression_min', 36)
-    testcase.set_metadata('last_regression_next', 36)
-
-    # Time out immediately so that we can observe the algorithm's next move.
-    self.deadline = 0.
-    self.mock_time = 1.
-
-    uworker_input = uworker_msg_pb2.Input(
-        testcase_id=str(testcase.key.id()),
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        job_type='foo-job',
-        setup_input=uworker_msg_pb2.SetupInput(),
-        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
-    )
-
-    self.mock.setup_testcase.return_value = (None, None, None)
-    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
-
-    output = regression_task.utask_main(uworker_input)
-
-    self.assertEqual(output.error_type,
-                     uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR)
-
-    # State invariants restored, will be fixed in testcase in postprocess.
-    self.assertEqual(output.regression_task_output.last_regression_max, 64)
-    self.assertEqual(output.regression_task_output.last_regression_min, 36)
-    self.assertFalse(
-        output.regression_task_output.HasField('last_regression_next'))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1204,9 +1139,7 @@ class UtaskPostprocessTest(unittest.TestCase):
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
         error_message='foo error',
         regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
-            last_regression_max=92,
-            last_regression_next=84,
-        ),
+            last_regression_max=92,),
     )
 
     regression_task.utask_postprocess(output)
@@ -1216,7 +1149,6 @@ class UtaskPostprocessTest(unittest.TestCase):
     self.assertRegex(testcase.comments, 'foo error.$')
 
     self.assertEqual(testcase.get_metadata('last_regression_max'), 92)
-    self.assertEqual(testcase.get_metadata('last_regression_next'), 84)
     self.assertIsNone(testcase.get_metadata('last_regression_min'))
 
     self.mock.add_task.assert_called_once_with('regression', testcase_id,
@@ -1246,9 +1178,7 @@ class UtaskPostprocessTest(unittest.TestCase):
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
         error_message='foo error',
         regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
-            last_regression_max=52,
-            last_regression_min=40,
-        ),
+            last_regression_max=68,),
     )
 
     regression_task.utask_postprocess(output)
@@ -1257,9 +1187,8 @@ class UtaskPostprocessTest(unittest.TestCase):
     self.assertEqual(testcase.regression, '')
     self.assertRegex(testcase.comments, 'foo error.$')
 
-    self.assertEqual(testcase.get_metadata('last_regression_max'), 52)
-    self.assertEqual(testcase.get_metadata('last_regression_min'), 40)
-    self.assertIsNone(testcase.get_metadata('last_regression_next'))
+    self.assertEqual(testcase.get_metadata('last_regression_max'), 68)
+    self.assertIsNone(testcase.get_metadata('last_regression_min'))
 
     self.mock.add_task.assert_called_once_with('regression', testcase_id,
                                                'foo_job')
@@ -1284,7 +1213,6 @@ class UtaskPostprocessTest(unittest.TestCase):
         error_message='foo error',
         regression_task_output=uworker_msg_pb2.RegressionTaskOutput(
             last_regression_max=68,
-            last_regression_next=36,
             last_regression_min=36,
         ),
     )
@@ -1296,7 +1224,6 @@ class UtaskPostprocessTest(unittest.TestCase):
     self.assertRegex(testcase.comments, 'foo error.$')
 
     self.assertEqual(testcase.get_metadata('last_regression_max'), 68)
-    self.assertEqual(testcase.get_metadata('last_regression_next'), 36)
     self.assertEqual(testcase.get_metadata('last_regression_min'), 36)
 
     self.mock.add_task.assert_called_once_with('regression', testcase_id,
@@ -1320,7 +1247,6 @@ class UtaskPostprocessTest(unittest.TestCase):
             regression_range_end=37,
             last_regression_min=12,
             last_regression_max=38,
-            last_regression_next=14,
         ),
     )
 
@@ -1332,7 +1258,6 @@ class UtaskPostprocessTest(unittest.TestCase):
 
     self.assertEqual(testcase.get_metadata('last_regression_min'), 12)
     self.assertEqual(testcase.get_metadata('last_regression_max'), 38)
-    self.assertEqual(testcase.get_metadata('last_regression_next'), 14)
 
     self.mock.write_range.assert_called()
 
