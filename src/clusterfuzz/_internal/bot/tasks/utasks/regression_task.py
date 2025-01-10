@@ -61,26 +61,32 @@ def write_to_big_query(testcase, regression_range_start, regression_range_end):
 def _save_current_regression_range_indices(
     task_output: uworker_msg_pb2.RegressionTaskOutput, testcase_id: str):  # pylint: disable=no-member
   """Save current regression range indices in case we die in middle of task."""
-  if not task_output.HasField(
-      'last_regression_min') or not task_output.HasField('last_regression_max'):
-    return
+  last_regression_min = None
+  if task_output.HasField('last_regression_min'):
+    last_regression_min = task_output.last_regression_min
+
+  last_regression_max = None
+  if task_output.HasField('last_regression_max'):
+    last_regression_max = task_output.last_regression_max
+
+  last_regression_next = None
+  if task_output.HasField('last_regression_next'):
+    last_regression_next = task_output.last_regression_next
+
+  if (last_regression_min is None and last_regression_max is None and
+      last_regression_next is None):
+    return  # Optimization to avoid useless load/put.
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   testcase.set_metadata(
-      'last_regression_min',
-      task_output.last_regression_min,
-      update_testcase=False)
+      'last_regression_min', last_regression_min, update_testcase=False)
 
   testcase.set_metadata(
-      'last_regression_max',
-      task_output.last_regression_max,
-      update_testcase=False)
+      'last_regression_max', last_regression_max, update_testcase=False)
 
   testcase.set_metadata(
-      'last_regression_next',
-      task_output.last_regression_next,
-      update_testcase=False)
+      'last_regression_next', last_regression_next, update_testcase=False)
 
   testcase.put()
 
