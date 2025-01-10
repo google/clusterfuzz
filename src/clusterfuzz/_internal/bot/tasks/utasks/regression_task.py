@@ -361,6 +361,7 @@ def find_min_revision(
 
     if not is_crash:
       # We found a suitable min revision, success!
+      regression_task_output.ClearField('last_regression_next')
       regression_task_output.last_regression_min = next_revision
       return next_index, max_index, None
 
@@ -459,18 +460,42 @@ def find_regression_range(
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)  # pylint: disable=no-member
 
-  # Pick up where left off in a previous run if necessary. Possible cases:
-  #
-  # - min and max are None: start from scratch, search exponentially backwards
-  # - max is not None, min is None: we are searching exponentially
-  #   backwards for a good revision. `next_revision` is the next version we
-  #   should test, and is not None
-  # - max and min are not None: we are bisecting. `next_revision` can be
-  #   ignored.
-  #
+  # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
   max_revision = testcase.get_metadata('last_regression_max')
   next_revision = testcase.get_metadata('last_regression_next')
+
+  logs.info('Build set up, starting search for regression range. State: ' +
+            f'crash_revision = {testcase.crash_revision}, ' +
+            f'max_revision = {max_revision}, ' +
+            f'min_revision = {min_revision}, ' +
+            f'next_revision = {next_revision}. ')
+
+  if max_revision is None:
+    logs.info('Starting search for min revision from scratch.')
+
+    if min_revision is not None or next_revision is not None:
+      logs.error('Inconsistent regression state: ' +
+                 'resetting min_revision and next_revision to None.')
+      min_revision = None
+      next_revision = None
+
+  elif min_revision is None:
+    # max_revision is not None.
+    logs.info('Resuming search for min revision.')
+
+    if next_revision is None:
+      logs.error('Inconsistent regression state: missing next_revision. ' +
+                 'Restarting search from scratch.')
+
+  else:
+    # max_revision and min_revision are not None.
+    logs.info('Resuming bisection.')
+
+    if next_revision is not None:
+      logs.error('Inconsistent regression state. ' +
+                 'Resetting next_revision to None.')
+      next_revision = None
 
   # Notice that regardless of whether `max_revision` was None or not, if
   # `min_revision` is None then we should search exponentially backwards. Even
@@ -528,7 +553,6 @@ def find_regression_range(
       logs.warning(f'Min revision {min_revision} no longer exists, nor do any '
                    'earlier revisions. Restarting search for a good revision. ')
       min_revision = None
-      next_revision = None
 
   if not min_index:
     min_index, max_index, output = find_min_revision(
