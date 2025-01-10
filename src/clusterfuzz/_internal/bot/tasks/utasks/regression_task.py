@@ -77,6 +77,11 @@ def _save_current_regression_range_indices(
       task_output.last_regression_max,
       update_testcase=False)
 
+  testcase.set_metadata(
+      'last_regression_next',
+      task_output.last_regression_next,
+      update_testcase=False)
+
   testcase.put()
 
 
