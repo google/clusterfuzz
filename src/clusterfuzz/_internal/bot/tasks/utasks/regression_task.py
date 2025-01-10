@@ -186,8 +186,7 @@ def find_min_revision(
       valid index within `revision_list`. It is assumed that the testcase
       reproduces at the pointed-to revision.
     next_revision: The next revision at which to continue searching backwards
-      for a min revision. Can be used to resume execution after timing out. If
-      specified, the returned `min_index` will always point to a lower revision.
+      for a min revision. Can be used to resume execution after timing out.
     regression_task_output: Output argument. Any bad builds encountered while
       searching for the earliest good build are appended to `build_data_list`.
       See also below for values set in different return conditions.
@@ -206,24 +205,40 @@ def find_min_revision(
 
         regression_task_output.last_regression_min is set
         regression_task_output.last_regression_max is set
+        regression_task_output.last_regression_next is cleared
 
-    a. If no such revision can be found - i.e. the earliest good revision X
+    b. If no such revision can be found - i.e. the earliest good revision X
       still reproduces the testcase:
 
         None, None, output
 
       where:
 
+        output.regression_task_output = regression_task_output
         output.regression_task_output.regression_range_start = 0
         output.regression_task_output.regression_range_end = X
 
-    b. If we timed out:
+    c. If we timed out:
 
         None, None, output
+
+      where:
+
+        output.error_type = REGRESSION_TIMED_OUT
+        output.regression_task_output = regression_task_output
+        output.regression_task_output.last_regression_max is set
+        output.regression_task_output.last_regression_next is set
 
     d. If another error occurred:
 
         None, None, output
+
+      where:
+
+        output.error_type indicates the error that occurred
+        output.regression_task_output = regression_task_output
+        output.regression_task_output.last_regression_max is set
+        output.regression_task_output.last_regression_next is set
 
   """
   # Save this value so we can calculate exponential distances correctly even if
