@@ -16,6 +16,7 @@
 import datetime
 import re
 
+from google.cloud import storage
 import requests
 
 from appengine.libs import form
@@ -31,7 +32,18 @@ ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
 ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
 
 
-def close_issue_if_invalid(upload_request, attachment_info, description):
+def get_vrp_uploaders():
+  """Checks whether the given reporter has permission to upload."""
+  # TODO(pgrace) Add this to a YAML file.
+  storage_client = storage.Client()
+  bucket = storage_client.bucket('clusterfuzz-vrp-uploaders')
+  blob = bucket.blob('vrp-uploaders')
+  members = blob.download_as_string().decode('utf-8').splitlines()[0].split(',')
+  return members
+
+
+def close_issue_if_invalid(upload_request, attachment_info, description,
+                           vrp_uploaders):
   """Closes any invalid upload requests with a helpful message."""
   comment_message = (
       'Hello, this issue is automatically closed. Please file a new bug after'
@@ -42,7 +54,12 @@ def close_issue_if_invalid(upload_request, attachment_info, description):
   if upload_request.id == 373893311:
     return False
 
-  # TODO(pgrace) Add secondary check for authorized reporters.
+  if not upload_request.reporter in vrp_uploaders:
+    comment_message += (
+        'You are not authorized to submit testcases to Clusterfuzz.'
+        ' If you believe you should be, please reach out to'
+        ' clusterfuzz-vrp-uploaders-help@chromium.org for assistance.\n')
+    invalid = True
 
   # Issue must have exactly one attachment.
   if len(attachment_info) != 1:
@@ -63,7 +80,7 @@ def close_issue_if_invalid(upload_request, attachment_info, description):
 
   # Issue must have valid flags as the description.
   flag_format = re.compile(r'^([ ]?\-\-[A-Za-z\-\_]*){50}$')
-  if flag_format.match(description):
+  if description and flag_format.match(description):
     comment_message += (
         'Please provide flags in the format: "--test_flag_one --testflagtwo",\n'
     )
@@ -72,7 +89,7 @@ def close_issue_if_invalid(upload_request, attachment_info, description):
   if invalid:
     comment_message += (
         '\nPlease see the new bug template for more information on how to use'
-        'Clusterfuzz direct uploads.')
+        ' Clusterfuzz direct uploads.')
     upload_request.status = ISSUETRACKER_WONTFIX_STATE
     upload_request.save(new_comment=comment_message, notify=True)
 
@@ -142,6 +159,12 @@ def handle_testcases(tracker):
       query_filters=['componentid:1600865', 'id:373893311'],
       only_open=True)
 
+  if len(issues) == 0:
+    return
+
+  # TODO(pgrace) Cache in redis.
+  vrp_uploaders = get_vrp_uploaders()
+
   # TODO(pgrace) Implement rudimentary rate limiting.
 
   for issue in issues:
@@ -154,7 +177,8 @@ def handle_testcases(tracker):
     # Close out invalid bugs.
     attachment_metadata = tracker.get_attachment_metadata(issue.id)
     commandline_flags = tracker.get_description(issue.id)
-    if close_issue_if_invalid(issue, attachment_metadata, commandline_flags):
+    if close_issue_if_invalid(issue, attachment_metadata, commandline_flags,
+                              vrp_uploaders):
       helpers.log('Closing issue {issue_id} as it is invalid', issue.id)
       continue
 
