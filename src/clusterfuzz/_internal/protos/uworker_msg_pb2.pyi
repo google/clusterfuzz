@@ -1408,14 +1408,12 @@ class RegressionTaskOutput(google.protobuf.message.Message):
     REGRESSION_RANGE_END_FIELD_NUMBER: builtins.int
     LAST_REGRESSION_MIN_FIELD_NUMBER: builtins.int
     LAST_REGRESSION_MAX_FIELD_NUMBER: builtins.int
-    LAST_REGRESSION_NEXT_FIELD_NUMBER: builtins.int
     BUILD_DATA_LIST_FIELD_NUMBER: builtins.int
     IS_TESTCASE_REPRODUCIBLE_FIELD_NUMBER: builtins.int
     regression_range_start: builtins.int
     regression_range_end: builtins.int
     last_regression_min: builtins.int
     last_regression_max: builtins.int
-    last_regression_next: builtins.int
     @property
     def build_data_list(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BuildData]: ...
     is_testcase_reproducible: builtins.bool
@@ -1426,20 +1424,17 @@ class RegressionTaskOutput(google.protobuf.message.Message):
         regression_range_end: builtins.int | None = ...,
         last_regression_min: builtins.int | None = ...,
         last_regression_max: builtins.int | None = ...,
-        last_regression_next: builtins.int | None = ...,
         build_data_list: collections.abc.Iterable[global___BuildData] | None = ...,
         is_testcase_reproducible: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_is_testcase_reproducible", b"_is_testcase_reproducible", "_last_regression_max", b"_last_regression_max", "_last_regression_min", b"_last_regression_min", "_last_regression_next", b"_last_regression_next", "_regression_range_end", b"_regression_range_end", "_regression_range_start", b"_regression_range_start", "is_testcase_reproducible", b"is_testcase_reproducible", "last_regression_max", b"last_regression_max", "last_regression_min", b"last_regression_min", "last_regression_next", b"last_regression_next", "regression_range_end", b"regression_range_end", "regression_range_start", b"regression_range_start"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_is_testcase_reproducible", b"_is_testcase_reproducible", "_last_regression_max", b"_last_regression_max", "_last_regression_min", b"_last_regression_min", "_last_regression_next", b"_last_regression_next", "_regression_range_end", b"_regression_range_end", "_regression_range_start", b"_regression_range_start", "build_data_list", b"build_data_list", "is_testcase_reproducible", b"is_testcase_reproducible", "last_regression_max", b"last_regression_max", "last_regression_min", b"last_regression_min", "last_regression_next", b"last_regression_next", "regression_range_end", b"regression_range_end", "regression_range_start", b"regression_range_start"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_is_testcase_reproducible", b"_is_testcase_reproducible", "_last_regression_max", b"_last_regression_max", "_last_regression_min", b"_last_regression_min", "_regression_range_end", b"_regression_range_end", "_regression_range_start", b"_regression_range_start", "is_testcase_reproducible", b"is_testcase_reproducible", "last_regression_max", b"last_regression_max", "last_regression_min", b"last_regression_min", "regression_range_end", b"regression_range_end", "regression_range_start", b"regression_range_start"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_is_testcase_reproducible", b"_is_testcase_reproducible", "_last_regression_max", b"_last_regression_max", "_last_regression_min", b"_last_regression_min", "_regression_range_end", b"_regression_range_end", "_regression_range_start", b"_regression_range_start", "build_data_list", b"build_data_list", "is_testcase_reproducible", b"is_testcase_reproducible", "last_regression_max", b"last_regression_max", "last_regression_min", b"last_regression_min", "regression_range_end", b"regression_range_end", "regression_range_start", b"regression_range_start"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_is_testcase_reproducible", b"_is_testcase_reproducible"]) -> typing_extensions.Literal["is_testcase_reproducible"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_last_regression_max", b"_last_regression_max"]) -> typing_extensions.Literal["last_regression_max"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_last_regression_min", b"_last_regression_min"]) -> typing_extensions.Literal["last_regression_min"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["_last_regression_next", b"_last_regression_next"]) -> typing_extensions.Literal["last_regression_next"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_regression_range_end", b"_regression_range_end"]) -> typing_extensions.Literal["regression_range_end"] | None: ...
     @typing.overload
