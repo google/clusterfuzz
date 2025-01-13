@@ -19,6 +19,7 @@ import time
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot import testcase_manager
@@ -161,7 +162,7 @@ def find_min_revision(
     revision_list: List[int],
     max_index: int,
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
-) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
+) -> tuple[int, int, None] | tuple[None, None, uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Attempts to find a min revision to start bisecting from. Such a revision
   must be good and the testcase must not reproduce at that revision.
 
@@ -399,6 +400,9 @@ def find_regression_range(
   if error:
     return error
 
+  # Help the type checker.
+  assert isinstance(testcase_file_path, str)
+
   build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
       build_bucket_path,
@@ -493,6 +497,10 @@ def find_regression_range(
       # Either we encountered an error, or there is no good revision and the
       # regression range is `0:revision_list[0]`.
       return output
+
+  # Type checker cannot figure this out.
+  assert isinstance(min_index, int)
+  assert isinstance(max_index, int)
 
   while time.time() < deadline:
     min_revision = revision_list[min_index]
@@ -718,8 +726,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   save_regression_range(output)
 
 
-def _update_build_metadata(job_type: str,
-                           build_data_list: List[uworker_msg_pb2.BuildData]):  # pylint: disable=no-member
+def _update_build_metadata(
+    job_type: str, build_data_list: Sequence[uworker_msg_pb2.BuildData]):  # pylint: disable=no-member
   """A helper method to update the build metadata corresponding to a
   job_type."""
   for build_data in build_data_list:
