@@ -280,7 +280,6 @@ message RegressionTaskOutput {
   optional int64 regression_range_end = 2;
   optional int64 last_regression_min = 3;
   optional int64 last_regression_max = 4;
-  optional int64 last_regression_next = 7;
   repeated BuildData build_data_list = 5;
   optional bool is_testcase_reproducible = 6;
 }
