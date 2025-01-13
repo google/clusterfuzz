@@ -601,6 +601,9 @@ class UtaskMainTest(unittest.TestCase):
         'time.time',
     ])
 
+    # Success by default.
+    self.mock.setup_testcase.return_value = (None, "", None)
+
     self.reproduces_in_revision = lambda revision: (True, None)
     self.reproduces_calls = []
     self.mock._testcase_reproduces_in_revision.side_effect = (
@@ -661,7 +664,7 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(
             bad_revisions=bad_revisions),
     )
-    self.mock.setup_testcase.return_value = (None, None, None)
+
     # TODO: Set up environment more realistically and avoid mocking these out
     # entirely.
     self.mock.get_primary_bucket_path.return_value = 'gs://foo'
@@ -686,7 +689,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = [100]
 
     output = regression_task.utask_main(uworker_input)
@@ -712,7 +714,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     self.reproduces_in_revision = lambda revision: (revision > 50, None)
@@ -752,7 +753,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(20, 102, 2))
 
     self.reproduces_in_revision = lambda revision: (revision > 50, None)
@@ -774,7 +774,6 @@ class UtaskMainTest(unittest.TestCase):
     self.deadline = 0.
     self.mock_time = 1.
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     testcase = test_utils.create_generic_testcase()
@@ -804,7 +803,6 @@ class UtaskMainTest(unittest.TestCase):
     """Verifies that regression task can time out during the search for a min
     revision.
     """
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     def repros(revision):
@@ -859,7 +857,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     self.reproduces_in_revision = lambda revision: (revision > 50, None)
@@ -875,7 +872,6 @@ class UtaskMainTest(unittest.TestCase):
   def test_timeout_bisect(self):
     """Verifies that regression task can time out during bisection.
     """
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     def repros(revision):
@@ -928,7 +924,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     self.reproduces_in_revision = lambda revision: (revision > 50, None)
@@ -945,7 +940,6 @@ class UtaskMainTest(unittest.TestCase):
     """Verifies that regression task can time out during the search for a min
     revision for the second time.
     """
-    self.mock.setup_testcase.return_value = (None, None, None)
 
     # We had previously found 36 to be a good revision, but it no longer exists,
     # nor do any earlier revisions.
@@ -998,7 +992,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     def reproduces(revision):
@@ -1044,7 +1037,6 @@ class UtaskMainTest(unittest.TestCase):
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
     )
 
-    self.mock.setup_testcase.return_value = (None, None, None)
     self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
 
     output = regression_task.utask_main(uworker_input)
