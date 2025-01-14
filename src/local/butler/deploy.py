@@ -575,6 +575,15 @@ def execute(args):
     deploy_k8s = False
     deploy_zips = True
 
+  if deploy_k8s:
+    if not common.has_file_in_path('terraform'):
+      print('terraform not found in PATH.')
+      sys.exit(1)
+
+    if not common.has_file_in_path('kubectl'):
+      print('kubectl not found in PATH.')
+      sys.exit(1)
+
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
