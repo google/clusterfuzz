@@ -533,6 +533,9 @@ def execute(args):
   _enforce_tests_pass()
   _enforce_safe_day_to_deploy()
 
+  # Needed for some subsequent steps.
+  common.execute('gcloud auth application-default login')
+
   # Build templates before deployment.
   appengine.build_templates()
 
@@ -559,6 +562,8 @@ def execute(args):
           'deployments, you probably want to use deploy.sh from your '
           'configs directory instead.')
     sys.exit(1)
+
+
 
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
