@@ -29,9 +29,8 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
-# TODO(metzman): Change to from . import credentials when we are done
-# developing.
 from . import credentials
 
 _local = threading.local()
@@ -236,12 +235,6 @@ def _get_batch_config():
   return local_config.BatchConfig()
 
 
-def _get_job(job_name):
-  """Returns the Job entity named by |job_name|. This function was made to make
-  mocking easier."""
-  return data_types.Job.query(data_types.Job.name == job_name).get()
-
-
 def is_no_privilege_workload(command, job_name):
   return is_remote_task(command, job_name)
 
@@ -273,7 +266,12 @@ def _get_config_names(
       suffix = '-NONPREEMPTIBLE-UNPRIVILEGED'
     job = job_map[task.job_type]
     platform = job.platform if not utils.is_oss_fuzz() else 'LINUX'
-    config_map[(task.command, task.job_type)] = f'{platform}{suffix}'
+    disk_size_gb = environment.get_value(
+        'DISK_SIZE_GB', env=job.get_environment())
+    config_map[(task.command, task.job_type)] = (f'{platform}{suffix}',
+                                                 disk_size_gb)
+  # TODO(metzman): Come up with a more systematic way for configs to
+  # be overridden by jobs.
   return config_map
 
 
@@ -310,12 +308,11 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     if (task.command, task.job_type) in specs:
       # Don't repeat work for no reason.
       continue
-    config_name = config_map[(task.command, task.job_type)]
+    config_name, disk_size_gb = config_map[(task.command, task.job_type)]
 
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
       raise ValueError(f'No mapping for {config_name}')
-    config_name = config_map[(task.command, task.job_type)]
     project_name = batch_config.get('project')
     clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
     # Lower numbers are a lower priority, meaning less likely to run From:
@@ -332,10 +329,11 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     if should_retry and task.command == 'corpus_pruning':
       should_retry = False  # It is naturally retried the next day.
 
+    disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
     subconfig = subconfig_map[config_name]
     spec = BatchWorkloadSpec(
         docker_image=instance_spec['docker_image'],
-        disk_size_gb=instance_spec['disk_size_gb'],
+        disk_size_gb=disk_size_gb,
         disk_type=instance_spec['disk_type'],
         user_data=instance_spec['user_data'],
         service_account_email=instance_spec['service_account_email'],
