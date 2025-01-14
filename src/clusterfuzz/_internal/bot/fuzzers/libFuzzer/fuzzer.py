@@ -42,7 +42,7 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
     rss_limit_mb = arguments.get('rss_limit_mb', constructor=int)
     timeout = arguments.get('timeout', constructor=int)
 
-  if timeout is None or timeout > constants.DEFAULT_TIMEOUT_LIMIT:
+  if timeout is None:
     arguments[constants.TIMEOUT_FLAGNAME] = constants.DEFAULT_TIMEOUT_LIMIT
 
   if not rss_limit_mb and (utils.is_chromium() or
