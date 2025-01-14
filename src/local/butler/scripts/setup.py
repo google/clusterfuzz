@@ -300,12 +300,12 @@ total_fuzzing_time_hrs: "Total time in hours for which the fuzzer(s) ran. Will b
 logs: "Link to fuzzing logs"
 corpus_backup: "Backup copy of the minimized corpus generated based on code coverage"'''
 
-    self.stats_columns = """sum(t.number_of_executed_units) as tests_executed,
+    self.stats_columns = """sum(t.NumExecs_Max) as tests_executed,
 custom(j.new_crashes) as new_crashes,
 _EDGE_COV as edge_coverage,
 _COV_REPORT as cov_report,
 _CORPUS_SIZE as corpus_size,
-avg(t.FuzzTimeSec_Avg / t.NumExecs_Avg) as avg_exec_per_sec,
+avg(t.average_exec_per_sec) as avg_exec_per_sec,
 avg(t.fuzzing_time_percent) as fuzzing_time_percent,
 avg(t.crash_count*100) as regular_crash_percent,
 avg(t.oom_count*100) as oom_percent,
