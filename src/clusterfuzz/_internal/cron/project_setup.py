@@ -752,14 +752,8 @@ class ProjectSetup:
         return base_project
     return project
 
-  def _sync_job(self,
-                project,
-                info,
-                corpus_bucket_name,
-                quarantine_bucket_name,
-                logs_bucket_name,
-                backup_bucket_name,
-                oss_fuzz_gb=None):
+  def _sync_job(self, project, info, corpus_bucket_name, quarantine_bucket_name,
+                logs_bucket_name, backup_bucket_name):
     """Sync the config with ClusterFuzz."""
     # Create/update ClusterFuzz jobs.
     job_names = []
