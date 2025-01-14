@@ -851,6 +851,10 @@ _CENTIPEDE_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'fuzzing_time_percent',
     'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'average_exec_per_sec',
+    'type': 'FLOAT'
 }] + _COMMON_COLUMNS
 
 _SCHEMA = {
