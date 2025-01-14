@@ -154,7 +154,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     # Existing project settings. Should not get modified.
     # Also test disk size.
-    data_types.OssFuzzProject(id='lib1', name='lib1', cpu_weight=1.5, disk_size_gb=500).put()
+    data_types.OssFuzzProject(
+        id='lib1', name='lib1', cpu_weight=1.5, disk_size_gb=500).put()
 
     # Should get deleted.
     data_types.OssFuzzProject(id='old_lib', name='old_lib').put()
@@ -1989,7 +1990,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-dbg/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
-         'DISK_SIZE_GB = None\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL-dbg\n'

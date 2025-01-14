@@ -267,8 +267,9 @@ def _get_config_names(
     job = job_map[task.job_type]
     platform = job.platform if not utils.is_oss_fuzz() else 'LINUX'
     disk_size_gb = environment.get_value(
-      'DISK_SIZE_GB', env=job.get_environment())
-    config_map[(task.command, task.job_type)] = (f'{platform}{suffix}', disk_size_gb)
+        'DISK_SIZE_GB', env=job.get_environment())
+    config_map[(task.command, task.job_type)] = (f'{platform}{suffix}',
+                                                 disk_size_gb)
   # TODO(metzman): Come up with a more systematic way for configs to be overridden by jobs.
   return config_map
 
