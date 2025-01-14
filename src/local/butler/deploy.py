@@ -563,8 +563,6 @@ def execute(args):
           'configs directory instead.')
     sys.exit(1)
 
-
-
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
   deploy_k8s = 'k8s' in args.targets
