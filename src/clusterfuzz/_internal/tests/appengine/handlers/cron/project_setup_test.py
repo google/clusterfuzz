@@ -153,7 +153,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         email='primary@example.com').put()
 
     # Existing project settings. Should not get modified.
-    data_types.OssFuzzProject(id='lib1', name='lib1', cpu_weight=1.5).put()
+    # Also test disk size.
+    data_types.OssFuzzProject(id='lib1', name='lib1', cpu_weight=1.5, disk_size_gb=500).put()
 
     # Should get deleted.
     data_types.OssFuzzProject(id='old_lib', name='old_lib').put()
@@ -341,6 +342,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib1\n'
         'SUMMARY_PREFIX = lib1\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = 500\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib1/lib1-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
@@ -366,6 +368,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
@@ -388,6 +391,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds-i386/lib3/lib3-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
@@ -410,6 +414,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-memory-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
@@ -433,6 +438,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-undefined-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
@@ -454,6 +460,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib1\n'
         'SUMMARY_PREFIX = lib1\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = 500\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds-afl/lib1/lib1-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
@@ -478,6 +485,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib5\n'
         'SUMMARY_PREFIX = lib5\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib5/lib5-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib5-logs.clusterfuzz-external.appspot.com\n'
@@ -501,6 +509,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib6\n'
         'SUMMARY_PREFIX = lib6\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib6/lib6-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib6-logs.clusterfuzz-external.appspot.com\n'
@@ -522,6 +531,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib7\n'
         'SUMMARY_PREFIX = lib7\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib7/lib7-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib7-logs.clusterfuzz-external.appspot.com\n'
@@ -543,6 +553,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = lib9\n'
         'SUMMARY_PREFIX = lib9\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'EXTRA_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-centipede/lib9/lib9-address-([0-9]+).zip\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
@@ -608,7 +619,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'name':
             'lib1',
         'disk_size_gb':
-            None,
+            500,
         'service_account':
             'lib1@serviceaccount.com',
         'high_end':
@@ -1902,6 +1913,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL\n'
@@ -1919,6 +1931,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/libfuzzer/memory/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'EXPERIMENTAL = True\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
@@ -1937,6 +1950,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/c-d/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL\n'
@@ -1954,6 +1968,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/e-f/libfuzzer/none/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //e/f\nSUMMARY_PREFIX = //e/f\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
@@ -1974,6 +1989,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-dbg/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+         'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL-dbg\n'
@@ -1993,6 +2009,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
@@ -2010,6 +2027,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-dbg/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b_dbg\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
@@ -2029,6 +2047,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/c-d/googlefuzztest/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
@@ -2047,6 +2066,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = android\n'
         'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
@@ -2067,6 +2087,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = android\n'
         'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_android_pixel8\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
@@ -2088,6 +2109,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = android\n'
         'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL-android\n'
@@ -2109,6 +2131,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = android\n'
         'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
+        'DISK_SIZE_GB = None\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
