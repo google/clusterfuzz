@@ -572,8 +572,12 @@ def utask_postprocess(output):
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
 
+  if output.analyze_task_output.one_time_crasher_flag:
+    one_time_crasher_message = ', but is flaky'
+  else:
+    one_time_crasher_message = ''
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
-                 f'(r{testcase.crash_revision})')
+                 f'(r{testcase.crash_revision}){one_time_crasher_message}')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        log_message)
 
