@@ -292,3 +292,13 @@ def run_tests(target=None,
   else:
     run_tests_single_core(pattern, unsuppress_output, test_directory,
                           top_level_dir)
+
+
+def execute(args):
+  run_tests(
+      target=args.target,
+      config_dir=args.config_dir,
+      verbose=args.verbose,
+      pattern=args.pattern,
+      unsuppress_output=args.unsuppress_output,
+      parallel=args.parallel)
