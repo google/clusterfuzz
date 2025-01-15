@@ -817,6 +817,8 @@ class ProjectSetup:
           engine=template.engine,
           project_name=base_project_name,
           disk_size_gb=oss_fuzz_gb)
+      if oss_fuzz_gb is not None:
+        job.envrionment_string += 'ALLOW_UNPACK_OVER_HTTP = True\n'
 
       # Centipede requires a separate build of the sanitized binary.
       if template.engine == 'centipede':
