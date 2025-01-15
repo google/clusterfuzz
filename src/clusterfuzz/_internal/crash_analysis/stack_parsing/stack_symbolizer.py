@@ -675,11 +675,6 @@ def filter_binary_path(binary_path):
 def symbolize_stacktrace(unsymbolized_crash_stacktrace,
                          enable_inline_frames=True):
   """Symbolize a crash stacktrace."""
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import symbolize_host
-    return symbolize_host.symbolize_stacktrace(unsymbolized_crash_stacktrace,
-                                               enable_inline_frames)
-
   platform = environment.platform()
   if platform == 'WINDOWS':
     # Windows Clang ASAN provides symbolized stacktraces anyway.
