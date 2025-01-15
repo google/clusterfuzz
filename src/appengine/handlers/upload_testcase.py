@@ -393,6 +393,7 @@ class UploadHandlerCommon:
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
 
     if (not trusted_agreement_signed and
+        utils.is_chromium() and        
         task_utils.is_remotely_executing_utasks() and
         ((platform_id and platform_id != 'Linux') or
          job.platform.lower() != 'linux')):
