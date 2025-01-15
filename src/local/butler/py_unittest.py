@@ -296,7 +296,7 @@ def run_tests(target=None,
 
 def execute(args):
   run_tests(
-      target=args.target,
+      target=args.targets,
       config_dir=args.config_dir,
       verbose=args.verbose,
       pattern=args.pattern,
