@@ -313,6 +313,11 @@ class Engine(engine.Engine):
         'actual_duration': actual_duration,
         'fuzzing_time_percent': fuzzing_time_percent,
     })
+    fuzz_time_secs_avg = stats.get('FuzzTimeSec_Avg', 1.0)
+    if fuzz_time_secs_avg == 0.0:
+      fuzz_time_secs_avg = 1.0
+    num_execs_avg = stats.get('NumExecs_Avg', 0.0)
+    stats['average_exec_per_sec'] = num_execs_avg / fuzz_time_secs_avg
     stats.update(_parse_centipede_logs(log_lines))
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
