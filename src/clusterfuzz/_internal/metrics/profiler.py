@@ -13,14 +13,15 @@
 # limitations under the License.
 """Profiling functions."""
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-
 def start_if_needed(service):
-  """Start Google Cloud Profiler if |USE_PYTHON_PROFILER| environment variable
-  is set."""
-  if not environment.get_value('USE_PYTHON_PROFILER'):
+  """Start Google Cloud Profiler if profiling key in project config
+  is enabled."""
+  config = local_config.ProjectConfig()
+  if not config.get('profiling.enabled', False):
     return True
 
   project_id = utils.get_application_id()
