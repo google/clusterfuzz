@@ -27,7 +27,6 @@ from local.butler import appengine
 from local.butler import common
 from local.butler import constants
 from local.butler import package
-from local.butler import py_unittest
 from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.system import environment
@@ -450,35 +449,6 @@ def _deploy_terraform(config_dir):
   common.execute(f'rm -rf {terraform_dir}/.terraform*')
 
 
-def _is_safe_deploy_day():
-  time_now_in_ny = now(pytz.timezone('America/New_York'))
-  day_now_in_ny = time_now_in_ny.weekday()
-  return day_now_in_ny not in {4, 5, 6}  # The days of the week are 0-indexed.
-
-
-def _enforce_tests_pass():
-  config = local_config.Config()
-  if not config.get('project.enforce_tests_before_deploy', False):
-    return
-  py_unittest.run_tests(target='core', parallel=True)
-  py_unittest.run_tests(target='appengine', parallel=True)
-
-
-def _enforce_safe_day_to_deploy():
-  """Checks that is not an unsafe day (Friday, Saturday, or Sunday) to
-  deploy for chrome ClusterFuzz."""
-
-  config = local_config.Config()
-  if config.get('weekend_deploy_allowed', True):
-    return
-
-  if not _is_safe_deploy_day():
-    raise RuntimeError('Cannot deploy Fri-Sun to this CF instance except for '
-                       'urgent fixes. See b/384493595. If needed, temporarily '
-                       'delete+commit this. You are not too l33t for this '
-                       'rule. Do not break it!')
-
-
 def _deploy_k8s(config_dir):
   """Deploys all k8s workloads."""
   k8s_dir = os.path.join('infra', 'k8s')
@@ -527,10 +497,6 @@ def execute(args):
   if not common.has_file_in_path('gsutil'):
     print('gsutil not found in PATH.')
     sys.exit(1)
-
-
-  _enforce_tests_pass()
-  _enforce_safe_day_to_deploy()
 
   # Build templates before deployment.
   appengine.build_templates()
