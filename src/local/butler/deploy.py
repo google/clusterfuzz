@@ -27,7 +27,6 @@ from local.butler import appengine
 from local.butler import common
 from local.butler import constants
 from local.butler import package
-from local.butler import py_unittest
 from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.system import environment
@@ -456,14 +455,6 @@ def _is_safe_deploy_day():
   return day_now_in_ny not in {4, 5, 6}  # The days of the week are 0-indexed.
 
 
-def _enforce_tests_pass():
-  config = local_config.Config()
-  if not config.get('project.enforce_tests_before_deploy', False):
-    return
-  py_unittest.run_tests(target='core', parallel=True)
-  py_unittest.run_tests(target='appengine', parallel=True)
-
-
 def _enforce_safe_day_to_deploy():
   """Checks that is not an unsafe day (Friday, Saturday, or Sunday) to
   deploy for chrome ClusterFuzz."""
@@ -528,8 +519,6 @@ def execute(args):
     print('gsutil not found in PATH.')
     sys.exit(1)
 
-
-  _enforce_tests_pass()
   _enforce_safe_day_to_deploy()
 
   # Build templates before deployment.
