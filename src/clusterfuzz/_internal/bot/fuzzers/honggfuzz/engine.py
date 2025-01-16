@@ -23,6 +23,7 @@ from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
@@ -156,6 +157,7 @@ class Engine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
+    profiler.start_if_needed("honggfuzz_fuzz")
     runner = _get_runner()
     arguments = _DEFAULT_ARGUMENTS[:]
     arguments.extend(options.arguments)
