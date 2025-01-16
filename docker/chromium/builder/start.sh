@@ -25,3 +25,4 @@ source /data/setup_gerrit.sh
 source /data/setup_clusterfuzz.sh
 
 bash -ex /data/start_clusterfuzz.sh
+
