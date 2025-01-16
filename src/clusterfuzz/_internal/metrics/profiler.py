@@ -17,6 +17,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+
 def start_if_needed(service):
   """Start Google Cloud Profiler if profiling key in project config
   is enabled."""
