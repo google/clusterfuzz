@@ -1146,7 +1146,7 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def find_issues(self, keywords=None, only_open=None):
     """Finds issues."""
-    return self.find_issues_with_filters(keywords, only_open)
+    return self.find_issues_with_filters(keywords=keywords, only_open=only_open)
 
   def find_issues_with_filters(self,
                                keywords=None,
