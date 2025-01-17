@@ -321,6 +321,7 @@ def find_min_revision(
         del revision_list[next_index]
         next_index -= 1
         max_index -= 1
+        crash_index -= 1
         continue
 
       # For all other errors, stop here.
@@ -423,6 +424,7 @@ def find_regression_range(
 
   if max_revision is None:
     logs.info('Starting search for min revision from scratch.')
+    max_revision = testcase.crash_revision
 
     if min_revision is not None:
       logs.error('Inconsistent regression state: ' +
@@ -436,9 +438,6 @@ def find_regression_range(
   else:
     # max_revision and min_revision are not None.
     logs.info('Resuming bisection.')
-
-  if not max_revision:
-    max_revision = testcase.crash_revision
 
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
   if max_index is None:
