@@ -1710,6 +1710,104 @@ def _mock_read_data(path):
         }]
     })
 
+  if 'chrome' in path:
+    return json.dumps({
+        'projects': [{
+            'build_path': 'gs://chrome/android/hwasan-l-([0-9.]+).zip',
+            'name': 'chrome_android_pixel7',
+            'fuzzing_engines': ['none'],
+            'architectures': ['arm'],
+            'sanitizers': ['hardware'],
+            'managed_engineless': True,
+            'platform': 'ANDROID',
+            'queue_id': 'chrome-pixel7',
+            'fuzzers': ['blackbox1'],
+            'additional_vars': {
+                'APP_NAME':
+                    'chrome.apk',
+                'APP_LAUNCH_COMMAND':
+                    'shell am start -a android.intent.action.MAIN -n %PKG_NAME%/.Main \'%TESTCASE_FILE_URL%\'',
+                'APP_ARGS':
+                    '--enable-logging=stderr',
+                'REQUIRED_APP_ARGS':
+                    '--disable-things',
+                'PKG_NAME':
+                    'org.chromium.chrome',
+                'CHILD_PROCESS_TERMINATION_PATTERN':
+                    'org.chromium.chrome:some_process',
+                'HWASAN_OPTIONS':
+                    '--hwasan-opt1'
+            }
+        }, {
+            'build_path': 'gs://chrome/android/hwasan-l-([0-9.]+).zip',
+            'name': 'webview_android_pixel7',
+            'fuzzing_engines': ['none'],
+            'architectures': ['arm'],
+            'sanitizers': ['hardware'],
+            'managed_engineless': True,
+            'platform': 'ANDROID',
+            'queue_id': 'chrome-pixel7',
+            'fuzzers': ['blackbox2'],
+            'additional_vars': {
+                'APP_NAME':
+                    'webview.apk',
+                'APP_LAUNCH_COMMAND':
+                    'shell am start -a android.intent.action.VIEW -n %PKG_NAME%/.Main \'%TESTCASE_FILE_URL%\'',
+                'APP_ARGS':
+                    '--enable-logging=stderr',
+                'COMMAND_LINE_PATH':
+                    '/data/local/tmp/webview_command_line',
+                'PKG_NAME':
+                    'org.chromium.webview',
+                'CHILD_PROCESS_TERMINATION_PATTERN':
+                    'org.chromium.webview:some_process',
+            }
+        }, {
+            'build_path': 'gs://chrome/android/asan-l-([0-9.]+).zip',
+            'name': 'chrome_android_pixel8',
+            'fuzzing_engines': ['none'],
+            'architectures': ['arm'],
+            'sanitizers': ['address'],
+            'managed_engineless': True,
+            'platform': 'ANDROID',
+            'queue_id': 'chrome-pixel8',
+            'fuzzers': ['blackbox1', 'blackbox2'],
+            'additional_vars': {
+                'APP_NAME':
+                    'chrome.apk',
+                'APP_LAUNCH_COMMAND':
+                    'shell am start -a android.intent.action.MAIN -n %PKG_NAME%/.Main \'%TESTCASE_FILE_URL%\'',
+                'APP_ARGS':
+                    '--enable-logging=stderr',
+                'REQUIRED_APP_ARGS':
+                    '--disable-things',
+                'PKG_NAME':
+                    'org.chromium.chrome',
+                'CHILD_PROCESS_TERMINATION_PATTERN':
+                    'org.chromium.chrome:some_process',
+                'ASAN_OPTIONS':
+                    '--asan-opt1'
+            }
+        }, {
+            'build_path': 'gs://chrome/android/mte-l-([0-9.]+).zip',
+            'name': 'chrome_android_mte',
+            'fuzzing_engines': ['none'],
+            'architectures': ['arm'],
+            'sanitizers': ['none'],
+            'managed_engineless': True,
+            'platform': 'ANDROID_MTE',
+            'queue_id': 'chrome-pixel8'
+        }, {
+            'build_path': 'gs://chrome/android/mte-l-([0-9.]+).zip',
+            'name': 'chrome_android_mte_unmanaged',
+            'fuzzing_engines': ['none'],
+            'architectures': ['arm'],
+            'sanitizers': ['none'],
+            'platform': 'ANDROID_MTE',
+            'queue_id': 'chrome-pixel9'
+        }]
+    })
+
   return json.dumps({
       'projects': [
           {
@@ -1769,6 +1867,12 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     self.centipede = data_types.Fuzzer(name='centipede', jobs=[])
     self.centipede.put()
+
+    # blackbox fuzzers
+    self.blackbox1 = data_types.Fuzzer(name='blackbox1', jobs=[])
+    self.blackbox1.put()
+    self.blackbox2 = data_types.Fuzzer(name='blackbox2', jobs=[])
+    self.blackbox2.put()
 
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.ProjectConfig',
@@ -1875,6 +1979,31 @@ class GenericProjectSetupTest(unittest.TestCase):
                             'ASAN_VAR': 'VAL-android',
                         },
                     }
+                }
+            },
+            {
+                'source': 'gs://bucket-chrome/projects.json',
+                'build_type': 'RELEASE_BUILD_BUCKET_PATH',
+                'build_buckets': {
+                    'no_engine': 'clusterfuzz-builds-no-engine-chrome',
+                },
+                'additional_vars': {
+                    'all': {
+                        'STRING_VAR': 'VAL-chrome',
+                        'BOOL_VAR': True,
+                        'INT_VAR': 0,
+                    },
+                    'none': {
+                        'address': {
+                            'ASAN_VAR': 'VAL-chrome',
+                        },
+                        'hwardware': {
+                            'HWASAN_VAR': 'VAL-chrome',
+                        },
+                        'none': {
+                            'NONE_VAR': 'VAL-chrome',
+                        },
+                    },
                 }
             },
         ],
@@ -2126,6 +2255,9 @@ class GenericProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-android-pixel7',
         'projects/clusterfuzz-external/topics/jobs-android-x86-pixel8',
         'projects/clusterfuzz-external/topics/jobs-android-mte-pixel8',
+        'projects/clusterfuzz-external/topics/jobs-android-chrome-pixel7',
+        'projects/clusterfuzz-external/topics/jobs-android-chrome-pixel8',
+        'projects/clusterfuzz-external/topics/jobs-android-mte-chrome-pixel8',
     ]
     self.assertCountEqual(expected_topics,
                           list(pubsub_client.list_topics('projects/' + app_id)))
@@ -2175,3 +2307,136 @@ class GenericProjectSetupTest(unittest.TestCase):
     gft = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'googlefuzztest').get()
     self.assertCountEqual(['googlefuzztest_asan_c-d'], gft.jobs)
+
+    self.assertCountEqual(
+        [
+            'projects/clusterfuzz-external/subscriptions/jobs-android-chrome-pixel7'
+        ],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-chrome-pixel7'))
+
+    self.assertCountEqual(
+        [
+            'projects/clusterfuzz-external/subscriptions/jobs-android-chrome-pixel8'
+        ],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-chrome-pixel8'))
+
+    self.assertCountEqual(
+        [
+            'projects/clusterfuzz-external/subscriptions/jobs-android-mte-chrome-pixel8'
+        ],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-mte-chrome-pixel8'
+        ))
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'noengine_hwasan_chrome_android_pixel7').get()
+    self.assertEqual(
+        'RELEASE_BUILD_BUCKET_PATH = gs://chrome/android/hwasan-l-([0-9.]+).zip\n'
+        'PROJECT_NAME = chrome_android_pixel7\n'
+        'SUMMARY_PREFIX = chrome_android_pixel7\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-chrome\n'
+        'APP_ARGS = --enable-logging=stderr\n'
+        'APP_LAUNCH_COMMAND = shell am start -a android.intent.action.MAIN -n %PKG_NAME%/.Main \'%TESTCASE_FILE_URL%\'\n'
+        'APP_NAME = chrome.apk\n'
+        'CHILD_PROCESS_TERMINATION_PATTERN = org.chromium.chrome:some_process\n'
+        'HWASAN_OPTIONS = --hwasan-opt1\n'
+        'PKG_NAME = org.chromium.chrome\n'
+        'REQUIRED_APP_ARGS = --disable-things\n', job.environment_string)
+    self.assertCountEqual(['android'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID:CHROME-PIXEL7", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'noengine_hwasan_webview_android_pixel7').get()
+    self.assertEqual(
+        'RELEASE_BUILD_BUCKET_PATH = gs://chrome/android/hwasan-l-([0-9.]+).zip\n'
+        'PROJECT_NAME = webview_android_pixel7\n'
+        'SUMMARY_PREFIX = webview_android_pixel7\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-chrome\n'
+        'APP_ARGS = --enable-logging=stderr\n'
+        'APP_LAUNCH_COMMAND = shell am start -a android.intent.action.VIEW -n %PKG_NAME%/.Main \'%TESTCASE_FILE_URL%\'\n'
+        'APP_NAME = webview.apk\n'
+        'CHILD_PROCESS_TERMINATION_PATTERN = org.chromium.webview:some_process\n'
+        'COMMAND_LINE_PATH = /data/local/tmp/webview_command_line\n'
+        'PKG_NAME = org.chromium.webview\n', job.environment_string)
+    self.assertCountEqual(['android'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID:CHROME-PIXEL7", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'asan_chrome_android_pixel8').get()
+    self.assertEqual(
+        'RELEASE_BUILD_BUCKET_PATH = gs://chrome/android/asan-l-([0-9.]+).zip\n'
+        'PROJECT_NAME = chrome_android_pixel8\n'
+        'SUMMARY_PREFIX = chrome_android_pixel8\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'ASAN_VAR = VAL-chrome\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-chrome\n'
+        'APP_ARGS = --enable-logging=stderr\n'
+        'APP_LAUNCH_COMMAND = shell am start -a android.intent.action.MAIN -n %PKG_NAME%/.Main \'%TESTCASE_FILE_URL%\'\n'
+        'APP_NAME = chrome.apk\n'
+        'ASAN_OPTIONS = --asan-opt1\n'
+        'CHILD_PROCESS_TERMINATION_PATTERN = org.chromium.chrome:some_process\n'
+        'PKG_NAME = org.chromium.chrome\n'
+        'REQUIRED_APP_ARGS = --disable-things\n', job.environment_string)
+    self.assertCountEqual(['android'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID:CHROME-PIXEL8", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'noengine_nosanitizer_chrome_android_mte').get()
+    self.assertEqual(
+        'RELEASE_BUILD_BUCKET_PATH = gs://chrome/android/mte-l-([0-9.]+).zip\n'
+        'PROJECT_NAME = chrome_android_mte\n'
+        'SUMMARY_PREFIX = chrome_android_mte\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'NONE_VAR = VAL-chrome\n'
+        'STRING_VAR = VAL-chrome\n', job.environment_string)
+    self.assertCountEqual(['android'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID_MTE:CHROME-PIXEL8", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name ==
+        'noengine_nosanitizer_chrome_android_mte_unmanaged').get()
+    self.assertIsNone(job)
+
+    blackbox1 = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'blackbox1').get()
+    self.assertCountEqual(
+        ['noengine_hwasan_chrome_android_pixel7', 'asan_chrome_android_pixel8'],
+        blackbox1.jobs)
+
+    blackbox2 = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'blackbox2').get()
+    self.assertCountEqual([
+        'noengine_hwasan_webview_android_pixel7', 'asan_chrome_android_pixel8'
+    ], blackbox2.jobs)
