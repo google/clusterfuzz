@@ -21,7 +21,6 @@ import zipfile
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
-from local.butler import py_unittest
 from src.clusterfuzz._internal.base import utils
 
 MIN_SUPPORTED_NODEJS_VERSION = 4
