@@ -32,8 +32,8 @@ IMAGES=(
 )
 
 function docker_push {
-  docker push $image
-  docker push $image:$stamp
+  # docker push $image
+  docker push $image:carlolemos_fluentd_test_$stamp
 }
 
 if [ -z "$1" ]; then
@@ -45,7 +45,7 @@ fi
 stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
   docker build -t $image ${image#gcr.io/clusterfuzz-images/}
-  docker tag $image $image:$stamp
+  docker tag $image $image:carlolemos_fluentd_test_$stamp
   docker_push
 done
 
