@@ -30,7 +30,6 @@ from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
@@ -285,7 +284,6 @@ class Engine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    profiler.start_if_needed('centipede_fuzz')
     runner = _get_runner(target_path)
     _set_sanitizer_options(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
