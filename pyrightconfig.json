@@ -9,6 +9,6 @@
   "executionEnvironments": [{
     "root": "src",
     "extraPaths": [ "src/third_party" ],
-    "pythonVersion": "3.7"
+    "pythonVersion": "3.11"
   }]
 }
