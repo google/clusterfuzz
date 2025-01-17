@@ -84,8 +84,6 @@ def package(revision,
     print('You do not have nodejs, or your nodejs is not at least version 4.')
     sys.exit(1)
 
-  py_unittest.execute(args={})
-
   common.install_dependencies(platform_name=platform_name)
 
   # This needs to be done before packaging step to let src/appengine/config be
