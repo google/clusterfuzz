@@ -1153,6 +1153,7 @@ def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
         f'Failed to choose a fuzz target (path={bucket_path}).')
 
   # Check this so that we handle deleted targets properly.
+  import pdb; pdb.set_trace()
   targets_list = _get_targets_list(bucket_path)
   if fuzz_target not in targets_list:
     raise errors.BuildNotFoundError(revision, environment.get_value('JOB_NAME'))
