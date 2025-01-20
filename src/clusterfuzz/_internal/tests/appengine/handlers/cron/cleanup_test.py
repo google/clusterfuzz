@@ -1494,6 +1494,30 @@ class UpdateComponentsTest(unittest.TestCase):
     self.assertIn('D', self.issue.components)
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
+  def test_vrp_security_upload_overrides_bug_type_and_components(self):
+    """Ensure that the type and component gets reset for a processed VRP direct
+    uploaded security bug. This test is specific to the Google Issue Tracker."""
+    self.testcase.security_flag = True
+    self.testcase.put()
+    setattr(self.issue, 'component_id', cleanup.VRP_UPLOAD_COMPONENT_ID)
+
+    cleanup.update_component_labels_and_id(
+        policy=self.policy, testcase=self.testcase, issue=self.issue)
+    self.assertIn('Type-VULNERABILITY', self.issue.labels)
+    self.assertEqual(cleanup.CHROMIUM_COMPONENT_ID, self.issue.component_id)
+
+  def test_vrp_non_security_upload_overrides_bug_type_and_components(self):
+    """Ensure that the type and component gets reset for a processed VRP direct
+    uploaded non-security bug. This test is specific to the Google Issue Tracker."""
+    self.testcase.security_flag = False
+    self.testcase.put()
+    setattr(self.issue, 'component_id', cleanup.VRP_UPLOAD_COMPONENT_ID)
+
+    cleanup.update_component_labels_and_id(
+        policy=self.policy, testcase=self.testcase, issue=self.issue)
+    self.assertIn('Type-BUG', self.issue.labels)
+    self.assertEqual(cleanup.CHROMIUM_COMPONENT_ID, self.issue.component_id)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
