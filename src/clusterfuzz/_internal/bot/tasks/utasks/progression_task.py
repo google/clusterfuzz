@@ -522,7 +522,6 @@ def find_fixed_range(uworker_input):
 
   logs.info(
       f'min_revision is {min_revision} and max_revision is {max_revision}.')
-  logs.info(f'revision_list is {revision_list}.')
 
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
