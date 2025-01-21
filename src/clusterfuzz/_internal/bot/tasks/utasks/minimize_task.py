@@ -1370,9 +1370,9 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
 
 
 def _run_libfuzzer_testcase(fuzz_target,
-                            testcase,
-                            testcase_file_path,
-                            crash_retries=1):
+                            testcase: data_types.Testcase,
+                            testcase_file_path: str,
+                            crash_retries: int = 1) -> CrashResult:
   """Run libFuzzer testcase, and return the CrashResult."""
   # Cleanup any existing application instances and temp directories.
   process_handler.cleanup_stale_processes()
@@ -1429,8 +1429,16 @@ def _run_libfuzzer_tool(
     expected_crash_state: str,
     minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,  # pylint: disable=no-member
     fuzz_target: Optional[data_types.FuzzTarget],
-    set_dedup_flags: bool = False):
-  """Run libFuzzer tool to either minimize or cleanse."""
+    set_dedup_flags: bool = False
+) -> tuple[str, CrashResult, str] | tuple[None, None, None]:
+  """Run libFuzzer tool to either minimize or cleanse.
+
+  Returns (None, None, None) in case of failure.
+  Otherwise sets `testcase.minimized_keys` and returns:
+
+    (testcase_file_path, crash_result, minimized_keys)
+
+  """
   memory_tool_options_var = environment.get_current_memory_tool_var()
   saved_memory_tool_options = environment.get_value(memory_tool_options_var)
 
