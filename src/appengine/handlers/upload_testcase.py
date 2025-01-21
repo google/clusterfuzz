@@ -392,7 +392,9 @@ class UploadHandlerCommon:
     trusted_agreement_signed = request.get(
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
 
-    if (not trusted_agreement_signed and
+    # Chrome is the only ClusterFuzz deployment where there are trusted bots running utasks.
+    # This check also fails on oss-fuzz because of the way it abuses platform.
+    if (not trusted_agreement_signed and utils.is_chromium() and        
         task_utils.is_remotely_executing_utasks() and
         ((platform_id and platform_id != 'Linux') or
          job.platform.lower() != 'linux')):
