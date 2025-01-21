@@ -23,6 +23,8 @@ import sys
 import tempfile
 import time
 
+import pytz
+
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
@@ -47,9 +49,9 @@ SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 Version = namedtuple('Version', ['id', 'deploy_time', 'traffic_split'])
 
 
-def now():
+def now(tz=None):
   """Used for mocks."""
-  return datetime.datetime.now()
+  return datetime.datetime.now(tz)
 
 
 def _get_services(paths):
