@@ -1370,9 +1370,9 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
 
 
 def _run_libfuzzer_testcase(fuzz_target,
-                            testcase,
-                            testcase_file_path,
-                            crash_retries=1):
+                            testcase: data_types.Testcase,
+                            testcase_file_path: str,
+                            crash_retries: int = 1) -> CrashResult:
   """Run libFuzzer testcase, and return the CrashResult."""
   # Cleanup any existing application instances and temp directories.
   process_handler.cleanup_stale_processes()
@@ -1429,8 +1429,16 @@ def _run_libfuzzer_tool(
     expected_crash_state: str,
     minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,  # pylint: disable=no-member
     fuzz_target: Optional[data_types.FuzzTarget],
-    set_dedup_flags: bool = False):
-  """Run libFuzzer tool to either minimize or cleanse."""
+    set_dedup_flags: bool = False
+) -> tuple[str, CrashResult, str] | tuple[None, None, None]:
+  """Run libFuzzer tool to either minimize or cleanse.
+
+  Returns (None, None, None) in case of failure.
+  Otherwise sets `testcase.minimized_keys` and returns:
+
+    (testcase_file_path, crash_result, minimized_keys)
+
+  """
   memory_tool_options_var = environment.get_current_memory_tool_var()
   saved_memory_tool_options = environment.get_value(memory_tool_options_var)
 
@@ -1565,8 +1573,6 @@ def do_libfuzzer_minimization(
   """Use libFuzzer's built-in minimizer where appropriate."""
   timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 600)
   rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 5)
-  current_testcase_path = testcase_file_path
-  last_crash_result = None
 
   # Get initial crash state.
   initial_crash_result = _run_libfuzzer_testcase(
@@ -1637,7 +1643,10 @@ def do_libfuzzer_minimization(
   if env:
     testcase.set_metadata('env', env, False)
 
-  minimized_keys = None
+  current_testcase_path = testcase_file_path
+  last_crash_result = None
+  last_minimized_keys = None
+
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
   for round_number in range(1, rounds + 1):
@@ -1653,6 +1662,7 @@ def do_libfuzzer_minimization(
         set_dedup_flags=True)
     if output_file_path:
       last_crash_result = crash_result
+      last_minimized_keys = minimized_keys
       current_testcase_path = output_file_path
 
   if not last_crash_result:
@@ -1663,8 +1673,8 @@ def do_libfuzzer_minimization(
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(  # pylint: disable=no-member
         last_crash_result_dict=crash_result_dict,
         memory_tool_options=memory_tool_options)
-    if minimized_keys:
-      minimize_task_output.minimized_keys = str(minimized_keys)
+    if last_minimized_keys:
+      minimize_task_output.minimized_keys = str(last_minimized_keys)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,  # pylint: disable=no-member
         minimize_task_output=minimize_task_output)
@@ -1673,7 +1683,7 @@ def do_libfuzzer_minimization(
 
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
-    cleansed_testcase_path, minimized_keys = do_libfuzzer_cleanse(
+    cleansed_testcase_path, last_minimized_keys = do_libfuzzer_cleanse(
         fuzz_target, testcase, current_testcase_path,
         expected_state.crash_state, minimize_task_input)
     if cleansed_testcase_path:
@@ -1690,8 +1700,8 @@ def do_libfuzzer_minimization(
   minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(  # pylint: disable=no-member
       last_crash_result_dict=last_crash_result_dict,
       memory_tool_options=memory_tool_options)
-  if minimized_keys:
-    minimize_task_output.minimized_keys = str(minimized_keys)
+  if last_minimized_keys:
+    minimize_task_output.minimized_keys = str(last_minimized_keys)
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)  # pylint: disable=no-member
 
 
