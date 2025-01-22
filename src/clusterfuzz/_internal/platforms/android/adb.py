@@ -418,9 +418,9 @@ def start_cuttlefish_device():
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   # TODO(https://github.com/google/clusterfuzz/issues/3777): Enable sandboxing
-  launch_cvd_command_line = (
-      f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
-      '-report_anonymous_usage_stats Y')
+  launch_cvd_command_line = (f'ulimit -n 1048576 && {launch_cvd_path} -daemon'
+                             f'-memory_mb {device_memory_mb}'
+                             '-report_anonymous_usage_stats Y')
   execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
 
