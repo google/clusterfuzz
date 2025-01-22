@@ -448,6 +448,13 @@ def stop_cuttlefish_device():
         stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
     time.sleep(STOP_CVD_WAIT)
 
+  kill_crosvm = 'pkill crosvm'
+  kill_run_cvd = 'pkill run_cvd'
+  execute_command(
+      kill_crosvm, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+  execute_command(
+      kill_run_cvd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+
 
 def restart_cuttlefish_device():
   """Restarts the cuttlefish device."""
