@@ -517,6 +517,14 @@ def find_fixed_range(uworker_input):
   known_crash_revision = last_tested_revision or testcase.crash_revision
   if not min_revision:
     min_revision = known_crash_revision
+    # If the min_revision (based on last_tested_crash_revision or known_crash_revision)
+    # no longer exists, then use the first revision in the list so that progression
+    # does not error out with "Build not found"
+    min_revision_in_list = revisions.get_first_revision_in_list(revision_list)
+    if min_revision < min_revision_in_list:
+      logs.info(f'Build {min_revision} might not exist in the list. Hence '
+                f'updating the min_revision to {min_revision_in_list}')
+      min_revision = min_revision_in_list
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
 
