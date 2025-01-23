@@ -672,10 +672,10 @@ class TestcaseRunner:
     return state
 
   def reproduce_with_retries(self,
-                             retries,
-                             expected_state=None,
-                             expected_security_flag=None,
-                             flaky_stacktrace=False):
+                             retries: int,
+                             expected_state: CrashInfo | None = None,
+                             expected_security_flag: bool | None = None,
+                             flaky_stacktrace: bool = False) -> CrashResult:
     """Try reproducing a crash with retries."""
     self._pre_run_cleanup()
     crash_result = None
@@ -774,7 +774,7 @@ def test_for_crash_with_retries(fuzz_target,
                                 http_flag=False,
                                 use_gestures=True,
                                 compare_crash=True,
-                                crash_retries=None):
+                                crash_retries=None) -> CrashResult:
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
   logs.info('Testing for crash.')
