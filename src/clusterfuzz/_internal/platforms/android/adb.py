@@ -52,6 +52,8 @@ RECOVERY_CMD_TIMEOUT = 60 * 2
 GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
+CMD_KILL_CROSVM = 'pkill crosvm'
+CMD_KILL_RUN_CVD = 'pkill run_cvd'
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -448,12 +450,10 @@ def stop_cuttlefish_device():
         stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
     time.sleep(STOP_CVD_WAIT)
 
-  kill_crosvm = 'pkill crosvm'
-  kill_run_cvd = 'pkill run_cvd'
   execute_command(
-      kill_crosvm, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+      CMD_KILL_CROSVM, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
   execute_command(
-      kill_run_cvd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+      CMD_KILL_RUN_CVD, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
 
 
 def restart_cuttlefish_device():
