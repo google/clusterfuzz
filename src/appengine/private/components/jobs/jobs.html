@@ -18,6 +18,8 @@
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
@@ -100,8 +102,29 @@
       on-response="handleResponse"
       debounce-duration="500"></iron-ajax>
 
+    <iron-ajax
+      id="environmentAjax"
+      url="/jobs/environment"
+      method="GET"
+      content-type="application/json"
+      loading="{{envLoading}}"
+      last-error="{{envError}}"
+      last-response="{{envResponse}}"
+      on-error="handleEnvError"
+      on-response="handleEnvResponse"></iron-ajax>
+
     <delete-job-dialog id="deleteJobDialog" field-values="[[fieldValues]]" job="[[toDelete]]">
     </delete-job-dialog>
+
+    <paper-dialog id="envDialog" with-backdrop>
+      <h2>Computed Environment</h2>
+      <paper-dialog-scrollable>
+        <pre id="envContent"></pre>
+      </paper-dialog-scrollable>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Close</paper-button>
+      </div>
+    </paper-dialog>
 
     <h2>Templates</h2>
 
@@ -334,6 +357,7 @@
         
                     <paper-button raised on-tap="submitForm" data-index$="[[index]]">Save</paper-button>
                     <paper-button class="info" job="[[item]]" raised on-tap="deleteJobTapped">Delete</paper-button>
+                    <paper-button raised on-tap="viewEnvironment" data-job-name$="[[item.name]]">View inherited environment</paper-button>
                   </div>
         
                   <div class="right">
@@ -365,6 +389,10 @@
           },
           response: Object,
           loading: {
+            type: Boolean,
+            value: false
+          },
+          envLoading: {
             type: Boolean,
             value: false
           },
@@ -538,6 +566,30 @@
 
       stopEventPropagation(ev) {
         ev.stopPropagation();
+      }
+
+      handleEnvError(event) {
+        var response = event.detail.request.xhr.response;
+        if (response.error) {
+          this.$.envContent.textContent = 'Error: ' + response.error.message;
+        } else {
+          this.$.envContent.textContent = 'Error fetching environment';
+        }
+        this.$.envDialog.open();
+      }
+
+      handleEnvResponse(event) {
+        var response = event.detail.response;
+        this.$.envContent.textContent = Object.entries(response.environment)
+          .map(([key, value]) => `${key} = ${value}`)
+          .join('\n');
+        this.$.envDialog.open();
+      }
+
+      viewEnvironment(event) {
+        var jobName = event.target.dataset.jobName;
+        this.$.environmentAjax.params = {name: jobName};
+        this.$.environmentAjax.generateRequest();
       }
     }
 

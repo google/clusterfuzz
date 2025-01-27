@@ -162,6 +162,7 @@ handlers = [
     ('/jobs', jobs.Handler),
     ('/jobs/load', jobs.JsonHandler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
+    ('/jobs/environment', jobs.GetEnvironmentHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
     ('/report-bug', help_redirector.ReportBugHandler),
