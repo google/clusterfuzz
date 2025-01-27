@@ -191,6 +191,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'Failure description: out-of-memory',  # Centipede old.
     r'========= RSS limit exceeded:',  # Centipede new.
     r'A device memory allocation has failed\.',  # To detect gpu OOM errors.
+    r'__rust_alloc_error_handler',  # Rust allocation failure on OOM.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
