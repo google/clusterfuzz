@@ -1068,10 +1068,10 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Make sure we're the only instance running for the given fuzzer and
   # job_type.
-  # if not data_handler.update_task_status(task_name,
-  #                                        data_types.TaskState.STARTED):
-  #   logs.info('A previous corpus pruning task is still running, exiting.')
-  #   return None
+  if not data_handler.update_task_status(task_name,
+                                         data_types.TaskState.STARTED):
+    logs.info('A previous corpus pruning task is still running, exiting.')
+    return None
 
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
