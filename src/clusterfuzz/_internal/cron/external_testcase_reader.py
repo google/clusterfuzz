@@ -22,6 +22,7 @@ import requests
 from appengine.libs import form
 from appengine.libs import gcs
 from appengine.libs import helpers
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 
@@ -32,12 +33,11 @@ ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
 ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
 
 
-def get_vrp_uploaders():
+def get_vrp_uploaders(config):
   """Checks whether the given reporter has permission to upload."""
-  # TODO(pgrace) Add this to a YAML file.
   storage_client = storage.Client()
-  bucket = storage_client.bucket('clusterfuzz-vrp-uploaders')
-  blob = bucket.blob('vrp-uploaders')
+  bucket = storage_client.bucket(config.get('vrp-uploaders-bucket'))
+  blob = bucket.blob(config.get('vrp-uploaders-blob'))
   members = blob.download_as_string().decode('utf-8').splitlines()[0].split(',')
   return members
 
@@ -151,7 +151,7 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
       'https://clusterfuzz.com/upload-testcase/upload', data=data, timeout=10)
 
 
-def handle_testcases(tracker):
+def handle_testcases(tracker, config):
   """Fetches and submits testcases from bugs or closes unnecssary bugs."""
   # TODO(pgrace) remove ID filter once done testing.
   issues = tracker.find_issues_with_filters(
@@ -163,7 +163,7 @@ def handle_testcases(tracker):
     return
 
   # TODO(pgrace) Cache in redis.
-  vrp_uploaders = get_vrp_uploaders()
+  vrp_uploaders = get_vrp_uploaders(config)
 
   # TODO(pgrace) Implement rudimentary rate limiting.
 
@@ -199,7 +199,7 @@ def handle_testcases(tracker):
 def main():
   tracker = issue_tracker.IssueTracker('chromium', None,
                                        {'default_component_id': 1363614})
-  handle_testcases(tracker)
+  handle_testcases(tracker, local_config.ExternalTestcaseReaderConfig())
 
 
 if __name__ == '__main__':
