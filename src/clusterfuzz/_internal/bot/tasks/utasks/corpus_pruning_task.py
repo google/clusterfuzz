@@ -133,8 +133,7 @@ def _limit_corpus_size(corpus_url, not_failed):
   for corpus_file in storage.get_blobs(corpus_url):
     corpus_count += 1
     corpus_size += corpus_file['size']
-    if (corpus_count > num_files_limit or
-        corpus_size > size_limit):
+    if (corpus_count > num_files_limit or corpus_size > size_limit):
       path_to_delete = storage.get_cloud_storage_file_path(
           bucket, corpus_file['name'])
       storage.delete(path_to_delete)
@@ -1063,8 +1062,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   last_execution_not_successful = not bool(
       last_execution_metadata and
       last_execution_metadata.status == data_types.TaskState.FINISHED)
-  last_execution_failed = bool(last_execution_metadata and
-                               last_execution_metadata.status == data_types.TaskState.ERROR)
+  last_execution_failed = bool(
+      last_execution_metadata and
+      last_execution_metadata.status == data_types.TaskState.ERROR)
 
   # Make sure we're the only instance running for the given fuzzer and
   # job_type.
