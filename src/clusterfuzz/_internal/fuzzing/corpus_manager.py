@@ -755,7 +755,9 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       engine,
       project_qualified_name,
       include_regressions=True,
-      include_delete_urls=True)
+      include_delete_urls=True,
+      max_download_urls=50000
+  )
   max_upload_urls = len(corpus.proto_corpus.corpus.corpus_urls)
   # We will never need to upload more than the number of testcases in the
   # corpus to the quarantine.
@@ -764,5 +766,7 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       project_qualified_name,
       quarantine=True,
       include_delete_urls=True,
-      max_upload_urls=max_upload_urls)
+      max_upload_urls=max_upload_urls,
+      max_download_urls=50000
+  )
   return corpus, quarantine_corpus

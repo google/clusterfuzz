@@ -118,18 +118,23 @@ def _get_corpus_file_paths(corpus_path):
   ]
 
 
-def _limit_corpus_size(corpus_url):
+def _limit_corpus_size(corpus_url, not_failed):
   """Limit number of files and size of a corpus."""
   corpus_count = 0
   corpus_size = 0
   deleted_corpus_count = 0
   bucket, _ = storage.get_bucket_name_and_path(corpus_url)
   logs.info('Limiting corpus size.')
+  size_limit = CORPUS_SIZE_LIMIT_FOR_FAILURES
+  num_files_limit = CORPUS_FILES_LIMIT_FOR_FAILURES
+  if not_failed:
+    size_limit *= 5
+    num_files_limit *= 5
   for corpus_file in storage.get_blobs(corpus_url):
     corpus_count += 1
     corpus_size += corpus_file['size']
-    if (corpus_count > CORPUS_FILES_LIMIT_FOR_FAILURES or
-        corpus_size > CORPUS_SIZE_LIMIT_FOR_FAILURES):
+    if (corpus_count > num_files_limit or
+        corpus_size > size_limit):
       path_to_delete = storage.get_cloud_storage_file_path(
           bucket, corpus_file['name'])
       storage.delete(path_to_delete)
@@ -1055,16 +1060,18 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
-  last_execution_failed = bool(
+  last_execution_not_successful = not bool(
       last_execution_metadata and
-      last_execution_metadata.status == data_types.TaskState.ERROR)
+      last_execution_metadata.status == data_types.TaskState.FINISHED)
+  last_execution_failed = bool(last_execution_metadata and
+                               last_execution_metadata.status == data_types.TaskState.ERROR)
 
   # Make sure we're the only instance running for the given fuzzer and
   # job_type.
-  if not data_handler.update_task_status(task_name,
-                                         data_types.TaskState.STARTED):
-    logs.info('A previous corpus pruning task is still running, exiting.')
-    return None
+  # if not data_handler.update_task_status(task_name,
+  #                                        data_types.TaskState.STARTED):
+  #   logs.info('A previous corpus pruning task is still running, exiting.')
+  #   return None
 
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
@@ -1076,12 +1083,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
-  if last_execution_failed:
+  if last_execution_failed or last_execution_not_successful:
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
+    not_failed = last_execution_not_successful and not last_execution_failed
     for corpus_url in corpus_urls:
-      _limit_corpus_size(corpus_url)
+      _limit_corpus_size(corpus_url, not_failed=not_failed)
 
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
       fuzz_target.engine, fuzz_target.project_qualified_name())
