@@ -17,6 +17,7 @@ import os
 import re
 import sys
 import zipfile
+import shutil
 
 from local.butler import appengine
 from local.butler import common
@@ -135,7 +136,20 @@ def package(revision,
 
   print()
   print('%s is ready.' % target_zip_path)
-  return target_zip_path
+
+  targets_zip_paths = [target_zip_path]
+  if platform_name and release == 'prod':
+    for add_release in constants.ADDITIONAL_RELEASES:
+      add_target_zip_name = utils.get_platform_deployment_filename(
+          platform_name, release=add_release)
+      add_target_zip_path = os.path.join(target_zip_dir, add_target_zip_name)
+      _clear_zip(add_target_zip_path)
+      shutil.copy2(target_zip_path, add_target_zip_path)
+      print()
+      print('%s is ready.' % add_target_zip_path)
+      targets_zip_paths.append(add_target_zip_path)
+
+  return targets_zip_paths
 
 
 def execute(args):

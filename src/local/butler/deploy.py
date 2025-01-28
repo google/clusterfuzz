@@ -117,11 +117,14 @@ def _deploy_app_prod(project,
       _deploy_zip(
           deployment_bucket, package_zip_path, test_deployment=test_deployment)
 
-    _deploy_manifest(
-        deployment_bucket,
-        constants.PACKAGE_TARGET_MANIFEST_PATH,
-        test_deployment=test_deployment,
-        release=release)
+    releases = [release]
+    releases += constants.ADDITIONAL_RELEASES if release == 'prod' else []
+    for rel in releases:
+      _deploy_manifest(
+          deployment_bucket,
+          constants.PACKAGE_TARGET_MANIFEST_PATH,
+          test_deployment=test_deployment,
+          release=rel)
 
 
 def _deploy_app_staging(project, yaml_paths):
@@ -563,9 +566,9 @@ def execute(args):
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
-      package_zip_paths.append(
-          package.package(
-              revision, platform_name=platform_name, release=args.release))
+      package_zip_paths += package.package(revision,
+                                           platform_name=platform_name,
+                                           release=args.release)
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.

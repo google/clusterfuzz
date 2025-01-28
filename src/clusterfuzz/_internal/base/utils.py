@@ -261,8 +261,9 @@ def _get_manifest_release_suffix(release):
   suffix = ''
   if sys.version_info.major == 3:
     suffix += '.3'
-  if release == 'candidate':
-    suffix += '-candidate'
+  if release == 'prod':
+    return suffix
+  suffix += f'-{release}'
   return suffix
 
 
@@ -270,8 +271,9 @@ def _get_deployment_zip_release_suffix(release):
   suffix = ''
   if sys.version_info.major == 3:
     suffix += '-3'
-  if release == 'candidate':
-    suffix += '-candidate'
+  if release == 'prod':
+    return suffix
+  suffix += f'-{release}'
   return suffix
 
 
