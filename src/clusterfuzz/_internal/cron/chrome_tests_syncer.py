@@ -338,23 +338,10 @@ def main():
   tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
   tests_directory = environment.get_value('TESTS_DIR')
 
-  # Intervals are in seconds.
-  sync_interval = environment.get_value('SYNC_INTERVAL')
-  fail_wait = environment.get_value('FAIL_WAIT')
-
-  while True:
-    sleep_secs = sync_interval
-
-    try:
-      with monitor.wrap_with_monitoring(), ndb_init.context():
-        sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
-    except Exception as e:
-      logs.error(f'Failed to sync tests: {e}')
-      sleep_secs = fail_wait
-
-    logs.info(f'Sleeping for {sleep_secs} seconds.')
-    time.sleep(sleep_secs)
-
-
-if __name__ == '__main__':
-  main()
+  try:
+    # with monitor.wrap_with_monitoring(), ndb_init.context(): => already called in run_cron.py
+    sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
+    return True
+  except Exception as e:
+    logs.error(f'Failed to sync tests: {e}')
+    return False
