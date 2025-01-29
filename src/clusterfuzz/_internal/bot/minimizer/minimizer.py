@@ -183,6 +183,7 @@ class Testcase:
     """Check to see if we have exceeded the deadline for execution."""
     if self.minimizer.deadline and time.time() > self.minimizer.deadline:
       if soft_check:
+        logs.warning(f'Minimization deadline exceeded. soft_check={soft_check}')
         return True
 
       # If we are here, we have exceeded the deadline on a hard check. Clean up.
@@ -192,6 +193,7 @@ class Testcase:
       if self.minimizer.cleanup_function:
         self.minimizer.cleanup_function()
 
+      logs.warning('Minimization deadline exceeded.')
       # Raise an exception if this is not a soft deadline check.
       raise errors.MinimizationDeadlineExceededError(self)
 
@@ -558,6 +560,7 @@ class Minimizer:
       # minimized test case is stored with it so that we can recover the work
       # that had been done up to that point.
       testcase = error.testcase
+      logs.warning('Minimization Deadline Exceeded.')
     except errors.TokenizationFailureError:
       logs.info('Tokenized data did not match original data. Defaulting to line'
                 'minimization.')
