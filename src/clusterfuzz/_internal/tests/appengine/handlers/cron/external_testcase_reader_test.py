@@ -30,6 +30,10 @@ BASIC_ATTACHMENT = {
     },
     'etag': 'TXpjek9Ea3pNekV4TFRZd01USTNOalk0TFRjNE9URTROVFl4TlE9PQ=='
 }
+BASIC_CONFIG = {
+    'vrp-uploaders-bucket': 'bucket-name',
+    'vrp-uploaders-blob': 'blob-name'
+}
 
 
 @mock.patch.object(
@@ -52,7 +56,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     basic_issue.reporter.return_value = 'test-reporter@gmail.com'
     mock_it.find_issues_with_filters.return_value = [basic_issue]
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_called_once()
     mock_it.get_attachment.assert_called_once()
@@ -67,7 +71,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     basic_issue.reporter.return_value = 'test-reporter@gmail.com'
     mock_it.find_issues_with_filters.return_value = [basic_issue]
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_called_once()
     mock_it.get_attachment.assert_not_called()
@@ -86,7 +90,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     basic_issue.reporter.return_value = 'test-reporter@gmail.com'
     mock_it.find_issues_with_filters.return_value = [basic_issue]
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_not_called()
     mock_it.get_attachment.assert_not_called()
@@ -98,7 +102,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     mock_it = mock.create_autospec(issue_tracker.IssueTracker)
     mock_it.find_issues_with_filters.return_value = []
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_not_called()
     mock_it.get_attachment.assert_not_called()
@@ -221,9 +225,8 @@ class ExternalTestcaseReaderPermissionTest(unittest.TestCase):
       mock_blob.download_as_string.return_value = "test-user@google.com,test-user2@chromium.org".encode(
           'utf-8')
 
-      actual = external_testcase_reader.get_vrp_uploaders()
-      mock_storage.return_value.bucket.assert_called_once_with(
-          'clusterfuzz-vrp-uploaders')
-      mock_bucket.blob.assert_called_once_with('vrp-uploaders')
+      actual = external_testcase_reader.get_vrp_uploaders(BASIC_CONFIG)
+      mock_storage.return_value.bucket.assert_called_once_with('bucket-name')
+      mock_bucket.blob.assert_called_once_with('blob-name')
       self.assertEqual(actual,
                        ['test-user@google.com', 'test-user2@chromium.org'])
