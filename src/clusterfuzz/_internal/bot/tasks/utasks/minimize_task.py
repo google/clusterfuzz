@@ -445,7 +445,10 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
         ' should have been detected in preprocess.')
     return None
 
-  max_threads = utils.maximum_parallel_processes_allowed()
+  # TODO(alhijazi): re-install multithreaded runs
+  # max_threads = utils.maximum_parallel_processes_allowed()
+  # Temporarily run minimization single threaded.
+  max_threads = 1
 
   # Prepare the test case runner.
   crash_retries = environment.get_value('CRASH_RETRIES')
@@ -1748,8 +1751,10 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       delete_temp_files=delete_temp_files,
       progress_report_function=logs.info)
   try:
+    logs.info('Launching html minimization.')
     return current_minimizer.minimize(data)
   except minimizer_errors.AntlrDecodeError:
+    logs.info('Launching line minimization.')
     return do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
