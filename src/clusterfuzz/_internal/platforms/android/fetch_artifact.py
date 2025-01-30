@@ -210,7 +210,9 @@ def get_latest_artifact_info(branch, target, signed=False):
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
   if environment.is_android_cuttlefish():
-    return get_stable_build_info()
+    build_info = get_stable_build_info()
+    if 'bid' in build_info and build_info['bid'] != '0':
+      return build_info
 
   request = client.build().list(  # pylint: disable=no-member
       buildType='submitted',
