@@ -160,7 +160,7 @@ async def _limit_corpus_size(corpus_url):
       assert deleting
       blobs_to_delete.append(blob)
       if len(blobs_to_delete) == GOOGLE_CLOUD_MAX_BATCH_SIZE:
-        delete_success = await fast_http.delete_batch(
+        delete_success = await fast_http.delete_gcs_blobs_batch(
             session, bucket, blobs_to_delete, creds.token)
         if delete_success:
           num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE

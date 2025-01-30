@@ -91,9 +91,10 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
         fp.write(chunk)
 
 
-async def delete_batch(session, bucket, blobs, token):
+async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
+  """Batch deletes |blobs| asynchronously."""
   headers = {
-      'Authorization': f'Bearer {token}',
+      'Authorization': f'Bearer {auth_token}',
       'Content-Type': f'multipart/mixed; boundary={MULTIPART_BOUNDARY}'
   }
   # Build multipart body
@@ -114,11 +115,6 @@ async def delete_batch(session, bucket, blobs, token):
     async with session.post(
         BATCH_DELETE_URL, headers=headers, data=body, timeout=20) as response:
       response.raise_for_status()
-
-      print('response', response.text, response, dir(response))
-      content_type = response.headers['Content-Type']
-      if 'multipart/mixed' not in content_type:
-        raise ValueError('Unexpected response format')
       return True
 
   except Exception as e:
