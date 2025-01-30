@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Corpus pruning task."""
+import asyncio
 import collections
 import datetime
 import json
@@ -22,6 +23,8 @@ from typing import Dict
 from typing import List
 import zipfile
 
+import aiohttp
+from google.auth.transport import requests as google_auth_requests
 from google.cloud import ndb
 from google.protobuf import timestamp_pb2
 
@@ -44,11 +47,13 @@ from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import fast_http
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
@@ -71,11 +76,11 @@ TIMEOUT_FLAG = f'-timeout={SINGLE_UNIT_TIMEOUT}'
 
 # Corpus files limit for cases when corpus pruning task failed in the last
 # execution.
-CORPUS_FILES_LIMIT_FOR_FAILURES = 10000
+CORPUS_FILES_LIMIT_FOR_FAILURES = 50000
 
 # Corpus total size limit for cases when corpus pruning task failed in the last
 # execution.
-CORPUS_SIZE_LIMIT_FOR_FAILURES = 2 * 1024 * 1024 * 1024  # 2 GB.
+CORPUS_SIZE_LIMIT_FOR_FAILURES = 10 * 1024 * 1024 * 1024  # 10 GB.
 
 # Maximum number of units to restore from quarantine in one run.
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
@@ -98,6 +103,9 @@ SYNC_TIMEOUT = 2 * 60 * 60
 # current fuzz target corpus.
 CROSS_POLLINATE_FUZZER_COUNT = 3
 
+# From https://cloud.google.com/storage/docs/batch
+GOOGLE_CLOUD_MAX_BATCH_SIZE = 100
+
 CorpusPruningResult = collections.namedtuple('CorpusPruningResult', [
     'coverage_info', 'crashes', 'fuzzer_binary_name', 'revision',
     'cross_pollination_stats'
@@ -118,31 +126,57 @@ def _get_corpus_file_paths(corpus_path):
   ]
 
 
-def _limit_corpus_size(corpus_url, not_failed):
-  """Limit number of files and size of a corpus."""
-  corpus_count = 0
-  corpus_size = 0
-  deleted_corpus_count = 0
-  bucket, _ = storage.get_bucket_name_and_path(corpus_url)
-  logs.info('Limiting corpus size.')
-  size_limit = CORPUS_SIZE_LIMIT_FOR_FAILURES
-  num_files_limit = CORPUS_FILES_LIMIT_FOR_FAILURES
-  if not_failed:
-    size_limit *= 5
-    num_files_limit *= 5
-  for corpus_file in storage.get_blobs(corpus_url):
-    corpus_count += 1
-    corpus_size += corpus_file['size']
-    if (corpus_count > num_files_limit or corpus_size > size_limit):
-      path_to_delete = storage.get_cloud_storage_file_path(
-          bucket, corpus_file['name'])
-      storage.delete(path_to_delete)
-      deleted_corpus_count += 1
-  logs.info('Done limiting corpus size.')
+async def _limit_corpus_sizes(corpus_urls):
+  try:
+    await asyncio.gather(
+        *[_limit_corpus_size(corpus_url) for corpus_url in corpus_urls])
+  except Exception as e:
+    # Catch any unexpected exceptions
+    logs.error(f"Error in _limit_corpus_size: {e}")
 
-  if deleted_corpus_count:
-    logs.info('Removed %d files from oversized corpus: %s.' %
-              (deleted_corpus_count, corpus_url))
+
+async def _limit_corpus_size(corpus_url):
+  """Limits corpus size asynchronously."""
+  logs.info('Limiting corpus size')
+  creds, _ = credentials.get_default()
+  creds.refresh(google_auth_requests.Request())
+  bucket = storage.get_bucket_name_and_path(corpus_url)[0]
+
+  async with aiohttp.ClientSession() as session:
+    idx = 0
+    deleting = False
+    corpus_size = 0
+    num_deleted = 0
+    blobs_to_delete = []
+    for blob in storage.get_blobs_no_retry(corpus_url, recursive=True):
+      idx += 1
+      if not deleting:
+        corpus_size += blob['size']
+        if (idx >= CORPUS_FILES_LIMIT_FOR_FAILURES or
+            corpus_size >= CORPUS_SIZE_LIMIT_FOR_FAILURES):
+          deleting = True
+        continue
+
+      assert deleting
+      blobs_to_delete.append(blob)
+      if len(blobs_to_delete) == GOOGLE_CLOUD_MAX_BATCH_SIZE:
+        delete_success = await fast_http.delete_batch(
+            session, bucket, blobs_to_delete, creds.token)
+        if delete_success:
+          num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE
+          logs.error('deleted.')
+        else:
+          logs.error('failed to delete.')
+        blobs_to_delete = []
+      else:
+        assert len(blobs_to_delete) < GOOGLE_CLOUD_MAX_BATCH_SIZE
+      if blobs_to_delete:
+        await fast_http.delete_batch(session, bucket, blobs_to_delete,
+                                     creds.token)
+    if num_deleted:
+      logs.info(f'Deleted over {num_deleted} corpus files.')
+    else:
+      logs.info('No need to limit corpus.')
 
 
 def _get_time_remaining(start_time):
@@ -1059,19 +1093,16 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
-  last_execution_not_successful = not bool(
+  last_execution_failed = not bool(
       last_execution_metadata and
       last_execution_metadata.status == data_types.TaskState.FINISHED)
-  last_execution_failed = bool(
-      last_execution_metadata and
-      last_execution_metadata.status == data_types.TaskState.ERROR)
 
-  # Make sure we're the only instance running for the given fuzzer and
-  # job_type.
-  if not data_handler.update_task_status(task_name,
-                                         data_types.TaskState.STARTED):
-    logs.info('A previous corpus pruning task is still running, exiting.')
-    return None
+  # # Make sure we're the only instance running for the given fuzzer and
+  # # job_type.
+  # if not data_handler.update_task_status(task_name,
+  #                                        data_types.TaskState.STARTED):
+  #   logs.info('A previous corpus pruning task is still running, exiting.')
+  #   return None
 
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
@@ -1083,13 +1114,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
-  if last_execution_failed or last_execution_not_successful:
+  logs.info('here')
+  if last_execution_failed:
+    logs.info('here')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
-    not_failed = last_execution_not_successful and not last_execution_failed
-    for corpus_url in corpus_urls:
-      _limit_corpus_size(corpus_url, not_failed=not_failed)
+    asyncio.run(_limit_corpus_sizes(corpus_urls))
 
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
       fuzz_target.engine, fuzz_target.project_qualified_name())
