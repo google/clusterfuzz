@@ -405,7 +405,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   def rsync_from_disk(self,
                       directory,
                       timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                      delete=True):
+                      delete=True,
+                      real_corpus=True):
     """Upload local files to GCS and remove files which do not exist locally.
 
     Overridden to have additional logging.
@@ -437,11 +438,12 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     logs.info('Done uploading corpus.')
     filenames_to_delete = list(filenames_to_delete_dict.values())
 
-    # Assert that we aren't making the very bad mistake of deleting the entire
-    # corpus because we messed up our determination of which files were deleted
-    # by libFuzzer during merge/pruning.
-    assert ((len(filenames_to_delete) != len(
-        self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
+    if protect_corpus:
+      # Assert that we aren't making the very bad mistake of deleting the entire
+      # corpus because we messed up our determination of which files were
+      # deleted by libFuzzer during merge/pruning.
+      assert ((len(filenames_to_delete) != len(
+          self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
 
     logs.info('Deleting files.')
     storage.delete_signed_urls(filenames_to_delete)
