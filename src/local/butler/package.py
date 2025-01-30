@@ -21,6 +21,7 @@ import zipfile
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
+from local.butler import py_unittest
 from src.clusterfuzz._internal.base import utils
 
 MIN_SUPPORTED_NODEJS_VERSION = 4
@@ -82,6 +83,8 @@ def package(revision,
   if not _is_nodejs_up_to_date():
     print('You do not have nodejs, or your nodejs is not at least version 4.')
     sys.exit(1)
+
+  py_unittest.execute(args={})
 
   common.install_dependencies(platform_name=platform_name)
 
