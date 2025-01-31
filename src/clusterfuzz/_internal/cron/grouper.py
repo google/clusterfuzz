@@ -58,16 +58,17 @@ class TestcaseAttributes:
 
 def combine_testcases_into_group(
     testcase_1: TestcaseAttributes, testcase_2: TestcaseAttributes,
-    testcase_map: dict[int, TestcaseAttributes]) -> None:
+    testcase_map: dict[int, TestcaseAttributes], reason: str) -> None:
   """Combine two testcases into a group."""
-  logs.info('Grouping testcase %s '
-            '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
-            'and testcase %s '
-            '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
-            (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
-             testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
-             testcase_2.crash_type, testcase_2.crash_state,
-             testcase_2.security_flag, testcase_2.group_id))
+  logs.info(
+      'Grouping testcase %s '
+      '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+      'and testcase %s '
+      '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s). Reason: %s'
+      % (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+         testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
+         testcase_2.crash_type, testcase_2.crash_state,
+         testcase_2.security_flag, testcase_2.group_id, reason))
 
   # If none of the two testcases have a group id, just assign a new group id to
   # both.
@@ -90,9 +91,14 @@ def combine_testcases_into_group(
   # together and reuse one of their group ids.
   group_id_to_reuse = testcase_1.group_id
   group_id_to_move = testcase_2.group_id
+  moved_testcase_ids = []
   for testcase in testcase_map.values():
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
+      moved_testcase_ids.append(testcase.id)
+
+  logs.info(f'Merged group {group_id_to_move} into {group_id_to_reuse}: ' +
+            'moved testcases: ' + ', '.join(moved_testcase_ids))
 
 
 def _get_new_group_id():
@@ -229,18 +235,8 @@ def _group_testcases_based_on_variants(testcase_map):
                   'is a top crash, skipping.')
         continue
 
-      logs.info(
-          'VARIANT ANALYSIS: Grouping testcase 1 '
-          '(id=%s, '
-          'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s) '
-          'and testcase 2 (id=%s, '
-          'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s).'
-          %
-          (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
-           testcase_1.security_flag, testcase_1.job_type, testcase_1.group_id,
-           testcase_2.id, testcase_2.crash_type, testcase_2.crash_state,
-           testcase_2.security_flag, testcase_2.job_type, testcase_2.group_id))
-      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
+                                   'identical variant')
 
 
 def _group_testcases_with_same_issues(testcase_map):
@@ -269,7 +265,8 @@ def _group_testcases_with_same_issues(testcase_map):
       if testcase_1.issue_id != testcase_2.issue_id:
         continue
 
-      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
+                                   'same issue')
 
 
 def _group_testcases_with_similar_states(testcase_map):
@@ -318,7 +315,8 @@ def _group_testcases_with_similar_states(testcase_map):
         if not crash_comparer.is_similar():
           continue
 
-      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
+                                   'similar crashes')
 
 
 def _has_testcase_with_same_params(testcase, testcase_map):
