@@ -1114,9 +1114,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
-  logs.info('here')
   if last_execution_failed:
-    logs.info('here')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
