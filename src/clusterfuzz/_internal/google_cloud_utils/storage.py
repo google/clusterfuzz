@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+import base64
 import collections
 from concurrent import futures
 import copy
@@ -1433,7 +1434,11 @@ def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
     return
 
   unique_id = uuid.uuid4()
-  base_name = unique_id.hex
+  # Represent (just as safely) the uuid in 22 chars instead of 32,
+  # this saves space when we use tens of thousands of these, tens of
+  # thousands of times a day.
+  base_name = base64.urlsafe_b64encode(
+    unique_id.bytes).decode('ascii').rstrip("=")  # We aren't decoding this.
   if not remote_directory.endswith('/'):
     remote_directory = remote_directory + '/'
   # The remote_directory ends with slash.
