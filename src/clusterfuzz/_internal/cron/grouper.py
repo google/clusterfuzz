@@ -56,16 +56,18 @@ class TestcaseAttributes:
     self.issue_id = None
 
 
-def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
+def combine_testcases_into_group(
+    testcase_1: TestcaseAttributes, testcase_2: TestcaseAttributes,
+    testcase_map: dict[int, TestcaseAttributes]) -> None:
   """Combine two testcases into a group."""
-  logs.info(
-      'Grouping testcase 1 '
-      '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
-      'and testcase 2 '
-      '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
-      (testcase_1.crash_type, testcase_1.crash_state, testcase_1.security_flag,
-       testcase_1.group_id, testcase_2.crash_type, testcase_2.crash_state,
-       testcase_2.security_flag, testcase_2.group_id))
+  logs.info('Grouping testcase %s '
+            '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+            'and testcase %s '
+            '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
+            (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+             testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
+             testcase_2.crash_type, testcase_2.crash_state,
+             testcase_2.security_flag, testcase_2.group_id))
 
   # If none of the two testcases have a group id, just assign a new group id to
   # both.
