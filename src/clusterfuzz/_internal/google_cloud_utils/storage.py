@@ -1068,7 +1068,11 @@ def write_stream(stream, cloud_storage_file_path, metadata=None):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.get_blobs',
     exception_types=_TRANSIENT_ERRORS)
-def get_blobs(cloud_storage_path, recursive=True):
+def get_blobs(*args, **kwargs):
+  yield from get_blobs(*args, **kwargs)
+
+
+def get_blobs_no_retry(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
   yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
 
@@ -1080,7 +1084,8 @@ def get_blobs(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
+  for blob in _provider().list_blobs(
+      cloud_storage_path, recursive=recursive, names_only=True):
     yield blob['name']
 
 
@@ -1388,9 +1393,8 @@ def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
 def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  result = parallel_map(_sign_urls_for_existing_file, args)
+  yield from parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
-  return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
@@ -1425,6 +1429,9 @@ def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
   # unlikely, takes time, and it's basically benign if it happens (it
   # won't) since we will just clobber some other corpus uploads from
   # the same day.
+  if not num_uploads:
+    return
+
   unique_id = uuid.uuid4()
   base_name = unique_id.hex
   if not remote_directory.endswith('/'):
@@ -1434,6 +1441,5 @@ def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = parallel_map(get_signed_upload_url, urls)
+  yield from parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
-  return result

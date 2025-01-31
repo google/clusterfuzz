@@ -755,14 +755,18 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       engine,
       project_qualified_name,
       include_regressions=True,
-      include_delete_urls=True)
-  max_upload_urls = len(corpus.proto_corpus.corpus.corpus_urls)
+      include_delete_urls=True,
+      max_upload_urls=5000,
+      max_download_urls=40000)
   # We will never need to upload more than the number of testcases in the
-  # corpus to the quarantine.
+  # corpus to the quarantine. But add a max of 500 to avoid spending
+  # too much time on crazy edge cases.
+  max_upload_urls = min(len(corpus.proto_corpus.corpus.corpus_urls), 500)
   quarantine_corpus = get_fuzz_target_corpus(
       engine,
       project_qualified_name,
       quarantine=True,
       include_delete_urls=True,
-      max_upload_urls=max_upload_urls)
+      max_upload_urls=max_upload_urls,
+      max_download_urls=5000)
   return corpus, quarantine_corpus
