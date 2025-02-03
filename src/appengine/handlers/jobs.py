@@ -298,3 +298,22 @@ class JsonHandler(base_handler.Handler):
     """Get and render the jobs in JSON."""
     result, _ = get_results()
     return self.render_json(result)
+
+
+class GetEnvironmentHandler(base_handler.Handler):
+  """Handler that gets the computed environment for a job."""
+
+  @handler.get(handler.JSON)
+  @handler.check_user_access(need_privileged_access=True)
+  def get(self):
+    """Get and render the computed environment in JSON."""
+    name = request.args.get('name')
+    if not name:
+      raise helpers.EarlyExitError('No job name provided.', 400)
+
+    job = data_types.Job.query(data_types.Job.name == name).get()
+    if not job:
+      raise helpers.EarlyExitError('Job not found.', 404)
+
+    environment = job.get_environment()
+    return self.render_json({'environment': environment})

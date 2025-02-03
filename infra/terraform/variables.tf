@@ -36,12 +36,12 @@ variable "ip_cidr_range" {
 }
 
 variable "gke_num_nodes" {
-  default     = 2
+  default     = 5
   description = "The number of gke nodes"
 }
 
 variable "machine_type" {
-  default     = "e2-standard-2"
+  default     = "e2-standard-4"
   description = "The machine type"
 }
 

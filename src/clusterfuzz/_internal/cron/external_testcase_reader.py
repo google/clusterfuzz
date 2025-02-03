@@ -22,6 +22,7 @@ import requests
 from appengine.libs import form
 from appengine.libs import gcs
 from appengine.libs import helpers
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 
@@ -32,12 +33,11 @@ ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
 ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
 
 
-def get_vrp_uploaders():
+def get_vrp_uploaders(config):
   """Checks whether the given reporter has permission to upload."""
-  # TODO(pgrace) Add this to a YAML file.
   storage_client = storage.Client()
-  bucket = storage_client.bucket('clusterfuzz-vrp-uploaders')
-  blob = bucket.blob('vrp-uploaders')
+  bucket = storage_client.bucket(config.get('vrp-uploaders-bucket'))
+  blob = bucket.blob(config.get('vrp-uploaders-blob'))
   members = blob.download_as_string().decode('utf-8').splitlines()[0].split(',')
   return members
 
@@ -96,9 +96,9 @@ def close_issue_if_invalid(upload_request, attachment_info, description,
   return invalid
 
 
-def close_issue_if_not_reproducible(issue):
-  if issue.status == ISSUETRACKER_ACCEPTED_STATE and filed_one_day_ago(
-      issue.created_time):
+def close_issue_if_not_reproducible(issue, config):
+  if issue.status == ISSUETRACKER_ACCEPTED_STATE and filed_n_days_ago(
+      issue.created_time, config):
     comment_message = ('Clusterfuzz failed to reproduce - '
                        'please check testcase details for more info.')
     issue.status = ISSUETRACKER_WONTFIX_STATE
@@ -107,10 +107,11 @@ def close_issue_if_not_reproducible(issue):
   return False
 
 
-def filed_one_day_ago(issue_created_time_string):
+def filed_n_days_ago(issue_created_time_string, config):
   created_time = datetime.datetime.strptime(issue_created_time_string,
                                             '%Y-%m-%dT%H:%M:%S.%fZ')
-  return datetime.datetime.now() - created_time > datetime.timedelta(days=1)
+  return datetime.datetime.now() - created_time > datetime.timedelta(
+      days=config.get('submitted-buffer-days'))
 
 
 def submit_testcase(issue_id, file, filename, filetype, cmds):
@@ -151,32 +152,42 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
       'https://clusterfuzz.com/upload-testcase/upload', data=data, timeout=10)
 
 
-def handle_testcases(tracker):
-  """Fetches and submits testcases from bugs or closes unnecssary bugs."""
-  # TODO(pgrace) remove ID filter once done testing.
+def handle_testcases(tracker, config):
+  """Fetches and submits testcases from bugs or closes unnecessary bugs."""
+
+  # Handle bugs that were already submitted and still open.
+  older_issues = tracker.find_issues_with_filters(
+      keywords=[],
+      query_filters=['componentid:1600865', 'status:accepted'],
+      only_open=True)
+  for issue in older_issues:
+    # Close out older bugs that may have failed to reproduce.
+    if close_issue_if_not_reproducible(issue, config):
+      helpers.log('Closing issue {issue_id} as it failed to reproduce',
+                  issue.id)
+
+  # Handle new bugs that may need to be submitted.
   issues = tracker.find_issues_with_filters(
       keywords=[],
-      query_filters=['componentid:1600865', 'id:373893311'],
+      query_filters=['componentid:1600865', 'status:new'],
       only_open=True)
-
   if len(issues) == 0:
     return
 
   # TODO(pgrace) Cache in redis.
-  vrp_uploaders = get_vrp_uploaders()
+  vrp_uploaders = get_vrp_uploaders(config)
 
-  # TODO(pgrace) Implement rudimentary rate limiting.
+  # Rudimentary rate limiting -
+  # Process only a certain number of bugs per reporter for each job run.
+  reporters_map = {}
 
   for issue in issues:
-    # Close out older bugs that may have failed to reproduce.
-    if close_issue_if_not_reproducible(issue):
-      helpers.log('Closing issue {issue_id} as it failed to reproduce',
-                  issue.id)
-      continue
-
-    # Close out invalid bugs.
     attachment_metadata = tracker.get_attachment_metadata(issue.id)
     commandline_flags = tracker.get_description(issue.id)
+    if reporters_map.get(issue.reporter,
+                         0) > config.get('max-report-count-per-run'):
+      continue
+    reporters_map[issue.reporter] = reporters_map.get(issue.reporter, 1) + 1
     if close_issue_if_invalid(issue, attachment_metadata, commandline_flags,
                               vrp_uploaders):
       helpers.log('Closing issue {issue_id} as it is invalid', issue.id)
@@ -199,7 +210,7 @@ def handle_testcases(tracker):
 def main():
   tracker = issue_tracker.IssueTracker('chromium', None,
                                        {'default_component_id': 1363614})
-  handle_testcases(tracker)
+  handle_testcases(tracker, local_config.ExternalTestcaseReaderConfig())
 
 
 if __name__ == '__main__':

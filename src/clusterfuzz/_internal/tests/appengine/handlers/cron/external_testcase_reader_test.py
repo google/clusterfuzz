@@ -30,6 +30,12 @@ BASIC_ATTACHMENT = {
     },
     'etag': 'TXpjek9Ea3pNekV4TFRZd01USTNOalk0TFRjNE9URTROVFl4TlE9PQ=='
 }
+BASIC_CONFIG = {
+    'vrp-uploaders-bucket': 'bucket-name',
+    'vrp-uploaders-blob': 'blob-name',
+    'max-report-count-per-run': 5,
+    'submitted-buffer-days': 1,
+}
 
 
 @mock.patch.object(
@@ -49,10 +55,10 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     mock_close_issue_if_invalid.return_value = False
     mock_it = mock.create_autospec(issue_tracker.IssueTracker)
     basic_issue = mock.MagicMock()
-    basic_issue.reporter.return_value = 'test-reporter@gmail.com'
-    mock_it.find_issues_with_filters.return_value = [basic_issue]
+    basic_issue.reporter = 'test-reporter@gmail.com'
+    mock_it.find_issues_with_filters.side_effect = [[], [basic_issue]]
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_called_once()
     mock_it.get_attachment.assert_called_once()
@@ -64,14 +70,32 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     mock_close_issue_if_invalid.return_value = True
     mock_it = mock.create_autospec(issue_tracker.IssueTracker)
     basic_issue = mock.MagicMock()
-    basic_issue.reporter.return_value = 'test-reporter@gmail.com'
-    mock_it.find_issues_with_filters.return_value = [basic_issue]
+    basic_issue.reporter = 'test-reporter@gmail.com'
+    mock_it.find_issues_with_filters.side_effect = [[], [basic_issue]]
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_called_once()
     mock_it.get_attachment.assert_not_called()
     mock_submit_testcase.assert_not_called()
+
+  def test_handle_testcases_rate_limit(self, mock_close_issue_if_invalid,
+                                       mock_submit_testcase, _):
+    """Test a handle_testcases where one reporter hits the rate limit."""
+    mock_close_issue_if_invalid.return_value = False
+    mock_it = mock.create_autospec(issue_tracker.IssueTracker)
+    basic_issue = mock.MagicMock()
+    basic_issue.reporter = 'test-reporter@gmail.com'
+    mock_it.find_issues_with_filters.side_effect = [[], [
+        basic_issue, basic_issue, basic_issue, basic_issue, basic_issue,
+        basic_issue
+    ]]
+
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
+
+    mock_close_issue_if_invalid.assert_called()
+    self.assertEqual(mock_it.get_attachment.call_count, 5)
+    self.assertEqual(mock_submit_testcase.call_count, 5)
 
   @mock.patch.object(
       external_testcase_reader,
@@ -84,9 +108,9 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     mock_it = mock.create_autospec(issue_tracker.IssueTracker)
     basic_issue = mock.MagicMock()
     basic_issue.reporter.return_value = 'test-reporter@gmail.com'
-    mock_it.find_issues_with_filters.return_value = [basic_issue]
+    mock_it.find_issues_with_filters.side_effect = [[basic_issue], []]
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_not_called()
     mock_it.get_attachment.assert_not_called()
@@ -98,7 +122,7 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     mock_it = mock.create_autospec(issue_tracker.IssueTracker)
     mock_it.find_issues_with_filters.return_value = []
 
-    external_testcase_reader.handle_testcases(mock_it)
+    external_testcase_reader.handle_testcases(mock_it, BASIC_CONFIG)
 
     mock_close_issue_if_invalid.assert_not_called()
     mock_it.get_attachment.assert_not_called()
@@ -221,9 +245,8 @@ class ExternalTestcaseReaderPermissionTest(unittest.TestCase):
       mock_blob.download_as_string.return_value = "test-user@google.com,test-user2@chromium.org".encode(
           'utf-8')
 
-      actual = external_testcase_reader.get_vrp_uploaders()
-      mock_storage.return_value.bucket.assert_called_once_with(
-          'clusterfuzz-vrp-uploaders')
-      mock_bucket.blob.assert_called_once_with('vrp-uploaders')
+      actual = external_testcase_reader.get_vrp_uploaders(BASIC_CONFIG)
+      mock_storage.return_value.bucket.assert_called_once_with('bucket-name')
+      mock_bucket.blob.assert_called_once_with('blob-name')
       self.assertEqual(actual,
                        ['test-user@google.com', 'test-user2@chromium.org'])
