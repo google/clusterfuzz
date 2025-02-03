@@ -15,9 +15,9 @@
 
 import os
 import re
+import shutil
 import sys
 import zipfile
-import shutil
 
 from local.butler import appengine
 from local.butler import common
@@ -139,6 +139,7 @@ def package(revision,
 
   targets_zip_paths = [target_zip_path]
   if platform_name and release == 'prod':
+    # Copy prod package into additional releases.
     for add_release in constants.ADDITIONAL_RELEASES:
       add_target_zip_name = utils.get_platform_deployment_filename(
           platform_name, release=add_release)

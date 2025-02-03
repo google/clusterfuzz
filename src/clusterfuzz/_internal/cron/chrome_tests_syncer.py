@@ -24,16 +24,13 @@ import os
 import re
 import subprocess
 import tarfile
-import time
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -339,7 +336,7 @@ def main():
   tests_directory = environment.get_value('TESTS_DIR')
 
   try:
-    # with monitor.wrap_with_monitoring(), ndb_init.context(): => already called in run_cron.py
+    # monitoring already wrapped in run_cron.py.
     sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
     return True
   except Exception as e:

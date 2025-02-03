@@ -15,7 +15,6 @@ FROM gcr.io/clusterfuzz-images/base
 
 ENV DISABLE_MOUNTS True
 ENV EXTRA_PATH "/data/depot_tools"
-ENV SYNC_INTERVAL 43200
 ENV TESTS_ARCHIVE_BUCKET "clusterfuzz-data"
 ENV TESTS_ARCHIVE_NAME "web_tests.zip"
 ENV TESTS_DIR /home/$USER/tests
