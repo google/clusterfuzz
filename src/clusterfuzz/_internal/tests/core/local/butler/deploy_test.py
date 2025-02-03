@@ -53,6 +53,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     os.environ['ROOT_DIR'] = '.'
     self.mock.now.return_value = datetime.datetime(2017, 1, 3, 12, 1)
     self.manifest_target = 'clusterfuzz-source.manifest.3'
+    self.additional_manifest_target = 'clusterfuzz-source.manifest.3-chrome-tests-syncer'
 
   def _check_env_variables(self, yaml_paths):
     """Check that environment variables are written to yaml paths."""
@@ -182,6 +183,9 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call('gsutil cp src/appengine/resources/'
                   'clusterfuzz-source.manifest '
                   'gs://test-deployment-bucket/' + self.manifest_target),
+        mock.call('gsutil cp src/appengine/resources/'
+                  'clusterfuzz-source.manifest '
+                  'gs://test-deployment-bucket/' + self.additional_manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
@@ -264,6 +268,9 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call('gsutil cp src/appengine/resources/'
                   'clusterfuzz-source.manifest '
                   'gs://test-deployment-bucket/' + self.manifest_target),
+        mock.call('gsutil cp src/appengine/resources/'
+                  'clusterfuzz-source.manifest '
+                  'gs://test-deployment-bucket/' + self.additional_manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
