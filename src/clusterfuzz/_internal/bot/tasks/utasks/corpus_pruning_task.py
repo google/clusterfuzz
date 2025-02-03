@@ -142,12 +142,21 @@ async def _limit_corpus_size(corpus_url):
   creds.refresh(google_auth_requests.Request())
   bucket = storage.get_bucket_name_and_path(corpus_url)[0]
 
+  semaphore = asyncio.Semaphore(20)
+
+
+  async def delete_gcs_blobs_batch(session, bucket, blobs_to_delete, token):
+    async with semaphore:
+      return await delete_gcs_blobs_batch(session, bucket, blobs_to_delete, token)
+
   async with aiohttp.ClientSession() as session:
     idx = 0
     deleting = False
     corpus_size = 0
     num_deleted = 0
     blobs_to_delete = []
+    delete_tasks = []
+    num_batches
     for blob in storage.get_blobs_no_retry(corpus_url, recursive=True):
       idx += 1
       if not deleting:
@@ -157,22 +166,31 @@ async def _limit_corpus_size(corpus_url):
           deleting = True
         continue
 
-      assert deleting
-      blobs_to_delete.append(blob)
+      assert deleting      
+      blobs_to_delete.append(blob)      
       if len(blobs_to_delete) == GOOGLE_CLOUD_MAX_BATCH_SIZE:
-        delete_success = await fast_http.delete_gcs_blobs_batch(
-            session, bucket, blobs_to_delete, creds.token)
-        if delete_success:
-          num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE
-          logs.error('deleted.')
-        else:
-          logs.error('failed to delete.')
+        task = asyncio.create_task(
+          fast_http.delete_gcs_blobs_batch(
+            session, bucket, blobs_to_delete.copy(), creds.token))
+        logs.info('sent delete task.')
+        delete_tasks.append(task)
         blobs_to_delete = []
-      else:
-        assert len(blobs_to_delete) < GOOGLE_CLOUD_MAX_BATCH_SIZE
-      if blobs_to_delete:
-        await fast_http.delete_gcs_blobs_batch(session, bucket, blobs_to_delete,
-                                               creds.token)
+        num_batches += 1
+        if num_batches == 1_000_000 / GOOGLE_CLOUD_MAX_BATCH_SIZE:
+          break
+
+    if blobs_to_delete:
+      task = asyncio.create_task(
+          delete_gcs_blobs_batch(
+        session, bucket, blobs_to_delete.copy(), creds.token))
+      delete_tasks.append(task)
+      
+    results = await asyncio.gather(*delete_tasks)
+    for task_success in results:
+      if task_success:
+        num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE
+        logs.info('deleted.')
+      
     if num_deleted:
       logs.info(f'Deleted over {num_deleted} corpus files.')
     else:
@@ -1114,7 +1132,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
+  logs.info('checking last')
   if last_execution_failed:
+    logs.info('last')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
@@ -1142,6 +1162,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     setup_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
+  logs.info('done preprocess')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       job_type=job_type,
       fuzzer_name=fuzzer_name,

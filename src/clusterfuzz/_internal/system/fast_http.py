@@ -21,6 +21,7 @@ import urllib.parse
 import aiohttp
 
 from clusterfuzz._internal.base import concurrency
+from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 
@@ -79,7 +80,6 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
   """Asynchronously downloads |url| and writes it to |path|."""
   async with session.get(url) as response:
     if response.status != 200:
-      print(response.status, url)
       raise aiohttp.ClientResponseError(
           response.request_info,
           response.history,
@@ -90,7 +90,13 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
       async for chunk in response.content.iter_any():
         fp.write(chunk)
 
-
+        
+@retry.wrap(
+    retries=2,
+    delay=1,
+    function='system.fast_http.delete_gcs_blobs_batch',
+    exception_types=[asyncio.TimeoutError],
+    retry_on_false=True)
 async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
   """Batch deletes |blobs| asynchronously."""
   headers = {
@@ -113,10 +119,10 @@ async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
 
   try:
     async with session.post(
-        BATCH_DELETE_URL, headers=headers, data=body, timeout=20) as response:
+        BATCH_DELETE_URL, headers=headers, data=body, timeout=90) as response:
       response.raise_for_status()
       return True
 
   except Exception as e:
-    logs.error(f'Batch delete failed: {e}')
+    # logs.error(f'Batch delete failed: {e}')
     return False
