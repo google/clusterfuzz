@@ -172,7 +172,6 @@ async def _limit_corpus_size(corpus_url):
         task = asyncio.create_task(
           fast_http.delete_gcs_blobs_batch(
             session, bucket, blobs_to_delete.copy(), creds.token))
-        logs.info('sent delete task.')
         delete_tasks.append(task)
         blobs_to_delete = []
         num_batches += 1
