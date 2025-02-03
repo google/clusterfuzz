@@ -566,9 +566,8 @@ def execute(args):
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
-      package_zip_paths += package.package(revision,
-                                           platform_name=platform_name,
-                                           release=args.release)
+      package_zip_paths += package.package(
+          revision, platform_name=platform_name, release=args.release)
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
