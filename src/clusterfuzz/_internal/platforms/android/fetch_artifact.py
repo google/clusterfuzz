@@ -211,6 +211,10 @@ def get_latest_artifact_info(branch, target, signed=False):
   # After stabilizing the Cuttlefish image, revert this
   if environment.is_android_cuttlefish():
     build_info = get_stable_build_info()
+    # Use tip-of-tree build if 'bid' is missing or 0.
+    # Setting 'bid' to 0 in stable_build_info.json
+    # allows for easy switching between stable build
+    # and tip-of-tree builds.
     if 'bid' in build_info and build_info['bid'] != '0':
       return build_info
 
