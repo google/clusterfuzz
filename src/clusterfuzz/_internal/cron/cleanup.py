@@ -188,7 +188,7 @@ def cleanup_unused_fuzz_targets_and_jobs():
 
   to_delete = []
   valid_target_jobs = data_types.FuzzTargetJob.query(
-    data_types.FuzzTargetJob.last_run >= last_run_cutoff)
+      data_types.FuzzTargetJob.last_run >= last_run_cutoff)
 
   valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
