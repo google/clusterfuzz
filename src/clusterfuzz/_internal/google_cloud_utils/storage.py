@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
-
+import asyncio
 import base64
 import collections
 from concurrent import futures
@@ -231,6 +231,29 @@ class GcsProvider(StorageProvider):
         return None
 
       raise
+
+  async def list_blobs_async(self,
+                             remote_path,
+                             recursive=True,
+                             names_only=False):
+    loop = asyncio.get_running_loop()
+    queue = asyncio.Queue()
+
+    async def blocking_list():
+      try:
+        for item in self.list_blobs(remote_path, recursive, names_only):
+          loop.call_soon_threadsafe(queue.put_nowait, item)
+      finally:
+        loop.call_soon_threadsafe(queue.put_nowait, None)
+
+    threading.Thread(target=blocking_list, daemon=True).start()
+
+    # Asynchronously yield items from the queue as they become available.
+    while True:
+      item = await queue.get()
+      if item is None:
+        break
+      yield item
 
   def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
@@ -1076,6 +1099,14 @@ def get_blobs(*args, **kwargs):
 def get_blobs_no_retry(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
   yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
+
+
+
+async def list_blobs_async(cloud_storage_path, recursive=True):
+  """Return blobs under the given cloud storage path."""
+  async for blob in _provider().list_blobs(
+      cloud_storage_path, recursive=recursive, names_only=True):
+    yield blob['name']
 
 
 @retry.wrap(
