@@ -157,7 +157,7 @@ async def _limit_corpus_size(corpus_url):
     blobs_to_delete = []
     delete_tasks = []
     num_batches = 0
-    for blob in storage.get_blobs_no_retry(corpus_url, recursive=True):
+    async for blob in storage.list_blobs_async(corpus_url, recursive=True):
       idx += 1
       if not deleting:
         corpus_size += blob['size']
@@ -1117,10 +1117,10 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Make sure we're the only instance running for the given fuzzer and
   # job_type.
-  if not data_handler.update_task_status(task_name,
-                                         data_types.TaskState.STARTED):
-    logs.info('A previous corpus pruning task is still running, exiting.')
-    return None
+  # if not data_handler.update_task_status(task_name,
+  #                                        data_types.TaskState.STARTED):
+  #   logs.info('A previous corpus pruning task is still running, exiting.')
+  #   return None
 
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
@@ -1133,7 +1133,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
   logs.info('checking last')
-  if last_execution_failed:
+  if last_execution_failed or True:
     logs.info('last')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
