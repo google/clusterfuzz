@@ -185,7 +185,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('gsutil cp src/appengine/resources/'
                   'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' + self.additional_manifest_target),
+                  'gs://test-deployment-bucket/' +
+                  self.additional_manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
@@ -270,7 +271,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('gsutil cp src/appengine/resources/'
                   'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' + self.additional_manifest_target),
+                  'gs://test-deployment-bucket/' +
+                  self.additional_manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
