@@ -122,6 +122,6 @@ async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
         BATCH_DELETE_URL, headers=headers, data=body, timeout=25) as response:
       response.raise_for_status()
       return True
-  except Exception:
+  except Exception as e:
     logs.info(f'Failed to batch delete {e}')
     return False
