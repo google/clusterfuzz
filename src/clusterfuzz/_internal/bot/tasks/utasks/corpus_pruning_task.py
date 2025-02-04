@@ -144,10 +144,10 @@ async def _limit_corpus_size(corpus_url):
 
   semaphore = asyncio.Semaphore(20)
 
-
   async def delete_gcs_blobs_batch(session, bucket, blobs_to_delete, token):
     async with semaphore:
-      return await delete_gcs_blobs_batch(session, bucket, blobs_to_delete, token)
+      return await delete_gcs_blobs_batch(session, bucket, blobs_to_delete,
+                                          token)
 
   async with aiohttp.ClientSession() as session:
     idx = 0
@@ -166,12 +166,13 @@ async def _limit_corpus_size(corpus_url):
           deleting = True
         continue
 
-      assert deleting      
-      blobs_to_delete.append(blob)      
+      assert deleting
+      blobs_to_delete.append(blob)
       if len(blobs_to_delete) == GOOGLE_CLOUD_MAX_BATCH_SIZE:
         task = asyncio.create_task(
-          fast_http.delete_gcs_blobs_batch(
-            session, bucket, blobs_to_delete.copy(), creds.token))
+            fast_http.delete_gcs_blobs_batch(session, bucket,
+                                             blobs_to_delete.copy(),
+                                             creds.token))
         delete_tasks.append(task)
         blobs_to_delete = []
         num_batches += 1
@@ -180,16 +181,16 @@ async def _limit_corpus_size(corpus_url):
 
     if blobs_to_delete:
       task = asyncio.create_task(
-          delete_gcs_blobs_batch(
-        session, bucket, blobs_to_delete.copy(), creds.token))
+          delete_gcs_blobs_batch(session, bucket, blobs_to_delete.copy(),
+                                 creds.token))
       delete_tasks.append(task)
-      
+
     results = await asyncio.gather(*delete_tasks)
     for task_success in results:
       if task_success:
         num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE
         logs.info('deleted.')
-      
+
     if num_deleted:
       logs.info(f'Deleted over {num_deleted} corpus files.')
     else:

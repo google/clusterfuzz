@@ -124,7 +124,8 @@ def download_and_deserialize_uworker_input(
     uworker_input_download_url: str) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
-  data = zlib.decompress(storage.download_signed_url(uworker_input_download_url))
+  data = zlib.decompress(
+      storage.download_signed_url(uworker_input_download_url))
   return deserialize_uworker_input(data)
 
 
@@ -155,8 +156,15 @@ def serialize_and_upload_uworker_output(
 
 def download_input_based_on_output_url(
     output_url: str) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
+  """Safely (as in the output can't tamper with the input or it's
+    location) downloads the input based on the output_url."""
   input_url = uworker_output_path_to_input_path(output_url)
-  serialized_uworker_input = zlib.decompress(storage.read_data(input_url))
+  data = storage.read_data(input_url)
+  try:
+    serialized_uworker_input = zlib.decompress(data)
+  except zlib.error:
+    # For backwards compatability support uncompressed.
+    serialized_uworker_input = data
   if serialized_uworker_input is None:
     logs.error(f'No corresponding input for output: {output_url}.')
   return deserialize_uworker_input(serialized_uworker_input)
@@ -165,7 +173,12 @@ def download_input_based_on_output_url(
 def download_and_deserialize_uworker_output(
     output_url: str) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
   """Downloads and deserializes uworker output."""
-  serialized_uworker_output = zlib.decompress(storage.read_data(output_url))
+  data = storage.read_data(output_url)
+  try:
+    serialized_uworker_output = zlib.decompress(data)
+  except zlib.error:
+    # For backwards compatability support uncompressed.
+    serialized_uworker_output = data
 
   uworker_output = deserialize_uworker_output(serialized_uworker_output)
 

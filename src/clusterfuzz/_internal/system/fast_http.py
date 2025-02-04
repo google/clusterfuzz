@@ -90,7 +90,7 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
       async for chunk in response.content.iter_any():
         fp.write(chunk)
 
-        
+
 @retry.wrap(
     retries=2,
     delay=1,
@@ -119,10 +119,8 @@ async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
 
   try:
     async with session.post(
-        BATCH_DELETE_URL, headers=headers, data=body, timeout=90) as response:
+        BATCH_DELETE_URL, headers=headers, data=body, timeout=25) as response:
       response.raise_for_status()
       return True
-
-  except Exception as e:
-    # logs.error(f'Batch delete failed: {e}')
+  except Exception:
     return False
