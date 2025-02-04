@@ -156,7 +156,7 @@ async def _limit_corpus_size(corpus_url):
     num_deleted = 0
     blobs_to_delete = []
     delete_tasks = []
-    num_batches
+    num_batches = 0
     for blob in storage.get_blobs_no_retry(corpus_url, recursive=True):
       idx += 1
       if not deleting:

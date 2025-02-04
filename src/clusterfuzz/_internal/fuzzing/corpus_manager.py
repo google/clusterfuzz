@@ -666,13 +666,7 @@ def get_proto_corpus(bucket_name,
   corpus_urls = storage.sign_urls_for_existing_files(urls, include_delete_urls)
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
-  corpus = uworker_msg_pb2.Corpus(  # pylint: disable=no-member
-      gcs_url=gcs_url,)
-  last_updated = _last_updated(_get_gcs_url(bucket_name, bucket_path))
-  if last_updated:
-    timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
-    timestamp.FromDatetime(last_updated)
-    corpus.last_updated_time.CopyFrom(timestamp)
+  corpus = uworker_msg_pb2.Corpus(gcs_url=gcs_url)  # pylint: disable=no-member
   # Iterate over imap_unordered results.
   for upload_url in upload_urls:
     corpus.upload_urls.append(upload_url)
@@ -756,8 +750,8 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       project_qualified_name,
       include_regressions=True,
       include_delete_urls=True,
-      max_upload_urls=5000,
-      max_download_urls=40000)
+      max_upload_urls=3_000,
+      max_download_urls=30_000)
   # We will never need to upload more than the number of testcases in the
   # corpus to the quarantine. But add a max of 500 to avoid spending
   # too much time on crazy edge cases.
@@ -768,5 +762,5 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       quarantine=True,
       include_delete_urls=True,
       max_upload_urls=max_upload_urls,
-      max_download_urls=5000)
+      max_download_urls=1_000)
   return corpus, quarantine_corpus
