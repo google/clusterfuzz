@@ -470,7 +470,13 @@ class PubSubTask(Task):
 
   def attribute(self, key):
     """Return attribute value."""
-    return self._pubsub_message.attributes[key]
+    try:
+      return self._pubsub_message.attributes[key]
+    except KeyError:
+      logging.error(
+          f'KeyError: Missing key {key} in message: {self._pubsub_message.attributes}'
+      )
+      raise
 
   def defer(self):
     """Defer a task until its ETA. Returns whether or not we deferred."""
