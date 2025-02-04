@@ -336,7 +336,6 @@ def main():
   tests_directory = environment.get_value('TESTS_DIR')
 
   try:
-    # monitoring already wrapped in run_cron.py.
     sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
     return True
   except Exception as e:

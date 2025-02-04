@@ -13,6 +13,7 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
+ENV RUN_CMD "python3.11 $ROOT_DIR/src/python/bot/startup/run_cron.py chrome_tests_syncer"
 ENV DISABLE_MOUNTS True
 ENV EXTRA_PATH "/data/depot_tools"
 ENV TESTS_ARCHIVE_BUCKET "clusterfuzz-data"

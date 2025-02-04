@@ -146,8 +146,7 @@ def package(revision,
       add_target_zip_path = os.path.join(target_zip_dir, add_target_zip_name)
       _clear_zip(add_target_zip_path)
       shutil.copy2(target_zip_path, add_target_zip_path)
-      print()
-      print('%s is ready.' % add_target_zip_path)
+      print('\n%s is ready.' % add_target_zip_path)
       targets_zip_paths.append(add_target_zip_path)
 
   return targets_zip_paths
