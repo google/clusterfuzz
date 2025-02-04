@@ -44,6 +44,5 @@ def main():
     time.sleep(.25)
     tasks.add_task(
         'corpus_pruning', task_target, job_name, queue=queue_name, wait_time=60)
-
   logs.info('Schedule corpus pruning task succeeded.')
   return True
