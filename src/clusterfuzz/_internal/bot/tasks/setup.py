@@ -741,8 +741,7 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
 
   # Check when the bucket url had last updates. If no new updates, no need to
   # update directory.
-  bucket_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
-  last_updated_time = storage.last_updated(bucket_url)
+  last_updated_time = storage.last_updated(data_bundle.bucket_url())
   if last_updated_time and last_sync_time > last_updated_time:
     logs.info(
         'Data bundle %s has no new content from last sync.' % data_bundle.name)

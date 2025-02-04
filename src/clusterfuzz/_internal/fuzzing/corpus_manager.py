@@ -23,7 +23,6 @@ from google.protobuf import timestamp_pb2
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -607,8 +606,7 @@ def get_proto_data_bundle_corpus(
   workers to download the data bundle files using the fastest means available to
   them."""
   data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()  # pylint: disable=no-member
-  data_bundle_corpus.gcs_url = data_handler.get_data_bundle_bucket_url(
-      data_bundle.name)
+  data_bundle_corpus.gcs_url = data_bundle.bucket_url()
   data_bundle_corpus.data_bundle.CopyFrom(
       uworker_io.entity_to_protobuf(data_bundle))
   if task_types.task_main_runs_on_uworker():
