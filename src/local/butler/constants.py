@@ -41,6 +41,9 @@ PLATFORMS = collections.OrderedDict([
     ('linux', ('manylinux2014_x86_64')),
 ])
 
+# Additional required packages when deploying to prod.
+ADDITIONAL_RELEASES = ['chrome-tests-syncer']
+
 if sys.version_info.major == 3 and sys.version_info.minor == 7:
   ABIS = {'linux': 'cp37m', 'windows': 'cp37m', 'macos': 'cp37m'}
 elif sys.version_info.major == 3 and sys.version_info.minor == 8:
