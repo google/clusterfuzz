@@ -57,6 +57,9 @@ TOP_CRASHES_IGNORE_CRASH_STATES = ['NULL']
 FUZZ_TARGET_UNUSED_THRESHOLD = 15
 UNUSED_HEARTBEAT_THRESHOLD = 15
 
+VRP_UPLOAD_COMPONENT_ID = 1600865
+CHROMIUM_COMPONENT_ID = 1363614
+
 ProjectMap = collections.namedtuple('ProjectMap', 'jobs platforms')
 
 
@@ -1055,6 +1058,18 @@ def update_component_labels_and_id(policy, testcase, issue):
       testcase, 'suspected_components', default=[])
   component_id = _get_predator_result_item(testcase,
                                            'suspected_buganizer_component_id')
+
+  # These bugs were filed via the direct upload and hence specific to the
+  # google issue tracker.
+  if getattr(issue, 'component_id', None) == VRP_UPLOAD_COMPONENT_ID:
+    # Reset the component to the top level for this bug to be triaged properly.
+    issue.component_id = CHROMIUM_COMPONENT_ID
+
+    # Bugs in the direct upload component are filed as type 'Task'.
+    if testcase.security_flag:
+      issue.labels.add('Type-VULNERABILITY')
+    else:
+      issue.labels.add('Type-BUG')
 
   # Remove components already in issue or whose more specific variants exist.
   filtered_components = []
