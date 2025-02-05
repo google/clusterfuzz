@@ -174,7 +174,6 @@ def handle_testcases(tracker, config):
   if len(issues) == 0:
     return
 
-  # TODO(pgrace) Cache in redis.
   vrp_uploaders = get_vrp_uploaders(config)
 
   # Rudimentary rate limiting -
@@ -194,8 +193,7 @@ def handle_testcases(tracker, config):
       continue
 
     # Submit valid testcases.
-    # TODO(pgrace) replace with 0 once testing is complete
-    attachment_metadata = attachment_metadata[6]
+    attachment_metadata = attachment_metadata[0]
     attachment = tracker.get_attachment(
         attachment_metadata['attachmentDataRef']['resourceName'])
     submit_testcase(issue.id, attachment, attachment_metadata['filename'],
