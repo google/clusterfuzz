@@ -18,9 +18,9 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
-if [ -z "$COMMAND_OVERRIDE" ]; then
-  # Get command override from instance metadata, if any.
-  export COMMAND_OVERRIDE=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/command-override || true)
+if [ -z "$HOST_JOB_SELECTION" ]; then
+  # Get list of jobs to focus on from instance metadata, if any.
+  export HOST_JOB_SELECTION=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection || true)
 fi
 
 CLUSTERFUZZ_FILE=clusterfuzz_package.zip
