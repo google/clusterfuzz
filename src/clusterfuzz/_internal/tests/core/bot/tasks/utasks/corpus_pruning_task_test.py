@@ -454,8 +454,9 @@ class CorpusPruningTestUntrusted(
     self.quarantine_corpus.rsync_from_disk(
         os.path.join(TEST_DIR, 'quarantine'), delete=True)
 
-    self.mock.get_data_bundle_bucket_name.return_value = TEST_GLOBAL_BUCKET
-    data_types.DataBundle(name='bundle', sync_to_worker=True).put()
+    data_types.DataBundle(
+        name='bundle', bundle_name=TEST_GLOBAL_BUCKET,
+        sync_to_worker=True).put()
 
     self.fuzzer = data_types.Fuzzer(
         revision=1,

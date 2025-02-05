@@ -1029,11 +1029,6 @@ def get_data_bundle_bucket_name(data_bundle_name):
   return '%s-corpus.%s' % (data_bundle_name, domain)
 
 
-def get_data_bundle_bucket_url(data_bundle_name):
-  """Return data bundle bucket url on GCS."""
-  return 'gs://%s' % get_data_bundle_bucket_name(data_bundle_name)
-
-
 def get_value_from_fuzzer_environment_string(fuzzer_name,
                                              variable_pattern,
                                              default=None):
