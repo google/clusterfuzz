@@ -18,6 +18,11 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
+if [ -z "$COMMAND_OVERRIDE" ]; then
+  # Get command override from instance metadata, if any.
+  export COMMAND_OVERRIDE=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/command-override || true)
+fi
+
 CLUSTERFUZZ_FILE=clusterfuzz_package.zip
 # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
 if [[ -z "$LOCAL_SRC" ]]; then
