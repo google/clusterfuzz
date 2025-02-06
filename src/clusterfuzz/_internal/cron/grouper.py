@@ -95,7 +95,7 @@ def combine_testcases_into_group(
   for testcase in testcase_map.values():
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
-      moved_testcase_ids.append(testcase.id)
+      moved_testcase_ids.append(str(testcase.id))
 
   logs.info(f'Merged group {group_id_to_move} into {group_id_to_reuse}: ' +
             'moved testcases: ' + ', '.join(moved_testcase_ids))
