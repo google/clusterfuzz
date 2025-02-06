@@ -67,7 +67,6 @@ class CreateHandler(base_handler.Handler):
 
     user_email = helpers.get_user_email()
     bucket_name = data_handler.get_data_bundle_bucket_name(name)
-    bucket_url = data_handler.get_data_bundle_bucket_url(name)
 
     if not data_handler.create_data_bundle_bucket_and_iams(name, [user_email]):
       raise helpers.EarlyExitError('Failed to create bucket %s.' % bucket_name,
@@ -82,12 +81,13 @@ class CreateHandler(base_handler.Handler):
     data_bundle.bucket_name = bucket_name
     data_bundle.put()
 
+    bucket_url = data_bundle.bucket_url()
     template_values = {
         'title':
             'Success',
         'message': (
             'Upload data to the corpus using: '
-            'gsutil -d -m rsync -r <local_corpus_directory> %s' % bucket_url),
+            f'gsutil -d -m rsync -r <local_corpus_directory> {bucket_url}'),
     }
     return self.render('message.html', template_values)
 
