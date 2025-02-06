@@ -107,7 +107,7 @@ def get_available_cpus_for_region(creds, project: str, region: str) -> int:
   # cores alloted to us in their quota. Treat them the same to simplify things.
   limit = quota['limit']
   limit -= quota['usage']
-  return min(limit, 100_000)
+  return min(limit, 50_000)
 
 
 class BaseFuzzTaskScheduler:

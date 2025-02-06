@@ -17,8 +17,8 @@ kind: CronJob
 metadata:
   name: schedule-corpus-pruning
 spec:
-  schedule: "0 7,19 * * *"
-  concurrencyPolicy: Forbid
+  schedule: "0 * * * *"
+  concurrencyPolicy: Allow
   jobTemplate:
     spec:
       activeDeadlineSeconds: 7200  # 2 hours.
