@@ -788,6 +788,10 @@ class DataBundle(Model):
   # where the libFuzzer binary will run (untrusted).
   sync_to_worker = ndb.BooleanProperty(default=False)
 
+  def bucket_url(self) -> str:
+    """Returns the GCS URL of the bucket storing this data bundle's contents."""
+    return f'gs://{self.bucket_name}'
+
 
 class Config(Model):
   """Configuration."""
