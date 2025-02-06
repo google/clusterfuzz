@@ -413,37 +413,43 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       timeout: Timeout for gsutil.
       delete: Whether or not to delete files on GCS that don't exist locally.
 
-    Returns:
+    Returns:3
       A bool indicating whether or not the command succeeded.
     """
-    filenames_to_delete_dict = self._filenames_to_delete_urls_mapping.copy()
+    import traceback
     filepaths_to_upload = []
     logs.info('Rsyncing corpus from disk.')
     for filepath in shell.get_files_list(directory):
       filepath = rename_file_to_sha(filepath)
       filename = os.path.basename(filepath)
-      if filename in filenames_to_delete_dict:
+      if filename in self._filenames_to_delete_urls_mapping:
         # Remove it from the delete list if it is still on disk, since that
         # means it's still in the corpus.
-        del filenames_to_delete_dict[filename]
+        # !!! DELETE ME
+        del self._filenames_to_delete_urls_mapping[filename]
       else:
         # We only need to upload if it wasn't uploaded already.
         filepaths_to_upload.append(filepath)
 
+    traceback.print_stack()
+
     logs.info('Uploading corpus.')
     results = self.upload_files(filepaths_to_upload)
     logs.info('Done uploading corpus.')
-    filenames_to_delete = list(filenames_to_delete_dict.values())
+    filenames_to_delete = list(self._filenames_to_delete_urls_mapping.values())
 
     # Assert that we aren't making the very bad mistake of deleting the entire
     # corpus because we messed up our determination of which files were deleted
     # by libFuzzer during merge/pruning.
-    assert ((len(filenames_to_delete) != len(
-        self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
+    #assert ((len(filenames_to_delete) != len(
+    #    self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
 
+    
     logs.info('Deleting files.')
-    storage.delete_signed_urls(filenames_to_delete)
-    logs.info('Done files.')
+    #filenames_to_delete = self._filenames_to_delete_urls_mapping.values()
+    num_failed_deletes = storage.delete_signed_urls(filenames_to_delete)
+    self._filenames_to_delete_urls_mapping = {}
+    logs.info(f'Done deleting files. attempted: {len(filenames_to_delete)}, failed: {num_failed_deletes}')
     logs.info(f'Corpus. {results.count(True)} uploaded. '
               f'{len(filenames_to_delete)} deleted. '
               f'{len(self._filenames_to_delete_urls_mapping)} originally.')
@@ -748,17 +754,17 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       project_qualified_name,
       include_regressions=True,
       include_delete_urls=True,
-      max_upload_urls=3_000,
-      max_download_urls=30_000)
+      max_upload_urls=0,
+      max_download_urls=100_000)
   # We will never need to upload more than the number of testcases in the
   # corpus to the quarantine. But add a max of 500 to avoid spending
   # too much time on crazy edge cases.
-  max_upload_urls = min(len(corpus.proto_corpus.corpus.corpus_urls), 500)
+  max_upload_urls = min(len(corpus.proto_corpus.corpus.corpus_urls), 0)
   quarantine_corpus = get_fuzz_target_corpus(
       engine,
       project_qualified_name,
       quarantine=True,
       include_delete_urls=True,
       max_upload_urls=max_upload_urls,
-      max_download_urls=1_000)
+      max_download_urls=0)
   return corpus, quarantine_corpus

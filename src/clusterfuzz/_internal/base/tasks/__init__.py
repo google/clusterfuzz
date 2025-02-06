@@ -100,7 +100,7 @@ MAX_UTASKS = 3000
 
 UTASKS = {
     'analyze',
-    'corpus_pruning',
+    #'corpus_pruning',
     'minimize',
     'progression',
     'regression',

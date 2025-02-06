@@ -17,6 +17,7 @@ import itertools
 from typing import List
 from typing import Tuple
 import urllib.parse
+import time
 
 import aiohttp
 
@@ -124,3 +125,42 @@ async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
       return True
   except Exception:
     return False
+  
+
+def delete_signed_urls(urls: List[str]) -> int:
+    if not urls:
+        return 0
+
+    start = time.time()
+    logs.info('Deleting URLs.')
+
+    pool_size = concurrency.POOL_SIZE
+    batch_size = max(len(urls) // pool_size, 1)
+    batches = [urls[i:i + batch_size] for i in range(0, len(urls), batch_size)]
+    with concurrency.make_pool() as pool:
+        results_batches = pool.map(_delete_urls_batch, batches)
+    results = list(itertools.chain(*results_batches))
+    logs.info('Done deleting URLs.')
+    print("delete time", time.time() - start)
+    return sum(0 if r else 1 for r in results)
+
+def _delete_urls_batch(urls: List[str]) -> List[bool]:
+    return asyncio.run(_async_delete_urls(urls))
+
+
+async def _async_delete_urls(urls: List[str]) -> List[bool]:
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            asyncio.create_task(_delete_signed_url(session, url))
+            for url in urls
+        ]
+        return await asyncio.gather(*tasks)
+    
+async def _delete_signed_url(session: aiohttp.ClientSession, url: str) -> bool:
+    try:
+      async with session.delete(url, timeout=10) as response:
+        response.raise_for_status()      
+        return True
+    except Exception:
+        logs.warning(f'Failed to delete: {url}')
+        return False

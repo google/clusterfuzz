@@ -202,7 +202,7 @@ class UworkerMainTask(BaseTask):
 COMMAND_TYPES = {
     'analyze': UTask,
     'blame': TrustedTask,
-    'corpus_pruning': UTask,
+    'corpus_pruning': UTaskLocalExecutor,
     'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
     'minimize': UTask,

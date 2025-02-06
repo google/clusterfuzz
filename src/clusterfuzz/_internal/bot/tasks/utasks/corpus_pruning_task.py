@@ -740,9 +740,14 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
 
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)
-  if time_remaining <= 0:
+  if True:
     logs.warning('Not enough time for shared corpus merging.')
-    return None
+    return CorpusPruningResult(
+      coverage_info=coverage_info,
+      crashes=list(crashes.values()),
+      fuzzer_binary_name=fuzzer_binary_name,
+      revision=environment.get_value('APP_REVISION'),
+      cross_pollination_stats=None)
 
   cross_pollinator = CrossPollinator(runner)
   pollinator_stats = cross_pollinator.run(time_remaining)
@@ -1117,17 +1122,18 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Make sure we're the only instance running for the given fuzzer and
   # job_type.
-  if not data_handler.update_task_status(task_name,
+  """   if not data_handler.update_task_status(task_name,
                                          data_types.TaskState.STARTED):
     logs.info('A previous corpus pruning task is still running, exiting.')
     return None
-
+ """
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
 
-  # TODO(unassigned): Use coverage information for better selection here.
-  cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
-      fuzz_target.engine, fuzzer_name)
+  # TODO(metzman): Reenable this once pruning is in a healthy state again in oss-fuz
+  cross_pollinate_fuzzers = []
+  """ _get_cross_pollinate_fuzzers(
+      fuzz_target.engine, fuzzer_name) """
 
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
@@ -1138,7 +1144,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
-    asyncio.run(_limit_corpus_sizes(corpus_urls))
+    """ asyncio.run(_limit_corpus_sizes(corpus_urls)) """
 
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
       fuzz_target.engine, fuzz_target.project_qualified_name())
@@ -1163,12 +1169,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
         leak_blacklist.get_global_blacklisted_functions())
 
   logs.info('done preprocess')
-  return uworker_msg_pb2.Input(  # pylint: disable=no-member
+  uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
       setup_input=setup_input,
       corpus_pruning_task_input=corpus_pruning_task_input)
+  return uworker_input
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({

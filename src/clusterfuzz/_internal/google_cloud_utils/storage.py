@@ -26,7 +26,9 @@ import time
 from typing import List
 from typing import Tuple
 import uuid
+import multiprocessing
 from xml.etree import ElementTree as ET
+
 
 import google.auth.exceptions
 from googleapiclient.discovery import build
@@ -98,7 +100,7 @@ HTTP_TIMEOUT_SECONDS = 15
 
 # TODO(metzman): Figure out why this works on oss-fuzz and doesn't destroy
 # memory usage?
-_POOL_SIZE = 16
+_POOL_SIZE = max(16, multiprocessing.cpu_count())
 
 _TRANSIENT_ERRORS = [
     google.cloud.exceptions.GoogleCloudError,
@@ -129,7 +131,7 @@ class StorageProvider:
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self, remote_path, recursive=True):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -232,7 +234,7 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self, remote_path, recursive=True):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -247,14 +249,7 @@ class GcsProvider(StorageProvider):
       delimiter = None
     else:
       delimiter = '/'
-
-    if names_only:
-      fields = 'items(name),nextPageToken'
-    else:
-      fields = None
-
-    iterator = bucket.list_blobs(
-        prefix=path, delimiter=delimiter, fields=fields)
+    iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
     for blob in iterator:
       properties['bucket'] = bucket_name
       properties['name'] = blob.name
@@ -456,13 +451,15 @@ def _sign_url(remote_path: str,
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
-  return blob.generate_signed_url(
+
+  url = blob.generate_signed_url(
       version='v4',
       expiration=minutes,
       method=method,
       credentials=signing_creds,
       access_token=access_token,
       service_account_email=signing_creds.service_account_email)
+  return url
 
 
 class FileSystemProvider(StorageProvider):
@@ -577,9 +574,8 @@ class FileSystemProvider(StorageProvider):
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self, remote_path, recursive=True):
     """List the blobs under the remote path."""
-    del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
@@ -1085,8 +1081,7 @@ def get_blobs_no_retry(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(
-      cloud_storage_path, recursive=recursive, names_only=True):
+  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
     yield blob['name']
 
 
@@ -1307,11 +1302,14 @@ def delete_signed_url(url: str):
   _provider().delete_signed_url(url)
 
 
-def _error_tolerant_delete_signed_url(url: str):
+def _error_tolerant_delete_signed_url(url: str) -> bool:
   try:
+    #print('deleting', url)
     delete_signed_url(url)
+    return True
   except Exception:
     logs.warning(f'Failed to delete: {url}')
+    return False
 
 
 def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
@@ -1319,10 +1317,10 @@ def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
     return []
   logs.info('Uploading URLs.')
   with concurrency.make_pool(_POOL_SIZE) as pool:
-    result = list(
+    results = list(
         pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.info('Done uploading URLs.')
-  return result
+  return results
 
 
 def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1366,12 +1364,17 @@ def download_signed_urls(signed_urls: List[str],
 
 
 def delete_signed_urls(urls):
+  import time
   if not urls:
     return
+  start = time.time()
   logs.info('Deleting URLs.')
-  with concurrency.make_pool(_POOL_SIZE) as pool:
-    pool.map(_error_tolerant_delete_signed_url, urls)
+  result = fast_http.delete_signed_urls(urls)
+  """ with concurrency.make_pool(_POOL_SIZE) as pool:
+    results = list(pool.map(_error_tolerant_delete_signed_url, urls)) """
   logs.info('Done deleting URLs.')
+  print('delete time', time.time() - start)
+  return result
 
 
 def _sign_urls_for_existing_file(
@@ -1384,11 +1387,6 @@ def _sign_urls_for_existing_file(
   else:
     delete_url = ''
   return (download_url, delete_url)
-
-
-def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
-  url, include_delete_urls = url_and_include_delete_urls
-  return _sign_urls_for_existing_file(url, include_delete_urls)
 
 
 def sign_urls_for_existing_files(urls, include_delete_urls):
@@ -1408,7 +1406,8 @@ def parallel_map(func, argument_list):
   will OOM."""
   max_size = 2
   timeout = 120
-  with concurrency.make_pool(max_pool_size=max_size) as pool:
+  import multiprocessing
+  with concurrency.make_pool(multiprocessing.cpu_count()) as pool:
     calls = {pool.submit(func, argument) for argument in argument_list}
     while calls:
       finished_calls, _ = futures.wait(
@@ -1422,6 +1421,8 @@ def parallel_map(func, argument_list):
         calls.remove(call)
         yield call.result(timeout=timeout)
 
+def is_alphanumeric_ascii_regex(s):
+    return bool(re.match(b'^[a-zA-Z0-9]+$', s))
 
 def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
   """Returns |num_uploads| number of signed upload URLs to upload files with
