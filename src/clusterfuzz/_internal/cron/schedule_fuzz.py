@@ -177,24 +177,27 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     fuzzer_job_query = ndb_utils.get_all_from_query(
         data_types.FuzzerJob.query())
 
+    # TODO(metzman): Refactor this to use richer types and less primitives.
     for fuzzer_job in fuzzer_job_query:
       fuzz_task_candidate = candidates_by_job[fuzzer_job.job].copy()
       fuzz_task_candidate.fuzzer = fuzzer_job.fuzzer
-      project_weight = project_weights.get(fuzz_task_candidate.project, None)
-      if project_weight is None:
-        logs.info(f'No project weight for {fuzz_task_candidate.project}')
-        continue
-
-      fuzz_task_candidate.weight = fuzzer_job.actual_weight * project_weight
+      fuzz_task_candidate.weight = fuzzer_job.actual_weight
       fuzz_task_candidates.append(fuzz_task_candidate)
 
       fuzzer_job_weight_by_project[fuzz_task_candidate.project] += (
           fuzzer_job.actual_weight)
 
     for fuzz_task_candidate in fuzz_task_candidates:
+      project_weight = project_weights.get(fuzz_task_candidate.project, None)
+      if project_weight is None:
+        logs.info(f'No project weight for {fuzz_task_candidate.project}.'
+                  'Not scheduling.')
+        fuzz_task_candidate.weight = 0
+        continue
       total_project_weight = fuzzer_job_weight_by_project[
           fuzz_task_candidate.project]
-      fuzz_task_candidate.weight /= total_project_weight
+      fuzz_task_candidate.weight = (
+          fuzz_task_candidate.weight / total_project_weight) * project_weight
 
     # Prepare lists for random.choice
     weights = []
@@ -211,6 +214,8 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
         tasks.Task('fuzz', fuzz_task_candidate.fuzzer, fuzz_task_candidate.job)
         for fuzz_task_candidate in choices
     ]
+    # TODO(metzman): Use number of targets even though weight
+    # implicitly includes this often.
     # TODO(metzman): Remove the queue stuff if it's uneeded for Chrome.
     return fuzz_tasks
 
