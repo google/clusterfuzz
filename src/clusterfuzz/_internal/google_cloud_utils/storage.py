@@ -252,6 +252,7 @@ class GcsProvider(StorageProvider):
       fields = None
 
     iterations = 0
+    next_page_token = None
     while True:
       iterations += 1
       iterator = bucket.list_blobs(
@@ -262,6 +263,7 @@ class GcsProvider(StorageProvider):
             'name': blob.name,
             'updated': blob.updated,
             'size': blob.size,
+            'next_page_token': next_page_token,
         }
 
         yield properties
