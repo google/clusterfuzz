@@ -329,6 +329,7 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     if should_retry and task.command == 'corpus_pruning':
       should_retry = False  # It is naturally retried the next day.
 
+    import pdb; pdb.set_trace()
     disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
     subconfig = subconfig_map[config_name]
     spec = BatchWorkloadSpec(

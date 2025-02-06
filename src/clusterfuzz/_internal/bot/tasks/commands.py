@@ -234,13 +234,13 @@ def run_command(task_name, task_argument, job_name, uworker_env):
         'task': task_name,
         'argument': task_argument,
     })
-    logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
-    if task_name == 'fuzz' and not environment.is_tworker():
-      # TODO(b/377885331): Get rid of this when oss-fuzz is migrated.
-      # Wait 10 seconds. We don't want to try again immediately because if we
-      # tried to run a fuzz task then there is no other task to run.
-      time.sleep(environment.get_value('FAIL_WAIT'))
-    return None
+    # logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
+    # if task_name == 'fuzz' and not environment.is_tworker():
+    #   # TODO(b/377885331): Get rid of this when oss-fuzz is migrated.
+    #   # Wait 10 seconds. We don't want to try again immediately because if we
+    #   # tried to run a fuzz task then there is no other task to run.
+    #   time.sleep(environment.get_value('FAIL_WAIT'))
+    # return None
   try:
     result = task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
