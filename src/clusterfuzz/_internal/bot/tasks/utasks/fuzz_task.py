@@ -2051,6 +2051,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   fuzz_target = _preprocess_get_fuzz_target(fuzzer_name, job_type)
+  os.environ['FUZZ_TARGET'] = fuzz_target.name
+  uworker_env['FUZZ_TARGET'] = fuzz_target.name
   fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()  # pylint: disable=no-member
   if fuzz_target:
     fuzz_task_input.fuzz_target.CopyFrom(
