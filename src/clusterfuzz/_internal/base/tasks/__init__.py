@@ -603,6 +603,8 @@ def initialize_task(message, task_cls=None) -> PubSubTask:
   if task_cls is None:
     task_cls = PubSubTask
 
+  if message.attributes.get('eventType') == 'OBJECT_DELETE':
+    return None
   if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
     return task_cls(message)
 
