@@ -147,10 +147,6 @@ def _parse_centipede_logs(log_lines: List[str]) -> Dict[str, int]:
 class Engine(engine.Engine):
   """Centipede engine implementation."""
 
-  def __init__(self):
-    super().__init__()
-    self.workdir = self._create_temp_dir('workdir')
-
   @property
   def name(self):
     return 'centipede'
@@ -202,7 +198,8 @@ class Engine(engine.Engine):
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
-    arguments[constants.WORKDIR_FLAGNAME] = str(self.workdir)
+    workdir = self._create_temp_dir('workdir')
+    arguments[constants.WORKDIR_FLAGNAME] = str(workdir)
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
     arguments[constants.CORPUS_DIR_FLAGNAME] = corpus_dir
@@ -301,7 +298,12 @@ class Engine(engine.Engine):
               int(fuzz_result.time_executed)))
 
     stats_filename = f'fuzzing-stats-{os.path.basename(target_path)}.000000.csv'
-    stats_file = os.path.join(self.workdir, stats_filename)
+    args = fuzzer_options.FuzzerArguments.from_list(options.arguments)
+    assert args is not None
+    assert constants.WORKDIR_FLAGNAME in args
+
+    workdir = args[constants.WORKDIR_FLAGNAME]
+    stats_file = os.path.join(workdir, stats_filename)
     stats = _parse_centipede_stats(stats_file)
     if not stats:
       stats = {}
@@ -505,9 +507,10 @@ class Engine(engine.Engine):
       TimeoutError: If the testcase minimization exceeds max_time.
     """
     runner = _get_runner(target_path)
+    workdir = self._create_temp_dir('workdir')
     args = [
         f'--binary={target_path}',
-        f'--workdir={self.workdir}',
+        f'--workdir={workdir}',
         f'--minimize_crash={input_path}',
         f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
         '--seed=1',
@@ -517,7 +520,7 @@ class Engine(engine.Engine):
       logs.warning(
           'Testcase minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
-    minimum_testcase = self._get_smallest_crasher(self.workdir)
+    minimum_testcase = self._get_smallest_crasher(workdir)
     if minimum_testcase:
       shutil.copyfile(minimum_testcase, output_path)
     else:
