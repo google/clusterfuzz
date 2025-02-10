@@ -320,10 +320,13 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     # A misconfiguration led to this point. Clean up the job if necessary.
     # TODO(ochang): Remove the first part of this check once we migrate off the
     # old untrusted worker architecture.
+    # If the job base quque is '-android', which is the default Android queue
+    # ignore the mismatch since with subqueues, it is expected
     if (not environment.get_value('DEBUG_TASK') and
         not environment.is_tworker() and
         not environment.is_trusted_host(ensure_connected=False) and
-        job_base_queue_suffix != bot_base_queue_suffix):
+        job_base_queue_suffix != bot_base_queue_suffix and
+        job_base_queue_suffix != '-android'):
       # This happens rarely, store this as a hard exception.
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
                  (job_name, job_base_queue_suffix, bot_base_queue_suffix))
