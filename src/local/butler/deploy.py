@@ -32,6 +32,8 @@ from local.butler import package
 from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.system import environment
+from clusterfuzz._internal.metrics import monitoring_metrics
+from typing import Any, Dict
 
 EXPECTED_BOT_COUNT_PERCENT = 0.8
 
@@ -89,7 +91,7 @@ def _additional_app_env_vars(project):
       'REDIS_HOST': _get_redis_ip(project),
   }
 
-
+# TODO: Add structured log
 def _deploy_app_prod(project,
                      deployment_bucket,
                      yaml_paths,
@@ -111,21 +113,19 @@ def _deploy_app_prod(project,
 
     for service in services:
       _delete_old_versions(project, service, VERSION_DELETE_WINDOW_MINUTES)
-
+  releases = [release]
+  releases += constants.ADDITIONAL_RELEASES if release == 'prod' else []
   if package_zip_paths:
     for package_zip_path in package_zip_paths:
       _deploy_zip(
           deployment_bucket, package_zip_path, test_deployment=test_deployment)
 
-    releases = [release]
-    releases += constants.ADDITIONAL_RELEASES if release == 'prod' else []
     for rel in releases:
-      _deploy_manifest(
+        _deploy_manifest(
           deployment_bucket,
           constants.PACKAGE_TARGET_MANIFEST_PATH,
           test_deployment=test_deployment,
           release=rel)
-
 
 def _deploy_app_staging(project, yaml_paths):
   """Deploy app in staging."""
@@ -426,24 +426,39 @@ def _prod_deployment_helper(config_dir,
     _update_bigquery(project)
     _update_redis(project)
 
-  _deploy_app_prod(
-      project,
-      deployment_bucket,
-      yaml_paths,
-      package_zip_paths,
-      deploy_appengine=deploy_appengine,
-      test_deployment=test_deployment,
-      release=release)
+  labels: dict[str, Any] = {
+      'deploy_zip': bool(package_zip_paths),
+      'deploy_app_engine': deploy_appengine,
+      'deploy_kubernetes': deploy_k8s,
+      'success': True,
+      'release': release
+    }
+  
+  try:
+    deployments_success = _deploy_app_prod(
+        project,
+        deployment_bucket,
+        yaml_paths,
+        package_zip_paths,
+        deploy_appengine=deploy_appengine,
+        test_deployment=test_deployment,
+        release=release)
 
-  if deploy_appengine:
-    common.execute(
-        f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
+    if deploy_appengine:
+      common.execute(
+          f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
 
-  if deploy_k8s:
-    _deploy_terraform(config_dir)
-    _deploy_k8s(config_dir)
-  print('Production deployment finished.')
-
+    if deploy_k8s:
+      _deploy_terraform(config_dir)
+      _deploy_k8s(config_dir)
+    
+    print(f'Production deployment finished. {labels}, {deployments_success}')
+    labels.update({'success': True})
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+  except Exception as ex:
+    labels.update({'success': False})
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+    raise ex
 
 def _deploy_terraform(config_dir):
   """Deploys GKE cluster via terraform."""
