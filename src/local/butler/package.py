@@ -27,9 +27,9 @@ from src.clusterfuzz._internal.base import utils
 MIN_SUPPORTED_NODEJS_VERSION = 4
 
 
-def _clear_zip(target_zip_path):
+def _clear_zip(target_zip_path, clear_manifest=True):
   """Remove zip and manifest file."""
-  if os.path.exists(constants.PACKAGE_TARGET_MANIFEST_PATH):
+  if clear_manifest and os.path.exists(constants.PACKAGE_TARGET_MANIFEST_PATH):
     os.remove(constants.PACKAGE_TARGET_MANIFEST_PATH)
 
   if os.path.exists(target_zip_path):
@@ -144,7 +144,7 @@ def package(revision,
       add_target_zip_name = utils.get_platform_deployment_filename(
           platform_name, release=add_release)
       add_target_zip_path = os.path.join(target_zip_dir, add_target_zip_name)
-      _clear_zip(add_target_zip_path)
+      _clear_zip(add_target_zip_path, clear_manifest=False)
       shutil.copy2(target_zip_path, add_target_zip_path)
       print('\n%s is ready.' % add_target_zip_path)
       targets_zip_paths.append(add_target_zip_path)
