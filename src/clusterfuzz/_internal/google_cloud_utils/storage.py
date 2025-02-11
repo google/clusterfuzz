@@ -1070,7 +1070,7 @@ def write_stream(stream, cloud_storage_file_path, metadata=None):
     function='google_cloud_utils.storage.get_blobs',
     exception_types=_TRANSIENT_ERRORS)
 def get_blobs(*args, **kwargs):
-  yield from get_blobs(*args, **kwargs)
+  yield from _provider().get_blobs(*args, **kwargs)
 
 
 def get_blobs_no_retry(cloud_storage_path, recursive=True):
