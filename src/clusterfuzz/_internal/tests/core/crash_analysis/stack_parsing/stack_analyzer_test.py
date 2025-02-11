@@ -1267,11 +1267,13 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_v8_generic_segfault(self):
-    """Test a generic segfault from V8 (see https://crbug.com/388616198)."""
+    """Test a generic segfault from V8 (see https://crbug.com/388616198).
+    Set a mock fuzz target name to be used as the state instead of 'NULL'."""
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
     data = self._read_test_data('v8_generic_segfault.txt')
     expected_type = 'Null-dereference'
     expected_address = '0x000000000000'
-    expected_state = 'NULL'
+    expected_state = 'mock-fuzz-target\n'
     expected_stacktrace = data
     expected_security_flag = False
 
