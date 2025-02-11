@@ -18,9 +18,15 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
+
 if [ -z "$HOST_JOB_SELECTION" ]; then
-  # Get list of jobs to focus on from instance metadata, if any.
-  export HOST_JOB_SELECTION=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection || true)
+  HOST_JOB_SELECTION=$(curl -sf -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection)
+  # Don't set the env var to a 404 error page.
+  if [ $? -eq 0 ]; then
+    export HOST_JOB_SELECTION
+  else
+    unset HOST_JOB_SELECTION
+  fi
 fi
 
 CLUSTERFUZZ_FILE=clusterfuzz_package.zip
