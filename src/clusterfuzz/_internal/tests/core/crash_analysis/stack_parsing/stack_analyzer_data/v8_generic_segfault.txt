@@ -1,0 +1,30 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allow_user_segv_handler=0:check_malloc_usable_size=0:detect_leaks=0:detect_odr_violation=0:detect_stack_use_after_return=1:fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:print_scariness=1:print_summary=1:print_suppressions=0:redzone=128:strict_memcmp=0:symbolize=0:use_sigaltstack=1
+[Command line] /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8 --fuzzing --fuzzing --expose-gc --allow-natives-syntax --debug-code --disable-abortjs --omit-quit --invoke-weak-callbacks --enable-slow-asserts --verify-heap --fuzzing --fuzzing --expose-gc --allow-natives-syntax --debug-code --harmony --disable-abortjs --omit-quit --invoke-weak-callbacks --enable-slow-asserts --verify-heap --no-liftoff --no-enable-sse4_2 /mnt/scratch0/clusterfuzz/bot/inputs/disk/clusterfuzz-testcase-4798270517739520.js
+
++----------------------------------------Debug Build Stacktrace----------------------------------------+
+Calling export
+Received signal 11 <unknown> 000000000000
+
+==== C stack trace ===============================
+
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8_libbase.so(_ZN2v84base5debug10StackTraceC1Ev+0x1f)[0xf29b845f]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8_libbase.so(+0x49376)[0xf29b8376]
+linux-gate.so.1(__kernel_rt_sigreturn+0x0)[0xf7f80560]
+[0x3c13f38d]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(+0x1bb7325)[0xf457a325]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(+0x2128b41)[0xf4aebb41]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(+0x184c71d)[0xf420f71d]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(+0x1844c79)[0xf4207c79]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(+0x1844aa1)[0xf4207aa1]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(+0x287aa81)[0xf523da81]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(_ZN2v88internal9Execution10CallScriptEPNS0_7IsolateENS0_12DirectHandleINS0_10JSFunctionEEENS4_INS0_6ObjectEEES8_+0x36a)[0xf523f06a]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(_ZN2v86Script3RunENS_5LocalINS_7ContextEEENS1_INS_4DataEEE+0x603)[0xf4d43ca3]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/libv8.so(_ZN2v86Script3RunENS_5LocalINS_7ContextEEE+0x2c)[0xf4d4368c]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8(_ZN2v85Shell13ExecuteStringEPNS_7IsolateENS_5LocalINS_6StringEEES5_NS0_16ReportExceptionsEPNS_6GlobalINS_5ValueEEE+0x5a2)[0x566754d2]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8(_ZN2v811SourceGroup7ExecuteEPNS_7IsolateE+0x2bb)[0x5669421b]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8(_ZN2v85Shell14RunMainIsolateEPNS_7IsolateEb+0x144)[0x56699374]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8(_ZN2v85Shell7RunMainEPNS_7IsolateEb+0x113)[0x56698f43]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8(_ZN2v85Shell4MainEiPPc+0x113a)[0x5669af3a]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_0536c6cee91964742660111d92ce7f5517350a4a/revisions/d8(main+0x1f)[0x5669b4af]
+/lib/i386-linux-gnu/libc.so.6(__libc_start_main+0xf5)[0xf2211ed5]
+[end of stack trace]
