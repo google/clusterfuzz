@@ -560,6 +560,8 @@ def get_task_from_message(message, can_defer=True,
     return None
   try:
     task = initialize_task(message, task_cls=task_cls)
+    if task is None:
+      return None
   except KeyError:
     logs.error('Received an invalid task, discarding...')
     message.ack()
