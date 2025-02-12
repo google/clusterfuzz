@@ -751,7 +751,7 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       include_regressions=True,
       include_delete_urls=True,
       max_upload_urls=3_000,
-      max_download_urls=30_000)
+      max_download_urls=200_000)
   # We will never need to upload more than the number of testcases in the
   # corpus to the quarantine. But add a max of 500 to avoid spending
   # too much time on crazy edge cases.
