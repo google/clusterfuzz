@@ -605,9 +605,9 @@ def initialize_task(message, task_cls=None) -> PubSubTask:
   if task_cls is None:
     task_cls = PubSubTask
 
-  if message.attributes.get('eventType') == 'OBJECT_DELETE':
-    return None
-  if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
+  if message.attributes.get('eventType') not in {
+      'OBJECT_FINALIZE', 'OBJECT_DELETE'
+  }:
     return task_cls(message)
 
   # Handle postprocess task.
@@ -617,7 +617,12 @@ def initialize_task(message, task_cls=None) -> PubSubTask:
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message)
+  task = PostprocessPubSubTask(output_url_argument, message)
+  if message.attributes.get('eventType') == 'OBJECT_DELETE':
+    # Get this out of the queue.
+    task.ack()
+    return None
+  return task
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -635,6 +640,9 @@ class PostprocessPubSubTask(PubSubTask):
     grandparent_class.__init__(command, output_url_argument, job_type, eta,
                                is_command_override, high_end)
     self._pubsub_message = pubsub_message
+
+  def ack(self):
+    self._pubsub_message.ack()
 
 
 class _PubSubLeaserThread(threading.Thread):
