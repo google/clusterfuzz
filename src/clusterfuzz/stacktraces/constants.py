@@ -122,7 +122,7 @@ FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
 FUZZER_EXIT_REGEX = re.compile(r'^\s*(?:#0|#1) 0x.*(?:fuzzer|fuzz/|/fuzz)',
                                re.IGNORECASE)
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
-    'Received signal 11 SEGV_[A-Z]+ ([0-9a-f]*)')
+    'Received signal 11 (?:SEGV_[A-Z]+|<unknown>) ([0-9a-f]*)')
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                         r'\s*Check failed[:]\s*(.*)')
 GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
