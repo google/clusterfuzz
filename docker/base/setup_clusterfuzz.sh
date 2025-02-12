@@ -18,7 +18,6 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
-
 if [ -z "$HOST_JOB_SELECTION" ]; then
   HOST_JOB_SELECTION=$(curl -sf -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection)
   # Don't set the env var to a 404 error page.
