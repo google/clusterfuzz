@@ -441,7 +441,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # because we have many different kinds of corpuses (e.g. quarantine, regression)
     # but this check is for the main corpus.
     assert ((len(filenames_to_delete) != len(
-        self._filenames_to_delete_urls_mapping)) or filenames_to_delete < 500)
+        self._filenames_to_delete_urls_mapping)) or len(filenames_to_delete) < 500)
 
     logs.info('Deleting files.')
     storage.delete_signed_urls(filenames_to_delete)
