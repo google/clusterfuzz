@@ -606,7 +606,8 @@ def initialize_task(message, task_cls=None) -> PubSubTask:
     task_cls = PubSubTask
 
   if message.attributes.get('eventType') not in {
-    'OBJECT_FINALIZE', 'OBJECT_DELETE'}:
+      'OBJECT_FINALIZE', 'OBJECT_DELETE'
+  }:
     return task_cls(message)
 
   # Handle postprocess task.
@@ -642,7 +643,6 @@ class PostprocessPubSubTask(PubSubTask):
 
   def ack(self):
     self._pubsub_message.ack()
-  
 
 
 class _PubSubLeaserThread(threading.Thread):
