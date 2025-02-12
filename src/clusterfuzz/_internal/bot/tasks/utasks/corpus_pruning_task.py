@@ -176,7 +176,7 @@ async def _limit_corpus_size(corpus_url):
         delete_tasks.append(task)
         blobs_to_delete = []
         num_batches += 1
-        if num_batches == 1_000_000 / GOOGLE_CLOUD_MAX_BATCH_SIZE:
+        if num_batches == 3_000_000 / GOOGLE_CLOUD_MAX_BATCH_SIZE:
           break
 
     if blobs_to_delete:
@@ -189,7 +189,6 @@ async def _limit_corpus_size(corpus_url):
     for task_success in results:
       if task_success:
         num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE
-        logs.info('deleted.')
 
     if num_deleted:
       logs.info(f'Deleted over {num_deleted} corpus files.')
