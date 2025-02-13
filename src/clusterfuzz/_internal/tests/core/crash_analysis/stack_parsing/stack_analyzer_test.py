@@ -2612,7 +2612,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('centipede_timeout_abrt.txt')
     expected_type = 'Timeout'
     expected_address = ''
-    e\nxpected_state = 'foo\n'
+    expected_state = 'foo\n'
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
