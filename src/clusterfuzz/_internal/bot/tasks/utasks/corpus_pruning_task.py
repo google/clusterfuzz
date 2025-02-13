@@ -143,12 +143,11 @@ async def _limit_corpus_pruning_size_async(corpus_url):
     creds, _ = credentials.get_default()
     creds.refresh(google_auth_requests.Request())
     bucket, path = storage.get_bucket_name_and_path(corpus_url)
-    logs.info('Limiting corpus size ' + corpus_url)
+    logs.info(f'Limiting corpus size {corpus_url}')
 
     deleting = False
     corpus_size = 0
     num_deleted = 0
-    blobs_to_delete = []
     delete_tasks = []
 
     async def _delete_blob(name, session):
@@ -171,7 +170,7 @@ async def _limit_corpus_pruning_size_async(corpus_url):
                 continue
 
             assert deleting
-            if idx % 1000 == 0:
+            if idx % 20_000 == 0:
               logs.info(f'Deleting url {blob["name"]}')
 
             delete_tasks.append(asyncio.create_task(_delete_blob(blob['name'], session)))
@@ -184,7 +183,7 @@ async def _limit_corpus_pruning_size_async(corpus_url):
         await asyncio.gather(*delete_tasks)
 
         logs.info(f'Deleted {num_deleted} blobs.')
-        logs.info('Total time to delete blobs: {time.time() - start_time}')
+        logs.info(f'Total time to delete blobs: {time.time() - start_time}')
 
 
 def _get_time_remaining(start_time):
