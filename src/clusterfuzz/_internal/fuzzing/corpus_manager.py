@@ -438,10 +438,11 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # Assert that we aren't making the very bad mistake of deleting the entire
     # corpus because we messed up our determination of which files were deleted
     # by libFuzzer during merge/pruning. We have to do this hacky <500 check
-    # because we have many different kinds of corpuses (e.g. quarantine, regression)
-    # but this check is for the main corpus.
+    # because we have many different kinds of corpuses
+    # (e.g. quarantine, regression) but this check is for the main corpus.
     assert ((len(filenames_to_delete) != len(
-        self._filenames_to_delete_urls_mapping)) or len(filenames_to_delete) < 500)
+        self._filenames_to_delete_urls_mapping)) or
+            len(filenames_to_delete) < 500)
 
     logs.info('Deleting files.')
     storage.delete_signed_urls(filenames_to_delete)
