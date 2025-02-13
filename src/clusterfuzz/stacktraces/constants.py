@@ -649,6 +649,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Security CHECK failure',
     'Security DCHECK failure',
     'Out-of-memory',
+    'Timeout',
     'Unreachable code',
     'V8 API error',
     'V8 sandbox violation',
