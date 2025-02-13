@@ -13,12 +13,15 @@
 # limitations under the License.
 """Corpus pruning task."""
 import asyncio
+import concurrent.futures
 import collections
 import datetime
 import json
+import multiprocessing
 import os
 import random
 import shutil
+import time
 from typing import Dict
 from typing import List
 import zipfile
@@ -76,7 +79,7 @@ TIMEOUT_FLAG = f'-timeout={SINGLE_UNIT_TIMEOUT}'
 
 # Corpus files limit for cases when corpus pruning task failed in the last
 # execution.
-CORPUS_FILES_LIMIT_FOR_FAILURES = 50000
+CORPUS_FILES_LIMIT_FOR_FAILURES = 50_000
 
 # Corpus total size limit for cases when corpus pruning task failed in the last
 # execution.
@@ -135,65 +138,53 @@ async def _limit_corpus_sizes(corpus_urls):
     logs.error(f"Error in _limit_corpus_size: {e}")
 
 
-async def _limit_corpus_size(corpus_url):
-  """Limits corpus size asynchronously."""
-  logs.info('Limiting corpus size')
-  creds, _ = credentials.get_default()
-  creds.refresh(google_auth_requests.Request())
-  bucket = storage.get_bucket_name_and_path(corpus_url)[0]
+async def _limit_corpus_pruning_size_async(corpus_url):
+    """Limits corpus size using async listing and deleting blobs one by one."""
+    creds, _ = credentials.get_default()
+    creds.refresh(google_auth_requests.Request())
+    bucket, path = storage.get_bucket_name_and_path(corpus_url)
+    logs.info('Limiting corpus size ' + corpus_url)
 
-  semaphore = asyncio.Semaphore(20)
-
-  async def delete_gcs_blobs_batch(session, bucket, blobs_to_delete, token):
-    async with semaphore:
-      return await delete_gcs_blobs_batch(session, bucket, blobs_to_delete,
-                                          token)
-
-  async with aiohttp.ClientSession() as session:
-    idx = 0
     deleting = False
     corpus_size = 0
     num_deleted = 0
     blobs_to_delete = []
     delete_tasks = []
-    num_batches = 0
-    for blob in storage.get_blobs_no_retry(corpus_url, recursive=True):
-      idx += 1
-      if not deleting:
-        corpus_size += blob['size']
-        if (idx >= CORPUS_FILES_LIMIT_FOR_FAILURES or
-            corpus_size >= CORPUS_SIZE_LIMIT_FOR_FAILURES):
-          deleting = True
-        continue
 
-      assert deleting
-      blobs_to_delete.append(blob)
-      if len(blobs_to_delete) == GOOGLE_CLOUD_MAX_BATCH_SIZE:
-        task = asyncio.create_task(
-            fast_http.delete_gcs_blobs_batch(session, bucket,
-                                             blobs_to_delete.copy(),
-                                             creds.token))
-        delete_tasks.append(task)
-        blobs_to_delete = []
-        num_batches += 1
-        if num_batches == 3_000_000 / GOOGLE_CLOUD_MAX_BATCH_SIZE:
-          break
+    async def _delete_blob(name, session):
+      await fast_http.delete_blob_async(bucket, name, session, creds.token)
 
-    if blobs_to_delete:
-      task = asyncio.create_task(
-          delete_gcs_blobs_batch(session, bucket, blobs_to_delete.copy(),
-                                 creds.token))
-      delete_tasks.append(task)
+    # Create the aiohttp session once to reuse it for all requests
+    async with aiohttp.ClientSession() as session:
+        start_time = time.time()
+        idx = 0
+        num_deleted = 1
+        async for blob in fast_http.list_blobs_async(bucket, path, creds.token):
+            idx += 1
+            if idx >= 5_000_000:
+              break
+            if not deleting:
+                corpus_size += blob['size']
+                if (idx >= CORPUS_FILES_LIMIT_FOR_FAILURES or
+                    corpus_size >= CORPUS_SIZE_LIMIT_FOR_FAILURES):
+                    deleting = True
+                continue
 
-    results = await asyncio.gather(*delete_tasks)
-    for task_success in results:
-      if task_success:
-        num_deleted += GOOGLE_CLOUD_MAX_BATCH_SIZE
+            assert deleting
+            if idx % 1000 == 0:
+              logs.info(f'Deleting url {blob["name"]}')
 
-    if num_deleted:
-      logs.info(f'Deleted over {num_deleted} corpus files.')
-    else:
-      logs.info('No need to limit corpus.')
+            delete_tasks.append(asyncio.create_task(_delete_blob(blob['name'], session)))
+            num_deleted += 1
+            if len(delete_tasks) >= 1000:
+              # If *any* tasks complete, we can schedule more.
+              _, pending = await asyncio.wait(delete_tasks, return_when=asyncio.FIRST_COMPLETED)
+              delete_tasks = list(pending)
+
+        await asyncio.gather(*delete_tasks)
+
+        logs.info(f'Deleted {num_deleted} blobs.')
+        logs.info('Total time to delete blobs: {time.time() - start_time}')
 
 
 def _get_time_remaining(start_time):

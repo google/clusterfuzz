@@ -19,8 +19,8 @@ from typing import Tuple
 import urllib.parse
 
 import aiohttp
+import google.api_core.exceptions
 
-from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
@@ -91,37 +91,45 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
         fp.write(chunk)
 
 
-@retry.wrap(
-    retries=2,
-    delay=1,
-    function='system.fast_http.delete_gcs_blobs_batch',
-    exception_types=[asyncio.TimeoutError],
-    retry_on_false=True)
-async def delete_gcs_blobs_batch(session, bucket, blobs, auth_token):
-  """Batch deletes |blobs| asynchronously."""
-  headers = {
-      'Authorization': f'Bearer {auth_token}',
-      'Content-Type': f'multipart/mixed; boundary={MULTIPART_BOUNDARY}'
-  }
-  # Build multipart body
-  body = []
-  bucket = urllib.parse.quote(bucket, safe='')
-  for idx, blob in enumerate(blobs):
-    path = urllib.parse.quote(blob['name'], safe='')
-    body.append(f'--{MULTIPART_BOUNDARY}\r\n'
-                'Content-Type: application/http\r\n'
-                f'Content-ID: <item{idx+1}>\r\n\r\n'
-                f'DELETE /storage/v1/b/{bucket}/o/{path} HTTP/1.1\r\n'
-                'Content-Length: 0\r\n\r\n'
-                'Host: storage.googleapis.com\r\n')
-  body.append(f'--{MULTIPART_BOUNDARY}--\r\n')
-  body = '\r\n'.join(body)
 
-  try:
-    async with session.post(
-        BATCH_DELETE_URL, headers=headers, data=body, timeout=25) as response:
-      response.raise_for_status()
-      return True
+async def delete_blob_async(bucket_name, blob_name, session, auth_token):
+  blob_name = urllib.parse.quote(blob_name, safe='')
+  url = f'https://storage.googleapis.com/storage/v1/b/{bucket_name}/o/{blob_name}'
+  headers = {'Authorization': f'Bearer {auth_token}',}
+    
+  try:    
+    async with session.delete(url, headers=headers) as response:
+      if response.status != 204:
+        response_text = await response.text()
+        logs.error(f'Failed to delete blob {blob_name}. Status code: {response.status} {response_text}')
   except Exception as e:
-    logs.info(f'Failed to batch delete {e}')
-    return False
+    logs.error(f'Error deleting {blob_name}: {e}')
+
+    
+async def list_blobs_async(bucket_name, path, auth_token):
+  async with aiohttp.ClientSession() as session:
+    url = f'https://storage.googleapis.com/storage/v1/b/{bucket_name}/o'
+    params = {
+      'prefix': path,
+      'delimiter': '/',
+      'fields': 'items(name,size,updated),nextPageToken'  # Need token and save space in response.
+    }
+    while True:
+      async with session.get(url, headers={'Authorization': f'Bearer {auth_token}'}, params=params) as response:
+        if response.status == 200:
+          data = await response.json()
+          items = data.get('items', [])
+          for blob in items:
+            yield {
+              'size': int(blob['size']),
+              'updated': blob['updated'],
+              'name': blob['name'],
+            }
+
+          next_page_token = data.get('nextPageToken')
+          if not next_page_token:
+            break
+          params['pageToken'] = next_page_token
+        else:
+          logs.error(f'No blobsm, tatus code: {response.status}')
+          break        
