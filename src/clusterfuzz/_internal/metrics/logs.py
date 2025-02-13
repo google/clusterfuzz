@@ -84,16 +84,6 @@ def _file_logging_enabled():
       'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
 
 
-def _fluentd_logging_enabled():
-  """Return bool True where fluentd logging is enabled.
-  This is enabled by default.
-  This is disabled for local development and if we are running in app engine or
-    kubernetes as these have their dedicated loggers, see configure_appengine()
-    and configure_k8s()."""
-  return bool(os.getenv('LOG_TO_FLUENTD', 'True')) and not _is_local(
-  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
-
-
 def _cloud_logging_enabled():
   """Return bool True where Google Cloud Logging is enabled.
   This is disabled for local development and if we are running in a app engine
@@ -271,15 +261,6 @@ def update_entry_with_exc(entry, exc_info):
     }
 
 
-class JsonSocketHandler(logging.handlers.SocketHandler):
-  """Format log into JSON string before sending it to fluentd. We need this
-    because SocketHandler doesn't respect the formatter attribute."""
-
-  def makePickle(self, record: logging.LogRecord):
-    """Format LogEntry into JSON string."""
-    # \n is the recognized delimiter by fluentd's in_tcp. Don't remove.
-    return (format_record(record) + '\n').encode('utf-8')
-
 
 def uncaught_exception_handler(exception_type, exception_value,
                                exception_traceback):
@@ -358,17 +339,9 @@ def configure_k8s():
   logging.getLogger().setLevel(logging.INFO)
 
 
-def configure_fluentd_logging():
-  fluentd_handler = JsonSocketHandler(
-      host='127.0.0.1',
-      port=5170,
-  )
-  fluentd_handler.setLevel(logging.INFO)
-  logging.getLogger().addHandler(fluentd_handler)
-
 
 def configure_cloud_logging():
-  """ Configure Google cloud logging, for bots not running on appengine nor k8s.
+  """Configure Google cloud logging, for bots not running on appengine nor k8s.
   """
   import google.cloud.logging
 
@@ -434,8 +407,6 @@ def configure(name, extras=None):
     logging.basicConfig(level=logging.INFO)
   if _file_logging_enabled():
     config.dictConfig(get_logging_config_dict(name))
-  if _fluentd_logging_enabled():
-    configure_fluentd_logging()
   if _cloud_logging_enabled():
     configure_cloud_logging()
   logger = logging.getLogger(name)

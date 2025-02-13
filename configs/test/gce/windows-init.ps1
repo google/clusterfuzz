@@ -36,6 +36,8 @@ $packageSetupFilePath = 'c:\package.setup.1'
 # Create clusterfuzz admin account.
 $domain = 'CLUSTERFUZZ-WIN'
 $username = 'clusterfuzz'
+$LOG_TO_FLUENTD = False
+$LOG_TO_CLOUD = True
 $password = $webClient.DownloadString('http://metadata.google.internal/computeMetadata/v1/project/attributes/windows-password')
 $group = 'Administrators'
 $adsi = [ADSI]"WinNT://$env:COMPUTERNAME"
@@ -208,32 +210,6 @@ $fileName = "$tmp\pstools.zip"
 if (!(Test-Path ($fileName))) {
   $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/PSTools.zip", $fileName)
   unzip $fileName
-}
-
-# Download and install google-fluentd
-$fileName = "$tmp\StackdrvierLogging-v1-3.exe"
-if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-3.exe", $fileName)
-  cmd /c $fileName /S
-
-  $configFile = "C:\GoogleStackdriverLoggingAgent\fluent.conf"
-  $loggingConfig = @"
-    `r
-    <source>`r
-      type tcp`r
-      format json`r
-      port 5170`r
-      bind 127.0.0.1`r
-      tag bot`r
-    </source>`r
-"@
-  Add-Content $configFile $loggingConfig
-  (Get-Content $configFile) -replace "flush_interval 5s","flush_interval 60s" | out-file -encoding ASCII $configFile
-
-  Start-Sleep -s 30
-
-  net stop fluentdwinsvc
-  net start fluentdwinsvc
 }
 
 # Install NVIDIA driver (Tesla P100).
