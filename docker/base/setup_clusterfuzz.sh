@@ -19,13 +19,11 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
 fi
 
 if [ -z "$HOST_JOB_SELECTION" ]; then
-  HOST_JOB_SELECTION=$(curl -sf -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection)
-  # Don't set the env var to a 404 error page.
-  if [ $? -eq 0 ]; then
+  if HOST_JOB_SELECTION=$(curl -sf -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection); then
     export HOST_JOB_SELECTION
   else
-    HOST_JOB_SELECTION=""
-    export HOST_JOB_SELECTION
+    echo "Failed to retrieve HOST_JOB_SELECTION from metadata."
+    unset HOST_JOB_SELECTION
   fi
 fi
 
