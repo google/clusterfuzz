@@ -15,51 +15,35 @@
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_handler
 
+_TASK_NAMES = [
+    'minimize',
+    'analyze',
+    'regression',
+    'progression',
+]
+
 
 def execute(args):
-  """Adds task to queue. Ignores |args|."""
-  del args
+  """Adds tasks to queue."""
+  if args.script_args is None or len(args.script_args) < 2:
+    print('Usage: add_tasks --script_args TASK_NAME TESTCASE_IDS...')
+    return
 
-  testcase_ids = [
-      6370177092354048,
-      4744808593555456,
-      5227780266459136,
-      6574395942174720,
-      5244277185511424,
-      6510914580709376,
-      5775142323945472,
-      6011445988753408,
-      4906124947947520,
-      6530929128308736,
-      5352929858879488,
-      4822064720445440,
-      6196499218104320,
-      5648685870284800,
-      5743771882815488,
-      6572216783142912,
-      6312222733041664,
-      4645517271171072,
-      4563799747002368,
-      4938153525706752,
-      6726867197296640,
-      5648258588147712,
-      6071687468482560,
-      6341729695236096,
-      5161211645591552,
-      5737435933638656,
-      5841772634636288,
-      6063675576090624,
-      6283270358499328,
-      4920378535116800,
-      6026859015766016,
-      4797038180892672,
-      6469710677737472,
-      6733155834724352,
-      6217441478639616,
-      5871576352227328,
-  ]
+  task_name = args.script_args[0]
+  if task_name not in _TASK_NAMES:
+    print(f'Unknown task name {task_name}. Valid options: ' +
+          ','.join(_TASK_NAMES))
+    return
+
+  testcase_ids = args.script_args[1:]
+
   for testcase_id in testcase_ids:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-    print(f'Restarted {testcase_id}.')
-    queue = tasks.default_queue()
-    tasks.add_task('analyze', str(testcase_id), testcase.job_type, queue)
+    queue = tasks.queue_for_testcase(testcase)
+
+    print(f'Adding task: {task_name} {testcase_id} {testcase.job_type}')
+    if not args.non_dry_run:
+      print('  Skipping for dry-run mode.')
+      continue
+
+    tasks.add_task(task_name, testcase_id, testcase.job_type, queue)
