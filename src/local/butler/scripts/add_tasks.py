@@ -37,10 +37,10 @@ def execute(args):
 
   testcase_ids = args.script_args[1:]
 
-  queue = tasks.default_queue()
-
   for testcase_id in testcase_ids:
     testcase = data_handler.get_testcase_by_id(testcase_id)
+    queue = tasks.queue_for_testcase(testcase)
+
     print(f'Adding task: {task_name} {testcase_id} {testcase.job_type}')
     if not args.non_dry_run:
       print('  Skipping for dry-run mode.')
