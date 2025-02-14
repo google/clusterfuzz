@@ -2601,6 +2601,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_timeout_with_abrt(self):
+    """Test Centipede timeout leading to runner process ABRT ASAN crash.
+
+    See https://crbug.com/396148611.
+    """
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    os.environ['FUZZ_TARGET'] = 'foo'
+
+    data = self._read_test_data('centipede_timeout_abrt.txt')
+    expected_type = 'Timeout'
+    expected_address = ''
+    expected_state = 'foo\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_libfuzzer_timeout_enabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting enabled)."""
     os.environ['FUZZ_TARGET'] = 'pdfium_fuzzer'

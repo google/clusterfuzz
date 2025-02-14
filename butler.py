@@ -338,7 +338,10 @@ def main():
       'script_name',
       help='The script module name under `./local/butler/scripts`.')
   parser_run.add_argument(
-      '--script_args', action='append', help='Script specific arguments')
+      '--script_args',
+      action='extend',
+      nargs='+',
+      help='Script specific arguments')
   parser_run.add_argument(
       '--non-dry-run',
       action='store_true',
