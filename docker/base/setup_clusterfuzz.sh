@@ -24,7 +24,8 @@ if [ -z "$HOST_JOB_SELECTION" ]; then
   if [ $? -eq 0 ]; then
     export HOST_JOB_SELECTION
   else
-    unset HOST_JOB_SELECTION
+    HOST_JOB_SELECTION=""
+    export HOST_JOB_SELECTION
   fi
 fi
 
