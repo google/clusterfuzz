@@ -402,6 +402,7 @@ def _staging_deployment_helper():
   print('Staging deployment finished.')
 
 
+@monitoring_metrics.monitor.wrap_with_monitoring()
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
@@ -517,7 +518,6 @@ def _deploy_k8s(config_dir):
 
 # We need to import the wrap_with_monitoring through monitoring_metrics monitor's import
 # for having both of them on the same module instance context. 
-@monitoring_metrics.monitor.wrap_with_monitoring()
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
   if sys.version_info.major != 3 or sys.version_info.minor != 11:
@@ -608,6 +608,12 @@ def execute(args):
   if args.staging:
     _staging_deployment_helper()
   else:
+    # This workaround is needed to set the env vars APPLICATION_ID and BOT_NAME
+    # for local environment, and it's needed for loading the monitoring module
+    from clusterfuzz._internal.system import environment
+    config = local_config.ProjectConfig().get('env')
+    environment.set_value("APPLICATION_ID", config["APPLICATION_ID"])
+    environment.set_value("BOT_NAME", environment.get_value("HOSTNAME"))
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
