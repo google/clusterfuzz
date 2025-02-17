@@ -33,7 +33,6 @@ from local.butler import package
 from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.metrics import monitoring_metrics
-from src.clusterfuzz._internal.metrics.monitor import wrap_with_monitoring
 from src.clusterfuzz._internal.system import environment
 
 EXPECTED_BOT_COUNT_PERCENT = 0.8
@@ -403,11 +402,6 @@ def _staging_deployment_helper():
   print('Staging deployment finished.')
 
 
-def _increment_production_deployment(labels):
-  with wrap_with_monitoring():
-    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-
-
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
@@ -463,10 +457,10 @@ def _prod_deployment_helper(config_dir,
       _deploy_k8s(config_dir)
 
     print(f'Production deployment finished. {labels}')
-    _increment_production_deployment(labels)
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
   except Exception as ex:
     labels.update({'success': False})
-    _increment_production_deployment(labels)
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
     raise ex
 
 
@@ -521,6 +515,9 @@ def _deploy_k8s(config_dir):
     common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
 
+# We need to import the wrap_with_monitoring through monitoring_metrics monitor's import
+# for having both of them on the same module instance context. 
+@monitoring_metrics.monitor.wrap_with_monitoring()
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
   if sys.version_info.major != 3 or sys.version_info.minor != 11:
