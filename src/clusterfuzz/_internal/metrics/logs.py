@@ -174,14 +174,18 @@ def truncate(msg, limit):
       '...%d characters truncated...' % (len(msg) - limit), msg[-half:]
   ])
 
+
 class JsonFormatter(logging.Formatter):
+  """Formats log records as JSON."""
+
   def format(self, record: logging.LogRecord) -> str:
     """Format LogEntry into JSON string."""
     entry = {
         'message':
             truncate(record.getMessage(), STACKDRIVER_LOG_MESSAGE_LIMIT),
         'created': (
-            datetime.datetime.utcfromtimestamp(record.created).isoformat() + 'Z'),
+            datetime.datetime.utcfromtimestamp(record.created).isoformat() + 'Z'
+        ),
         'severity':
             record.levelname,
         'bot_name':
@@ -216,7 +220,7 @@ class JsonFormatter(logging.Formatter):
     if fuzz_target:
       entry['fuzz_target'] = fuzz_target
 
-    # Log bot shutdown cases as WARNINGs since this is expected for preemptibles.
+    # Log bot shutdown cases as WARNINGs (this is expected for preemptibles).
     if (entry['severity'] in ['ERROR', 'CRITICAL'] and
         'IOError: [Errno 4] Interrupted function call' in entry['message']):
       entry['severity'] = 'WARNING'
@@ -337,7 +341,6 @@ def configure_k8s():
 
   logging.setLogRecordFactory(record_factory)
   logging.getLogger().setLevel(logging.INFO)
-
 
 
 def configure_cloud_logging():
