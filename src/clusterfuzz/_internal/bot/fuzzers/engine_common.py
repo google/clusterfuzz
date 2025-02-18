@@ -419,7 +419,8 @@ def get_additional_issue_metadata(fuzz_target_path):
 
   with open(metadata_file_path) as handle:
     try:
-      return json.load(handle)
+      data = json.load(handle)
+      return json.dumps(data)
     except (ValueError, TypeError):
       logs.error('Invalid metadata file format.', path=metadata_file_path)
       return {}
