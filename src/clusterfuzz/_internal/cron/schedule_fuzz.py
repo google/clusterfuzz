@@ -271,7 +271,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   logs.info(f'Soon occupied CPUs: {soon_occupied_cpus}')
   cpu_limit = int(
       sum(
-        get_cpu_limit_for_regions(creds, project, region)
+          get_cpu_limit_for_regions(creds, project, region)
           for region in regions) * CPU_BUFFER_MULTIPLIER)
 
   logs.info('Actually free CPUs (before subtracting soon '
