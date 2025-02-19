@@ -90,8 +90,13 @@ def _cloud_logging_enabled():
   This is disabled for local development and if we are running in a app engine
     or kubernetes as these have their dedicated loggers, see
     configure_appengine() and configure_k8s()."""
-  return bool(os.getenv('LOG_TO_GCP', 'True')) and not _is_local(
-  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  return (
+    bool(os.getenv("LOG_TO_GCP", "True"))
+    and not os.getenv("PY_UNITTESTS")
+    and not _is_local()
+    and not _is_running_on_app_engine()
+    and not _is_running_on_k8s()
+  )
 
 
 def suppress_unwanted_warnings():
