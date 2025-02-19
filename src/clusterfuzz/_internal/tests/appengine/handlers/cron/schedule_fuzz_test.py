@@ -79,8 +79,8 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     self.assertListEqual(comparable_results, expected_results)
 
 
-class TestGetAvailableCpusForRegion(unittest.TestCase):
-  """Tests for get_available_cpus_for_region."""
+class TestGetCpuLimitForRegions(unittest.TestCase):
+  """Tests for get_cpu_limit_for_regions."""
 
   def setUp(self):
     test_helpers.patch(self,
@@ -88,18 +88,18 @@ class TestGetAvailableCpusForRegion(unittest.TestCase):
     self.creds = credentials.get_default()
 
   def test_usage(self):
-    """Tests that get_available_cpus_for_region handles usage properly."""
+    """Tests that get_cpu_limit_for_regions handles usage properly."""
     self.mock._get_quotas.return_value = [{
         'metric': 'PREEMPTIBLE_CPUS',
         'limit': 5,
         'usage': 2
     }]
     self.assertEqual(
-        schedule_fuzz.get_available_cpus_for_region(self.creds, 'project',
-                                                    'region'), 3)
+        schedule_fuzz.get_cpu_limit_for_regions(self.creds, 'project',
+                                                'region'), 3)
 
   def test_cpus_and_preemptible_cpus(self):
-    """Tests that get_available_cpus_for_region handles usage properly."""
+    """Tests that get_cpu_limit_for_regions handles usage properly."""
     self.mock._get_quotas.return_value = [{
         'metric': 'PREEMPTIBLE_CPUS',
         'limit': 5,
@@ -110,5 +110,5 @@ class TestGetAvailableCpusForRegion(unittest.TestCase):
         'usage': 5
     }]
     self.assertEqual(
-        schedule_fuzz.get_available_cpus_for_region(self.creds, 'region',
-                                                    'project'), 5)
+        schedule_fuzz.get_cpu_limit_for_regions(self.creds, 'region',
+                                                'project'), 5)
