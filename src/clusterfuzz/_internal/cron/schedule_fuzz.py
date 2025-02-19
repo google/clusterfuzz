@@ -35,6 +35,10 @@ from clusterfuzz._internal.metrics import logs
 # TODO(metzman): Actually implement this.
 CPUS_PER_FUZZ_JOB = 2
 
+# Pretend like our CPU limit is 3% higher than it actually is so that we use the
+# full CPU capacity even when scheduling is slow.
+CPU_BUFFER_MULTIPLIER = 1.03
+
 
 def _get_quotas(creds, project, region):
   compute = discovery.build('compute', 'v1', credentials=creds)
@@ -72,7 +76,7 @@ def count_unacked(creds, project_id, subscription_id):
   return 0
 
 
-def get_available_cpus_for_region(creds, project: str, region: str) -> int:
+def get_cpu_limit_for_regions(creds, project: str, region: str) -> int:
   """Returns the number of available CPUs in the current GCE region."""
 
   quotas = _get_quotas(creds, project, region)
@@ -258,24 +262,26 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   # Add up all queued and scheduled.
   region_counts = [sum(tup) for tup in region_counts]
   logs.info(f'Region counts: {region_counts}')
-  if region_counts[0] > 25_000:
+  if region_counts[0] > 75_000:
     # Check queued tasks.
     logs.info('Too many jobs queued, not scheduling more fuzzing.')
     return 0
   waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
   soon_occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
   logs.info(f'Soon occupied CPUs: {soon_occupied_cpus}')
-  available_cpus = sum(
+  cpu_limit = int(sum(
       get_available_cpus_for_region(creds, project, region)
-      for region in regions)
+      for region in regions) * CPU_BUFFER_MULTIPLIER)
+      
   logs.info('Actually free CPUs (before subtracting soon '
             f'occupied): {available_cpus}')
-  available_cpus = max(available_cpus - soon_occupied_cpus, 0)
+  available_cpus = max(cpu_limit - soon_occupied_cpus, 0)
 
-  # Don't schedule more than 10K tasks at once. So we don't overload batch.
-  print('len_regions', len(regions))
+  # Don't schedule more than 50K tasks at once. So we don't overload batch.
   # This number is arbitrary, but we aren't at full capacity at lower numbers.
   available_cpus = min(available_cpus, 50_000 * len(regions))
+
+  cpu_buffer = .02 * cpu_limit
   return available_cpus
 
 
@@ -289,8 +295,6 @@ def schedule_fuzz_tasks() -> bool:
   available_cpus = get_available_cpus(project, regions)
   logs.error(f'{available_cpus} available CPUs.')
   if not available_cpus:
-    # Not clear if this should be False or True.
-    # TODO(metzman): Revisit this.
     return False
 
   fuzz_tasks = get_fuzz_tasks(available_cpus)
