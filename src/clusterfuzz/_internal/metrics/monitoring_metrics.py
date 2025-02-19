@@ -388,3 +388,15 @@ ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
         monitor.BooleanField('reproducible'),
         monitor.BooleanField('crashes'),
     ])
+
+PRODUCTION_DEPLOYMENT = monitor.CounterMetric(
+    'debug/deployment/count',
+    description='The number of deployments',
+    field_spec=[
+        monitor.BooleanField('success'),
+        monitor.StringField('release'),
+        monitor.BooleanField('deploy_zip'),
+        monitor.BooleanField('deploy_app_engine'),
+        monitor.BooleanField('deploy_kubernetes'),
+        monitor.StringField('clusterfuzz_version')
+    ])

@@ -918,7 +918,6 @@ def current_project():
 
 def current_source_version():
   """Return the current source revision."""
-  # For test use.
   source_version_override = environment.get_value('SOURCE_VERSION_OVERRIDE')
   if source_version_override:
     return source_version_override

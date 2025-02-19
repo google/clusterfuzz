@@ -22,6 +22,7 @@ import re
 import sys
 import tempfile
 import time
+from typing import Any
 
 import pytz
 
@@ -31,6 +32,7 @@ from local.butler import constants
 from local.butler import package
 from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
+from src.clusterfuzz._internal.metrics import monitoring_metrics
 from src.clusterfuzz._internal.system import environment
 
 EXPECTED_BOT_COUNT_PERCENT = 0.8
@@ -90,6 +92,7 @@ def _additional_app_env_vars(project):
   }
 
 
+# TODO: Add structured log
 def _deploy_app_prod(project,
                      deployment_bucket,
                      yaml_paths,
@@ -399,6 +402,11 @@ def _staging_deployment_helper():
   print('Staging deployment finished.')
 
 
+# We need to import the wrap_with_monitoring through monitoring_metrics
+# monitor's import because we need to point to the same module instance
+# for assuring the same metric store we increment the metric will have
+# the metrics flushed by the monitoring thread.
+@monitoring_metrics.monitor.wrap_with_monitoring()
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
@@ -426,23 +434,39 @@ def _prod_deployment_helper(config_dir,
     _update_bigquery(project)
     _update_redis(project)
 
-  _deploy_app_prod(
-      project,
-      deployment_bucket,
-      yaml_paths,
-      package_zip_paths,
-      deploy_appengine=deploy_appengine,
-      test_deployment=test_deployment,
-      release=release)
+  labels: dict[str, Any] = {
+      'deploy_zip': bool(package_zip_paths),
+      'deploy_app_engine': deploy_appengine,
+      'deploy_kubernetes': deploy_k8s,
+      'success': True,
+      'release': release,
+      'clusterfuzz_version': utils.current_source_version()
+  }
 
-  if deploy_appengine:
-    common.execute(
-        f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
+  try:
+    _deploy_app_prod(
+        project,
+        deployment_bucket,
+        yaml_paths,
+        package_zip_paths,
+        deploy_appengine=deploy_appengine,
+        test_deployment=test_deployment,
+        release=release)
 
-  if deploy_k8s:
-    _deploy_terraform(config_dir)
-    _deploy_k8s(config_dir)
-  print('Production deployment finished.')
+    if deploy_appengine:
+      common.execute(
+          f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
+
+    if deploy_k8s:
+      _deploy_terraform(config_dir)
+      _deploy_k8s(config_dir)
+
+    print(f'Production deployment finished. {labels}')
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+  except Exception as ex:
+    labels.update({'success': False})
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+    raise ex
 
 
 def _deploy_terraform(config_dir):
@@ -586,6 +610,11 @@ def execute(args):
   if args.staging:
     _staging_deployment_helper()
   else:
+    # This workaround is needed to set the env vars APPLICATION_ID and BOT_NAME
+    # for local environment, and it's needed for loading the monitoring module
+    config = local_config.ProjectConfig().get('env')
+    environment.set_value("APPLICATION_ID", config["APPLICATION_ID"])
+    environment.set_value("BOT_NAME", os.uname().nodename)
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
