@@ -262,7 +262,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   # Add up all queued and scheduled.
   region_counts = [sum(tup) for tup in region_counts]
   logs.info(f'Region counts: {region_counts}')
-  if region_counts[0] > 75_000:
+  if region_counts[0] > 50_000:
     # Check queued tasks.
     logs.info('Too many jobs queued, not scheduling more fuzzing.')
     return 0
@@ -271,7 +271,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   logs.info(f'Soon occupied CPUs: {soon_occupied_cpus}')
   cpu_limit = int(
       sum(
-          get_cpu_limit_for_regions(creds, project, region)
+        get_cpu_limit_for_regions(creds, project, region)
           for region in regions) * CPU_BUFFER_MULTIPLIER)
 
   logs.info('Actually free CPUs (before subtracting soon '
