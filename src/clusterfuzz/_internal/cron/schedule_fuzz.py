@@ -258,7 +258,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   # Add up all queued and scheduled.
   region_counts = [sum(tup) for tup in region_counts]
   logs.info(f'Region counts: {region_counts}')
-  if region_counts[0] > 10000:
+  if region_counts[0] > 25_000:
     # Check queued tasks.
     logs.info('Too many jobs queued, not scheduling more fuzzing.')
     return 0
