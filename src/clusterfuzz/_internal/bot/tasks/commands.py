@@ -266,23 +266,29 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   return result
 
 
-def process_command(task):
+def process_command(task, queue=None):
   """Figures out what to do with the given task and executes the command."""
-  logs.info(f'Executing command "{task.payload()}"')
+  logs.info(f'Executing command "{task.payload()}" from queue "{queue}"')
   if not task.payload().strip():
     logs.error('Empty task received.')
     return None
 
   return process_command_impl(task.command, task.argument, task.job,
-                              task.high_end, task.is_command_override)
+                              task.high_end, task.is_command_override, queue)
 
 
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
 def process_command_impl(task_name, task_argument, job_name, high_end,
-                         is_command_override):
+                         is_command_override, queue):
   """Implementation of process_command."""
+  # high_end is no longer used currently. It was used to compute the
+  # queue to be used for pushing a task. Now that queue is present
+  # as an input argument, this is not longer needed. Hence deleting
+  # it instead of removing it from the argument list in case it is
+  # needed in the future
+  del high_end
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
@@ -330,18 +336,13 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
                  (job_name, job_base_queue_suffix, bot_base_queue_suffix))
 
-      # Try to recreate the job in the correct task queue.
-      new_queue = (
-          tasks.high_end_queue() if high_end else tasks.regular_queue())
-      new_queue += job_base_queue_suffix
-
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.
       # So, we don't create any new tasks in that case since it needs
       # manual intervention to fix the override anyway.
       if not is_command_override:
         try:
-          tasks.add_task(task_name, task_argument, job_name, new_queue)
+          tasks.add_task(task_name, task_argument, job_name, queue)
         except Exception:
           # This can happen on trying to publish on a non-existent topic, e.g.
           # a topic for a high-end bot on another platform. In this case, just
@@ -384,6 +385,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
                 task_name,
                 task_argument,
                 job_name,
+                queue,
                 wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
             return None
 
@@ -463,6 +465,7 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
         task_name,
         task_argument,
         job_name,
+        queue,
         wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
     return None
 
