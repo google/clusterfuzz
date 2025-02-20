@@ -94,6 +94,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,  # pylint: disable=no-member
         uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
+        # This error condition is not really a success, but it implies a retry
+        # Considering a success to decrease alerting noise
+        uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR,  # pylint: disable=no-member
     ]
 
     if subtask == _Subtask.PREPROCESS:
