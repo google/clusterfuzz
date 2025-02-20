@@ -93,7 +93,7 @@ class TaskLoopTest(unittest.TestCase):
 
     self.task = mock.MagicMock()
     self.task.payload.return_value = 'payload'
-    self.mock.get_task.return_value = self.task
+    self.mock.get_task.return_value = (self.task, None)
     self.task.lease.__enter__ = mock.Mock(return_value=None)
     self.task.lease.__exit = mock.Mock(return_value=False)
 
