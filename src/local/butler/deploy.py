@@ -236,6 +236,11 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   else:
     common.execute('gsutil cp %s gs://%s/%s' % (zip_path, bucket_name,
                                                 os.path.basename(zip_path)))
+    
+
+def _download_zip(bucket_name, gcs_file_path, target_path):
+  """Download zip from GCS."""
+  common.execute('gsutil cp gs://%s/%s %s' % (bucket_name, gcs_file_path, target_path))
 
 
 def _deploy_manifest(bucket_name,
@@ -610,10 +615,21 @@ def execute(args):
   if args.staging:
     _staging_deployment_helper()
   else:
-    # This workaround is needed to set the env vars APPLICATION_ID and BOT_NAME
-    # for local environment, and it's needed for loading the monitoring module
-    config = local_config.ProjectConfig().get('env')
-    environment.set_value("APPLICATION_ID", config["APPLICATION_ID"])
+    # This workaround is needed to set BOT_NAME for local environment
+    # and it's needed for loading the monitoring module
+    config = local_config.ProjectConfig()
+    config.set_environment()
+    # We are removing the internal_issue_tracker module from cluterfuzz-config code
+    # to be able to open the clusterfuzz-config code.
+    # This workaround manages to download the internal_issue_tracker module from
+    # GCS during the deployment.
+    if config.get_target() == "google":
+      config_dir = config.get_config_dir()
+      config_path = os.path.join(config_dir, 'modules')
+      bucket = config.get('deployment.bucket')
+      _download_zip(bucket, "internal_issue_tracker.zip", config_path)
+      common.execute(f'unzip {config_path}/internal_issue_tracker.zip -d {config_path}')
+      common.execute(f'rm {config_path}/internal_issue_tracker.zip')
     environment.set_value("BOT_NAME", os.uname().nodename)
     _prod_deployment_helper(
         args.config_dir,

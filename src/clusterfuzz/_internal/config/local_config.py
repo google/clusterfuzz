@@ -161,6 +161,14 @@ class Config:
 
     return Config(root=new_root)
 
+  # it returns if the config is for internal, external or google
+  # TODO: add and get this information from the project.yaml file
+  def get_target(self):
+    return self._config_dir.split("/")[-1]
+
+  def get_config_dir(self):
+    return self._config_dir
+
   def _get_helper(self, key_name='', default=None,
                   value_is_relative_path=False):
     """Helper for get and get_absolute_functions."""
