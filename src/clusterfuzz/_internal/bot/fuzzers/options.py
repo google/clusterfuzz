@@ -21,7 +21,6 @@ import re
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.afl import constants as afl_constants
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 
 OPTIONS_FILE_EXTENSION = '.options'
 
@@ -179,11 +178,6 @@ def get_fuzz_target_options(fuzz_target_path):
   exist."""
   options_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
                                                        OPTIONS_FILE_EXTENSION)
-
-  if environment.is_trusted_host():
-    options_file_path = fuzzer_utils.get_file_from_untrusted_worker(
-        options_file_path)
-
   if not os.path.exists(options_file_path):
     return None
 
