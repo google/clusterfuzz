@@ -161,7 +161,7 @@ class Config:
 
     return Config(root=new_root)
 
-  # it returns if the config is for internal, external or google
+  # it returns that the config is for internal, external or google
   # TODO: add and get this information from the project.yaml file
   def get_target(self):
     return self._config_dir.split("/")[-1]
