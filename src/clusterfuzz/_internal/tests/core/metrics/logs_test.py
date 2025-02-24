@@ -134,7 +134,7 @@ class UpdateEntryWithExc(unittest.TestCase):
 
 
 class FormatRecordTest(unittest.TestCase):
-  """Test format_record method of JsonFormatter."""
+  """Test format method of JsonFormatter."""
 
   def setUp(self):
     helpers.patch(self, [
