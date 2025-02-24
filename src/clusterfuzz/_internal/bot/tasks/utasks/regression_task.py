@@ -414,8 +414,14 @@ def find_regression_range(
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)  # pylint: disable=no-member
 
   # Pick up where left off in a previous run if necessary.
-  min_revision = testcase.get_metadata('last_regression_min')
-  max_revision = testcase.get_metadata('last_regression_max')
+  # Cache this data here to judge in the end if we actually made progress.
+  # Between here and the end of the loop also a lot of time might pass, in
+  # which another simultaneously running regression task might mess with
+  # the metadata.
+  last_min_revision = testcase.get_metadata('last_regression_min')
+  last_max_revision = testcase.get_metadata('last_regression_max')
+  min_revision = last_min_revision
+  max_revision = last_max_revision
 
   logs.info('Build set up, starting search for regression range. State: ' +
             f'crash_revision = {testcase.crash_revision}, ' +
@@ -548,13 +554,27 @@ def find_regression_range(
     regression_task_output.last_regression_min = revision_list[min_index]
     regression_task_output.last_regression_max = revision_list[max_index]
 
-  # If we've broken out of the above loop, we timed out. We'll finish by
-  # running another regression task and picking up from this point.
+  # If we've broken out of the above loop, we timed out. Remember where
+  # we left.
+  regression_task_output.last_regression_min = revision_list[min_index]
+  regression_task_output.last_regression_max = revision_list[max_index]
+
+  # Check if we made progress at all. If this task already resumed a previous
+  # timeout, it started with known min/max revisions. Without any progress,
+  # likely most builds failed the bad build check, in which case we don't
+  # want to restart another task to avoid a task loop.
+  if (last_min_revision == revision_list[min_index] and
+      last_max_revision == revision_list[max_index]):
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        regression_task_output=regression_task_output,
+        error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR,  # pylint: disable=no-member
+        error_message='No progress during bisect.')
+
+  # Because we made progress, the timeout error handler will trigger another
+  # regression task and pick up from this point.
   # TODO: Error handling should be moved to postprocess.
   error_message = 'Timed out, current range r%d:r%d' % (
       revision_list[min_index], revision_list[max_index])
-  regression_task_output.last_regression_min = revision_list[min_index]
-  regression_task_output.last_regression_max = revision_list[max_index]
   return uworker_msg_pb2.Output(  # pylint: disable=no-member
       regression_task_output=regression_task_output,
       error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
