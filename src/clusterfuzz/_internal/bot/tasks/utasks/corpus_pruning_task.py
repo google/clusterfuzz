@@ -19,7 +19,6 @@ import json
 import os
 import random
 import shutil
-from typing import Dict
 from typing import List
 import zipfile
 
@@ -303,15 +302,16 @@ class Context:
 
 class BaseRunner:
   """Base Runner"""
+
   def __init__(self, build_directory, context):
     self.build_directory = build_directory
     self.context = context
-        
+
     self.target_path = engine_common.find_fuzzer_path(
-      self.build_directory, self.context.fuzz_target.binary)
+        self.build_directory, self.context.fuzz_target.binary)
     if not self.target_path:
       raise CorpusPruningError(
-        f'Failed to get fuzzer path for {self.context.fuzz_target.binary}')
+          f'Failed to get fuzzer path for {self.context.fuzz_target.binary}')
     self.fuzzer_options = options.get_fuzz_target_options(self.target_path)
 
   def get_fuzzer_flags(self):
@@ -333,14 +333,17 @@ class BaseRunner:
     asan_options.update(overrides)
     environment.set_memory_tool_options('ASAN_OPTIONS', asan_options)
 
-    def reproduce(self, input_path, arguments, max_time):
-        return self.context.engine.reproduce(self.target_path, input_path, arguments, max_time)
+  def reproduce(self, input_path, arguments, max_time):
+    return self.context.engine.reproduce(self.target_path, input_path,
+                                           arguments, max_time)
 
-    def minimize_corpus(self, arguments, input_dirs, output_dir, reproducers_dir, max_time):
-        return self.context.engine.minimize_corpus(self.target_path, arguments,
-                                                   input_dirs, output_dir, reproducers_dir, max_time)
+  def minimize_corpus(self, arguments, input_dirs, output_dir,
+                      reproducers_dir, max_time):
+    return self.context.engine.minimize_corpus(self.target_path, arguments,
+                                               input_dirs, output_dir,
+                                               reproducers_dir, max_time)
 
-      
+
 class LibFuzzerRunner(Runner):
   """Runner for libFuzzer."""
 
@@ -394,9 +397,10 @@ class LibFuzzerRunner(Runner):
 class GenericRunner(BaseRunner):
   """Runner implementation for Centipede fuzzing engine."""
 
-  
+
 class CorpusPrunerBase:
   """Base class for corpus pruning that is engine‐agnostic."""
+
   def __init__(self, runner):
     self.runner = runner
     self.context = runner.context
@@ -408,36 +412,37 @@ class CorpusPrunerBase:
 
     # Unpack seed corpus if needed.
     engine_common.unpack_seed_corpus_if_needed(
-      self.runner.target_path, initial_corpus_path, force_unpack=True)
+        self.runner.target_path, initial_corpus_path, force_unpack=True)
 
     environment.reset_current_memory_tool_options(
-      redzone_size=MIN_REDZONE, leaks=True)
+        redzone_size=MIN_REDZONE, leaks=True)
     self.runner.process_sanitizer_options()
 
     additional_args = self.runner.get_fuzzer_flags()
     logs.info('Running merge...')
     try:
       result = self.runner.minimize_corpus(
-        additional_args, [initial_corpus_path], minimized_corpus_path,
-        bad_units_path, CORPUS_PRUNING_TIMEOUT)
+          additional_args, [initial_corpus_path], minimized_corpus_path,
+          bad_units_path, CORPUS_PRUNING_TIMEOUT)
     except TimeoutError as e:
       raise CorpusPruningError(
-        'Corpus pruning timed out while minimizing corpus\n' + repr(e))
+          'Corpus pruning timed out while minimizing corpus\n' + repr(e))
     except engine.Error as e:
-      raise CorpusPruningError(
-        'Corpus pruning failed to minimize corpus\n' + repr(e))
+      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
+                               repr(e))
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
     if not shell.get_directory_file_count(minimized_corpus_path):
       raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                   symbolized_output)
+                               symbolized_output)
 
-    logs.info('Corpus merge finished successfully.',
-          output=symbolized_output)
+    logs.info('Corpus merge finished successfully.', output=symbolized_output)
     return result.stats
 
   def process_bad_units(self, bad_units_path, quarantine_corpus_path):
+    del bad_units_path
+    del quarantine_corpus_path
     return {}
 
 
@@ -446,13 +451,14 @@ class LibFuzzerPruner(CorpusPrunerBase):
   LibFuzzerPruner is a specialized pruner for libFuzzer that handles
   quarantining of problematic units and related special cases.
   """
+
   def _run_single_unit(self, unit_path):
     arguments = self.runner.get_fuzzer_flags()  # Expect libFuzzer flags.
     return self.runner.reproduce(unit_path, arguments, SINGLE_UNIT_TIMEOUT)
 
   def _quarantine_unit(self, unit_path, quarantine_corpus_path):
-    quarantined_unit_path = os.path.join(
-      quarantine_corpus_path, os.path.basename(unit_path))
+    quarantined_unit_path = os.path.join(quarantine_corpus_path,
+                                         os.path.basename(unit_path))
     shutil.move(unit_path, quarantined_unit_path)
     return quarantined_unit_path
 
@@ -503,17 +509,18 @@ class LibFuzzerPruner(CorpusPrunerBase):
 
       if state.crash_state not in crashes:
         security_flag = crash_analyzer.is_security_issue(
-          state.crash_stacktrace, state.crash_type, state.crash_address)
-        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(
-          crash_state=state.crash_state,
-          crash_type=state.crash_type,
-          crash_address=state.crash_address,
-          crash_stacktrace=state.crash_stacktrace,
-          unit_path=unit_path,
-          security_flag=security_flag)
-    logs.info('Found %d bad units, %d unique crashes.' %
-          (num_bad_units, len(crashes)))
+            state.crash_stacktrace, state.crash_type, state.crash_address)
+        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
+            crash_state=state.crash_state,
+            crash_type=state.crash_type,
+            crash_address=state.crash_address,
+            crash_stacktrace=state.crash_stacktrace,
+            unit_path=unit_path,
+            security_flag=security_flag)
+    logs.info('Found %d bad units, %d unique crashes.' % (num_bad_units,
+                                                          len(crashes)))
     return crashes
+
 
 class GenericPruner(BasePruner):
   """Generic pruner."""
@@ -609,7 +616,6 @@ def _record_cross_pollination_stats(output):
   client = big_query.Client(
       dataset_id='main', table_id='cross_pollination_statistics')
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
-  
 
 
 def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
