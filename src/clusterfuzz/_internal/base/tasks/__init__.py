@@ -45,8 +45,8 @@ JOBS_TASKQUEUE = JOBS_PREFIX
 HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 
 # Limits on number of tasks leased at once and in total.
-MAX_LEASED_TASKS_LIMIT = 1000
-MAX_TASKS_LIMIT = 100000
+MAX_LEASED_TASKS_LIMIT = 1_000
+MAX_TASKS_LIMIT = 100_000
 
 # The stated limit is 1000, but in reality meassages do not get delivered
 # around this limit. We should probably switch to the real client library.
