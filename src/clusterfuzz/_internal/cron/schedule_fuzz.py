@@ -33,10 +33,6 @@ from clusterfuzz._internal.metrics import logs
 # TODO(metzman): Actually implement this.
 CPUS_PER_FUZZ_JOB = 2
 
-# Pretend like our CPU limit is 3% higher than it actually is so that we use the
-# full CPU capacity even when scheduling is slow.
-CPU_BUFFER_MULTIPLIER = 1.03
-
 
 def _get_quotas(creds, project, region):
   compute = discovery.build('compute', 'v1', credentials=creds)
@@ -259,7 +255,7 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   cpu_limit = int(
       sum(
           get_cpu_limit_for_regions(creds, project, region)
-          for region in regions) * CPU_BUFFER_MULTIPLIER)
+          for region in regions))
 
   logs.info('Actually free CPUs (before subtracting soon '
             f'occupied): {cpu_limit}')
