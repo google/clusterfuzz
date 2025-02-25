@@ -383,7 +383,6 @@ class IntegrationTest(unittest.TestCase):
         'slo',
         timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
-  @unittest.skip('This test is failing, blocking deploy.')
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""
     unminimized_corpus = setup_testcase('unmin_corpus', self.test_paths)
@@ -402,7 +401,8 @@ class IntegrationTest(unittest.TestCase):
     self.assertEqual(len(os.listdir(crash_corpus)), 1)
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
-      self.assertEqual(crasher_file.read(), '?f???u???z?')
+      crash_content = crasher_file.read()
+    self.assertEqual(crash_content, '?f???u???z?')
 
   def test_minimize_testcase(self):
     """Tests minimizing a testcase."""

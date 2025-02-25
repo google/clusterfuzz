@@ -344,7 +344,7 @@ class BaseRunner:
                                                reproducers_dir, max_time)
 
 
-class LibFuzzerRunner(Runner):
+class LibFuzzerRunner(BaseRunner):
   """Runner for libFuzzer."""
 
   def get_fuzzer_flags(self):
@@ -522,7 +522,7 @@ class LibFuzzerPruner(CorpusPrunerBase):
     return crashes
 
 
-class GenericPruner(BasePruner):
+class GenericPruner(CorpusPrunerBase):
   """Generic pruner."""
 
 
@@ -634,8 +634,8 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
 
   build_directory = environment.get_value('BUILD_DIR')
   start_time = datetime.datetime.utcnow()
-  runner = Runner(build_directory, context)
-  pruner = CorpusPruner(runner)
+  runner = LibFuzzerRunner(build_directory, context)
+  pruner = LibFuzzerPruner(runner)
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
   logs.info('Getting the initial corpus to process from GCS.')
