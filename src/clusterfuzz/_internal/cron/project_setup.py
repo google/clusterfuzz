@@ -128,6 +128,8 @@ AFL_ASAN_JOB = JobInfo(
     'address', ['afl', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
+NO_ENGINE_HWASAN_JOB = JobInfo('noengine_hwasan_', 'none', 'hardware', [])
+NO_ENGINE_NONE_JOB = JobInfo('noengine_nosanitizer_', 'none', 'none', [])
 
 HONGGFUZZ_ASAN_JOB = JobInfo(
     'honggfuzz_asan_',
@@ -190,6 +192,11 @@ JOB_MAP = {
     'none': {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
+        },
+        'arm': {
+            'address': NO_ENGINE_ASAN_JOB,
+            'hardware': NO_ENGINE_HWASAN_JOB,
+            'none': NO_ENGINE_NONE_JOB,
         },
     },
     'centipede': {
@@ -473,34 +480,40 @@ def ccs_from_info(info):
   return [utils.normalize_email(cc) for cc in ccs]
 
 
-def update_fuzzer_jobs(fuzzer_entities, job_names):
+def update_fuzzer_jobs(job_names):
   """Update fuzzer job mappings."""
   to_delete = {}
 
-  for fuzzer_entity_key in fuzzer_entities:
-    fuzzer_entity = fuzzer_entity_key.get()
+  # First, find all jobs that need to be deleted
+  for job in data_types.Job.query():
+    if not job.environment_string:
+      continue
 
-    for job in data_types.Job.query():
-      if not job.environment_string:
-        continue
+    job_environment = job.get_environment()
+    if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
+      continue
 
-      job_environment = job.get_environment()
-      if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
-        continue
+    if job.name in job_names:
+      continue
 
-      if job.name in job_names:
-        continue
+    logs.info(f'Deleting job {job.name}')
 
-      logs.info(f'Deleting job {job.name}')
-      to_delete[job.name] = job.key
+    print(f'Deleting job {job.name}')
+    to_delete[job.name] = job.key
 
+  # Clean up job references from all fuzzer entities
+  for fuzzer in data_types.Fuzzer.query():
+    # modified = False
+    for job_name in to_delete:
       try:
-        fuzzer_entity.jobs.remove(job.name)
+        fuzzer.jobs.remove(job_name)
+        # modified = True
       except ValueError:
         pass
 
-    fuzzer_entity.put()
-    fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
+    # if modified:
+    fuzzer.put()
+    fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
   if to_delete:
     ndb_utils.delete_multi(to_delete.values())
@@ -759,12 +772,19 @@ class ProjectSetup:
 
     for template in get_jobs_for_project(project, info):
       if template.engine == 'none':
-        # Engine-less jobs are not automatically managed.
-        continue
-
-      fuzzer_entity = self._fuzzer_entities.get(template.engine).get()
-      if not fuzzer_entity:
-        raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
+        if not info.get('managed_engineless', False):
+          # Engine-less jobs are not automatically managed unless explicitly
+          # enabled
+          continue
+        # For engineless jobs, we don't need a fuzzer entity
+        fuzzer_entity = None
+        # Get fuzzers specified for this project
+        fuzzers = info.get('fuzzers', [])
+      else:
+        fuzzer_entity = self._fuzzer_entities.get(template.engine).get()
+        if not fuzzer_entity:
+          raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
+        fuzzers = []
 
       job_name = template.job_name(project, self._config_suffix)
       job = data_types.Job.query(data_types.Job.name == job_name).get()
@@ -786,10 +806,21 @@ class ProjectSetup:
 
       if not info.get('disabled', False):
         job_names.append(job_name)
-        if job_name not in fuzzer_entity.jobs and not job.is_external():
+        if (fuzzer_entity and job_name not in fuzzer_entity.jobs and
+            not job.is_external()):
           # Enable new job.
           fuzzer_entity.jobs.append(job_name)
           fuzzer_entity.put()
+        # For engineless jobs, update the fuzzer-job mappings
+        for fuzzer_name in fuzzers:
+          fuzzer = data_types.Fuzzer.query(
+              data_types.Fuzzer.name == fuzzer_name).get()
+          if not fuzzer:
+            raise ProjectSetupError(
+                f'Invalid fuzzer {fuzzer_name} specified for engineless job')
+          if job_name not in fuzzer.jobs:
+            fuzzer.jobs.append(job_name)
+            fuzzer.put()
 
       job.name = job_name
       if self._segregate_projects:
@@ -803,6 +834,7 @@ class ProjectSetup:
       if template.engine == 'centipede':
         build_bucket_path = self._get_build_bucket_path(
             project, info, template.engine, 'none', template.architecture)
+        print(template, build_bucket_path)
       else:
         build_bucket_path = self._get_build_bucket_path(
             project, info, template.engine, template.memory_tool,
@@ -914,8 +946,16 @@ class ProjectSetup:
               f'{key} = {str(value).encode("unicode-escape").decode("utf-8")}\n'
           )
 
-      job.put()
+      if info.get('additional_vars'):
+        additional_vars = {}
+        additional_vars.update(info.get('additional_vars', {}))
+        for key, value in sorted(additional_vars.items()):
+          job.environment_string += (
+              f'{key} = {str(value).encode("unicode-escape").decode("utf-8")}\n'
+          )
 
+      job.put()
+    print(project, job_names)
     return job_names
 
   def sync_user_permissions(self, project, info):
@@ -996,10 +1036,9 @@ class ProjectSetup:
     return SetupResult(enabled_projects, job_names)
 
 
-def cleanup_stale_projects(fuzzer_entities, project_names, job_names,
-                           segregate_projects):
+def cleanup_stale_projects(project_names, job_names, segregate_projects):
   """Clean up stale projects."""
-  update_fuzzer_jobs(fuzzer_entities, job_names)
+  update_fuzzer_jobs(job_names)
   cleanup_old_projects_settings(project_names)
 
   if segregate_projects:
@@ -1095,9 +1134,7 @@ def main():
     project_names.update(result.project_names)
     job_names.update(result.job_names)
 
-  cleanup_stale_projects(
-      list(fuzzer_entities.values()), project_names, job_names,
-      segregate_projects)
+  cleanup_stale_projects(project_names, job_names, segregate_projects)
 
   logs.info('Project setup succeeded.')
   return True
