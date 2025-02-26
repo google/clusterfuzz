@@ -28,15 +28,16 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 
 # TODO(metzman): Actually implement this.
 CPUS_PER_FUZZ_JOB = 2
 
-# Pretend like our CPU limit is 5% lower than it actually is so that we can
-# pretend queued jobs don't exist.
-CPU_BUFFER_MULTIPLIER = .95
+# Pretend like our CPU limit is 3% higher than it actually is so that we use the
+# full CPU capacity even when scheduling is slow.
+CPU_BUFFER_MULTIPLIER = 1.03
 
 
 def _get_quotas(creds, project, region):
@@ -249,8 +250,23 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   # tasks (nor preemptible and non-preemptible CPUs). Fix this.
   # Get total scheduled and queued.
   creds = credentials.get_default()[0]
-  waiting_tasks = count_unacked(creds, project, 'preprocess')
-  waiting_tasks += count_unacked(creds, project, 'utask_main')
+  count_args = ((project, region) for region in regions)
+  with multiprocessing.Pool(2) as pool:
+    # These calls are extremely slow (about 1 minute total).
+    result = pool.starmap_async(  # pylint: disable=no-member
+        batch.count_queued_or_scheduled_tasks, count_args)
+    waiting_tasks = count_unacked(creds, project, 'preprocess')
+    waiting_tasks += count_unacked(creds, project, 'utask_main')
+    region_counts = zip(*result.get())  #  Group all queued and all scheduled.
+
+  # Add up all queued and scheduled.
+  region_counts = [sum(tup) for tup in region_counts]
+  logs.info(f'Region counts: {region_counts}')
+  if region_counts[0] > 50_000:
+    # Check queued tasks.
+    logs.info('Too many jobs queued, not scheduling more fuzzing.')
+    return 0
+  waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
   soon_occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
   logs.info(f'Soon occupied CPUs: {soon_occupied_cpus}')
   cpu_limit = int(
@@ -262,9 +278,9 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
             f'occupied): {cpu_limit}')
   available_cpus = max(cpu_limit - soon_occupied_cpus, 0)
 
-  # Don't schedule more than 30K tasks at once. So we don't overload batch.
+  # Don't schedule more than 50K tasks at once. So we don't overload batch.
   # This number is arbitrary, but we aren't at full capacity at lower numbers.
-  available_cpus = min(available_cpus, 30_000 * len(regions))
+  available_cpus = min(available_cpus, 50_000 * len(regions))
 
   return available_cpus
 
