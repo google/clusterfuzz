@@ -237,10 +237,12 @@ class IntegrationTest(unittest.TestCase):
         self.test_paths,
         centipede_bin,
         sanitized_target_dir=sanitized_target_dir)
-    work_dir = '/tmp/temp-1337/workdir'
 
     options = engine_impl.prepare(self.test_paths.corpus, target_path,
                                   self.test_paths.data)
+
+    work_dir = options.workdir
+    self.assertTrue(work_dir)
 
     arguments = fuzzer_options.FuzzerArguments.from_list(options.arguments)
     self.assertListEqual(arguments.list(), options.arguments)
@@ -263,8 +265,9 @@ class IntegrationTest(unittest.TestCase):
     if dictionary:
       expected_args[centipede_constants.DICTIONARY_FLAGNAME] = str(dictionary)
     expected_args[centipede_constants.WORKDIR_FLAGNAME] = str(work_dir)
-    expected_args[centipede_constants.CORPUS_DIR_FLAGNAME] = str(
-        self.test_paths.corpus)
+    expected_args[
+        centipede_constants.
+        CORPUS_DIR_FLAGNAME] = f'{options.new_corpus_dir},{self.test_paths.corpus}'
     expected_args[centipede_constants.BINARY_FLAGNAME] = str(target_path)
     if str(target_path) != str(sanitized_target_path):
       expected_args[centipede_constants.EXTRA_BINARIES_FLAGNAME] = str(

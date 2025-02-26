@@ -216,7 +216,7 @@ class Engine(engine.Engine):
     # Directory to place new units. While fuzzing, the new corpus
     # elements are written to the first dir in the list of corpus directories.
     new_corpus_dir = engine_common.create_temp_fuzzing_dir('new')
-    corpus_dirs = [new_corpus_dir, corpus_dir]
+    corpus_dirs = [str(new_corpus_dir), str(corpus_dir)]
     arguments[constants.CORPUS_DIR_FLAGNAME] = ','.join(
         dir for dir in corpus_dirs)
 
