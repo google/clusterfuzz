@@ -18,15 +18,12 @@ import os
 import shutil
 import unittest
 
-import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
-
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
-from clusterfuzz._internal.tests.test_libs import test_utils
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'libfuzzer_test_data')
 
@@ -134,6 +131,7 @@ def set_strategy_pool(strategies=None):
     for strategy_tuple in strategies:
       strategy_pool.add_strategy(strategy_tuple)
   return strategy_pool
+
 
 class SelectGeneratorTest(unittest.TestCase):
   """Tests for _select_generator."""

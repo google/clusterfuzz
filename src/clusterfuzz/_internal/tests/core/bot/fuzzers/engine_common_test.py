@@ -24,7 +24,6 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-
 # An arbirtrary SHA1 sum.
 ARBITRARY_SHA1_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
 
@@ -563,7 +562,8 @@ class MoveMergeableUnitsTest(fake_filesystem_unittest.TestCase):
 
   def move_mergeable_units(self):
     """Helper function for move_mergeable_units."""
-    engine_common.move_mergeable_units(self.MERGE_DIRECTORY, self.CORPUS_DIRECTORY)
+    engine_common.move_mergeable_units(self.MERGE_DIRECTORY,
+                                       self.CORPUS_DIRECTORY)
 
   def test_duplicate_not_moved(self):
     """Tests that a duplicated file is not moved into the corpus directory."""
