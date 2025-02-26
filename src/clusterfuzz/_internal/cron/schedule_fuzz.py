@@ -1,3 +1,4 @@
+
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,7 +77,7 @@ def count_unacked(creds, project_id, subscription_id):
   return 0
 
 
-def get_cpu_limit_for_regions(creds, project: str, region: str) -> int:
+def get_cpu_usage(creds, project: str, region: str) -> int:
   """Returns the number of available CPUs in the current GCE region."""
 
   quotas = _get_quotas(creds, project, region)
@@ -110,8 +111,8 @@ def get_cpu_limit_for_regions(creds, project: str, region: str) -> int:
   # We need this because us-central1 and us-east4 have different numbers of
   # cores alloted to us in their quota. Treat them the same to simplify things.
   limit = quota['limit']
-  limit -= quota['usage']
-  return min(limit, 100_000)
+  limit = min(limit, 100_000)
+  return limit, quota['usage']
 
 
 class BaseFuzzTaskScheduler:
@@ -250,33 +251,44 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   # tasks (nor preemptible and non-preemptible CPUs). Fix this.
   # Get total scheduled and queued.
   creds = credentials.get_default()[0]
-  count_args = ((project, region) for region in regions)
-  with multiprocessing.Pool(2) as pool:
-    # These calls are extremely slow (about 1 minute total).
-    result = pool.starmap_async(  # pylint: disable=no-member
-        batch.count_queued_or_scheduled_tasks, count_args)
-    waiting_tasks = count_unacked(creds, project, 'preprocess')
-    waiting_tasks += count_unacked(creds, project, 'utask_main')
-    region_counts = zip(*result.get())  #  Group all queued and all scheduled.
 
-  # Add up all queued and scheduled.
-  region_counts = [sum(tup) for tup in region_counts]
-  logs.info(f'Region counts: {region_counts}')
-  if region_counts[0] > 50_000:
-    # Check queued tasks.
-    logs.info('Too many jobs queued, not scheduling more fuzzing.')
-    return 0
-  waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
-  soon_occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB
-  logs.info(f'Soon occupied CPUs: {soon_occupied_cpus}')
-  cpu_limit = int(
-      sum(
-          get_cpu_limit_for_regions(creds, project, region)
-          for region in regions) * CPU_BUFFER_MULTIPLIER)
+  target = 0
+  usage = 0
+  for region in regions:
+    region_target, region_usage = get_cpu_usage(creds, project, region)
+    target += region_target
+    usage += region_usage
+  waiting_tasks = (
+      count_unacked(creds, project, 'preprocess') + count_unacked(
+          creds, project, 'utask_main'))
+
+  if usage + waiting_tasks * CPUS_PER_FUZZ_JOB > .95 * target:
+    # Only worry about queueing build up if we are above 95% utilization.
+    count_args = ((project, region) for region in regions)
+    with multiprocessing.Pool(2) as pool:
+      target *= CPU_BUFFER_MULTIPLIER
+      # These calls are extremely slow (about 30 minutes total).
+      result = pool.starmap_async(  # pylint: disable=no-member
+          batch.count_queued_or_scheduled_tasks, count_args)
+
+      region_counts = zip(*result.get())  #  Group all queued and all scheduled.
+      # Add up all queued and scheduled.
+      region_counts = [sum(tup) for tup in region_counts]
+      logs.info(f'QUEUED/SCHEDULED tasks per region: {region_counts}')
+      if region_counts[0] > 10_000:
+        # Check queued tasks.
+        logs.info('Too many jobs queued, not scheduling more fuzzing.')
+        return 0
+      waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
+  else:
+    logs.info('Skipping getting tasks.')
+
+  occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB + usage
+  logs.info(f'Soon or currently occupied CPUs: {occupied_cpus}')
 
   logs.info('Actually free CPUs (before subtracting soon '
-            f'occupied): {cpu_limit}')
-  available_cpus = max(cpu_limit - soon_occupied_cpus, 0)
+            f'occupied): {target}')
+  available_cpus = max(target - occupied_cpus, 0)
 
   # Don't schedule more than 50K tasks at once. So we don't overload batch.
   # This number is arbitrary, but we aren't at full capacity at lower numbers.
@@ -293,7 +305,7 @@ def schedule_fuzz_tasks() -> bool:
   regions = get_batch_regions(batch_config)
   start = time.time()
   available_cpus = get_available_cpus(project, regions)
-  logs.error(f'{available_cpus} available CPUs.')
+  logs.info(f'{available_cpus} available CPUs.')
   if not available_cpus:
     return False
 
