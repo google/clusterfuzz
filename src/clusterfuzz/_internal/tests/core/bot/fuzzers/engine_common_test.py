@@ -28,6 +28,10 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 ARBITRARY_SHA1_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
 
 
+# An arbirtrary SHA1 sum.
+ARBITRARY_SHA1_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
+
+
 class GetIssueOwnersTest(fake_filesystem_unittest.TestCase):
   """get_issue_owners tests."""
 
