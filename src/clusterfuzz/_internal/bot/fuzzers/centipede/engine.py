@@ -32,6 +32,7 @@ from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 from clusterfuzz.stacktraces import constants as stacktraces_constants
 
@@ -44,6 +45,17 @@ TargetBinaries = namedtuple('TargetBinaries', ['unsanitized', 'sanitized'])
 
 class CentipedeError(Exception):
   """Base exception class."""
+
+
+class CentipedeOptions(engine.FuzzOptions):
+  """Centipede engine options."""
+
+  def __init__(self, corpus_dir, arguments, strategies, workdir,
+               new_corpus_dir):
+    super().__init__(corpus_dir, arguments, strategies)
+    # Directory to add new units
+    self.new_corpus_dir = new_corpus_dir
+    self.workdir = workdir
 
 
 def _get_runner(target_path):
@@ -198,11 +210,15 @@ class Engine(engine.Engine):
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
-    workdir = self._create_temp_dir('workdir')
+    workdir = engine_common.create_temp_fuzzing_dir('workdir')
     arguments[constants.WORKDIR_FLAGNAME] = str(workdir)
 
-    # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    arguments[constants.CORPUS_DIR_FLAGNAME] = corpus_dir
+    # Directory to place new units. While fuzzing, the new corpus
+    # elements are written to the first dir in the list of corpus directories.
+    new_corpus_dir = engine_common.create_temp_fuzzing_dir('new')
+    corpus_dirs = [new_corpus_dir, corpus_dir]
+    arguments[constants.CORPUS_DIR_FLAGNAME] = ','.join(
+        dir for dir in corpus_dirs)
 
     target_binaries = self._get_binary_paths(target_path)
     if target_binaries.unsanitized is None:
@@ -214,7 +230,8 @@ class Engine(engine.Engine):
       arguments[constants.EXTRA_BINARIES_FLAGNAME] = str(
           target_binaries.sanitized)
 
-    return engine.FuzzOptions(corpus_dir, arguments.list(), {})
+    return CentipedeOptions(corpus_dir, arguments.list(), {}, workdir,
+                            new_corpus_dir)
 
   def _get_binary_paths(self, target_path):
     """Gets the paths to the main and auxiliary binaries based on |target_path|
@@ -284,10 +301,43 @@ class Engine(engine.Engine):
     runner = _get_runner(target_path)
     _set_sanitizer_options(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
+
+    old_corpus_len = shell.get_directory_file_count(options.corpus_dir)
+    logs.info(f'Corpus length before fuzzing: {old_corpus_len}')
+
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
     log_lines = fuzz_result.output.splitlines()
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
+
+    workdir = options.workdir
+
+    corpus_minimization_failed = False
+    try:
+      time_for_minimize = timeout - fuzz_result.time_executed
+
+      self.minimize_corpus(
+          target_path=target_path,
+          arguments=[],
+          # New units, in addition to the main corpus units,
+          # are placed in new_corpus_dir. Minimize and merge back
+          # to the main corpus_dir.
+          input_dirs=[options.new_corpus_dir],
+          output_dir=options.corpus_dir,
+          reproducers_dir=reproducers_dir,
+          max_time=time_for_minimize,
+          # Use the same workdir that was used for fuzzing.
+          # This allows us to skip rerunning the fuzzing inputs.
+          workdir=workdir)
+    except Exception as e:
+      corpus_minimization_failed = True
+      logs.error(f'corpus minimization failed: {e}')
+
+    if corpus_minimization_failed:
+      # If we fail to minimize, fall back to moving the new units
+      # from the new corpus_dir to the main corpus_dir.
+      engine_common.move_mergeable_units(options.new_corpus_dir,
+                                         options.corpus_dir)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -298,11 +348,7 @@ class Engine(engine.Engine):
               int(fuzz_result.time_executed)))
 
     stats_filename = f'fuzzing-stats-{os.path.basename(target_path)}.000000.csv'
-    args = fuzzer_options.FuzzerArguments.from_list(options.arguments)
-    assert args is not None
-    assert constants.WORKDIR_FLAGNAME in args
 
-    workdir = args[constants.WORKDIR_FLAGNAME]
     stats_file = os.path.join(workdir, stats_filename)
     stats = _parse_centipede_stats(stats_file)
     if not stats:
@@ -321,6 +367,11 @@ class Engine(engine.Engine):
     num_execs_avg = stats.get('NumExecs_Avg', 0.0)
     stats['average_exec_per_sec'] = num_execs_avg / fuzz_time_secs_avg
     stats.update(_parse_centipede_logs(log_lines))
+
+    new_corpus_len = shell.get_directory_file_count(options.corpus_dir)
+    logs.info(f'Corpus length after fuzzing: {new_corpus_len}')
+    new_units_added = new_corpus_len - old_corpus_len
+    stats['new_units_added'] = new_units_added
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
@@ -379,14 +430,28 @@ class Engine(engine.Engine):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def _create_temp_dir(self, name):
-    """Creates temporary directory for fuzzing."""
-    new_directory = pathlib.Path(fuzzer_utils.get_temp_dir(), name)
-    engine_common.recreate_directory(new_directory)
-    return new_directory
+  def _strip_fuzzing_arguments(self, arguments):
+    """Remove arguments only needed for fuzzing."""
+    for argument in [
+        constants.FORK_SERVER_FLAGNAME,
+        constants.MAX_LEN_FLAGNAME,
+        constants.RUNS_FLAGNAME,
+        constants.EXIT_ON_CRASH_FLAGNAME,
+        constants.BATCH_SIZE_FLAGNAME,
+    ]:
+      if argument in arguments:
+        del arguments[argument]
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+    return arguments
+
+  def minimize_corpus(self,
+                      target_path,
+                      arguments,
+                      input_dirs,
+                      output_dir,
+                      reproducers_dir,
+                      max_time,
+                      workdir=None):
     """Runs corpus minimization.
     Args:
       target_path: Path to the target.
@@ -401,16 +466,29 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner(target_path)
+    _set_sanitizer_options(target_path)
+
+    minimize_arguments = self._get_arguments(target_path)
+    self._strip_fuzzing_arguments(minimize_arguments)
+    environment.set_value('ASAN_OPTIONS', 'detect_odr_violation=0')
 
     # Step 1: Generate corpus file for Centipede.
-    full_corpus_workdir = self._create_temp_dir('full_corpus_workdir')
+    # When calling this during a fuzzing session, use the existing workdir.
+    # This avoids us having to re-run inputs and waste time unnecessarily.
+    # This saves a lot of time when the input corpus contains thousands
+    # of files.
+    full_corpus_workdir = workdir
+    if not full_corpus_workdir:
+      full_corpus_workdir = engine_common.create_temp_fuzzing_dir(
+          'full_corpus_workdir')
     input_dirs_param = ','.join(str(dir) for dir in input_dirs)
-    args = [
+    args = minimize_arguments.list() + [
         f'--workdir={full_corpus_workdir}',
         f'--binary={target_path}',
         f'--corpus_dir={input_dirs_param}',
         '--num_runs=0',
     ]
+    logs.info(f'Running Generate Corpus file for Centipede with args: {args}')
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     max_time -= result.time_executed
 
@@ -422,11 +500,12 @@ class Engine(engine.Engine):
       raise TimeoutError('Minimization timed out.')
 
     # Step 2: Distill.
-    args = [
+    args = minimize_arguments.list() + [
         f'--workdir={full_corpus_workdir}',
         f'--binary={target_path}',
-        '--distill',
+        '--distill=true',
     ]
+    logs.info(f'Running Corpus Distillation with args: {args}')
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     max_time -= result.time_executed
 
@@ -438,17 +517,21 @@ class Engine(engine.Engine):
 
     # Step 3: Generate corpus files for output_dir.
     os.makedirs(output_dir, exist_ok=True)
-    minimized_corpus_workdir = self._create_temp_dir('minimized_corpus_workdir')
+    minimized_corpus_workdir = engine_common.create_temp_fuzzing_dir(
+        'minimized_corpus_workdir')
+    logs.info(f'Created a temporary minimized corpus '
+              f'workdir {minimized_corpus_workdir}')
     distilled_file = os.path.join(
         full_corpus_workdir,
         f'distilled-{os.path.basename(target_path)}.000000')
     corpus_file = os.path.join(minimized_corpus_workdir, 'corpus.000000')
     shutil.copyfile(distilled_file, corpus_file)
 
-    args = [
+    args = minimize_arguments.list() + [
         f'--workdir={minimized_corpus_workdir}',
         f'--corpus_to_files={output_dir}',
     ]
+    logs.info(f'Converting corpus to files with the following args: {args}')
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
 
     if result.timed_out or max_time < 0:
@@ -461,11 +544,16 @@ class Engine(engine.Engine):
     # Step 4: Copy reproducers from full_corpus_workdir.
     os.makedirs(reproducers_dir, exist_ok=True)
     crashes_dir = os.path.join(full_corpus_workdir, 'crashes')
-    for file in os.listdir(crashes_dir):
-      crasher_path = os.path.join(crashes_dir, file)
-      shutil.copy(crasher_path, reproducers_dir)
-    shutil.rmtree(full_corpus_workdir)
+
+    if os.path.exists(crashes_dir):
+      for file in os.listdir(crashes_dir):
+        crasher_path = os.path.join(crashes_dir, file)
+        shutil.copy(crasher_path, reproducers_dir)
+
     shutil.rmtree(minimized_corpus_workdir)
+    if not workdir:
+      # Only remove this directory if it was created in this method.
+      shutil.rmtree(full_corpus_workdir)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -507,7 +595,7 @@ class Engine(engine.Engine):
       TimeoutError: If the testcase minimization exceeds max_time.
     """
     runner = _get_runner(target_path)
-    workdir = self._create_temp_dir('workdir')
+    workdir = engine_common.create_temp_fuzzing_dir('workdir')
     args = [
         f'--binary={target_path}',
         f'--workdir={workdir}',

@@ -148,7 +148,7 @@ class Engine(engine.Engine):
     if (strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
         shell.get_directory_file_count(corpus_dir) > subset_size):
       # Copy |subset_size| testcases into 'subset' directory.
-      corpus_subset_dir = self._create_temp_corpus_dir('subset')
+      corpus_subset_dir = engine_common.create_temp_fuzzing_dir('subset')
       libfuzzer.copy_from_corpus(corpus_subset_dir, corpus_dir, subset_size)
       strategy_info.fuzzing_strategies.append(
           strategy.CORPUS_SUBSET_STRATEGY.name + '_' + str(subset_size))
@@ -187,12 +187,6 @@ class Engine(engine.Engine):
     _, path = tempfile.mkstemp(dir=reproducers_dir)
     return path
 
-  def _create_temp_corpus_dir(self, name):
-    """Create temporary corpus directory."""
-    new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
-    engine_common.recreate_directory(new_corpus_directory)
-    return new_corpus_directory
-
   def _create_temp_dir(self, name):
     """Create a temporary directory suitable for putting into the TMPDIR
     environment variable, which practically speaking sometimes needs to be
@@ -204,7 +198,7 @@ class Engine(engine.Engine):
 
   def _create_merge_corpus_dir(self):
     """Create merge corpus directory."""
-    return self._create_temp_corpus_dir('merge-corpus')
+    return engine_common.create_temp_fuzzing_dir('merge-corpus')
 
   def _merge_new_units(self, target_path, corpus_dir, new_corpus_dir,
                        fuzz_corpus_dirs, arguments, stat_overrides):
@@ -243,7 +237,7 @@ class Engine(engine.Engine):
           max_time=engine_common.get_merge_timeout(
               libfuzzer.DEFAULT_MERGE_TIMEOUT))
 
-      libfuzzer.move_mergeable_units(merge_corpus, corpus_dir)
+      engine_common.move_mergeable_units(merge_corpus, corpus_dir)
       new_corpus_len = shell.get_directory_file_count(corpus_dir)
       new_units_added = new_corpus_len - old_corpus_len
 
@@ -284,7 +278,7 @@ class Engine(engine.Engine):
 
     # Directory to place new units.
     if options.merge_back_new_testcases:
-      new_corpus_dir = self._create_temp_corpus_dir('new')
+      new_corpus_dir = engine_common.create_temp_fuzzing_dir('new')
       corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
     else:
       corpus_directories = options.fuzz_corpus_dirs
@@ -446,7 +440,8 @@ class Engine(engine.Engine):
 
     # The dir where merge control file is located must persist for both merge
     # steps. The second step re-uses the MCF produced during the first step.
-    merge_control_file_dir = self._create_temp_corpus_dir('mcf_tmp_dir')
+    merge_control_file_dir = engine_common.create_temp_fuzzing_dir(
+        'mcf_tmp_dir')
     self._merge_control_file = os.path.join(merge_control_file_dir, 'MCF')
 
     # Two step merge process to obtain accurate stats for the new corpus units.
@@ -572,7 +567,7 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
 
-    minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
+    minimize_tmp_dir = engine_common.create_temp_fuzzing_dir('minimize-workdir')
     result = runner.minimize_crash(
         input_path,
         output_path,
@@ -606,7 +601,7 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
 
-    cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
+    cleanse_tmp_dir = engine_common.create_temp_fuzzing_dir('cleanse-workdir')
     result = runner.cleanse_crash(
         input_path,
         output_path,
