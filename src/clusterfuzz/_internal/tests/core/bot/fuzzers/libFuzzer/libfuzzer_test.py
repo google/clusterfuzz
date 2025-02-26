@@ -132,10 +132,7 @@ def set_strategy_pool(strategies=None):
       strategy_pool.add_strategy(strategy_tuple)
   return strategy_pool
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 4f8de76c ([Centipede] Perform corpus minimization during a fuzzing session)
 class SelectGeneratorTest(unittest.TestCase):
   """Tests for _select_generator."""
   FUZZER_PATH = '/fake/fuzzer_path'
