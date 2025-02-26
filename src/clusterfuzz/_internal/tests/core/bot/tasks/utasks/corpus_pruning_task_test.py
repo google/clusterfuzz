@@ -291,8 +291,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     context = corpus_pruning_task.Context(uworker_msg_pb2.Input(), fuzz_target,
                                           [])
 
-    runner = corpus_pruning_task.Runner(self.build_dir, context)
-    flags = runner.get_libfuzzer_flags()
+    runner = corpus_pruning_task.LibFuzzerRunner(self.build_dir, context)
+    flags = runner.get_fuzzer_flags()
     expected_default_flags = [
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=5242880',
         '-detect_leaks=1', '-use_value_profile=1'
@@ -301,7 +301,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     runner.fuzzer_options = options.FuzzerOptions(
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
-    flags = runner.get_libfuzzer_flags()
+    flags = runner.get_fuzzer_flags()
     expected_custom_flags = [
         '-timeout=5', '-rss_limit_mb=31337', '-max_len=1337', '-detect_leaks=0',
         '-use_value_profile=1'

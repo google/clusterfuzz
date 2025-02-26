@@ -19,7 +19,6 @@ import json
 import os
 import random
 import shutil
-from typing import Dict
 from typing import List
 import zipfile
 
@@ -299,8 +298,8 @@ class Context:
             'Failed to unpack corpus backup from url %s.' % corpus_backup_url)
 
 
-class Runner:
-  """Runner for libFuzzer."""
+class BaseRunner:
+  """Base Runner"""
 
   def __init__(self, build_directory, context):
     self.build_directory = build_directory
@@ -310,12 +309,44 @@ class Runner:
         self.build_directory, self.context.fuzz_target.binary)
     if not self.target_path:
       raise CorpusPruningError(
-          'Failed to get fuzzer path for %s.' % self.context.fuzz_target.binary)
-
+          f'Failed to get fuzzer path for {self.context.fuzz_target.binary}')
     self.fuzzer_options = options.get_fuzz_target_options(self.target_path)
 
-  def get_libfuzzer_flags(self):
-    """Get default libFuzzer options."""
+  def get_fuzzer_flags(self):
+    return []
+
+  def process_sanitizer_options(self):
+    """Process sanitizer options overrides."""
+    if not self.fuzzer_options:
+      return
+
+    # Only need to look as ASan, as that's what we prune with.
+    overrides = self.fuzzer_options.get_asan_options()
+    if not overrides:
+      return
+
+    asan_options = environment.get_memory_tool_options('ASAN_OPTIONS')
+    if not asan_options:
+      return
+    asan_options.update(overrides)
+    environment.set_memory_tool_options('ASAN_OPTIONS', asan_options)
+
+  def reproduce(self, input_path, arguments, max_time):
+    return self.context.engine.reproduce(self.target_path, input_path,
+                                           arguments, max_time)
+
+  def minimize_corpus(self, arguments, input_dirs, output_dir,
+                      reproducers_dir, max_time):
+    return self.context.engine.minimize_corpus(self.target_path, arguments,
+                                               input_dirs, output_dir,
+                                               reproducers_dir, max_time)
+
+
+class LibFuzzerRunner(BaseRunner):
+  """Runner for libFuzzer."""
+
+  def get_fuzzer_flags(self):
+    """Get default libFuzzer options for pruning."""
     rss_limit = RSS_LIMIT
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     detect_leaks = 1
@@ -350,22 +381,6 @@ class Runner:
 
     return arguments.list()
 
-  def process_sanitizer_options(self):
-    """Process sanitizer options overrides."""
-    if not self.fuzzer_options:
-      return
-
-    # Only need to look as ASan, as that's what we prune with.
-    overrides = self.fuzzer_options.get_asan_options()
-    if not overrides:
-      return
-
-    asan_options = environment.get_memory_tool_options('ASAN_OPTIONS')
-    if not asan_options:
-      return
-    asan_options.update(overrides)
-    environment.set_memory_tool_options('ASAN_OPTIONS', asan_options)
-
   def reproduce(self, input_path, arguments, max_time):
     return self.context.engine.reproduce(self.target_path, input_path,
                                          arguments, max_time)
@@ -377,108 +392,31 @@ class Runner:
                                                reproducers_dir, max_time)
 
 
-class CorpusPruner:
-  """Class that handles corpus pruning."""
+class GenericRunner(BaseRunner):
+  """Runner implementation for Centipede fuzzing engine."""
+
+
+class CorpusPrunerBase:
+  """Base class for corpus pruning that is engine‐agnostic."""
 
   def __init__(self, runner):
     self.runner = runner
-    self.context = self.runner.context
-
-  def _run_single_unit(self, unit_path):
-    """Run a single unit, and return the result."""
-    arguments = self.runner.get_libfuzzer_flags()
-    return self.runner.reproduce(unit_path, arguments, SINGLE_UNIT_TIMEOUT)
-
-  def _quarantine_unit(self, unit_path, quarantine_corpus_path):
-    """Moves the given unit to the quarantine, and returns the path to the unit
-    in the quarantine."""
-    quarantined_unit_path = os.path.join(quarantine_corpus_path,
-                                         os.path.basename(unit_path))
-    shutil.move(unit_path, quarantined_unit_path)
-
-    return quarantined_unit_path
-
-  def process_bad_units(self, bad_units_path, quarantine_corpus_path
-                       ) -> Dict[str, uworker_msg_pb2.CrashInfo]:  # pylint: disable=no-member
-    """Process bad units found during merge."""
-    # TODO(ochang): A lot of this function is similar to parts of fuzz_task.
-    # Ideally fuzz_task can be refactored in a way that lets us share the common
-    # code.
-    crashes = {}
-
-    environment.reset_current_memory_tool_options(redzone_size=DEFAULT_REDZONE)
-    self.runner.process_sanitizer_options()
-
-    logs.info('Processing bad units.')
-    corpus_file_paths = _get_corpus_file_paths(bad_units_path)
-    num_bad_units = 0
-
-    # Run each corpus item individually.
-    for i, unit_path in enumerate(corpus_file_paths, 1):
-      if i % 100 == 0:
-        logs.info('Up to %d' % i)
-
-      unit_name = os.path.basename(unit_path)
-      if unit_name.startswith('timeout-') or unit_name.startswith('oom-'):
-        # Don't waste time re-running timeout or oom testcases.
-        self._quarantine_unit(unit_path, quarantine_corpus_path)
-        num_bad_units += 1
-        continue
-
-      try:
-        result = self._run_single_unit(unit_path)
-      except TimeoutError:
-        # Slow unit. Quarantine it.
-        self._quarantine_unit(unit_path, quarantine_corpus_path)
-        num_bad_units += 1
-        continue
-
-      if not crash_analyzer.is_memory_tool_crash(result.output):
-        # Didn't crash.
-        continue
-
-      # Get memory tool crash information.
-      state = stack_analyzer.get_crash_data(result.output, symbolize_flag=True)
-
-      # Crashed or caused a leak. Quarantine it.
-      unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
-      num_bad_units += 1
-
-      if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
-        continue
-
-      # Local de-duplication.
-      if state.crash_state not in crashes:
-        security_flag = crash_analyzer.is_security_issue(
-            state.crash_stacktrace, state.crash_type, state.crash_address)
-        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
-            crash_state=state.crash_state,
-            crash_type=state.crash_type,
-            crash_address=state.crash_address,
-            crash_stacktrace=state.crash_stacktrace,
-            unit_path=unit_path,
-            security_flag=security_flag)
-
-    logs.info(
-        f'Found {num_bad_units} bad units, {len(crashes)} unique crashes.')
-    return crashes
+    self.context = runner.context
 
   def run(self, initial_corpus_path, minimized_corpus_path, bad_units_path):
-    """Run corpus pruning. Output result to directory."""
     if not shell.get_directory_file_count(initial_corpus_path):
       # Empty corpus, nothing to do.
       return None
 
-    # Set memory tool options and fuzzer arguments.
+    # Unpack seed corpus if needed.
     engine_common.unpack_seed_corpus_if_needed(
         self.runner.target_path, initial_corpus_path, force_unpack=True)
 
     environment.reset_current_memory_tool_options(
         redzone_size=MIN_REDZONE, leaks=True)
     self.runner.process_sanitizer_options()
-    additional_args = self.runner.get_libfuzzer_flags()
 
-    # Execute fuzzer with arguments for corpus pruning.
+    additional_args = self.runner.get_fuzzer_flags()
     logs.info('Running merge...')
     try:
       result = self.runner.minimize_corpus(
@@ -493,14 +431,97 @@ class CorpusPruner:
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
-    # Sanity check that there are files in minimized corpus after merging.
     if not shell.get_directory_file_count(minimized_corpus_path):
       raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
                                symbolized_output)
 
     logs.info('Corpus merge finished successfully.', output=symbolized_output)
-
     return result.stats
+
+  def process_bad_units(self, bad_units_path, quarantine_corpus_path):
+    del bad_units_path
+    del quarantine_corpus_path
+    return {}
+
+
+class LibFuzzerPruner(CorpusPrunerBase):
+  """
+  LibFuzzerPruner is a specialized pruner for libFuzzer that handles
+  quarantining of problematic units and related special cases.
+  """
+
+  def _run_single_unit(self, unit_path):
+    arguments = self.runner.get_fuzzer_flags()  # Expect libFuzzer flags.
+    return self.runner.reproduce(unit_path, arguments, SINGLE_UNIT_TIMEOUT)
+
+  def _quarantine_unit(self, unit_path, quarantine_corpus_path):
+    quarantined_unit_path = os.path.join(quarantine_corpus_path,
+                                         os.path.basename(unit_path))
+    shutil.move(unit_path, quarantined_unit_path)
+    return quarantined_unit_path
+
+  def process_bad_units(self, bad_units_path, quarantine_corpus_path):
+    """
+    Process bad units by running each test case individually,
+    quarantining those that timeout, OOM, or crash due to memory sanitizer
+    errors.
+    """
+    crashes = {}
+
+    environment.reset_current_memory_tool_options(redzone_size=DEFAULT_REDZONE)
+    self.runner.process_sanitizer_options()
+
+    logs.info('Processing bad units.')
+    corpus_file_paths = _get_corpus_file_paths(bad_units_path)
+    num_bad_units = 0
+
+    for i, unit_path in enumerate(corpus_file_paths, 1):
+      if i % 100 == 0:
+        logs.info('Up to %d' % i)
+
+      unit_name = os.path.basename(unit_path)
+      if unit_name.startswith('timeout-') or unit_name.startswith('oom-'):
+        # Immediately quarantine timeouts/oom testcases.
+        self._quarantine_unit(unit_path, quarantine_corpus_path)
+        num_bad_units += 1
+        continue
+
+      try:
+        result = self._run_single_unit(unit_path)
+      except TimeoutError:
+        self._quarantine_unit(unit_path, quarantine_corpus_path)
+        num_bad_units += 1
+        continue
+
+      if not crash_analyzer.is_memory_tool_crash(result.output):
+        continue
+
+      state = stack_analyzer.get_crash_data(result.output, symbolize_flag=True)
+
+      # Quarantine the crashing unit.
+      unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
+      num_bad_units += 1
+
+      if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
+        continue
+
+      if state.crash_state not in crashes:
+        security_flag = crash_analyzer.is_security_issue(
+            state.crash_stacktrace, state.crash_type, state.crash_address)
+        crashes[state.crash_state] = uworker_msg_pb2.CrashInfo(  # pylint: disable=no-member
+            crash_state=state.crash_state,
+            crash_type=state.crash_type,
+            crash_address=state.crash_address,
+            crash_stacktrace=state.crash_stacktrace,
+            unit_path=unit_path,
+            security_flag=security_flag)
+    logs.info('Found %d bad units, %d unique crashes.' % (num_bad_units,
+                                                          len(crashes)))
+    return crashes
+
+
+class GenericPruner(CorpusPrunerBase):
+  """Generic pruner."""
 
 
 class CrossPollinator:
@@ -611,8 +632,8 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
 
   build_directory = environment.get_value('BUILD_DIR')
   start_time = datetime.datetime.utcnow()
-  runner = Runner(build_directory, context)
-  pruner = CorpusPruner(runner)
+  runner = LibFuzzerRunner(build_directory, context)
+  pruner = LibFuzzerPruner(runner)
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
   # Get initial corpus to process from GCS.
