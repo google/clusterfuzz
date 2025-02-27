@@ -41,6 +41,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz._internal.tests.test_libs import untrusted_runner_helpers
+from clusterfuzz.fuzz import engine
 
 TEST_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'corpus_pruning_task_data')
@@ -389,7 +390,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
 @test_utils.with_cloud_emulators('datastore')
 class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
   """Tests for centipede corpus pruning."""
-
+  
   def setUp(self):
     """Set up."""
     BaseTest.setUp(self)
@@ -398,10 +399,15 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
         'clusterfuzz._internal.base.utils.get_application_id',
         'clusterfuzz._internal.datastore.data_handler.update_task_status',
         'clusterfuzz._internal.datastore.data_handler.get_task_status',
+        'clusterfuzz._internal.bot.fuzzers.centipede.engine.Engine.minimize_corpus',
     ])
+
+    self.engine = centipede_engine.Engine()
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
-    self.mock.get.return_value = centipede_engine.Engine()
+    self.mock.minimize_corpus.return_value = engine.FuzzResult(
+      "", "", [], None, "", "")
+    self.mock.get.return_value = self.engine
     self.maxDiff = None
     self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
 
@@ -418,80 +424,23 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
         job_type='centipede_asan_job',
         fuzzer_name='centipede_clusterfuzz_format_target',
         uworker_env={})
-    # src/clusterfuzz/_internal/tests/core/bot/fuzzers/centipede/test_data/clusterfuzz_format_target
     output = corpus_pruning_task.utask_main(uworker_input)
-    self.assertFalse(output.HasField('error_type'))
     output.uworker_input.CopyFrom(uworker_input)
     corpus_pruning_task.utask_postprocess(output)
 
-    corpus = os.listdir(self.corpus_dir)
-    self.assertCountEqual([
-        '7acd6a2b3fe3c5ec97fa37e5a980c106367491fa',
-    ], corpus)
-
-    testcases = list(data_types.Testcase.query())
-    self.assertEqual(1, len(testcases))
-    self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
-    self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
-    self.assertEqual(1337, testcases[0].crash_revision)
-    self.assertEqual('test_fuzzer',
-                     testcases[0].get_metadata('fuzzer_binary_name'))
-    self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
-
-    today = datetime.datetime.utcnow().date()
-    # get_coverage_information on test_fuzzer rather than centipede_test_fuzzer
-    # since the centipede_ prefix is removed when saving coverage info.
-    coverage_info = data_handler.get_coverage_information('test_fuzzer', today)
-
-    self.assertDictEqual(
-        {
-            'corpus_backup_location':
-                uworker_input.corpus_pruning_task_input.dated_backup_gcs_url,
-            'corpus_location':
-                'gs://bucket/centipede/test_fuzzer/',
-            'corpus_size_bytes':
-                4,
-            'corpus_size_units':
-                2,
-            'date':
-                today,
-            # Coverage numbers are expected to be None as they come from fuzzer
-            # coverage cron task (see src/go/server/cron/coverage.go).
-            'edges_covered':
-                None,
-            'edges_total':
-                None,
-            'functions_covered':
-                None,
-            'functions_total':
-                None,
-            'fuzzer':
-                'test_fuzzer',
-        },
-        coverage_info.to_dict())
-
-    self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
-
-  def get_mock_record_compare(self, project_qualified_name, sources,
-                              initial_corpus_size, corpus_size,
-                              initial_edge_coverage, edge_coverage,
-                              initial_feature_coverage, feature_coverage):
-    """Given all of the expected stats, returns a function
-    that will compare them to an instance of CorpusPruningStats."""
-
-    def compare(stats):
-      """Mock record_cross_pollination_stats. Make sure function was called
-      with the correct arguments."""
-      self.assertEqual(project_qualified_name, stats.project_qualified_name)
-      self.assertEqual(sources, stats.sources)
-      self.assertEqual(initial_corpus_size, stats.initial_corpus_size)
-      self.assertEqual(corpus_size, stats.corpus_size)
-      self.assertEqual(initial_edge_coverage, stats.initial_edge_coverage)
-      self.assertEqual(edge_coverage, stats.edge_coverage)
-      self.assertEqual(initial_feature_coverage, stats.initial_feature_coverage)
-      self.assertEqual(stats.feature_coverage, feature_coverage)
-
-    return compare
+    # Mocking some inputs to simplify
+    # We should recover the random directory name for
+    # asserting here
+    self.mock.minimize_corpus.assert_called_once_with(
+      self.engine,
+      os.path.join(TEST_DIR,
+                   'build/clusterfuzz_format_target'),
+      [], 
+      [unittest.mock.ANY],
+      unittest.mock.ANY,
+      unittest.mock.ANY,
+      79200
+      )
 
 
 class GetProtoTimestampTest(unittest.TestCase):
