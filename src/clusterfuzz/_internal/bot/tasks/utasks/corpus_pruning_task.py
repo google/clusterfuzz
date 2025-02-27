@@ -617,6 +617,18 @@ def _record_cross_pollination_stats(output):
       dataset_id='main', table_id='cross_pollination_statistics')
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
+def _get_pruner_and_runner(context):
+  build_directory = environment.get_value('BUILD_DIR')
+  match context.fuzz_target.engine:
+    case 'libFuzzer':
+      runner = LibFuzzerRunner(build_directory, context)
+      pruner = LibFuzzerPruner(runner)
+    case 'centipede':
+      runner = CentipedeRunner(build_directory, context)
+      pruner = CentipedePruner(runner)
+    case _:
+      raise Exception('Corpus pruner task does not support the given engine.')
+  return pruner, runner
 
 def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
@@ -632,18 +644,8 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
       revision=revision, fuzz_target=context.fuzz_target.binary):
     raise CorpusPruningError('Failed to setup build.')
 
-  build_directory = environment.get_value('BUILD_DIR')
   start_time = datetime.datetime.utcnow()
-  match context.fuzz_target.engine:
-    case 'libFuzzer':
-      runner = LibFuzzerRunner(build_directory, context)
-      pruner = LibFuzzerPruner(runner)
-    case 'centipede':
-      runner = CentipedeRunner(build_directory, context)
-      pruner = CentipedePruner(runner)
-    case _:
-      raise Exception('Corpus pruner task does not support the given engine.')
-
+  pruner, runner = _get_pruner_and_runner(context)
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
   logs.info('Getting the initial corpus to process from GCS.')
@@ -1059,7 +1061,6 @@ def utask_main(uworker_input):
     logs.error(f'Corpus pruning failed: {e}')
     uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.CORPUS_PRUNING_ERROR)  # pylint: disable=no-member
-    raise e
   finally:
     context.cleanup()
 
