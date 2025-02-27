@@ -39,6 +39,10 @@ BINARY_FLAGNAME = 'binary'
 EXTRA_BINARIES_FLAGNAME = 'extra_binaries'
 EXIT_ON_CRASH_FLAGNAME = 'exit_on_crash'
 
+MAX_LEN_FLAGNAME = 'max_len'
+NUM_RUNS_FLAGNAME = 'num_runs'
+BATCH_SIZE_FLAGNAME = 'batch_size'
+
 NUM_RUNS_PER_MINIMIZATION = 100000
 
 

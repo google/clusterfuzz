@@ -21,7 +21,6 @@ import shutil
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
-from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
@@ -219,12 +218,6 @@ class Engine(engine.Engine):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def _create_temp_corpus_dir(self, name):
-    """Creates temporary corpus directory."""
-    new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
-    engine_common.recreate_directory(new_corpus_directory)
-    return new_corpus_directory
-
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
@@ -244,7 +237,8 @@ class Engine(engine.Engine):
     del reproducers_dir
 
     runner = _get_runner()
-    combined_corpus_dir = self._create_temp_corpus_dir('minimize-workdir')
+    combined_corpus_dir = engine_common.create_temp_fuzzing_dir(
+        'minimize-workdir')
 
     # Copy all of the seeds into corpus.
     idx = 0
