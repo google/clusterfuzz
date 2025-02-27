@@ -394,7 +394,7 @@ class LibFuzzerRunner(BaseRunner):
                                                reproducers_dir, max_time)
 
 
-class GenericRunner(BaseRunner):
+class CentipedeRunner(BaseRunner):
   """Runner implementation for Centipede fuzzing engine."""
 
 
@@ -522,8 +522,8 @@ class LibFuzzerPruner(CorpusPrunerBase):
     return crashes
 
 
-class GenericPruner(CorpusPrunerBase):
-  """Generic pruner."""
+class CentipedePruner(CorpusPrunerBase):
+  """Centipede pruner."""
 
 
 class CrossPollinator:
@@ -634,8 +634,16 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
 
   build_directory = environment.get_value('BUILD_DIR')
   start_time = datetime.datetime.utcnow()
-  runner = LibFuzzerRunner(build_directory, context)
-  pruner = LibFuzzerPruner(runner)
+  match context.fuzz_target.engine:
+    case 'libFuzzer':
+      runner = LibFuzzerRunner(build_directory, context)
+      pruner = LibFuzzerPruner(runner)
+    case 'centipede':
+      runner = CentipedeRunner(build_directory, context)
+      pruner = CentipedePruner(runner)
+    case _:
+      raise Exception('Corpus pruner task does not support the given engine.')
+
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
   logs.info('Getting the initial corpus to process from GCS.')
@@ -1051,6 +1059,7 @@ def utask_main(uworker_input):
     logs.error(f'Corpus pruning failed: {e}')
     uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.CORPUS_PRUNING_ERROR)  # pylint: disable=no-member
+    raise e
   finally:
     context.cleanup()
 
