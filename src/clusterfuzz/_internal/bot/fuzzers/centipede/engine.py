@@ -216,9 +216,7 @@ class Engine(engine.Engine):
     # Directory to place new units. While fuzzing, the new corpus
     # elements are written to the first dir in the list of corpus directories.
     new_corpus_dir = engine_common.create_temp_fuzzing_dir('new')
-    corpus_dirs = [str(new_corpus_dir), str(corpus_dir)]
-    arguments[constants.CORPUS_DIR_FLAGNAME] = ','.join(
-        dir for dir in corpus_dirs)
+    arguments[constants.CORPUS_DIR_FLAGNAME] = f'{new_corpus_dir},{corpus_dir}'
 
     target_binaries = self._get_binary_paths(target_path)
     if target_binaries.unsanitized is None:
@@ -312,7 +310,6 @@ class Engine(engine.Engine):
 
     workdir = options.workdir
 
-    corpus_minimization_failed = False
     try:
       time_for_minimize = timeout - fuzz_result.time_executed
 
@@ -329,11 +326,10 @@ class Engine(engine.Engine):
           # Use the same workdir that was used for fuzzing.
           # This allows us to skip rerunning the fuzzing inputs.
           workdir=workdir)
-    except Exception as e:
-      corpus_minimization_failed = True
-      logs.error(f'corpus minimization failed: {e}')
-
-    if corpus_minimization_failed:
+    except:
+      # TODO(alhijazi): Convert to a warning if this becomes a problem
+      # caused by user code rather than by ClusterFuzz or Centipede.
+      logs.error('Corpus minimization failed.')
       # If we fail to minimize, fall back to moving the new units
       # from the new corpus_dir to the main corpus_dir.
       engine_common.move_mergeable_units(options.new_corpus_dir,
@@ -435,7 +431,7 @@ class Engine(engine.Engine):
     for argument in [
         constants.FORK_SERVER_FLAGNAME,
         constants.MAX_LEN_FLAGNAME,
-        constants.RUNS_FLAGNAME,
+        constants.NUM_RUNS_FLAGNAME,
         constants.EXIT_ON_CRASH_FLAGNAME,
         constants.BATCH_SIZE_FLAGNAME,
     ]:

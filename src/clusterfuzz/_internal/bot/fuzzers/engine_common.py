@@ -72,6 +72,8 @@ RADAMSA_MUTATIONS = 2000
 # Maximum number of seconds to run radamsa for.
 RADAMSA_TIMEOUT = 3
 
+HEXDIGITS_SET = set(string.hexdigits)
+
 
 class Generator:
   """Generators we can use."""
@@ -664,8 +666,7 @@ def is_sha1_hash(possible_hash):
   if len(possible_hash) != 40:
     return False
 
-  hexdigits_set = set(string.hexdigits)
-  return all(char in hexdigits_set for char in possible_hash)
+  return all(char in HEXDIGITS_SET for char in possible_hash)
 
 
 def move_mergeable_units(merge_directory, corpus_directory):
