@@ -1014,6 +1014,46 @@ class UtaskMainTest(unittest.TestCase):
     self.assertEqual(output.regression_task_output.regression_range_start, 50)
     self.assertEqual(output.regression_task_output.regression_range_end, 100)
 
+  def test_timeout_bisect_no_progress(self):
+    """Verifies that bisection without progress will terminate."""
+    self.mock.get_revisions_list.return_value = list(range(0, 102, 2))
+    self.deadline = 5.
+
+    def repros(revision):
+      self.mock_time += 1.
+
+      if revision < 68:
+        # Let every revision except the max revision have bad build errors.
+        return False, uworker_msg_pb2.Output(
+            error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)
+      return True, None
+
+    self.reproduces_in_revision = repros
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 100
+
+    # Pick up an unfinished task.
+    testcase.set_metadata('last_regression_max', 68)
+    testcase.set_metadata('last_regression_min', 36)
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)
+
+    # The task made no progress.
+    self.assertEqual(output.regression_task_output.last_regression_max, 68)
+    self.assertEqual(output.regression_task_output.last_regression_min, 36)
+
   def test_inconsistent_state_max_none_min_not_none(self):
     """Verifies that when last_regression_max is None and last_regression_min
     is not None, we ignore the latter and restart from scratch."""
