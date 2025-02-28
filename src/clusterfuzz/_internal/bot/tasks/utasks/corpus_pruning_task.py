@@ -406,6 +406,7 @@ class CorpusPrunerBase:
     self.context = runner.context
 
   def run(self, initial_corpus_path, minimized_corpus_path, bad_units_path):
+    """Running generic corpus prunning"""
     if not shell.get_directory_file_count(initial_corpus_path):
       # Empty corpus, nothing to do.
       return None
@@ -618,6 +619,8 @@ def _record_cross_pollination_stats(output):
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 def _get_pruner_and_runner(context):
+  """Get pruner and runner object acording with the FuzzTarget into the context
+  """
   build_directory = environment.get_value('BUILD_DIR')
   match context.fuzz_target.engine.lower():
     case 'libfuzzer':
@@ -627,7 +630,7 @@ def _get_pruner_and_runner(context):
       runner = CentipedeRunner(build_directory, context)
       pruner = CentipedePruner(runner)
     case _:
-      raise Exception('Corpus pruner task does not support the given engine.')
+      raise CorpusPruningError('Corpus pruner task does not support the given engine.')
   return pruner, runner
 
 def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
