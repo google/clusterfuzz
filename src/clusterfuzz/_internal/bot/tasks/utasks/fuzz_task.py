@@ -1795,13 +1795,6 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)  # pylint: disable=no-member
 
-    # Centipede requires separate binaries for sanitized targets.
-    if environment.is_centipede_fuzzer_job():
-      sanitized_target_bucket_path = environment.get_value(
-          'SANITIZED_TARGET_BUILD_BUCKET_PATH')
-      if sanitized_target_bucket_path:
-        logs.error('Failed to set up sanitized_target_build.')
-
     # Check if we have a bad build, i.e. one that crashes on startup.
     # If yes, bail out.
     logs.info('Checking for bad build.')

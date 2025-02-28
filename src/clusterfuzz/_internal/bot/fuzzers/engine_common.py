@@ -21,6 +21,7 @@ import random
 import re
 import shlex
 import shutil
+import string
 import sys
 import time
 
@@ -70,6 +71,8 @@ RADAMSA_MUTATIONS = 2000
 
 # Maximum number of seconds to run radamsa for.
 RADAMSA_TIMEOUT = 3
+
+HEXDIGITS_SET = set(string.hexdigits)
 
 
 class Generator:
@@ -656,3 +659,33 @@ def get_log_header(command, time_executed):
   """Get the log header."""
   quoted_command = get_command_quoted(command)
   return f'Command: {quoted_command}\nTime ran: {time_executed}\n'
+
+
+def is_sha1_hash(possible_hash):
+  """Returns True if |possible_hash| looks like a valid sha1 hash."""
+  if len(possible_hash) != 40:
+    return False
+
+  return all(char in HEXDIGITS_SET for char in possible_hash)
+
+
+def move_mergeable_units(merge_directory, corpus_directory):
+  """Move new units in |merge_directory| into |corpus_directory|."""
+  initial_units = {
+      os.path.basename(filename)
+      for filename in shell.get_files_list(corpus_directory)
+  }
+
+  for unit_path in shell.get_files_list(merge_directory):
+    unit_name = os.path.basename(unit_path)
+    if unit_name in initial_units and is_sha1_hash(unit_name):
+      continue
+    dest_path = os.path.join(corpus_directory, unit_name)
+    shell.move(unit_path, dest_path)
+
+
+def create_temp_fuzzing_dir(name):
+  """Create a temporary directory for fuzzing."""
+  new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
+  recreate_directory(new_corpus_directory)
+  return new_corpus_directory
