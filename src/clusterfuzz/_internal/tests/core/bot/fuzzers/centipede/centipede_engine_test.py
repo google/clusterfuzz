@@ -402,6 +402,7 @@ class IntegrationTest(unittest.TestCase):
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
       crash_content = crasher_file.read()
+      crasher_file.close()
     self.assertEqual(crash_content, '?f???u???z?')
 
   def test_minimize_testcase(self):
