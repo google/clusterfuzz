@@ -402,8 +402,11 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
         'clusterfuzz._internal.datastore.data_handler.update_task_status',
         'clusterfuzz._internal.datastore.data_handler.get_task_status',
         'clusterfuzz._internal.bot.fuzzers.centipede.engine.Engine.minimize_corpus',
+        'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.Context._create_temp_corpus_directory',
     ])
 
+    self.default_path = '/tmp/arbitrary/path'
+    self.mock._create_temp_corpus_directory.return_value = self.default_path
     self.engine = centipede_engine.Engine()
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
@@ -437,7 +440,7 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
     # asserting here
     self.mock.minimize_corpus.assert_called_once_with(
         self.engine, os.path.join(TEST_DIR, 'build/clusterfuzz_format_target'),
-        [], [unittest.mock.ANY], unittest.mock.ANY, unittest.mock.ANY, 79200)
+        [], [self.default_path], self.default_path, self.default_path, 79200)
 
 
 class GetProtoTimestampTest(unittest.TestCase):
