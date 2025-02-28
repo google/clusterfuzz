@@ -552,7 +552,7 @@ class Engine(engine.Engine):
       shutil.rmtree(full_corpus_workdir)
 
     return engine.FuzzResult(result.output, result.command, [], None,
-                                  result.time_executed, result.timed_out)
+                             result.time_executed, result.timed_out)
 
   def _get_smallest_crasher(self, workdir_path):
     """Returns the path to the smallest crash in Centipede's |workdir_path|."""
