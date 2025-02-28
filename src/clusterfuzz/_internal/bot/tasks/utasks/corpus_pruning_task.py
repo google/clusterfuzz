@@ -517,8 +517,8 @@ class LibFuzzerPruner(CorpusPrunerBase):
             crash_stacktrace=state.crash_stacktrace,
             unit_path=unit_path,
             security_flag=security_flag)
-    logs.info('Found %d bad units, %d unique crashes.' % (num_bad_units,
-                                                          len(crashes)))
+    logs.info(
+        f'Found {num_bad_units} bad units, {len(crashes)} unique crashes.')
     return crashes
 
 
@@ -619,8 +619,8 @@ def _record_cross_pollination_stats(output):
 
 def _get_pruner_and_runner(context):
   build_directory = environment.get_value('BUILD_DIR')
-  match context.fuzz_target.engine:
-    case 'libFuzzer':
+  match context.fuzz_target.engine.lower():
+    case 'libfuzzer':
       runner = LibFuzzerRunner(build_directory, context)
       pruner = LibFuzzerPruner(runner)
     case 'centipede':
