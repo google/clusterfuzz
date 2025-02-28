@@ -23,9 +23,10 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import options
+from clusterfuzz._internal.bot.fuzzers.centipede import \
+    engine as centipede_engine
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
-from clusterfuzz._internal.bot.fuzzers.centipede import engine as centipede_engine
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
@@ -386,11 +387,12 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
     self.assertCountEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'],
                           quarantine)
 
+
 @test_utils.supported_platforms('LINUX')
 @test_utils.with_cloud_emulators('datastore')
 class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
   """Tests for centipede corpus pruning."""
-  
+
   def setUp(self):
     """Set up."""
     BaseTest.setUp(self)
@@ -406,13 +408,15 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
     self.mock.minimize_corpus.return_value = engine.FuzzResult(
-      "", "", [], None, "", "")
+        "", "", [], None, "", "")
     self.mock.get.return_value = self.engine
     self.maxDiff = None
     self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
 
     data_types.FuzzTarget(
-        engine='centipede', binary='clusterfuzz_format_target', project='test-project').put()
+        engine='centipede',
+        binary='clusterfuzz_format_target',
+        project='test-project').put()
     data_types.FuzzTargetJob(
         fuzz_target_name='centipede_clusterfuzz_format_target',
         engine='centipede',
@@ -432,15 +436,8 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
     # We should recover the random directory name for
     # asserting here
     self.mock.minimize_corpus.assert_called_once_with(
-      self.engine,
-      os.path.join(TEST_DIR,
-                   'build/clusterfuzz_format_target'),
-      [], 
-      [unittest.mock.ANY],
-      unittest.mock.ANY,
-      unittest.mock.ANY,
-      79200
-      )
+        self.engine, os.path.join(TEST_DIR, 'build/clusterfuzz_format_target'),
+        [], [unittest.mock.ANY], unittest.mock.ANY, unittest.mock.ANY, 79200)
 
 
 class GetProtoTimestampTest(unittest.TestCase):
