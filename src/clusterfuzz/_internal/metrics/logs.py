@@ -84,23 +84,15 @@ def _file_logging_enabled():
       'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
 
 
-def _fluentd_logging_enabled():
-  """Return bool True where fluentd logging is enabled.
-  This is enabled by default.
-  This is disabled for local development and if we are running in app engine or
-    kubernetes as these have their dedicated loggers, see configure_appengine()
-    and configure_k8s()."""
-  return bool(os.getenv('LOG_TO_FLUENTD', 'True')) and not _is_local(
-  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
-
-
 def _cloud_logging_enabled():
   """Return bool True where Google Cloud Logging is enabled.
+  This is enabled by default.
   This is disabled for local development and if we are running in a app engine
     or kubernetes as these have their dedicated loggers, see
     configure_appengine() and configure_k8s()."""
-  return bool(os.getenv('LOG_TO_GCP')) and not _is_local(
-  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  return (bool(os.getenv('LOG_TO_GCP', 'True')) and
+          not os.getenv("PY_UNITTESTS") and not _is_local() and
+          not _is_running_on_app_engine() and not _is_running_on_k8s())
 
 
 def suppress_unwanted_warnings():
@@ -184,53 +176,57 @@ def truncate(msg, limit):
   ])
 
 
-def format_record(record: logging.LogRecord) -> str:
-  """Format LogEntry into JSON string."""
-  entry = {
-      'message':
-          truncate(record.getMessage(), STACKDRIVER_LOG_MESSAGE_LIMIT),
-      'created': (
-          datetime.datetime.utcfromtimestamp(record.created).isoformat() + 'Z'),
-      'severity':
-          record.levelname,
-      'bot_name':
-          os.getenv('BOT_NAME'),
-      'task_payload':
-          os.getenv('TASK_PAYLOAD'),
-      'name':
-          record.name,
-      'pid':
-          os.getpid(),
-      'task_id':
-          os.getenv('CF_TASK_ID', 'null'),
-  }
+class JsonFormatter(logging.Formatter):
+  """Formats log records as JSON."""
 
-  initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
-  if initial_payload:
-    entry['actual_task_payload'] = entry['task_payload']
-    entry['task_payload'] = initial_payload
+  def format(self, record: logging.LogRecord) -> str:
+    """Format LogEntry into JSON string."""
+    entry = {
+        'message':
+            truncate(record.getMessage(), STACKDRIVER_LOG_MESSAGE_LIMIT),
+        'created': (
+            datetime.datetime.utcfromtimestamp(record.created).isoformat() + 'Z'
+        ),
+        'severity':
+            record.levelname,
+        'bot_name':
+            os.getenv('BOT_NAME'),
+        'task_payload':
+            os.getenv('TASK_PAYLOAD'),
+        'name':
+            record.name,
+        'pid':
+            os.getpid(),
+        'task_id':
+            os.getenv('CF_TASK_ID', 'null'),
+    }
 
-  entry['location'] = getattr(record, 'location', {'error': True})
-  entry['extras'] = getattr(record, 'extras', {})
-  update_entry_with_exc(entry, record.exc_info)
+    initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
+    if initial_payload:
+      entry['actual_task_payload'] = entry['task_payload']
+      entry['task_payload'] = initial_payload
 
-  if not entry['extras']:
-    del entry['extras']
+    entry['location'] = getattr(record, 'location', {'error': True})
+    entry['extras'] = getattr(record, 'extras', {})
+    update_entry_with_exc(entry, record.exc_info)
 
-  worker_bot_name = os.environ.get('WORKER_BOT_NAME')
-  if worker_bot_name:
-    entry['worker_bot_name'] = worker_bot_name
+    if not entry['extras']:
+      del entry['extras']
 
-  fuzz_target = os.getenv('FUZZ_TARGET')
-  if fuzz_target:
-    entry['fuzz_target'] = fuzz_target
+    worker_bot_name = os.environ.get('WORKER_BOT_NAME')
+    if worker_bot_name:
+      entry['worker_bot_name'] = worker_bot_name
 
-  # Log bot shutdown cases as WARNINGs since this is expected for preemptibles.
-  if (entry['severity'] in ['ERROR', 'CRITICAL'] and
-      'IOError: [Errno 4] Interrupted function call' in entry['message']):
-    entry['severity'] = 'WARNING'
+    fuzz_target = os.getenv('FUZZ_TARGET')
+    if fuzz_target:
+      entry['fuzz_target'] = fuzz_target
 
-  return json.dumps(entry, default=_handle_unserializable)
+    # Log bot shutdown cases as WARNINGs (this is expected for preemptibles).
+    if (entry['severity'] in ['ERROR', 'CRITICAL'] and
+        'IOError: [Errno 4] Interrupted function call' in entry['message']):
+      entry['severity'] = 'WARNING'
+
+    return json.dumps(entry, default=_handle_unserializable)
 
 
 def _handle_unserializable(unserializable: Any) -> str:
@@ -269,16 +265,6 @@ def update_entry_with_exc(entry, exc_info):
             'functionName': location.get('method', '')
         }
     }
-
-
-class JsonSocketHandler(logging.handlers.SocketHandler):
-  """Format log into JSON string before sending it to fluentd. We need this
-    because SocketHandler doesn't respect the formatter attribute."""
-
-  def makePickle(self, record: logging.LogRecord):
-    """Format LogEntry into JSON string."""
-    # \n is the recognized delimiter by fluentd's in_tcp. Don't remove.
-    return (format_record(record) + '\n').encode('utf-8')
 
 
 def uncaught_exception_handler(exception_type, exception_value,
@@ -358,15 +344,6 @@ def configure_k8s():
   logging.getLogger().setLevel(logging.INFO)
 
 
-def configure_fluentd_logging():
-  fluentd_handler = JsonSocketHandler(
-      host='127.0.0.1',
-      port=5170,
-  )
-  fluentd_handler.setLevel(logging.INFO)
-  logging.getLogger().addHandler(fluentd_handler)
-
-
 def configure_cloud_logging():
   """ Configure Google cloud logging, for bots not running on appengine nor k8s.
   """
@@ -412,6 +389,8 @@ def configure_cloud_logging():
 
   handler.addFilter(cloud_label_filter)
   handler.setLevel(logging.INFO)
+  formatter = JsonFormatter()
+  handler.setFormatter(formatter)
 
   logging.getLogger().addHandler(handler)
 
@@ -434,8 +413,6 @@ def configure(name, extras=None):
     logging.basicConfig(level=logging.INFO)
   if _file_logging_enabled():
     config.dictConfig(get_logging_config_dict(name))
-  if _fluentd_logging_enabled():
-    configure_fluentd_logging()
   if _cloud_logging_enabled():
     configure_cloud_logging()
   logger = logging.getLogger(name)
