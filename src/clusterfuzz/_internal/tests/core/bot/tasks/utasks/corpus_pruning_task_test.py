@@ -407,7 +407,7 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
     self.mock.minimize_corpus.return_value = engine.FuzzResult(
-        "", "", [], None, "", "")
+        '', '', [], None, '', '')
     self.mock.get.return_value = self.engine
     self.maxDiff = None
     self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
