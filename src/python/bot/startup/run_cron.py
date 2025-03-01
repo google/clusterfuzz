@@ -49,14 +49,18 @@ def main():
   if os.path.exists(config_modules_path):
     sys.path.append(config_modules_path)
 
+  task = sys.argv[1]
+  if task == 'external_testcase_reader':
+    appengine_path = os.path.join(root_directory, 'src', 'appengine')
+    if os.path.exists(appengine_path):
+      sys.path.append(appengine_path)
+
   try:
     # Run any module initialization code.
     import module_init
     module_init.init()
   except ImportError:
     pass
-
-  task = sys.argv[1]
 
   task_module_name = f'clusterfuzz._internal.cron.{task}'
   with monitor.wrap_with_monitoring(), ndb_init.context():
