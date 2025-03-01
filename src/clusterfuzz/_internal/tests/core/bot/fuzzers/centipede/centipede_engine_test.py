@@ -146,11 +146,10 @@ class IntegrationTest(unittest.TestCase):
     """Tests reproducing an ASAN heap-use-after-free crash when no unsanitized
     target binary was provided."""
     testcase_path = setup_testcase('uaf', self.test_paths)
-    crash_info = self._test_reproduce(
-        constants.ASAN_REGEX,
-        testcase_path,
-        'clusterfuzz_format_target_sanitized',
-        sanitized_target_dir=self.test_paths.data)
+    crash_info = self._test_reproduce(constants.ASAN_REGEX,
+                                      testcase_path,
+                                      'clusterfuzz_format_target_sanitized',
+                                      sanitized_target_dir=self.test_paths.data)
 
     # Check the crash reason was parsed correctly.
     self.assertEqual(crash_info.group(1), 'AddressSanitizer')
@@ -293,10 +292,9 @@ class IntegrationTest(unittest.TestCase):
     """Tests fuzzing (no crash) when no unsanitized target binary was provided.
     """
     dictionary = self.test_paths.data / 'test_fuzzer_sanitized.dict'
-    self._run_centipede(
-        target_name='test_fuzzer_sanitized',
-        dictionary=dictionary,
-        sanitized_target_dir=self.test_paths.data)
+    self._run_centipede(target_name='test_fuzzer_sanitized',
+                        dictionary=dictionary,
+                        sanitized_target_dir=self.test_paths.data)
     self.assertTrue(self.test_paths.corpus.iterdir())
 
   def _test_crash_log_regex(self,
@@ -310,12 +308,11 @@ class IntegrationTest(unittest.TestCase):
     """Fuzzes the target and check if regex matches Centipede's crash log."""
     if centipede_bin is None:
       centipede_bin = self.test_paths.centipede
-    results = self._run_centipede(
-        target_name=target_name,
-        timeout_per_input=timeout_per_input,
-        rss_limit=rss_limit,
-        centipede_bin=centipede_bin,
-        sanitized_target_dir=sanitized_target_dir)
+    results = self._run_centipede(target_name=target_name,
+                                  timeout_per_input=timeout_per_input,
+                                  rss_limit=rss_limit,
+                                  centipede_bin=centipede_bin,
+                                  sanitized_target_dir=sanitized_target_dir)
 
     # Check there is one and only one expected crash.
     self.assertEqual(1, len(results.crashes))
@@ -372,16 +369,16 @@ class IntegrationTest(unittest.TestCase):
   def test_crash_oom(self):
     """Tests fuzzing that results in a out-of-memory crash."""
     setup_testcase('oom', self.test_paths)
-    self._test_crash_log_regex(
-        constants.OUT_OF_MEMORY_REGEX, 'oom', rss_limit=_RSS_LIMIT_TEST)
+    self._test_crash_log_regex(constants.OUT_OF_MEMORY_REGEX,
+                               'oom',
+                               rss_limit=_RSS_LIMIT_TEST)
 
   def test_crash_timeout(self):
     """Tests fuzzing that results in a timeout."""
     setup_testcase('slo', self.test_paths)
-    self._test_crash_log_regex(
-        constants.CENTIPEDE_TIMEOUT_REGEX,
-        'slo',
-        timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
+    self._test_crash_log_regex(constants.CENTIPEDE_TIMEOUT_REGEX,
+                               'slo',
+                               timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
   @unittest.skip('This test is failing, blocking deploy.')
   def test_minimize_corpus(self):
@@ -441,9 +438,8 @@ class UnshareIntegrationTest(IntegrationTest):
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
-    unshare_path = (
-        pathlib.Path(environment.get_value('ROOT_DIR')) / 'resources' /
-        'platform' / 'linux' / 'unshare')
+    unshare_path = (pathlib.Path(environment.get_value('ROOT_DIR')) /
+                    'resources' / 'platform' / 'linux' / 'unshare')
     super().compare_arguments([str(unshare_path), '-c', '-n'] + expected,
                               actual)
 
