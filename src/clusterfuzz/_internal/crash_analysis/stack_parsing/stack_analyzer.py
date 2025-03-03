@@ -93,8 +93,9 @@ def get_crash_data(crash_data,
   fuzz_target = fuzz_target or environment.get_value('FUZZ_TARGET')
   redzone_size = environment.get_value('REDZONE')
   if detect_ooms_and_hangs is None:
+    report_value = environment.get_value('REPORT_OOMS_AND_HANGS')
     detect_ooms_and_hangs = (
-        environment.get_value('REPORT_OOMS_AND_HANGS') and
+        report_value == 'FORCE' or report_value and
         (not redzone_size or
          redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
 
