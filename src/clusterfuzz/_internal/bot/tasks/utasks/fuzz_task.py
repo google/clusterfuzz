@@ -16,6 +16,7 @@
 import collections
 import datetime
 import itertools
+import json
 import os
 import random
 import re
@@ -1153,6 +1154,10 @@ def process_crashes(crashes: List[Crash], context: Context,
       logs.info('Unable to store testcase in blobstore: '
                 f'{group.crashes[0].crash_state}')
       continue
+
+    if 'issue_metadata' in context.fuzzer_metadata:
+      context.fuzzer_metadata['issue_metadata'] = json.dumps(
+          context.fuzzer_metadata['issue_metadata'])
 
     group_proto = uworker_msg_pb2.FuzzTaskCrashGroup(
         context=uworker_msg_pb2.FuzzContext(
