@@ -135,11 +135,10 @@ def task_loop():
         schedule_utask_mains()
         continue
 
-      queue = None
       if environment.is_tworker():
         task = tasks.tworker_get_task()
       else:
-        task, queue = tasks.get_task()
+        task = tasks.get_task()
 
       if not task:
         continue
@@ -147,7 +146,7 @@ def task_loop():
       with _Monitor(task):
         with task.lease():
           # Execute the command and delete the task.
-          commands.process_command(task, queue)
+          commands.process_command(task)
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0

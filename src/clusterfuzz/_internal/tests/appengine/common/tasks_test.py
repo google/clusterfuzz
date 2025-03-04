@@ -81,12 +81,11 @@ class GetTaskTest(unittest.TestCase):
         'test', 'high', 'job', queue='high-end-jobs-linux', wait_time=0)
     tasks.add_task('test', 'normal', 'job', queue='jobs-linux', wait_time=0)
 
-    task, queue = tasks.get_task()
+    task = tasks.get_task()
     self.assertEqual('test', task.command)
     self.assertEqual('high', task.argument)
     self.assertEqual('job', task.job)
     self.assertEqual('test high job', task.payload())
-    self.assertEqual('high-end-jobs-linux', queue)
 
   def test_regular(self):
     """Test regular tasks."""
@@ -95,12 +94,11 @@ class GetTaskTest(unittest.TestCase):
         'test', 'high', 'job', queue='high-end-jobs-linux', wait_time=0)
     tasks.add_task('test', 'normal', 'job', queue='jobs-linux', wait_time=0)
 
-    task, queue = tasks.get_task()
+    task = tasks.get_task()
     self.assertEqual('test', task.command)
     self.assertEqual('normal', task.argument)
     self.assertEqual('job', task.job)
     self.assertEqual('test normal job', task.payload())
-    self.assertEqual('jobs-linux', queue)
 
   def test_preemptible(self):
     """Test preemptible bot tasks."""
@@ -110,7 +108,7 @@ class GetTaskTest(unittest.TestCase):
         'test', 'high', 'job', queue='high-end-jobs-linux', wait_time=0)
     tasks.add_task('test', 'normal', 'job', queue='jobs-linux', wait_time=0)
 
-    task, _ = tasks.get_task()
+    task = tasks.get_task()
     self.assertIsNone(task)
 
   def test_defer(self):
@@ -122,7 +120,7 @@ class GetTaskTest(unittest.TestCase):
 
     with mock.patch.object(pubsub.ReceivedMessage,
                            'modify_ack_deadline') as mock_modify:
-      task, _ = tasks.get_task()
+      task = tasks.get_task()
       self.assertEqual('test', task.command)
       self.assertEqual('normal4', task.argument)
       self.assertEqual('job', task.job)
@@ -140,12 +138,11 @@ class GetTaskTest(unittest.TestCase):
     environment.set_value('COMMAND_OVERRIDE', 'test override job')
     tasks.add_task('test', 'normal', 'job', wait_time=0)
 
-    task, queue = tasks.get_task()
+    task = tasks.get_task()
     self.assertEqual('test', task.command)
     self.assertEqual('override', task.argument)
     self.assertEqual('job', task.job)
     self.assertEqual('test override job', task.payload())
-    self.assertIsNone(queue)
 
 
 class LeaseTaskTest(unittest.TestCase):
