@@ -172,26 +172,27 @@ class Context:
     self.merge_tmp_dir = None
     self.engine = engine.get(self.fuzz_target.engine)
     if not self.engine:
-      raise CorpusPruningError(f'Engine {engine} not found')
+      raise CorpusPruningError(
+          f'Engine not found for fuzz_target: {fuzz_target}')
 
     self._created_directories = []
 
     # Set up temporary directories where corpora will be synced to.
     # Initial synced corpus.
     self.initial_corpus_path = self._create_temp_corpus_directory(
-        '%s_initial_corpus' % self.fuzz_target.project_qualified_name())
+        f'{self.fuzz_target.project_qualified_name()}_initial_corpus')
     # Minimized corpus.
     self.minimized_corpus_path = self._create_temp_corpus_directory(
-        '%s_minimized_corpus' % self.fuzz_target.project_qualified_name())
+        f'{self.fuzz_target.project_qualified_name()}_minimized_corpus')
     # Synced quarantine corpus.
     self.quarantine_corpus_path = self._create_temp_corpus_directory(
-        '%s_quarantine' % self.fuzz_target.project_qualified_name())
+        f'{self.fuzz_target.project_qualified_name()}_quarantine')
     # Synced shared corpus.
     self.shared_corpus_path = self._create_temp_corpus_directory(
-        '%s_shared' % self.fuzz_target.project_qualified_name())
+        f'{self.fuzz_target.project_qualified_name()}_shared')
     # Bad units.
     self.bad_units_path = self._create_temp_corpus_directory(
-        '%s_bad_units' % self.fuzz_target.project_qualified_name())
+        f'{self.fuzz_target.project_qualified_name()}_bad_units')
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
     self.corpus = corpus_manager.ProtoFuzzTargetCorpus(
@@ -211,6 +212,7 @@ class Context:
     # Limit the number of quarantine units to restore, in case there are a lot.
     quarantine_unit_paths = _get_corpus_file_paths(self.quarantine_corpus_path)
     if len(quarantine_unit_paths) > MAX_QUARANTINE_UNITS_TO_RESTORE:
+      logs.info('Getting a random sample of quarantine_unit_paths.')
       quarantine_unit_paths = random.sample(quarantine_unit_paths,
                                             MAX_QUARANTINE_UNITS_TO_RESTORE)
 
@@ -355,7 +357,7 @@ class Runner:
     if not self.fuzzer_options:
       return
 
-    # Only need to look as ASan, as that's what we prune with.
+    # Only need to look at ASan, as that's what we prune with.
     overrides = self.fuzzer_options.get_asan_options()
     if not overrides:
       return
@@ -466,7 +468,7 @@ class CorpusPruner:
   def run(self, initial_corpus_path, minimized_corpus_path, bad_units_path):
     """Run corpus pruning. Output result to directory."""
     if not shell.get_directory_file_count(initial_corpus_path):
-      # Empty corpus, nothing to do.
+      logs.info('Empty corpus, nothing to do.')
       return None
 
     # Set memory tool options and fuzzer arguments.
@@ -615,21 +617,20 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   pruner = CorpusPruner(runner)
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
-  # Get initial corpus to process from GCS.
+  logs.info('Getting the initial corpus to process from GCS.')
   context.sync_to_disk()
   initial_corpus_size = shell.get_directory_file_count(
       context.initial_corpus_path)
 
-  # Restore a small batch of quarantined units back to corpus.
+  logs.info('Restoring a small batch of quarantined units back to corpus.')
   context.restore_quarantined_units()
 
   # Shrink to a minimized corpus using corpus merge.
-
   pruner_stats = pruner.run(context.initial_corpus_path,
                             context.minimized_corpus_path,
                             context.bad_units_path)
 
-  # Sync minimized corpus back to GCS.
+  logs.info('Syncing the minimized corpus back to GCS.')
   context.sync_to_gcs()
 
   logs.info('Saved minimize corpus.')
@@ -655,8 +656,8 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   minimized_corpus_size_bytes = shell.get_directory_size(
       context.minimized_corpus_path)
 
-  logs.info('Corpus pruned from %d to %d units.' %
-            (initial_corpus_size, minimized_corpus_size_units))
+  logs.info(f'Corpus pruned from {initial_corpus_size} '
+            f'to {minimized_corpus_size_units} units.')
 
   # Process bad units found during merge.
   # Mapping of crash state -> CrashInfo
@@ -992,8 +993,7 @@ def utask_main(uworker_input):
   revision = 0  # Trunk revision
 
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
-    error_message = f'Failed to set up fuzzer {fuzz_target.engine}.'
-    logs.error(error_message)
+    logs.error(f'Failed to set up fuzzer {fuzz_target.engine}.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED)  # pylint: disable=no-member
 

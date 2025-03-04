@@ -461,12 +461,12 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
+    logs.info(f'Starting corpus minimization with timeout {max_time}.')
     runner = _get_runner(target_path)
     _set_sanitizer_options(target_path)
 
     minimize_arguments = self._get_arguments(target_path)
     self._strip_fuzzing_arguments(minimize_arguments)
-    environment.set_value('ASAN_OPTIONS', 'detect_odr_violation=0')
 
     # Step 1: Generate corpus file for Centipede.
     # When calling this during a fuzzing session, use the existing workdir.
