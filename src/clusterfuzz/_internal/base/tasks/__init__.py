@@ -332,7 +332,7 @@ def get_task():
   task queue."""
   task = get_command_override()
   if task:
-    return task, None
+    return task
 
   if allow_all_tasks():
     # Postprocess tasks need to be executed on a non-preemptible otherwise we
@@ -341,21 +341,21 @@ def get_task():
     # only involve a few DB writes and never run user code.
     task = get_postprocess_task()
     if task:
-      return task, POSTPROCESS_QUEUE
+      return task
 
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
       task = get_high_end_task()
       if task:
-        return task, high_end_queue()
+        return task
 
     task = get_regular_task()
     if task:
       # Log the task details for debug purposes.
       logs.info(f'Got task with cmd {task.command} args {task.argument} '
                 f'job {task.job} from {regular_queue()} queue.')
-      return task, regular_queue()
+      return task
 
     if environment.is_android():
       logs.info(f'Could not get task from {regular_queue()}. Trying from'
@@ -365,7 +365,7 @@ def get_task():
         # Log the task details for debug purposes.
         logs.info(f'Got task with cmd {task.command} args {task.argument} '
                   f'job {task.job} from {default_android_queue()} queue.')
-        return task, default_android_queue()
+        return task
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 
@@ -374,7 +374,7 @@ def get_task():
     logs.error('Failed to get any fuzzing tasks. This should not happen.')
     time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
 
-  return task, None
+  return task
 
 
 def construct_payload(command, argument, job):
