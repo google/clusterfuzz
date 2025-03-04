@@ -443,6 +443,7 @@ class Task:
     self.queue = queue
     return self
 
+
 class PubSubTask(Task):
   """A Pub/Sub task."""
 
