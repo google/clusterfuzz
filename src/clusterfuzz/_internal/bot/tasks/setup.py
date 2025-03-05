@@ -556,6 +556,12 @@ def _set_fuzzer_env_vars(fuzzer):
 
 
 def preprocess_get_data_bundles(data_bundle_name, setup_input):
+  """Gets the data bundels corresponding to data_bundle_name (if any)
+  and adds them to setup_input."""
+  if not data_bundle_name:
+    logs.info('No data_bundle_name provided.')
+    return
+
   data_bundles = list(
       ndb_utils.get_all_from_query(
           data_types.DataBundle.query(
@@ -678,6 +684,7 @@ def update_fuzzer_and_data_bundles(
   _set_fuzzer_env_vars(fuzzer)
   # Set some helper environment variables.
   fuzzer_directory = get_fuzzer_directory(update_input.fuzzer_name)
+  logs.info(f'Setting env var FUZZER_DIR to {fuzzer_directory}')
   environment.set_value('FUZZER_DIR', fuzzer_directory)
 
   # Check for updates to this fuzzer.
@@ -693,6 +700,7 @@ def update_fuzzer_and_data_bundles(
   if fuzzer.launcher_script:
     fuzzer_launcher_path = os.path.join(fuzzer_directory,
                                         fuzzer.launcher_script)
+    logs.info(f'Setting env var LAUNCHER_PATH to {fuzzer_launcher_path}')
     environment.set_value('LAUNCHER_PATH', fuzzer_launcher_path)
 
     # For launcher script usecase, we need the entire fuzzer directory on the
