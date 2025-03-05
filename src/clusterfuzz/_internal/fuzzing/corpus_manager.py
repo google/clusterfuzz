@@ -277,7 +277,6 @@ class FuzzTargetCorpus(GcsCorpus):
     self._engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
     self._project_qualified_target_name = project_qualified_target_name
 
-    sync_corpus_bucket_name = None
     if quarantine:
       sync_corpus_bucket_name = environment.get_value('QUARANTINE_BUCKET')
     else:

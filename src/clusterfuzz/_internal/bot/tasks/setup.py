@@ -487,7 +487,6 @@ def update_data_bundle(
 
   time_before_sync_start = time.time()
 
-  result = None
   # No need to sync anything if this is a search index data bundle. In that
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
