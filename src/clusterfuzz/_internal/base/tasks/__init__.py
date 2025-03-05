@@ -197,7 +197,7 @@ def get_regular_task(queue=None):
     if not messages:
       return None
 
-    task = get_task_from_message(messages[0])
+    task = get_task_from_message(messages[0], queue)
     if task:
       return task
 
@@ -296,7 +296,7 @@ def get_postprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0])
+  task = get_task_from_message(messages[0], POSTPROCESS_QUEUE)
   if task:
     logs.info('Pulled from postprocess queue.')
   return task
@@ -311,7 +311,7 @@ def get_preprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0])
+  task = get_task_from_message(messages[0], PREPROCESS_QUEUE)
   if task:
     logs.info('Pulled from preprocess queue.')
   return task
@@ -377,9 +377,9 @@ def get_task():
   return task
 
 
-def construct_payload(command, argument, job):
+def construct_payload(command, argument, job, queue=None):
   """Constructs payload for task, a standard description of tasks."""
-  return ' '.join([command, str(argument), str(job)])
+  return ' '.join([command, str(argument), str(job), str(queue)])
 
 
 class Task:
@@ -392,7 +392,8 @@ class Task:
                eta=None,
                is_command_override=False,
                high_end=False,
-               extra_info=None):
+               extra_info=None,
+               queue=None):
     self.command = command
     self.argument = argument
     self.job = job
@@ -400,16 +401,17 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
+    self.queue = queue
 
   def __repr__(self):
-    return f'Task: {self.command} {self.argument} {self.job}'
+    return f'Task: {self.command} {self.argument} {self.job} {self.queue}'
 
   def attribute(self, _):
     return None
 
   def payload(self):
     """Get the payload."""
-    return construct_payload(self.command, self.argument, self.job)
+    return construct_payload(self.command, self.argument, self.job, self.queue)
 
   def to_pubsub_message(self):
     """Convert the task to a pubsub message."""
@@ -436,6 +438,10 @@ class Task:
     track_task_start(self, TASK_LEASE_SECONDS)
     yield
     track_task_end()
+
+  def set_queue(self, queue):
+    self.queue = queue
+    return self
 
 
 class PubSubTask(Task):
@@ -503,7 +509,7 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
-def get_task_from_message(message) -> Optional[PubSubTask]:
+def get_task_from_message(message, queue=None) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
@@ -514,6 +520,7 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
     message.ack()
     return None
 
+  task = task.set_queue(queue)
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
   if task.defer():
@@ -528,15 +535,15 @@ def get_utask_mains() -> List[PubSubTask]:
   pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_utask_main_messages(messages)
+  return handle_multiple_utask_main_messages(messages, UTASK_MAINS_QUEUE)
 
 
-def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
+def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   """Merges tasks specified in |messages| into a list for processing on this
   bot."""
   tasks = []
   for message in messages:
-    task = get_task_from_message(message)
+    task = get_task_from_message(message, queue)
     if task is None:
       continue
     tasks.append(task)
