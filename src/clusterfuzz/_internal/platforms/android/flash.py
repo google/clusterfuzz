@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.datastore import locks
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -206,6 +207,9 @@ def flash_to_latest_build_if_needed():
     locks.release_lock(flash_lock_key_name, by_zone=True)
 
   if adb.get_device_state() != 'device':
+    monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
+        'build_id': build_info['bid']
+    })
     logs.error('Unable to find device. Reimaging failed.')
     adb.bad_state_reached()
 
