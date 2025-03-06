@@ -335,10 +335,10 @@ class BaseRunner:
 
   def reproduce(self, input_path, arguments, max_time):
     return self.context.engine.reproduce(self.target_path, input_path,
-                                           arguments, max_time)
+                                         arguments, max_time)
 
-  def minimize_corpus(self, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, arguments, input_dirs, output_dir, reproducers_dir,
+                      max_time):
     return self.context.engine.minimize_corpus(self.target_path, arguments,
                                                input_dirs, output_dir,
                                                reproducers_dir, max_time)
@@ -618,20 +618,22 @@ def _record_cross_pollination_stats(output):
       dataset_id='main', table_id='cross_pollination_statistics')
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
+
 def _get_pruner_and_runner(context):
   """Get pruner and runner object acording with the FuzzTarget into the context
   """
   build_directory = environment.get_value('BUILD_DIR')
-  match context.fuzz_target.engine.lower():
-    case 'libfuzzer':
-      runner = LibFuzzerRunner(build_directory, context)
-      pruner = LibFuzzerPruner(runner)
-    case 'centipede':
-      runner = CentipedeRunner(build_directory, context)
-      pruner = CentipedePruner(runner)
-    case _:
-      raise CorpusPruningError('Corpus pruner task does not support the given engine.')
+  if context.fuzz_target.engine.lower() == 'libfuzzer':
+    runner = LibFuzzerRunner(build_directory, context)
+    pruner = LibFuzzerPruner(runner)
+  elif context.fuzz_target.engine.lower() == 'centipede':
+    runner = CentipedeRunner(build_directory, context)
+    pruner = CentipedePruner(runner)
+  else:
+    raise CorpusPruningError(
+        'Corpus pruner task does not support the given engine.')
   return pruner, runner
+
 
 def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
