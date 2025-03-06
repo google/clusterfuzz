@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """logs test."""
-import datetime
 import inspect
 import json
 import logging
@@ -134,7 +133,7 @@ class UpdateEntryWithExc(unittest.TestCase):
 
 
 class FormatRecordTest(unittest.TestCase):
-  """Test format method of JsonFormatter."""
+  """Test format_record."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -186,7 +185,7 @@ class FormatRecordTest(unittest.TestCase):
             'line': 123,
             'method': 'func'
         }
-    }, json.loads(logs.JsonFormatter().format(record)))
+    }, json.loads(logs.format_record(record)))
 
     self.mock.update_entry_with_exc.assert_called_once_with(
         mock.ANY, 'exc_info')
@@ -209,7 +208,7 @@ class FormatRecordTest(unittest.TestCase):
             'line': 123,
             'method': 'func'
         }
-    }, json.loads(logs.JsonFormatter().format(record)))
+    }, json.loads(logs.format_record(record)))
     self.mock.update_entry_with_exc.assert_called_once_with(
         mock.ANY, 'exc_info')
 
@@ -234,127 +233,26 @@ class FormatRecordTest(unittest.TestCase):
             'line': 123,
             'method': 'func'
         }
-    }, json.loads(logs.JsonFormatter().format(record)))
+    }, json.loads(logs.format_record(record)))
     self.mock.update_entry_with_exc.assert_called_once_with(
         mock.ANY, 'exc_info')
 
 
-class JsonFormatterTest(unittest.TestCase):
-  """Test JsonFormatter class."""
+class JsonSocketHandler(unittest.TestCase):
+  """Test JsonSocketHandler."""
 
   def setUp(self):
-    self.formatter = logging.getLoggerClass().manager.loggerDict = {}
-    self.formatter = logging.getLogger('test_logger')
-    self.formatter.setLevel(logging.DEBUG)
-    self.log_record = logging.LogRecord(
-        name='test_logger',
-        level=logging.INFO,
-        pathname='test.py',
-        lineno=10,
-        msg='Test message',
-        args=(),
-        exc_info=None,
-        func='test_func',
-        sinfo=None,
-    )
-    self.log_record.created = datetime.datetime(2023, 10, 26, 12, 0,
-                                                0).timestamp()
+    helpers.patch(self, ['clusterfuzz._internal.metrics.logs.format_record'])
 
-    self.original_env = dict(os.environ)
+  def test_make_pickle(self):
+    """Test makePickle."""
+    self.mock.format_record.return_value = 'json'
 
-  def tearDown(self):
-    os.environ.clear()
-    os.environ.update(self.original_env)
+    record = mock.Mock()
+    handler = logs.JsonSocketHandler(None, None)
+    self.assertEqual(b'json\n', handler.makePickle(record))
 
-  def test_format_basic(self):
-    """Tests basic formatting of the log record."""
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['message'], 'Test message')
-    self.assertEqual(json_result['created'], '2023-10-26T12:00:00Z')
-    self.assertEqual(json_result['severity'], 'INFO')
-    self.assertEqual(json_result['name'], 'test_logger')
-    self.assertEqual(json_result['pid'], os.getpid())
-    self.assertEqual(json_result['task_id'], 'null')
-    self.assertTrue('location' in json_result)
-    self.assertFalse('extras' in json_result)
-
-  def test_format_with_env_vars(self):
-    """Tests formatting with environment variables."""
-    os.environ['BOT_NAME'] = 'test_bot'
-    os.environ['TASK_PAYLOAD'] = 'test_payload'
-    os.environ['CF_TASK_ID'] = '123'
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['bot_name'], 'test_bot')
-    self.assertEqual(json_result['task_payload'], 'test_payload')
-    self.assertEqual(json_result['task_id'], '123')
-
-  def test_format_with_initial_payload(self):
-    """Tests formatting with initial task payload."""
-    os.environ['TASK_PAYLOAD'] = 'current_payload'
-    os.environ['INITIAL_TASK_PAYLOAD'] = 'initial_payload'
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['task_payload'], 'initial_payload')
-    self.assertEqual(json_result['actual_task_payload'], 'current_payload')
-
-  def test_format_with_location_and_extras(self):
-    """Tests formatting with location and extras."""
-    self.log_record.location = {'file': 'test.py', 'line': 20}
-    self.log_record.extras = {'key': 'value'}
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['location'], {'file': 'test.py', 'line': 20})
-    self.assertEqual(json_result['extras'], {'key': 'value'})
-
-  def test_format_truncate_message(self):
-    """Tests formatting with message truncation."""
-    n_chars_truncated = 10
-    long_message = 'a' * (
-        logs.STACKDRIVER_LOG_MESSAGE_LIMIT + n_chars_truncated)
-    self.log_record.msg = long_message
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-    self.assertIn(f'{n_chars_truncated} characters truncated',
-                  json_result['message'])
-
-  def test_format_worker_bot_name(self):
-    """Tests formatting with worker bot name."""
-    os.environ['WORKER_BOT_NAME'] = 'test_worker'
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['worker_bot_name'], 'test_worker')
-
-  def test_format_fuzz_target(self):
-    """Tests formatting with fuzz target."""
-    os.environ['FUZZ_TARGET'] = 'test_fuzz'
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['fuzz_target'], 'test_fuzz')
-
-  def test_format_ioerror_interrupted(self):
-    """Tests formatting of IOError interrupted function call."""
-    self.log_record.levelname = 'ERROR'
-    self.log_record.msg = 'IOError: [Errno 4] Interrupted function call'
-    formatter = logs.JsonFormatter()
-    result = formatter.format(self.log_record)
-    json_result = json.loads(result)
-
-    self.assertEqual(json_result['severity'], 'WARNING')
+    self.mock.format_record.assert_called_once_with(record)
 
 
 class ConfigureTest(unittest.TestCase):
