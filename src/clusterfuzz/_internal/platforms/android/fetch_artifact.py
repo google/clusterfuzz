@@ -201,7 +201,7 @@ def get_stable_build_info():
   return stable_build_info
 
 
-def get_latest_artifact_info(branch, target, signed=False):
+def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   """Return latest artifact for a branch and target."""
   client = get_client()
   if not client:
@@ -209,7 +209,7 @@ def get_latest_artifact_info(branch, target, signed=False):
 
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
-  if environment.is_android_cuttlefish():
+  if environment.is_android_cuttlefish() and stable_build:
     build_info = get_stable_build_info()
     # Use tip-of-tree build if 'bid' is missing or 0.
     # Setting 'bid' to 0 in stable_build_info.json
