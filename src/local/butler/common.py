@@ -29,6 +29,7 @@ import urllib.request
 import zipfile
 
 from local.butler import constants
+from clusterfuzz._internal.system import environment
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
 
@@ -93,9 +94,13 @@ def _compute_revision(timestamp, *extras):
     crbug.com/674173."""
   timestamp = timestamp.strftime('%Y%m%d%H%M%S-utc')
   _, git_sha = execute('git rev-parse --short HEAD')
-  git_sha = git_sha.strip().decode('utf-8')
+  clusterfuzz_git_sha = git_sha.strip().decode('utf-8')
 
-  components = [timestamp, git_sha, os.environ['USER']] + list(extras)
+  # Adding also the clusterfuzz-config version to the revision
+  _, git_sha = execute(f'git -C {environment.get_config_directory()} rev-parse --short HEAD')
+  clusterfuzz_config_git_sha = git_sha.strip().decode('utf-8')
+
+  components = [timestamp, clusterfuzz_git_sha, clusterfuzz_config_git_sha, os.environ['USER']] + list(extras)
   return '-'.join(components)
 
 
