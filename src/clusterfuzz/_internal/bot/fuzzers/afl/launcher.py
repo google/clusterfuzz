@@ -1609,6 +1609,7 @@ def prepare_runner(fuzzer_path,
 
   # Add *SAN_OPTIONS overrides from .options file.
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
+  environment.set_value('LSAN_OPTIONS', 'detect_leaks=0:symbolize=0')
 
   return runner
 
