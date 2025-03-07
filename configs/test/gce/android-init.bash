@@ -80,6 +80,22 @@ echo "Adding workaround to prevent /dev/random hangs."
 rm /dev/random
 ln -s /dev/urandom /dev/random
 
+echo "Setting up google-fluentd."
+curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
+sudo bash install-logging-agent.sh
+echo "
+<source>
+  type tcp
+  format json
+  port 5170
+  bind 127.0.0.1
+  tag bot
+</source>
+" > /etc/google-fluentd/config.d/clusterfuzz.conf
+sed -i 's/flush_interval 5s/flush_interval 60s/' \
+  /etc/google-fluentd/google-fluentd.conf
+sudo service google-fluentd restart
+
 echo "Installing ClusterFuzz package dependencies."
 pip install crcmod==1.7 psutil==5.9.4 cryptography==37.0.4 pyOpenSSL==22.0.0
 
