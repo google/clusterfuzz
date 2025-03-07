@@ -74,6 +74,9 @@ RADAMSA_TIMEOUT = 3
 
 HEXDIGITS_SET = set(string.hexdigits)
 
+# Allow 30 minutes to merge the testcases back into the corpus.
+DEFAULT_MERGE_TIMEOUT = 30 * 60
+
 
 class Generator:
   """Generators we can use."""
