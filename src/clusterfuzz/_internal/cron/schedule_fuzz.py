@@ -1,4 +1,3 @@
-
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -286,9 +285,9 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB + usage
   logs.info(f'Soon or currently occupied CPUs: {occupied_cpus}')
 
-  logs.info('Actually free CPUs (before subtracting soon '
-            f'occupied): {target}')
+  logs.info(f'Target number CPUs: {target}')
   available_cpus = max(target - occupied_cpus, 0)
+  logs.info(f'Available CPUs: {available_cpus}')
 
   # Don't schedule more than 50K tasks at once. So we don't overload batch.
   # This number is arbitrary, but we aren't at full capacity at lower numbers.
