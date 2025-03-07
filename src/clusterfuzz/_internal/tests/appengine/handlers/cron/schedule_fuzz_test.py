@@ -95,7 +95,7 @@ class TestGetCpuUsage(unittest.TestCase):
         'usage': 2
     }]
     self.assertEqual(
-        schedule_fuzz.get_cpu_usage(self.creds, 'project', 'region'), 3)
+        schedule_fuzz.get_cpu_usage(self.creds, 'project', 'region'), (5, 2))
 
   def test_cpus_and_preemptible_cpus(self):
     """Tests that get_cpu_limit_for_regions handles usage properly."""
@@ -109,4 +109,4 @@ class TestGetCpuUsage(unittest.TestCase):
         'usage': 5
     }]
     self.assertEqual(
-        schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), 5)
+        schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), (5, 0))
