@@ -39,9 +39,6 @@ from clusterfuzz._internal.system import shell
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
 
-# Allow 30 minutes to merge the testcases back into the corpus.
-DEFAULT_MERGE_TIMEOUT = 30 * 60
-
 StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'fuzzing_strategies',
     'arguments',
@@ -1296,7 +1293,7 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   """Get the fuzz timeout."""
   fuzz_timeout = (
       engine_common.get_hard_timeout(total_timeout=total_timeout) -
-      engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT))
+      engine_common.get_merge_timeout(engine_common.DEFAULT_MERGE_TIMEOUT))
 
   if is_mutations_run:
     fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
