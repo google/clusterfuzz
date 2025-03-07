@@ -15,7 +15,6 @@
    commands."""
 
 import datetime
-from distutils import dir_util
 import io
 import os
 import platform
@@ -456,7 +455,4 @@ def copy_if_newer(src, dst):
 def update_dir(src_dir, dst_dir):
   """Recursively copy from src_dir to dst_dir, replacing files but only if
   they're newer or don't exist."""
-  # TODO(metzman): Replace this with
-  # shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer)
-  # After we migrate to python3.9.
-  dir_util.copy_tree(src_dir, dst_dir, update=True)
+  shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer)
