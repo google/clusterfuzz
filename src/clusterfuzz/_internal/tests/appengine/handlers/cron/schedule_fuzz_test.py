@@ -79,7 +79,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     self.assertListEqual(comparable_results, expected_results)
 
 
-class TestGetCpuLimitForRegions(unittest.TestCase):
+class TestGetCpuUsage(unittest.TestCase):
   """Tests for get_cpu_limit_for_regions."""
 
   def setUp(self):
@@ -95,8 +95,7 @@ class TestGetCpuLimitForRegions(unittest.TestCase):
         'usage': 2
     }]
     self.assertEqual(
-        schedule_fuzz.get_cpu_limit_for_regions(self.creds, 'project',
-                                                'region'), 3)
+        schedule_fuzz.get_cpu_usage(self.creds, 'project', 'region'), 3)
 
   def test_cpus_and_preemptible_cpus(self):
     """Tests that get_cpu_limit_for_regions handles usage properly."""
@@ -110,5 +109,4 @@ class TestGetCpuLimitForRegions(unittest.TestCase):
         'usage': 5
     }]
     self.assertEqual(
-        schedule_fuzz.get_cpu_limit_for_regions(self.creds, 'region',
-                                                'project'), 5)
+        schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), 5)
