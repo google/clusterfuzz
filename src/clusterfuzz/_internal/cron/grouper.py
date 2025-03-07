@@ -96,7 +96,7 @@ def combine_testcases_into_group(
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
       moved_testcase_ids.append(str(testcase.id))
-
+  # ADD: data_handler.delete_group(group_id_to_move, update_testcases=False)
   logs.info(f'Merged group {group_id_to_move} into {group_id_to_reuse}: ' +
             'moved testcases: ' + ', '.join(moved_testcase_ids))
 
@@ -291,6 +291,12 @@ def _group_testcases_with_similar_states(testcase_map):
       if testcase_1.security_flag != testcase_2.security_flag:
         continue
 
+      # Rule: Check both testcases regressed to the same revision range
+      # considering the same job type.
+      if (testcase_1.regression != testcase_2.regression and
+          testcase_1.job_type == testcase_2.job_type):
+        continue
+
       # Rule: Follow different comparison rules when crash types is one of the
       # ones that have unique crash state (custom ones specifically).
       if (testcase_1.crash_type in data_types.CRASH_TYPES_WITH_UNIQUE_STATE or
@@ -302,7 +308,7 @@ def _group_testcases_with_similar_states(testcase_map):
           continue
 
       else:
-        # Rule: For functional bugs, compare for similar crash states.
+        # Rule: For functional bugs, compare for similar crash types.
         if not testcase_1.security_flag:
           crash_comparer = CrashComparer(testcase_1.crash_type,
                                          testcase_2.crash_type)
@@ -378,7 +384,9 @@ def _shrink_large_groups_if_needed(testcase_map):
       logs.warning(('Deleting testcase {testcase_id} due to overflowing group '
                     '{group_id}.').format(
                         testcase_id=testcase.id, group_id=testcase.group_id))
-      testcase_entity.key.delete()
+      # testcase_entity.key.delete()
+      testcase_entity.vtcosta_deleted = True
+  
 
 
 def group_testcases():
@@ -525,3 +533,12 @@ def group_testcases():
     testcase.put()
     logs.info(
         'Updated testcase %d group to %d.' % (testcase_id, updated_group_id))
+
+def main():
+  try:
+    logs.info('Grouping testcases.')
+    group_testcases()
+    logs.info('Grouping done.')
+  except:
+    logs.error('Error occurred while grouping test cases.')
+    return False
