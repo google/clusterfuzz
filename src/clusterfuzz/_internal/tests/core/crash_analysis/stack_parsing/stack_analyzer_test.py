@@ -2606,8 +2606,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     See https://crbug.com/396148611.
     """
-    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'FORCE'
     os.environ['FUZZ_TARGET'] = 'foo'
+    os.environ['REDZONE'] = '256'
 
     data = self._read_test_data('centipede_timeout_abrt.txt')
     expected_type = 'Timeout'
