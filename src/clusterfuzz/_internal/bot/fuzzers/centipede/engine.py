@@ -551,8 +551,8 @@ class Engine(engine.Engine):
       # Only remove this directory if it was created in this method.
       shutil.rmtree(full_corpus_workdir)
 
-    return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+    return engine.FuzzResult(result.output, result.command, [], None,
+                             result.time_executed, result.timed_out)
 
   def _get_smallest_crasher(self, workdir_path):
     """Returns the path to the smallest crash in Centipede's |workdir_path|."""

@@ -20,9 +20,10 @@ import os
 import shutil
 import tempfile
 import unittest
-from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import options
+from clusterfuzz._internal.bot.fuzzers.centipede import \
+    engine as centipede_engine
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
@@ -30,16 +31,14 @@ from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import blobs
-from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from clusterfuzz._internal.tests.test_libs import untrusted_runner_helpers
+from clusterfuzz.fuzz import engine
 
 TEST_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'corpus_pruning_task_data')
@@ -291,8 +290,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     context = corpus_pruning_task.Context(uworker_msg_pb2.Input(), fuzz_target,
                                           [])
 
-    runner = corpus_pruning_task.Runner(self.build_dir, context)
-    flags = runner.get_libfuzzer_flags()
+    runner = corpus_pruning_task.LibFuzzerRunner(self.build_dir, context)
+    flags = runner.get_fuzzer_flags()
     expected_default_flags = [
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=5242880',
         '-detect_leaks=1', '-use_value_profile=1'
@@ -301,7 +300,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     runner.fuzzer_options = options.FuzzerOptions(
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
-    flags = runner.get_libfuzzer_flags()
+    flags = runner.get_fuzzer_flags()
     expected_custom_flags = [
         '-timeout=5', '-rss_limit_mb=31337', '-max_len=1337', '-detect_leaks=0',
         '-use_value_profile=1'
@@ -385,206 +384,59 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
                           quarantine)
 
 
-class CorpusPruningTestUntrusted(
-    untrusted_runner_helpers.UntrustedRunnerIntegrationTest):
-  """Tests for corpus pruning (untrusted)."""
+@test_utils.supported_platforms('LINUX')
+@test_utils.with_cloud_emulators('datastore')
+class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
+  """Tests for centipede corpus pruning."""
 
   def setUp(self):
     """Set up."""
-    super().setUp()
-    environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
-
+    BaseTest.setUp(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.setup.get_fuzzer_directory',
-        'clusterfuzz._internal.base.tasks.add_task',
-        'clusterfuzz.fuzz.engine.get',
-    ])
-    self.mock.get.return_value = libFuzzer_engine.Engine()
-    self.mock.get_fuzzer_directory.return_value = os.path.join(
-        environment.get_value('ROOT_DIR'), 'src', 'clusterfuzz', '_internal',
-        'bot', 'fuzzers', 'libFuzzer')
-    self.corpus_bucket = os.environ['CORPUS_BUCKET']
-    self.quarantine_bucket = os.environ['QUARANTINE_BUCKET']
-    self.backup_bucket = os.environ['BACKUP_BUCKET']
-
-    job = data_types.Job(
-        name='libfuzzer_asan_job',
-        environment_string=('APP_NAME = test_fuzzer\n'
-                            f'CORPUS_BUCKET = {self.corpus_bucket}\n'
-                            f'QUARANTINE_BUCKET = {self.quarantine_bucket}\n'
-                            f'BACKUP_BUCKET={self.backup_bucket}\n'
-                            'RELEASE_BUILD_BUCKET_PATH = '
-                            'gs://clusterfuzz-test-data/test_libfuzzer_builds2/'
-                            'test-libfuzzer-build-([0-9]+).zip\n'
-                            'REVISION_VARS_URL = gs://clusterfuzz-test-data/'
-                            'test_libfuzzer_builds2/'
-                            'test-libfuzzer-build-%s.srcmap.json\n'))
-    job.put()
-
-    job = data_types.Job(
-        name='libfuzzer_asan_job2',
-        environment_string=('APP_NAME = test2_fuzzer\n'
-                            f'BACKUP_BUCKET = {self.backup_bucket}\n'
-                            'CORPUS_FUZZER_NAME_OVERRIDE = libfuzzer\n'))
-    job.put()
-
-    os.environ['PROJECT_NAME'] = 'oss-fuzz'
-    data_types.FuzzTarget(
-        engine='libFuzzer', project='test', binary='test_fuzzer').put()
-    data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_test_fuzzer',
-        engine='libFuzzer',
-        job='libfuzzer_asan_job',
-        last_run=datetime.datetime.now()).put()
-
-    data_types.FuzzTarget(
-        engine='libFuzzer', project='test2', binary='fuzzer').put()
-    data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_test2_fuzzer',
-        engine='libFuzzer',
-        job='libfuzzer_asan_job2',
-        last_run=datetime.datetime.now()).put()
-
-    # Set up remote corpora.
-    self.corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'test_fuzzer')
-    self.corpus.rsync_from_disk(os.path.join(TEST_DIR, 'corpus'), delete=True)
-
-    self.quarantine_corpus = corpus_manager.FuzzTargetCorpus(
-        'libFuzzer', 'test_fuzzer', quarantine=True)
-    self.quarantine_corpus.rsync_from_disk(
-        os.path.join(TEST_DIR, 'quarantine'), delete=True)
-
-    data_types.DataBundle(
-        name='bundle', bundle_name=TEST_GLOBAL_BUCKET,
-        sync_to_worker=True).put()
-
-    self.fuzzer = data_types.Fuzzer(
-        revision=1,
-        file_size='builtin',
-        source='builtin',
-        name='libFuzzer',
-        max_testcases=4,
-        builtin=True,
-        data_bundle_name='bundle')
-    self.fuzzer.put()
-
-    self.temp_dir = tempfile.mkdtemp()
-
-    # Copy corpus backup in the older date format.
-    corpus_backup_date = (
-        datetime.datetime.utcnow().date() -
-        datetime.timedelta(days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS))
-    gsutil.GSUtilRunner().run_gsutil([
-        'cp',
-        f'gs://{TEST2_BACKUP_BUCKET}/corpus/libfuzzer/test2_fuzzer/backup.zip',
-        (f'gs://{self.backup_bucket}/corpus/libfuzzer/'
-         f'test2_fuzzer/{corpus_backup_date}.zip')
+        'clusterfuzz._internal.build_management.build_manager.setup_build',
+        'clusterfuzz._internal.base.utils.get_application_id',
+        'clusterfuzz._internal.datastore.data_handler.update_task_status',
+        'clusterfuzz._internal.datastore.data_handler.get_task_status',
+        'clusterfuzz._internal.bot.fuzzers.centipede.engine.Engine.minimize_corpus',
+        'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.Context._create_temp_corpus_directory',
     ])
 
-  def tearDown(self):
-    super().tearDown()
-    shutil.rmtree(self.temp_dir, ignore_errors=True)
+    self.default_path = '/tmp/arbitrary/path'
+    self.mock._create_temp_corpus_directory.return_value = self.default_path
+    self.engine = centipede_engine.Engine()
+    self.mock.setup_build.side_effect = self._mock_setup_build
+    self.mock.get_application_id.return_value = 'project'
+    self.mock.minimize_corpus.return_value = engine.FuzzResult(
+        '', '', [], None, '', '')
+    self.mock.get.return_value = self.engine
+    self.maxDiff = None
+    self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
 
-  @unittest.skip('Non-deterministic, impossible to tell why failing.')
+    data_types.FuzzTarget(
+        engine='centipede',
+        binary='clusterfuzz_format_target',
+        project='test-project').put()
+    data_types.FuzzTargetJob(
+        fuzz_target_name='centipede_clusterfuzz_format_target',
+        engine='centipede',
+        job='centipede_asan_job').put()
+
   def test_prune(self):
     """Test pruning."""
-    self._setup_env(job_type='libfuzzer_asan_job')
     uworker_input = corpus_pruning_task.utask_preprocess(
-        job_type='libfuzzer_asan_job',
-        fuzzer_name='libFuzzer_test_fuzzer',
+        job_type='centipede_asan_job',
+        fuzzer_name='centipede_clusterfuzz_format_target',
         uworker_env={})
-    corpus_pruning_task.utask_main(uworker_input)
+    output = corpus_pruning_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+    corpus_pruning_task.utask_postprocess(output)
 
-    corpus_dir = os.path.join(self.temp_dir, 'corpus')
-    os.mkdir(corpus_dir)
-
-    self.corpus.rsync_to_disk(corpus_dir)
-    self.assertCountEqual([
-        '31836aeaab22dc49555a97edb4c753881432e01d',
-        '39e0574a4abfd646565a3e436c548eeb1684fb57',
-    ], os.listdir(corpus_dir))
-
-    quarantine_dir = os.path.join(self.temp_dir, 'quarantine')
-    os.mkdir(quarantine_dir)
-    self.quarantine_corpus.rsync_to_disk(quarantine_dir)
-
-    self.assertCountEqual(['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
-                          os.listdir(quarantine_dir))
-
-    testcases = list(data_types.Testcase.query())
-    self.assertEqual(1, len(testcases))
-    self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
-    self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
-    self.assertEqual(1337, testcases[0].crash_revision)
-    self.assertEqual('test_fuzzer',
-                     testcases[0].get_metadata('fuzzer_binary_name'))
-
-    self.mock.add_task.assert_has_calls([
-        mock.call('minimize', testcases[0].key.id(), 'libfuzzer_asan_job'),
-    ])
-
-    today = datetime.datetime.utcnow().date()
-    coverage_info = data_handler.get_coverage_information('test_fuzzer', today)
-    coverage_info_without_backup = coverage_info.to_dict()
-    del coverage_info_without_backup['corpus_backup_location']
-
-    self.assertDictEqual(
-        {
-            'corpus_location':
-                f'gs://{self.corpus_bucket}/libFuzzer/test_fuzzer/',
-            'corpus_size_bytes':
-                8,
-            'corpus_size_units':
-                4,
-            'date':
-                today,
-            # Coverage numbers are expected to be None as they come from fuzzer
-            # coverage cron task (see src/go/server/cron/coverage.go).
-            'edges_covered':
-                None,
-            'edges_total':
-                None,
-            'functions_covered':
-                None,
-            'functions_total':
-                None,
-            'fuzzer':
-                'test_fuzzer',
-            'html_report_url':
-                None,
-            'quarantine_location':
-                f'gs://{self.quarantine_bucket}/libFuzzer/test_fuzzer/',
-            'quarantine_size_bytes':
-                2,
-            'quarantine_size_units':
-                1,
-        },
-        coverage_info_without_backup)
-
-    self.assertEqual(
-        coverage_info.corpus_backup_location,
-        f'gs://{self.backup_bucket}/corpus/libFuzzer/test_fuzzer/{today}.zip')
-
-  def get_mock_record_compare(self, project_qualified_name, sources,
-                              initial_corpus_size, corpus_size,
-                              initial_edge_coverage, edge_coverage,
-                              initial_feature_coverage, feature_coverage):
-    """Given all of the expected stats, returns a function
-    that will compare them to an instance of CorpusPruningStats."""
-
-    def compare(stats):
-      """Mock record_cross_pollination_stats. Make sure function was called
-      with the correct arguments."""
-      self.assertEqual(project_qualified_name, stats.project_qualified_name)
-      self.assertEqual(sources, stats.sources)
-      self.assertEqual(initial_corpus_size, stats.initial_corpus_size)
-      self.assertEqual(corpus_size, stats.corpus_size)
-      self.assertEqual(initial_edge_coverage, stats.initial_edge_coverage)
-      self.assertEqual(edge_coverage, stats.edge_coverage)
-      self.assertEqual(initial_feature_coverage, stats.initial_feature_coverage)
-      self.assertEqual(stats.feature_coverage, feature_coverage)
-
-    return compare
+    # Mocking some inputs to simplify
+    # We should recover the random directory name for
+    # asserting here
+    self.mock.minimize_corpus.assert_called_once_with(
+        self.engine, os.path.join(TEST_DIR, 'build/clusterfuzz_format_target'),
+        [], [self.default_path], self.default_path, self.default_path, 79200)
 
 
 class GetProtoTimestampTest(unittest.TestCase):
