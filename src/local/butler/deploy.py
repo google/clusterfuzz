@@ -566,14 +566,11 @@ def execute(args):
         sys.exit(1)
 
   if args.staging:
-    common.install_dependencies('linux')
     revision = common.compute_staging_revision()
     platforms = ['linux']  # No other platforms required.
   elif args.prod:
-    platforms = list(constants.PLATFORMS.keys())
-    for platform in platforms:
-      common.install_dependencies(platform)
     revision = common.compute_prod_revision()
+    platforms = list(constants.PLATFORMS.keys())
   else:
     print('Please specify either --prod or --staging. For production '
           'deployments, you probably want to use deploy.sh from your '
@@ -594,10 +591,7 @@ def execute(args):
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths += package.package(
-          revision,
-          platform_name=platform_name,
-          release=args.release,
-          should_install_dependencies=False)
+          revision, platform_name=platform_name, release=args.release)
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.

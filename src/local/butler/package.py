@@ -73,8 +73,7 @@ def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
             platform_name=None,
-            release='prod',
-            should_install_dependencies=True):
+            release='prod'):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
@@ -85,8 +84,7 @@ def package(revision,
     print('You do not have nodejs, or your nodejs is not at least version 4.')
     sys.exit(1)
 
-  if should_install_dependencies:
-    common.install_dependencies(platform_name=platform_name)
+  common.install_dependencies(platform_name=platform_name)
 
   # This needs to be done before packaging step to let src/appengine/config be
   # archived for bot.
