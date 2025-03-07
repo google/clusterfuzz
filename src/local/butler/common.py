@@ -28,8 +28,8 @@ import tempfile
 import urllib.request
 import zipfile
 
-from local.butler import constants
 from clusterfuzz._internal.system import environment
+from local.butler import constants
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
 
@@ -93,8 +93,10 @@ def _get_clusterfuzz_commit_sha():
 
 
 def _get_clusterfuzz_config_commit_sha():
-  _, git_sha = execute(f'git -C {environment.get_config_directory()} rev-parse --short HEAD')
+  _, git_sha = execute(
+      f'git -C {environment.get_config_directory()} rev-parse --short HEAD')
   return git_sha.strip().decode('utf-8')
+
 
 def _compute_revision(timestamp, *extras):
   """Return a revision that contains a timestamp, git-sha, user, and
@@ -107,7 +109,10 @@ def _compute_revision(timestamp, *extras):
   # Adding also the clusterfuzz-config version to the revision
   clusterfuzz_config_git_sha = _get_clusterfuzz_config_commit_sha()
 
-  components = [timestamp, clusterfuzz_git_sha, os.environ['USER'], clusterfuzz_config_git_sha] + list(extras)
+  components = [
+      timestamp, clusterfuzz_git_sha, os.environ['USER'],
+      clusterfuzz_config_git_sha
+  ] + list(extras)
   return '-'.join(components)
 
 
