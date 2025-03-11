@@ -15,21 +15,19 @@
 
 import collections
 import re
+import random
+import os
+import pickle
 
-from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 
 from . import cleanup
 from . import group_leader
-
-FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
-                        'one_time_crasher_flag', 'project_name',
-                        'security_flag', 'timestamp', 'job_type')
+from load_groups import TestcaseAttributes
 
 GROUP_MAX_TESTCASE_LIMIT = 25
 
@@ -43,22 +41,57 @@ VARIANT_MIN_THRESHOLD = 5
 VARIANT_MAX_THRESHOLD = 10
 
 TOP_CRASHES_LIMIT = 10
+TEST_DELETED_TCS = set()
 
+def noop(self):
+  pass
 
-class TestcaseAttributes:
-  """Testcase attributes used for grouping."""
+class GroupAttributes:
+  """Groups Attributes."""
 
-  __slots__ = ('id', 'is_leader', 'issue_id') + FORWARDED_ATTRIBUTES
+  __slots__ = ('id', 'leader_id', 'group_issue_id', 'testcases')
 
-  def __init__(self, testcase_id):
-    self.id = testcase_id
-    self.is_leader = True
-    self.issue_id = None
+  def __init__(self, group_id):
+    self.id = group_id
+    self.leader_id = None
+    self.group_issue_id = None
+    self.testcases = dict()
 
+# def add_group_to_map(group_map: dict[int, GroupAttributes], group_id: int,
+#                      tc1: int, tc2: int, reason: str) -> None:
+#   if group_id not in group_map:
+#     group_map[group_id] = GroupAttributes(group_id)
+#   group_map[group_id].testcases.add(tc1)
+#   group_map[group_id].testcases.add(tc2)
+#   group_map[group_id].testcases_sims[f'{tc1}-{tc2}'] = reason 
+
+def add_group_to_map(group_map: dict[int, GroupAttributes], group_id: int,
+                     tc1: int, tc2: int, reason: str) -> None:
+  if group_id not in group_map:
+    group_map[group_id] = GroupAttributes(group_id)
+  
+  if tc1 not in group_map[group_id].testcases:
+    group_map[group_id].testcases[tc1] = {}
+
+  if tc2 not in group_map[group_id].testcases:
+    group_map[group_id].testcases[tc2] = {}
+  
+  group_map[group_id].testcases[tc1][tc2] = reason 
+  group_map[group_id].testcases[tc2][tc1] = reason
+
+def remove_testcase_from_group(group_map: dict[int, GroupAttributes],
+                               testcase: TestcaseAttributes) -> None:
+  group_id = testcase.group_id
+  tc_id = testcase.id
+  if group_id not in group_map:
+    return
+  for similar_tc in group_map[group_id].testcases[tc_id].keys():
+    del group_map[group_id].testcases[similar_tc][tc_id]
+  del group_map[group_id].testcases[tc_id]
 
 def combine_testcases_into_group(
     testcase_1: TestcaseAttributes, testcase_2: TestcaseAttributes,
-    testcase_map: dict[int, TestcaseAttributes], reason: str) -> None:
+    testcase_map: dict[int, TestcaseAttributes], reason: str, group_map: dict[int, GroupAttributes]) -> None:
   """Combine two testcases into a group."""
   logs.info(
       'Grouping testcase %s '
@@ -76,15 +109,18 @@ def combine_testcases_into_group(
     new_group_id = _get_new_group_id()
     testcase_1.group_id = new_group_id
     testcase_2.group_id = new_group_id
+    add_group_to_map(group_map, new_group_id, testcase_1.id, testcase_2.id, reason)
     return
 
   # If one of the testcase has a group id, then assign the other to reuse that
   # group id.
   if testcase_1.group_id and not testcase_2.group_id:
     testcase_2.group_id = testcase_1.group_id
+    add_group_to_map(group_map, testcase_1.group_id, testcase_1.id, testcase_2.id, reason)
     return
   if testcase_2.group_id and not testcase_1.group_id:
     testcase_1.group_id = testcase_2.group_id
+    add_group_to_map(group_map, testcase_2.group_id, testcase_1.id, testcase_2.id, reason)
     return
 
   # If both the testcase have their own groups, then just merge the two groups
@@ -92,20 +128,21 @@ def combine_testcases_into_group(
   group_id_to_reuse = testcase_1.group_id
   group_id_to_move = testcase_2.group_id
   moved_testcase_ids = []
+  add_group_to_map(group_map, group_id_to_reuse, testcase_1.id, testcase_2.id, reason)
   for testcase in testcase_map.values():
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
       moved_testcase_ids.append(str(testcase.id))
-  # ADD: data_handler.delete_group(group_id_to_move, update_testcases=False)
+      for tc_sim, r in group_map[group_id_to_move].testcases[testcase.id].items():
+        add_group_to_map(group_map, group_id_to_reuse, testcase_1.id, tc_sim, r)
+  del group_map[group_id_to_move]
   logs.info(f'Merged group {group_id_to_move} into {group_id_to_reuse}: ' +
             'moved testcases: ' + ', '.join(moved_testcase_ids))
 
 
 def _get_new_group_id():
   """Get a new group id for testcase grouping."""
-  new_group = data_types.TestcaseGroup()
-  new_group.put()
-  return new_group.key.id()
+  return random.randint(0, 2**63-1)
 
 
 def is_same_variant(variant1, variant2):
@@ -132,7 +169,7 @@ def matches_top_crash(testcase, top_crashes_by_project_and_platform):
   return False
 
 
-def _group_testcases_based_on_variants(testcase_map):
+def _group_testcases_based_on_variants(testcase_map, group_map):
   """Group testcases that are associated based on variant analysis."""
   # Skip this if the project is configured so (like Google3).
   enable = local_config.ProjectConfig().get('deduplication.variant', True)
@@ -181,7 +218,7 @@ def _group_testcases_based_on_variants(testcase_map):
 
       # Rule: Group testcase with similar variants.
       # For each testcase2, get the related variant1 and check for equivalence.
-      candidate_variant = data_handler.get_testcase_variant(
+      candidate_variant = data_handler.get_testcase_variant( # ---> ONLY QUERIES DB
           testcase_1_id, testcase_2.job_type)
 
       if (not candidate_variant or
@@ -194,7 +231,7 @@ def _group_testcases_based_on_variants(testcase_map):
 
   # Top crashes are usually startup crashes, so don't group them.
   top_crashes_by_project_and_platform = (
-      cleanup.get_top_crashes_for_all_projects_and_platforms(
+      cleanup.get_top_crashes_for_all_projects_and_platforms( # ---> ONLY QUERIES DB
           limit=TOP_CRASHES_LIMIT))
 
   # Phase 2: check for the anomalous candidates
@@ -236,10 +273,10 @@ def _group_testcases_based_on_variants(testcase_map):
         continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                   'identical variant')
+                                   'identical variant', group_map)
 
 
-def _group_testcases_with_same_issues(testcase_map):
+def _group_testcases_with_same_issues(testcase_map, group_map):
   """Group testcases that are associated with same underlying issue."""
   logs.info('Grouping based on same issues.')
   for testcase_1_id, testcase_1 in testcase_map.items():
@@ -266,10 +303,10 @@ def _group_testcases_with_same_issues(testcase_map):
         continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                   'same issue')
+                                   'same issue', group_map)
 
 
-def _group_testcases_with_similar_states(testcase_map):
+def _group_testcases_with_similar_states(testcase_map, group_map):
   """Group testcases with similar looking crash states."""
   logs.info('Grouping based on similar states.')
   for testcase_1_id, testcase_1 in testcase_map.items():
@@ -291,11 +328,11 @@ def _group_testcases_with_similar_states(testcase_map):
       if testcase_1.security_flag != testcase_2.security_flag:
         continue
 
-      # Rule: Check both testcases regressed to the same revision range
-      # considering the same job type.
-      if (testcase_1.regression != testcase_2.regression and
-          testcase_1.job_type == testcase_2.job_type):
-        continue
+      # # Rule: Check both testcases regressed to the same revision range
+      # # considering the same job type.
+      # if (testcase_1.regression != testcase_2.regression and
+      #     testcase_1.job_type == testcase_2.job_type):
+      #   continue
 
       # Rule: Follow different comparison rules when crash types is one of the
       # ones that have unique crash state (custom ones specifically).
@@ -310,42 +347,22 @@ def _group_testcases_with_similar_states(testcase_map):
       else:
         # Rule: For functional bugs, compare for similar crash types.
         if not testcase_1.security_flag:
-          crash_comparer = CrashComparer(testcase_1.crash_type,
+          crash_comparer = CrashComparer(testcase_1.crash_type, # --> ONLY QUERIES DB
                                          testcase_2.crash_type)
           if not crash_comparer.is_similar():
             continue
 
         # Rule: Check for crash state similarity.
-        crash_comparer = CrashComparer(testcase_1.crash_state,
+        crash_comparer = CrashComparer(testcase_1.crash_state, # --> ONLY QUERIES DB
                                        testcase_2.crash_state)
         if not crash_comparer.is_similar():
           continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                   'similar crashes')
+                                   'similar crashes', group_map)
 
-
-def _has_testcase_with_same_params(testcase, testcase_map):
-  """Return a bool whether there is another testcase with same params."""
-  for other_testcase_id in testcase_map:
-    # yapf: disable
-    if (testcase.project_name ==
-        testcase_map[other_testcase_id].project_name and
-        testcase.crash_state ==
-        testcase_map[other_testcase_id].crash_state and
-        testcase.crash_type ==
-        testcase_map[other_testcase_id].crash_type and
-        testcase.security_flag ==
-        testcase_map[other_testcase_id].security_flag and
-        testcase.one_time_crasher_flag ==
-        testcase_map[other_testcase_id].one_time_crasher_flag):
-      return True
-    # yapf: enable
-
-  return False
-
-
-def _shrink_large_groups_if_needed(testcase_map):
+# TODO: Make this function also remove single groups
+def _shrink_large_groups_if_needed(testcase_map, group_map):
   """Shrinks groups that exceed a particular limit."""
 
   def _key_func(testcase):
@@ -370,171 +387,67 @@ def _shrink_large_groups_if_needed(testcase_map):
     if len(testcases_in_group) <= GROUP_MAX_TESTCASE_LIMIT:
       continue
 
+    if len(testcases_in_group) == 1:
+      del group_map[testcases_in_group[0].group_id]
+      testcases_in_group[0].group_id = 0
+      testcases_in_group[0].is_leader = True
+
     testcases_in_group = sorted(testcases_in_group, key=_key_func)
     for testcase in testcases_in_group[:-GROUP_MAX_TESTCASE_LIMIT]:
-      try:
-        testcase_entity = data_handler.get_testcase_by_id(testcase.id)
-      except errors.InvalidTestcaseError:
-        # Already deleted.
-        continue
-
-      if testcase_entity.bug_information:
+      if testcase.issue_id:
         continue
 
       logs.warning(('Deleting testcase {testcase_id} due to overflowing group '
                     '{group_id}.').format(
                         testcase_id=testcase.id, group_id=testcase.group_id))
-      # testcase_entity.key.delete()
-      testcase_entity.vtcosta_deleted = True
-  
+      TEST_DELETED_TCS.add(testcase.id)
+      del testcase_map[testcase.id]
+      remove_testcase_from_group(group_map, testcase)
 
+def get_loaded_testcases():
+  attr_filepath = os.path.join(os.getenv('PATH_TO_TCS', '.'), 'testcases_attributes.pkl')
+  tcs_deleted_filepath = os.path.join(os.getenv('PATH_TO_TCS', '.'), 'testcases_deleted.pkl')
+
+  if os.path.exists(tcs_deleted_filepath):
+    with open(tcs_deleted_filepath, 'rb') as f:
+      TEST_DELETED_TCS.update(pickle.load(f))
+
+  if not os.path.exists(attr_filepath):
+    logs.error(f'Loaded Testcases map not found - {attr_filepath}')
+    return None
+
+  with open(attr_filepath, 'rb') as f:
+    testcase_map = pickle.load(f)
+
+  return testcase_map
 
 def group_testcases():
   """Group testcases based on rules like same bug numbers, similar crash
   states, etc."""
-  testcase_map = {}
-  cached_issue_map = {}
+  # No-op to update/delete functions
+  data_types.Testcase.put = noop
+  data_types.Testcase.key.delete = noop
 
-  for testcase_id in data_handler.get_open_testcase_id_iterator():
-    try:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
-    except errors.InvalidTestcaseError:
-      # Already deleted.
-      continue
+  testcase_map = get_loaded_testcases()
+  if testcase_map is None:
+    return
 
-    # Remove duplicates early on to avoid large groups.
-    if (not testcase.bug_information and not testcase.uploader_email and
-        _has_testcase_with_same_params(testcase, testcase_map)):
-      logs.info('Deleting duplicate testcase %d.' % testcase_id)
-      testcase.key.delete()
-      continue
+  if os.getenv("JUST_TEST", False):
+    print(f'Testcase map size - {len(testcase_map)}')
+    print(f'Testcase keys - {testcase_map.keys()}')
+    print(f'Class Type - {type(list(testcase_map.values())[0])}')
+    print(f'Testcase Job Type - {list(testcase_map.values())[0].job_type}')
+    return
 
-    # Wait for minimization to finish as this might change crash params such
-    # as type and may mark it as duplicate / closed.
-    if not testcase.minimized_keys:
-      continue
-
-    # Store needed testcase attributes into |testcase_map|.
-    testcase_map[testcase_id] = TestcaseAttributes(testcase_id)
-    testcase_attributes = testcase_map[testcase_id]
-    for attribute_name in FORWARDED_ATTRIBUTES:
-      setattr(testcase_attributes, attribute_name,
-              getattr(testcase, attribute_name))
-
-    # Store original issue mappings in the testcase attributes.
-    if testcase.bug_information:
-      issue_id = int(testcase.bug_information)
-      project_name = testcase.project_name
-
-      if (project_name in cached_issue_map and
-          issue_id in cached_issue_map[project_name]):
-        testcase_attributes.issue_id = (
-            cached_issue_map[project_name][issue_id])
-      else:
-        try:
-          issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-              testcase)
-          if issue_tracker:
-            logs.info(
-                f'Running grouping with issue tracker {issue_tracker.project}, '
-                f' for testcase {testcase_id}')
-        except ValueError:
-          logs.error('Couldn\'t get issue tracker for issue.')
-          del testcase_map[testcase_id]
-          continue
-
-        if not issue_tracker:
-          logs.error('Unable to access issue tracker for issue %d.' % issue_id)
-          testcase_attributes.issue_id = issue_id
-          continue
-
-        # Determine the original issue id traversing the list of duplicates.
-        try:
-          issue = issue_tracker.get_original_issue(issue_id)
-          original_issue_id = int(issue.id)
-        except:
-          # If we are unable to access the issue, then we can't determine
-          # the original issue id. Assume that it is the same as issue id.
-          logs.error(
-              'Unable to determine original issue for issue %d.' % issue_id)
-          testcase_attributes.issue_id = issue_id
-          continue
-
-        if project_name not in cached_issue_map:
-          cached_issue_map[project_name] = {}
-        cached_issue_map[project_name][issue_id] = original_issue_id
-        cached_issue_map[project_name][original_issue_id] = original_issue_id
-        testcase_attributes.issue_id = original_issue_id
-
-  # No longer needed. Free up some memory.
-  cached_issue_map.clear()
-
-  _group_testcases_with_similar_states(testcase_map)
-  _group_testcases_with_same_issues(testcase_map)
-  _group_testcases_based_on_variants(testcase_map)
-  _shrink_large_groups_if_needed(testcase_map)
-  group_leader.choose(testcase_map)
-
-  # TODO(aarya): Replace with an optimized implementation using dirty flag.
-  # Update the group mapping in testcase object.
-  for testcase_id in data_handler.get_open_testcase_id_iterator():
-    if testcase_id not in testcase_map:
-      # A new testcase that was just created. Skip for now, will be grouped in
-      # next iteration of group task.
-      continue
-
-    # If we are part of a group, then calculate the number of testcases in that
-    # group and lowest issue id of issues associated with testcases in that
-    # group.
-    updated_group_id = testcase_map[testcase_id].group_id
-    updated_is_leader = testcase_map[testcase_id].is_leader
-    updated_group_id_count = 0
-    updated_group_bug_information = 0
-    if updated_group_id:
-      for other_testcase in testcase_map.values():
-        if other_testcase.group_id != updated_group_id:
-          continue
-        updated_group_id_count += 1
-
-        # Update group issue id to be lowest issue id in the entire group.
-        if other_testcase.issue_id is None:
-          continue
-        if (not updated_group_bug_information or
-            updated_group_bug_information > other_testcase.issue_id):
-          updated_group_bug_information = other_testcase.issue_id
-
-    # If this group id is used by only one testcase, then remove it.
-    if updated_group_id_count == 1:
-      data_handler.delete_group(updated_group_id, update_testcases=False)
-      updated_group_id = 0
-      updated_group_bug_information = 0
-      updated_is_leader = True
-
-    try:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
-    except errors.InvalidTestcaseError:
-      # Already deleted.
-      continue
-
-    is_changed = (
-        (testcase.group_id != updated_group_id) or
-        (testcase.group_bug_information != updated_group_bug_information) or
-        (testcase.is_leader != updated_is_leader))
-
-    if not testcase.get_metadata('ran_grouper'):
-      testcase.set_metadata('ran_grouper', True, update_testcase=not is_changed)
-
-    if not is_changed:
-      continue
-
-    testcase.group_bug_information = updated_group_bug_information
-    testcase.group_id = updated_group_id
-    testcase.is_leader = updated_is_leader
-    testcase.put()
-    logs.info(
-        'Updated testcase %d group to %d.' % (testcase_id, updated_group_id))
+  group_map = {}
+  _group_testcases_with_similar_states(testcase_map, group_map)
+  _group_testcases_with_same_issues(testcase_map, group_map)
+  _group_testcases_based_on_variants(testcase_map, group_map)
+  _shrink_large_groups_if_needed(testcase_map, group_map)
+  group_leader.choose(testcase_map, group_map)
 
 def main():
+  logs.configure('run_bot')
   try:
     logs.info('Grouping testcases.')
     group_testcases()
