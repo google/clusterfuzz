@@ -129,6 +129,53 @@ class ExternalTestcaseReaderTest(unittest.TestCase):
     mock_submit_testcase.assert_not_called()
 
 
+@mock.patch.object(
+    external_testcase_reader.gcs, 'prepare_blob_upload', autospec=True)
+@mock.patch.object(
+    external_testcase_reader.form, 'generate_csrf_token', autospec=True)
+class ExternalTestcaseReaderSubmitTestcaseTest(unittest.TestCase):
+  """external_testcase_reader submit_testcase tests."""
+
+  @mock.patch.object(external_testcase_reader.requests, 'post', autospec=True)
+  def test_submit_valid_testcase(self, mock_post, mock_csrf, mock_blob):
+    """Test a basic submit_testcase with a valid testcase."""
+    html_file = mock.MagicMock()
+    actual = external_testcase_reader.submit_testcase(
+        123, html_file, 'filename', 'text/html', ['command1'])
+
+    self.assertNotEqual(0, actual)
+    mock_post.assert_called()
+    mock_csrf.assert_called()
+    mock_blob.assert_called()
+
+  @mock.patch.object(external_testcase_reader.requests, 'post', autospec=True)
+  def test_submit_unsupported_testcase(self, mock_post, mock_csrf, mock_blob):
+    """Test a basic submit_testcase with an unsupported testcase."""
+    some_file = mock.MagicMock()
+    actual = external_testcase_reader.submit_testcase(
+        123, some_file, 'filename', 'invalid/type', ['command1'])
+
+    self.assertEqual(0, actual)
+    mock_post.assert_not_called()
+    mock_csrf.assert_not_called()
+    mock_blob.assert_not_called()
+
+  @mock.patch.object(external_testcase_reader.requests, 'post', autospec=True)
+  def test_submit_post_failure(self, mock_post, mock_csrf, mock_blob):
+    """Test a basic submit_testcase with an http post failure."""
+    invalid_file = mock.MagicMock()
+    invalid_response = mock.MagicMock()
+    invalid_response.status_code = 400
+    mock_post.return_value = invalid_response
+    actual = external_testcase_reader.submit_testcase(
+        123, invalid_file, 'filename', 'text/html', ['command1'])
+
+    self.assertEqual(400, actual.status_code)
+    mock_post.assert_called()
+    mock_csrf.assert_called()
+    mock_blob.assert_called()
+
+
 class ExternalTestcaseReaderInvalidIssueTest(unittest.TestCase):
   """external_testcase_reader close_issue_if_invalid tests."""
 
