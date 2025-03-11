@@ -189,6 +189,19 @@ class Engine(engine.Engine):
     return arguments
 
   # pylint: disable=unused-argument
+  def fuzz_additional_processing_timeout(self, options):
+    """Return the maximum additional timeout in seconds for additional
+    operations in fuzz() (e.g. merging back new items).
+
+    Args:
+      options: A FuzzOptions object.
+
+    Returns:
+      An int representing the number of seconds required.
+    """
+    return engine_common.get_merge_timeout(engine_common.DEFAULT_MERGE_TIMEOUT)
+
+  # pylint: disable=unused-argument
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
 
@@ -302,39 +315,14 @@ class Engine(engine.Engine):
 
     old_corpus_len = shell.get_directory_file_count(options.corpus_dir)
     logs.info(f'Corpus length before fuzzing: {old_corpus_len}')
-
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
     log_lines = fuzz_result.output.splitlines()
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
+    logs.info('Fuzzing run completed.', fuzzing_logs=log_lines)
+
     workdir = options.workdir
-
-    try:
-      time_for_minimize = timeout - fuzz_result.time_executed
-
-      self.minimize_corpus(
-          target_path=target_path,
-          arguments=[],
-          # New units, in addition to the main corpus units,
-          # are placed in new_corpus_dir. Minimize and merge back
-          # to the main corpus_dir.
-          input_dirs=[options.new_corpus_dir],
-          output_dir=options.corpus_dir,
-          reproducers_dir=reproducers_dir,
-          max_time=time_for_minimize,
-          # Use the same workdir that was used for fuzzing.
-          # This allows us to skip rerunning the fuzzing inputs.
-          workdir=workdir)
-    except:
-      # TODO(alhijazi): Convert to a warning if this becomes a problem
-      # caused by user code rather than by ClusterFuzz or Centipede.
-      logs.error('Corpus minimization failed.')
-      # If we fail to minimize, fall back to moving the new units
-      # from the new corpus_dir to the main corpus_dir.
-      engine_common.move_mergeable_units(options.new_corpus_dir,
-                                         options.corpus_dir)
-
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
     if reproducer_path:
@@ -363,6 +351,30 @@ class Engine(engine.Engine):
     num_execs_avg = stats.get('NumExecs_Avg', 0.0)
     stats['average_exec_per_sec'] = num_execs_avg / fuzz_time_secs_avg
     stats.update(_parse_centipede_logs(log_lines))
+
+    try:
+      self.minimize_corpus(
+          target_path=target_path,
+          arguments=[],
+          # New units, in addition to the main corpus units,
+          # are placed in new_corpus_dir. Minimize and merge back
+          # to the main corpus_dir.
+          input_dirs=[options.new_corpus_dir],
+          output_dir=options.corpus_dir,
+          reproducers_dir=reproducers_dir,
+          max_time=engine_common.get_merge_timeout(
+              engine_common.DEFAULT_MERGE_TIMEOUT),
+          # Use the same workdir that was used for fuzzing.
+          # This allows us to skip rerunning the fuzzing inputs.
+          workdir=workdir)
+    except:
+      # TODO(alhijazi): Convert to a warning if this becomes a problem
+      # caused by user code rather than by ClusterFuzz or Centipede.
+      logs.error('Corpus minimization failed.')
+      # If we fail to minimize, fall back to moving the new units
+      # from the new corpus_dir to the main corpus_dir.
+      engine_common.move_mergeable_units(options.new_corpus_dir,
+                                         options.corpus_dir)
 
     new_corpus_len = shell.get_directory_file_count(options.corpus_dir)
     logs.info(f'Corpus length after fuzzing: {new_corpus_len}')
