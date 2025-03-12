@@ -13,6 +13,7 @@
 # limitations under the License.
 """Logging functions."""
 
+import contextlib
 import datetime
 import enum
 import functools
@@ -498,20 +499,11 @@ def _add_appengine_trace(extras):
 
 def intercept_log_context(func):
 
-  def get_extra_from_context() -> typing.NamedTuple:
-    context = getattr(thread_local_context, 'value', 'default')
-    if context == LogContexts.TASK:
-      return TaskLogStruct(
-          task_id=os.getenv('CF_TASK_ID', 'unknown'),
-          task_name=os.getenv('TASK_NAME', 'unknown'),
-          stage=os.getenv('TASK_STAGE', 'unknown'))
-
-    return GenericLogStruct()
-
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
     # Access the context from thread-local storage
-    kwargs.update(get_extra_from_context()._asdict())
+    for context in _log_contexts:
+      kwargs.update(context.get_extras()._asdict())
     # Call the original function
     return func(*args, **kwargs)
 
@@ -605,10 +597,6 @@ def log_fatal_and_exit(message, **extras):
   sys.exit(-1)
 
 
-# Thread-local storage for the context
-thread_local_context = threading.local()
-
-
 class GenericLogStruct(typing.NamedTuple):
   pass
 
@@ -622,21 +610,23 @@ class TaskLogStruct(typing.NamedTuple):
 class LogContexts(enum.Enum):
   TASK = 'task'
 
+  def get_extras(self) -> typing.NamedTuple:
 
-def log_context(context: LogContexts):
-  """
-    This decorator sets the context using thread-local storage for the function
-    that calls process_data.
-    """
+    if self == LogContexts.TASK:
+      return TaskLogStruct(
+          task_id=os.getenv('CF_TASK_ID', 'unknown'),
+          task_name=os.getenv('TASK_NAME', 'unknown'),
+          stage=os.getenv('TASK_STAGE', 'unknown'))
 
-  def decorator(func):
+    return GenericLogStruct()
 
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-      # Set the context in thread-local storage
-      thread_local_context.value = context
-      return func(*args, **kwargs)
 
-    return wrapper
+_log_contexts: typing.List[LogContexts] = []
 
-  return decorator
+
+@contextlib.contextmanager
+def wrap_log_context(context: LogContexts):
+  global _log_contexts
+  _log_contexts.append(context)
+  yield
+  _log_contexts.remove(context)

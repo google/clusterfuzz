@@ -463,6 +463,36 @@ class EmitTest(unittest.TestCase):
             }
         })
 
+  def test_log_context(self):
+    """Test log error."""
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    with logs.wrap_log_context(logs.LogContexts.TASK):
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+
+    logger.log.assert_called_once_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+                'task_id': 'unknown',
+                'task_name': 'unknown',
+                'stage': 'unknown'
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_log_context'
+            },
+            'release': 'prod',
+            'docker_image': ''
+        })
+
 
 class TruncateTest(unittest.TestCase):
   """Test truncate."""
@@ -497,3 +527,18 @@ class ErrorTest(unittest.TestCase):
     logs.error('test', exception='exception', hello='1')
     self.mock.emit.assert_called_once_with(
         logging.ERROR, 'test', exc_info='err', hello='1')
+
+
+class TestLogContextSingleton(unittest.TestCase):
+  """Tests error."""
+
+  def test_is_same(self):
+    from python.bot.startup.run_bot import logs as logs_from_run_bot
+    from clusterfuzz._internal.base.tasks.task_rate_limiting import logs as logs_from_task_rate_limiting
+
+    assert logs_from_run_bot == logs_from_task_rate_limiting
+    assert logs_from_run_bot._log_contexts == []
+    assert logs_from_run_bot._log_contexts == []
+    logs_from_run_bot._log_contexts = [logs_from_run_bot.LogContexts.TASK]
+
+    assert logs_from_task_rate_limiting._log_contexts == logs_from_run_bot._log_contexts
