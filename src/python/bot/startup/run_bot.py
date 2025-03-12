@@ -104,6 +104,7 @@ def schedule_utask_mains():
     batch.create_uworker_main_batch_jobs(batch_tasks)
 
 
+@logs.log_context(logs.LogContexts.TASK)
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
