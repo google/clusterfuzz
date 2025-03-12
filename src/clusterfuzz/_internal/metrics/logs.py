@@ -14,15 +14,19 @@
 """Logging functions."""
 
 import datetime
+import enum
+import functools
 import json
 import logging
 from logging import config
 import os
 import socket
 import sys
+import threading
 import time
 import traceback
 from typing import Any
+import typing
 
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
 LOCAL_LOG_MESSAGE_LIMIT = 100000
@@ -492,6 +496,29 @@ def _add_appengine_trace(extras):
           project_id=project_id, trace_id=trace_id)
 
 
+def intercept_log_context(func):
+
+  def get_extra_from_context() -> typing.NamedTuple:
+    context = getattr(thread_local_context, 'value', 'default')
+    if context == LogContexts.TASK:
+      return TaskLogStruct(
+          task_id=os.getenv('CF_TASK_ID', 'unknown'),
+          task_name=os.getenv('TASK_NAME', 'unknown'),
+          stage=os.getenv('TASK_STAGE', 'unknown'))
+
+    return GenericLogStruct()
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    # Access the context from thread-local storage
+    kwargs.update(get_extra_from_context()._asdict())
+    # Call the original function
+    return func(*args, **kwargs)
+
+  return wrapper
+
+
+@intercept_log_context
 def emit(level, message, exc_info=None, **extras):
   """Log in JSON."""
   logger = get_logger()
@@ -576,3 +603,40 @@ def log_fatal_and_exit(message, **extras):
     info('Waiting for %d seconds before exit.' % wait_before_exit)
     time.sleep(wait_before_exit)
   sys.exit(-1)
+
+
+# Thread-local storage for the context
+thread_local_context = threading.local()
+
+
+class GenericLogStruct(typing.NamedTuple):
+  pass
+
+
+class TaskLogStruct(typing.NamedTuple):
+  task_id: str
+  task_name: str
+  stage: str
+
+
+class LogContexts(enum.Enum):
+  TASK = 'task'
+
+
+def log_context(context: LogContexts):
+  """
+    This decorator sets the context using thread-local storage for the function
+    that calls process_data.
+    """
+
+  def decorator(func):
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+      # Set the context in thread-local storage
+      thread_local_context.value = context
+      return func(*args, **kwargs)
+
+    return wrapper
+
+  return decorator
