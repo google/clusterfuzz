@@ -207,6 +207,12 @@ def get_latest_artifact_info(branch, target, signed=False):
   if not client:
     return None
 
+  build_id = environment.get_value('BUILD_ID')
+  if build_id is not None and build_id != '':
+    logs.info(f'BUILD_ID env var present with value {build_id}. '
+              f'Hence returning its value.')
+    return {"bid": build_id, "branch": branch, "target": target}
+
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
   if environment.is_android_cuttlefish():
