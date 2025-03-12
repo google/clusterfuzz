@@ -208,11 +208,16 @@ def flash_to_latest_build_if_needed():
 
   if adb.get_device_state() != 'device':
     monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
-        'build_id': build_info['bid']
+        'build_id': build_info['bid'],
+        'is_succeeded': False
     })
     logs.error('Unable to find device. Reimaging failed.')
     adb.bad_state_reached()
 
+  monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
+      'build_id': build_info['bid'],
+      'is_succeeded': True
+  })
   logs.info('Reimaging finished.')
 
   # Reset all of our persistent keys after wipe.
