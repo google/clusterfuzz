@@ -23,6 +23,15 @@ BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
         monitor.BooleanField('success'),
     ])
 
+CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
+    'tip_boot_failure',
+    description=
+    'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
+    field_spec=[
+        monitor.StringField('build_id'),
+        monitor.BooleanField('is_succeeded'),
+    ])
+
 JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
     'task/fuzz/job/bad_build_count',
     description=("Count of fuzz task's bad build count "
