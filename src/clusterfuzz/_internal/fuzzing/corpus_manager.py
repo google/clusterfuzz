@@ -735,12 +735,6 @@ def get_fuzz_target_corpus(engine,
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_target_name, quarantine)
 
-  corpus = get_proto_corpus(
-      bucket_name,
-      bucket_path,
-      include_delete_urls=include_delete_urls,
-      max_upload_urls=max_upload_urls,
-      max_download_urls=max_download_urls)
   if use_backup:
     backup_bucket_name = environment.get_value('BACKUP_BUCKET')
     backup_engine_name = environment.get_value('CORPUS_FUZZER_NAME_OVERRIDE',
@@ -748,8 +742,19 @@ def get_fuzz_target_corpus(engine,
     gcs_url = gcs_url_for_backup_file(backup_bucket_name, backup_engine_name,
                                       project_qualified_target_name,
                                       LATEST_BACKUP_TIMESTAMP)
-    corpus.backup_url = storage.get_signed_download_url(gcs_url)
+    backup_url = storage.get_signed_download_url(gcs_url)
+  else:
+    backup_url = None
+  corpus = get_proto_corpus(
+      bucket_name,
+      bucket_path,
+      include_delete_urls=include_delete_urls,
+      max_upload_urls=max_upload_urls,
+      max_download_urls=max_download_urls,
+      backup_url=backup_url)
 
+  if backup_url:
+    corpus.backup_url = backup_url
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
   assert not (include_regressions and quarantine)
