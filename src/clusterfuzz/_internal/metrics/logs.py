@@ -502,7 +502,7 @@ def intercept_log_context(func):
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
     # Access the context from thread-local storage
-    for context in _log_contexts:
+    for context in _log_contexts.get():
       kwargs.update(context.get_extras()._asdict())
     # Call the original function
     return func(*args, **kwargs)
@@ -607,12 +607,12 @@ class TaskLogStruct(typing.NamedTuple):
   stage: str
 
 
-class LogContexts(enum.Enum):
+class LogContextType(enum.Enum):
   TASK = 'task'
 
   def get_extras(self) -> typing.NamedTuple:
 
-    if self == LogContexts.TASK:
+    if self == LogContextType.TASK:
       return TaskLogStruct(
           task_id=os.getenv('CF_TASK_ID', 'unknown'),
           task_name=os.getenv('TASK_NAME', 'unknown'),
@@ -621,12 +621,46 @@ class LogContexts(enum.Enum):
     return GenericLogStruct()
 
 
-_log_contexts: typing.List[LogContexts] = []
+class Singleton(type):
+  _instances = {}
+  _lock = threading.Lock()
+
+  def __call__(cls, *args, **kwargs):
+    with cls._lock:
+      if cls not in cls._instances:
+        cls._instances[cls] = super().__call__(*args, **kwargs)
+    return cls._instances[cls]
+
+
+class LogContexts(metaclass=Singleton):
+
+  def __init__(self, contexts=[]):
+    self.contexts: list[LogContextType] = []
+    self._data_lock = threading.Lock()
+
+  def get(self) -> list[LogContextType]:
+    return self.contexts
+
+  def add(self, new_contexts: list[LogContextType]):
+    with self._data_lock:
+      self.contexts += new_contexts
+
+  def delete(self, contexts: list[LogContextType]):
+    with self._data_lock:
+      for ctx in contexts:
+        self.contexts.remove(ctx)
+
+  def clear(self):
+    with self._data_lock:
+      self.contexts = []
+
+
+_log_contexts = LogContexts()
 
 
 @contextlib.contextmanager
-def wrap_log_context(context: LogContexts):
+def wrap_log_context(contexts: list[LogContextType]):
   global _log_contexts
-  _log_contexts.append(context)
+  _log_contexts.add(contexts)
   yield
-  _log_contexts.remove(context)
+  _log_contexts.delete(contexts)
