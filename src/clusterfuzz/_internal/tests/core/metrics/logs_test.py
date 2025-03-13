@@ -468,7 +468,7 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
-    with logs.wrap_log_context(logs.LogContexts.TASK):
+    with logs.wrap_log_context([logs.LogContextType.TASK]):
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
@@ -536,9 +536,29 @@ class TestLogContextSingleton(unittest.TestCase):
     from python.bot.startup.run_bot import logs as logs_from_run_bot
     from clusterfuzz._internal.base.tasks.task_rate_limiting import logs as logs_from_task_rate_limiting
 
-    assert logs_from_run_bot == logs_from_task_rate_limiting
-    assert logs_from_run_bot._log_contexts == []
-    assert logs_from_run_bot._log_contexts == []
-    logs_from_run_bot._log_contexts = [logs_from_run_bot.LogContexts.TASK]
+    self.assertIs(logs_from_run_bot, logs_from_task_rate_limiting)
+    self.assertIs(logs_from_run_bot._log_contexts,
+                  logs_from_run_bot.LogContexts())
+    logs_from_run_bot._log_contexts.add([logs_from_run_bot.LogContextType.TASK])
 
     assert logs_from_task_rate_limiting._log_contexts == logs_from_run_bot._log_contexts
+    logs_from_run_bot._log_contexts.clear()
+
+  def test_multi_threading(self):
+
+    def incrementer():
+      from python.bot.startup.run_bot import logs
+      logs._log_contexts.add([logs.LogContextType.TASK])
+
+    import threading
+    threads = []
+    for _ in range(5):
+      thread = threading.Thread(target=incrementer)
+      threads.append(thread)
+      thread.start()
+
+    for thread in threads:
+      thread.join()
+
+    from python.bot.startup.run_bot import logs
+    assert len(logs._log_contexts.contexts) == 5
