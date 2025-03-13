@@ -197,7 +197,7 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
     gcloud.run('app', 'create', '--region=' + appengine_location)
 
   subprocess.check_call([
-      'python', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
+      'python3', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
       '--prod', '--config-dir', config_dir
   ])
 
