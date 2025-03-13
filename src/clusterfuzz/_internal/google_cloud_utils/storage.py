@@ -129,7 +129,11 @@ class StorageProvider:
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self,
+                 remote_path,
+                 recursive=True,
+                 names_only=False,
+                 single_file=False):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -232,11 +236,15 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self,
+                 remote_path,
+                 recursive=True,
+                 names_only=False,
+                 single_file=False):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
-    if path and not path.endswith('/'):
+    if path and not path.endswith('/') and not single_file:
       path += '/'
 
     client = _storage_client()
@@ -577,7 +585,11 @@ class FileSystemProvider(StorageProvider):
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self,
+                 remote_path,
+                 recursive=True,
+                 names_only=False,
+                 single_file=False):
     """List the blobs under the remote path."""
     del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
@@ -1250,7 +1262,7 @@ def upload_signed_url(data_or_fileobj, url: str) -> bool:
 
 
 def download_signed_url(url):
-  """Returns contents of |url|. Writes to |local_path| if provided."""
+  """Returns contents of |url|."""
   return _provider().download_signed_url(url)
 
 
