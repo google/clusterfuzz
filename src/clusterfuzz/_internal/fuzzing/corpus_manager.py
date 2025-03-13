@@ -677,13 +677,17 @@ def get_proto_corpus(bucket_name,
 
   corpus = uworker_msg_pb2.Corpus(gcs_url=gcs_url)  # pylint: disable=no-member
   if backup_url:
-    backup = storage.get_blobs(backup_url, single_file=True)
+    backups = storage.get_blobs(backup_url, single_file=True)
+    backups = list(backups)
+  else:
+    backups = None
+
+  if backups:
+    assert len(backups) == 1
     corpus.backup_url = storage.get_signed_download_url(backup_url)
-    backup = list(backup)
-    assert len(backup) == 1
     # Corpus backup can take up to 24 hours, get any corpus element before the
     # backup was made.
-    start_time = backup[0]['updated'] - datetime.timedelta(days=1)
+    start_time = backups[0]['updated'] - datetime.timedelta(days=1)
     blobs = storage.get_blobs(gcs_url)
     urls = (f'{storage.GS_PREFIX}/{bucket_name}/{blob["name"]}'
             for blob in blobs
