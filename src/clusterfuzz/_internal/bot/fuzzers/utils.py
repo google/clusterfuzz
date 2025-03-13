@@ -29,7 +29,7 @@ from clusterfuzz._internal.system import shell
 ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
 FUZZ_TARGET_SEARCH_BYTES = [b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver']
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
-BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
+BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*|jazzerjs.*)$')
 EXTRA_BUILD_DIR = '__extra_build'
 
 
