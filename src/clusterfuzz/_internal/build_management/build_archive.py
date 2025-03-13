@@ -31,7 +31,7 @@ FUZZ_TARGET_EXCLUDED_EXTENSIONS = [
 ]
 
 # File prefixes to explicitly include when unarchiving a fuzz target.
-FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
+ALLOWED_PREFIXES = [
     'afl-cmin',
     'afl-fuzz',
     'afl-showmap',
@@ -158,7 +158,7 @@ class DefaultBuildArchive(BuildArchive):
 
   def get_target_dependencies(
       self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
-    allowlisted_names = tuple([fuzz_target] + FUZZ_TARGET_ALLOWLISTED_PREFIXES)
+    allowlisted_names = tuple([fuzz_target] + ALLOWED_PREFIXES)
     blocklisted_extensions = tuple(
         '.' + extension for extension in FUZZ_TARGET_EXCLUDED_EXTENSIONS)
 
