@@ -27,7 +27,7 @@ import threading
 import time
 import traceback
 from typing import Any
-import typing
+from typing import NamedTuple
 
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
 LOCAL_LOG_MESSAGE_LIMIT = 100000
@@ -501,7 +501,7 @@ def intercept_log_context(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
-    for context in _log_contexts.get():
+    for context in log_contexts.get():
       kwargs.update(context.get_extras()._asdict())
     return func(*args, **kwargs)
 
@@ -595,23 +595,24 @@ def log_fatal_and_exit(message, **extras):
   sys.exit(-1)
 
 
-class GenericLogStruct(typing.NamedTuple):
+class GenericLogStruct(NamedTuple):
   pass
 
 
-class TaskLogStruct(typing.NamedTuple):
+class TaskLogStruct(NamedTuple):
   task_id: str
   task_name: str
   stage: str
 
 
 class LogContextType(enum.Enum):
+  """Log context types"""
   TASK = 'task'
 
-  def get_extras(self) -> typing.NamedTuple:
-
+  def get_extras(self) -> NamedTuple:
+    """Get the structured log for a given context"""
     if self == LogContextType.TASK:
-      stage = _log_contexts.get_meta().get('stage', Stage.UNKNOWN).value
+      stage = log_contexts.get_meta().get('stage', Stage.UNKNOWN).value
       # it should exist
       # TODO(javanlacerda): Remove this csv task_id and propagate it
       # properly, after cheking it works in production
@@ -643,9 +644,10 @@ class Singleton(type):
 
 
 class LogContexts(metaclass=Singleton):
+  """Class to keep the log contexts and metadata"""
 
-  def __init__(self, contexts=[]):
-    self.contexts: list[LogContextType] = contexts
+  def __init__(self):
+    self.contexts: list[LogContextType] = []
     self.meta: dict[Any, Any] = {}
     self._data_lock = threading.Lock()
 
@@ -673,21 +675,19 @@ class LogContexts(metaclass=Singleton):
       self.contexts = []
 
 
-_log_contexts = LogContexts()
+log_contexts = LogContexts()
 
 
 @contextlib.contextmanager
 def wrap_log_context(contexts: list[LogContextType]):
-  global _log_contexts
-  _log_contexts.add(contexts)
+  log_contexts.add(contexts)
   yield
-  _log_contexts.delete(contexts)
+  log_contexts.delete(contexts)
 
 
 @contextlib.contextmanager
 def task_stage_context(stage: Stage):
   with wrap_log_context(contexts=[LogContextType.TASK]):
-    global _log_contexts
-    _log_contexts.add_metadata('stage', stage)
+    log_contexts.add_metadata('stage', stage)
     yield
-    del _log_contexts.get_meta()['stage']
+    del log_contexts.get_meta()['stage']
