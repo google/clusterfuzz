@@ -539,22 +539,25 @@ class TestLogContextSingleton(unittest.TestCase):
   """Tests error."""
 
   def test_is_same(self):
+    """Test the singleton is the same instance for different module loads"""
+    from clusterfuzz._internal.base.tasks.task_rate_limiting import \
+        logs as logs_from_task_rate_limiting
     from python.bot.startup.run_bot import logs as logs_from_run_bot
-    from clusterfuzz._internal.base.tasks.task_rate_limiting import logs as logs_from_task_rate_limiting
 
     self.assertIs(logs_from_run_bot, logs_from_task_rate_limiting)
-    self.assertIs(logs_from_run_bot._log_contexts,
+    self.assertIs(logs_from_run_bot.log_contexts,
                   logs_from_run_bot.LogContexts())
-    logs_from_run_bot._log_contexts.add([logs_from_run_bot.LogContextType.TASK])
+    logs_from_run_bot.log_contexts.add([logs_from_run_bot.LogContextType.TASK])
 
-    assert logs_from_task_rate_limiting._log_contexts == logs_from_run_bot._log_contexts
-    logs_from_run_bot._log_contexts.clear()
+    assert logs_from_task_rate_limiting.log_contexts == logs_from_run_bot.log_contexts
+    logs_from_run_bot.log_contexts.clear()
 
   def test_multi_threading(self):
+    """Test multithread"""
 
     def incrementer():
-      from python.bot.startup.run_bot import logs
-      logs._log_contexts.add([logs.LogContextType.TASK])
+      from python.bot.startup.run_bot import logs as run_bot_logs
+      run_bot_logs.log_contexts.add([logs.LogContextType.TASK])
 
     import threading
     threads = []
@@ -566,5 +569,5 @@ class TestLogContextSingleton(unittest.TestCase):
     for thread in threads:
       thread.join()
 
-    from python.bot.startup.run_bot import logs
-    assert len(logs._log_contexts.contexts) == 5
+    from python.bot.startup.run_bot import logs as run_bot_logs
+    assert len(run_bot_logs.log_contexts.contexts) == 5
