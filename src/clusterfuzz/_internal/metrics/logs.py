@@ -612,7 +612,7 @@ class LogContextType(enum.Enum):
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
     if self == LogContextType.TASK:
-      stage = log_contexts.get_meta().get('stage', Stage.UNKNOWN).value
+      stage = log_contexts.get_metadata().get('stage', Stage.UNKNOWN).value
       # it should exist
       # TODO(javanlacerda): Remove this csv task_id and propagate it
       # properly, after cheking it works in production
@@ -654,7 +654,7 @@ class LogContexts(metaclass=Singleton):
   def get(self) -> list[LogContextType]:
     return self.contexts
 
-  def get_meta(self) -> dict[Any, Any]:
+  def get_metadata(self) -> dict[Any, Any]:
     return self.meta
 
   def add(self, new_contexts: list[LogContextType]):
@@ -669,6 +669,11 @@ class LogContexts(metaclass=Singleton):
     with self._data_lock:
       for ctx in contexts:
         self.contexts.remove(ctx)
+
+  def delete_metadata(self, key: Any):
+    with self._data_lock:
+      if key in self.meta:
+        del self.meta[key]
 
   def clear(self):
     with self._data_lock:
@@ -690,4 +695,4 @@ def task_stage_context(stage: Stage):
   with wrap_log_context(contexts=[LogContextType.TASK]):
     log_contexts.add_metadata('stage', stage)
     yield
-    del log_contexts.get_meta()['stage']
+    log_contexts.delete_metadata('stage')
