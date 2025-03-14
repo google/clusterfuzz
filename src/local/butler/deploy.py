@@ -348,28 +348,6 @@ def _update_bigquery(project):
                    'datasets.yaml'))
 
 
-def _update_redis(project):
-  """Update redis instance."""
-  _update_deployment_manager(
-      project, 'redis',
-      os.path.join(environment.get_config_directory(), 'redis',
-                   'instance.yaml'))
-
-  region = appengine.region(project)
-  return_code, _ = common.execute(
-      'gcloud compute networks vpc-access connectors describe '
-      'connector --region={region} '
-      '--project={project}'.format(project=project, region=region),
-      exit_on_error=False)
-
-  if return_code:
-    # Does not exist.
-    common.execute('gcloud compute networks vpc-access connectors create '
-                   'connector --network=default --region={region} '
-                   '--range=10.8.0.0/28 '
-                   '--project={project}'.format(project=project, region=region))
-
-
 def get_remote_sha():
   """Get remote sha of origin/master."""
   _, remote_sha_line = common.execute('git ls-remote origin refs/heads/master')
@@ -432,7 +410,6 @@ def _prod_deployment_helper(config_dir,
     _update_pubsub_queues(project)
     _update_alerts(project)
     _update_bigquery(project)
-    _update_redis(project)
 
   labels: dict[str, Any] = {
       'deploy_zip': bool(package_zip_paths),
