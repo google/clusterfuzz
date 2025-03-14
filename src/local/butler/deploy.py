@@ -421,6 +421,12 @@ def _prod_deployment_helper(config_dir,
   }
 
   try:
+    # AppEngine depends on the REDIS_HOST env var being available
+    # Therefore, terraform must run first, since it creates redis
+    if deploy_k8s:
+      _deploy_terraform(config_dir)
+      _deploy_k8s(config_dir)
+  
     _deploy_app_prod(
         project,
         deployment_bucket,
@@ -434,9 +440,7 @@ def _prod_deployment_helper(config_dir,
       common.execute(
           f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
 
-    if deploy_k8s:
-      _deploy_terraform(config_dir)
-      _deploy_k8s(config_dir)
+
 
     print(f'Production deployment finished. {labels}')
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
