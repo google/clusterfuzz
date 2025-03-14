@@ -13,16 +13,21 @@
 # limitations under the License.
 """Logging functions."""
 
+import contextlib
 import datetime
+import enum
+import functools
 import json
 import logging
 from logging import config
 import os
 import socket
 import sys
+import threading
 import time
 import traceback
 from typing import Any
+from typing import NamedTuple
 
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
 LOCAL_LOG_MESSAGE_LIMIT = 100000
@@ -492,6 +497,18 @@ def _add_appengine_trace(extras):
           project_id=project_id, trace_id=trace_id)
 
 
+def intercept_log_context(func):
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    for context in log_contexts.get():
+      kwargs.update(context.get_extras()._asdict())
+    return func(*args, **kwargs)
+
+  return wrapper
+
+
+@intercept_log_context
 def emit(level, message, exc_info=None, **extras):
   """Log in JSON."""
   logger = get_logger()
@@ -576,3 +593,106 @@ def log_fatal_and_exit(message, **extras):
     info('Waiting for %d seconds before exit.' % wait_before_exit)
     time.sleep(wait_before_exit)
   sys.exit(-1)
+
+
+class GenericLogStruct(NamedTuple):
+  pass
+
+
+class TaskLogStruct(NamedTuple):
+  task_id: str
+  task_name: str
+  stage: str
+
+
+class LogContextType(enum.Enum):
+  """Log context types"""
+  TASK = 'task'
+
+  def get_extras(self) -> NamedTuple:
+    """Get the structured log for a given context"""
+    if self == LogContextType.TASK:
+      stage = log_contexts.get_metadata().get('stage', Stage.UNKNOWN).value
+      # it should exist
+      # TODO(javanlacerda): Remove this csv task_id and propagate it
+      # properly, after cheking it works in production
+      current_task_id = os.getenv('CF_TASK_ID', '').split(",")
+      task_id = current_task_id[-1]
+      task_name = current_task_id[0]
+
+      return TaskLogStruct(task_id=task_id, task_name=task_name, stage=stage)
+
+    return GenericLogStruct()
+
+
+class Stage(enum.Enum):
+  PREPROCESS = 'preprocess'
+  MAIN = 'main'
+  POSTPROCESS = 'postprocess'
+  UNKNOWN = 'unknown'
+
+
+class Singleton(type):
+  _instances = {}
+  _lock = threading.Lock()
+
+  def __call__(cls, *args, **kwargs):
+    with cls._lock:
+      if cls not in cls._instances:
+        cls._instances[cls] = super().__call__(*args, **kwargs)
+    return cls._instances[cls]
+
+
+class LogContexts(metaclass=Singleton):
+  """Class to keep the log contexts and metadata"""
+
+  def __init__(self):
+    self.contexts: list[LogContextType] = []
+    self.meta: dict[Any, Any] = {}
+    self._data_lock = threading.Lock()
+
+  def get(self) -> list[LogContextType]:
+    return self.contexts
+
+  def get_metadata(self) -> dict[Any, Any]:
+    return self.meta
+
+  def add(self, new_contexts: list[LogContextType]):
+    with self._data_lock:
+      self.contexts += new_contexts
+
+  def add_metadata(self, key: Any, value: Any):
+    with self._data_lock:
+      self.meta[key] = value
+
+  def delete(self, contexts: list[LogContextType]):
+    with self._data_lock:
+      for ctx in contexts:
+        self.contexts.remove(ctx)
+
+  def delete_metadata(self, key: Any):
+    with self._data_lock:
+      if key in self.meta:
+        del self.meta[key]
+
+  def clear(self):
+    with self._data_lock:
+      self.contexts = []
+
+
+log_contexts = LogContexts()
+
+
+@contextlib.contextmanager
+def wrap_log_context(contexts: list[LogContextType]):
+  log_contexts.add(contexts)
+  yield
+  log_contexts.delete(contexts)
+
+
+@contextlib.contextmanager
+def task_stage_context(stage: Stage):
+  with wrap_log_context(contexts=[LogContextType.TASK]):
+    log_contexts.add_metadata('stage', stage)
+    yield
+    log_contexts.delete_metadata('stage')
