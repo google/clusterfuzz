@@ -405,6 +405,12 @@ class EmitTest(unittest.TestCase):
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
+    os.environ[
+        'CF_TASK_ID'] = 'fuzz,libFuzzer,libfuzzer_asan_gopacket,f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+
+  def tearDown(self):
+    del os.environ["CF_TASK_ID"]
+    return super().tearDown()
 
   def test_no_logger(self):
     """Test no logger."""
@@ -468,7 +474,7 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
-    with logs.wrap_log_context([logs.LogContextType.TASK]):
+    with logs.task_stage_context(logs.Stage.PREPROCESS):
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
@@ -480,9 +486,9 @@ class EmitTest(unittest.TestCase):
             'extras': {
                 'target': 'bot',
                 'test': 'yes',
-                'task_id': 'unknown',
-                'task_name': 'unknown',
-                'stage': 'unknown'
+                'task_id': 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868',
+                'task_name': 'fuzz',
+                'stage': 'preprocess'
             },
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),

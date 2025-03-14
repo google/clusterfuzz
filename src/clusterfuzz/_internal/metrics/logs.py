@@ -501,10 +501,8 @@ def intercept_log_context(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
-    # Access the context from thread-local storage
     for context in _log_contexts.get():
       kwargs.update(context.get_extras()._asdict())
-    # Call the original function
     return func(*args, **kwargs)
 
   return wrapper
@@ -613,12 +611,24 @@ class LogContextType(enum.Enum):
   def get_extras(self) -> typing.NamedTuple:
 
     if self == LogContextType.TASK:
-      return TaskLogStruct(
-          task_id=os.getenv('CF_TASK_ID', 'unknown'),
-          task_name=os.getenv('TASK_NAME', 'unknown'),
-          stage=os.getenv('TASK_STAGE', 'unknown'))
+      stage = _log_contexts.get_meta().get('stage', Stage.UNKNOWN).value
+      # it should exist
+      # TODO(javanlacerda): Remove this csv task_id and propagate it
+      # properly, after cheking it works in production
+      current_task_id = os.getenv('CF_TASK_ID', '').split(",")
+      task_id = current_task_id[-1]
+      task_name = current_task_id[0]
+
+      return TaskLogStruct(task_id=task_id, task_name=task_name, stage=stage)
 
     return GenericLogStruct()
+
+
+class Stage(enum.Enum):
+  PREPROCESS = 'preprocess'
+  MAIN = 'main'
+  POSTPROCESS = 'postprocess'
+  UNKNOWN = 'unknown'
 
 
 class Singleton(type):
@@ -635,15 +645,23 @@ class Singleton(type):
 class LogContexts(metaclass=Singleton):
 
   def __init__(self, contexts=[]):
-    self.contexts: list[LogContextType] = []
+    self.contexts: list[LogContextType] = contexts
+    self.meta: dict[Any, Any] = {}
     self._data_lock = threading.Lock()
 
   def get(self) -> list[LogContextType]:
     return self.contexts
 
+  def get_meta(self) -> dict[Any, Any]:
+    return self.meta
+
   def add(self, new_contexts: list[LogContextType]):
     with self._data_lock:
       self.contexts += new_contexts
+
+  def add_metadata(self, key: Any, value: Any):
+    with self._data_lock:
+      self.meta[key] = value
 
   def delete(self, contexts: list[LogContextType]):
     with self._data_lock:
@@ -664,3 +682,12 @@ def wrap_log_context(contexts: list[LogContextType]):
   _log_contexts.add(contexts)
   yield
   _log_contexts.delete(contexts)
+
+
+@contextlib.contextmanager
+def task_stage_context(stage: Stage):
+  with wrap_log_context(contexts=[LogContextType.TASK]):
+    global _log_contexts
+    _log_contexts.add_metadata('stage', stage)
+    yield
+    del _log_contexts.get_meta()['stage']

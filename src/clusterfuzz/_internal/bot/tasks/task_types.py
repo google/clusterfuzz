@@ -146,6 +146,7 @@ class UTask(BaseUTask):
       assert swarming.is_swarming_task(command, job_type)
       swarming.push_swarming_task(command, download_url, job_type)
 
+  @logs.task_stage_context(logs.Stage.PREPROCESS)
   def preprocess(self, task_argument, job_type, uworker_env):
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,
                                        uworker_env)
@@ -170,6 +171,7 @@ class PostprocessTask(BaseTask):
     # many different tasks.
     super().__init__('none')
 
+  @logs.task_stage_context(logs.Stage.POSTPROCESS)
   def execute(self, task_argument, job_type, uworker_env):
     """Executes postprocessing of a utask."""
     # These values are None for now.
@@ -190,6 +192,7 @@ class UworkerMainTask(BaseTask):
     del module
     super().__init__('none')
 
+  @logs.task_stage_context(logs.Stage.MAIN)
   def execute(self, task_argument, job_type, uworker_env):
     """Executes uworker_main of a utask."""
     # These values are None for now.
