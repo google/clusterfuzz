@@ -188,7 +188,6 @@ class Engine(engine.Engine):
 
     return arguments
 
-  # pylint: disable=unused-argument
   def fuzz_additional_processing_timeout(self, options):
     """Return the maximum additional timeout in seconds for additional
     operations in fuzz() (e.g. merging back new items).
@@ -199,6 +198,7 @@ class Engine(engine.Engine):
     Returns:
       An int representing the number of seconds required.
     """
+    del options
     return engine_common.get_merge_timeout(engine_common.DEFAULT_MERGE_TIMEOUT)
 
   # pylint: disable=unused-argument
