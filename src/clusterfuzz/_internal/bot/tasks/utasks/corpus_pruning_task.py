@@ -545,7 +545,7 @@ class CrossPollinator:
     environment.reset_current_memory_tool_options(redzone_size=DEFAULT_REDZONE)
     self.runner.process_sanitizer_options()
 
-    additional_args = self.runner.get_libfuzzer_flags()
+    additional_args = self.runner.get_fuzzer_flags()
 
     try:
       result = self.runner.minimize_corpus(additional_args,
