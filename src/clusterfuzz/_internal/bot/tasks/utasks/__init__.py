@@ -200,7 +200,7 @@ def ensure_uworker_env_type_safety(uworker_env):
 
 
 @logs.task_stage_context(logs.Stage.PREPROCESS)
-def _preprocess(utask_module, task_argument, job_type, uworker_env,
+def _preprocepss(utask_module, task_argument, job_type, uworker_env,
                 recorder: _MetricRecorder, execution_mode: Mode):
   """Shared logic for preprocessing between preprocess_no_io and the I/O
   tworker_preprocess."""
@@ -241,7 +241,6 @@ def _start_web_server_if_needed(job_type):
     logs.error('Failed to start web server, skipping.')
 
 
-@logs.task_stage_context(logs.Stage.PREPROCESS)
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
@@ -307,7 +306,6 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
     utask_module.utask_postprocess(uworker_output)
 
 
-@logs.task_stage_context(logs.Stage.PREPROCESS)
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
