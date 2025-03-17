@@ -434,9 +434,11 @@ class CorpusPruningTestCentipede(unittest.TestCase, BaseTest):
     # Mocking some inputs to simplify
     # We should recover the random directory name for
     # asserting here
-    self.mock.minimize_corpus.assert_called_once_with(
+    self.mock.minimize_corpus.assert_called_with(
         self.engine, os.path.join(TEST_DIR, 'build/clusterfuzz_format_target'),
         [], [self.default_path], self.default_path, self.default_path, 79200)
+    # It should be called again on the CrossPolinator
+    self.assertEqual(self.mock.minimize_corpus.call_count, 2)
 
 
 class GetProtoTimestampTest(unittest.TestCase):
