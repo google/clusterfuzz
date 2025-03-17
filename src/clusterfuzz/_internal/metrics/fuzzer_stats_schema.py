@@ -855,6 +855,10 @@ _CENTIPEDE_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'average_exec_per_sec',
     'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'new_units_added',
+    'type': 'INTEGER'
 }] + _COMMON_COLUMNS
 
 _SCHEMA = {

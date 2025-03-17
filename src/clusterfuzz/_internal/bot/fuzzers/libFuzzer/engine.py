@@ -235,7 +235,7 @@ class Engine(engine.Engine):
           output_corpus_dir=merge_corpus,
           reproducers_dir=None,
           max_time=engine_common.get_merge_timeout(
-              libfuzzer.DEFAULT_MERGE_TIMEOUT))
+              engine_common.DEFAULT_MERGE_TIMEOUT))
 
       engine_common.move_mergeable_units(merge_corpus, corpus_dir)
       new_corpus_len = shell.get_directory_file_count(corpus_dir)
