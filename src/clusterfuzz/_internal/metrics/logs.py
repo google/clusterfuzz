@@ -501,8 +501,9 @@ def intercept_log_context(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
-    for context in log_contexts.get():
-      kwargs.update(context.get_extras()._asdict())
+    if not kwargs.get('ignore_context'):
+      for context in log_contexts.contexts:
+        kwargs.update(context.get_extras()._asdict())
     return func(*args, **kwargs)
 
   return wrapper
@@ -606,21 +607,30 @@ class TaskLogStruct(NamedTuple):
 
 
 class LogContextType(enum.Enum):
-  """Log context types"""
+  """Log context types
+     This is the way to define the context for a given entrypoint
+     and this context is used for define the adicional labels
+     to be added to the log.
+  """
   TASK = 'task'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
     if self == LogContextType.TASK:
-      stage = log_contexts.get_metadata().get('stage', Stage.UNKNOWN).value
+      stage = log_contexts.meta.get('stage', Stage.UNKNOWN).value
       # it should exist
       # TODO(javanlacerda): Remove this csv task_id and propagate it
       # properly, after cheking it works in production
-      current_task_id = os.getenv('CF_TASK_ID', '').split(",")
-      task_id = current_task_id[-1]
-      task_name = current_task_id[0]
-
-      return TaskLogStruct(task_id=task_id, task_name=task_name, stage=stage)
+      try:
+        current_task_id = os.getenv('CF_TASK_ID', '').split(",")
+        task_id = current_task_id[-1]
+        task_name = current_task_id[0]
+        return TaskLogStruct(task_id=task_id, task_name=task_name, stage=stage)
+      except Exception as e:
+        # This flag is necessary to avoid
+        # infinite loop in this context verification
+        error(e, ignore_context=True)
+        return GenericLogStruct()
 
     return GenericLogStruct()
 
@@ -650,12 +660,6 @@ class LogContexts(metaclass=Singleton):
     self.contexts: list[LogContextType] = []
     self.meta: dict[Any, Any] = {}
     self._data_lock = threading.Lock()
-
-  def get(self) -> list[LogContextType]:
-    return self.contexts
-
-  def get_metadata(self) -> dict[Any, Any]:
-    return self.meta
 
   def add(self, new_contexts: list[LogContextType]):
     with self._data_lock:

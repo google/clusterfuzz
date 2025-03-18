@@ -470,11 +470,15 @@ class EmitTest(unittest.TestCase):
         })
 
   def test_log_context(self):
-    """Test log error."""
+    """Test that the logger is called with the
+       correct arguments considering the log context and metadata
+    """
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
     with logs.task_stage_context(logs.Stage.PREPROCESS):
+      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
@@ -494,6 +498,44 @@ class EmitTest(unittest.TestCase):
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
                 'method': 'test_log_context'
+            },
+            'release': 'prod',
+            'docker_image': ''
+        })
+
+  def test_log_ignore_context(self):
+    """Test that the emit interceptor ignores contect
+       when passed the ignore_context flag
+    """
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    with logs.task_stage_context(logs.Stage.PREPROCESS):
+      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(
+          logging.ERROR,
+          'msg',
+          exc_info='ex',
+          target='bot',
+          test='yes',
+          ignore_context=True)
+
+    logger.log.assert_called_once_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+                'ignore_context': True
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_log_ignore_context'
             },
             'release': 'prod',
             'docker_image': ''
@@ -536,7 +578,9 @@ class ErrorTest(unittest.TestCase):
 
 
 class TestLogContextSingleton(unittest.TestCase):
-  """Tests error."""
+  """Tests for the log context singleton
+     It checks the singleton behavior works and is thread safe
+  """
 
   def test_is_same(self):
     """Test the singleton is the same instance for different module loads"""
@@ -549,7 +593,8 @@ class TestLogContextSingleton(unittest.TestCase):
                   logs_from_run_bot.LogContexts())
     logs_from_run_bot.log_contexts.add([logs_from_run_bot.LogContextType.TASK])
 
-    assert logs_from_task_rate_limiting.log_contexts == logs_from_run_bot.log_contexts
+    self.assertEqual(logs_from_task_rate_limiting.log_contexts,
+                     logs_from_run_bot.log_contexts)
     logs_from_run_bot.log_contexts.clear()
 
   def test_multi_threading(self):
@@ -570,4 +615,4 @@ class TestLogContextSingleton(unittest.TestCase):
       thread.join()
 
     from python.bot.startup.run_bot import logs as run_bot_logs
-    assert len(run_bot_logs.log_contexts.contexts) == 5
+    self.assertEqual(len(run_bot_logs.log_contexts.contexts), 5)

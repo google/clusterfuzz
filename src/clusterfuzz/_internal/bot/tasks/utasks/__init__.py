@@ -200,7 +200,7 @@ def ensure_uworker_env_type_safety(uworker_env):
 
 
 @logs.task_stage_context(logs.Stage.PREPROCESS)
-def _preprocepss(utask_module, task_argument, job_type, uworker_env,
+def _preprocess(utask_module, task_argument, job_type, uworker_env,
                 recorder: _MetricRecorder, execution_mode: Mode):
   """Shared logic for preprocessing between preprocess_no_io and the I/O
   tworker_preprocess."""
