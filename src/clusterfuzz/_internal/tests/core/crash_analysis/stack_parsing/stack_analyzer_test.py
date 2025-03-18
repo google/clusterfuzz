@@ -2303,6 +2303,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_dcheck_failure_chrome(self):
+    """Test a DCHECK failure with a Chrome symbolized stacktrace."""
+    data = self._read_test_data('dcheck_failure_chrome.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = ('!terminated_ in latency_info.cc\n'
+                      'ui::LatencyInfo::AddLatencyNumberWithTimestampImpl\n'
+                      'ui::LatencyInfo::AddLatencyNumberWithTimestamp\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_check_failure_chrome_android(self):
     """Test a CHECK failure with a Chrome on Android symbolized stacktrace."""
     data = self._read_test_data('check_failure_chrome_android.txt')
