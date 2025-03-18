@@ -26,9 +26,9 @@ from google.cloud import ndb
 from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -392,7 +392,10 @@ class UploadHandlerCommon:
     trusted_agreement_signed = request.get(
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
 
-    if (not trusted_agreement_signed and
+    # Chrome is the only ClusterFuzz deployment where there are trusted bots
+    # running utasks.
+    # This check also fails on oss-fuzz because of the way it abuses platform.
+    if (not trusted_agreement_signed and utils.is_chromium() and
         task_utils.is_remotely_executing_utasks() and
         ((platform_id and platform_id != 'Linux') or
          job.platform.lower() != 'linux')):

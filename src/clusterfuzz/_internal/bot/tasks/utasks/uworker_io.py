@@ -22,13 +22,17 @@ from google.cloud import ndb
 from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
 from google.protobuf import any_pb2
+from google.protobuf import timestamp_pb2
 import google.protobuf.message
 
-from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+
+# Define an alias to appease pylint.
+Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
 
 
 def generate_new_input_file_name() -> str:
@@ -98,11 +102,13 @@ def serialize_and_upload_uworker_input(
     uworker_input: uworker_msg_pb2.Input) -> Tuple[str, str]:  # pylint: disable=no-member
   """Serializes input for the untrusted portion of a task."""
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
+  logs.info(f'input_gcs_url: {input_gcs_url}')
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
   # write its output. Also get a download URL in case the caller wants to read
   # the output.
   signed_output_upload_url, output_gcs_url = get_uworker_output_urls(
       input_gcs_url)
+  logs.info(f'output_gcs_url: {output_gcs_url}')
 
   assert not uworker_input.HasField('uworker_output_upload_url')
   uworker_input.uworker_output_upload_url = signed_output_upload_url
@@ -215,3 +221,13 @@ def check_handling_testcase_safe(testcase):
     # TODO(https://b.corp.google.com/issues/328691756): Change this to
     # log_fatal_and_exit once we are handling untrusted tasks properly.
     logs.warning(f'Cannot handle {testcase.key.id()} in trusted task.')
+
+
+def timestamp_to_proto_timestamp(pydt) -> Timestamp:
+  proto_timestamp = Timestamp()
+  proto_timestamp.FromDatetime(pydt)
+  return proto_timestamp
+
+
+def proto_timestamp_to_timestamp(proto_timestamp: Timestamp):
+  return proto_timestamp.ToDatetime()

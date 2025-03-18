@@ -15,8 +15,8 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal import swarming
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
@@ -27,7 +27,8 @@ class BaseTask:
   """Base module for tasks."""
 
   @staticmethod
-  def is_execution_remote():
+  def is_execution_remote(command=None):
+    del command
     return False
 
   def __init__(self, module):
@@ -45,6 +46,7 @@ class TrustedTask(BaseTask):
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
+    assert not environment.is_tworker()
     self.module.execute_task(task_argument, job_type)
 
 
@@ -57,6 +59,8 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
   def execute_locally(self, task_argument, job_type, uworker_env):
+    """Executes the utask locally (on this machine, not on batch)."""
+    assert not environment.is_tworker()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -73,13 +77,13 @@ class BaseUTask(BaseTask):
 
 
 def is_no_privilege_workload(command, job):
-  if not COMMAND_TYPES[command].is_execution_remote():
+  if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
   return batch.is_no_privilege_workload(command, job)
 
 
 def is_remote_utask(command, job):
-  if not COMMAND_TYPES[command].is_execution_remote():
+  if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
 
   if environment.is_uworker():
@@ -117,14 +121,16 @@ class UTask(BaseUTask):
   opted-in. Otherwise executes locally."""
 
   @staticmethod
-  def is_execution_remote():
+  def is_execution_remote(command=None):
     return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask."""
     logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
-    if not is_remote_utask(command, job_type):
+    # TODO(metzman): This is really complicated because of the need to test
+    # remote execution. This is no longer a need, so simplify this.
+    if not (environment.is_tworker() or is_remote_utask(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 

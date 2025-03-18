@@ -22,6 +22,9 @@ import re
 import sys
 import tempfile
 import time
+from typing import Any
+
+import pytz
 
 from local.butler import appengine
 from local.butler import common
@@ -29,6 +32,7 @@ from local.butler import constants
 from local.butler import package
 from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
+from src.clusterfuzz._internal.metrics import monitoring_metrics
 from src.clusterfuzz._internal.system import environment
 
 EXPECTED_BOT_COUNT_PERCENT = 0.8
@@ -47,9 +51,9 @@ SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 Version = namedtuple('Version', ['id', 'deploy_time', 'traffic_split'])
 
 
-def now():
+def now(tz=None):
   """Used for mocks."""
-  return datetime.datetime.now()
+  return datetime.datetime.now(tz)
 
 
 def _get_services(paths):
@@ -88,6 +92,7 @@ def _additional_app_env_vars(project):
   }
 
 
+# TODO: Add structured log
 def _deploy_app_prod(project,
                      deployment_bucket,
                      yaml_paths,
@@ -115,11 +120,14 @@ def _deploy_app_prod(project,
       _deploy_zip(
           deployment_bucket, package_zip_path, test_deployment=test_deployment)
 
-    _deploy_manifest(
-        deployment_bucket,
-        constants.PACKAGE_TARGET_MANIFEST_PATH,
-        test_deployment=test_deployment,
-        release=release)
+    releases = [release]
+    releases += constants.ADDITIONAL_RELEASES if release == 'prod' else []
+    for rel in releases:
+      _deploy_manifest(
+          deployment_bucket,
+          constants.PACKAGE_TARGET_MANIFEST_PATH,
+          test_deployment=test_deployment,
+          release=rel)
 
 
 def _deploy_app_staging(project, yaml_paths):
@@ -394,6 +402,11 @@ def _staging_deployment_helper():
   print('Staging deployment finished.')
 
 
+# We need to import the wrap_with_monitoring through monitoring_metrics
+# monitor's import because we need to point to the same module instance
+# for assuring the same metric store we increment the metric will have
+# the metrics flushed by the monitoring thread.
+@monitoring_metrics.monitor.wrap_with_monitoring()
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
@@ -421,23 +434,39 @@ def _prod_deployment_helper(config_dir,
     _update_bigquery(project)
     _update_redis(project)
 
-  _deploy_app_prod(
-      project,
-      deployment_bucket,
-      yaml_paths,
-      package_zip_paths,
-      deploy_appengine=deploy_appengine,
-      test_deployment=test_deployment,
-      release=release)
+  labels: dict[str, Any] = {
+      'deploy_zip': bool(package_zip_paths),
+      'deploy_app_engine': deploy_appengine,
+      'deploy_kubernetes': deploy_k8s,
+      'success': True,
+      'release': release,
+      'clusterfuzz_version': utils.current_source_version()
+  }
 
-  if deploy_appengine:
-    common.execute(
-        f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
+  try:
+    _deploy_app_prod(
+        project,
+        deployment_bucket,
+        yaml_paths,
+        package_zip_paths,
+        deploy_appengine=deploy_appengine,
+        test_deployment=test_deployment,
+        release=release)
 
-  if deploy_k8s:
-    _deploy_terraform(config_dir)
-    _deploy_k8s(config_dir)
-  print('Production deployment finished.')
+    if deploy_appengine:
+      common.execute(
+          f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
+
+    if deploy_k8s:
+      _deploy_terraform(config_dir)
+      _deploy_k8s(config_dir)
+
+    print(f'Production deployment finished. {labels}')
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+  except Exception as ex:
+    labels.update({'success': False})
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+    raise ex
 
 
 def _deploy_terraform(config_dir):
@@ -447,6 +476,27 @@ def _deploy_terraform(config_dir):
   common.execute(f'{terraform} init')
   common.execute(f'{terraform} apply -target=module.clusterfuzz -auto-approve')
   common.execute(f'rm -rf {terraform_dir}/.terraform*')
+
+
+def _is_safe_deploy_day():
+  time_now_in_ny = now(pytz.timezone('America/New_York'))
+  day_now_in_ny = time_now_in_ny.weekday()
+  return day_now_in_ny not in {4, 5, 6}  # The days of the week are 0-indexed.
+
+
+def _enforce_safe_day_to_deploy():
+  """Checks that is not an unsafe day (Friday, Saturday, or Sunday) to
+  deploy for chrome ClusterFuzz."""
+
+  config = local_config.Config()
+  if config.get('weekend_deploy_allowed', True):
+    return
+
+  if not _is_safe_deploy_day():
+    raise RuntimeError('Cannot deploy Fri-Sun to this CF instance except for '
+                       'urgent fixes. See b/384493595. If needed, temporarily '
+                       'delete+commit this. You are not too l33t for this '
+                       'rule. Do not break it!')
 
 
 def _deploy_k8s(config_dir):
@@ -498,6 +548,8 @@ def execute(args):
     print('gsutil not found in PATH.')
     sys.exit(1)
 
+  _enforce_safe_day_to_deploy()
+
   # Build templates before deployment.
   appengine.build_templates()
 
@@ -538,9 +590,8 @@ def execute(args):
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
-      package_zip_paths.append(
-          package.package(
-              revision, platform_name=platform_name, release=args.release))
+      package_zip_paths += package.package(
+          revision, platform_name=platform_name, release=args.release)
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -559,6 +610,11 @@ def execute(args):
   if args.staging:
     _staging_deployment_helper()
   else:
+    # This workaround is needed to set the env vars APPLICATION_ID and BOT_NAME
+    # for local environment, and it's needed for loading the monitoring module
+    config = local_config.ProjectConfig().get('env')
+    environment.set_value("APPLICATION_ID", config["APPLICATION_ID"])
+    environment.set_value("BOT_NAME", os.uname().nodename)
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,

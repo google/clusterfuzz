@@ -17,6 +17,8 @@
 
 import datetime
 import enum
+import functools
+import re
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -24,6 +26,7 @@ from typing import Tuple
 import urllib.parse
 
 from google.auth import exceptions
+import googleapiclient.http
 
 from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
@@ -43,6 +46,7 @@ _OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349507'
 _SEVERITY_LABEL_PREFIX = 'Security_Severity-'
 
 _DEFAULT_SEVERITY = 'S4'
+_DEFAULT_PRIORITY = 'P4'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -64,6 +68,24 @@ def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
     logs.warning('Trying to set issue access level to incorrect value:'
                  f'LIMIT_{limit_view_label}. Ignoring.')
     return None
+
+
+def retry_on_invalid_gaia_accounts(func):
+  """Decorator to retry saving an issue, skipping CCs
+    without a GAIA account."""
+
+  @functools.wraps(func)
+  def wrapper(self, *args, **kwargs):
+    try:
+      return func(self, *args, **kwargs)
+    except Exception as e:
+      # Try to handle the case where a 400 buganizer response is
+      # received due to a non gaia email.
+      email_regex = r'[\w\.\-\+]+@[\w\.-]+'
+      emails_to_skip = re.findall(email_regex, str(e))
+      return func(self, *args, **kwargs, skip_emails=emails_to_skip)
+
+  return wrapper
 
 
 class IssueTrackerError(Exception):
@@ -404,6 +426,11 @@ class Issue(issue_tracker.Issue):
     self._data['issueState']['assignee'] = _make_user(new_assignee)
 
   @property
+  def created_time(self):
+    """The time at which this issue was created."""
+    return self._data['createdTime']
+
+  @property
   def ccs(self):
     """The issue CC list."""
     return self._ccs
@@ -717,15 +744,16 @@ class Issue(issue_tracker.Issue):
                                       issueId=str(self.id)))
     return result
 
-  def save(self, new_comment=None, notify=True):
+  @retry_on_invalid_gaia_accounts
+  def save(self, new_comment=None, notify=True, skip_emails=[]):  # pylint: disable=dangerous-default-value
     """Saves the issue."""
+    logs.info(f'Skipping supposed non gaia emails emails: {skip_emails}.')
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
-      priority = _extract_label(self.labels, 'Pri-')
+      priority = _extract_label(self.labels, 'Pri-') or _DEFAULT_PRIORITY
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
       self._data['issueState']['type'] = issue_type
-      if priority:
-        self._data['issueState']['priority'] = priority
+      self._data['issueState']['priority'] = priority
 
       custom_field_entries = []
       oses = _sanitize_oses(_extract_all_labels(self.labels, 'OS-'))
@@ -792,7 +820,9 @@ class Issue(issue_tracker.Issue):
 
       if self.component_id:
         self._data['issueState']['componentId'] = int(self.component_id)
-      ccs = list(self._ccs)
+      # TODO(vitorguidi): delete this hack once we have a solution for GAIA.
+      # Skip CCd users w/o a GAIA account
+      ccs = list(set(self._ccs) - set(skip_emails))
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
       collaborators = list(self._collaborators)
@@ -821,6 +851,10 @@ class Issue(issue_tracker.Issue):
       self._is_new = False
     else:
       logs.info('google_issue_tracker: Updating issue..')
+      # TODO(vitorguidi): remove this once we have a fix for GAIA.
+      # Remove all CCd users w/o GAIA accounts
+      for email in skip_emails:
+        self.ccs.remove(email)
       result = self._update_issue(new_comment=new_comment, notify=notify)
     self._reset_tracking()
     self._data = result
@@ -1034,9 +1068,9 @@ class IssueTracker(issue_tracker.IssueTracker):
     try:
       component = self._execute(
           self.client.components().get(componentId=str(component_id)))
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error('Failed to retrieve component.', component_id=component_id)
       return None
 
@@ -1057,18 +1091,76 @@ class IssueTracker(issue_tracker.IssueTracker):
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
       logs.info('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
-    except IssueTrackerError as e:
-      if isinstance(e, IssueTrackerNotFoundError):
-        return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
       logs.error('Failed to retrieve issue.', issue_id=issue_id)
+      return None
+
+  def get_description(self, issue_id):
+    """Gets the content of the description for the issue with the given ID."""
+    try:
+      comments = self._execute(
+          self.client.issues().comments().list(issueId=str(issue_id)))
+      logs.info('google_issue_tracker: get_description comments: %s' % comments)
+      for comment in comments['issueComments']:
+        if comment['commentNumber'] == 1:
+          return comment['comment']
+      return None
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error('Failed to retrieve issue description.', issue_id=issue_id)
+      return None
+
+  def get_attachment_metadata(self, issue_id):
+    """Gets the attachment metadata of an issue with the given ID."""
+    try:
+      attachment_metadata = self._execute(
+          self.client.issues().attachments().list(issueId=str(issue_id)))
+      logs.info('google_issue_tracker: get_attachment_metadata: %s' %
+                attachment_metadata)
+      return attachment_metadata['attachments']
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error(
+          'Failed to retrieve issue attachment metadata.', issue_id=issue_id)
+      return None
+
+  def get_attachment(self, resource_name):
+    """Gets the attachment for the given resource name."""
+    try:
+      http_request = self.client.media().download(resourceName=resource_name)
+      http_request.uri = http_request.uri.replace('alt=json', 'alt=media')
+      http_request.postproc = googleapiclient.http.HttpRequest.null_postproc
+      attachment = self._execute(http_request)
+      logs.info('google_issue_tracker: get_attachment attachment downloaded')
+      return attachment
+    except IssueTrackerNotFoundError:
+      return None
+    except IssueTrackerError:
+      logs.error(
+          'Failed to retrieve attachment for resource name: %s' % resource_name)
       return None
 
   def find_issues(self, keywords=None, only_open=None):
     """Finds issues."""
+    return self.find_issues_with_filters(keywords=keywords, only_open=only_open)
+
+  def find_issues_with_filters(self,
+                               keywords=None,
+                               query_filters=None,
+                               only_open=None):
+    """Finds issues with additional query filters."""
     page_token = None
     while True:
       issues = self._execute(self.client.issues().list(
-          query=_get_query(keywords, only_open), pageToken=page_token))
+          query=_get_query(
+              string_keywords=keywords,
+              query_filters=query_filters,
+              only_open=only_open),
+          pageToken=page_token))
       if "issues" not in issues:
         return
       for issue in issues['issues']:
@@ -1080,8 +1172,20 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def find_issues_url(self, keywords=None, only_open=None):
     """Finds issues (web URL)."""
+    return self.find_issues_url_with_filters(
+        keywords=keywords, only_open=only_open)
+
+  def find_issues_url_with_filters(self,
+                                   keywords=None,
+                                   query_filters=None,
+                                   only_open=None):
+    """Finds issues (web URL) with additional query filters."""
     return (self._url + '?' + urllib.parse.urlencode({
-        'q': _get_query(keywords, only_open),
+        'q':
+            _get_query(
+                string_keywords=keywords,
+                query_filters=query_filters,
+                only_open=only_open),
     }))
 
   def issue_url(self, issue_id):
@@ -1120,9 +1224,12 @@ def _parse_datetime(date_string):
   return datetime_obj
 
 
-def _get_query(keywords, only_open):
+def _get_query(string_keywords, only_open, query_filters):
   """Gets a search query."""
-  query = ' '.join('"{}"'.format(keyword) for keyword in keywords)
+  query = ' '.join('"{}"'.format(keyword) for keyword in string_keywords)
+  if query_filters:
+    query += ' '
+    query += ' '.join('{}'.format(keyword) for keyword in query_filters)
   if only_open:
     query += ' status:open'
   return query

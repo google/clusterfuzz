@@ -788,6 +788,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.archive_filename = archive_filename
   testcase.http_flag = http_flag
   testcase.timestamp = datetime.datetime.utcnow()
+  testcase.created = testcase.timestamp
   testcase.gestures = gestures
   testcase.redzone = redzone
   testcase.disable_ubsan = disable_ubsan
@@ -920,7 +921,7 @@ def critical_tasks_completed(testcase):
     return testcase.minimized_keys and testcase.regression
 
   return bool(testcase.minimized_keys and testcase.regression and
-              testcase.is_impact_set_flag)
+              testcase.is_impact_set_flag and not testcase.analyze_pending)
 
 
 # ------------------------------------------------------------------------------
@@ -976,7 +977,8 @@ def add_build_metadata(job_type,
 def create_data_bundle_bucket_and_iams(data_bundle_name, emails):
   """Creates a data bundle bucket and adds iams for access."""
   bucket_name = get_data_bundle_bucket_name(data_bundle_name)
-  if not storage.create_bucket_if_needed(bucket_name):
+  location = local_config.ProjectConfig().get('data_bundle_bucket_location')
+  if not storage.create_bucket_if_needed(bucket_name, location=location):
     return False
 
   client = storage.create_discovery_storage_client()
@@ -1025,11 +1027,6 @@ def get_data_bundle_bucket_name(data_bundle_name):
   """Return data bundle bucket name on GCS."""
   domain = bucket_domain_suffix()
   return '%s-corpus.%s' % (data_bundle_name, domain)
-
-
-def get_data_bundle_bucket_url(data_bundle_name):
-  """Return data bundle bucket url on GCS."""
-  return 'gs://%s' % get_data_bundle_bucket_name(data_bundle_name)
 
 
 def get_value_from_fuzzer_environment_string(fuzzer_name,
@@ -1377,6 +1374,8 @@ def create_user_uploaded_testcase(key,
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = utils.utcnow()
+  testcase.created = testcase.timestamp
+  testcase.analyze_pending = True
   testcase.uploader_email = uploader_email
   testcase.put()
 

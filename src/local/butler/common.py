@@ -15,7 +15,6 @@
    commands."""
 
 import datetime
-from distutils import dir_util
 import io
 import os
 import platform
@@ -28,6 +27,7 @@ import tempfile
 import urllib.request
 import zipfile
 
+from clusterfuzz._internal.system import environment
 from local.butler import constants
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
@@ -86,16 +86,32 @@ def compute_prod_revision():
   return _compute_revision(_utcnow())
 
 
+def _get_clusterfuzz_commit_sha():
+  _, git_sha = execute('git rev-parse --short HEAD')
+  return git_sha.strip().decode('utf-8')
+
+
+def _get_clusterfuzz_config_commit_sha():
+  _, git_sha = execute(
+      f'git -C {environment.get_config_directory()} rev-parse --short HEAD')
+  return git_sha.strip().decode('utf-8')
+
+
 def _compute_revision(timestamp, *extras):
   """Return a revision that contains a timestamp, git-sha, user, and
     is_staging. The ordinality of revision is crucial for updating source code.
     Later revision *must* be greater than earlier revision. See:
     crbug.com/674173."""
   timestamp = timestamp.strftime('%Y%m%d%H%M%S-utc')
-  _, git_sha = execute('git rev-parse --short HEAD')
-  git_sha = git_sha.strip().decode('utf-8')
+  clusterfuzz_git_sha = _get_clusterfuzz_commit_sha()
 
-  components = [timestamp, git_sha, os.environ['USER']] + list(extras)
+  # Adding also the clusterfuzz-config version to the revision
+  clusterfuzz_config_git_sha = _get_clusterfuzz_config_commit_sha()
+
+  components = [
+      timestamp, clusterfuzz_git_sha, os.environ['USER'],
+      clusterfuzz_config_git_sha
+  ] + list(extras)
   return '-'.join(components)
 
 
@@ -439,7 +455,4 @@ def copy_if_newer(src, dst):
 def update_dir(src_dir, dst_dir):
   """Recursively copy from src_dir to dst_dir, replacing files but only if
   they're newer or don't exist."""
-  # TODO(metzman): Replace this with
-  # shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer)
-  # After we migrate to python3.9.
-  dir_util.copy_tree(src_dir, dst_dir, update=True)
+  shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer)

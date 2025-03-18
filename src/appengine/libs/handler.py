@@ -30,6 +30,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.system import environment
 from libs import access
 from libs import auth
@@ -96,11 +97,12 @@ def cron():
       if not self.is_cron():
         raise helpers.AccessDeniedError('You are not a cron.')
 
-      result = func(self)
-      if result is None:
-        return 'OK'
+      with monitor.wrap_with_monitoring():
+        result = func(self)
+        if result is None:
+          return 'OK'
 
-      return result
+        return result
 
     return wrapper
 
@@ -248,20 +250,20 @@ def oauth(func):
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self, *args, **kwargs):
     """Wrapper."""
     auth_header = request.headers.get('Authorization')
     if auth_header:
       email, returned_auth_header = get_email_and_access_token(auth_header)
       setattr(g, '_oauth_email', email)
 
-      response = make_response(func(self))
+      response = make_response(func(self, *args, **kwargs))
       response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
           returned_auth_header)
       response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
       return response
 
-    return func(self)
+    return func(self, *args, **kwargs)
 
   return wrapper
 

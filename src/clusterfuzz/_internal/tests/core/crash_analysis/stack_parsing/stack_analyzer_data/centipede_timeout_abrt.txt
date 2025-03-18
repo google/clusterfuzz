@@ -1,0 +1,115 @@
+I0212 04:46:15.286254     553 centipede.cc:202] shard: 0 inputs_added: 8072 inputs_ignored: 0 num_shard_bytes: 0 shard_data.size():0
+I0212 04:46:15.763993     553 centipede_interface.cc:762] Coverage dir: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-421/workdir/v8_wasm_compile_simd_fuzzer-7b7e268073953c8ec28cf2d229934d4bec7eba10; temporary dir: /tmp/centipede-553-133267871332736
+I0212 04:46:15.764209     553 binary_info.cc:59] InitializeFromSanCovBinary: tmp_dir: "/tmp/centipede-553-133267871332736"
+Starting watchdog thread: timeout_per_input: 0 sec; timeout_per_batch: 0 sec; rss_limit_mb: 0 MB; stack_limit_kb: 0 KB
+Not using RLIMIT_AS; VmSize is 20481Gb, suspecting ASAN/MSAN/TSAN
+I0212 04:46:16.803774     553 symbol_table.cc:160] Symbolizing 10 instrumented DSOs.
+I0212 04:46:16.808644     573 symbol_table.cc:116] Symbolizing 2742 PCs from libchrome_zlib.so
+I0212 04:46:16.814476     567 symbol_table.cc:116] Symbolizing 26801 PCs from libc++.so
+I0212 04:46:16.815785     570 symbol_table.cc:116] Symbolizing 3366 PCs from libv8_libbase.so
+I0212 04:46:16.818792     569 symbol_table.cc:116] Symbolizing 21742 PCs from libthird_party_abseil-cpp_absl.so
+I0212 04:46:16.819278     565 symbol_table.cc:116] Symbolizing 2022 PCs from libv8_libplatform.so
+I0212 04:46:16.822485     572 symbol_table.cc:116] Symbolizing 5830 PCs from v8_wasm_compile_simd_fuzzer
+I0212 04:46:16.824097     566 symbol_table.cc:116] Symbolizing 39209 PCs from libicuuc.so
+I0212 04:46:16.827329     574 symbol_table.cc:116] Symbolizing 57900 PCs from libthird_party_perfetto_libperfetto.so
+I0212 04:46:16.831493     568 symbol_table.cc:116] Symbolizing 60551 PCs from libthird_party_icu_icui18n.so
+I0212 04:46:17.108764     571 symbol_table.cc:116] Symbolizing 809654 PCs from libv8.so
+I0212 04:46:27.972298     553 centipede.cc:718] Shard: 0/1 /tmp/centipede-553-133267871332736 seed:133269610668876
+I0212 04:46:27.972560     553 centipede.cc:304] [S0.0] begin-fuzz: ft: 0 corp: 0/0 max/avg: 0/0 d0/f0 exec/s: 0 mb:639
+W0212 04:46:28.053208     553 corpus_io.cc:85] Features file path empty or not found - ignoring: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-421/workdir/v8_wasm_compile_simd_fuzzer-7b7e268073953c8ec28cf2d229934d4bec7eba10/features.000000
+I0212 04:46:28.109782     553 centipede.cc:509] 8072 inputs to rerun
+I0212 04:47:50.087677     553 centipede.cc:304] [S0.1000] rerun-old: ft: 232343 cov: 45788 df: 9 cmp: 186546 corp: 944/944 max/avg: 512/449 d0/f87 exec/s: 0 mb:923
+I0212 04:49:10.388483     553 centipede.cc:304] [S0.2000] rerun-old: ft: 246196 cov: 46891 df: 9 cmp: 199296 corp: 1754/1754 max/avg: 541/451 d0/f100 exec/s: 0 mb:968
+I0212 04:50:31.087936     553 centipede.cc:304] [S0.3000] rerun-old: ft: 252731 cov: 47364 df: 9 cmp: 205358 corp: 2411/2411 max/avg: 541/452 d1/f108 exec/s: 0 mb:971
+I0212 04:51:48.962560     553 centipede.cc:304] [S0.4000] rerun-old: ft: 257790 cov: 47694 df: 9 cmp: 210087 corp: 2999/2999 max/avg: 541/451 d1/f113 exec/s: 0 mb:980
+I0212 04:53:08.823220     553 centipede.cc:304] [S0.5000] rerun-old: ft: 262678 cov: 48078 df: 9 cmp: 214591 corp: 3516/3516 max/avg: 541/452 d1/f118 exec/s: 0 mb:979
+I0212 04:54:28.317440     553 centipede.cc:304] [S0.6000] rerun-old: ft: 266314 cov: 48618 df: 9 cmp: 217687 corp: 4011/4011 max/avg: 541/452 d1/f121 exec/s: 0 mb:990
+I0212 04:55:50.248755     553 centipede.cc:304] [S0.7000] rerun-old: ft: 269056 cov: 48727 df: 9 cmp: 220320 corp: 4450/4450 max/avg: 541/453 d1/f124 exec/s: 0 mb:998
+I0212 04:57:10.843179     553 centipede.cc:304] [S0.8000] rerun-old: ft: 271096 cov: 48832 df: 9 cmp: 222255 corp: 4867/4867 max/avg: 1789/453 d2/f126 exec/s: 0 mb:999
+I0212 04:57:17.294160     553 centipede.cc:304] [S0.8072] rerun-old: ft: 271250 cov: 48841 df: 9 cmp: 222400 corp: 4896/4896 max/avg: 1789/453 d2/f126 exec/s: 0 mb:982
+I0212 04:57:18.285121     553 centipede.cc:304] [S0.8073] init-done: ft: 271258 cov: 48841 df: 9 cmp: 222408 corp: 4897/4897 max/avg: 1789/453 d2/f126 exec/s: 0 mb:1081
+I0212 04:57:18.285271     553 centipede.cc:617] Generate rusage report [Before fuzzing]; env_.my_shard_index: 0 path: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-421/workdir/rusage-report-v8_wasm_compile_simd_fuzzer.000000.initial.txt
+W0212 04:57:18.700835     553 centipede_callbacks.cc:360] Custom mutator failed with exit code 1
+LOG: Starting watchdog thread: timeout_per_input: 25 sec; timeout_per_batch: 1127 sec; rss_limit_mb: 4096 MB; stack_limit_kb: 0 KB
+LOG: Not using RLIMIT_AS; VmSize is 20481Gb, suspecting ASAN/MSAN/TSAN
+LOG: Centipede fuzz target runner; argv[0]: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-centipede_linux-release-asan_b14123b07b264e677a8cb92ec0dd4782c2befd03/revisions/v8_wasm_compile_simd_fuzzer flags: :timeout_per_input=25:timeout_per_batch=1127:address_space_limit_mb=4096:rss_limit_mb=4096:stack_limit_kb=0:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:callstack_level=0:use_auto_dictionary:use_dataflow_features::shmem:arg1=/proc/553/fd/3:arg2=/proc/553/fd/4:failure_description_path=/tmp/centipede-553-133267871332736/failure_description::
+W0212 04:57:18.701317     553 centipede_default_callbacks.cc:97] Custom mutator undetected or misbehaving:
+W0212 04:57:18.701332     553 centipede_default_callbacks.cc:100] Falling back to internal default mutator
+I0212 04:58:17.818330     553 centipede.cc:304] [S0.1000] new-feature: ft: 271791 cov: 48919 df: 9 cmp: 222863 corp: 5059/5059 max/avg: 1789/454 d2/f127 exec/s: 17 mb:1099
+I0212 04:59:21.886510     553 centipede.cc:304] [S0.2000] new-feature: ft: 272870 cov: 49002 df: 9 cmp: 223859 corp: 5313/5313 max/avg: 1789/454 d2/f23 exec/s: 16 mb:1048
+I0212 05:00:46.860547     553 centipede.cc:304] [S0.3000] new-feature: ft: 275075 cov: 49091 df: 9 cmp: 225975 corp: 5673/5673 max/avg: 1789/447 d2/f24 exec/s: 14 mb:1039
+I0212 05:02:01.008378     553 centipede.cc:304] [S0.4000] new-feature: ft: 276729 cov: 49207 df: 9 cmp: 227513 corp: 5906/5906 max/avg: 1789/448 d2/f22 exec/s: 14 mb:1030
+I0212 05:03:12.965369     553 centipede.cc:304] [S0.5000] new-feature: ft: 277355 cov: 49250 df: 9 cmp: 228096 corp: 6082/6082 max/avg: 1789/449 d2/f21 exec/s: 14 mb:1025
+I0212 05:03:56.836831     553 centipede.cc:304] [S0.6000] new-feature: ft: 278796 cov: 49326 df: 9 cmp: 229461 corp: 6318/6318 max/avg: 1789/450 d2/f22 exec/s: 15 mb:1036
+I0212 05:04:57.927374     553 centipede.cc:304] [S0.7000] new-feature: ft: 281322 cov: 49447 df: 9 cmp: 231866 corp: 6586/6586 max/avg: 1789/452 d2/f22 exec/s: 15 mb:1042
+I0212 05:06:14.710931     553 centipede.cc:304] [S0.8000] new-feature: ft: 281474 cov: 49461 df: 9 cmp: 232004 corp: 6664/6664 max/avg: 1789/452 d2/f20 exec/s: 15 mb:1037
+I0212 05:10:44.234522     553 centipede.cc:304] [S0.9000] new-feature: ft: 282727 cov: 49537 df: 9 cmp: 233181 corp: 6892/6892 max/avg: 1789/454 d2/f22 exec/s: 11 mb:1030
+I0212 05:11:48.244266     553 centipede.cc:304] [S0.10000] new-feature: ft: 283720 cov: 49567 df: 9 cmp: 234144 corp: 7119/7119 max/avg: 1789/451 d3/f22 exec/s: 11 mb:1053
+I0212 05:12:29.398929     553 centipede.cc:304] [S0.11000] new-feature: ft: 284616 cov: 49606 df: 9 cmp: 235001 corp: 7348/7348 max/avg: 1789/453 d3/f22 exec/s: 12 mb:1058
+I0212 05:13:44.424724     553 centipede.cc:304] [S0.12000] new-feature: ft: 285223 cov: 49644 df: 9 cmp: 235570 corp: 7506/7506 max/avg: 1789/453 d3/f21 exec/s: 12 mb:1052
+I0212 05:14:51.867779     553 centipede.cc:304] [S0.13000] new-feature: ft: 285430 cov: 49655 df: 9 cmp: 235766 corp: 7584/7584 max/avg: 1789/454 d3/f21 exec/s: 12 mb:1055
+I0212 05:16:04.840203     553 centipede.cc:304] [S0.14000] new-feature: ft: 285908 cov: 49680 df: 9 cmp: 236219 corp: 7701/7701 max/avg: 1789/454 d3/f21 exec/s: 12 mb:1046
+I0212 05:17:20.945661     553 centipede.cc:304] [S0.15000] new-feature: ft: 286528 cov: 49703 df: 9 cmp: 236816 corp: 7895/7895 max/avg: 1789/454 d3/f21 exec/s: 12 mb:1065
+I0212 05:18:19.194707     553 centipede.cc:304] [S0.16000] new-feature: ft: 287170 cov: 49755 df: 9 cmp: 237406 corp: 8059/8059 max/avg: 1789/455 d3/f22 exec/s: 13 mb:1068
+I0212 05:19:37.141306     553 centipede.cc:304] [S0.17000] new-feature: ft: 287455 cov: 49770 df: 9 cmp: 237676 corp: 8173/8173 max/avg: 1789/455 d3/f21 exec/s: 13 mb:1070
+I0212 05:20:43.400038     553 centipede.cc:304] [S0.18000] new-feature: ft: 287954 cov: 49814 df: 9 cmp: 238131 corp: 8297/8297 max/avg: 1789/455 d3/f21 exec/s: 13 mb:1071
+I0212 05:24:28.416930     553 centipede.cc:304] [S0.19000] new-feature: ft: 288698 cov: 49850 df: 9 cmp: 238839 corp: 8465/8465 max/avg: 1789/456 d3/f22 exec/s: 12 mb:1078
+I0212 05:25:23.353378     553 centipede.cc:304] [S0.20000] new-feature: ft: 289107 cov: 49866 df: 9 cmp: 239232 corp: 8614/8614 max/avg: 1789/456 d3/f20 exec/s: 12 mb:1075
+I0212 05:26:48.651128     553 centipede.cc:304] [S0.21000] new-feature: ft: 289520 cov: 49876 df: 9 cmp: 239635 corp: 8742/8742 max/avg: 1789/456 d3/f20 exec/s: 12 mb:1079
+I0212 05:28:03.686586     553 centipede.cc:304] [S0.22000] new-feature: ft: 289620 cov: 49879 df: 9 cmp: 239732 corp: 8802/8802 max/avg: 1789/456 d3/f20 exec/s: 12 mb:1074
+I0212 05:29:12.250906     553 centipede.cc:304] [S0.23000] new-feature: ft: 289817 cov: 49889 df: 9 cmp: 239919 corp: 8887/8887 max/avg: 1789/456 d3/f20 exec/s: 12 mb:1069
+I0212 05:30:19.025685     553 centipede.cc:304] [S0.24000] new-feature: ft: 291704 cov: 49949 df: 9 cmp: 241746 corp: 9105/9105 max/avg: 1789/457 d3/f22 exec/s: 12 mb:1092
+I0212 05:31:37.731622     553 centipede.cc:304] [S0.25000] new-feature: ft: 292167 cov: 49969 df: 9 cmp: 242189 corp: 9233/9233 max/avg: 1789/457 d4/f20 exec/s: 12 mb:1085
+I0212 05:32:10.317221     553 centipede.cc:304] [S0.26000] new-feature: ft: 292759 cov: 50006 df: 9 cmp: 242744 corp: 9396/9396 max/avg: 1789/458 d4/f20 exec/s: 12 mb:1084
+I0212 05:33:19.899341     553 centipede.cc:304] [S0.27000] new-feature: ft: 293389 cov: 50024 df: 9 cmp: 243356 corp: 9578/9578 max/avg: 1789/458 d4/f21 exec/s: 12 mb:1095
+I0212 05:34:10.371980     553 centipede.cc:304] [S0.28000] new-feature: ft: 294331 cov: 50043 df: 9 cmp: 244279 corp: 9802/9802 max/avg: 1789/458 d4/f21 exec/s: 13 mb:1107
+I0212 05:35:16.646372     553 centipede.cc:832] ReportCrash[1]: Batch execution failed:
+Binary               : /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-centipede_linux-release-asan_b14123b07b264e677a8cb92ec0dd4782c2befd03/revisions/v8_wasm_compile_simd_fuzzer
+Exit code:1
+Failure              : per-input-timeout-exceeded
+Number of inputs:1000
+Number of inputs read:667
+Suspect input index:667
+Crash log            :
+Starting watchdog thread: timeout_per_input: 25 sec; timeout_per_batch: 1127 sec; rss_limit_mb: 4096 MB; stack_limit_kb: 0 KB
+Not using RLIMIT_AS; VmSize is 20481Gb, suspecting ASAN/MSAN/TSAN
+Centipede fuzz target runner; argv[0]: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-centipede_linux-release-asan_b14123b07b264e677a8cb92ec0dd4782c2befd03/revisions/v8_wasm_compile_simd_fuzzer flags: :timeout_per_input=25:timeout_per_batch=1127:address_space_limit_mb=4096:rss_limit_mb=4096:stack_limit_kb=0:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:callstack_level=0:use_auto_dictionary:use_dataflow_features::shmem:arg1=/proc/553/fd/3:arg2=/proc/553/fd/4:failure_description_path=/tmp/centipede-553-133267871332736/failure_description::
+========= Per-input timeout exceeded: 26 > 25 (sec); exiting
+Sending SIGABRT to the runner main thread.
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==920==ERROR: AddressSanitizer: ABRT on unknown address 0x053900000398 (pc 0x7b264700f386 bp 0x7fff868304b0 sp 0x7fff868303d0 T0)
+SCARINESS: 10 (signal)
+    #0 0x7b264700f386 in at v8/src/common/segmented-table-inl.h:33:10
+    #1 0x7b264700f386 in operator() v8/src/sandbox/trusted-pointer-table-inl.h:192:10
+    #2 0x7b264700f386 in IterateEntriesIn<(lambda at ../../v8/src/sandbox/trusted-pointer-table-inl.h:191:27)> v8/src/sandbox/external-entity-table-inl.h:379:7
+    #3 0x7b264700f386 in IterateActiveEntriesIn<(lambda at ../../v8/src/heap/mark-compact.cc:5748:7)> v8/src/sandbox/trusted-pointer-table-inl.h:191:3
+    #4 0x7b264700f386 in v8::internal::MarkCompactCollector::UpdatePointersInPointerTables() v8/src/heap/mark-compact.cc:5746:8
+    #5 0x7b264700c846 in v8::internal::MarkCompactCollector::UpdatePointersAfterEvacuation() v8/src/heap/mark-compact.cc:5656:5
+    #6 0x7b2646fa07af in v8::internal::MarkCompactCollector::Evacuate() v8/src/heap/mark-compact.cc:5016:3
+    #7 0x7b2646f8551b in v8::internal::MarkCompactCollector::CollectGarbage() v8/src/heap/mark-compact.cc:507:3
+    #8 0x7b2646ed21ef in v8::internal::Heap::MarkCompact() v8/src/heap/heap.cc:2618:29
+    #9 0x7b2646ecfcca in v8::internal::Heap::PerformGarbageCollection(v8::internal::GarbageCollector, v8::internal::GarbageCollectionReason, char const*) v8/src/heap/heap.cc:2239:5
+    #10 0x7b2646f3cf36 in v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags)::$_0::operator()() const v8/src/heap/heap.cc:1660:7
+    #11 0x7b2646f3c4a2 in void heap::base::Stack::SetMarkerAndCallbackImpl<v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags)::$_0>(heap::base::Stack*, void*, void const*) v8/src/heap/base/stack.h:167:5
+    #12 0x7b2649aba592 in PushAllRegistersAndIterateStack push_registers_asm.cc:0
+==920==Register values:
+rax = 0x00000f46c73bc253  rbx = 0x000000000000259d  rcx = 0x00005755dc566580  rdx = 0x00000000421bb129
+rdi = 0x000023d06b387378  rsi = 0x00007a3639de1298  rbp = 0x00007fff868304b0  rsp = 0x00007fff868303d0
+ r8 = 0x0000000000000000   r9 = 0x0000000000000000  r10 = 0x00000ee4c7226752  r11 = 0x0000000000000000
+r12 = 0x0080000000000000  r13 = 0x00007725cdfe2ce0  r14 = 0x0080000000000000  r15 = 0x00007a3639de1298
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-centipede_linux-release-asan_b14123b07b264e677a8cb92ec0dd4782c2befd03/revisions/libv8.so+0x820f386) (BuildId: 82204c5c3d79f6ba)
+==920==ABORTING
+I0212 05:35:16.646756     553 centipede.cc:897] ReportCrash[1]: Executing inputs one-by-one, trying to find the reproducer
+I0212 05:35:42.694412     553 centipede.cc:912] ReportCrash[1]: Detected crash-reproducing input:
+Input index:667
+Input bytes    : '\x0\x0\x0\x87\x87\x87\x87\x87\x87\x87\x87\x87\x87\x82\xE6$\x0\xC7\xC8\xF4n@\x7F;;;;;\x0;;
+Exit code:1
+Failure        : per-input-timeout-exceeded
+Saving input to: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-421/workdir/crashes.000000/980dfe07d3cf5f01314b57ad1bf825ba4966af95
+Saving crash
+metadata to    : /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-421/workdir/crash-metadata.000000/980dfe07d3cf5f01314b57ad1bf825ba4966af95
+I0212 05:35:42.694571     553 centipede.cc:391] --exit_on_crash is enabled; exiting soon
+I0212 05:35:42.743308     553 centipede.cc:304] [S0.28000] end-fuzz: ft: 294331 cov: 50043 df: 9 cmp: 244279 corp: 9802/9802 crash: 1 max/avg: 1789/458 d4/f20 exec/s: 12 mb:1095
+I0212 05:35:42.743453     553 centipede.cc:617] Generate rusage report [After fuzzing]; env_.my_shard_index: 0 path: /mnt/scratch0/clusterfuzz/bot/inputs/disk/temp-421/workdir/rusage-report-v8_wasm_compile_simd_fuzzer.000000.final.txt

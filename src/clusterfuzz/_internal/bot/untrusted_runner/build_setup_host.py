@@ -31,25 +31,6 @@ def _clear_env():
   environment.remove_key('FUZZ_TARGET')
 
 
-def _handle_response(build, response):
-  """Handle build setup response."""
-  if not response.result:
-    _clear_env()
-    return False
-
-  _update_env_from_response(response)
-
-  if not environment.get_value('APP_PATH'):
-    fuzzer_directory = environment.get_value('FUZZER_DIR')
-    if fuzzer_directory:
-      build_manager.set_environment_vars([fuzzer_directory])
-
-  environment.set_value('APP_REVISION', build.revision)
-  build.fuzz_targets = list(response.fuzz_targets)
-
-  return True
-
-
 def _update_env_from_response(response):
   """Update environment variables from response."""
   environment.set_value('APP_PATH', response.app_path)
@@ -64,6 +45,28 @@ def _update_env_from_response(response):
 class RemoteRegularBuild(build_manager.RegularBuild):
   """Remote regular build."""
 
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._fuzz_targets = []
+
+  def _handle_response(self, response):
+    """Handle build setup response."""
+    if not response.result:
+      _clear_env()
+      return False
+
+    _update_env_from_response(response)
+
+    if not environment.get_value('APP_PATH'):
+      fuzzer_directory = environment.get_value('FUZZER_DIR')
+      if fuzzer_directory:
+        build_manager.set_environment_vars([fuzzer_directory])
+
+    environment.set_value('APP_REVISION', self.revision)
+    self._fuzz_targets = list(response.fuzz_targets)
+
+    return True
+
   def setup(self):
     request = untrusted_runner_pb2.SetupRegularBuildRequest(  # pylint: disable=no-member
         base_build_dir=self.base_build_dir,
@@ -71,4 +74,8 @@ class RemoteRegularBuild(build_manager.RegularBuild):
         build_url=self.build_url,
         fuzz_target=self.fuzz_target,
         build_prefix=self.build_prefix)
-    return _handle_response(self, host.stub().SetupRegularBuild(request))
+    return self._handle_response(host.stub().SetupRegularBuild(request))
+
+  @property
+  def fuzz_targets(self):
+    return self._fuzz_targets

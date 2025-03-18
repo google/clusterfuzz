@@ -34,6 +34,7 @@ BATCH_PATH = 'batch.batch'
 MONITORING_REGIONS_PATH = 'monitoring.regions'
 PROJECT_PATH = 'project'
 SWARMING_PATH = 'swarming.swarming'
+EXTERNAL_TESTCASE_UPLOADER_PATH = 'external_testcase_reader.config'
 
 
 def _load_yaml_file(yaml_file_path):
@@ -259,3 +260,10 @@ class SwarmingConfig(Config):
 
   def __init__(self):
     super().__init__(SWARMING_PATH)
+
+
+class ExternalTestcaseReaderConfig(Config):
+  """External testcase reader config."""
+
+  def __init__(self):
+    super().__init__(EXTERNAL_TESTCASE_UPLOADER_PATH)

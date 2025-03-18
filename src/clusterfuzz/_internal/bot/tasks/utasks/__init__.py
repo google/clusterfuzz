@@ -22,11 +22,12 @@ from typing import Optional
 from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal import swarming
-from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 # Define an alias to appease pylint.
@@ -74,12 +75,26 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   Members:
     start_time_ns (int): The time at which this recorder was constructed, in
       nanoseconds since the Unix epoch.
+    utask_main_failure: this class stores the uworker_output.ErrorType 
+      object returned by utask_main, and uses it to emmit a metric.
   """
 
   def __init__(self, subtask: _Subtask):
     self.start_time_ns = time.time_ns()
     self._subtask = subtask
     self._labels = None
+    self.utask_main_failure = None
+    self._utask_success_conditions = [
+        None,  # This can be a successful return value in, ie, fuzz task
+        uworker_msg_pb2.ErrorType.NO_ERROR,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
+    ]
 
     if subtask == _Subtask.PREPROCESS:
       self._preprocess_start_time_ns = self.start_time_ns
@@ -121,6 +136,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
+  def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
+    """Returns True if task succeeded, False otherwise."""
+    if exc_type or uworker_error not in self._utask_success_conditions:
+      return False
+    return True
+
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
 
@@ -137,6 +158,32 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     e2e_duration_secs = (now - self._preprocess_start_time_ns) / 10**9
     monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.add(
         e2e_duration_secs, self._labels)
+
+    # The only case where a task might fail without throwing, is in
+    # utask_main, by returning an ErrorType proto which indicates
+    # failure.
+    task_succeeded = self._infer_uworker_main_outcome(_exc_type,
+                                                      self.utask_main_failure)
+    monitoring_metrics.TASK_OUTCOME_COUNT.increment({
+        **self._labels, 'task_succeeded': task_succeeded
+    })
+    if task_succeeded:
+      error_condition = 'N/A'
+    elif _exc_type:
+      error_condition = 'UNHANDLED_EXCEPTION'
+    else:
+      error_condition = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+          self.utask_main_failure)
+    # Get rid of job as a label, so we can have another metric to make
+    # error conditions more explicit, respecting the 30k distinct
+    # labels limit recommended by gcp.
+    trimmed_labels = {
+        **self._labels, 'task_succeeded': task_succeeded,
+        'error_condition': error_condition
+    }
+    del trimmed_labels['job']
+    monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
+        trimmed_labels)
 
 
 def ensure_uworker_env_type_safety(uworker_env):
@@ -226,6 +273,8 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
       return None
 
     # NOTE: Keep this in sync with `uworker_main()`.
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      recorder.utask_main_failure = uworker_output.error_type
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
 
@@ -305,6 +354,9 @@ def uworker_main(input_download_url) -> None:
 
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
+
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      recorder.utask_main_failure = uworker_output.error_type
 
     # NOTE: Keep this in sync with `uworker_main_no_io()`.
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')

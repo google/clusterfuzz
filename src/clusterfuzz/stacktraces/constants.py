@@ -85,7 +85,9 @@ CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
-    r'\s*\[[^\]]*[:]([^\](]*).*\].*Check failed[:]\s*(.*)')
+    r'\s*\[[^\]]*[:]([^\](]*).*\].*(?:Check failed:|NOTREACHED hit.)\s*(.*)')
+CHROME_DCHECK_FAILURE_REGEX = re.compile(
+    r'\s*\[[^\]]*[:]([^\](]*).*\].*(DCHECK failed:)\s*(.*)')
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
     r'([xX0-9a-fA-F]+)[ ])'  # addr (3)
@@ -122,7 +124,7 @@ FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
 FUZZER_EXIT_REGEX = re.compile(r'^\s*(?:#0|#1) 0x.*(?:fuzzer|fuzz/|/fuzz)',
                                re.IGNORECASE)
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
-    'Received signal 11 SEGV_[A-Z]+ ([0-9a-f]*)')
+    'Received signal 11 (?:SEGV_[A-Z]+|<unknown>) ([0-9a-f]*)')
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                         r'\s*Check failed[:]\s*(.*)')
 GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
@@ -191,6 +193,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'Failure description: out-of-memory',  # Centipede old.
     r'========= RSS limit exceeded:',  # Centipede new.
     r'A device memory allocation has failed\.',  # To detect gpu OOM errors.
+    r'__rust_alloc_error_handler',  # Rust allocation failure on OOM.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
@@ -552,9 +555,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*libpthread',
     r'.*logger',
     r'.*logging::CheckError',
-    r'.*logging::`anonymous namespace\'::CheckLogMessage',
-    r'.*logging::ErrnoLogMessage',
-    r'.*logging::LogMessage',
+    r'.*logging::.*LogMessage',
+    r'.*logging::.*NoReturnError',
     r'.*stdext::exception::what',
     r'.*v8::base::OS::Abort',
     r'.*Runtime_AbortCSADcheck',
@@ -649,6 +651,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Security CHECK failure',
     'Security DCHECK failure',
     'Out-of-memory',
+    'Timeout',
     'Unreachable code',
     'V8 API error',
     'V8 sandbox violation',

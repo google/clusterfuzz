@@ -1266,6 +1266,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_generic_segfault(self):
+    """Test a generic segfault from V8 (see https://crbug.com/388616198).
+    Set a mock fuzz target name to be used as the state instead of 'NULL'."""
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+    data = self._read_test_data('v8_generic_segfault.txt')
+    expected_type = 'Null-dereference'
+    expected_address = '0x000000000000'
+    expected_state = 'mock-fuzz-target\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
@@ -2586,6 +2601,25 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_timeout_with_abrt(self):
+    """Test Centipede timeout leading to runner process ABRT ASAN crash.
+
+    See https://crbug.com/396148611.
+    """
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'FORCE'
+    os.environ['FUZZ_TARGET'] = 'foo'
+    os.environ['REDZONE'] = '256'
+
+    data = self._read_test_data('centipede_timeout_abrt.txt')
+    expected_type = 'Timeout'
+    expected_address = ''
+    expected_state = 'foo\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_libfuzzer_timeout_enabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting enabled)."""
     os.environ['FUZZ_TARGET'] = 'pdfium_fuzzer'
@@ -2743,6 +2777,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'base::internal::AssertBaseSyncPrimitivesAllowed\n'
         'base::internal::ScopedBlockingCallWithBaseSyncPrimitives::ScopedBlockingCallWith\n'
     )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_notreached_log_message(self):
+    """Tests Chromium NOTREACHED()s as CHECK failures."""
+    data = self._read_test_data('notreached_log_message.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'failed to open UTS46 data with error: U_FILE_ACCESS_ERROR. If you see this error\n'
+        'url::CreateIDNA\n'
+        'url::IDNToASCII\n')
     expected_stacktrace = data
     expected_security_flag = False
 

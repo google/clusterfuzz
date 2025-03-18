@@ -66,7 +66,6 @@ class _ErrorTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enum
     FUZZ_DATA_BUNDLE_SETUP_FAILURE: _ErrorType.ValueType  # 10
     FUZZ_NO_FUZZER: _ErrorType.ValueType  # 11
     FUZZ_NO_FUZZ_TARGET_SELECTED: _ErrorType.ValueType  # 13
-    FUZZ_BAD_BUILD: _ErrorType.ValueType  # 37
     PROGRESSION_REVISION_LIST_ERROR: _ErrorType.ValueType  # 14
     PROGRESSION_BUILD_NOT_FOUND: _ErrorType.ValueType  # 15
     PROGRESSION_NO_CRASH: _ErrorType.ValueType  # 16
@@ -90,6 +89,8 @@ class _ErrorTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enum
     LIBFUZZER_MINIMIZATION_FAILED: _ErrorType.ValueType  # 34
     CORPUS_PRUNING_FUZZER_SETUP_FAILED: _ErrorType.ValueType  # 35
     CORPUS_PRUNING_ERROR: _ErrorType.ValueType  # 36
+    FUZZ_BAD_BUILD: _ErrorType.ValueType  # 37
+    ANALYZE_CLOSE_INVALID_UPLOADED: _ErrorType.ValueType  # 38
 
 class ErrorType(_ErrorType, metaclass=_ErrorTypeEnumTypeWrapper): ...
 
@@ -106,7 +107,6 @@ FUZZ_BUILD_SETUP_FAILURE: ErrorType.ValueType  # 9
 FUZZ_DATA_BUNDLE_SETUP_FAILURE: ErrorType.ValueType  # 10
 FUZZ_NO_FUZZER: ErrorType.ValueType  # 11
 FUZZ_NO_FUZZ_TARGET_SELECTED: ErrorType.ValueType  # 13
-FUZZ_BAD_BUILD: ErrorType.ValueType  # 37
 PROGRESSION_REVISION_LIST_ERROR: ErrorType.ValueType  # 14
 PROGRESSION_BUILD_NOT_FOUND: ErrorType.ValueType  # 15
 PROGRESSION_NO_CRASH: ErrorType.ValueType  # 16
@@ -130,6 +130,8 @@ LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE: ErrorType.ValueType  # 33
 LIBFUZZER_MINIMIZATION_FAILED: ErrorType.ValueType  # 34
 CORPUS_PRUNING_FUZZER_SETUP_FAILED: ErrorType.ValueType  # 35
 CORPUS_PRUNING_ERROR: ErrorType.ValueType  # 36
+FUZZ_BAD_BUILD: ErrorType.ValueType  # 37
+ANALYZE_CLOSE_INVALID_UPLOADED: ErrorType.ValueType  # 38
 global___ErrorType = ErrorType
 
 @typing_extensions.final
@@ -1191,6 +1193,38 @@ class FuzzTaskCrashGroup(google.protobuf.message.Message):
 global___FuzzTaskCrashGroup = FuzzTaskCrashGroup
 
 @typing_extensions.final
+class EngineOutput(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    OUTPUT_FIELD_NUMBER: builtins.int
+    RETURN_CODE_FIELD_NUMBER: builtins.int
+    TIMESTAMP_FIELD_NUMBER: builtins.int
+    TESTCASE_FIELD_NUMBER: builtins.int
+    output: builtins.bytes
+    return_code: builtins.int
+    @property
+    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    testcase: builtins.bytes
+    def __init__(
+        self,
+        *,
+        output: builtins.bytes | None = ...,
+        return_code: builtins.int | None = ...,
+        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        testcase: builtins.bytes | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_output", b"_output", "_return_code", b"_return_code", "_testcase", b"_testcase", "output", b"output", "return_code", b"return_code", "testcase", b"testcase", "timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_output", b"_output", "_return_code", b"_return_code", "_testcase", b"_testcase", "output", b"output", "return_code", b"return_code", "testcase", b"testcase", "timestamp", b"timestamp"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_output", b"_output"]) -> typing_extensions.Literal["output"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_return_code", b"_return_code"]) -> typing_extensions.Literal["return_code"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcase", b"_testcase"]) -> typing_extensions.Literal["testcase"] | None: ...
+
+global___EngineOutput = EngineOutput
+
+@typing_extensions.final
 class FuzzTaskOutput(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -1205,6 +1239,8 @@ class FuzzTaskOutput(google.protobuf.message.Message):
     TESTCASE_RUN_JSONS_FIELD_NUMBER: builtins.int
     CRASH_GROUPS_FIELD_NUMBER: builtins.int
     BUILD_DATA_FIELD_NUMBER: builtins.int
+    APP_REVISION_FIELD_NUMBER: builtins.int
+    ENGINE_OUTPUTS_FIELD_NUMBER: builtins.int
     fully_qualified_fuzzer_name: builtins.str
     """TODO(metzman): Remove this since tworkers should know what this is based on
     the input.
@@ -1224,6 +1260,9 @@ class FuzzTaskOutput(google.protobuf.message.Message):
     def crash_groups(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___FuzzTaskCrashGroup]: ...
     @property
     def build_data(self) -> global___BuildData: ...
+    app_revision: builtins.int
+    @property
+    def engine_outputs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___EngineOutput]: ...
     def __init__(
         self,
         *,
@@ -1238,9 +1277,13 @@ class FuzzTaskOutput(google.protobuf.message.Message):
         testcase_run_jsons: collections.abc.Iterable[builtins.str] | None = ...,
         crash_groups: collections.abc.Iterable[global___FuzzTaskCrashGroup] | None = ...,
         build_data: global___BuildData | None = ...,
+        app_revision: builtins.int | None = ...,
+        engine_outputs: collections.abc.Iterable[global___EngineOutput] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_build_data", b"_build_data", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcases_executed", b"_testcases_executed", "build_data", b"build_data", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcases_executed", b"testcases_executed"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_build_data", b"_build_data", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcases_executed", b"_testcases_executed", "build_data", b"build_data", "crash_groups", b"crash_groups", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzz_targets", b"fuzz_targets", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_run_jsons", b"testcase_run_jsons", "testcases_executed", b"testcases_executed"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcases_executed", b"_testcases_executed", "app_revision", b"app_revision", "build_data", b"build_data", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcases_executed", b"testcases_executed"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcases_executed", b"_testcases_executed", "app_revision", b"app_revision", "build_data", b"build_data", "crash_groups", b"crash_groups", "crash_revision", b"crash_revision", "engine_outputs", b"engine_outputs", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzz_targets", b"fuzz_targets", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_run_jsons", b"testcase_run_jsons", "testcases_executed", b"testcases_executed"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_app_revision", b"_app_revision"]) -> typing_extensions.Literal["app_revision"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_build_data", b"_build_data"]) -> typing_extensions.Literal["build_data"] | None: ...
     @typing.overload

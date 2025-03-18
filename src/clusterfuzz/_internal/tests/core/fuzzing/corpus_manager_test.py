@@ -22,6 +22,7 @@ from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.fuzzing import corpus_manager
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -407,8 +408,75 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
     self.mock.move.side_effect = mock_move
     legal_files = corpus_manager.legalize_filenames([self.FILE_PATH])
     self.assertEqual([], legal_files)
-    failed_to_move_files = [(self.FILE_PATH,
-                             os.path.join(self.DIRECTORY, self.FILE_SHA1SUM))]
+    failed_to_move_filepaths = [self.FILE_PATH]
 
     self.mock.error.assert_called_with(
-        'Failed to rename files.', failed_to_move_files=failed_to_move_files)
+        'Failed to rename files.',
+        failed_to_move_filepaths=failed_to_move_filepaths)
+
+
+class ProtoFuzzTargetCorpusRsyncTest(fake_filesystem_unittest.TestCase):
+  """Tests for ProtoFuzzTargetCorpus's rsync functionality."""
+
+  INITIAL_CORPUS_PATH = '/tmp/initial'
+  MINIMIZED_CORPUS_PATH = '/tmp/minimized'
+  PRESERVED_FILE_PATH = '/tmp/initial/preserved'
+  PRESERVED_FILE_PATH_IN_NEW = '/tmp/minimized/preserved'
+  DELETED_FILE_PATH = '/tmp/initial/deleted'
+  NEW_FILE_PATH = '/tmp/minimized/new'
+  PRESERVED_CONTENTS = '1'
+  DELETED_FILE_DELETION_URL = 'https://delete2'
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    self.fs.create_dir(self.INITIAL_CORPUS_PATH)
+    self.fs.create_dir(self.MINIMIZED_CORPUS_PATH)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.download_signed_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.delete_signed_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.sign_urls_for_existing_files',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
+        'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.upload_files',
+    ])
+
+    def mock_download_signed_urls(*args, **kwargs):
+      del args
+      del kwargs
+      self.fs.create_file(
+          self.PRESERVED_FILE_PATH, contents=self.PRESERVED_CONTENTS)
+      self.fs.create_file(self.DELETED_FILE_PATH, contents='2')
+      return [
+          storage.SignedUrlDownloadResult('https://preserved-url',
+                                          self.PRESERVED_FILE_PATH),
+          storage.SignedUrlDownloadResult('https://deleted-url',
+                                          self.DELETED_FILE_PATH)
+      ]
+
+    self.mock.download_signed_urls.side_effect = mock_download_signed_urls
+    self.mock.sign_urls_for_existing_files.return_value = [
+        ('https://preserved-url', 'https://delete1'),
+        ('https://deleted-url', self.DELETED_FILE_DELETION_URL)
+    ]
+    self.mock.get_arbitrary_signed_upload_urls.return_value = [
+        'https://new-upload1', 'https://new-upload2', 'https://new-upload3'
+    ]
+    self.mock.last_updated.return_value = None
+    self.mock.upload_files.return_value = [True, True]
+
+  def test_rsync(self):
+    """Tests that syncing to and from disk deletes pruned elements, uploads new
+    ones, and ignores unchanged ones."""
+    corpus = corpus_manager.get_fuzz_target_corpus(
+        'libFuzzer', 'fake_fuzzer', include_delete_urls=True)
+    corpus.rsync_to_disk(self.INITIAL_CORPUS_PATH)
+    self.fs.create_file(
+        self.PRESERVED_FILE_PATH_IN_NEW, contents=self.PRESERVED_CONTENTS)
+    self.fs.create_file(self.NEW_FILE_PATH, contents='3')
+    corpus.rsync_from_disk(self.MINIMIZED_CORPUS_PATH)
+    # '356a192b7913b04c54574d18c28d46e6395428ab' the hash of the preserved file,
+    # should not be included, because it's already in the corpus.
+    self.mock.upload_files.assert_called_with(
+        corpus, ['/tmp/minimized/77de68daecd823babbb58edb1c8e14d7106e83bb'])
+    self.mock.delete_signed_urls.assert_called_with(
+        [self.DELETED_FILE_DELETION_URL])

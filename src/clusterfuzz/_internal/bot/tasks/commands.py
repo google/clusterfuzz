@@ -14,12 +14,15 @@
 """Run command based on the current task."""
 
 import functools
+import os
 import sys
 import time
+import uuid
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_rate_limiting
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import task_types
@@ -36,6 +39,7 @@ from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -76,6 +80,8 @@ class AlreadyRunningError(Error):
 def cleanup_task_state():
   """Cleans state before and after a task is executed."""
   # Cleanup stale processes.
+  if environment.is_tworker():
+    return
   process_handler.cleanup_stale_processes()
 
   # Clear build urls, temp and testcase directories.
@@ -118,12 +124,6 @@ def update_environment_for_job(environment_string):
   uworker_env = env.copy()
   for key, value in env.items():
     environment.set_value(key, value)
-
-  # If we share the build with another job type, force us to be a custom binary
-  # job type.
-  if environment.get_value('SHARE_BUILD_WITH_JOB_TYPE'):
-    environment.set_value('CUSTOM_BINARY', True)
-    uworker_env['CUSTOM_BINARY'] = 'True'
 
   # Allow the default FUZZ_TEST_TIMEOUT and MAX_TESTCASES to be overridden on
   # machines that are preempted more often.
@@ -192,15 +192,28 @@ def start_web_server_if_needed():
     logs.error('Failed to start web server, skipping.')
 
 
-def run_command(task_name,
-                task_argument,
-                job_name,
-                uworker_env,
-                preprocess=False):
-  """Run the command."""
+def get_command_object(task_name):
+  """Returns the command object that execute can be called on."""
   task = COMMAND_MAP.get(task_name)
+  if not environment.is_tworker():
+    return task
+
+  if task_name in {'postprocess', 'uworker_main'}:
+    return task
+
+  if isinstance(task, task_types.TrustedTask):
+    # We don't need to execute this remotely.
+    return task
+
+  # Force remote execution.
+  return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
+
+
+def run_command(task_name, task_argument, job_name, uworker_env):
+  """Runs the command."""
+  task = get_command_object(task_name)
   if not task:
-    logs.error("Unknown command '%s'" % task_name)
+    logs.error(f'Unknown command "{task_name}"')
     return None
 
   # If applicable, ensure this is the only instance of the task running.
@@ -208,28 +221,43 @@ def run_command(task_name,
   if should_update_task_status(task_name):
     if not data_handler.update_task_status(task_state_name,
                                            data_types.TaskState.STARTED):
-      logs.info('Another instance of "{}" already '
-                'running, exiting.'.format(task_state_name))
+      logs.info(f'Another instance of "{task_state_name}" already running, '
+                'exiting.')
       raise AlreadyRunningError
 
   result = None
+  rate_limiter = task_rate_limiting.TaskRateLimiter(task_name, task_argument,
+                                                    job_name)
+  if rate_limiter.is_rate_limited():
+    monitoring_metrics.TASK_RATE_LIMIT_COUNT.increment(labels={
+        'job': job_name,
+        'task': task_name,
+        'argument': task_argument,
+    })
+    logs.error(f'Rate limited task: {task_name} {task_argument} {job_name}')
+    if task_name == 'fuzz' and not environment.is_tworker():
+      # TODO(b/377885331): Get rid of this when oss-fuzz is migrated.
+      # Wait 10 seconds. We don't want to try again immediately because if we
+      # tried to run a fuzz task then there is no other task to run.
+      time.sleep(environment.get_value('FAIL_WAIT'))
+    return None
   try:
-    if not preprocess:
-      result = task.execute(task_argument, job_name, uworker_env)
-    else:
-      result = task.preprocess(task_argument, job_name, uworker_env)
+    result = task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
     logs.warning('Test case %s no longer exists.' % task_argument)
+    rate_limiter.record_task(success=False)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
+    rate_limiter.record_task(success=False)
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
-
     raise
+  else:
+    rate_limiter.record_task(success=True)
 
   # Task completed successfully.
   if should_update_task_status(task_name):
@@ -249,20 +277,27 @@ def process_command(task):
                               task.high_end, task.is_command_override)
 
 
+def _get_task_id(task_name, task_argument, job_name):
+  return f'{task_name},{task_argument},{job_name},{uuid.uuid4()}'
+
+
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
-def process_command_impl(task_name,
-                         task_argument,
-                         job_name,
-                         high_end,
-                         is_command_override,
-                         preprocess=False):
+def process_command_impl(task_name, task_argument, job_name, high_end,
+                         is_command_override):
   """Implementation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
+  if task_name in {'uworker_main', 'postprocess'}:
+    # We want the id of the task we are processing, not "uworker_main", or
+    # "postprocess".
+    task_id = None
+  else:
+    task_id = _get_task_id(task_name, task_argument, job_name)
+  environment.set_value('CF_TASK_ID', task_id)
   if job_name != 'none':
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     # Job might be removed. In that case, we don't want an exception
@@ -285,9 +320,13 @@ def process_command_impl(task_name,
     # A misconfiguration led to this point. Clean up the job if necessary.
     # TODO(ochang): Remove the first part of this check once we migrate off the
     # old untrusted worker architecture.
-    # Comment this "if" out to run a task locally.
-    if (not environment.is_trusted_host(ensure_connected=False) and
-        job_base_queue_suffix != bot_base_queue_suffix):
+    # If the job base quque is '-android', which is the default Android queue
+    # ignore the mismatch since with subqueues, it is expected
+    if (not environment.get_value('DEBUG_TASK') and
+        not environment.is_tworker() and
+        not environment.is_trusted_host(ensure_connected=False) and
+        job_base_queue_suffix != bot_base_queue_suffix and
+        job_base_queue_suffix != '-android'):
       # This happens rarely, store this as a hard exception.
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
                  (job_name, job_base_queue_suffix, bot_base_queue_suffix))
@@ -311,8 +350,7 @@ def process_command_impl(task_name,
           logs.error('Failed to fix platform and re-add task.')
 
       # Add a wait interval to avoid overflowing task creation.
-      failure_wait_interval = environment.get_value('FAIL_WAIT')
-      time.sleep(failure_wait_interval)
+      time.sleep(environment.get_value('FAIL_WAIT'))
       return None
 
     if task_name != 'fuzz':
@@ -412,6 +450,7 @@ def process_command_impl(task_name,
     uworker_env['TASK_NAME'] = task_name
     uworker_env['TASK_ARGUMENT'] = task_argument
     uworker_env['JOB_NAME'] = job_name
+    uworker_env['CF_TASK_ID'] = task_id
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
@@ -431,8 +470,9 @@ def process_command_impl(task_name,
   start_web_server_if_needed()
 
   try:
-    return run_command(task_name, task_argument, job_name, uworker_env,
-                       preprocess)
+    return run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
     cleanup_task_state()
+    if 'CF_TASK_ID' in os.environ:
+      del os.environ['CF_TASK_ID']

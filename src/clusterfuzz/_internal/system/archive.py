@@ -181,6 +181,8 @@ class ArchiveReader(abc.ABC):
       if archive_file_unpack_count % 1000 == 0:
         logs.info('Unpacked %d/%d.' % (archive_file_unpack_count,
                                        archive_file_total_count))
+    logs.info('Unpacked %d/%d. Done.' % (archive_file_unpack_count,
+                                         archive_file_total_count))
 
     return not error_occurred
 
@@ -457,7 +459,13 @@ class HttpZipFile(io.IOBase):
     self.file_size = int(resp.headers.get('Content-Length', default=0))
     self._current_block = CacheBlock(0, 0, b'')
     self._pos = 0
+    self._read_bytes = 0
     assert resp.headers.get('Accept-Ranges') is not None
+
+  def close(self):
+    logs.info('HttpZipFile: read %d / %d (bytes) from %s' %
+              (self._read_bytes, self.file_size, self.uri))
+    super().close()
 
   def seekable(self) -> bool:
     """Whether this is seekable."""
@@ -502,6 +510,7 @@ class HttpZipFile(io.IOBase):
         the read bytes.
     """
     resp = self.session.get(self.uri, headers={'Range': f'bytes={start}-{end}'})
+    self._read_bytes += (end - start + 1)
     return resp.content
 
   def _fetch_from_cache(self, start: int, end: int) -> bytes:

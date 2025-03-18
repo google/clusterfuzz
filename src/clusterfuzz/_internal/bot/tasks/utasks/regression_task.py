@@ -19,6 +19,7 @@ import time
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot import testcase_manager
@@ -28,6 +29,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
@@ -60,21 +62,24 @@ def write_to_big_query(testcase, regression_range_start, regression_range_end):
 def _save_current_regression_range_indices(
     task_output: uworker_msg_pb2.RegressionTaskOutput, testcase_id: str):  # pylint: disable=no-member
   """Save current regression range indices in case we die in middle of task."""
-  if not task_output.HasField(
-      'last_regression_min') or not task_output.HasField('last_regression_max'):
-    return
+  last_regression_min = None
+  if task_output.HasField('last_regression_min'):
+    last_regression_min = task_output.last_regression_min
+
+  last_regression_max = None
+  if task_output.HasField('last_regression_max'):
+    last_regression_max = task_output.last_regression_max
+
+  if last_regression_min is None and last_regression_max is None:
+    return  # Optimization to avoid useless load/put.
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   testcase.set_metadata(
-      'last_regression_min',
-      task_output.last_regression_min,
-      update_testcase=False)
+      'last_regression_min', last_regression_min, update_testcase=False)
 
   testcase.set_metadata(
-      'last_regression_max',
-      task_output.last_regression_max,
-      update_testcase=False)
+      'last_regression_max', last_regression_max, update_testcase=False)
 
   testcase.put()
 
@@ -148,114 +153,197 @@ def _testcase_reproduces_in_revision(
   return result.is_crash(), None
 
 
-def check_latest_revisions(
+def find_min_revision(
     testcase: data_types.Testcase,
     testcase_file_path: str,
     job_type: str,
-    revision_range: List[int],
     fuzz_target: Optional[data_types.FuzzTarget],
-    output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
-) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
-  """Check if the regression happened near the last revision in a range.
-
-  The last revision in `revision_range` is assumed to crash.
-
-  Adds information about any bad builds encountered while running to
-  `output.build_data_list`.
-
-  Returns:
-    An output proto if the regression was found or in case of error.
-    None otherwise, i.e. if all most recent revisions crash, in which case
-    `output.build_data_list` contains details about all tested revisions.
-  """
-  last_known_crashing_revision = revision_range[-1]
-
-  for revision in reversed(revision_range[-EXTREME_REVISIONS_TO_TEST - 1:-1]):
-    # If we don't crash in a recent revision, we regressed in one of the
-    # commits between the current revision and the next.
-    is_crash, error = _testcase_reproduces_in_revision(
-        testcase, testcase_file_path, job_type, revision, output, fuzz_target)
-
-    if error:
-      # Skip this revision only on bad build errors.
-      if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
-        continue
-      return error
-
-    if not is_crash:
-      # We've found the latest passing revision, no need to binary search.
-      output.regression_range_start = revision
-      output.regression_range_end = last_known_crashing_revision
-      return uworker_msg_pb2.Output(regression_task_output=output)  # pylint: disable=no-member
-
-    last_known_crashing_revision = revision
-
-  # All most recent revisions crash.
-  return None
-
-
-def check_earliest_revisions(
-    testcase: data_types.Testcase,
-    testcase_file_path: str,
-    job_type: str,
-    revision_range: List[int],
-    fuzz_target: Optional[data_types.FuzzTarget],
+    deadline: float,
+    revision_list: List[int],
+    max_index: int,
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
-) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
-  """Check that the earliest good build does not crash.
+) -> tuple[int, int, None] | tuple[None, None, uworker_msg_pb2.Output]:  # pylint: disable=no-member
+  """Attempts to find a min revision to start bisecting from. Such a revision
+  must be good and the testcase must not reproduce at that revision.
 
-  Adds information about any bad builds encountered while running to
-  `regression_task_output.build_data_list`.
+  Args:
+    testcase: Passed to `_testcase_reproduces_in_revision()`.
+    testcase_file_path: Passed to `_testcase_reproduces_in_revision()`.
+    job_type: Passed to `_testcase_reproduces_in_revision()`.
+    fuzz_target: Passed to `_testcase_reproduces_in_revision()`.
+    deadline: The timestamp (comparable to `time.time()`) past which we should
+      stop the search and time out.
+    revision_list: The list of all revisions known to exist.
+    max_index: The index of the known max revision for bisection. Must be a
+      valid index within `revision_list`. It is assumed that the testcase
+      reproduces at the pointed-to revision.
+    regression_task_output: Output argument. Any bad builds encountered while
+      searching for the earliest good build are appended to `build_data_list`.
+      See also below for values set in different return conditions.
 
   Returns:
-    None if one of the earliest builds is good and does not crash.
-    An output proto if:
+    a. If successful:
 
-    a. The earliest good build crashes, in which case the regression range is
-       set to [0, min_good_revision).
-    b. An error occurred.
+        min_index, max_index, None
+
+      Where `min_index` points to the min revision in `revision_list`, and
+      `max_index` points to a potentially-new max revision in `revision_list`
+      (if we encountered lower revisions at which the testcase still
+      reproduced).
+
+      In this case, `regression_task_output` is modified in the following ways:
+
+        regression_task_output.last_regression_min is set
+        regression_task_output.last_regression_max is set
+
+    b. If no such revision can be found - i.e. the earliest good revision X
+      still reproduces the testcase:
+
+        None, None, output
+
+      where:
+
+        output.regression_task_output = regression_task_output
+        output.regression_task_output.regression_range_start = 0
+        output.regression_task_output.regression_range_end = X
+
+    c. If we timed out:
+
+        None, None, output
+
+      where:
+
+        output.error_type = REGRESSION_TIMED_OUT
+        output.regression_task_output = regression_task_output
+        output.regression_task_output.last_regression_max is set
+
+    d. If another error occurred:
+
+        None, None, output
+
+      where:
+
+        output.error_type indicates the error that occurred
+        output.regression_task_output = regression_task_output
+        output.regression_task_output.last_regression_max is set
+
   """
-  # Test to see if we crash in the oldest revision we can run. This is a pre-
-  # condition for our binary search. If we do crash in that revision, it
-  # implies that we regressed between the first commit and our first revision,
-  # which we represent as 0:|min_revision|.
+  assert max_index >= 0, max_index
+  assert max_index < len(revision_list), max_index
 
-  revision_range = revision_range[:EXTREME_REVISIONS_TO_TEST]
-  for revision in revision_range:
+  # Note that we search exponentially through the indices in the revision list,
+  # not through the revisions themselves. If revisions are fairly evenly
+  # distributed, then this distinction is irrelevant. If however there are large
+  # irregular gaps in between revisions, this might appear a bit strange at a
+  # glance. Consider:
+  #
+  #   Revisions:    1, 2, 3, 4, 5, 50, 51, 127, 128
+  #   Search order: 4           3       2    1
+  #
+  #   Appears as trying: 127, 51, 5, 1
+  #   Instead of:        127, 126, 124, 120, 112, 96, 64, 1
+  #
+  # Both would work, but searching through indices in the revision list is both
+  # easier to express in code and more efficient since what we care about is
+  # searching through revisions that we *can* test against, not through all
+  # revisions in the source code.
+  #
+  # The later bisection stage (once we have found a min revision) similarly
+  # operates on indices and not revisions.
+
+  # Find the index of the original crashing revision so that we can keep
+  # doubling the step size in our exponential search backwards.
+  crash_index = revisions.find_max_revision_index(revision_list,
+                                                  testcase.crash_revision)
+  if crash_index is None:
+    # If the crash revision is no longer in the revision list, nor does there
+    # exist any later revision, just use the last revision in the list instead.
+    # This will reduce the step size for our exponential search by as little as
+    # possible.
+    crash_index = len(revision_list) - 1
+
+  if max_index == crash_index:
+    # Starting from scratch.
+    next_index = max_index - 1
+  elif crash_index > max_index:
+    # Double the distance to the original crash index.
+    distance = crash_index - max_index
+    next_index = max_index - distance
+  else:
+    # If `max_index` is higher than `crash_index`, this means that in some
+    # previous iteration the original crash revision could not be found, so a
+    # higher revision was used instead, *and* we timed out before we could
+    # search below `crash_revision`. Now, for some reason, the crash revision is
+    # found again, so just use it and restart from scratch.
+    max_index = crash_index
+    next_index = max_index - 1
+
+  assert next_index < max_index, (next_index, max_index)
+  assert max_index <= crash_index, (max_index, crash_index)
+
+  while True:
+    # If we fall off the end of the revision list, try the earliest revision.
+    # Note that if the earliest revision is bad, we will skip it and try the
+    # next one. This will go on until we find the first good revision, at which
+    # point we will stop looping.
+    next_index = max(next_index, 0)
+    next_revision = revision_list[next_index]
+
+    if next_index == max_index:
+      # The first good build crashes, there is no min revision to be found.
+      regression_task_output.regression_range_start = 0
+      regression_task_output.regression_range_end = next_revision
+      return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+          regression_task_output=regression_task_output)
+
+    if time.time() > deadline:
+      return None, None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
+          error_message='Timed out searching for min revision. ' +
+          f'Current max: r{regression_task_output.last_regression_max}, ' +
+          f'next revision: r{next_revision}',
+          regression_task_output=regression_task_output)
+
     is_crash, error = _testcase_reproduces_in_revision(
         testcase,
         testcase_file_path,
         job_type,
-        revision,
+        next_revision,
         regression_task_output,
         fuzz_target,
         should_log=False)
 
     if error:
-      # Skip bad build errors only.
+      # If this revision contains a bad build, skip it and try the previous one.
+      # Remove the revision from the list so we don't try using it again during
+      # this run.
       if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
+        del revision_list[next_index]
+        next_index -= 1
+        max_index -= 1
+        crash_index -= 1
         continue
-      return error
 
-    if is_crash:
-      regression_task_output.regression_range_start = 0
-      regression_task_output.regression_range_end = revision
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          regression_task_output=regression_task_output)
+      # For all other errors, stop here.
+      return None, None, error
 
-    return None
+    if not is_crash:
+      # We found a suitable min revision, success!
+      regression_task_output.last_regression_min = next_revision
+      return next_index, max_index, None
 
-  # We should have returned above. If we get here, it means we tried too many
-  # builds near the min revision, and they were all bad.
+    # This is the new max revision. Remember it for later bisection.
+    max_index = next_index
+    regression_task_output.last_regression_max = next_revision
 
-  bad_revisions = ','.join(f'r{revision}' for revision in revision_range)
-  logs.error(
-      'Tried too many builds near the min revision, and they were all bad: ' +
-      f'[{bad_revisions}]')
+    # Continue exponential search backwards. Double the distance (in indices)
+    # from our start point.
+    distance = crash_index - next_index
+    next_index -= distance
 
-  return uworker_msg_pb2.Output(  # pylint: disable=no-member
-      regression_task_output=regression_task_output,
-      error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)  # pylint: disable=no-member
+    # Assert forward progress.
+    # Note that `max_index` stores the previous value of `next_index`.
+    assert distance >= 0, (distance, crash_index, max_index)
 
 
 def validate_regression_range(
@@ -313,6 +401,9 @@ def find_regression_range(
   if error:
     return error
 
+  # Help the type checker.
+  assert isinstance(testcase_file_path, str)
+
   build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
       build_bucket_path,
@@ -323,31 +414,47 @@ def find_regression_range(
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)  # pylint: disable=no-member
 
   # Pick up where left off in a previous run if necessary.
-  min_revision = testcase.get_metadata('last_regression_min')
-  max_revision = testcase.get_metadata('last_regression_max')
-  first_run = not min_revision and not max_revision
-  if not min_revision:
-    min_revision = revisions.get_first_revision_in_list(revision_list)
-  if not max_revision:
+  # Cache this data here to judge in the end if we actually made progress.
+  # Between here and the end of the loop also a lot of time might pass, in
+  # which another simultaneously running regression task might mess with
+  # the metadata.
+  last_min_revision = testcase.get_metadata('last_regression_min')
+  last_max_revision = testcase.get_metadata('last_regression_max')
+  min_revision = last_min_revision
+  max_revision = last_max_revision
+
+  logs.info('Build set up, starting search for regression range. State: ' +
+            f'crash_revision = {testcase.crash_revision}, ' +
+            f'max_revision = {max_revision}, ' +
+            f'min_revision = {min_revision}.')
+
+  if max_revision is None:
+    logs.info('Starting search for min revision from scratch.')
     max_revision = testcase.crash_revision
 
-  min_index = revisions.find_min_revision_index(revision_list, min_revision)
-  if min_index is None:
-    error_message = f'Could not find good min revision <= {min_revision}.'
-    return uworker_msg_pb2.Output(  # pylint: disable=no-member
-        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,  # pylint: disable=no-member
-        error_message=error_message)
+    if min_revision is not None:
+      logs.error('Inconsistent regression state: ' +
+                 'resetting min_revision to None.')
+      min_revision = None
+
+  elif min_revision is None:
+    # max_revision is not None.
+    logs.info('Resuming search for min revision.')
+
+  else:
+    # max_revision and min_revision are not None.
+    logs.info('Resuming bisection.')
 
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
   if max_index is None:
-    error_message = f'Could not find good max revision >= {max_revision}.'
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,  # pylint: disable=no-member
-        error_message=error_message)
+        error_message=f'Could not find good max revision >= {max_revision}.')
 
-  # Make sure that the revision where we noticed the crash, still crashes at
-  # that revision. Otherwise, our binary search algorithm won't work correctly.
-  max_revision = revision_list[max_index]
+  known_crash_revision = max_revision
+  max_revision = revision_list[max_index]  # Might be > `known_crash_revision`.
+
+  # Check invariant: max revision crashes.
   regression_task_output = uworker_msg_pb2.RegressionTaskOutput()  # pylint: disable=no-member
   crashes_in_max_revision, error = _testcase_reproduces_in_revision(
       testcase,
@@ -360,7 +467,13 @@ def find_regression_range(
   if error:
     return error
   if not crashes_in_max_revision:
-    error_message = f'Known crash revision {max_revision} did not crash'
+    if known_crash_revision == max_revision:
+      error_message = f'Known crash revision {max_revision} did not crash.'
+    else:
+      error_message = (f'Max revision {max_revision} did not crash. ' +
+                       f'Known crash revision was {known_crash_revision}. ' +
+                       'Crash is either flaky or fixed in ' +
+                       f'{known_crash_revision}:{max_revision}.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         regression_task_output=regression_task_output,
         error_message=error_message,
@@ -368,22 +481,31 @@ def find_regression_range(
 
   # If we've made it this far, the test case appears to be reproducible.
   regression_task_output.is_testcase_reproducible = True
+  regression_task_output.last_regression_max = max_revision
 
-  # On the first run, check to see if we regressed near either the min or max
-  # revision.
-  if first_run:
-    revision_range = revision_list[min_index:max_index + 1]
-    result = check_latest_revisions(testcase, testcase_file_path, job_type,
-                                    revision_range, fuzz_target,
-                                    regression_task_output)
-    if result:
-      return result
+  min_index = None
+  if min_revision:
+    min_index = revisions.find_min_revision_index(revision_list, min_revision)
+    if not min_index:
+      # The min revision we previously found to be good no longer exists, nor
+      # do any earlier revisions. This is a weird case, but we can recover by
+      # searching for a good revision once more.
+      logs.warning(f'Min revision {min_revision} no longer exists, nor do any '
+                   'earlier revisions. Restarting search for a good revision. ')
+      min_revision = None
 
-    result = check_earliest_revisions(testcase, testcase_file_path, job_type,
-                                      revision_range, fuzz_target,
-                                      regression_task_output)
-    if result:
-      return result
+  if not min_index:
+    min_index, max_index, output = find_min_revision(
+        testcase, testcase_file_path, job_type, fuzz_target, deadline,
+        revision_list, max_index, regression_task_output)
+    if output:
+      # Either we encountered an error, or there is no good revision and the
+      # regression range is `0:revision_list[0]`.
+      return output
+
+  # Type checker cannot figure this out.
+  assert isinstance(min_index, int)
+  assert isinstance(max_index, int)
 
   while time.time() < deadline:
     min_revision = revision_list[min_index]
@@ -432,13 +554,27 @@ def find_regression_range(
     regression_task_output.last_regression_min = revision_list[min_index]
     regression_task_output.last_regression_max = revision_list[max_index]
 
-  # If we've broken out of the above loop, we timed out. We'll finish by
-  # running another regression task and picking up from this point.
+  # If we've broken out of the above loop, we timed out. Remember where
+  # we left.
+  regression_task_output.last_regression_min = revision_list[min_index]
+  regression_task_output.last_regression_max = revision_list[max_index]
+
+  # Check if we made progress at all. If this task already resumed a previous
+  # timeout, it started with known min/max revisions. Without any progress,
+  # likely most builds failed the bad build check, in which case we don't
+  # want to restart another task to avoid a task loop.
+  if (last_min_revision == revision_list[min_index] and
+      last_max_revision == revision_list[max_index]):
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        regression_task_output=regression_task_output,
+        error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR,  # pylint: disable=no-member
+        error_message='No progress during bisect.')
+
+  # Because we made progress, the timeout error handler will trigger another
+  # regression task and pick up from this point.
   # TODO: Error handling should be moved to postprocess.
   error_message = 'Timed out, current range r%d:r%d' % (
       revision_list[min_index], revision_list[max_index])
-  regression_task_output.last_regression_min = revision_list[min_index]
-  regression_task_output.last_regression_max = revision_list[max_index]
   return uworker_msg_pb2.Output(  # pylint: disable=no-member
       regression_task_output=regression_task_output,
       error_type=uworker_msg_pb2.REGRESSION_TIMEOUT_ERROR,  # pylint: disable=no-member
@@ -526,6 +662,9 @@ def handle_regression_build_setup_error(output: uworker_msg_pb2.Output):  # pyli
       wait_time=build_fail_wait)
 
 
+# TODO(https://crbug.com/396344382): Wait for all uworkers to run code past
+# https://github.com/google/clusterfuzz/pull/3934 for a week, then delete this.
+# This error type is obsolete.
 def handle_regression_bad_build_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   # Though bad builds when narrowing the range are recoverable, certain builds
   # being marked as bad may be unrecoverable. Recoverable ones should not
@@ -583,12 +722,16 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
 
   Runs on a trusted worker.
   """
+  testcase_id = output.uworker_input.testcase_id
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP)
+
   if output.HasField('regression_task_output'):
     task_output = output.regression_task_output
     _update_build_metadata(output.uworker_input.job_type,
                            task_output.build_data_list)
-    _save_current_regression_range_indices(task_output,
-                                           output.uworker_input.testcase_id)
+    _save_current_regression_range_indices(task_output, testcase_id)
     if task_output.is_testcase_reproducible:
       # Clear metadata from previous runs had it been marked as potentially
       # flaky.
@@ -603,8 +746,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   save_regression_range(output)
 
 
-def _update_build_metadata(job_type: str,
-                           build_data_list: List[uworker_msg_pb2.BuildData]):  # pylint: disable=no-member
+def _update_build_metadata(
+    job_type: str, build_data_list: Sequence[uworker_msg_pb2.BuildData]):  # pylint: disable=no-member
   """A helper method to update the build metadata corresponding to a
   job_type."""
   for build_data in build_data_list:

@@ -667,10 +667,11 @@ class IntegrationTests(BaseIntegrationTest):
     def mocked_create_merge_directory(_):
       """A mocked version of create_merge_directory that adds some interesting
       files to the merge corpus and initial corpus."""
-      merge_directory_path = libfuzzer.create_corpus_directory('merge-corpus')
+      merge_directory_path = engine_common.create_temp_fuzzing_dir(
+          'merge-corpus')
 
       # Write the minimal unit to the new corpus directory.
-      new_corpus_directory_path = libfuzzer.create_corpus_directory('new')
+      new_corpus_directory_path = engine_common.create_temp_fuzzing_dir('new')
       minimal_unit_path = os.path.join(new_corpus_directory_path,
                                        minimal_unit_hash)
 

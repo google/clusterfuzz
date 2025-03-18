@@ -261,8 +261,9 @@ def _get_manifest_release_suffix(release):
   suffix = ''
   if sys.version_info.major == 3:
     suffix += '.3'
-  if release == 'candidate':
-    suffix += '-candidate'
+  if release == 'prod':
+    return suffix
+  suffix += f'-{release}'
   return suffix
 
 
@@ -270,8 +271,9 @@ def _get_deployment_zip_release_suffix(release):
   suffix = ''
   if sys.version_info.major == 3:
     suffix += '-3'
-  if release == 'candidate':
-    suffix += '-candidate'
+  if release == 'prod':
+    return suffix
+  suffix += f'-{release}'
   return suffix
 
 
@@ -916,7 +918,6 @@ def current_project():
 
 def current_source_version():
   """Return the current source revision."""
-  # For test use.
   source_version_override = environment.get_value('SOURCE_VERSION_OVERRIDE')
   if source_version_override:
     return source_version_override
@@ -1020,3 +1021,22 @@ def cpu_count():
 
   return environment.get_value('CPU_COUNT_OVERRIDE',
                                multiprocessing.cpu_count())
+
+
+def batched(iterator, batch_size):
+  """Implementation of itertools.py's batched that was added after
+  Python3.11."""
+  # TODO(metzman): Replace this with itertools.batched.
+  assert batch_size > -1
+  idx = 0
+  batch = []
+  for item in iterator:
+    idx += 1
+    batch.append(item)
+    if idx == batch_size:
+      idx = 0
+      yield batch
+      batch = []
+
+  if batch:
+    yield batch

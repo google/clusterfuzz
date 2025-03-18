@@ -33,6 +33,9 @@ coverage:
     # Bucket to load code coverage information from.
     bucket: test-coverage-bucket
 
+rate_limit_tasks:
+  enabled: true
+
 logs:
   fuzzer:
     # Bucket to store logs for fuzzer runs.
@@ -42,6 +45,10 @@ monitoring:
   # Flag to indicate if Stackdriver monitoring is enabled or not (disabled by default).
   enabled: false
 
+async_http:
+  # WARNING: This can cause OOMs.
+  enabled: true
+
 firebase:
   # API key for Firebase (public).
   api_key: firebase-api-key
@@ -49,6 +56,9 @@ firebase:
   auth_providers:
   - google.com
   # - github.com
+
+uworker_tasks:
+  - analyze
 
 
 stacktrace:

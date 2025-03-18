@@ -29,10 +29,10 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import task_utils
-from clusterfuzz._internal.base import tasks as taskslib
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
@@ -89,14 +89,13 @@ def schedule_utask_mains():
   from clusterfuzz._internal.google_cloud_utils import batch
 
   logs.info('Attempting to combine batch tasks.')
-  utask_mains = taskslib.get_utask_mains()
+  utask_mains = tasks.get_utask_mains()
   if not utask_mains:
     logs.info('No utask mains.')
     return
 
   logs.info(f'Combining {len(utask_mains)} batch tasks.')
 
-  batch_tasks = []
   with lease_all_tasks(utask_mains):
     batch_tasks = [
         batch.BatchTask(task.command, task.job, task.argument)
@@ -136,7 +135,11 @@ def task_loop():
         schedule_utask_mains()
         continue
 
-      task = taskslib.get_task()
+      if environment.is_tworker():
+        task = tasks.tworker_get_task()
+      else:
+        task = tasks.get_task()
+
       if not task:
         continue
 
@@ -191,6 +194,8 @@ def main():
     sys.exit(-1)
 
   fuzzers_init.run()
+
+  logs.info(f'PID is {os.getpid()}')
 
   if environment.is_trusted_host(ensure_connected=False):
     from clusterfuzz._internal.bot.untrusted_runner import host

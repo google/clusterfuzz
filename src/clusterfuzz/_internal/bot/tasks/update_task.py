@@ -106,8 +106,15 @@ def clear_pyc_files(directory):
 
 def track_revision():
   """Get the local revision and report as a metric."""
-  revision = get_local_source_revision() or ''
-  monitoring_metrics.BOT_COUNT.set(1, {'revision': revision})
+  source_code_revision = get_local_source_revision() or ''
+  os_type = environment.platform()
+  labels = {
+      'os_version': platform.release(),
+      'revision': source_code_revision,
+      'os_type': os_type,
+      'release': utils.get_clusterfuzz_release(),
+  }
+  monitoring_metrics.BOT_COUNT.set(1, labels)
 
 
 def get_local_source_revision():

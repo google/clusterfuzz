@@ -20,10 +20,65 @@ from unittest import mock
 
 from clusterfuzz._internal.cron import oss_fuzz_build_status
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import monorail
 from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+
+OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'verified': 'Verified',
+        'new': 'New',
+        'wontfix': 'WontFix',
+        'fixed': 'Fixed'
+    },
+    'all': {
+        'status': 'new',
+        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%'],
+        'issue_body_footer':
+            'When you fix this bug, please\n'
+            '  * mention the fix revision(s).\n'
+            '  * state whether the bug was a short-lived regression or an old '
+            'bug in any stable releases.\n'
+            '  * add any other useful information.\n'
+            'This information can help downstream consumers.\n\n'
+            'If you need to contact the OSS-Fuzz team with a question, '
+            'concern, or any other feedback, please file an issue at '
+            'https://github.com/google/oss-fuzz/issues.'
+    },
+    'non_security': {
+        'labels': ['Type-Bug']
+    },
+    'labels': {
+        'ignore': 'ClusterFuzz-Ignore',
+        'verified': 'ClusterFuzz-Verified',
+        'security_severity': 'Security_Severity-%SEVERITY%',
+        'needs_feedback': 'Needs-Feedback',
+        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+        'reported': 'Reported-%YYYY-MM-DD%',
+        'wrong': 'ClusterFuzz-Wrong',
+        'fuzz_blocker': 'Fuzz-Blocker',
+        'reproducible': 'Reproducible',
+        'auto_cc_from_owners': 'ClusterFuzz-Auto-CC',
+        'os': 'OS-%PLATFORM%',
+        'unreproducible': 'Unreproducible',
+        'restrict_view': 'Restrict-View-Commit'
+    },
+    'security': {
+        'labels': ['Type-Bug-Security']
+    },
+    'deadline_policy_message':
+        'This bug is subject to a 90 day disclosure deadline. If 90 days '
+        'elapse\n'
+        'without an upstream patch, then the bug report will automatically\n'
+        'become visible to the public.',
+    'existing': {
+        'labels': ['Stability-%SANITIZER%']
+    }
+})
 
 
 class MockResponse:
@@ -67,6 +122,8 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
+        ('policy_get',
+         'clusterfuzz._internal.issue_management.issue_tracker_policy.get'),
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker',
         'clusterfuzz._internal.metrics.logs.error',
         'requests.get',
@@ -77,6 +134,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.itm = IssueTrackerManager('oss-fuzz')
     self.mock.get_issue_tracker.return_value = monorail.IssueTracker(self.itm)
+    self.mock.policy_get.return_value = OSS_FUZZ_POLICY
 
     self.maxDiff = None
 
@@ -373,20 +431,18 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
         'The last 3 builds for proj2 have been failing.\n'
-        '<b>Build log:</b> '
+        'Build log: '
         'https://oss-fuzz-build-logs.storage.googleapis.com/'
         'log-proj2-id-f.txt\n'
         'Build type: fuzzing\n\n'
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
+        '**This bug tracker is not being monitored by OSS-Fuzz team.** '
         'If you have any questions, please create an issue at '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
         'day once it is fixed.**', issue.body)
-
-    self.assertTrue(issue.has_label('Proj-proj2'))
 
     issue = self.itm.issues[2]
     self.assertCountEqual(['b@user.com'], issue.cc)
@@ -394,20 +450,18 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
         'The last 3 builds for proj6 have been failing.\n'
-        '<b>Build log:</b> '
+        'Build log: '
         'https://oss-fuzz-build-logs.storage.googleapis.com/'
         'log-proj6-id-c.txt\n'
         'Build type: coverage\n\n'
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
+        '**This bug tracker is not being monitored by OSS-Fuzz team.** '
         'If you have any questions, please create an issue at '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
         'day once it is fixed.**', issue.body)
-
-    self.assertTrue(issue.has_label('Proj-proj6'))
 
   def test_recovered_build_failure(self):
     """Test fixed build failures."""
@@ -436,7 +490,6 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     issue = Issue()
     issue.open = True
     issue.add_label('Type-Build-Failure')
-    issue.add_label('Proj-proj2')
     issue.summary = 'Build failure in proj2'
     issue.body = 'Build failure'
 
@@ -446,7 +499,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual(0, data_types.OssFuzzBuildFailure.query().count())
 
     issue = self.itm.issues[1]
-    self.assertEqual('Fixed', issue.status)
+    self.assertEqual('Verified', issue.status)
     self.assertEqual('The latest build has succeeded, closing this issue.',
                      issue.comment)
 

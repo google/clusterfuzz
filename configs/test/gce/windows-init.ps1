@@ -210,32 +210,6 @@ if (!(Test-Path ($fileName))) {
   unzip $fileName
 }
 
-# Download and install google-fluentd
-$fileName = "$tmp\StackdrvierLogging-v1-3.exe"
-if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-3.exe", $fileName)
-  cmd /c $fileName /S
-
-  $configFile = "C:\GoogleStackdriverLoggingAgent\fluent.conf"
-  $loggingConfig = @"
-    `r
-    <source>`r
-      type tcp`r
-      format json`r
-      port 5170`r
-      bind 127.0.0.1`r
-      tag bot`r
-    </source>`r
-"@
-  Add-Content $configFile $loggingConfig
-  (Get-Content $configFile) -replace "flush_interval 5s","flush_interval 60s" | out-file -encoding ASCII $configFile
-
-  Start-Sleep -s 30
-
-  net stop fluentdwinsvc
-  net start fluentdwinsvc
-}
-
 # Install NVIDIA driver (Tesla P100).
 $nvidiaDriverVersion = "391.29"
 $fileName = "$tmp\$nvidiaDriverVersion-tesla-desktop-winserver2016-international.exe"

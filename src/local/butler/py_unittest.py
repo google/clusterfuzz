@@ -45,7 +45,7 @@ class TrackedTestResult(unittest.TextTestResult):
     self.slow_tests = []
 
   def startTest(self, test):
-    self._start_time = time.time()
+    self._start_time = time.time()  # pylint: disable=attribute-defined-outside-init
     super().startTest(test)
 
   def addSuccess(self, test):

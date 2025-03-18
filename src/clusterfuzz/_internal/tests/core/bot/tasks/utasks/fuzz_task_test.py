@@ -55,38 +55,46 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
+    helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
+    self.mock.platform.return_value = 'some_platform'
 
   def test_fuzzer_run_result(self):
     """Ensure _track_fuzzer_run_result set the right metrics."""
-    fuzz_task._track_fuzzer_run_result('name', 10, 100, 2)
-    fuzz_task._track_fuzzer_run_result('name', 100, 200, 2)
-    fuzz_task._track_fuzzer_run_result('name', 1000, 2000, 2)
-    fuzz_task._track_fuzzer_run_result('name', 1000, 500, 0)
-    fuzz_task._track_fuzzer_run_result('name', 0, 1000, -1)
-    fuzz_task._track_fuzzer_run_result('name', 0, 0, 2)
+    fuzz_task._track_fuzzer_run_result('fuzzer', 'job', 10, 100, 2)
+    fuzz_task._track_fuzzer_run_result('fuzzer', 'job', 100, 200, 2)
+    fuzz_task._track_fuzzer_run_result('fuzzer', 'job', 1000, 2000, 2)
+    fuzz_task._track_fuzzer_run_result('fuzzer', 'job', 1000, 500, 0)
+    fuzz_task._track_fuzzer_run_result('fuzzer', 'job', 0, 1000, -1)
+    fuzz_task._track_fuzzer_run_result('fuzzer', 'job', 0, 0, 2)
 
     self.assertEqual(
         4,
         monitoring_metrics.FUZZER_RETURN_CODE_COUNT.get({
-            'fuzzer': 'name',
-            'return_code': 2
+            'fuzzer': 'fuzzer',
+            'return_code': 2,
+            'platform': 'some_platform',
+            'job': 'job',
         }))
     self.assertEqual(
         1,
         monitoring_metrics.FUZZER_RETURN_CODE_COUNT.get({
-            'fuzzer': 'name',
-            'return_code': 0
+            'fuzzer': 'fuzzer',
+            'return_code': 0,
+            'platform': 'some_platform',
+            'job': 'job',
         }))
     self.assertEqual(
         1,
         monitoring_metrics.FUZZER_RETURN_CODE_COUNT.get({
-            'fuzzer': 'name',
-            'return_code': -1
+            'fuzzer': 'fuzzer',
+            'return_code': -1,
+            'platform': 'some_platform',
+            'job': 'job',
         }))
 
     testcase_count_ratio = (
         monitoring_metrics.FUZZER_TESTCASE_COUNT_RATIO.get({
-            'fuzzer': 'name'
+            'fuzzer': 'fuzzer'
         }))
     self.assertEqual(3.1, testcase_count_ratio.sum)
     self.assertEqual(5, testcase_count_ratio.count)
@@ -130,27 +138,37 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
+    helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
+    self.mock.platform.return_value = 'some_platform'
 
   def test_testcase_run_result(self):
     """Ensure _track_testcase_run_result sets the right metrics."""
     fuzz_task._track_testcase_run_result('fuzzer', 'job', 2, 5)
     fuzz_task._track_testcase_run_result('fuzzer', 'job', 5, 10)
 
-    self.assertEqual(7,
-                     monitoring_metrics.JOB_NEW_CRASH_COUNT.get({
-                         'job': 'job'
-                     }))
     self.assertEqual(
-        15, monitoring_metrics.JOB_KNOWN_CRASH_COUNT.get({
-            'job': 'job'
+        7,
+        monitoring_metrics.JOB_NEW_CRASH_COUNT.get({
+            'job': 'job',
+            'platform': 'some_platform',
         }))
     self.assertEqual(
-        7, monitoring_metrics.FUZZER_NEW_CRASH_COUNT.get({
-            'fuzzer': 'fuzzer'
+        15,
+        monitoring_metrics.JOB_KNOWN_CRASH_COUNT.get({
+            'job': 'job',
+            'platform': 'some_platform',
         }))
     self.assertEqual(
-        15, monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.get({
-            'fuzzer': 'fuzzer'
+        7,
+        monitoring_metrics.FUZZER_NEW_CRASH_COUNT.get({
+            'fuzzer': 'fuzzer',
+            'platform': 'some_platform',
+        }))
+    self.assertEqual(
+        15,
+        monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.get({
+            'fuzzer': 'fuzzer',
+            'platform': 'some_platform',
         }))
 
 
@@ -180,6 +198,8 @@ class TrackFuzzTimeTest(unittest.TestCase):
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
+    helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
+    self.mock.platform.return_value = 'some_platform'
 
   def _test(self, timeout):
     """Test helper."""
@@ -190,7 +210,8 @@ class TrackFuzzTimeTest(unittest.TestCase):
 
     fuzzer_total_time = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.get({
         'fuzzer': 'fuzzer',
-        'timeout': timeout
+        'timeout': timeout,
+        'platform': 'some_platform',
     })
     self.assertEqual(5, fuzzer_total_time)
 
@@ -480,7 +501,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertTrue(fuzz_task._should_create_testcase(group, None))
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
 
     self.assertEqual(self.crashes[0], group.main_crash)
 
@@ -494,7 +515,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     # TODO(metzman): Replace group in calls to _should_create_testcase with a
     # proto group.
     self.assertFalse(
@@ -509,7 +530,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     self.assertTrue(
         fuzz_task._should_create_testcase(group, self.unreproducible_testcase))
     self.assertFalse(group.one_time_crasher_flag)
@@ -527,7 +548,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
     self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', self.context.test_timeout, upload_urls)
+        self.crashes, None, self.context.test_timeout, upload_urls)
     self.assertTrue(group.one_time_crasher_flag)
 
 
@@ -757,7 +778,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             crash_revision=crash_revision,
             fuzzer_name='fuzzer',
             window_argument='win_args',
-            fuzzer_metadata={},
+            fuzzer_metadata={'issue_metadata': {}},
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
@@ -830,7 +851,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             crash_revision=1234,
             fuzzer_name='fuzzer',
             window_argument='win_args',
-            fuzzer_metadata={},
+            fuzzer_metadata={'issue_metadata': {}},
             testcases_metadata={},
             timeout_multiplier=1,
             test_timeout=2,
@@ -1251,7 +1272,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.sync_from_gcs',
         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.upload_files',
         'clusterfuzz._internal.build_management.revisions.get_component_list',
-        'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
@@ -1305,6 +1325,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     os.environ['APP_REVISION'] = '1'
     os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
     os.environ['BOT_NAME'] = 'hostname.company.com'
+    os.environ['FUZZ_LOGS_BUCKET'] = '/fuzz-logs'
 
     expected_crashes = [engine.Crash('/input', 'stack', ['args'], 1.0)]
 
@@ -1335,20 +1356,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
             'owner1@email.com',
     }, fuzzer_metadata)
 
-    log_time = datetime.datetime(1970, 1, 1, 0, 0)
-    log_call = mock.call(
-        b'Component revisions (build r1):\n'
-        b'component: rev\n\nBot name: hostname.company.com\n'
-        b'Return code: 1\n\n'
-        b'Command: cmd\nTime ran: 42.0\n\n'
-        b'logs\n'
-        b'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
-    self.mock.upload_log.assert_has_calls([log_call, log_call])
-    self.mock.upload_testcase.assert_has_calls([
-        mock.call('/input', log_time),
-        mock.call('/input', log_time),
-    ])
-
     self.assertEqual(2, len(crashes))
     for i in range(2):
       self.assertEqual('/input', crashes[i].file_path)
@@ -1370,6 +1377,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
           'strategy_strategy_2': 50,
           'timestamp': 0.0,
       }, testcase_run)
+      # TODO(metzman): We need a test for fuzzing end to end with
+      # preprocess/main/postprocess.
 
 
 class UntrustedRunEngineFuzzerTest(

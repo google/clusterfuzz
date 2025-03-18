@@ -23,15 +23,15 @@ modules.fix_module_search_paths()
 import os
 import re
 import subprocess
-import time
+import tarfile
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -41,8 +41,6 @@ MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
 MAX_TESTCASES = 25000
 TESTCASES_REPORT_INTERVAL = 2500
 STORED_TESTCASES_LIST = []
-
-# pylint: disable=broad-exception-raised
 
 
 def unpack_crash_testcases(crash_testcases_directory):
@@ -134,8 +132,8 @@ def unpack_crash_testcases(crash_testcases_directory):
           os.path.dirname(file_path), stripped_file_name)
       try:
         os.rename(file_path, stripped_file_path)
-      except:
-        raise Exception('Failed to rename testcase %s.' % file_path)
+      except Exception as e:
+        raise RuntimeError(f'Failed to rename testcase {file_path}') from e
 
   # Remove empty files and dirs to avoid the case where a fuzzer randomly
   # chooses an empty dir/file and generates zero testcases.
@@ -155,7 +153,7 @@ def clone_git_repository(tests_directory, name, repo_url):
   if os.path.exists(directory):
     subprocess.check_call(['git', 'pull'], cwd=directory)
   else:
-    raise Exception('Unable to checkout %s tests.' % name)
+    raise RuntimeError(f'Unable to checkout {name} tests.')
 
 
 def create_symbolic_link(tests_directory, source_subdirectory,
@@ -164,8 +162,8 @@ def create_symbolic_link(tests_directory, source_subdirectory,
   source_directory = os.path.join(tests_directory, source_subdirectory)
   target_directory = os.path.join(tests_directory, target_subdirectory)
   if not os.path.exists(source_directory):
-    raise Exception('Unable to find source directory %s for symbolic link.' %
-                    source_directory)
+    raise RuntimeError(
+        f'Unable to find source directory {source_directory} for symlink.')
 
   if os.path.exists(target_directory):
     # Symbolic link already exists, bail out.
@@ -185,8 +183,8 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
   gecko_checkout_directory = os.path.join(tests_directory,
                                           gecko_checkout_subdirectory)
   if not os.path.exists(gecko_checkout_directory):
-    raise Exception(
-        'Unable to find Gecko source directory %s.' % gecko_checkout_directory)
+    raise RuntimeError(
+        f'Unable to find Gecko source directory {gecko_checkout_directory}.')
 
   web_platform_sub_directory = 'testing%sweb-platform%s' % (os.sep, os.sep)
   for root, directories, _ in os.walk(gecko_checkout_directory):
@@ -208,13 +206,42 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
                            target_subdirectory)
 
 
-def main():
-  """Main sync routine."""
-  tests_archive_bucket = environment.get_value('TESTS_ARCHIVE_BUCKET')
-  tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
-  tests_directory = environment.get_value('TESTS_DIR')
-  sync_interval = environment.get_value('SYNC_INTERVAL')  # in seconds.
+def create_fuzzilli_tests_directory(tests_directory):
+  """Create Fuzzilli tests directory from the autozilli GCS archives."""
+  logs.info('Syncing fuzzilli tests.')
+  fuzzilli_tests_directory = os.path.join(tests_directory, 'fuzzilli')
+  remote_archive_tmpl = 'gs://autozilli/autozilli-%d.tgz'
 
+  # Ensure we have an empty directory with no leftovers from a previous run.
+  shell.remove_directory(fuzzilli_tests_directory, recreate=True)
+
+  def filter_members(member, path):
+    # We only need JS files and the settings.json from the archive.
+    if member.name.endswith('fzil') or member.name.startswith('fuzzdir/stats'):
+      return None
+    return tarfile.data_filter(member, path)
+
+  for i in range(1, 10):
+    # Download archives number 1-9.
+    remote_archive = remote_archive_tmpl % i
+    logs.info(f'Processing {remote_archive}')
+    local_archive = os.path.join(fuzzilli_tests_directory, 'tmp.tgz')
+    subprocess.check_call(['gsutil', 'cp', remote_archive, local_archive])
+
+    # Extract relevant files.
+    with tarfile.open(local_archive) as tar:
+      tar.extractall(path=fuzzilli_tests_directory, filter=filter_members)
+
+    # Clean up.
+    os.rename(
+        os.path.join(fuzzilli_tests_directory, 'fuzzdir'),
+        os.path.join(fuzzilli_tests_directory, f'fuzzdir-{i}'))
+    shell.remove_file(local_archive)
+
+
+def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
+               tests_directory: str):
+  """Main sync routine."""
   shell.create_directory(tests_directory)
 
   # Sync old crash tests.
@@ -243,6 +270,8 @@ def main():
 
   create_gecko_tests_directory(tests_directory, 'gecko-dev', 'gecko-tests')
 
+  create_fuzzilli_tests_directory(tests_directory)
+
   # Upload tests archive to google cloud storage.
   logs.info('Uploading tests archive to cloud.')
   tests_archive_local = os.path.join(tests_directory, tests_archive_name)
@@ -268,6 +297,7 @@ def main():
           'WebKit/JSTests/es6',
           'WebKit/JSTests/stress',
           'WebKit/LayoutTests',
+          'fuzzilli',
           'gecko-tests',
           'v8/test/mjsunit',
           'spidermonkey',
@@ -292,22 +322,22 @@ def main():
   subprocess.check_call(
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
 
-  logs.info('Completed cycle, sleeping for %s seconds.' % sync_interval)
-  time.sleep(sync_interval)
+  logs.info('Sync complete.')
+  monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
 
 
-if __name__ == '__main__':
+def main():
   # Make sure environment is correctly configured.
   logs.configure('run_bot')
   environment.set_bot_environment()
 
-  fail_wait = environment.get_value('FAIL_WAIT')
+  tests_archive_bucket = environment.get_value('TESTS_ARCHIVE_BUCKET')
+  tests_archive_name = environment.get_value('TESTS_ARCHIVE_NAME')
+  tests_directory = environment.get_value('TESTS_DIR')
 
-  # Continue this forever.
-  while True:
-    try:
-      with ndb_init.context():
-        main()
-    except Exception:
-      logs.error('Failed to sync tests.')
-      time.sleep(fail_wait)
+  try:
+    sync_tests(tests_archive_bucket, tests_archive_name, tests_directory)
+    return True
+  except Exception as e:
+    logs.error(f'Failed to sync tests: {e}')
+    return False

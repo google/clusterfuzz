@@ -15,6 +15,7 @@
 
 from collections import namedtuple
 import contextlib
+import datetime
 import os
 import re
 import shutil
@@ -34,6 +35,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -297,6 +299,17 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
     logs.error(f'Could not find app {app_name!r} in search directories.')
 
 
+def _emit_job_build_retrieval_metric(start_time, step, build_type):
+  elapsed_minutes = (time.time() - start_time) / 60
+  monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
+      elapsed_minutes, {
+          'job': os.getenv('JOB_NAME'),
+          'platform': environment.platform(),
+          'step': step,
+          'build_type': build_type,
+      })
+
+
 class BaseBuild:
   """Represents a build."""
 
@@ -328,10 +341,15 @@ class Build(BaseBuild):
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
     # This is used by users of the class to learn the fuzz targets in the build.
-    self.fuzz_targets = None
+    self._fuzz_targets = None
+    self._unpack_everything = environment.get_value(
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES', default_value=False)
     # This is used by users of the class to instruct the class which fuzz
     # target to unpack.
     self.fuzz_target = fuzz_target
+    # Every fetched build is a release one, except when SymbolizedBuild
+    # explicitly downloads a debug build
+    self._build_type = 'release'
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -431,7 +449,9 @@ class Build(BaseBuild):
 
     logs.info(f'Downloading build from {build_url} to {build_local_archive}.')
     try:
+      start_time = time.time()
       storage.copy_file_from(build_url, build_local_archive)
+      _emit_job_build_retrieval_metric(start_time, 'download', self._build_type)
     except Exception as e:
       logs.error(f'Unable to download build from {build_url}: {e}')
       raise
@@ -443,15 +463,12 @@ class Build(BaseBuild):
       shell.remove_file(build_local_archive)
 
   def _open_build_archive(self, base_build_dir: str, build_dir: str,
-                          build_url: str, http_build_url: Optional[str],
-                          unpack_everything: Optional[bool]):
+                          build_url: str, http_build_url: Optional[str]):
     """Gets a handle on a build archive for the current build. Depending on the
     provided parameters, this function might download the build archive into
     the build directory or directly use remote HTTP archive.
 
     Args:
-        unpack_everything: wether we should unpack the whole archive or try
-        selective unpacking.
         base_build_dir: the base build directory.
         build_dir: the current build directory.
         build_url: the build URL.
@@ -468,13 +485,14 @@ class Build(BaseBuild):
     # if the HTTP URL is compatible with remote unzipping.
     allow_unpack_over_http = environment.get_value(
         'ALLOW_UNPACK_OVER_HTTP', default_value=False)
-    can_unzip_over_http = (
-        allow_unpack_over_http and not unpack_everything and http_build_url and
+    can_unpack_over_http = (
+        allow_unpack_over_http and http_build_url and
         build_archive.unzip_over_http_compatible(http_build_url))
 
-    if not can_unzip_over_http:
+    if not can_unpack_over_http:
       return self._download_and_open_build_archive(base_build_dir, build_dir,
                                                    build_url)
+    # We do not emmit a metric for build download time, if using http
     logs.info("Opening an archive over HTTP, skipping archive download.")
     assert http_build_url
     return build_archive.open_uri(http_build_url)
@@ -487,9 +505,6 @@ class Build(BaseBuild):
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
     start_time = time.time()
-
-    unpack_everything = environment.get_value(
-        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
     logs.info(f'Unpacking build from {build_url} into {build_dir}.')
 
@@ -505,14 +520,16 @@ class Build(BaseBuild):
 
     try:
       with self._open_build_archive(base_build_dir, build_dir, build_url,
-                                    http_build_url, unpack_everything) as build:
-        unpack_everything = environment.get_value(
-            'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-
-        if not unpack_everything:
+                                    http_build_url) as build:
+        unpack_start_time = time.time()
+        if not self._unpack_everything:
           # We will never unpack the full build so we need to get the targets
           # from the build archive.
-          self.fuzz_targets = list(build.list_fuzz_targets())
+          list_fuzz_target_start_time = time.time()
+          self._fuzz_targets = list(build.list_fuzz_targets())
+          _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
+                                           'list_fuzz_targets',
+                                           self._build_type)
           # We only want to unpack a single fuzz target if unpack_everything is
           # False.
           fuzz_target_to_unpack = self.fuzz_target
@@ -537,19 +554,22 @@ class Build(BaseBuild):
             fuzz_target=fuzz_target_to_unpack,
             trusted=trusted)
 
+        _emit_job_build_retrieval_metric(unpack_start_time, 'unpack',
+                                         self._build_type)
+
     except Exception as e:
       logs.error(f'Unable to unpack build archive {build_url}: {e}')
       return False
 
-    if unpack_everything:
-      self.fuzz_targets = list(self._get_fuzz_targets_from_dir(build_dir))
-    else:
+    if not self._unpack_everything:
       # If this is partial build due to selected build files, then mark it as
       # such so that it is not re-used.
       partial_build_file_path = os.path.join(build_dir, PARTIAL_BUILD_FILE)
       utils.write_data_to_file('', partial_build_file_path)
 
+    _emit_job_build_retrieval_metric(start_time, 'total', self._build_type)
     elapsed_time = time.time() - start_time
+
     elapsed_mins = elapsed_time / 60.
     log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
     log_func(f'Build took {elapsed_mins:0.02f} minutes to unpack.')
@@ -573,6 +593,17 @@ class Build(BaseBuild):
   def build_dir(self):
     """The build directory. Usually a subdirectory of base_build_dir."""
     raise NotImplementedError
+
+  @property
+  def fuzz_targets(self):
+    if not self._fuzz_targets and self._unpack_everything:
+      # we can lazily compute that when unpacking the whole archive, since we
+      # know all the fuzzers will be in the build directory.
+      start_time = time.time()
+      self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+      _emit_job_build_retrieval_metric(start_time, 'list_fuzz_targets',
+                                       self._build_type)
+    return self._fuzz_targets
 
   def exists(self):
     """Check if build already exists."""
@@ -714,8 +745,8 @@ class RegularBuild(Build):
       # This list will be incomplete because the directory on disk does not have
       # all fuzz targets. This is fine. The way fuzz_targets are added to db, it
       # does not clobber complete lists.
-      assert self.fuzz_targets is None
-      self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+      assert self._fuzz_targets is None
+      self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
@@ -727,7 +758,7 @@ class SplitTargetBuild(RegularBuild):
 
   def setup(self, *args, **kwargs):
     result = super().setup(*args, **kwargs)
-    self.fuzz_targets = list(_split_target_build_list_targets())
+    self._fuzz_targets = list(_split_target_build_list_targets())
     return result
 
 
@@ -766,7 +797,7 @@ class FuchsiaBuild(RegularBuild):
 
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
-    self.fuzz_targets = list(fuzz_targets)
+    self._fuzz_targets = list(fuzz_targets)
     return True
 
 
@@ -798,11 +829,14 @@ class SymbolizedBuild(Build):
       return False
 
     if self.release_build_url:
+      # Expect self._build_type to be set in the constructor for Build
+      assert self._build_type == 'release'
       if not self._unpack_build(self.base_build_dir, self.release_build_dir,
                                 self.release_build_url):
         return False
 
     if self.debug_build_url:
+      self._build_type = 'debug'
       if not self._unpack_build(self.base_build_dir, self.debug_build_dir,
                                 self.debug_build_url):
         return False
@@ -862,6 +896,9 @@ class CustomBuild(Build):
                                        self.custom_binary_filename)
     custom_builds_bucket = local_config.ProjectConfig().get(
         'custom_builds.bucket')
+
+    download_start_time = time.time()
+
     if custom_builds_bucket:
       directory = os.path.dirname(build_local_archive)
       if not os.path.exists(directory):
@@ -872,6 +909,8 @@ class CustomBuild(Build):
                                      build_local_archive):
       return False
 
+    _emit_job_build_retrieval_metric(download_start_time, 'download',
+                                     self._build_type)
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
       try:
@@ -888,7 +927,11 @@ class CustomBuild(Build):
         logs.log_fatal_and_exit('Could not make space for build.')
 
       try:
+        # Unpack belongs to the BuildArchive class
+        unpack_start_time = time.time()
         build.unpack(self.build_dir, trusted=True)
+        _emit_job_build_retrieval_metric(unpack_start_time, 'unpack',
+                                         self._build_type)
       except:
         build.close()
         logs.error('Unable to unpack build archive %s.' % build_local_archive)
@@ -897,6 +940,9 @@ class CustomBuild(Build):
       build.close()
       # Remove the archive.
       shell.remove_file(build_local_archive)
+
+    _emit_job_build_retrieval_metric(download_start_time, 'download',
+                                     self._build_type)
     return True
 
   def setup(self):
@@ -920,7 +966,7 @@ class CustomBuild(Build):
     else:
       logs.info('Build already exists.')
 
-    self.fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
+    self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
     return True
@@ -1035,9 +1081,6 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   if not revision_urls:
     return None
 
-  logs.info(f'revision_urls is {revision_urls} and revision_pattern '
-            f'is {revision_pattern}.')
-
   # Parse the revisions out of the build urls.
   revision_list = []
   for url in revision_urls:
@@ -1104,7 +1147,13 @@ def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
   bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
   if not fuzz_target:
     raise BuildManagerError(
-        'Failed to choose a fuzz target (path=%s).' % bucket_path)
+        f'Failed to choose a fuzz target (path={bucket_path}).')
+
+  # Check this so that we handle deleted targets properly.
+  targets_list = _get_targets_list(bucket_path)
+  if fuzz_target not in targets_list:
+    raise errors.BuildNotFoundError(revision, environment.get_value('JOB_NAME'))
+
   fuzz_target_bucket_path = _full_fuzz_target_path(bucket_path, fuzz_target)
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
@@ -1148,8 +1197,76 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
-def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
+def _emit_build_age_metric(gcs_path):
+  """Emits a metric to track the age of a build."""
+  try:
+    last_update_time = storage.get(gcs_path).get('updated')
+    # TODO(vitorguidi): standardize return type between fs and gcs.
+    if isinstance(last_update_time, str):
+      # storage.get returns two different types for the updated field:
+      # the gcs api returns string, and the local filesystem implementation
+      # returns a datetime.datetime object normalized for UTC.
+      last_update_time = datetime.datetime.fromisoformat(last_update_time)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    elapsed_time = now - last_update_time
+    elapsed_time_in_hours = elapsed_time.total_seconds() / 3600
+    # Fuzz targets do not apply for custom builds
+    labels = {
+        'job': os.getenv('JOB_NAME'),
+        'platform': environment.platform(),
+        'task': os.getenv('TASK_NAME'),
+    }
+    monitoring_metrics.JOB_BUILD_AGE.add(elapsed_time_in_hours, labels)
+    # This field is expected as a datetime object
+    # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
+  except Exception as e:
+    logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
+
+
+def _emit_build_revision_metric(revision):
+  """Emits a gauge metric to track the build revision."""
+  monitoring_metrics.JOB_BUILD_REVISION.set(
+      revision,
+      labels={
+          'job': os.getenv('JOB_NAME'),
+          'platform': environment.platform(),
+          'task': os.getenv('TASK_NAME'),
+      })
+
+
+def _get_build_url(bucket_path: Optional[str], revision: int,
+                   job_type: Optional[str]):
+  """Returns the GCS url for a build, given a bucket path and revision"""
+  build_urls = get_build_urls_list(bucket_path)
+  if not build_urls:
+    logs.error('Error getting build urls for job %s.' % job_type)
+    return None
+  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
+  if not build_url:
+    logs.error(
+        'Error getting build url for job %s (r%d).' % (job_type, revision))
+    return None
+  return build_url
+
+
+def _get_build_bucket_paths():
+  """Returns gcs bucket endpoints that contain the build of interest."""
+  bucket_paths = []
+  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
+    bucket_path = get_bucket_path(env_var)
+    if bucket_path:
+      bucket_paths.append(bucket_path)
+    else:
+      logs.info('Bucket path not found for %s' % env_var)
+  return bucket_paths
+
+
+def setup_trunk_build(fuzz_target, build_prefix=None):
   """Sets up latest trunk build."""
+  bucket_paths = _get_build_bucket_paths()
+  if not bucket_paths:
+    logs.error('Attempted a trunk build, but no bucket paths were found.')
+    return None
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
     logs.error('Unable to find a matching revision.')
@@ -1170,23 +1287,24 @@ def setup_trunk_build(bucket_paths, fuzz_target, build_prefix=None):
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        fuzz_target=None) -> RegularBuild:
+                        fuzz_target=None) -> Optional[RegularBuild]:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
     bucket_path = get_bucket_path('RELEASE_BUILD_BUCKET_PATH')
 
-  build_urls = get_build_urls_list(bucket_path)
   job_type = environment.get_value('JOB_NAME')
-  if not build_urls:
-    logs.error('Error getting build urls for job %s.' % job_type)
-    return None
-  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
-  if not build_url:
-    logs.error(
-        'Error getting build url for job %s (r%d).' % (job_type, revision))
+  build_url = _get_build_url(bucket_path, revision, job_type)
 
+  if not build_url:
     return None
+
+  all_bucket_paths = _get_build_bucket_paths()
+  latest_revision = _get_latest_revision(all_bucket_paths)
+
+  if revision == latest_revision:
+    _emit_build_age_metric(build_url)
+    _emit_build_revision_metric(revision)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.
@@ -1277,17 +1395,7 @@ def setup_symbolized_builds(revision):
 
 def setup_custom_binary():
   """Set up the custom binary for a particular job."""
-  # Check if this build is dependent on any other custom job. If yes,
-  # then fake out our job name for setting up the build.
-  old_job_name = ''
-  share_build_job_type = environment.get_value('SHARE_BUILD_WITH_JOB_TYPE')
-  if share_build_job_type:
-    job_name = share_build_job_type
-    old_job_name = environment.get_value('JOB_NAME', '')
-    environment.set_value('JOB_NAME', job_name)
-  else:
-    job_name = environment.get_value('JOB_NAME', '')
-
+  job_name = environment.get_value('JOB_NAME')
   # Verify that this is really a custom binary job.
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job or not job.custom_binary_key or not job.custom_binary_filename:
@@ -1298,10 +1406,6 @@ def setup_custom_binary():
   base_build_dir = _base_build_dir('')
   build = CustomBuild(base_build_dir, job.custom_binary_key,
                       job.custom_binary_filename, job.custom_binary_revision)
-
-  # Revert back the actual job name.
-  if share_build_job_type:
-    environment.set_value('JOB_NAME', old_job_name)
 
   if build.setup():
     return build
@@ -1340,19 +1444,7 @@ def _setup_build(revision, fuzz_target):
     return setup_regular_build(revision, fuzz_target=fuzz_target)
 
   # If no revision is provided, we default to a trunk build.
-  bucket_paths = []
-  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
-    bucket_path = get_bucket_path(env_var)
-    if bucket_path:
-      bucket_paths.append(bucket_path)
-    else:
-      logs.info('Bucket path not found for %s' % env_var)
-
-  if len(bucket_paths) == 0:
-    logs.error('Attempted a trunk build, but no bucket paths were found.')
-    return None
-
-  return setup_trunk_build(bucket_paths, fuzz_target=fuzz_target)
+  return setup_trunk_build(fuzz_target=fuzz_target)
 
 
 def is_custom_binary():

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes for objects stored in the datastore."""
 
+import datetime
 import re
 
 from google.cloud import ndb
@@ -56,6 +57,9 @@ ENTITY_SIZE_LIMIT = 900000
 
 # Minimum number of unreproducible crashes to see before filing it.
 FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD = 100
+
+# Minimum number of unreproducible crashes to see before filing it for android.
+FILE_UNREPRODUCIBLE_TESTCASE_MIN_STARTUP_CRASH_THRESHOLD = 14
 
 # Heartbeat wait interval.
 HEARTBEAT_WAIT_INTERVAL = 10 * 60
@@ -420,8 +424,15 @@ class Testcase(Model):
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
 
-  # Timestamp.
+  # The time when a testcase is considered valid. This is the same as the
+  # creation time, except for analyze task, in which this field is a
+  # placeholder and will be refreshed.
   timestamp = ndb.DateTimeProperty()
+
+  # Source of truth for creation time. This is missing for testcases
+  # created before it was introduced, in which case the timestamp
+  # field will be a proxy for creation time.
+  created = ndb.DateTimeProperty(indexed=False)
 
   # Does the testcase crash stack vary b/w crashes ?
   flaky_stack = ndb.BooleanProperty(default=False, indexed=False)
@@ -572,6 +583,13 @@ class Testcase(Model):
   # corpus.
   trusted = ndb.BooleanProperty(default=False)
 
+  # Tracks if a testcase is stuck during triage.
+  stuck_in_triage = ndb.BooleanProperty(default=False)
+
+  # Tracks if analyze task is pending.
+  # Defaults to false, since most testcases are fuzzer produced.
+  analyze_pending = ndb.BooleanProperty(default=False)
+
   def is_chromium(self):
     return self.project_name in ('chromium', 'chromium-testing')
 
@@ -670,6 +688,19 @@ class Testcase(Model):
 
     setattr(self, 'metadata_cache', cache)
 
+  # Returns testcase.created in case it is present, as it is
+  # the source of truth for creation time. If missing, returns
+  # testcase.timestamp as a proxy for creation time.
+  def get_created_time(self) -> ndb.DateTimeProperty:
+    return self.created if self.created else self.timestamp
+
+  def get_age_in_seconds(self):
+    current_time = datetime.datetime.utcnow()
+    if not self.get_created_time():
+      return None
+    testcase_age = current_time - self.get_created_time()
+    return testcase_age.total_seconds()
+
   def get_metadata(self, key=None, default=None):
     """Get metadata for a test case. Slow on first access."""
     self._ensure_metadata_is_cached()
@@ -759,6 +790,10 @@ class DataBundle(Model):
   # there. In libFuzzer's case, we want the bundle to be on the same machine as
   # where the libFuzzer binary will run (untrusted).
   sync_to_worker = ndb.BooleanProperty(default=False)
+
+  def bucket_url(self) -> str:
+    """Returns the GCS URL of the bucket storing this data bundle's contents."""
+    return f'gs://{self.bucket_name}'
 
 
 class Config(Model):
@@ -1112,6 +1147,27 @@ class TaskStatus(Model):
 
   # Time of creation or last update time.
   time = ndb.DateTimeProperty()
+
+
+class WindowRateLimitTask(Model):
+  """Records the completion of a task. This cannot be part of TaskStatus because
+  it will have a different lifecycle (it's not needed after the window
+  completes). This should have a TTL as TASK_RATE_LIMIT_WINDOW in
+  task_rate_limiting.py (6 hours)."""
+  TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
+
+  timestamp = ndb.DateTimeProperty(auto_now_add=True, indexed=True)
+  # Only use this for TTL. It should only be saved to by ClusterFuzz, not read.
+  ttl_expiry_timestamp = ndb.DateTimeProperty()
+  # TODO(metzman): Consider using task_id.
+  task_name = ndb.StringProperty(indexed=True)
+  task_argument = ndb.StringProperty(indexed=True)
+  job_name = ndb.StringProperty(indexed=True)
+  status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.TASK_RATE_LIMIT_WINDOW)
 
 
 class BuildMetadata(Model):

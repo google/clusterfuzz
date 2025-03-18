@@ -44,6 +44,7 @@ from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -444,12 +445,18 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
         ' should have been detected in preprocess.')
     return None
 
-  max_threads = utils.maximum_parallel_processes_allowed()
+  # TODO(alhijazi): re-install multithreaded runs
+  # max_threads = utils.maximum_parallel_processes_allowed()
+  # Temporarily run minimization single threaded.
+  max_threads = 1
 
   # Prepare the test case runner.
   crash_retries = environment.get_value('CRASH_RETRIES')
   warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
   required_arguments = environment.get_value('REQUIRED_APP_ARGS', '')
+
+  logs.info('Warming up for minimization, checking for crashes ' +
+            f'(thread count: {max_threads}).')
 
   # Add any testcase-specific required arguments if needed.
   additional_required_arguments = testcase.get_metadata(
@@ -473,6 +480,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
   saved_unsymbolized_crash_state, flaky_stack, crash_times = (
       check_for_initial_crash(test_runner, crash_retries, testcase))
+  logs.info(f'Warmup crashed {crash_times}/{crash_retries} times.')
 
   # If the warmup crash occurred but we couldn't reproduce this in with
   # multiple processes running in parallel, try to minimize single threaded.
@@ -489,6 +497,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
     saved_unsymbolized_crash_state, flaky_stack, crash_times = (
         check_for_initial_crash(test_runner, crash_retries, testcase))
+    logs.info(f'Single-threaded warmup crashed {crash_times} times.')
 
   if not crash_times:
     # We didn't crash at all. This might be a legitimately unreproducible
@@ -518,12 +527,13 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
   # Use the max crash time unless this would be greater than the max timeout.
   test_timeout = min(max(crash_times), max_timeout) + 1
-  logs.info(f'Using timeout {test_timeout} (was {max_timeout})')
+  logs.info(f'Using per-test timeout {test_timeout} (was {max_timeout})')
   test_runner.timeout = test_timeout
 
-  logs.info('Starting minimization.')
+  logs.info(f'Starting minimization with overall {deadline}s timeout.')
 
   if should_attempt_phase(testcase, MinimizationPhase.GESTURES):
+    logs.info('Starting gesture minimization phase.')
     gestures = minimize_gestures(test_runner, testcase)
 
     # We can't call check_deadline_exceeded_and_store_partial_minimized_testcase
@@ -546,23 +556,31 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     minimize_task_output.minimization_phase = MinimizationPhase.MAIN_FILE
 
     if time.time() > test_runner.deadline:
+      logs.info('Timed out during gesture minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           minimize_task_output=minimize_task_output,
           error_type=uworker_msg_pb2.ErrorType.  # pylint: disable=no-member
-          MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE)
+          MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,
+          error_message='Timed out during gesture minimization.')
+
+    logs.info('Minimized gestures.')
 
   # Minimize the main file.
   data = utils.get_file_contents_with_fatal_error_on_failure(testcase_file_path)
   if should_attempt_phase(testcase, MinimizationPhase.MAIN_FILE):
+    logs.info('Starting main file minimization phase.')
     data = minimize_main_file(test_runner, testcase_file_path, data)
 
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, testcase, input_directory, file_list, data,
         testcase_file_path, minimize_task_input, minimize_task_output):
+      logs.info('Timed out during main file minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+          error_message='Timed out during main file minimization.',
           minimize_task_output=minimize_task_output)
 
+    logs.info('Minimized main file.')
     testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST,
                           False)
     minimize_task_output.minimization_phase = MinimizationPhase.FILE_LIST
@@ -570,15 +588,19 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   # Minimize the file list.
   if should_attempt_phase(testcase, MinimizationPhase.FILE_LIST):
     if environment.get_value('MINIMIZE_FILE_LIST', True):
+      logs.info('Starting file list minimization phase.')
       file_list = minimize_file_list(test_runner, file_list, input_directory,
                                      testcase_file_path)
 
       if check_deadline_exceeded_and_store_partial_minimized_testcase(
           deadline, testcase, input_directory, file_list, data,
           testcase_file_path, minimize_task_input, minimize_task_output):
+        logs.info('Timed out during file list minimization.')
         return uworker_msg_pb2.Output(  # pylint: disable=no-member
             error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+            error_message='Timed out during file list minimization.',
             minimize_task_output=minimize_task_output)
+      logs.info('Minimized file list.')
     else:
       logs.info('Skipping minimization of file list.')
 
@@ -589,6 +611,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   # Minimize any files remaining in the file list.
   if should_attempt_phase(testcase, MinimizationPhase.RESOURCES):
     if environment.get_value('MINIMIZE_RESOURCES', True):
+      logs.info('Starting resources minimization phase.')
       for dependency in file_list:
         minimize_resource(test_runner, dependency, input_directory,
                           testcase_file_path)
@@ -596,9 +619,13 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
         if check_deadline_exceeded_and_store_partial_minimized_testcase(
             deadline, testcase, input_directory, file_list, data,
             testcase_file_path, minimize_task_input, minimize_task_output):
+          logs.info('Timed out during resources minimization.')
           return uworker_msg_pb2.Output(  # pylint: disable=no-member
               error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+              error_message='Timed out during resources minimization.',
               minimize_task_output=minimize_task_output)
+
+      logs.info('Minimized resources.')
     else:
       logs.info('Skipping minimization of resources.')
 
@@ -607,6 +634,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     minimize_task_output.minimization_phase = MinimizationPhase.ARGUMENTS
 
   if should_attempt_phase(testcase, MinimizationPhase.ARGUMENTS):
+    logs.info('Starting arguments minimization phase.')
     app_arguments = minimize_arguments(test_runner, app_arguments)
 
     # Arguments must be stored here in case we time out below.
@@ -616,9 +644,15 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, testcase, input_directory, file_list, data,
         testcase_file_path, minimize_task_input, minimize_task_output):
+      logs.info('Timed out during arguments minimization.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,  # pylint: disable=no-member
+          error_message='Timed out during arguments minimization.',
           minimize_task_output=minimize_task_output)
+
+    logs.info('Minimized arguments.')
+
+  logs.info('Finished minization.')
 
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
@@ -747,6 +781,10 @@ def handle_minimize_crash_too_flaky(output):
 def handle_minimize_deadline_exceeded_in_main_file_phase(output):
   """Reschedules the minimize task when the deadline is exceeded just before
   starting the main file phase."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.WIP,
+      'Timed out before even minimizing the main file. Retrying.')
   tasks.add_task('minimize', output.uworker_input.testcase_id,
                  output.uworker_input.job_type)
 
@@ -761,6 +799,9 @@ def handle_minimize_deadline_exceeded(output: uworker_msg_pb2.Output):  # pylint
     _skip_minimization(testcase,
                        'Exceeded minimization deadline too many times.')
   else:
+    data_handler.update_testcase_comment(
+        testcase, data_types.TaskState.WIP,
+        output.error_message + f' Retrying (attempt #{attempts + 1}).')
     testcase.set_metadata('minimization_deadline_exceeded_attempts',
                           attempts + 1)
     tasks.add_task('minimize', output.uworker_input.testcase_id,
@@ -834,6 +875,9 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
+  testcase_utils.emit_testcase_triage_duration_metric(
+      int(output.uworker_input.testcase_id),
+      testcase_utils.TESTCASE_TRIAGE_DURATION_MINIMIZE_COMPLETED_STEP)
   update_testcase(output)
   _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
@@ -1329,9 +1373,9 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
 
 
 def _run_libfuzzer_testcase(fuzz_target,
-                            testcase,
-                            testcase_file_path,
-                            crash_retries=1):
+                            testcase: data_types.Testcase,
+                            testcase_file_path: str,
+                            crash_retries: int = 1) -> CrashResult:
   """Run libFuzzer testcase, and return the CrashResult."""
   # Cleanup any existing application instances and temp directories.
   process_handler.cleanup_stale_processes()
@@ -1388,8 +1432,16 @@ def _run_libfuzzer_tool(
     expected_crash_state: str,
     minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,  # pylint: disable=no-member
     fuzz_target: Optional[data_types.FuzzTarget],
-    set_dedup_flags: bool = False):
-  """Run libFuzzer tool to either minimize or cleanse."""
+    set_dedup_flags: bool = False
+) -> tuple[str, CrashResult, str] | tuple[None, None, None]:
+  """Run libFuzzer tool to either minimize or cleanse.
+
+  Returns (None, None, None) in case of failure.
+  Otherwise sets `testcase.minimized_keys` and returns:
+
+    (testcase_file_path, crash_result, minimized_keys)
+
+  """
   memory_tool_options_var = environment.get_current_memory_tool_var()
   saved_memory_tool_options = environment.get_value(memory_tool_options_var)
 
@@ -1524,8 +1576,6 @@ def do_libfuzzer_minimization(
   """Use libFuzzer's built-in minimizer where appropriate."""
   timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 600)
   rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 5)
-  current_testcase_path = testcase_file_path
-  last_crash_result = None
 
   # Get initial crash state.
   initial_crash_result = _run_libfuzzer_testcase(
@@ -1596,7 +1646,10 @@ def do_libfuzzer_minimization(
   if env:
     testcase.set_metadata('env', env, False)
 
-  minimized_keys = None
+  current_testcase_path = testcase_file_path
+  last_crash_result = None
+  last_minimized_keys = None
+
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
   for round_number in range(1, rounds + 1):
@@ -1612,6 +1665,7 @@ def do_libfuzzer_minimization(
         set_dedup_flags=True)
     if output_file_path:
       last_crash_result = crash_result
+      last_minimized_keys = minimized_keys
       current_testcase_path = output_file_path
 
   if not last_crash_result:
@@ -1622,8 +1676,8 @@ def do_libfuzzer_minimization(
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(  # pylint: disable=no-member
         last_crash_result_dict=crash_result_dict,
         memory_tool_options=memory_tool_options)
-    if minimized_keys:
-      minimize_task_output.minimized_keys = str(minimized_keys)
+    if last_minimized_keys:
+      minimize_task_output.minimized_keys = str(last_minimized_keys)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,  # pylint: disable=no-member
         minimize_task_output=minimize_task_output)
@@ -1632,7 +1686,7 @@ def do_libfuzzer_minimization(
 
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
-    cleansed_testcase_path, minimized_keys = do_libfuzzer_cleanse(
+    cleansed_testcase_path, last_minimized_keys = do_libfuzzer_cleanse(
         fuzz_target, testcase, current_testcase_path,
         expected_state.crash_state, minimize_task_input)
     if cleansed_testcase_path:
@@ -1649,8 +1703,8 @@ def do_libfuzzer_minimization(
   minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(  # pylint: disable=no-member
       last_crash_result_dict=last_crash_result_dict,
       memory_tool_options=memory_tool_options)
-  if minimized_keys:
-    minimize_task_output.minimized_keys = str(minimized_keys)
+  if last_minimized_keys:
+    minimize_task_output.minimized_keys = str(last_minimized_keys)
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)  # pylint: disable=no-member
 
 
@@ -1697,8 +1751,10 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       delete_temp_files=delete_temp_files,
       progress_report_function=logs.info)
   try:
+    logs.info('Launching html minimization.')
     return current_minimizer.minimize(data)
   except minimizer_errors.AntlrDecodeError:
+    logs.info('Launching line minimization.')
     return do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 

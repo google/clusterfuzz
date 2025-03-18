@@ -101,6 +101,7 @@ class Handler(base_handler.Handler):
   """Handler that gets the bot list."""
 
   @handler.get(handler.HTML)
+  @handler.oauth
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
   def get(self):
@@ -128,7 +129,6 @@ class DeadBotsHandler(base_handler.Handler):
   """Output dead bots as json."""
 
   @handler.get(handler.JSON)
-  @handler.oauth
   def get(self):
     """Render dead bots as json (used by automated scripts)."""
 

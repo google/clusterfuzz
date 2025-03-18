@@ -24,6 +24,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.chrome import build_info
+from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_comparer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.cron.libs import mail
@@ -55,6 +56,9 @@ TOP_CRASHES_IGNORE_CRASH_STATES = ['NULL']
 
 FUZZ_TARGET_UNUSED_THRESHOLD = 15
 UNUSED_HEARTBEAT_THRESHOLD = 15
+
+VRP_UPLOAD_COMPONENT_ID = 1600865
+CHROMIUM_COMPONENT_ID = 1363614
 
 ProjectMap = collections.namedtuple('ProjectMap', 'jobs platforms')
 
@@ -489,16 +493,18 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     logs.info(f'Mark issue {issue.id} as verified for '
               f'fixed testcase {testcase.key.id()}.')
     issue_filer.notify_issue_update(testcase, 'verified')
-    monitoring_metrics.ISSUE_CLOSING_SUCCESS.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_CLOSING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'success',
     })
   except Exception as e:
     logs.error(
         f'Failed to mark issue {issue.id} as verified for '
         f'fixed testcase {testcase.key.id()}.',
         extras={'exception': e})
-    monitoring_metrics.ISSUE_CLOSING_FAILED.increment({
-        'fuzzer_name': testcase.fuzzer_name
+    monitoring_metrics.ISSUE_CLOSING.increment({
+        'fuzzer_name': testcase.fuzzer_name,
+        'status': 'failed'
     })
     raise e
 
@@ -909,6 +915,11 @@ def _update_issue_when_uploaded_testcase_is_processed(
       policy, testcase, issue)
   issue.save(new_comment=comment, notify=notify)
 
+  # Testcase is a data_types.Testcase
+  testcase_id = testcase.key.id()
+  testcase_utils.emit_testcase_triage_duration_metric(
+      testcase_id, testcase_utils.TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP)
+
 
 def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
   """Notify uploader by email when all the testcase tasks are finished."""
@@ -1047,6 +1058,18 @@ def update_component_labels_and_id(policy, testcase, issue):
       testcase, 'suspected_components', default=[])
   component_id = _get_predator_result_item(testcase,
                                            'suspected_buganizer_component_id')
+
+  # These bugs were filed via the direct upload and hence specific to the
+  # google issue tracker.
+  if getattr(issue, 'component_id', None) == VRP_UPLOAD_COMPONENT_ID:
+    # Reset the component to the top level for this bug to be triaged properly.
+    issue.component_id = CHROMIUM_COMPONENT_ID
+
+    # Bugs in the direct upload component are filed as type 'Task'.
+    if testcase.security_flag:
+      issue.labels.add('Type-VULNERABILITY')
+    else:
+      issue.labels.add('Type-BUG')
 
   # Remove components already in issue or whose more specific variants exist.
   filtered_components = []

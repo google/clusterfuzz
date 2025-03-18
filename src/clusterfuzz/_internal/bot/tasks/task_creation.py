@@ -13,9 +13,9 @@
 # limitations under the License.
 """Common functions for task creation for test cases."""
 from clusterfuzz._internal.base import bisection
-from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler

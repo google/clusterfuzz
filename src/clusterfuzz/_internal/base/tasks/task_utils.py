@@ -28,8 +28,9 @@ def get_command_from_module(full_module_name: str) -> str:
 def is_remotely_executing_utasks() -> bool:
   """Returns True if the utask_main portions of utasks are being remotely
   executed on Google cloud batch."""
-  return bool(environment.is_production() and
-              environment.get_value('REMOTE_UTASK_EXECUTION'))
+  # TODO(metzman): REMOTE_UTASK_EXECUTION should be a config not an env var.
+  return (environment.is_production() and
+          environment.get_value('REMOTE_UTASK_EXECUTION'))
 
 
 class UworkerMsgParseError(RuntimeError):

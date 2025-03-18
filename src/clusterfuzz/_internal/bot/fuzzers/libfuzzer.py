@@ -20,7 +20,6 @@ import os
 import random
 import re
 import shutil
-import string
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -39,9 +38,6 @@ from clusterfuzz._internal.system import shell
 
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
-
-# Allow 30 minutes to merge the testcases back into the corpus.
-DEFAULT_MERGE_TIMEOUT = 30 * 60
 
 StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'fuzzing_strategies',
@@ -1194,14 +1190,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   return runner
 
 
-def create_corpus_directory(name):
-  """Create a corpus directory with a give name in temp directory and return its
-  full path."""
-  new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
-  engine_common.recreate_directory(new_corpus_directory)
-  return new_corpus_directory
-
-
 def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
   """Choose |num_testcases| testcases from the src corpus directory (and its
   subdirectories) and copy it into the dest directory."""
@@ -1305,36 +1293,12 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   """Get the fuzz timeout."""
   fuzz_timeout = (
       engine_common.get_hard_timeout(total_timeout=total_timeout) -
-      engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT))
+      engine_common.get_merge_timeout(engine_common.DEFAULT_MERGE_TIMEOUT))
 
   if is_mutations_run:
     fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
 
   return fuzz_timeout
-
-
-def is_sha1_hash(possible_hash):
-  """Returns True if |possible_hash| looks like a valid sha1 hash."""
-  if len(possible_hash) != 40:
-    return False
-
-  hexdigits_set = set(string.hexdigits)
-  return all(char in hexdigits_set for char in possible_hash)
-
-
-def move_mergeable_units(merge_directory, corpus_directory):
-  """Move new units in |merge_directory| into |corpus_directory|."""
-  initial_units = {
-      os.path.basename(filename)
-      for filename in shell.get_files_list(corpus_directory)
-  }
-
-  for unit_path in shell.get_files_list(merge_directory):
-    unit_name = os.path.basename(unit_path)
-    if unit_name in initial_units and is_sha1_hash(unit_name):
-      continue
-    dest_path = os.path.join(corpus_directory, unit_name)
-    shell.move(unit_path, dest_path)
 
 
 def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
@@ -1352,7 +1316,8 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
 
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
-    new_testcase_mutations_directory = create_corpus_directory('mutations')
+    new_testcase_mutations_directory = engine_common.create_temp_fuzzing_dir(
+        'mutations')
     generator_used = engine_common.generate_new_testcase_mutations(
         corpus_directory, new_testcase_mutations_directory, candidate_generator)
 

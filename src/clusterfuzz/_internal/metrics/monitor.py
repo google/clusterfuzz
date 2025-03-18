@@ -145,7 +145,10 @@ def wrap_with_monitoring():
   """Wraps execution so we flush metrics on exit"""
   try:
     initialize()
-    signal.signal(signal.SIGTERM, handle_sigterm)
+    # Signals can only be handled in the main thread/interpreter
+    # GAE crons do not satisfy this condition
+    if not environment.is_running_on_app_engine():
+      signal.signal(signal.SIGTERM, handle_sigterm)
     yield
   finally:
     stop()
@@ -313,9 +316,8 @@ class Metric:
     for key, value in labels.items():
       metric.labels[key] = str(value)
 
-    if not environment.is_running_on_k8s():
-      bot_name = environment.get_value('BOT_NAME', None)
-      metric.labels['region'] = _get_region(bot_name)
+    bot_name = environment.get_value('BOT_NAME', None)
+    metric.labels['region'] = _get_region(bot_name)
 
     return metric
 
@@ -569,6 +571,8 @@ def _initialize_monitored_resource():
   # Use bot name here instance as that's more useful to us.
   if environment.is_running_on_k8s():
     instance_name = environment.get_value('HOSTNAME')
+  elif environment.is_running_on_app_engine():
+    instance_name = environment.get_value('GAE_INSTANCE')
   else:
     instance_name = environment.get_value('BOT_NAME')
   _monitored_resource.labels['instance_id'] = instance_name
@@ -623,6 +627,9 @@ def metrics_store():
 
 def _get_region(bot_name):
   """Get bot region."""
+  if not bot_name:
+    return 'unknown'
+
   try:
     regions = local_config.MonitoringRegionsConfig()
   except errors.BadConfigError:

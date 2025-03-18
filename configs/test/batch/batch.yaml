@@ -14,13 +14,19 @@
 
 mapping:
   LINUX-NONPREEMPTIBLE:
+    clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
     user_data: 'file://linux-init.yaml'
     disk_size_gb: 110
     disk_type: pd-standard
     service_account_email: test-clusterfuzz-service-account-email
-    subnetwork: null
-    gce_zone: 'gce-zone'
+    subconfigs:
+      -
+        name: central1-network1
+        weight: .5
+      -
+        name: central1-network2
+        weight: .5
     preemptible: false
     machine_type: n1-standard-1
   LINUX-NONPREEMPTIBLE-UNPRIVILEGED:
@@ -30,19 +36,56 @@ mapping:
     disk_size_gb: 110
     disk_type: pd-standard
     service_account_email: test-unpriv-clusterfuzz-service-account-email
-    subnetwork: null
-    gce_zone: 'gce-zone'
     preemptible: false
     machine_type: n1-standard-1
+    retry: true
+    subconfigs:
+      -
+        name: central1-network1
+        weight: .2
+      -
+        name: central1-network2
+        weight: .3
+      -
+        name: east4-network2
+        weight: .5
   LINUX-PREEMPTIBLE:
-    clusterfuzz_release: 'candidate'
+    clusterfuzz_release: 'prod'
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
     user_data: 'file://linux-init.yaml'
     disk_size_gb: 75
     disk_type: pd-standard
     service_account_email: test-clusterfuzz-service-account-email
-    subnetwork: null
-    gce_zone: 'gce-zone'
     preemptible: true
     machine_type: n1-standard-1
+    subconfigs:
+      -
+        name: east4-network2
+        weight: 1
+  LINUX-PREEMPTIBLE-UNPRIVILEGED:
+    clusterfuzz_release: 'prod'
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+    user_data: 'file://linux-init.yaml'
+    disk_size_gb: 75
+    disk_type: pd-standard
+    service_account_email: test-unpriv-clusterfuzz-service-account-email
+    preemptible: true
+    machine_type: n1-standard-1
+    subconfigs:
+      -
+        name: east4-network2
+        weight: 1
 project: 'test-clusterfuzz'
+subconfigs:
+  central1-network1:
+    region: 'us-central1'
+    network: 'projects/project_name/global/networks/networkname'
+    subnetwork: 'projects/project_name/regions/us-central1/subnetworks/subnetworkname'
+  central1-network2:
+    region: 'us-central1'
+    network: 'projects/project_name/global/networks/networkname2'
+    subnetwork: 'projects/project_name/regions/us-central1/subnetworks/subnetworkname2'
+  east4-network2:
+    region: 'us-east4'
+    network: 'projects/project_name/global/networks/networkname2'
+    subnetwork: 'projects/project_name/regions/us-east4/subnetworks/subnetworkname2'

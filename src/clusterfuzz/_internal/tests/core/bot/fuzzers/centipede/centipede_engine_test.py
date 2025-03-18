@@ -237,10 +237,12 @@ class IntegrationTest(unittest.TestCase):
         self.test_paths,
         centipede_bin,
         sanitized_target_dir=sanitized_target_dir)
-    work_dir = '/tmp/temp-1337/workdir'
 
     options = engine_impl.prepare(self.test_paths.corpus, target_path,
                                   self.test_paths.data)
+
+    work_dir = options.workdir
+    self.assertTrue(work_dir)
 
     arguments = fuzzer_options.FuzzerArguments.from_list(options.arguments)
     self.assertListEqual(arguments.list(), options.arguments)
@@ -263,8 +265,9 @@ class IntegrationTest(unittest.TestCase):
     if dictionary:
       expected_args[centipede_constants.DICTIONARY_FLAGNAME] = str(dictionary)
     expected_args[centipede_constants.WORKDIR_FLAGNAME] = str(work_dir)
-    expected_args[centipede_constants.CORPUS_DIR_FLAGNAME] = str(
-        self.test_paths.corpus)
+    expected_args[
+        centipede_constants.
+        CORPUS_DIR_FLAGNAME] = f'{options.new_corpus_dir},{self.test_paths.corpus}'
     expected_args[centipede_constants.BINARY_FLAGNAME] = str(target_path)
     if str(target_path) != str(sanitized_target_path):
       expected_args[centipede_constants.EXTRA_BINARIES_FLAGNAME] = str(
@@ -328,6 +331,15 @@ class IntegrationTest(unittest.TestCase):
     # Check the prefix was trimmed.
     self.assertNotRegex(results.logs, 'CRASH LOG:.*')
 
+    self.assertIsNotNone(results.stats)
+
+    if content == 'oom':
+      self.assertEqual(results.stats['oom_count'], 1)
+    elif content == 'slo':
+      self.assertEqual(results.stats['timeout_count'], 1)
+    else:
+      self.assertEqual(results.stats['crash_count'], 1)
+
     # Check the correct input was saved.
     with open(crash.input_path) as f:
       self.assertEqual(content, f.read())
@@ -371,7 +383,6 @@ class IntegrationTest(unittest.TestCase):
         'slo',
         timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
-  @unittest.skip('This test is failing, blocking deploy.')
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""
     unminimized_corpus = setup_testcase('unmin_corpus', self.test_paths)
@@ -390,7 +401,9 @@ class IntegrationTest(unittest.TestCase):
     self.assertEqual(len(os.listdir(crash_corpus)), 1)
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
-      self.assertEqual(crasher_file.read(), '?f???u???z?')
+      crash_content = crasher_file.read()
+      crasher_file.close()
+    self.assertEqual(crash_content, '?f???u???z?')
 
   def test_minimize_testcase(self):
     """Tests minimizing a testcase."""

@@ -19,6 +19,7 @@ from google.auth import credentials
 from google.auth.transport import requests
 from google.oauth2 import service_account
 
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import secret_manager
@@ -59,6 +60,7 @@ def _use_anonymous_credentials():
     retries=FAIL_RETRIES,
     delay=FAIL_WAIT,
     function='google_cloud_utils.credentials.get_default')
+@memoize.wrap(memoize.FifoInMemory(1))
 def get_default(scopes=None):
   """Get default Google Cloud credentials."""
   if _use_anonymous_credentials():

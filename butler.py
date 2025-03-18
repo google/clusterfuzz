@@ -132,6 +132,25 @@ def _add_weights_fuzzer_subparser(weights_subparsers):
   aggregate_parser.add_argument(
       '-j', '--jobs', help='Which jobs to aggregate.', nargs='+')
 
+  set_parser = subparsers.add_parser(
+      'set', help='Set the weight of a FuzzerJob entry.')
+  set_parser.add_argument(
+      '-f',
+      '--fuzzer',
+      help='The fuzzer field of the entry to modify.',
+      required=True)
+  set_parser.add_argument(
+      '-j',
+      '--job',
+      help='The job field of the entry to modify.',
+      required=True)
+  set_parser.add_argument(
+      '-w',
+      '--weight',
+      help='The new weight to set.',
+      type=float,
+      required=True)
+
 
 def _add_weights_batches_subparser(weights_subparsers):
   """Adds a parser for the `weights fuzzer-batch` command."""
@@ -267,7 +286,10 @@ def main():
   parser_package.add_argument(
       '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
   parser_package.add_argument(
-      '-r', '--release', choices=['prod', 'candidate'], default='prod')
+      '-r',
+      '--release',
+      choices=['prod', 'candidate', 'chrome-tests-syncer'],
+      default='prod')
 
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
@@ -284,7 +306,10 @@ def main():
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
   parser_deploy.add_argument(
-      '--release', '-r', choices=['prod', 'candidate'], default='prod')
+      '--release',
+      '-r',
+      choices=['prod', 'candidate', 'chrome-tests-syncer'],
+      default='prod')
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
@@ -313,7 +338,10 @@ def main():
       'script_name',
       help='The script module name under `./local/butler/scripts`.')
   parser_run.add_argument(
-      '--script_args', action='append', help='Script specific arguments')
+      '--script_args',
+      action='extend',
+      nargs='+',
+      help='Script specific arguments')
   parser_run.add_argument(
       '--non-dry-run',
       action='store_true',

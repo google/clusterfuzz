@@ -18,6 +18,14 @@ if [ -z "$DEPLOYMENT_BUCKET" ]; then
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 fi
 
+if [ -z "$HOST_JOB_SELECTION" ]; then
+  if HOST_JOB_SELECTION=$(curl -sf -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/host-job-selection); then
+    export HOST_JOB_SELECTION
+  else
+    unset HOST_JOB_SELECTION
+  fi
+fi
+
 CLUSTERFUZZ_FILE=clusterfuzz_package.zip
 # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
 if [[ -z "$LOCAL_SRC" ]]; then

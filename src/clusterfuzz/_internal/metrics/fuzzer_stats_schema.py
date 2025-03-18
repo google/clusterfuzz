@@ -403,10 +403,469 @@ _HONGGFUZZ_SCHEMA = [{
     'type': 'INTEGER'
 }] + _COMMON_COLUMNS
 
+_CENTIPEDE_SCHEMA = [{
+    'mode': 'NULLABLE',
+    'name': 'NumCoveredPcs_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCoveredPcs_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCoveredPcs_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumExecs_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumExecs_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumExecs_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'ActiveCorpusSize_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'ActiveCorpusSize_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'ActiveCorpusSize_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'MaxEltSize_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'MaxEltSize_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'MaxEltSize_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'AvgEltSize_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'AvgEltSize_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'AvgEltSize_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'UnixMicros_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'UnixMicros_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'FuzzTimeSec_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'FuzzTimeSec_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'FuzzTimeSec_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumProxyCrashes_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumProxyCrashes_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumProxyCrashes_Sum',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'TotalCorpusSize_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'TotalCorpusSize_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'TotalCorpusSize_Sum',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'Num8BitCounterFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'Num8BitCounterFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'Num8BitCounterFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumDataFlowFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumDataFlowFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumDataFlowFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCmpFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCmpFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCmpFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCallStackFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCallStackFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumCallStackFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumBoundedPathFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumBoundedPathFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumBoundedPathFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumPcPairFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumPcPairFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumPcPairFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUserFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUserFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUserFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUnknownFts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUnknownFts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUnknownFts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumFuncsInFrontier_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumFuncsInFrontier_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumFuncsInFrontier_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'EngineRusageAvgCores_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'EngineRusageCpuPct_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'EngineRusageRssMb_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'EngineRusageVSizeMb_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser0Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser0Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser0Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser1Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser1Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser1Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser2Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser2Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser2Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser3Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser3Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser3Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser4Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser4Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser4Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser5Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser5Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser5Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser6Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser6Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser6Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser7Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser7Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser7Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser8Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser8Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser8Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser9Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser9Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser9Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser10Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser10Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser10Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser11Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser11Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser11Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser12Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser12Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser12Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser13Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser13Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser13Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser14Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser14Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser14Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser15Fts_Min',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser15Fts_Max',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'NumUser15Fts_Avg',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'crash_count',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'oom_count',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'timeout_count',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'leak_count',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'expected_duration',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'actual_duration',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'fuzzing_time_percent',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'average_exec_per_sec',
+    'type': 'FLOAT'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'new_units_added',
+    'type': 'INTEGER'
+}] + _COMMON_COLUMNS
+
 _SCHEMA = {
     'afl': _AFL_SCHEMA,
     'honggfuzz': _HONGGFUZZ_SCHEMA,
     'libFuzzer': _LIBFUZZER_SCHEMA,
+    'centipede': _CENTIPEDE_SCHEMA,
 }
 
 

@@ -424,21 +424,22 @@ def _get_testcase_time(testcase_path):
   return None
 
 
-def upload_testcase(testcase_path, log_time):
+def upload_testcase(testcase_path, testcase_data, log_time):
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
     return
 
-  if not os.path.exists(testcase_path):
-    return
-
-  with open(testcase_path, 'rb') as file_handle:
-    testcase_contents = file_handle.read()
+  assert not (testcase_path and testcase_data)
+  if testcase_path:
+    if not os.path.exists(testcase_path):
+      return
+    with open(testcase_path, 'rb') as file_handle:
+      testcase_data = file_handle.read()
 
   fuzzer_logs.upload_to_logs(
       fuzz_logs_bucket,
-      testcase_contents,
+      testcase_data,
       time=log_time,
       file_extension='.testcase')
 
@@ -534,14 +535,12 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
       # Don't upload uninteresting testcases (no crash) or if there is no log to
       # correlate it with (not upload_output).
       if upload_output:
-        upload_testcase(file_path, log_time)
+        upload_testcase(file_path, None, log_time)
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).
       crash_result_full = CrashResult(return_code, crash_time, output)
-      log = prepare_log_for_upload(crash_result_full.get_stacktrace(),
-                                   return_code)
-      upload_log(log, log_time)
+      upload_log(crash_result_full.get_stacktrace(), return_code, log_time)
   except Exception:
     logs.error('Exception occurred while running '
                'run_testcase_and_return_result_in_queue.')
@@ -674,10 +673,10 @@ class TestcaseRunner:
     return state
 
   def reproduce_with_retries(self,
-                             retries,
-                             expected_state=None,
-                             expected_security_flag=None,
-                             flaky_stacktrace=False):
+                             retries: int,
+                             expected_state: CrashInfo | None = None,
+                             expected_security_flag: bool | None = None,
+                             flaky_stacktrace: bool = False) -> CrashResult:
     """Try reproducing a crash with retries."""
     self._pre_run_cleanup()
     crash_result = None
@@ -776,7 +775,7 @@ def test_for_crash_with_retries(fuzz_target,
                                 http_flag=False,
                                 use_gestures=True,
                                 compare_crash=True,
-                                crash_retries=None):
+                                crash_retries=None) -> CrashResult:
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
   logs.info('Testing for crash.')
@@ -849,10 +848,10 @@ def test_for_reproducibility(fuzz_target,
                                            expected_security_flag)
 
 
-def prepare_log_for_upload(symbolized_output, return_code):
+def _prepare_log_for_upload(symbolized_output, return_code, app_revision):
   """Prepare log for upload."""
   # Add revision information to the logs.
-  app_revision = environment.get_value('APP_REVISION')
+  app_revision = app_revision or environment.get_value('APP_REVISION')
   job_name = environment.get_value('JOB_NAME')
   components = revisions.get_component_list(app_revision, job_name)
   component_revisions = (
@@ -867,15 +866,16 @@ def prepare_log_for_upload(symbolized_output, return_code):
   if environment.is_android():
     bot_header += f'Device serial: {environment.get_value("ANDROID_SERIAL")}\n'
 
-  return_code_header = "Return code: %s\n\n" % return_code
+  return_code_header = f'Return code: {return_code}\n\n'
 
-  result = revisions_header + bot_header + return_code_header +\
-  symbolized_output
+  result = (
+      revisions_header + bot_header + return_code_header + symbolized_output)
   return result.encode('utf-8')
 
 
-def upload_log(log, log_time):
+def upload_log(symbolized_output, return_code, log_time, app_revision=None):
   """Upload the output into corresponding GCS logs bucket."""
+  log = _prepare_log_for_upload(symbolized_output, return_code, app_revision)
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
     return

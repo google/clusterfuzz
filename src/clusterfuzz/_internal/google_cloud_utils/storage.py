@@ -14,8 +14,6 @@
 """Functions for managing Google Cloud Storage."""
 
 import collections
-from concurrent import futures
-import contextlib
 import copy
 import datetime
 import json
@@ -33,6 +31,8 @@ from googleapiclient.errors import HttpError
 import requests
 import requests.exceptions
 
+from clusterfuzz._internal.base import concurrency
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -92,6 +92,8 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 # Timeout for HTTP operations.
 HTTP_TIMEOUT_SECONDS = 15
 
+# TODO(metzman): Figure out why this works on oss-fuzz and doesn't destroy
+# memory usage?
 _POOL_SIZE = 16
 
 _TRANSIENT_ERRORS = [
@@ -115,7 +117,7 @@ SignedUrlDownloadResult = collections.namedtuple('SignedUrlDownloadResult',
 class StorageProvider:
   """Core storage provider interface."""
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     raise NotImplementedError
 
@@ -123,7 +125,7 @@ class StorageProvider:
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -196,7 +198,7 @@ class GcsProvider(StorageProvider):
 
     return None
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     project_id = utils.get_application_id()
     request_body = {'name': name}
@@ -205,6 +207,9 @@ class GcsProvider(StorageProvider):
 
     if cors:
       request_body['cors'] = cors
+
+    if location:
+      request_body['location'] = location
 
     client = create_discovery_storage_client()
     try:
@@ -226,7 +231,7 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -235,28 +240,49 @@ class GcsProvider(StorageProvider):
 
     client = _storage_client()
     bucket = client.bucket(bucket_name)
-    properties = {}
 
     if recursive:
       delimiter = None
     else:
       delimiter = '/'
 
-    iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
-    for blob in iterator:
-      properties['bucket'] = bucket_name
-      properties['name'] = blob.name
-      properties['updated'] = blob.updated
-      properties['size'] = blob.size
+    if names_only:
+      fields = 'items(name),nextPageToken'
+    else:
+      fields = None
 
-      yield properties
+    iterations = 0
+    next_page_token = None
+    while True:
+      iterations += 1
+      iterator = bucket.list_blobs(
+          prefix=path, delimiter=delimiter, fields=fields)
+      for blob in iterator:
+        properties = {
+            'bucket': bucket_name,
+            'name': blob.name,
+            'updated': blob.updated,
+            'size': blob.size,
+            'next_page_token': next_page_token,
+        }
 
-    if not recursive:
-      # When doing delimiter listings, the "directories" will be in `prefixes`.
-      for prefix in iterator.prefixes:
-        properties['bucket'] = bucket_name
-        properties['name'] = prefix
         yield properties
+
+      if not recursive:
+        # When doing delimiter listings, the "directories" will be in
+        # `prefixes`.
+        for prefix in iterator.prefixes:
+          properties = {
+              'bucket': bucket_name,
+              'name': prefix,
+          }
+          yield properties
+
+      next_page_token = iterator.next_page_token
+      if next_page_token is None:
+        break
+      if iterations and iterations % 50 == 0:
+        logs.error('Might be infinite looping.')
 
   def copy_file_from(self, remote_path, local_path):
     """Copy file from a remote path to a local path."""
@@ -535,7 +561,7 @@ class FileSystemProvider(StorageProvider):
 
     return fs_path
 
-  def create_bucket(self, name, object_lifecycle, cors):
+  def create_bucket(self, name, object_lifecycle, cors, location):
     """Create a new bucket."""
     bucket_path = self._fs_bucket_path(name)
     if os.path.exists(bucket_path):
@@ -565,8 +591,9 @@ class FileSystemProvider(StorageProvider):
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self, remote_path, recursive=True):
+  def list_blobs(self, remote_path, recursive=True, names_only=False):
     """List the blobs under the remote path."""
+    del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
@@ -780,16 +807,6 @@ def _signing_creds():
   return _local.signing_creds
 
 
-# TODO(metzman): Move all parallel code to fast_http.
-@contextlib.contextmanager
-def _pool(pool_size=_POOL_SIZE):
-  if (environment.get_value('PY_UNITTESTS') or
-      environment.platform() == 'WINDOWS'):
-    yield futures.ThreadPoolExecutor(pool_size)
-  else:
-    yield futures.ProcessPoolExecutor(pool_size)
-
-
 def get_bucket_name_and_path(cloud_storage_file_path):
   """Return bucket name and path given a full cloud storage path."""
   filtered_path = utils.strip_from_left(cloud_storage_file_path, GS_PREFIX)
@@ -906,13 +923,16 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
   return None
 
 
-def create_bucket_if_needed(bucket_name, object_lifecycle=None, cors=None):
+def create_bucket_if_needed(bucket_name,
+                            object_lifecycle=None,
+                            cors=None,
+                            location=None):
   """Creates a GCS bucket."""
   provider = _provider()
   if provider.get_bucket(bucket_name):
     return True
 
-  if not provider.create_bucket(bucket_name, object_lifecycle, cors):
+  if not provider.create_bucket(bucket_name, object_lifecycle, cors, location):
     return False
 
   time.sleep(CREATE_BUCKET_DELAY)
@@ -1143,6 +1163,7 @@ def get_object_size(cloud_storage_file_path):
   return int(gcs_object['size'])
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
 def blobs_bucket():
   """Get the blobs bucket name."""
   # Allow tests to override blobs bucket name safely.
@@ -1152,6 +1173,13 @@ def blobs_bucket():
 
   assert not environment.get_value('PY_UNITTESTS')
   return local_config.ProjectConfig().get('blobs.bucket')
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
+def use_async_http():
+  enabled = local_config.ProjectConfig().get('async_http.enabled', False)
+  logs.info(f'Using async HTTP: {enabled}.')
+  return enabled
 
 
 def uworker_input_bucket():
@@ -1248,6 +1276,15 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
+def _error_tolerant_download_signed_url_to_file(url_and_path) -> bool:
+  url, path = url_and_path
+  try:
+    download_signed_url_to_file(url, path)
+    return True
+  except Exception:
+    return False
+
+
 def _error_tolerant_upload_signed_url(url_and_path) -> bool:
   url, path = url_and_path
   try:
@@ -1275,7 +1312,7 @@ def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
   if not signed_urls:
     return []
   logs.info('Uploading URLs.')
-  with _pool() as pool:
+  with concurrency.make_pool(_POOL_SIZE) as pool:
     result = list(
         pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.info('Done uploading URLs.')
@@ -1300,10 +1337,24 @@ def download_signed_urls(signed_urls: List[str],
       for idx in range(len(signed_urls))
   ]
   logs.info('Downloading URLs.')
-  urls = fast_http.download_urls(signed_urls, filepaths)
+
+  urls_and_filepaths = list(zip(signed_urls, filepaths))
+
+  def synchronous_download_urls(urls_and_filepaths):
+    with concurrency.make_pool(_POOL_SIZE) as pool:
+      return list(
+          pool.map(_error_tolerant_download_signed_url_to_file,
+                   urls_and_filepaths))
+
+  if use_async_http():
+    results = fast_http.download_urls(urls_and_filepaths)
+  else:
+    results = synchronous_download_urls(urls_and_filepaths)
+
   download_results = [
-      SignedUrlDownloadResult(url, filepaths[idx])
-      for idx, url in enumerate(urls)
+      SignedUrlDownloadResult(*urls_and_filepaths[idx])
+      for idx, result in enumerate(results)
+      if result
   ]
   return download_results
 
@@ -1312,15 +1363,15 @@ def delete_signed_urls(urls):
   if not urls:
     return
   logs.info('Deleting URLs.')
-  with _pool() as pool:
+  with concurrency.make_pool(_POOL_SIZE) as pool:
     pool.map(_error_tolerant_delete_signed_url, urls)
   logs.info('Done deleting URLs.')
 
 
 def _sign_urls_for_existing_file(
-    corpus_element_url: str,
-    include_delete_urls: bool,
+    url_and_include_delete_urls: Tuple[str, bool],
     minutes: int = SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, str]:
+  corpus_element_url, include_delete_urls = url_and_include_delete_urls
   download_url = get_signed_download_url(corpus_element_url, minutes)
   if include_delete_urls:
     delete_url = sign_delete_url(corpus_element_url, minutes)
@@ -1329,45 +1380,55 @@ def _sign_urls_for_existing_file(
   return (download_url, delete_url)
 
 
+def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
+  url, include_delete_urls = url_and_include_delete_urls
+  return _sign_urls_for_existing_file(url, include_delete_urls)
+
+
 def sign_urls_for_existing_files(urls,
                                  include_delete_urls) -> List[Tuple[str, str]]:
   logs.info('Signing URLs for existing files.')
-  result = [
-      _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
-  ]
+  args = ((url, include_delete_urls) for url in urls)
+  result = maybe_parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
   return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
-  return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+  return list(
+      get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
+
+
+def maybe_parallel_map(func, arguments):
+  """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
+  will OOM."""
+  if not environment.is_tworker():
+    # TODO(b/metzman): When the rearch is done, internal google CF won't have
+    # tworkers, but maybe should be using parallel.
+    return list(map(func, arguments))
+
+  max_size = 2
+  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
+    return list(pool.map(func, arguments))
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str,
                                      num_uploads: int) -> List[str]:
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
-  # We verify there are no collisions for uuid4s in CF because it would be bad
-  # if there is a collision and in most cases it's cheap (and because we
-  # probably didn't understand the likelihood of this happening when we started,
-  # see https://stackoverflow.com/a/24876263). It is not cheap if we had to do
-  # this 10,000 times. Instead create a prefix filename and check that no file
-  # has that name. Then the arbitrary names will all use that prefix.
+  # We don't verify there are no collisions for uuid4s because it's extremely
+  # unlikely, takes time, and it's basically benign if it happens (it
+  # won't) since we will just clobber some other corpus uploads from
+  # the same day.
   unique_id = uuid.uuid4()
   base_name = unique_id.hex
   if not remote_directory.endswith('/'):
     remote_directory = remote_directory + '/'
   # The remote_directory ends with slash.
   base_path = f'{remote_directory}{base_name}'
-  base_search_path = f'{base_path}*'
-  if exists(base_search_path):
-    # Raise the error and let retry go again. There is a vanishingly small
-    # chance that we get more collisions. This is vulnerable to races, but is
-    # probably unneeded anyway.
-    raise ValueError(f'UUID collision found {str(unique_id)}')
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = [get_signed_upload_url(url) for url in urls]
+  result = maybe_parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
   return result

@@ -1152,32 +1152,10 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(self.mock.open.return_value.unpack.call_count, 1)
     self._assert_env_vars()
 
-  def test_setup_shared(self):
-    """Test setting up a custom binary (shared)."""
-    os.environ['JOB_NAME'] = 'job_share'
-    os.environ['SHARE_BUILD_WITH_JOB_TYPE'] = 'job_custom'
-
-    self.mock.time.return_value = 1000.0
-    build = build_manager.setup_custom_binary()
-    self.assertIsInstance(build, build_manager.CustomBuild)
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-    self.mock.read_blob_to_disk.assert_called_once_with(
-        'key', '/builds/job_custom/custom/custom_binary.zip')
-
-    # For now, we're calling it multiple times because we're not passing the
-    # reader object along in the build manager
-    self.mock.open.assert_called_once_with(
-        archive_path='/builds/job_custom/custom/custom_binary.zip')
-    self.mock.open.return_value.unpack.assert_called_once_with(
-        '/builds/job_custom/custom', trusted=True)
-
-    self._assert_env_vars()
-    self.assertEqual(os.environ['JOB_NAME'], 'job_share')
-
   def test_delete(self):
     """Test deleting this build."""
     os.environ['JOB_NAME'] = 'job_custom'
+    self.mock.time.return_value = 1000.0
     build = build_manager.setup_custom_binary()
     self.assertTrue(os.path.isdir('/builds/job_custom/custom'))
     build.delete()
@@ -1762,6 +1740,9 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     with self.assertRaises(build_manager.BuildManagerError):
       build_manager._pick_random_fuzz_target_for_split_build(
           target_weights={'target4': 1})
+
+    with self.assertRaises(errors.BuildNotFoundError):
+      build_manager.setup_build(fuzz_target='target4')
 
 
 class GetPrimaryBucketPathTest(unittest.TestCase):
