@@ -589,7 +589,7 @@ indexes:
     - name: keywords
     - name: bot_name
 
-- kind: WindowRateLimitTask	
+- kind: WindowRateLimitTask
   properties:
     - name: job_name
     - name: task_argument
