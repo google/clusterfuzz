@@ -1025,8 +1025,6 @@ class StackParser:
         self.update_state_on_check_failure(
             state, line, CHROME_CHECK_FAILURE_REGEX, 'CHECK failure')
         self.update_state_on_check_failure(
-            state, line, CHROME_DCHECK_FAILURE_REGEX, 'DCHECK failure')
-        self.update_state_on_check_failure(
             state, line, GOOGLE_CHECK_FAILURE_REGEX, 'CHECK failure')
 
         # V8 and Golang fatal errors.
