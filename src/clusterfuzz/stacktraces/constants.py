@@ -85,9 +85,8 @@ CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
-    r'\s*\[[^\]]*[:]([^\](]*).*\].*(?:Check failed:|NOTREACHED hit.)\s*(.*)')
-CHROME_DCHECK_FAILURE_REGEX = re.compile(
-    r'\s*\[[^\]]*[:]([^\](]*).*\].*(DCHECK failed:)\s*(.*)')
+    r'\s*\[[^\]]*[:]([^\](]*).*\].*(?:Check failed:|DCHECK failed:|NOTREACHED hit.)\s*(.*)'  # pylint: disable=line-too-long
+)
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
     r'([xX0-9a-fA-F]+)[ ])'  # addr (3)
