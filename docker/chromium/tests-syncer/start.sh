@@ -22,4 +22,4 @@ source /data/setup_depot_tools.sh
 source /data/setup_gerrit.sh
 source /data/setup_clusterfuzz.sh
 
-bash -ex /data/start_clusterfuzz.sh
+bash -ex /data/start_clusterfuzz.sh 2>&1

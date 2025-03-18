@@ -24,4 +24,4 @@ chmod 666 /dev/kvm
 source /data/setup_common.sh
 source /data/setup_clusterfuzz.sh
 
-bash -ex /data/start_clusterfuzz.sh
+bash -ex /data/start_clusterfuzz.sh 2>&1

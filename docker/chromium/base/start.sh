@@ -29,4 +29,4 @@ source /data/setup.sh
 source /data/setup_clusterfuzz.sh
 
 
-bash -ex /data/start_clusterfuzz.sh
+bash -ex /data/start_clusterfuzz.sh 2>&1
