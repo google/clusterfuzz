@@ -53,6 +53,7 @@ _REQUIRED_SERVICES = (
     'replicapool.googleapis.com',
     'replicapoolupdater.googleapis.com',
     'resourceviews.googleapis.com',
+    'secretmanager.googleapis.com',
     'siteverification.googleapis.com',
     'sourcerepo.googleapis.com',
     'stackdriver.googleapis.com',
