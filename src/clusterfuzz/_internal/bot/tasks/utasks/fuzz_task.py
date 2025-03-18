@@ -1492,6 +1492,13 @@ class FuzzingSession:
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    # Centipede requires separate binaries for sanitized targets.
+    if environment.is_centipede_fuzzer_job():
+      sanitized_target_bucket_path = environment.get_value(
+          'SANITIZED_TARGET_BUILD_BUCKET_PATH')
+      if sanitized_target_bucket_path:
+        logs.error('Failed to set up sanitized_target_build.')
+
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1751,9 +1758,8 @@ class FuzzingSession:
     return (generate_result.fuzzer_metadata, testcase_file_paths,
             testcases_metadata, crashes)
 
-  def run(self):
-    """Run the fuzzing session."""
-    start_time = time.time()
+  def run_common(self):
+    """Prepare to run either blackbox or engine fuzzing."""
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -1772,11 +1778,21 @@ class FuzzingSession:
       # is using command override for task execution.
       failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(failure_wait_interval)
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+      return uworker_msg_pb2.Output(  # pylint: disable=no-memberp
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
+    return None
 
+  def run(self):
+    """Run the fuzzing session."""
+    start_time = time.time()
+    result = self._run_common()
+    if result:
+      return result
+
+    # TODO(metzman): Move this section into seperate functions for engine and
+    # blackbox fuzzing instead of sandwhiching with ifs for engine fuzzing.
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
