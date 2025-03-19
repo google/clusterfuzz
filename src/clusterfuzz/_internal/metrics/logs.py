@@ -357,9 +357,10 @@ def configure_cloud_logging():
   #   the service account's project and the logging project.
   client = google.cloud.logging.Client(
       project=os.getenv('LOGGING_CLOUD_PROJECT_ID'))
+  # client.project
   labels = {
       'compute.googleapis.com/resource_name': socket.getfqdn().lower(),
-      'bot_name': os.getenv('BOT_NAME'),
+      'bot_name': os.getenv('BOT_NAME', 'null'),
   }
   handler = client.get_default_handler(labels=labels)
 
