@@ -405,11 +405,11 @@ class EmitTest(unittest.TestCase):
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
-    os.environ[
-        'CF_TASK_ID'] = 'fuzz,libFuzzer,libfuzzer_asan_gopacket,f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_ID'] = \
+        'fuzz,libFuzzer,libfuzzer_asan_gopacket,f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
 
   def tearDown(self):
-    del os.environ["CF_TASK_ID"]
+    del os.environ['CF_TASK_ID']
     return super().tearDown()
 
   def test_no_logger(self):
