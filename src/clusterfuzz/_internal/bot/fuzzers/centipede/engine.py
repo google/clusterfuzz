@@ -315,6 +315,7 @@ class Engine(engine.Engine):
 
     old_corpus_len = shell.get_directory_file_count(options.corpus_dir)
     logs.info(f'Corpus length before fuzzing: {old_corpus_len}')
+    logs.info(f'Launching a fuzzer run with arguments: {options.arguments}')
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
     log_lines = fuzz_result.output.splitlines()
@@ -326,9 +327,11 @@ class Engine(engine.Engine):
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
     if reproducer_path:
+      reproduce_arguments = self._get_arguments(target_path)
+      self._strip_fuzzing_arguments(reproduce_arguments)
       crashes.append(
           engine.Crash(
-              str(reproducer_path), fuzz_result.output, [],
+              str(reproducer_path), fuzz_result.output, reproduce_arguments,
               int(fuzz_result.time_executed)))
 
     stats_filename = f'fuzzing-stats-{os.path.basename(target_path)}.000000.csv'
@@ -397,7 +400,7 @@ class Engine(engine.Engine):
     ]
     return '\n'.join(trimmed_log_lines)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
+  def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduces a crash given an input.
 
     Args:
@@ -416,10 +419,18 @@ class Engine(engine.Engine):
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
       rss_limit = constants.RSS_LIMIT_MB_DEFAULT
+      if constants.RSS_LIMIT_MB_FLAGNAME in arguments:
+        rss_limit = arguments[constants.RSS_LIMIT_MB_FLAGNAME]
       timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
+      if constants.TIMEOUT_PER_INPUT_FLAGNAME in arguments:
+        timeout = arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
           f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
           f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
+
+    logs.info(
+        'Attempting to reproduce',
+        centipede_runner_flags=os.environ['CENTIPEDE_RUNNER_FLAGS'])
 
     if environment.get_value('FUZZTEST_MODE'):
       runner = new_process.UnicodeProcessRunner(sanitized_target)
@@ -523,6 +534,8 @@ class Engine(engine.Engine):
           fuzzer_output=result.output)
       raise TimeoutError('Minimization corpus timed out.')
 
+    logs.info('Corpus distillation finished.', fuzzer_output=result.output)
+
     # Step 3: Generate corpus files for output_dir.
     os.makedirs(output_dir, exist_ok=True)
     minimized_corpus_workdir = engine_common.create_temp_fuzzing_dir(
@@ -548,6 +561,8 @@ class Engine(engine.Engine):
            'files'),
           fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
+
+    logs.info('Converted corpus to files.', fuzzer_output=result.output)
 
     # Step 4: Copy reproducers from full_corpus_workdir.
     os.makedirs(reproducers_dir, exist_ok=True)
