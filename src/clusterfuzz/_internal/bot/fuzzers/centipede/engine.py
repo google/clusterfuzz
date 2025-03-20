@@ -327,11 +327,9 @@ class Engine(engine.Engine):
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
     if reproducer_path:
-      reproduce_arguments = self._get_arguments(target_path)
-      self._strip_fuzzing_arguments(reproduce_arguments)
       crashes.append(
           engine.Crash(
-              str(reproducer_path), fuzz_result.output, reproduce_arguments,
+              str(reproducer_path), fuzz_result.output, [],
               int(fuzz_result.time_executed)))
 
     stats_filename = f'fuzzing-stats-{os.path.basename(target_path)}.000000.csv'
@@ -400,7 +398,7 @@ class Engine(engine.Engine):
     ]
     return '\n'.join(trimmed_log_lines)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):
+  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
 
     Args:
@@ -416,14 +414,16 @@ class Engine(engine.Engine):
     target_binaries = self._get_binary_paths(target_path)
     sanitized_target = str(target_binaries.sanitized)
 
+    fuzzer_arguments = self._get_arguments(target_path)
+
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
       rss_limit = constants.RSS_LIMIT_MB_DEFAULT
-      if constants.RSS_LIMIT_MB_FLAGNAME in arguments:
-        rss_limit = arguments[constants.RSS_LIMIT_MB_FLAGNAME]
+      if constants.RSS_LIMIT_MB_FLAGNAME in fuzzer_arguments:
+        rss_limit = fuzzer_arguments[constants.RSS_LIMIT_MB_FLAGNAME]
       timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
-      if constants.TIMEOUT_PER_INPUT_FLAGNAME in arguments:
-        timeout = arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
+      if constants.TIMEOUT_PER_INPUT_FLAGNAME in fuzzer_arguments:
+        timeout = fuzzer_arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
           f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
           f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
