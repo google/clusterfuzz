@@ -240,6 +240,7 @@ def _start_web_server_if_needed(job_type):
     logs.error('Failed to start web server, skipping.')
 
 
+@logs.task_stage_context(logs.Stage.PREPROCESS)
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
@@ -253,6 +254,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
     return uworker_io.serialize_uworker_input(uworker_input)
 
 
+@logs.task_stage_context(logs.Stage.MAIN)
 def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
@@ -283,6 +285,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
 # TODO(metzman): Stop passing module to this function and `uworker_main_no_io`.
 # Make them consistent with the I/O versions.
+@logs.task_stage_context(logs.Stage.POSTPROCESS)
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   """Executes the postprocess step on the trusted (t)worker (in this case it is
   the same bot as the uworker)."""
@@ -330,6 +333,7 @@ def set_uworker_env(uworker_env: dict) -> None:
     environment.set_value(key, value)
 
 
+@logs.task_stage_context(logs.Stage.MAIN)
 def uworker_main(input_download_url) -> None:
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
@@ -380,6 +384,7 @@ def uworker_bot_main():
   return 0
 
 
+@logs.task_stage_context(logs.Stage.POSTPROCESS)
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   logs.info('Starting postprocess untrusted worker.')
