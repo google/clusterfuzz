@@ -1796,7 +1796,7 @@ class FuzzingSession:
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
-    if not build_setup_result or not build_manager.check_app_path():
+    if not build_setup_result:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)  # pylint: disable=no-member
 

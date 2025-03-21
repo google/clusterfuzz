@@ -1152,6 +1152,15 @@ def check_for_bad_build(job_type: str,
         should_ignore_crash_result=True,
         build_run_console_output='')
 
+  if environment.get_value(
+      'APP_NAME', None) and not bool(environment.get_value('APP_PATH')):
+    # This is a bad build, because we couldn't find the APP_NAME in the build.
+    return uworker_msg_pb2.BuildData(  # pylint: disable=no-member
+        revision=crash_revision,
+        is_bad_build=True,
+        should_ignore_crash_result=True,
+        build_run_console_output='')
+
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
 

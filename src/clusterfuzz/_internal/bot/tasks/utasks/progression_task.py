@@ -331,7 +331,7 @@ def _testcase_reproduces_in_revision(
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)  # pylint: disable=no-member
 
-  if not build_setup_result or not build_manager.check_app_path():
+  if not build_setup_result:
     # Let postprocess handle the failure and reschedule the task if needed.
     error_message = f'Build setup failed at r{revision}'
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member

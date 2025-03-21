@@ -60,7 +60,6 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_regular_build',
-        'clusterfuzz._internal.build_management.build_manager.check_app_path',
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
         'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
     ])
@@ -69,7 +68,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     """Ensure that we throw an exception if we fail to set up a build."""
     os.environ['APP_NAME'] = 'app_name'
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    self.mock.check_app_path.return_value = False
+    self.mock.setup_regular_build.return_value = False
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
     is_crash, error = regression_task._testcase_reproduces_in_revision(
@@ -87,11 +86,43 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
-    self.mock.check_app_path.return_value = True
     build_data = uworker_msg_pb2.BuildData(
         revision=1, is_bad_build=True, should_ignore_crash_result=False)
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     self.mock.check_for_bad_build.return_value = build_data
+    result, worker_output = regression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        None, '/tmp/blah', 'job_type', 1, regression_task_output, None)
+    self.assertIsNone(result)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR)
+    self.assertEqual(len(regression_task_output.build_data_list), 1)
+    self.assertEqual(regression_task_output.build_data_list[0], build_data)
+
+
+class TestcaseReproducesInRevisionBadBuildTest(unittest.TestCase):
+  """Test _testcase_reproduces_in_revision in case of bad builds.
+
+     This is not part of TestcaseReproducesInRevisionTest because we need to
+     exercise check_for_bad_build here.
+  """
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.setup_regular_build',
+        'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
+    ])
+
+  def test_bad_build_missing_app_error(self):
+    """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
+    os.environ['APP_NAME'] = 'my_app'
+    os.environ['APP_PATH'] = ''
+    os.environ['BAD_BUILD_CHECK'] = 'True'
+    build_data = uworker_msg_pb2.BuildData(
+        revision=1,
+        is_bad_build=True,
+        should_ignore_crash_result=True,
+        build_run_console_output='')
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result, worker_output = regression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1, regression_task_output, None)
     self.assertIsNone(result)
