@@ -405,6 +405,12 @@ class EmitTest(unittest.TestCase):
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
+    os.environ['CF_TASK_ID'] = \
+        'fuzz,libFuzzer,libfuzzer_asan_gopacket,f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+
+  def tearDown(self):
+    del os.environ['CF_TASK_ID']
+    return super().tearDown()
 
   def test_no_logger(self):
     """Test no logger."""
@@ -463,6 +469,78 @@ class EmitTest(unittest.TestCase):
             }
         })
 
+  def test_log_context(self):
+    """Test that the logger is called with the
+       correct arguments considering the log context and metadata
+    """
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    with logs.task_stage_context(logs.Stage.PREPROCESS):
+      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+
+    logger.log.assert_called_once_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+                'task_id': 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868',
+                'task_name': 'fuzz',
+                'stage': 'preprocess'
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_log_context'
+            },
+            'release': 'prod',
+            'docker_image': ''
+        })
+
+  def test_log_ignore_context(self):
+    """Test that the emit interceptor ignores contect
+       when passed the ignore_context flag
+    """
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    with logs.task_stage_context(logs.Stage.PREPROCESS):
+      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(
+          logging.ERROR,
+          'msg',
+          exc_info='ex',
+          target='bot',
+          test='yes',
+          ignore_context=True)
+
+    logger.log.assert_called_once_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+                'ignore_context': True
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_log_ignore_context'
+            },
+            'release': 'prod',
+            'docker_image': ''
+        })
+
 
 class TruncateTest(unittest.TestCase):
   """Test truncate."""
@@ -497,3 +575,44 @@ class ErrorTest(unittest.TestCase):
     logs.error('test', exception='exception', hello='1')
     self.mock.emit.assert_called_once_with(
         logging.ERROR, 'test', exc_info='err', hello='1')
+
+
+class TestLogContextSingleton(unittest.TestCase):
+  """Tests for the log context singleton
+     It checks the singleton behavior works and is thread safe
+  """
+
+  def test_is_same(self):
+    """Test the singleton is the same instance for different module loads"""
+    from clusterfuzz._internal.base.tasks.task_rate_limiting import \
+        logs as logs_from_task_rate_limiting
+    from python.bot.startup.run_bot import logs as logs_from_run_bot
+
+    self.assertIs(logs_from_run_bot, logs_from_task_rate_limiting)
+    self.assertIs(logs_from_run_bot.log_contexts,
+                  logs_from_run_bot.LogContexts())
+    logs_from_run_bot.log_contexts.add([logs_from_run_bot.LogContextType.TASK])
+
+    self.assertEqual(logs_from_task_rate_limiting.log_contexts,
+                     logs_from_run_bot.log_contexts)
+    logs_from_run_bot.log_contexts.clear()
+
+  def test_multi_threading(self):
+    """Test multithread"""
+
+    def incrementer():
+      from python.bot.startup.run_bot import logs as run_bot_logs
+      run_bot_logs.log_contexts.add([logs.LogContextType.TASK])
+
+    import threading
+    threads = []
+    for _ in range(5):
+      thread = threading.Thread(target=incrementer)
+      threads.append(thread)
+      thread.start()
+
+    for thread in threads:
+      thread.join()
+
+    from python.bot.startup.run_bot import logs as run_bot_logs
+    self.assertEqual(len(run_bot_logs.log_contexts.contexts), 5)
