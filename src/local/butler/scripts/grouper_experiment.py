@@ -49,7 +49,7 @@ VARIANT_MAX_THRESHOLD = 10
 TOP_CRASHES_LIMIT = 10
 
 # Experiment Configs:
-MAX_TCS_TO_PICKLE = -1
+MAX_TCS_TO_PICKLE = 100
 RESET_GROUPS = True
 VARIANT_BASED = False
 REVISION_RANGE_FIX = False
@@ -183,7 +183,7 @@ def combine_testcases_into_group(
 
 def _get_new_group_id():
   """Get a new group id for testcase grouping."""
-  return random.randint(0, 2**63 - 1)
+  return random.randint(1, 2**63 - 1)
 
 
 def is_same_variant(variant1, variant2):
