@@ -418,7 +418,9 @@ def kill_leftover_emulators():
   kill_process('dev_appserver.py')
   kill_process('CloudDatastore.jar')
   kill_process('pubsub-emulator')
-  kill_process('run_bot')
+  # It was needed to add the "buttler.py" because I was killing
+  # the testing process for running the "run_bot_test"
+  kill_process('butler.py run_bot')
 
 
 def get_platform():
