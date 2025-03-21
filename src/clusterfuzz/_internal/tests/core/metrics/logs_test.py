@@ -23,6 +23,7 @@ from unittest import mock
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 class GetSourceLocationTest(unittest.TestCase):
@@ -400,13 +401,15 @@ class ConfigureTest(unittest.TestCase):
     self.assertEqual(0, self.mock.dictConfig.call_count)
 
 
+@test_utils.with_cloud_emulators('datastore')
 class EmitTest(unittest.TestCase):
   """Test emit."""
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.metrics.logs.get_logger',
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine'
+        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'clusterfuzz._internal.datastore.data_handler.get_fuzz_target',
     ])
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
@@ -472,7 +475,7 @@ class EmitTest(unittest.TestCase):
         })
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
-  def test_log_context(self):
+  def test_task_log_context(self):
     """Test that the logger is called with the
        correct arguments considering the log context and metadata
     """
@@ -498,8 +501,44 @@ class EmitTest(unittest.TestCase):
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_log_context'
-            }
+                'method': 'test_task_log_context'
+            },
+        })
+
+  def test_progression_log_context(self):
+    """Test that the logger is called with the
+       correct arguments considering the log context and metadata
+    """
+    from clusterfuzz._internal.datastore import data_types
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+    fuzz_target = data_types.FuzzTarget(
+        id='libFuzzer_abc', engine='libFuzzer', binary='abc').put()
+    self.mock.get_fuzz_target.return_value = fuzz_target
+    testcase = data_types.Testcase()
+    testcase.put()
+
+    with logs.progression_log_context(testcase):
+      self.assertEqual(logs.log_contexts.contexts,
+                       [logs.LogContextType.PROGRESSION])
+      self.assertEqual(logs.log_contexts.meta, {'testcase': testcase})
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+
+    logger.log.assert_called_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_progression_log_context'
+            },
         })
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
@@ -529,7 +568,6 @@ class EmitTest(unittest.TestCase):
             'extras': {
                 'target': 'bot',
                 'test': 'yes',
-                'ignore_context': True
             },
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),

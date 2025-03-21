@@ -28,6 +28,11 @@ import time
 import traceback
 from typing import Any
 from typing import NamedTuple
+from typing import TYPE_CHECKING
+
+# This is needed to avoid circular import
+if TYPE_CHECKING:
+  from clusterfuzz._internal.datastore.data_types import Testcase
 
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
 LOCAL_LOG_MESSAGE_LIMIT = 100000
@@ -522,6 +527,9 @@ def intercept_log_context(func):
     if not kwargs.get('ignore_context'):
       for context in log_contexts.contexts:
         kwargs.update(context.get_extras()._asdict())
+    else:
+      # This is needed to avoid logging the label 'ingore_context: True'
+      del kwargs["ignore_context"]
     return func(*args, **kwargs)
 
   return wrapper
@@ -622,6 +630,13 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
+class ProgressionLogStruct(NamedTuple):
+  testcase_id: str
+  fuzz_target: str
+  job: str
+  fuzzer: str
+
+
 class LogContextType(enum.Enum):
   """Log context types
      This is the way to define the context for a given entrypoint
@@ -629,6 +644,7 @@ class LogContextType(enum.Enum):
      to be added to the log.
   """
   TASK = 'task'
+  PROGRESSION = 'progression'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
@@ -645,7 +661,21 @@ class LogContextType(enum.Enum):
       except Exception as e:
         # This flag is necessary to avoid
         # infinite loop in this context verification
-        error(e, ignore_context=True)
+        error(str(e), ignore_context=True)
+        return GenericLogStruct()
+
+    elif self == LogContextType.PROGRESSION:
+      try:
+        testcase: "Testcase | None" = log_contexts.meta.get('testcase')
+        return ProgressionLogStruct(
+            testcase_id=testcase.key.id(),  # type: ignore
+            # The get_fuzz_target functions seems that always returns a FuzzTarget.
+            fuzz_target=testcase.get_fuzz_target().key.id(),  # type: ignore
+            job=testcase.job_type,  # type: ignore
+            fuzzer=testcase.fuzzer_name  # type: ignore
+        )
+      except Exception as e:
+        error(str(e), ignore_context=True)
         return GenericLogStruct()
 
     return GenericLogStruct()
@@ -720,3 +750,13 @@ def task_stage_context(stage: Stage):
       yield
     finally:
       log_contexts.delete_metadata('stage')
+
+
+@contextlib.contextmanager
+def progression_log_context(testcase: "Testcase"):
+  with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
+    try:
+      log_contexts.add_metadata('testcase', testcase)
+      yield
+    finally:
+      log_contexts.delete_metadata('testcase')
