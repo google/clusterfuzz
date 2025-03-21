@@ -66,14 +66,13 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
         'clusterfuzz._internal.bot.testcase_manager.update_build_metadata',
         'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
-        'clusterfuzz._internal.build_management.build_manager.check_app_path'
     ])
     helpers.patch_environ(self)
     os.environ['APP_NAME'] = 'app_name'
 
   def test_error_on_failed_setup(self):
     """Ensure that we throw an exception if we fail to set up a build."""
-    self.mock.check_app_path.return_value = False
+    self.mock.setup_build.return_value = False
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
@@ -86,7 +85,6 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
-    self.mock.check_app_path.return_value = True
     build_data = uworker_msg_pb2.BuildData(
         revision=1,
         is_bad_build=True,
@@ -105,7 +103,6 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
-    self.mock.check_app_path.return_value = True
     build_data = uworker_msg_pb2.BuildData(
         revision=1,
         is_bad_build=False,
@@ -306,7 +303,6 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     os.environ['APP_REVISION'] = '1234'
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
-        'clusterfuzz._internal.build_management.build_manager.check_app_path',
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
         'clusterfuzz._internal.crash_analysis.crash_result.CrashResult.get_stacktrace',
         'clusterfuzz._internal.crash_analysis.crash_result.CrashResult.get_symbolized_data',
@@ -317,7 +313,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
 
   def test_build_setup_error(self):
     """Tests _check_fixed_for_custom_binary behaviour on build setup errors."""
-    self.mock.check_app_path.return_value = None
+    self.mock.setup_build.return_value = False
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_msg_pb2.Input()
@@ -330,7 +326,6 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
 
   def test_crash_on_latest(self):
     """Tests _check_fixed_for_custom_binary behaviour when the testcase crashes on the latest custom binary."""
-    self.mock.check_app_path.return_value = True
     from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
     stacktrace = (
         '==14970==ERROR: AddressSanitizer: heap-buffer-overflow on address '
@@ -362,7 +357,6 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
 
   def test_no_crash(self):
     """Tests _check_fixed_for_custom_binary behaviour when testcase does not crash."""
-    self.mock.check_app_path.return_value = True
     from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
     crash_result = CrashResult(0, 0, '')
     self.mock.test_for_crash_with_retries.return_value = crash_result
