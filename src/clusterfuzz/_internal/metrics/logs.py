@@ -521,6 +521,9 @@ def _add_appengine_trace(extras):
 
 
 def intercept_log_context(func):
+  """Intercepts the wrapped function and injects metadata
+     into the kwargs for a given log context
+  """
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
@@ -669,7 +672,8 @@ class LogContextType(enum.Enum):
         testcase: "Testcase | None" = log_contexts.meta.get('testcase')
         return ProgressionLogStruct(
             testcase_id=testcase.key.id(),  # type: ignore
-            # The get_fuzz_target functions seems that always returns a FuzzTarget.
+            # The get_fuzz_target functions seems that always
+            # returns a FuzzTarget.
             fuzz_target=testcase.get_fuzz_target().key.id(),  # type: ignore
             job=testcase.job_type,  # type: ignore
             fuzzer=testcase.fuzzer_name  # type: ignore

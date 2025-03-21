@@ -731,10 +731,10 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
       _ERROR_HANDLER.handle(output)
       return
 
-    # If there is a fine grained bisection service available, request it. Both
-    # regression and fixed ranges are requested once. Regression is also requested
-    # here as the bisection service may require details that are not yet available
-    # (e.g. issue ID) at the time regress_task completes.
+    # If there is a fine grained bisection service available, request it.
+    # Both regression and fixed ranges are requested once. Regression is also
+    # requested here as the bisection service may require details that
+    # are not yet available (e.g. issue ID) at the time regress_task completes.
     bisection.request_bisection(testcase)
 
     if task_output and task_output.crash_on_latest:
