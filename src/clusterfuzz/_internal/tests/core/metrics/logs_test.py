@@ -171,12 +171,14 @@ class FormatRecordTest(unittest.TestCase):
     self.assertEqual({
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
+        'docker_image': '',
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'fuzz_target': 'fuzz_target1',
         'name': 'logger_name',
         'pid': 1337,
+        'release': 'prod',
         'task_id': 'job-1337',
         'extras': {
             'a': 1,
@@ -198,12 +200,14 @@ class FormatRecordTest(unittest.TestCase):
     self.assertEqual({
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
+        'docker_image': '',
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
         'task_id': 'job-1337',
         'pid': 1337,
+        'release': 'prod',
         'location': {
             'path': 'path',
             'line': 123,
@@ -220,6 +224,7 @@ class FormatRecordTest(unittest.TestCase):
     record.extras = None
 
     self.assertEqual({
+        'docker_image': '',
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'severity': 'INFO',
@@ -229,6 +234,7 @@ class FormatRecordTest(unittest.TestCase):
         'name': 'logger_name',
         'task_id': 'job-1337',
         'pid': 1337,
+        'release': 'prod',
         'location': {
             'path': 'path',
             'line': 123,
@@ -434,8 +440,6 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
-            'release': 'prod',
-            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
@@ -460,8 +464,6 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
-            'release': 'prod',
-            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
@@ -469,18 +471,17 @@ class EmitTest(unittest.TestCase):
             }
         })
 
+  @logs.task_stage_context(logs.Stage.PREPROCESS)
   def test_log_context(self):
     """Test that the logger is called with the
        correct arguments considering the log context and metadata
     """
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
-
-    with logs.task_stage_context(logs.Stage.PREPROCESS):
-      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
-      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
-      statement_line = inspect.currentframe().f_lineno + 1
-      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+    self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+    self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
     logger.log.assert_called_once_with(
         logging.ERROR,
@@ -498,11 +499,10 @@ class EmitTest(unittest.TestCase):
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
                 'method': 'test_log_context'
-            },
-            'release': 'prod',
-            'docker_image': ''
+            }
         })
 
+  @logs.task_stage_context(logs.Stage.PREPROCESS)
   def test_log_ignore_context(self):
     """Test that the emit interceptor ignores contect
        when passed the ignore_context flag
@@ -510,17 +510,16 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
-    with logs.task_stage_context(logs.Stage.PREPROCESS):
-      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
-      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
-      statement_line = inspect.currentframe().f_lineno + 1
-      logs.emit(
-          logging.ERROR,
-          'msg',
-          exc_info='ex',
-          target='bot',
-          test='yes',
-          ignore_context=True)
+    self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+    self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        target='bot',
+        test='yes',
+        ignore_context=True)
 
     logger.log.assert_called_once_with(
         logging.ERROR,
@@ -537,8 +536,6 @@ class EmitTest(unittest.TestCase):
                 'line': statement_line,
                 'method': 'test_log_ignore_context'
             },
-            'release': 'prod',
-            'docker_image': ''
         })
 
 
