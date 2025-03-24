@@ -353,7 +353,6 @@ def configure_cloud_logging():
   """ Configure Google cloud logging, for bots not running on appengine nor k8s.
   """
   import google.cloud.logging
-  from google.cloud.logging.handlers.transports import BackgroundThreadTransport
 
   # project will default to the service account's project (likely from
   #   GOOGLE_APPLICATION_CREDENTIALS).
