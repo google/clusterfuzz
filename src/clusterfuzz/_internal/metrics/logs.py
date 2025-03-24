@@ -367,7 +367,9 @@ def configure_cloud_logging():
       'compute.googleapis.com/resource_name': socket.getfqdn().lower(),
       'bot_name': os.getenv('BOT_NAME', 'null'),
   }
-  handler = client.get_default_handler(labels=labels)#, transport=BackgroundThreadTransport)
+  handler = client.get_default_handler(labels=labels)
+
+  # Rate for the BackgroundThreadTransport to flush the logs
   handler.transport.worker._max_latency = 60
 
   def cloud_label_filter(record):
