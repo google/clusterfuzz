@@ -19,11 +19,5 @@ from clusterfuzz._internal.system import environment
 
 def execute(args):  #pylint: disable=unused-argument
   """Build keywords."""
-  import logging
-  from clusterfuzz._internal.metrics import logs
-  logs.configure('run_cron')
-  logs.emit(logging.INFO, 'test flush time carlolemos')
-  1 == 1
-  # environment.set_bot_environment()
-  # oss_fuzz_apply_ccs.main()
-  1 == 1
+  environment.set_bot_environment()
+  oss_fuzz_apply_ccs.main()
