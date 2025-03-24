@@ -137,6 +137,7 @@ class TestFindMinRevision(unittest.TestCase):
   """Test find_min_revision."""
 
   def setUp(self):
+    helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.regression_task.save_regression_range',
         'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
@@ -221,6 +222,36 @@ class TestFindMinRevision(unittest.TestCase):
 
     self.assertEqual(self.reproduces_calls,
                      [126, 124, 120, 112, 96, 64, 2, 4, 6, 8, 10])
+
+  def test_regressed_at_min_good_revision_with_min_revision(self):
+    """Ensures that `find_min_revision` returns a result if we reproduce
+    in the earliest good revision (with MIN_REVISION set).
+    """
+    os.environ['MIN_REVISION'] = '8'
+
+    def repros(revision):
+      if revision < 10:
+        return False, uworker_msg_pb2.Output(
+            error_type=uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR)
+
+      return True, None
+
+    self.reproduces_in_revision = repros
+
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    min_index, max_index, output = regression_task.find_min_revision(
+        self.testcase, '/a/b', 'job_name', None, self.deadline,
+        self.revision_list,
+        len(self.revision_list) - 1, regression_task_output)
+
+    self.assertIsNone(min_index)
+    self.assertIsNone(max_index)
+
+    self.assertIsNotNone(output)
+    self.assertEqual(output.regression_task_output.regression_range_start, 0)
+    self.assertEqual(output.regression_task_output.regression_range_end, 10)
+
+    self.assertEqual(self.reproduces_calls, [126, 124, 120, 112, 96, 64, 8, 10])
 
   def test_regressed_in_middle(self):
     """Ensures that `find_min_revision` finds a min revision that does not
