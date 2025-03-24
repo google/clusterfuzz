@@ -75,6 +75,9 @@ env:
   # Application ID for the Google Cloud Project. In production, this will have a s~ prefix.
   APPLICATION_ID: test-clusterfuzz
 
+  # GCP project where the GKE cluster running cronjobs will be.
+  K8S_PROJECT: test-clusterfuzz
+
   # Default project name unless overridden in a job definition.
   PROJECT_NAME: test-project
 

@@ -53,6 +53,7 @@ _REQUIRED_SERVICES = (
     'replicapool.googleapis.com',
     'replicapoolupdater.googleapis.com',
     'resourceviews.googleapis.com',
+    'secretmanager.googleapis.com',
     'siteverification.googleapis.com',
     'sourcerepo.googleapis.com',
     'stackdriver.googleapis.com',
@@ -72,7 +73,7 @@ class DomainVerifier:
     flow = InstalledAppFlow.from_client_secrets_file(
         oauth_client_secrets_path,
         scopes=['https://www.googleapis.com/auth/siteverification'])
-    credentials = flow.run_local_server()
+    credentials = flow.run_local_server(open_browser=False)
 
     http = google_auth_httplib2.AuthorizedHttp(
         credentials, http=httplib2.Http())
@@ -197,7 +198,7 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
     gcloud.run('app', 'create', '--region=' + appengine_location)
 
   subprocess.check_call([
-      'python', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
+      'python3', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
       '--prod', '--config-dir', config_dir
   ])
 
