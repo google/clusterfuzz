@@ -370,7 +370,7 @@ def configure_cloud_logging():
 
   # Rate for the BackgroundThreadTransport to flush the logs.
   handler.transport.worker._max_latency = int(
-      os.getenv('LOGGING_CLOUD_MAX_LATENCY', '60'))  # disable=protected-access
+      os.getenv('LOGGING_CLOUD_MAX_LATENCY', '60'))  # pylint: disable=protected-access
 
   def cloud_label_filter(record):
     # Update the labels with additional information.
