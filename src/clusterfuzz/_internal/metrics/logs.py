@@ -369,17 +369,18 @@ def configure_cloud_logging():
       'bot_name': os.getenv('BOT_NAME', 'null'),
   }
 
-  class MaxLatencyTransport(BackgroundThreadTransport):
+  class FlushIntervalTransport(BackgroundThreadTransport):
 
     def __init__(self, client, name, **kwargs):
       super().__init__(
           client,
           name,
-          max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '60')),
+          grace_period=int(os.getenv('LOGGING_CLOUD_GRACE_PERIOD', '15')),
+          max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '10')),
           **kwargs)
 
   handler = CloudLoggingHandler(
-      client=client, labels=labels, transport=MaxLatencyTransport)
+      client=client, labels=labels, transport=FlushIntervalTransport)
 
   def cloud_label_filter(record):
     # Update the labels with additional information.
