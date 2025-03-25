@@ -633,7 +633,7 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
-class ProgressionLogStruct(NamedTuple):
+class TestcaseLogStruct(NamedTuple):
   testcase_id: str
   fuzz_target: str
   job: str
@@ -647,6 +647,7 @@ class LogContextType(enum.Enum):
      to be added to the log.
   """
   TASK = 'task'
+  TESTCASE = 'testcase'
   PROGRESSION = 'progression'
 
   def get_extras(self) -> NamedTuple:
@@ -667,10 +668,10 @@ class LogContextType(enum.Enum):
         error(str(e), ignore_context=True)
         return GenericLogStruct()
 
-    elif self == LogContextType.PROGRESSION:
+    elif self == LogContextType.TESTCASE:
       try:
         testcase: "Testcase | None" = log_contexts.meta.get('testcase')
-        return ProgressionLogStruct(
+        return TestcaseLogStruct(
             testcase_id=testcase.key.id(),  # type: ignore
             # The get_fuzz_target functions seems that always
             # returns a FuzzTarget.
@@ -681,6 +682,10 @@ class LogContextType(enum.Enum):
       except Exception as e:
         error(str(e), ignore_context=True)
         return GenericLogStruct()
+
+    elif self == LogContextType.PROGRESSION:
+      # Field to add specific metadata for progression
+      return GenericLogStruct()
 
     return GenericLogStruct()
 
@@ -757,10 +762,19 @@ def task_stage_context(stage: Stage):
 
 
 @contextlib.contextmanager
-def progression_log_context(testcase: "Testcase"):
-  with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
+def testcase_log_context(testcase: "Testcase"):
+  with wrap_log_context(contexts=[LogContextType.TESTCASE]):
     try:
       log_contexts.add_metadata('testcase', testcase)
       yield
     finally:
       log_contexts.delete_metadata('testcase')
+
+
+# Keeping a progression context to make it
+# easier to add progression speficic metadata if needed
+@contextlib.contextmanager
+def progression_log_context(testcase: "Testcase"):
+  with testcase_log_context(testcase):
+    with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
+      yield

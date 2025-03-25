@@ -519,8 +519,9 @@ class EmitTest(unittest.TestCase):
     testcase.put()
 
     with logs.progression_log_context(testcase):
-      self.assertEqual(logs.log_contexts.contexts,
-                       [logs.LogContextType.PROGRESSION])
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.TESTCASE, logs.LogContextType.PROGRESSION])
       self.assertEqual(logs.log_contexts.meta, {'testcase': testcase})
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
