@@ -370,19 +370,20 @@ def _update_redis(project):
                    '--project={project}'.format(project=project, region=region))
 
 
-def get_remote_sha():
+def get_remote_sha(git_dir: str = '.'):
   """Get remote sha of origin/master."""
-  _, remote_sha_line = common.execute('git ls-remote origin refs/heads/master')
+  _, remote_sha_line = common.execute(
+      f'git -C {git_dir} ls-remote origin refs/heads/master')
 
   return re.split(br'\s+', remote_sha_line)[0]
 
 
-def is_diff_origin_master():
+def is_diff_origin_master(git_dir: str = '.'):
   """Check if the current state is different from origin/master."""
-  common.execute('git fetch')
-  remote_sha = get_remote_sha()
-  _, local_sha = common.execute('git rev-parse HEAD')
-  _, diff_output = common.execute('git diff origin/master --stat')
+  common.execute(f'git -C {git_dir} fetch')
+  remote_sha = get_remote_sha(git_dir)
+  _, local_sha = common.execute(f'git -C {git_dir} rev-parse HEAD')
+  _, diff_output = common.execute(f'git -C {git_dir} diff origin/master --stat')
 
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
@@ -554,15 +555,18 @@ def execute(args):
   appengine.build_templates()
 
   if not is_ci and not args.staging:
-    if is_diff_origin_master():
+    if is_diff_origin_master() or is_diff_origin_master(
+        environment.get_config_directory()):
       if args.force:
-        print('You are not on origin/master. --force is used. Continue.')
+        print('You are not on origin/master for clusterfuzz'
+              'or clusterfuzz-config. --force is used. Continue.')
         for _ in range(3):
           print('.')
           time.sleep(1)
         print()
       else:
-        print('You are not on origin/master. Please fix or use --force.')
+        print('You are not on origin/master for clusterfuzz'
+              'or clusterfuzz-config. Please fix or use --force.')
         sys.exit(1)
 
   if args.staging:
