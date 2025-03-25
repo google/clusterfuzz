@@ -357,6 +357,8 @@ def configure_cloud_logging():
   """ Configure Google cloud logging, for bots not running on appengine nor k8s.
   """
   import google.cloud.logging
+  from google.cloud.logging.handlers import CloudLoggingHandler
+  from google.cloud.logging.handlers.transports import BackgroundThreadTransport
 
   # project will default to the service account's project (likely from
   #   GOOGLE_APPLICATION_CREDENTIALS).
@@ -370,7 +372,19 @@ def configure_cloud_logging():
       'compute.googleapis.com/resource_name': socket.getfqdn().lower(),
       'bot_name': os.getenv('BOT_NAME', 'null'),
   }
-  handler = client.get_default_handler(labels=labels)
+
+  class FlushIntervalTransport(BackgroundThreadTransport):
+
+    def __init__(self, client, name, **kwargs):
+      super().__init__(
+          client,
+          name,
+          grace_period=int(os.getenv('LOGGING_CLOUD_GRACE_PERIOD', '15')),
+          max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '10')),
+          **kwargs)
+
+  handler = CloudLoggingHandler(
+      client=client, labels=labels, transport=FlushIntervalTransport)
 
   def cloud_label_filter(record):
     # Update the labels with additional information.
