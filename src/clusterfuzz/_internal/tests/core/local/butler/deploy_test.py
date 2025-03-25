@@ -388,11 +388,11 @@ class IsDiffOriginMasterTest(unittest.TestCase):
     self.diff = ''
 
     def execute(cmd):
-      if cmd == 'git fetch':
+      if cmd == 'git -C . fetch':
         return (0, '')
-      if cmd == 'git rev-parse HEAD':
+      if cmd == 'git -C . rev-parse HEAD':
         return (0, self.head)
-      if cmd == 'git diff origin/master --stat':
+      if cmd == 'git -C . diff origin/master --stat':
         return (0, self.diff)
       raise RuntimeError()
 
