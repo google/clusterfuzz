@@ -204,6 +204,10 @@ class JsonFormatter(logging.Formatter):
             os.getpid(),
         'task_id':
             os.getenv('CF_TASK_ID', 'null'),
+        'release':
+            os.getenv('CLUSTERFUZZ_RELEASE', 'prod'),
+        'docker_image':
+            os.getenv('DOCKER_IMAGE', '')
     }
 
     initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
@@ -556,9 +560,7 @@ def emit(level, message, exc_info=None, **extras):
               'path': path_name,
               'line': line_number,
               'method': method_name
-          },
-          'release': os.environ.get('CLUSTERFUZZ_RELEASE', 'prod'),
-          'docker_image': os.environ.get('DOCKER_IMAGE', '')
+          }
       })
 
 
@@ -689,14 +691,18 @@ log_contexts = LogContexts()
 
 @contextlib.contextmanager
 def wrap_log_context(contexts: list[LogContextType]):
-  log_contexts.add(contexts)
-  yield
-  log_contexts.delete(contexts)
+  try:
+    log_contexts.add(contexts)
+    yield
+  finally:
+    log_contexts.delete(contexts)
 
 
 @contextlib.contextmanager
 def task_stage_context(stage: Stage):
   with wrap_log_context(contexts=[LogContextType.TASK]):
-    log_contexts.add_metadata('stage', stage)
-    yield
-    log_contexts.delete_metadata('stage')
+    try:
+      log_contexts.add_metadata('stage', stage)
+      yield
+    finally:
+      log_contexts.delete_metadata('stage')
