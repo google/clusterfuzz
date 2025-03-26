@@ -671,11 +671,16 @@ class LogContextType(enum.Enum):
     elif self == LogContextType.TESTCASE:
       try:
         testcase: "Testcase | None" = log_contexts.meta.get('testcase')
+        if not testcase:
+          error(
+              'Testcase not found in log context metadata', ignore_context=True)
+          return GenericLogStruct()
+
+        fuzz_target = testcase.get_fuzz_target()
+        fuzz_target = fuzz_target.key.id() if fuzz_target else 'unknown'
         return TestcaseLogStruct(
             testcase_id=testcase.key.id(),  # type: ignore
-            # The get_fuzz_target functions seems that always
-            # returns a FuzzTarget.
-            fuzz_target=testcase.get_fuzz_target().key.id(),  # type: ignore
+            fuzz_target=fuzz_target,
             job=testcase.job_type,  # type: ignore
             fuzzer=testcase.fuzzer_name  # type: ignore
         )

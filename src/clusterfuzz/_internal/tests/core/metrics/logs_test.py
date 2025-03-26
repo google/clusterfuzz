@@ -409,7 +409,7 @@ class EmitTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.metrics.logs.get_logger',
         'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
-        'clusterfuzz._internal.datastore.data_handler.get_fuzz_target',
+        'clusterfuzz._internal.datastore.data_types.Testcase.get_fuzz_target',
     ])
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
@@ -513,9 +513,11 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
     fuzz_target = data_types.FuzzTarget(
-        id='libFuzzer_abc', engine='libFuzzer', binary='abc').put()
+        id='libFuzzer_abc', engine='libFuzzer', binary='abc')
+    fuzz_target.put()
     self.mock.get_fuzz_target.return_value = fuzz_target
-    testcase = data_types.Testcase()
+    testcase = data_types.Testcase(
+        fuzzer_name="test_fuzzer", job_type='test_job')
     testcase.put()
 
     with logs.progression_log_context(testcase):
@@ -534,6 +536,10 @@ class EmitTest(unittest.TestCase):
             'extras': {
                 'target': 'bot',
                 'test': 'yes',
+                'testcase_id': 1,
+                'fuzz_target': 'libFuzzer_abc',
+                'job': 'test_job',
+                'fuzzer': 'test_fuzzer'
             },
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
