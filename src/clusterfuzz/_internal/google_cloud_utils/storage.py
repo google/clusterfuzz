@@ -64,7 +64,7 @@ except ImportError:
 AUTH_TOKEN_EXPIRY_TIME = 10 * 60
 
 # The number of retries to perform some GCS operation.
-DEFAULT_FAIL_RETRIES = 8
+DEFAULT_FAIL_RETRIES = 0
 
 # The time to wait between retries while performing GCS operation.
 DEFAULT_FAIL_WAIT = 2

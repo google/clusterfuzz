@@ -13,25 +13,149 @@
 # limitations under the License.
 """Executes update task locally, so we can run it through a debugger."""
 
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.google_cloud_utils import credentials
+from clusterfuzz._internal.google_cloud_utils import blobs
+from google.cloud import ndb
+from clusterfuzz._internal.base import utils
 
-def create_gcs_client(project_id, bucket):
-  pass
 
-def migrate_fuzzer():
-  pass
+#TODO(vitorguidi): generalize this so we can point to other projects
+prod_blob_bucket = 'clusterfuzz-blobs'
+staging_blob_bucket = 'blobs.clusterfuzz-staging.appspot.com'
+prod_bucket_domains = [
+   'cluster-fuzz.appspot.com',
+   'clusterfuzz.com',
+]
+staging_bucket_domain = 'clusterfuzz-staging.appspot.com'
 
-def migrate_job():
-    pass
+def _copy_blob(origin_blob_path, target_blob_path):
+   assert not prod_blob_bucket in target_blob_path
+   assert staging_blob_bucket in target_blob_path
 
-def migrate_testcase():
-   pass
+   storage.copy_blob(origin_blob_path, target_blob_path)
 
-def migrate_bundledarchivemetadata():
-   pass
+   storage.copy_blob(origin_blob_path, target_blob_path )
+   print(f'Copied blob {origin_blob_path} to {target_blob_path}')
 
-def migrate_databundle():
-   pass
+def _migrate_gcs_blob(source_blob_key):
+   print(f'Moving the {source_blob_key} blob in prod to the same name in the staging bucket.')
+   origin_blob_path = f'gs://{prod_blob_bucket}/{source_blob_key}'
+   target_blob_path = f'gs://{staging_blob_bucket}/{source_blob_key}'
+   _copy_blob(origin_blob_path, target_blob_path)
+
+def _migrate_legacy_blob(source_blob_key):
+   legacy_blob_info = ndb.Key(blobs._blobmigrator_BlobKeyMapping, source_blob_key).get()
+   source_blob_path = legacy_blob_info.gcs_filename
+   target_blob_path = source_blob_path.replace(prod_blob_bucket, staging_blob_bucket)
+
+   _copy_blob(f'gs:/{source_blob_path}', f'gs:/{target_blob_path}')
+
+   legacy_blob_info.gcs_filename = target_blob_path
+   legacy_blob_info.put()
+   print(f'blob mapping new gcs filename = {target_blob_path}')
+
+def migrate_blob(source_blob_key):
+   '''
+      Takes the source blob from the production bucket and copies it to
+      a target blob in the staging bucket. This is safe to run multiple times,
+      since either:
+         - The source blob is a gcs url, and will be copied with the same
+            blob key over and over, so this is idempotent;
+         - Or the source blob is a legacy key, mapped to a gcs object in prod,
+            with the mapping in the _blogmigrator_BlobKeyMapping entity. We keep the blob key,
+            and only the gcs_filename changes. We copy the same file everytime, so idempotency ensues.
+   '''
+   
+   if blobs._is_gcs_key(source_blob_key):
+      _migrate_gcs_blob(source_blob_key)
+
+   else:
+      _migrate_legacy_blob(source_blob_key)
+      return
+
+def migrate_bucket(source_bucket, target_bucket):
+   '''
+      Creates the target bucket, if it does not exist, and
+      moves all content from the source bucket into it.
+   '''
+
+   bucket_exists = storage.create_bucket_if_needed(target_bucket)
+
+   assert bucket_exists
+
+   # list_blobs expects a gs:// url but these are registered w/o the protocol on datastore
+   # adding gs:// as a prefix
+   all_blobs = storage.list_blobs(f'gs://{source_bucket}')
+
+   for blob in all_blobs:
+      origin_location = f'gs://{source_bucket}/{blob}'
+      target_location = f'gs://{target_bucket}/{blob}'
+
+      print(f'Moving {origin_location} to {target_location}')
+      storage.copy_blob(origin_location, target_location)
+
+   print(f'Migrated bucket contents from {source_bucket} to {target_bucket}')
+
+def migrate_data_bundle(data_bundle):
+   '''
+   Migrates a data bundle from prod to staging by replicating the respective blob from
+   blobstore_key, keeping the same key, and moving the bucket contents from the production
+   bucket to the corresponding one in staging.
+   '''
+   print(f'Migrating data bundle {data_bundle.name}')
+   bundle_corpus_gcs_bucket = data_bundle.bucket_name
+   target_corpus_bucket = ''
+   for domain in prod_bucket_domains:
+      if domain in bundle_corpus_gcs_bucket:
+         target_corpus_bucket = bundle_corpus_gcs_bucket.replace(domain, staging_bucket_domain)
+   
+   assert staging_bucket_domain in target_corpus_bucket
+
+   migrate_bucket(bundle_corpus_gcs_bucket, target_corpus_bucket)
+
+def migrate_fuzzer(fuzzer):
+   '''
+   Migrates a fuzzer from production to staging. It suffices to replicate the
+   blobstore key to the staging blobs bucket, keeping the same key.
+   '''
+   print(f'Migrating fuzzer {fuzzer.name}')
+   source_blob = fuzzer.blobstore_key
+   if not source_blob:
+      print('No blobstore_key, skipping')
+      return
+   migrate_blob(source_blob)
+
+def migrate_job(job):
+   '''
+   Migrates a job from production to staging. It suffices to replicate the
+   custom binary blob to the staging blobs bucket, keeping the same key.
+   '''
+   print(f'Migrating job {job.name}')
+   source_blob = job.custom_binary_key
+   if not source_blob:
+      print(f'No custom binary key, skipping')
+      return
+   migrate_blob(source_blob)
 
 def execute(args):  #pylint: disable=unused-argument
-  """Build keywords."""
-  
+   """Build keywords."""
+   environment.set_bot_environment()
+   # print('checking jobs')
+   # for job in data_types.Job.query():
+   #    migrate_job(job)
+   # print('\n\n')
+
+   # print('checking fuzzers')
+   # for fuzzer in data_types.Fuzzer.query():
+   #    migrate_fuzzer(fuzzer)
+   # print('\n\n')
+
+   print('checking databundle')
+   for data_bundle in data_types.DataBundle.query():
+      migrate_data_bundle(data_bundle)
+   print('\n\n')
+
+   print('done')
