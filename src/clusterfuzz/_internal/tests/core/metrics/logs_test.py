@@ -180,7 +180,6 @@ class FormatRecordTest(unittest.TestCase):
         'name': 'logger_name',
         'pid': 1337,
         'release': 'prod',
-        'task_id': 'job-1337',
         'extras': {
             'a': 1,
         },
@@ -206,7 +205,6 @@ class FormatRecordTest(unittest.TestCase):
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
-        'task_id': 'job-1337',
         'pid': 1337,
         'release': 'prod',
         'location': {
@@ -233,7 +231,6 @@ class FormatRecordTest(unittest.TestCase):
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
-        'task_id': 'job-1337',
         'pid': 1337,
         'release': 'prod',
         'location': {
@@ -284,7 +281,6 @@ class JsonFormatterTest(unittest.TestCase):
     self.assertEqual(json_result['severity'], 'INFO')
     self.assertEqual(json_result['name'], 'test_logger')
     self.assertEqual(json_result['pid'], os.getpid())
-    self.assertEqual(json_result['task_id'], 'null')
     self.assertTrue('location' in json_result)
     self.assertFalse('extras' in json_result)
 
@@ -299,7 +295,6 @@ class JsonFormatterTest(unittest.TestCase):
 
     self.assertEqual(json_result['bot_name'], 'test_bot')
     self.assertEqual(json_result['task_payload'], 'test_payload')
-    self.assertEqual(json_result['task_id'], '123')
 
   def test_format_with_initial_payload(self):
     """Tests formatting with initial task payload."""
@@ -411,14 +406,19 @@ class EmitTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
         'clusterfuzz._internal.datastore.data_types.Testcase.get_fuzz_target',
     ])
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'fuzz'
+    os.environ['CF_TASK_ARGUMENT'] = 'libFuzzer'
+    os.environ['CF_TASK_JOB_NAME'] = 'libfuzzer_asan_gopacket'
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
-    os.environ['CF_TASK_ID'] = \
-        'fuzz,libFuzzer,libfuzzer_asan_gopacket,f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
 
   def tearDown(self):
     del os.environ['CF_TASK_ID']
+    del os.environ['CF_TASK_NAME']
+    del os.environ['CF_TASK_ARGUMENT']
+    del os.environ['CF_TASK_JOB_NAME']
     return super().tearDown()
 
   def test_no_logger(self):
@@ -496,6 +496,8 @@ class EmitTest(unittest.TestCase):
                 'test': 'yes',
                 'task_id': 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868',
                 'task_name': 'fuzz',
+                'task_argument': 'libFuzzer',
+                'task_job_name': 'libfuzzer_asan_gopacket',
                 'stage': 'preprocess'
             },
             'location': {
