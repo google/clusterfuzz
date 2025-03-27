@@ -543,6 +543,10 @@ class RefreshCacheHandler(base_handler.Handler):
     fuzzer_logs_context = fuzzer_stats.FuzzerRunLogsContext()
     fuzz_targets = data_handler.get_fuzz_targets()
 
+    import os
+    redis_host = os.getenv('REDIS_HOST','UNSERT')
+    logs.info(f'REDIS HOST = {redis_host}')
+
     # Cache child fuzzer -> logs bucket mappings.
     for fuzz_target in fuzz_targets:
       # pylint: disable=protected-access,unexpected-keyword-arg
