@@ -21,6 +21,12 @@ from clusterfuzz._internal.google_cloud_utils import blobs
 from google.cloud import ndb
 from clusterfuzz._internal.base import utils
 
+import contextlib
+import time
+
+BACKOFF_BASE_INTERVAL = 2
+MAX_RETRIES = 3
+
 
 #TODO(vitorguidi): generalize this so we can point to other projects
 prod_blob_bucket = 'clusterfuzz-blobs'
@@ -95,7 +101,22 @@ def migrate_bucket(source_bucket, target_bucket):
       target_location = f'gs://{target_bucket}/{blob}'
 
       print(f'Moving {origin_location} to {target_location}')
-      storage.copy_blob(origin_location, target_location)
+      
+      attempts = 0
+      success = False
+
+      while attempts < MAX_RETRIES:
+         try:
+            storage.copy_blob(origin_location, target_location)
+            print('Copy Successful')
+            success = True
+            break
+         except Exception as e:
+            print(f'Failed to copy, attempting again: {e}')
+            time.sleep(BACKOFF_BASE_INTERVAL * 2**attempts)
+            attempts += 1
+      if not success:
+         raise Exception('Failed to sync buckets.')
 
    print(f'Migrated bucket contents from {source_bucket} to {target_bucket}')
 
