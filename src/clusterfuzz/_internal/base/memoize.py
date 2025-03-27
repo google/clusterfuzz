@@ -40,6 +40,7 @@ def _redis_client():
     return _local.redis
 
   host = environment.get_value('REDIS_HOST', _DEFAULT_REDIS_HOST)
+  assert host != _DEFAULT_REDIS_HOST
   port = environment.get_value('REDIS_PORT', _DEFAULT_REDIS_PORT)
 
   _local.redis = redis.Redis(host=host, port=port)
