@@ -207,8 +207,6 @@ class JsonFormatter(logging.Formatter):
             record.name,
         'pid':
             os.getpid(),
-        'task_id':
-            os.getenv('CF_TASK_ID', 'null'),
         'release':
             os.getenv('CLUSTERFUZZ_RELEASE', 'prod'),
         'docker_image':
@@ -616,6 +614,8 @@ class GenericLogStruct(NamedTuple):
 class TaskLogStruct(NamedTuple):
   task_id: str
   task_name: str
+  task_argument: str
+  task_job_name: str
   stage: str
 
 
@@ -644,10 +644,16 @@ class LogContextType(enum.Enum):
       # TODO(javanlacerda): Remove this csv task_id and propagate it
       # properly, after cheking it works in production
       try:
-        current_task_id = os.getenv('CF_TASK_ID', '').split(",")
-        task_id = current_task_id[-1]
-        task_name = current_task_id[0]
-        return TaskLogStruct(task_id=task_id, task_name=task_name, stage=stage)
+        task_id = os.getenv('CF_TASK_ID', 'null')
+        task_name = os.getenv('CF_TASK_NAME', 'null')
+        task_argument = os.getenv('CF_TASK_ARGUMENT', 'null')
+        task_job_name = os.getenv('CF_TASK_JOB_NAME', 'null')
+        return TaskLogStruct(
+            task_id=task_id,
+            task_name=task_name,
+            task_argument=task_argument,
+            stage=stage,
+            task_job_name=task_job_name)
       except Exception as e:
         # This flag is necessary to avoid
         # infinite loop in this context verification
