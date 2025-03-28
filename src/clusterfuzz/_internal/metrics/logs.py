@@ -23,6 +23,7 @@ from logging import config
 import os
 import socket
 import sys
+import platform
 import threading
 import time
 import traceback
@@ -624,6 +625,12 @@ def log_fatal_and_exit(message, **extras):
 class GenericLogStruct(NamedTuple):
   pass
 
+class CommonLogStruct(NamedTuple):
+  clusterfuzz_version: str
+  clusterfuzz_config_version: str
+  instance_id: str
+  operating_system: str
+  os_version: str
 
 class TaskLogStruct(NamedTuple):
   task_id: str
@@ -646,13 +653,26 @@ class LogContextType(enum.Enum):
      and this context is used for define the adicional labels
      to be added to the log.
   """
+  COMMON = 'common'
   TASK = 'task'
   TESTCASE = 'testcase'
   PROGRESSION = 'progression'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
-    if self == LogContextType.TASK:
+    if self == LogContextType.COMMON:
+      try:
+        return CommonLogStruct(
+          clusterfuzz_version=os.getenv('CF_VERSION', 'null'),
+          clusterfuzz_config_version=os.getenv('CF_CONFIG_VERSION', 'null'),
+          instance_id=os.getenv('INSTANCE_ID', 'null'),
+          operating_system=os.getenv('OS_TYPE', 'null'),
+          os_version=platform.release())
+      except Exception as e:
+        error(e, ignore_context=True)
+        return GenericLogStruct()
+
+    elif self == LogContextType.TASK:
       stage = log_contexts.meta.get('stage', Stage.UNKNOWN).value
       # it should exist
       # TODO(javanlacerda): Remove this csv task_id and propagate it
@@ -723,7 +743,7 @@ class LogContexts(metaclass=Singleton):
   """Class to keep the log contexts and metadata"""
 
   def __init__(self):
-    self.contexts: list[LogContextType] = []
+    self.contexts: list[LogContextType] = [LogContextType.COMMON]
     self.meta: dict[Any, Any] = {}
     self._data_lock = threading.Lock()
 
