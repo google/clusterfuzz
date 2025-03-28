@@ -922,13 +922,42 @@ def current_source_version():
   if source_version_override:
     return source_version_override
 
-  root_directory = environment.get_value('ROOT_DIR')
+  root_directory = environment.get_value('ROOT_DIR', '.')
   local_manifest_path = os.path.join(root_directory, LOCAL_SOURCE_MANIFEST)
   if os.path.exists(local_manifest_path):
-    return read_data_from_file(
-        local_manifest_path, eval_data=False).strip().decode('utf-8')
+    file_data = read_data_from_file(local_manifest_path, eval_data=False)
+    if file_data is not None:
+      file_data = file_data.strip().decode('utf-8')
+    return file_data
 
+
+def get_version_commits() -> tuple[str, str] | None:
+  """Return the commit hash for source and config revision."""
+  source_version_data = (current_source_version() or '').split('-')
+  if len(source_version_data) >= 5:
+    source_commit, config_commit = source_version_data[2], source_version_data[4]
+    return (source_commit, config_commit)
   return None
+
+
+def get_instance_name() -> str:
+  """Return the instance name based on the running environment."""
+  if environment.is_running_on_k8s():
+    return environment.get_value('HOSTNAME', '')
+  if environment.is_running_on_app_engine():
+    return environment.get_value('GAE_INSTANCE', '')
+  # Use bot name here as instance as that's more useful to us.
+  return environment.get_value('BOT_NAME', '')
+
+
+def set_common_log_context() -> None:
+  """Set env variables to propagate common context used by logs."""
+  source_version = get_version_commits()
+  if source_version:
+    environment.set_value('CF_VERSION', source_version[0])
+    environment.set_value('CF_CONFIG_VERSION', source_version[1])
+  environment.set_value('OS_TYPE', environment.platform())
+  environment.set_value('INSTANCE_ID', get_instance_name())
 
 
 def read_from_handle_truncated(file_handle, max_len):

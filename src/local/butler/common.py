@@ -98,8 +98,8 @@ def _get_clusterfuzz_config_commit_sha():
 
 
 def _compute_revision(timestamp, *extras):
-  """Return a revision that contains a timestamp, git-sha, user, and
-    is_staging. The ordinality of revision is crucial for updating source code.
+  """Return a revision that contains a timestamp, git-sha, user, config git-sha,
+    is_staging and any extras. The ordinality of revision is crucial for updating source code.
     Later revision *must* be greater than earlier revision. See:
     crbug.com/674173."""
   timestamp = timestamp.strftime('%Y%m%d%H%M%S-utc')
@@ -108,8 +108,13 @@ def _compute_revision(timestamp, *extras):
   # Adding also the clusterfuzz-config version to the revision
   clusterfuzz_config_git_sha = _get_clusterfuzz_config_commit_sha()
 
+  user = os.environ['USER']
+  if user:
+    # Remove hifen from user names that could hinder parsing the components afterwards.
+    user = user.replace('-', '')
+
   components = [
-      timestamp, clusterfuzz_git_sha, os.environ['USER'],
+      timestamp, clusterfuzz_git_sha, user,
       clusterfuzz_config_git_sha
   ] + list(extras)
   return '-'.join(components)
