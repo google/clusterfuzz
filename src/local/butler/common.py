@@ -110,7 +110,7 @@ def _compute_revision(timestamp, *extras):
 
   user = os.environ['USER']
   if user:
-    # Remove hifen from user to enable parsing the components afterwards.
+    # Remove hifen from user to faciliate parsing the components afterwards.
     user = user.replace('-', '')
 
   components = [

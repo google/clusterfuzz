@@ -693,7 +693,7 @@ class LogContextType(enum.Enum):
             operating_system=os.getenv('OS_TYPE', 'null'),
             os_version=platform.release())
       except Exception as e:
-        error(e, ignore_context=True)
+        error(str(e), ignore_context=True)
         return GenericLogStruct()
 
     elif self == LogContextType.TASK:
