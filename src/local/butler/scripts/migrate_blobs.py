@@ -93,10 +93,13 @@ def migrate_bucket(source_bucket, target_bucket):
 
    assert bucket_exists
 
-   result = common.execute(f'gcloud storage rsync --recursive gs://{source_bucket} gs://{target_bucket}')
-   print(result)
-
-   print(f'Migrated bucket contents from {source_bucket} to {target_bucket}')
+   error_code, output = common.execute(f'gcloud storage rsync --recursive gs://{source_bucket} gs://{target_bucket}', exit_on_error=False)
+   output_as_str = str(output)
+   print(output_as_str)
+   if error_code == 0:
+      print(f'Migrated bucket contents from {source_bucket} to {target_bucket}')
+   else:
+      print(f'Failed to migrate bucket: {output_as_str}')
 
 def migrate_data_bundle(data_bundle):
    '''
