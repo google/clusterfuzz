@@ -18,6 +18,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import blobs
+from local.butler import common
 from google.cloud import ndb
 from clusterfuzz._internal.base import utils
 
@@ -92,31 +93,8 @@ def migrate_bucket(source_bucket, target_bucket):
 
    assert bucket_exists
 
-   # list_blobs expects a gs:// url but these are registered w/o the protocol on datastore
-   # adding gs:// as a prefix
-   all_blobs = storage.list_blobs(f'gs://{source_bucket}')
-
-   for blob in all_blobs:
-      origin_location = f'gs://{source_bucket}/{blob}'
-      target_location = f'gs://{target_bucket}/{blob}'
-
-      print(f'Moving {origin_location} to {target_location}')
-      
-      attempts = 0
-      success = False
-
-      while attempts < MAX_RETRIES:
-         try:
-            storage.copy_blob(origin_location, target_location)
-            print('Copy Successful')
-            success = True
-            break
-         except Exception as e:
-            print(f'Failed to copy, attempting again: {e}')
-            time.sleep(BACKOFF_BASE_INTERVAL * 2**attempts)
-            attempts += 1
-      if not success:
-         raise Exception('Failed to sync buckets.')
+   result = common.execute(f'gcloud storage rsync --recursive gs://{source_bucket} gs://{target_bucket}')
+   print(result)
 
    print(f'Migrated bucket contents from {source_bucket} to {target_bucket}')
 
