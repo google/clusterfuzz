@@ -21,9 +21,9 @@ import json
 import logging
 from logging import config
 import os
+import platform
 import socket
 import sys
-import platform
 import threading
 import time
 import traceback
@@ -645,12 +645,14 @@ def log_fatal_and_exit(message, **extras):
 class GenericLogStruct(NamedTuple):
   pass
 
+
 class CommonLogStruct(NamedTuple):
   clusterfuzz_version: str
   clusterfuzz_config_version: str
   instance_id: str
   operating_system: str
   os_version: str
+
 
 class TaskLogStruct(NamedTuple):
   task_id: str
@@ -685,11 +687,11 @@ class LogContextType(enum.Enum):
     if self == LogContextType.COMMON:
       try:
         return CommonLogStruct(
-          clusterfuzz_version=os.getenv('CF_VERSION', 'null'),
-          clusterfuzz_config_version=os.getenv('CF_CONFIG_VERSION', 'null'),
-          instance_id=os.getenv('INSTANCE_ID', 'null'),
-          operating_system=os.getenv('OS_TYPE', 'null'),
-          os_version=platform.release())
+            clusterfuzz_version=os.getenv('CF_VERSION', 'null'),
+            clusterfuzz_config_version=os.getenv('CF_CONFIG_VERSION', 'null'),
+            instance_id=os.getenv('INSTANCE_ID', 'null'),
+            operating_system=os.getenv('OS_TYPE', 'null'),
+            os_version=platform.release())
       except Exception as e:
         error(e, ignore_context=True)
         return GenericLogStruct()
