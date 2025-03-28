@@ -935,7 +935,8 @@ def get_version_commits() -> tuple[str, str] | None:
   """Return the commit hash for source and config revision."""
   source_version_data = (current_source_version() or '').split('-')
   if len(source_version_data) >= 5:
-    source_commit, config_commit = source_version_data[2], source_version_data[4]
+    source_commit, config_commit = source_version_data[2], source_version_data[
+        4]
     return (source_commit, config_commit)
   return None
 
