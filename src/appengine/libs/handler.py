@@ -97,6 +97,7 @@ def cron():
       if not self.is_cron():
         raise helpers.AccessDeniedError('You are not a cron.')
 
+      utils.set_common_log_context()
       with monitor.wrap_with_monitoring():
         result = func(self)
         if result is None:
