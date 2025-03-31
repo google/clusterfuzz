@@ -927,7 +927,11 @@ def current_source_version():
   if os.path.exists(local_manifest_path):
     file_data = read_data_from_file(local_manifest_path, eval_data=False)
     if file_data is not None:
-      file_data = file_data.strip().decode('utf-8')
+      try:
+        file_data = file_data.strip().decode('utf-8')
+      except UnicodeDecodeError as e:
+        logs.error(f'Error decoding manifest file content - {str(e)}')
+        file_data = None
     return file_data
 
 
