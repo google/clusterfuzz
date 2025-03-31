@@ -444,6 +444,8 @@ class EmitTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
         'clusterfuzz._internal.datastore.data_types.Testcase.get_fuzz_target',
     ])
+    self.original_env = dict(os.environ)
+
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'fuzz'
     os.environ['CF_TASK_ARGUMENT'] = 'libFuzzer'
@@ -464,7 +466,6 @@ class EmitTest(unittest.TestCase):
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
-    self.original_env = dict(os.environ)
 
   def tearDown(self):
     os.environ.clear()
