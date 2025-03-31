@@ -41,6 +41,9 @@ def _redis_client():
 
   host = environment.get_value('REDIS_HOST', _DEFAULT_REDIS_HOST)
   port = environment.get_value('REDIS_PORT', _DEFAULT_REDIS_PORT)
+  logs.info(f'Redis host = {host}:{port}')
+  assert host == '10.70.173.43'
+  assert port == 6379
 
   _local.redis = redis.Redis(host=host, port=port)
   return _local.redis
