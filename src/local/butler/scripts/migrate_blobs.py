@@ -109,6 +109,9 @@ def migrate_data_bundle(data_bundle):
    '''
    print(f'Migrating data bundle {data_bundle.name}')
    bundle_corpus_gcs_bucket = data_bundle.bucket_name
+   if '__common' in data_bundle.name:
+      print(f'Data bundle {data_bundle.name} is deprecated, skipping')
+      return
    target_corpus_bucket = ''
    for domain in prod_bucket_domains:
       if domain in bundle_corpus_gcs_bucket:
