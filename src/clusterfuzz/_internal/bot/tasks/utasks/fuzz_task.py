@@ -1600,6 +1600,7 @@ class FuzzingSession:
     else:
       test_timeout = self.test_timeout
 
+    logs.info(f'test_timeout is : {test_timeout}')
     thread_timeout = test_timeout
 
     # Determine number of testcases to process.
@@ -1774,6 +1775,12 @@ class FuzzingSession:
       time.sleep(failure_wait_interval)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
+
+    # Update the session's test_timeout since `update_fuzzer_and_data_bundles`
+    # sets the `TEST_TIMEOUT` environment variable to the fuzzer's timeout
+    # (if any).
+    test_timeout = environment.get_value('TEST_TIMEOUT')
+    self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
