@@ -43,7 +43,7 @@ def is_reproducible_and_has_issue(item):
   return is_reproducible(item) and has_issue(item)
 
 
-def choose(testcase_map):
+def choose(testcase_map, group_map=None):
   """Choose one leader for each group. We choose the highest quality testcase to
     be the leader.
 
@@ -89,3 +89,5 @@ def choose(testcase_map):
       leader_index = 0
 
     items[leader_index].is_leader = True
+    if group_map:
+      group_map[items[leader_index].group_id].leader_id = items[leader_index].id
