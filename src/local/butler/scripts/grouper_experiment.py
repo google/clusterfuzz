@@ -11,7 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Script to run the grouper locally and store results."""
+"""Script to run the grouper locally and store the results.
+
+This is intended to run local experiments with the grouper to analyze its
+outcome without touching production. For this case, the grouper code was
+edited to remove all delete/put operations for testcases/groups.
+
+Some other changes: the testcases loading step was separated from the grouping
+in order to locally store a snapshot of their attributes; a new data structure to represent the
+groups was added, making it easier to inspect why testcases were grouped; and
+some global variables were added to configure the experiment.
+It is expected that this become stale after some time if the grouper code is modified a lot.
+"""
 
 import collections
 import os
