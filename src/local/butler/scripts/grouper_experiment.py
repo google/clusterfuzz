@@ -18,10 +18,10 @@ outcome without touching production. For this case, the grouper code was
 edited to remove all delete/put operations for testcases/groups.
 
 Some other changes: the testcases loading step was separated from the grouping
-in order to locally store a snapshot of their attributes; a new data structure to represent the
-groups was added, making it easier to inspect why testcases were grouped; and
-some global variables were added to configure the experiment.
-It is expected that this become stale after some time if the grouper code is modified a lot.
+in order to locally store a snapshot of their attributes; a new data structure
+to represent the groups was added, making it easier to inspect why testcases
+were grouped; and some global variables were added to configure the experiment.
+It is expected that this become stale if the grouper code is modified a lot.
 """
 
 import collections
