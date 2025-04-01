@@ -683,10 +683,10 @@ class LogContextType(enum.Enum):
           return GenericLogStruct()
 
         fuzz_target = testcase.get_fuzz_target()
-        fuzz_target = fuzz_target.key.id() if fuzz_target else 'unknown'
+        fuzz_target_bin = fuzz_target.binary if fuzz_target else 'unknown'
         return TestcaseLogStruct(
             testcase_id=testcase.key.id(),  # type: ignore
-            fuzz_target=fuzz_target,
+            fuzz_target=fuzz_target_bin, # type: ignore
             job=testcase.job_type,  # type: ignore
             fuzzer=testcase.fuzzer_name  # type: ignore
         )
