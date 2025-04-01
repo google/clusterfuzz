@@ -436,38 +436,38 @@ def _set_regression_testcase_upload_url(
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for progression task."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
+  with logs.progression_log_context(testcase):
+    if not testcase:
+      return None
+    if testcase.fixed:
+      logs.error(f'Fixed range is already set as {testcase.fixed}, skip.')
+      return None
 
-  if testcase.fixed:
-    logs.error(f'Fixed range is already set as {testcase.fixed}, skip.')
-    return None
+    # Set a flag to indicate we are running progression task. This shows pending
+    # status on testcase report page and avoid conflicting testcase updates by
+    # triage cron.
+    testcase.set_metadata('progression_pending', True)
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+    blob_name, blob_upload_url = blobs.get_blob_signed_upload_url()
+    progression_input = uworker_msg_pb2.ProgressionTaskInput(  # pylint: disable=no-member
+        custom_binary=build_manager.is_custom_binary(),
+        bad_revisions=build_manager.get_job_bad_revisions(),
+        blob_name=blob_name,
+        stacktrace_upload_url=blob_upload_url)
+    # Setup testcase and its dependencies.
+    setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
-  # Set a flag to indicate we are running progression task. This shows pending
-  # status on testcase report page and avoid conflicting testcase updates by
-  # triage cron.
-  testcase.set_metadata('progression_pending', True)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
-  blob_name, blob_upload_url = blobs.get_blob_signed_upload_url()
-  progression_input = uworker_msg_pb2.ProgressionTaskInput(  # pylint: disable=no-member
-      custom_binary=build_manager.is_custom_binary(),
-      bad_revisions=build_manager.get_job_bad_revisions(),
-      blob_name=blob_name,
-      stacktrace_upload_url=blob_upload_url)
-  # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
+    _set_regression_testcase_upload_url(progression_input, testcase)
+    uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+        job_type=job_type,
+        testcase_id=str(testcase_id),
+        uworker_env=uworker_env,
+        progression_task_input=progression_input,
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        setup_input=setup_input)
 
-  _set_regression_testcase_upload_url(progression_input, testcase)
-  uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
-      job_type=job_type,
-      testcase_id=str(testcase_id),
-      uworker_env=uworker_env,
-      progression_task_input=progression_input,
-      testcase=uworker_io.entity_to_protobuf(testcase),
-      setup_input=setup_input)
-
-  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
-  return uworker_input
+    testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+    return uworker_input
 
 
 def find_fixed_range(uworker_input):
@@ -684,8 +684,9 @@ def utask_main(uworker_input):
   """Executes the untrusted part of progression_task."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  uworker_io.check_handling_testcase_safe(testcase)
-  return find_fixed_range(uworker_input)
+  with logs.progression_log_context(testcase):
+    uworker_io.check_handling_testcase_safe(testcase)
+    return find_fixed_range(uworker_input)
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
@@ -713,53 +714,54 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, output)
-  _cleanup_stacktrace_blob_from_storage(output)
-  task_output = None
+  with logs.progression_log_context(testcase):
+    _maybe_clear_progression_last_min_max_metadata(testcase, output)
+    _cleanup_stacktrace_blob_from_storage(output)
+    task_output = None
 
-  if output.issue_metadata:
-    _update_issue_metadata(testcase, json.loads(output.issue_metadata))
+    if output.issue_metadata:
+      _update_issue_metadata(testcase, json.loads(output.issue_metadata))
 
-  if output.HasField('progression_task_output'):
-    task_output = output.progression_task_output
-    _update_build_metadata(output.uworker_input.job_type,
-                           task_output.build_data_list)
+    if output.HasField('progression_task_output'):
+      task_output = output.progression_task_output
+      _update_build_metadata(output.uworker_input.job_type,
+                             task_output.build_data_list)
 
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-    _ERROR_HANDLER.handle(output)
-    return
-
-  # If there is a fine grained bisection service available, request it. Both
-  # regression and fixed ranges are requested once. Regression is also requested
-  # here as the bisection service may require details that are not yet available
-  # (e.g. issue ID) at the time regress_task completes.
-  bisection.request_bisection(testcase)
-
-  if task_output and task_output.crash_on_latest:
-    crash_on_latest(output)
-    return
-
-  if output.uworker_input.progression_task_input.custom_binary:
-    # Retry once on another bot to confirm our results and in case this bot is
-    # in a bad state which we didn't catch through our usual means.
-    if data_handler.is_first_attempt_for_task(
-        'progression', testcase, reset_after_retry=True):
-      tasks.add_task('progression', output.uworker_input.testcase_id,
-                     output.uworker_input.job_type)
-      data_handler.update_progression_completion_metadata(
-          testcase, task_output.crash_revision)
+    if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      _ERROR_HANDLER.handle(output)
       return
 
-    # The bug is fixed.
-    testcase.fixed = 'Yes'
-    testcase.open = False
-    data_handler.update_progression_completion_metadata(
-        testcase,
-        task_output.crash_revision,
-        message='fixed on latest custom build')
-    return
+    # If there is a fine grained bisection service available, request it.
+    # Both regression and fixed ranges are requested once. Regression is also
+    # requested here as the bisection service may require details that
+    # are not yet available (e.g. issue ID) at the time regress_task completes.
+    bisection.request_bisection(testcase)
 
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  if task_output.HasField('min_revision'):
-    _save_fixed_range(output.uworker_input.testcase_id,
-                      task_output.min_revision, task_output.max_revision)
+    if task_output and task_output.crash_on_latest:
+      crash_on_latest(output)
+      return
+
+    if output.uworker_input.progression_task_input.custom_binary:
+      # Retry once on another bot to confirm our results and in case this bot is
+      # in a bad state which we didn't catch through our usual means.
+      if data_handler.is_first_attempt_for_task(
+          'progression', testcase, reset_after_retry=True):
+        tasks.add_task('progression', output.uworker_input.testcase_id,
+                       output.uworker_input.job_type)
+        data_handler.update_progression_completion_metadata(
+            testcase, task_output.crash_revision)
+        return
+
+      # The bug is fixed.
+      testcase.fixed = 'Yes'
+      testcase.open = False
+      data_handler.update_progression_completion_metadata(
+          testcase,
+          task_output.crash_revision,
+          message='fixed on latest custom build')
+      return
+
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+    if task_output.HasField('min_revision'):
+      _save_fixed_range(output.uworker_input.testcase_id,
+                        task_output.min_revision, task_output.max_revision)
