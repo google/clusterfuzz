@@ -23,6 +23,7 @@ from unittest import mock
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 class GetSourceLocationTest(unittest.TestCase):
@@ -171,13 +172,14 @@ class FormatRecordTest(unittest.TestCase):
     self.assertEqual({
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
+        'docker_image': '',
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'fuzz_target': 'fuzz_target1',
         'name': 'logger_name',
         'pid': 1337,
-        'task_id': 'job-1337',
+        'release': 'prod',
         'extras': {
             'a': 1,
         },
@@ -198,12 +200,13 @@ class FormatRecordTest(unittest.TestCase):
     self.assertEqual({
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
+        'docker_image': '',
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
-        'task_id': 'job-1337',
         'pid': 1337,
+        'release': 'prod',
         'location': {
             'path': 'path',
             'line': 123,
@@ -220,6 +223,7 @@ class FormatRecordTest(unittest.TestCase):
     record.extras = None
 
     self.assertEqual({
+        'docker_image': '',
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'severity': 'INFO',
@@ -227,8 +231,8 @@ class FormatRecordTest(unittest.TestCase):
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
         'name': 'logger_name',
-        'task_id': 'job-1337',
         'pid': 1337,
+        'release': 'prod',
         'location': {
             'path': 'path',
             'line': 123,
@@ -277,7 +281,6 @@ class JsonFormatterTest(unittest.TestCase):
     self.assertEqual(json_result['severity'], 'INFO')
     self.assertEqual(json_result['name'], 'test_logger')
     self.assertEqual(json_result['pid'], os.getpid())
-    self.assertEqual(json_result['task_id'], 'null')
     self.assertTrue('location' in json_result)
     self.assertFalse('extras' in json_result)
 
@@ -292,7 +295,6 @@ class JsonFormatterTest(unittest.TestCase):
 
     self.assertEqual(json_result['bot_name'], 'test_bot')
     self.assertEqual(json_result['task_payload'], 'test_payload')
-    self.assertEqual(json_result['task_id'], '123')
 
   def test_format_with_initial_payload(self):
     """Tests formatting with initial task payload."""
@@ -394,22 +396,29 @@ class ConfigureTest(unittest.TestCase):
     self.assertEqual(0, self.mock.dictConfig.call_count)
 
 
+@test_utils.with_cloud_emulators('datastore')
 class EmitTest(unittest.TestCase):
   """Test emit."""
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.metrics.logs.get_logger',
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine'
+        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'clusterfuzz._internal.datastore.data_types.Testcase.get_fuzz_target',
     ])
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'fuzz'
+    os.environ['CF_TASK_ARGUMENT'] = 'libFuzzer'
+    os.environ['CF_TASK_JOB_NAME'] = 'libfuzzer_asan_gopacket'
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
-    os.environ['CF_TASK_ID'] = \
-        'fuzz,libFuzzer,libfuzzer_asan_gopacket,f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
 
   def tearDown(self):
     del os.environ['CF_TASK_ID']
+    del os.environ['CF_TASK_NAME']
+    del os.environ['CF_TASK_ARGUMENT']
+    del os.environ['CF_TASK_JOB_NAME']
     return super().tearDown()
 
   def test_no_logger(self):
@@ -434,8 +443,6 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
-            'release': 'prod',
-            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
@@ -460,8 +467,6 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes'
             },
-            'release': 'prod',
-            'docker_image': '',
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
@@ -469,18 +474,17 @@ class EmitTest(unittest.TestCase):
             }
         })
 
-  def test_log_context(self):
+  @logs.task_stage_context(logs.Stage.PREPROCESS)
+  def test_task_log_context(self):
     """Test that the logger is called with the
        correct arguments considering the log context and metadata
     """
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
-
-    with logs.task_stage_context(logs.Stage.PREPROCESS):
-      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
-      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
-      statement_line = inspect.currentframe().f_lineno + 1
-      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+    self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+    self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
     logger.log.assert_called_once_with(
         logging.ERROR,
@@ -492,17 +496,61 @@ class EmitTest(unittest.TestCase):
                 'test': 'yes',
                 'task_id': 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868',
                 'task_name': 'fuzz',
+                'task_argument': 'libFuzzer',
+                'task_job_name': 'libfuzzer_asan_gopacket',
                 'stage': 'preprocess'
             },
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_log_context'
+                'method': 'test_task_log_context'
             },
-            'release': 'prod',
-            'docker_image': ''
         })
 
+  def test_progression_log_context(self):
+    """Test that the logger is called with the
+       correct arguments considering the log context and metadata
+    """
+    from clusterfuzz._internal.datastore import data_types
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+    fuzz_target = data_types.FuzzTarget(
+        id='libFuzzer_abc', engine='libFuzzer', binary='abc')
+    fuzz_target.put()
+    self.mock.get_fuzz_target.return_value = fuzz_target
+    testcase = data_types.Testcase(
+        fuzzer_name="test_fuzzer", job_type='test_job')
+    testcase.put()
+
+    with logs.progression_log_context(testcase):
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.TESTCASE, logs.LogContextType.PROGRESSION])
+      self.assertEqual(logs.log_contexts.meta, {'testcase': testcase})
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+
+    logger.log.assert_called_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+                'testcase_id': 1,
+                'fuzz_target': 'libFuzzer_abc',
+                'job': 'test_job',
+                'fuzzer': 'test_fuzzer'
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_progression_log_context'
+            },
+        })
+
+  @logs.task_stage_context(logs.Stage.PREPROCESS)
   def test_log_ignore_context(self):
     """Test that the emit interceptor ignores contect
        when passed the ignore_context flag
@@ -510,17 +558,16 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
-    with logs.task_stage_context(logs.Stage.PREPROCESS):
-      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
-      self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
-      statement_line = inspect.currentframe().f_lineno + 1
-      logs.emit(
-          logging.ERROR,
-          'msg',
-          exc_info='ex',
-          target='bot',
-          test='yes',
-          ignore_context=True)
+    self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.TASK])
+    self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        target='bot',
+        test='yes',
+        ignore_context=True)
 
     logger.log.assert_called_once_with(
         logging.ERROR,
@@ -530,15 +577,12 @@ class EmitTest(unittest.TestCase):
             'extras': {
                 'target': 'bot',
                 'test': 'yes',
-                'ignore_context': True
             },
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
                 'method': 'test_log_ignore_context'
             },
-            'release': 'prod',
-            'docker_image': ''
         })
 
 

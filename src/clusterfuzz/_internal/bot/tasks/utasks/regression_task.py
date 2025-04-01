@@ -127,7 +127,7 @@ def _testcase_reproduces_in_revision(
   fuzz_target_binary = fuzz_target.binary if fuzz_target else None
   build_setup_result = build_manager.setup_build(
       revision, fuzz_target=fuzz_target_binary)
-  if not build_setup_result or not build_manager.check_app_path():
+  if not build_setup_result:
     error_message = f'Build setup failed r{revision}'
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         regression_task_output=regression_task_output,
@@ -281,12 +281,16 @@ def find_min_revision(
   assert next_index < max_index, (next_index, max_index)
   assert max_index <= crash_index, (max_index, crash_index)
 
+  # Make sure we account for MIN_REVISION.
+  first_revision = revisions.get_first_revision_in_list(revision_list)
+  first_index = revisions.find_min_revision_index(revision_list, first_revision)
+
   while True:
     # If we fall off the end of the revision list, try the earliest revision.
     # Note that if the earliest revision is bad, we will skip it and try the
     # next one. This will go on until we find the first good revision, at which
     # point we will stop looping.
-    next_index = max(next_index, 0)
+    next_index = max(next_index, first_index)
     next_revision = revision_list[next_index]
 
     if next_index == max_index:

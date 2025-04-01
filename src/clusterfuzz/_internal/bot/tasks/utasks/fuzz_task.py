@@ -1600,6 +1600,7 @@ class FuzzingSession:
     else:
       test_timeout = self.test_timeout
 
+    logs.info(f'test_timeout is : {test_timeout}')
     thread_timeout = test_timeout
 
     # Determine number of testcases to process.
@@ -1775,6 +1776,12 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
 
+    # Update the session's test_timeout since `update_fuzzer_and_data_bundles`
+    # sets the `TEST_TIMEOUT` environment variable to the fuzzer's timeout
+    # (if any).
+    test_timeout = environment.get_value('TEST_TIMEOUT')
+    self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
+
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
@@ -1796,7 +1803,7 @@ class FuzzingSession:
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
-    if not build_setup_result or not build_manager.check_app_path():
+    if not build_setup_result:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)  # pylint: disable=no-member
 
