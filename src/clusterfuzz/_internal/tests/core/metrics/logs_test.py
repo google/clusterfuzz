@@ -539,7 +539,7 @@ class EmitTest(unittest.TestCase):
                 'target': 'bot',
                 'test': 'yes',
                 'testcase_id': 1,
-                'fuzz_target': 'libFuzzer_abc',
+                'fuzz_target': 'abc',
                 'job': 'test_job',
                 'fuzzer': 'test_fuzzer'
             },
