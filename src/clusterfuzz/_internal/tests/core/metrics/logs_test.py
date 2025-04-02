@@ -790,5 +790,6 @@ class TestLogContextSingleton(unittest.TestCase):
       thread.join()
 
     from python.bot.startup.run_bot import logs as run_bot_logs
+
     # Number of increments plus the common context.
     self.assertEqual(len(run_bot_logs.log_contexts.contexts), num_it + 1)

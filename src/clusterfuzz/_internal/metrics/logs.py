@@ -806,6 +806,7 @@ class LogContexts(metaclass=Singleton):
     with self._data_lock:
       self.contexts = [LogContextType.COMMON]
 
+
 log_contexts = LogContexts()
 
 
