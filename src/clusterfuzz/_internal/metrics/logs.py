@@ -804,8 +804,7 @@ class LogContexts(metaclass=Singleton):
 
   def clear(self):
     with self._data_lock:
-      self.contexts = []
-
+      self.contexts = [LogContextType.COMMON]
 
 log_contexts = LogContexts()
 

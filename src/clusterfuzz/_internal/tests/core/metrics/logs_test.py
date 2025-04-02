@@ -780,7 +780,8 @@ class TestLogContextSingleton(unittest.TestCase):
 
     import threading
     threads = []
-    for _ in range(5):
+    num_it = 5
+    for _ in range(num_it):
       thread = threading.Thread(target=incrementer)
       threads.append(thread)
       thread.start()
@@ -789,4 +790,5 @@ class TestLogContextSingleton(unittest.TestCase):
       thread.join()
 
     from python.bot.startup.run_bot import logs as run_bot_logs
-    self.assertEqual(len(run_bot_logs.log_contexts.contexts), 5)
+    # Number of increments plus the common context.
+    self.assertEqual(len(run_bot_logs.log_contexts.contexts), num_it + 1)
