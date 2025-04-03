@@ -550,6 +550,39 @@ class EmitTest(unittest.TestCase):
             },
         })
 
+  def test_log_exception(self):
+    """It checks that task_stage_context catch and log the
+    error raised during the decorated scope
+    """
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    with logs.task_stage_context(logs.Stage.PREPROCESS):
+      try:
+        exception = Exception("msg")
+        raise exception
+      except Exception:
+        statement_line = inspect.currentframe().f_lineno + 1
+        logs.error('xpto')
+        logger.log.assert_called_with(
+            logging.ERROR,
+            'xpto',
+            exc_info=sys.exc_info(),
+            extra={
+                'extras': {
+                    'task_id': 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868',
+                    'task_name': 'fuzz',
+                    'task_argument': 'libFuzzer',
+                    'task_job_name': 'libfuzzer_asan_gopacket',
+                    'stage': 'preprocess'
+                },
+                'location': {
+                    'path': os.path.abspath(__file__).rstrip('c'),
+                    'line': statement_line,
+                    'method': 'test_log_exception'
+                },
+            })
+
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def test_log_ignore_context(self):
     """Test that the emit interceptor ignores contect
