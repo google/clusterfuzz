@@ -126,6 +126,8 @@ def migrate_data_bundle(data_bundle):
    assert staging_bucket_domain in target_corpus_bucket
 
    migrate_bucket(bundle_corpus_gcs_bucket, target_corpus_bucket)
+   data_bundle.bucket_name = target_corpus_bucket
+   data_bundle.put()
 
 def migrate_fuzzer(fuzzer):
    '''
@@ -160,19 +162,19 @@ def migrate_job(job):
 def execute(args):  #pylint: disable=unused-argument
    """Build keywords."""
    environment.set_bot_environment()
-   print('checking jobs')
-   for job in data_types.Job.query():
-      migrate_job(job)
-   print('\n\n')
-
-   print('checking fuzzers')
-   for fuzzer in data_types.Fuzzer.query():
-      migrate_fuzzer(fuzzer)
-   print('\n\n')
-
-   # print('checking databundle')
-   # for data_bundle in data_types.DataBundle.query():
-   #    migrate_data_bundle(data_bundle)
+   # print('checking jobs')
+   # for job in data_types.Job.query():
+   #    migrate_job(job)
    # print('\n\n')
+
+   # print('checking fuzzers')
+   # for fuzzer in data_types.Fuzzer.query():
+   #    migrate_fuzzer(fuzzer)
+   # print('\n\n')
+
+   print('checking databundle')
+   for data_bundle in data_types.DataBundle.query():
+      migrate_data_bundle(data_bundle)
+   print('\n\n')
 
    print('done')

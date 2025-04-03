@@ -24,6 +24,8 @@ def execute(args):
   """Build keywords."""
   environment.set_bot_environment()
   init.run()
-  commands.process_command_impl('fuzz', 'attekett_surku_fuzzer', 'linux_debug_chrome',
+  commands.process_command_impl('fuzz', 'lokihardt_jshitter', 'linux32_asan_d8_dbg',
                                 True, True)
   pass
+
+ 
