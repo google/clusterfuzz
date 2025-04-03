@@ -15,6 +15,7 @@
 
 import multiprocessing
 import os
+import subprocess
 import sys
 
 APPENGINE_DIRECTORY = os.path.join(
