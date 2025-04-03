@@ -495,7 +495,7 @@ def update_data_bundle(
       logs.info('Data bundles: normal path.')
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
-      prev_result=result
+      logs.info(f'Result = {result}')
     else:
       logs.info('Data bundles: untrusted runner path.')
       from clusterfuzz._internal.bot.untrusted_runner import \
@@ -510,11 +510,11 @@ def update_data_bundle(
           data_bundle_corpus.gcs_url,
           worker_data_bundle_directory,
           delete=False)
-      prev_result = result
+      logs.info(f'Result = {result}')
       result = result.return_code == 0
 
     if not result:
-      logs.error(f'Failed to sync data bundle {data_bundle.name}. Result = {prev_result}')
+      logs.error(f'Failed to sync data bundle {data_bundle.name}.')
       return False
 
   # Update the testcase list file.
