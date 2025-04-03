@@ -21,6 +21,7 @@ import hashlib
 import inspect
 import os
 import random
+import re
 import sys
 import time
 import urllib.parse
@@ -916,7 +917,7 @@ def current_project():
   return environment.get_value('PROJECT_NAME', default_project_name())
 
 
-def current_source_version():
+def current_source_version() -> str | None:
   """Return the current source revision."""
   source_version_override = environment.get_value('SOURCE_VERSION_OVERRIDE')
   if source_version_override:
@@ -930,18 +931,26 @@ def current_source_version():
       try:
         file_data = file_data.strip().decode('utf-8')
       except UnicodeDecodeError as e:
-        logs.error(f'Error decoding manifest file content - {str(e)}')
+        logs.error(f'Error decoding manifest file content - {str(e.reason)}')
         file_data = None
     return file_data
 
 
-def get_version_commits() -> tuple[str, str] | None:
-  """Return the commit hash for source and config revision."""
-  source_version_data = (current_source_version() or '').split('-')
-  if len(source_version_data) >= 5:
-    source_commit = source_version_data[2]
-    config_commit = source_version_data[4]
-    return (source_commit, config_commit)
+def parse_manifest_data(file_data: str | None) -> dict[str, str] | None:
+  """Parse the manifest revision data and return it as a dict."""
+  if not file_data:
+    return None
+
+  pattern = r'^([0-9]{14}-utc)-([0-9a-f]+)-(.*)-([0-9a-f]+)-(prod|staging)'
+  result = re.match(pattern, file_data)
+  if result:
+    return {
+        'timestamp': result.group(1),
+        'cf_commit_sha': result.group(2),
+        'user': result.group(3),
+        'cf_config_commit_sha': result.group(4),
+        'release': result.group(5)
+    }
   return None
 
 
@@ -957,10 +966,12 @@ def get_instance_name() -> str:
 
 def set_common_log_context() -> None:
   """Set env variables to propagate common context used by logs."""
-  source_version = get_version_commits()
-  if source_version:
-    environment.set_value('CF_VERSION', source_version[0])
-    environment.set_value('CF_CONFIG_VERSION', source_version[1])
+  parsed_source_version = parse_manifest_data(
+      file_data=current_source_version())
+  if parsed_source_version:
+    environment.set_value('CF_VERSION', parsed_source_version['cf_commit_sha'])
+    environment.set_value('CF_CONFIG_VERSION',
+                          parsed_source_version['cf_config_commit_sha'])
   environment.set_value('OS_TYPE', environment.platform())
   environment.set_value('INSTANCE_ID', get_instance_name())
 

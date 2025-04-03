@@ -78,7 +78,8 @@ def _utcnow():
 
 def compute_staging_revision():
   """Staging revision adds 2 days to timestamp and append 'staging'."""
-  return _compute_revision(_utcnow() + datetime.timedelta(days=2), 'staging')
+  return _compute_revision(
+      _utcnow() + datetime.timedelta(days=2), is_staging=True)
 
 
 def compute_prod_revision():
@@ -97,25 +98,26 @@ def _get_clusterfuzz_config_commit_sha():
   return git_sha.strip().decode('utf-8')
 
 
-def _compute_revision(timestamp, *extras):
-  """Return a revision that contains a timestamp, git-sha, user, config git-sha,
-    is_staging and any extras. The ordinality of revision is crucial for
-    updating source code. Later revision *must* be greater than earlier
-    revision. See: crbug.com/674173."""
+def _compute_revision(timestamp, is_staging=False):
+  """Return a revision containing the timestamp, git-sha, user, config git-sha,
+  and release (prod or staging).
+
+  The ordinality of revision is crucial for updating source code. Later
+  revision *must* be greater than earlier revision. See: crbug.com/674173.
+  """
   timestamp = timestamp.strftime('%Y%m%d%H%M%S-utc')
   clusterfuzz_git_sha = _get_clusterfuzz_commit_sha()
 
   # Adding also the clusterfuzz-config version to the revision
   clusterfuzz_config_git_sha = _get_clusterfuzz_config_commit_sha()
+  release = 'prod'
+  if is_staging:
+    release = 'staging'
 
   user = os.environ['USER']
-  if user:
-    # Remove hifen from user to faciliate parsing the components afterwards.
-    user = user.replace('-', '')
-
   components = [
-      timestamp, clusterfuzz_git_sha, user, clusterfuzz_config_git_sha
-  ] + list(extras)
+      timestamp, clusterfuzz_git_sha, user, clusterfuzz_config_git_sha, release
+  ]
   return '-'.join(components)
 
 
