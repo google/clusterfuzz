@@ -768,6 +768,11 @@ def task_stage_context(stage: Stage):
     try:
       log_contexts.add_metadata('stage', stage)
       yield
+    except Exception as e:
+      error(
+          message='Error during task.',
+          error_stack_trace=traceback.format_exc())
+      raise e
     finally:
       log_contexts.delete_metadata('stage')
 
@@ -778,6 +783,11 @@ def testcase_log_context(testcase: "Testcase"):
     try:
       log_contexts.add_metadata('testcase', testcase)
       yield
+    except Exception as e:
+      error(
+          message='Error during testcase context.',
+          error_stack_trace=traceback.format_exc())
+      raise e
     finally:
       log_contexts.delete_metadata('testcase')
 
