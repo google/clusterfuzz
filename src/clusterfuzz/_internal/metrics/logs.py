@@ -264,8 +264,13 @@ def update_entry_with_exc(entry, exc_info):
   if exc_info[0]:
     # we need to set the result of traceback.format_exception to the field
     # `message`. And we move our
-    entry['message'] += '\n' + ''.join(
+    formatted_exception = ''.join(
         traceback.format_exception(exc_info[0], exc_info[1], exc_info[2]))
+
+    # Truncate the formatted exception if it's too long.
+    truncated_exception = truncate(formatted_exception,
+                                   STACKDRIVER_LOG_MESSAGE_LIMIT)
+    entry['message'] += '\n' + truncated_exception
   else:
     # If we log error without exception, we need to set
     # `context.reportLocation`.

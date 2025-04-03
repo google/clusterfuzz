@@ -133,6 +133,37 @@ class UpdateEntryWithExc(unittest.TestCase):
              'Exception: ex message\n') % (__file__.strip('c'), statement_line)
     }, entry)
 
+  @mock.patch(
+      'clusterfuzz._internal.metrics.logs.STACKDRIVER_LOG_MESSAGE_LIMIT', 20)
+  def test_truncated_exc(self):
+    """Test long exception that needs to be truncated."""
+    entry = {'extras': {}, 'message': 'original'}
+    long_exc_message = 'a' * logs.STACKDRIVER_LOG_MESSAGE_LIMIT
+    exception = Exception(long_exc_message)
+    exception.extras = {'test': 'value', 'task_payload': 'task'}
+
+    try:
+      raise exception
+    except:
+      # We do this because we need the traceback instance.
+      exc_info = sys.exc_info()
+
+    logs.update_entry_with_exc(entry, exc_info)  # pylint: disable=used-before-assignment
+    self.maxDiff = None
+
+    self.assertEqual({
+        'extras': {
+            'test': 'value'
+        },
+        'task_payload':
+            'task',
+        'serviceContext': {
+            'service': 'bots'
+        },
+        'message':
+            'original\nTraceback \n...222 characters truncated...\naaaaaaaaa\n'
+    }, entry)
+
 
 class FormatRecordTest(unittest.TestCase):
   """Test format method of JsonFormatter."""
