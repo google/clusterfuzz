@@ -20,6 +20,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.centipede import \
@@ -107,6 +108,7 @@ class BaseTest:
     self.corpus_dir = os.path.join(self.corpus_bucket, 'corpus')
     self.quarantine_dir = os.path.join(self.corpus_bucket, 'quarantine')
     self.shared_corpus_dir = os.path.join(self.corpus_bucket, 'shared')
+    self.quarantine_call_count = 0
 
     shutil.copytree(os.path.join(TEST_DIR, 'corpus'), self.corpus_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'quarantine'), self.quarantine_dir)
@@ -146,6 +148,7 @@ class BaseTest:
 
   def _mock_rsync_from_disk(self, _, sync_dir, timeout=None, delete=None):
     """Mock rsync_from_disk."""
+    self.quarantine_call_count += 1
     if 'quarantine' in sync_dir:
       corpus_dir = self.quarantine_dir
     else:
@@ -306,6 +309,52 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-use_value_profile=1'
     ]
     self.assertCountEqual(flags, expected_custom_flags)
+
+  def test_rsync_from_disk_when_quarantine_corpus_is_nonzero(self):
+    """
+    do_corpus_pruning() calls rsync_from_disk() three times in total — twice
+    with the minimized corpus and once with the quarantine corpus. The fix introduces
+    a check to determine whether the quarantine corpus is empty before calling
+    rsync_from_disk(), as this was not being verified anywhere in the control flow.
+
+    When the quarantine corpus is not empty, we expect rsync_from_disk() to be called
+    three times. If the quarantine corpus is empty, we expect it to be called twice, as
+    the fix ensures that the call to rsync_from_disk() is skipped.
+    """
+
+    self.quarantine_call_count = 0
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+
+    corpus_pruning_task.utask_main(uworker_input)
+    self.assertEqual(self.quarantine_call_count, 3)
+
+  @patch('clusterfuzz._internal.system.shell.get_directory_file_count')
+  def test_rsync_from_disk_when_quarantine_corpus_is_zero(
+      self, mock_get_directory_file_count):
+    """
+    do_corpus_pruning() calls rsync_from_disk() three times in total — twice
+    with the minimized corpus and once with the quarantine corpus. The fix introduces
+    a check to determine whether the quarantine corpus is empty before calling
+    rsync_from_disk(), as this was not being verified anywhere in the control flow.
+
+    When the quarantine corpus is not empty, we expect rsync_from_disk() to be called
+    three times. If the quarantine corpus is empty, we expect it to be called twice, as
+    the fix ensures that the call to rsync_from_disk() is skipped.
+    """
+
+    self.quarantine_call_count = 0
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+
+    mock_get_directory_file_count.return_value = 0
+
+    corpus_pruning_task.utask_main(uworker_input)
+    self.assertEqual(self.quarantine_call_count, 2)
 
 
 class CorpusPruningTestMinijail(CorpusPruningTest):
