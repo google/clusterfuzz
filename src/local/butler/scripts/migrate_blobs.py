@@ -51,18 +51,26 @@ def _migrate_gcs_blob(source_blob_key):
    print(f'Moving the {source_blob_key} blob in prod to the same name in the staging bucket.')
    origin_blob_path = f'gs://{prod_blob_bucket}/{source_blob_key}'
    target_blob_path = f'gs://{staging_blob_bucket}/{source_blob_key}'
-   _copy_blob(origin_blob_path, target_blob_path)
+   try:
+      _copy_blob(origin_blob_path, target_blob_path)
+   except Exception as e:
+      # This might have be a legacy blobkey in prod which
+      # was migrated to a gcs ke in staging. This should be
+      # idempotent
+      origin_blob_path = target_blob_path
+      _copy_blob(origin_blob_path, target_blob_path)
+   finally:
+      # The blob key remains the same before and after migration
+      return source_blob_key
+
 
 def _migrate_legacy_blob(source_blob_key):
    legacy_blob_info = ndb.Key(blobs._blobmigrator_BlobKeyMapping, source_blob_key).get()
    source_blob_path = legacy_blob_info.gcs_filename
-   target_blob_path = source_blob_path.replace(prod_blob_bucket, staging_blob_bucket)
+   new_blob_key = blobs.generate_new_blob_name()
 
-   _copy_blob(f'gs:/{source_blob_path}', f'gs:/{target_blob_path}')
-
-   legacy_blob_info.gcs_filename = target_blob_path
-   legacy_blob_info.put()
-   print(f'blob mapping new gcs filename = {target_blob_path}')
+   _copy_blob(f'gs:/{source_blob_path}', f'gs://{staging_blob_bucket}/{new_blob_key}')
+   return new_blob_key
 
 def migrate_blob(source_blob_key):
    '''
@@ -77,11 +85,9 @@ def migrate_blob(source_blob_key):
    '''
    
    if blobs._is_gcs_key(source_blob_key):
-      _migrate_gcs_blob(source_blob_key)
-
+      return _migrate_gcs_blob(source_blob_key)
    else:
-      _migrate_legacy_blob(source_blob_key)
-      return
+      return _migrate_legacy_blob(source_blob_key)
 
 def migrate_bucket(source_bucket, target_bucket):
    '''
@@ -131,36 +137,42 @@ def migrate_fuzzer(fuzzer):
    if not source_blob:
       print('No blobstore_key, skipping')
       return
-   migrate_blob(source_blob)
+   new_blob_key = migrate_blob(source_blob)
+   fuzzer.blobstore_key = new_blob_key
+   fuzzer.put()
+   print(f'Migrated fuzzer {fuzzer.name} to gcs://{staging_blob_bucket}/{new_blob_key}')
 
 def migrate_job(job):
    '''
    Migrates a job from production to staging. It suffices to replicate the
    custom binary blob to the staging blobs bucket, keeping the same key.
    '''
-   print(f'Migrating job {job.name}')
    source_blob = job.custom_binary_key
    if not source_blob:
       print(f'No custom binary key, skipping')
       return
-   migrate_blob(source_blob)
+   new_blob_key = migrate_blob(source_blob)
+   job.custom_binary_key = new_blob_key
+   job.put()
+   print(f'Migrated job {job.name} to gcs://{staging_blob_bucket}/{new_blob_key}')
+
 
 def execute(args):  #pylint: disable=unused-argument
    """Build keywords."""
    environment.set_bot_environment()
-   # print('checking jobs')
-   # for job in data_types.Job.query():
-   #    migrate_job(job)
-   # print('\n\n')
-
-   # print('checking fuzzers')
-   # for fuzzer in data_types.Fuzzer.query():
-   #    migrate_fuzzer(fuzzer)
-   # print('\n\n')
-
-   print('checking databundle')
-   for data_bundle in data_types.DataBundle.query():
-      migrate_data_bundle(data_bundle)
+   print('checking jobs')
+   for job in data_types.Job.query():
+      migrate_job(job)
    print('\n\n')
+
+   print('checking fuzzers')
+   for fuzzer in data_types.Fuzzer.query():
+      migrate_fuzzer(fuzzer)
+   print('\n\n')
+
+   # print('checking databundle')
+   # for data_bundle in data_types.DataBundle.query():
+   #    migrate_data_bundle(data_bundle)
+   # print('\n\n')
 
    print('done')
