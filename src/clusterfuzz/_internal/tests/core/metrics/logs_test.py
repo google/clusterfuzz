@@ -152,13 +152,12 @@ class UpdateEntryWithExc(unittest.TestCase):
     logs.update_entry_with_exc(entry, exc_info)  # pylint: disable=used-before-assignment
     self.maxDiff = None
 
-    # self.assertIn('original\nTraceback \n', entry['message'])
-    # self.assertIn('characters truncated...\naaaaaaaaa\n', entry['message'])
     self.assertRegex(
         entry['message'],
         r'original\nTraceback \n\.\.\.\d+ characters truncated\.\.\.\naaaaaaaaa\n',
         re.DOTALL)
     del entry['message']
+
     self.assertEqual({
         'extras': {
             'test': 'value'
