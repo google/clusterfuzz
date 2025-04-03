@@ -1776,11 +1776,13 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
 
-    # Update the session's test_timeout since `update_fuzzer_and_data_bundles`
-    # sets the `TEST_TIMEOUT` environment variable to the fuzzer's timeout
-    # (if any).
-    test_timeout = environment.get_value('TEST_TIMEOUT')
-    self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
+    # Update the session's test_timeout to use the fuzzer's timeout (if any).
+    # When the fuzzer has a specified timeout, `update_fuzzer_and_data_bundles`
+    # updates the `TEST_TIMEOUT` environment variable. This makes sure that
+    # the session's timeout reflects the change as well.
+    if self.fuzzer.timeout:
+      self.test_timeout = set_test_timeout(self.fuzzer.timeout,
+                                           self.timeout_multiplier)
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
