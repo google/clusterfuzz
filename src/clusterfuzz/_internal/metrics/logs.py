@@ -677,7 +677,8 @@ class LogContextType(enum.Enum):
         testcase: 'Testcase | None' = log_contexts.meta.get('testcase')
         if not testcase:
           error(
-              'Testcase not found in log context metadata.', ignore_context=True)
+              'Testcase not found in log context metadata.',
+              ignore_context=True)
           return GenericLogStruct()
 
         fuzz_target = testcase.get_fuzz_target()
@@ -689,7 +690,9 @@ class LogContextType(enum.Enum):
             fuzzer=testcase.fuzzer_name  # type: ignore
         )
       except:
-        error('Error retrieving context for testcase-based logs.', ignore_context=True)
+        error(
+            'Error retrieving context for testcase-based logs.',
+            ignore_context=True)
         return GenericLogStruct()
 
     elif self == LogContextType.PROGRESSION:
@@ -791,6 +794,7 @@ def progression_log_context(testcase: 'Testcase | None'):
   with testcase_log_context(testcase):
     with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
       yield
+
 
 @contextlib.contextmanager
 def regression_log_context(testcase: 'Testcase | None'):

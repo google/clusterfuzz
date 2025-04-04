@@ -601,8 +601,9 @@ def utask_preprocess(testcase_id: str, job_type: str,
     # This task is not applicable for custom binaries.
     if build_manager.is_custom_binary():
       testcase.regression = 'NA'
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                          'Not applicable for custom binaries')
+      data_handler.update_testcase_comment(
+          testcase, data_types.TaskState.ERROR,
+          'Not applicable for custom binaries')
       return None
 
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -741,14 +742,15 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
     if output.HasField('regression_task_output'):
       task_output = output.regression_task_output
       _update_build_metadata(output.uworker_input.job_type,
-                            task_output.build_data_list)
+                             task_output.build_data_list)
       _save_current_regression_range_indices(task_output, testcase_id)
       if task_output.is_testcase_reproducible:
         # Clear metadata from previous runs had it been marked as potentially
         # flaky.
         testcase = data_handler.get_testcase_by_id(
             output.uworker_input.testcase_id)
-        task_creation.mark_unreproducible_if_flaky(testcase, 'regression', False)
+        task_creation.mark_unreproducible_if_flaky(testcase, 'regression',
+                                                   False)
 
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
       _ERROR_HANDLER.handle(output)
