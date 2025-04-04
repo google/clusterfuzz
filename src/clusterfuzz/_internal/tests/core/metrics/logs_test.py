@@ -550,16 +550,16 @@ class EmitTest(unittest.TestCase):
             },
         })
 
-  def test_log_exception(self):
-    """It checks that task_stage_context catch and log the
-    error raised during the decorated scope
+  def test_task_context_catches_and_logs_exception(self):
+    """Checks that the task_stage_context catches and logs
+       the error raised in the decorated scope.
     """
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
     with logs.task_stage_context(logs.Stage.PREPROCESS):
       try:
-        exception = Exception("msg")
+        exception = Exception('msg')
         raise exception
       except Exception:
         statement_line = inspect.currentframe().f_lineno + 1
@@ -579,7 +579,7 @@ class EmitTest(unittest.TestCase):
                 'location': {
                     'path': os.path.abspath(__file__).rstrip('c'),
                     'line': statement_line,
-                    'method': 'test_log_exception'
+                    'method': 'test_task_context_catches_and_logs_exception'
                 },
             })
 
