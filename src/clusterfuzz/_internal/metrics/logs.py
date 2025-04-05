@@ -750,20 +750,28 @@ def wrap_log_context(contexts: list[LogContextType]):
 
 @contextlib.contextmanager
 def task_stage_context(stage: Stage):
+  """Creates a task context for a given stage"""
   with wrap_log_context(contexts=[LogContextType.TASK]):
     try:
       log_contexts.add_metadata('stage', stage)
       yield
+    except Exception as e:
+      error(message='Error during task.')
+      raise e
     finally:
       log_contexts.delete_metadata('stage')
 
 
 @contextlib.contextmanager
 def testcase_log_context(testcase: "Testcase"):
+  """Creates a testcase context for a given testcase"""
   with wrap_log_context(contexts=[LogContextType.TESTCASE]):
     try:
       log_contexts.add_metadata('testcase', testcase)
       yield
+    except Exception as e:
+      error(message='Error during testcase context.')
+      raise e
     finally:
       log_contexts.delete_metadata('testcase')
 
