@@ -21,16 +21,18 @@ import requests
 
 from appengine.libs import form
 from appengine.libs import gcs
-from appengine.libs import helpers
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
+from clusterfuzz._internal.metrics import logs
 
 ACCEPTED_FILETYPES = [
     'text/javascript', 'application/pdf', 'text/html', 'application/zip'
 ]
 ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
 ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
+UPLOAD_REQUEST_COMPONENT_FILTER = 'componentid:1600865'
+CLUSTERFUZZ_COMPONENT_FILTER = 'componentid:1457062+'
 
 
 def get_vrp_uploaders(config):
@@ -125,7 +127,7 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
   elif filetype == 'application/zip':
     job = 'linux_asan_chrome_mp'
   else:
-    raise TypeError
+    return 0
   upload_info = gcs.prepare_blob_upload()._asdict()
 
   data = {
@@ -158,18 +160,23 @@ def handle_testcases(tracker, config):
   # Handle bugs that were already submitted and still open.
   older_issues = tracker.find_issues_with_filters(
       keywords=[],
-      query_filters=['componentid:1600865', 'status:accepted'],
+      query_filters=[
+          UPLOAD_REQUEST_COMPONENT_FILTER, CLUSTERFUZZ_COMPONENT_FILTER,
+          'status:accepted'
+      ],
       only_open=True)
   for issue in older_issues:
     # Close out older bugs that may have failed to reproduce.
     if close_issue_if_not_reproducible(issue, config):
-      helpers.log('Closing issue {issue_id} as it failed to reproduce',
-                  issue.id)
+      logs.info(f'Closing issue {issue.id} as it failed to reproduce')
 
   # Handle new bugs that may need to be submitted.
   issues = tracker.find_issues_with_filters(
       keywords=[],
-      query_filters=['componentid:1600865', 'status:new'],
+      query_filters=[
+          UPLOAD_REQUEST_COMPONENT_FILTER, CLUSTERFUZZ_COMPONENT_FILTER,
+          'status:new'
+      ],
       only_open=True)
   if len(issues) == 0:
     return
@@ -189,20 +196,33 @@ def handle_testcases(tracker, config):
     reporters_map[issue.reporter] = reporters_map.get(issue.reporter, 1) + 1
     if close_issue_if_invalid(issue, attachment_metadata, commandline_flags,
                               vrp_uploaders):
-      helpers.log('Closing issue {issue_id} as it is invalid', issue.id)
+      logs.info(f'Closing issue {issue.id} as it is invalid')
       continue
 
     # Submit valid testcases.
     attachment_metadata = attachment_metadata[0]
     attachment = tracker.get_attachment(
         attachment_metadata['attachmentDataRef']['resourceName'])
-    submit_testcase(issue.id, attachment, attachment_metadata['filename'],
-                    attachment_metadata['contentType'], commandline_flags)
-    comment_message = 'Testcase submitted to clusterfuzz'
-    issue.status = ISSUETRACKER_ACCEPTED_STATE
-    issue.assignee = 'clusterfuzz@chromium.org'
+    submit_result = submit_testcase(
+        issue.id, attachment, attachment_metadata['filename'],
+        attachment_metadata['contentType'], commandline_flags)
+    if submit_result and submit_result.status_code == 200:
+      comment_message = 'Testcase submitted to clusterfuzz.'
+      issue.status = ISSUETRACKER_ACCEPTED_STATE
+      issue.assignee = 'clusterfuzz@chromium.org'
+      logs.info(f'Submitted testcase file for issue {issue.id}')
+    elif submit_result and submit_result.status_code != 200:
+      comment_message = 'Testcase submission failed during upload.'
+      issue.status = ISSUETRACKER_WONTFIX_STATE
+      logs.info(f'Testcase submission failed with error code'
+                f'{submit_result.status_code} for issue: {issue.id}')
+    else:
+      comment_message = (
+          'Testcase submission failed due to unrecognized poc type.')
+      issue.status = ISSUETRACKER_WONTFIX_STATE
+      logs.info(f'Testcase submission failed due to poc type error'
+                f'for issue: {issue.id}')
     issue.save(new_comment=comment_message, notify=True)
-    helpers.log('Submitted testcase file for issue {issue_id}', issue.id)
 
 
 def main():
