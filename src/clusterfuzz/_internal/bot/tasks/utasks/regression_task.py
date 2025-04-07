@@ -729,11 +729,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   Runs on a trusted worker.
   """
   testcase_id = output.uworker_input.testcase_id
-  # Try to retrieve the testcase early for logs context.
-  try:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-  except:
-    testcase = None
+  # Retrieve the testcase early to be used by logs context.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.regression_log_context(testcase):
     testcase_utils.emit_testcase_triage_duration_metric(
         int(testcase_id),
