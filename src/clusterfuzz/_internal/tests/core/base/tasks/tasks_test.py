@@ -259,6 +259,7 @@ class GetTaskFromMessageTest(unittest.TestCase):
 
   def test_success(self):
     mock_task = mock.Mock(defer=mock.Mock(return_value=False))
+    mock_task.set_queue.return_value = mock_task
     with mock.patch(
         'clusterfuzz._internal.base.tasks.initialize_task',
         return_value=mock_task):
@@ -278,3 +279,20 @@ class GetTaskFromMessageTest(unittest.TestCase):
         'clusterfuzz._internal.base.tasks.initialize_task',
         return_value=mock_task):
       self.assertEqual(tasks.get_task_from_message(mock.Mock()), None)
+
+  def test_set_queue(self):
+    """Tests the set_queue method of a task."""
+    mock_queue = mock.Mock()
+    mock_task = mock.Mock()
+
+    mock_task.configure_mock(
+        queue=mock_queue,
+        set_queue=mock.Mock(return_value=mock_task),
+        defer=mock.Mock(return_value=False))
+
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        return_value=mock_task):
+      task = tasks.get_task_from_message(mock.Mock())
+
+      self.assertEqual(task.queue, mock_queue)
