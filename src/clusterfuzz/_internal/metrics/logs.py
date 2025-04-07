@@ -34,7 +34,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
   from clusterfuzz._internal.datastore.data_types import Testcase
 
-STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
+# The maximum allowed log entry size is 256 KB for GCP. We set the
+# STACKDRIVER_LOG_MESSAGE_LIMIT to approximately 80 KB (under 100 KB) to
+# accommodate both the primary log message and potential traceback exceptions.
+# This reserves roughly up to 200 KB for message content, leaving sufficient
+# space for structured logging metadata within the 256 KB total limit.
+STACKDRIVER_LOG_MESSAGE_LIMIT = 80000
 LOCAL_LOG_MESSAGE_LIMIT = 100000
 LOCAL_LOG_LIMIT = 500000
 _logger = None
@@ -264,8 +269,17 @@ def update_entry_with_exc(entry, exc_info):
   if exc_info[0]:
     # we need to set the result of traceback.format_exception to the field
     # `message`. And we move our
-    entry['message'] += '\n' + ''.join(
+    formatted_exception = ''.join(
         traceback.format_exception(exc_info[0], exc_info[1], exc_info[2]))
+
+    # Original message and traceback truncation are done separately before
+    # combining. The start and end of a traceback are most important. The
+    # truncate function keeps the start/end of the input string. Applying this
+    # to a merged message+traceback could cut off the message's end or
+    # traceback's start.
+    truncated_exception = truncate(formatted_exception,
+                                   STACKDRIVER_LOG_MESSAGE_LIMIT)
+    entry['message'] += '\n' + truncated_exception
   else:
     # If we log error without exception, we need to set
     # `context.reportLocation`.
