@@ -588,36 +588,37 @@ def utask_preprocess(testcase_id: str, job_type: str,
   Runs on a trusted worker.
   """
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  with logs.regression_log_context(testcase):
+    if testcase.regression:
+      logs.error(
+          f'Regression range is already set as {testcase.regression}, skip.')
+      return None
 
-  if testcase.regression:
-    logs.error(
-        f'Regression range is already set as {testcase.regression}, skip.')
-    return None
+    # This task is not applicable for custom binaries.
+    if build_manager.is_custom_binary():
+      testcase.regression = 'NA'
+      data_handler.update_testcase_comment(
+          testcase, data_types.TaskState.ERROR,
+          'Not applicable for custom binaries')
+      return None
 
-  # This task is not applicable for custom binaries.
-  if build_manager.is_custom_binary():
-    testcase.regression = 'NA'
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Not applicable for custom binaries')
-    return None
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+    setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
-  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
+    task_input = uworker_msg_pb2.RegressionTaskInput(  # pylint: disable=no-member
+        bad_revisions=build_manager.get_job_bad_revisions())
 
-  task_input = uworker_msg_pb2.RegressionTaskInput(  # pylint: disable=no-member
-      bad_revisions=build_manager.get_job_bad_revisions())
-
-  uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
-      testcase_id=testcase_id,
-      testcase=uworker_io.entity_to_protobuf(testcase),
-      job_type=job_type,
-      uworker_env=uworker_env,
-      setup_input=setup_input,
-      regression_task_input=task_input,
-  )
-  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
-  return uworker_input
+    uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+        testcase_id=testcase_id,
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type=job_type,
+        uworker_env=uworker_env,
+        setup_input=setup_input,
+        regression_task_input=task_input,
+    )
+    testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+    return uworker_input
 
 
 def utask_main(
@@ -629,8 +630,9 @@ def utask_main(
   """
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  uworker_io.check_handling_testcase_safe(testcase)
-  return find_regression_range(uworker_input)
+  with logs.regression_log_context(testcase):
+    uworker_io.check_handling_testcase_safe(testcase)
+    return find_regression_range(uworker_input)
 
 
 def handle_revision_list_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
@@ -723,27 +725,31 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   Runs on a trusted worker.
   """
   testcase_id = output.uworker_input.testcase_id
-  testcase_utils.emit_testcase_triage_duration_metric(
-      int(testcase_id),
-      testcase_utils.TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP)
+  # Retrieve the testcase early to be used by logs context.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  with logs.regression_log_context(testcase):
+    testcase_utils.emit_testcase_triage_duration_metric(
+        int(testcase_id),
+        testcase_utils.TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP)
 
-  if output.HasField('regression_task_output'):
-    task_output = output.regression_task_output
-    _update_build_metadata(output.uworker_input.job_type,
-                           task_output.build_data_list)
-    _save_current_regression_range_indices(task_output, testcase_id)
-    if task_output.is_testcase_reproducible:
-      # Clear metadata from previous runs had it been marked as potentially
-      # flaky.
-      testcase = data_handler.get_testcase_by_id(
-          output.uworker_input.testcase_id)
-      task_creation.mark_unreproducible_if_flaky(testcase, 'regression', False)
+    if output.HasField('regression_task_output'):
+      task_output = output.regression_task_output
+      _update_build_metadata(output.uworker_input.job_type,
+                             task_output.build_data_list)
+      _save_current_regression_range_indices(task_output, testcase_id)
+      if task_output.is_testcase_reproducible:
+        # Clear metadata from previous runs had it been marked as potentially
+        # flaky.
+        testcase = data_handler.get_testcase_by_id(
+            output.uworker_input.testcase_id)
+        task_creation.mark_unreproducible_if_flaky(testcase, 'regression',
+                                                   False)
 
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-    _ERROR_HANDLER.handle(output)
-    return
+    if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      _ERROR_HANDLER.handle(output)
+      return
 
-  save_regression_range(output)
+    save_regression_range(output)
 
 
 def _update_build_metadata(

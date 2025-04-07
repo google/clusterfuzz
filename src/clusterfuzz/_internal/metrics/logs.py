@@ -635,14 +635,12 @@ class LogContextType(enum.Enum):
   TASK = 'task'
   TESTCASE = 'testcase'
   PROGRESSION = 'progression'
+  REGRESSION = 'regression'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
     if self == LogContextType.TASK:
       stage = log_contexts.meta.get('stage', Stage.UNKNOWN).value
-      # it should exist
-      # TODO(javanlacerda): Remove this csv task_id and propagate it
-      # properly, after cheking it works in production
       try:
         task_id = os.getenv('CF_TASK_ID', 'null')
         task_name = os.getenv('CF_TASK_NAME', 'null')
@@ -654,18 +652,19 @@ class LogContextType(enum.Enum):
             task_argument=task_argument,
             stage=stage,
             task_job_name=task_job_name)
-      except Exception as e:
+      except:
         # This flag is necessary to avoid
-        # infinite loop in this context verification
-        error(str(e), ignore_context=True)
+        # infinite loop in this context verification.
+        error('Error retrieving context for task logs.', ignore_context=True)
         return GenericLogStruct()
 
     elif self == LogContextType.TESTCASE:
       try:
-        testcase: "Testcase | None" = log_contexts.meta.get('testcase')
+        testcase: 'Testcase | None' = log_contexts.meta.get('testcase')
         if not testcase:
           error(
-              'Testcase not found in log context metadata', ignore_context=True)
+              'Testcase not found in log context metadata.',
+              ignore_context=True)
           return GenericLogStruct()
 
         fuzz_target = testcase.get_fuzz_target()
@@ -676,12 +675,18 @@ class LogContextType(enum.Enum):
             job=testcase.job_type,  # type: ignore
             fuzzer=testcase.fuzzer_name  # type: ignore
         )
-      except Exception as e:
-        error(str(e), ignore_context=True)
+      except:
+        error(
+            'Error retrieving context for testcase-based logs.',
+            ignore_context=True)
         return GenericLogStruct()
 
     elif self == LogContextType.PROGRESSION:
-      # Field to add specific metadata for progression
+      # Field to add specific metadata for progression.
+      return GenericLogStruct()
+
+    elif self == LogContextType.REGRESSION:
+      # Field to add specific metadata for regression.
       return GenericLogStruct()
 
     return GenericLogStruct()
@@ -763,7 +768,7 @@ def task_stage_context(stage: Stage):
 
 
 @contextlib.contextmanager
-def testcase_log_context(testcase: "Testcase"):
+def testcase_log_context(testcase: 'Testcase | None'):
   """Creates a testcase context for a given testcase"""
   with wrap_log_context(contexts=[LogContextType.TESTCASE]):
     try:
@@ -776,10 +781,17 @@ def testcase_log_context(testcase: "Testcase"):
       log_contexts.delete_metadata('testcase')
 
 
-# Keeping a progression context to make it
-# easier to add progression speficic metadata if needed
+# Keeping a context for each testcase-based task to make it
+# easier to add speficic metadata if needed.
 @contextlib.contextmanager
-def progression_log_context(testcase: "Testcase"):
+def progression_log_context(testcase: 'Testcase | None'):
   with testcase_log_context(testcase):
     with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
+      yield
+
+
+@contextlib.contextmanager
+def regression_log_context(testcase: 'Testcase | None'):
+  with testcase_log_context(testcase):
+    with wrap_log_context(contexts=[LogContextType.REGRESSION]):
       yield
