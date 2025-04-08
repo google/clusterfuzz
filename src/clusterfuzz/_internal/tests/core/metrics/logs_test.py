@@ -557,11 +557,14 @@ class EmitTest(unittest.TestCase):
         fuzzer_name="test_fuzzer", job_type='test_job')
     testcase.put()
 
-    with logs.progression_log_context(testcase):
+    with logs.progression_log_context(testcase, fuzz_target):
       self.assertEqual(
           logs.log_contexts.contexts,
           [logs.LogContextType.TESTCASE, logs.LogContextType.PROGRESSION])
-      self.assertEqual(logs.log_contexts.meta, {'testcase': testcase})
+      self.assertEqual(logs.log_contexts.meta, {
+          'testcase': testcase,
+          'fuzz_target': fuzz_target
+      })
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
@@ -650,6 +653,47 @@ class EmitTest(unittest.TestCase):
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
                 'method': 'test_log_ignore_context'
+            },
+        })
+
+  def test_missing_fuzz_target_in_log_context(self):
+    """Test the testcase-based log context when the fuzz target is missing."""
+    from clusterfuzz._internal.datastore import data_types
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+    testcase = data_types.Testcase(
+        fuzzer_name="test_fuzzer", job_type='test_job')
+    testcase.set_metadata('fuzzer_binary_name', 'fuzz_abc')
+    testcase.put()
+
+    with logs.regression_log_context(testcase, None):
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.TESTCASE, logs.LogContextType.REGRESSION])
+      self.assertEqual(logs.log_contexts.meta, {
+          'testcase': testcase,
+          'fuzz_target': None
+      })
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+
+    logger.log.assert_called_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': {
+                'target': 'bot',
+                'test': 'yes',
+                'testcase_id': 1,
+                'fuzz_target': 'fuzz_abc',
+                'job': 'test_job',
+                'fuzzer': 'test_fuzzer'
+            },
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_missing_fuzz_target_in_log_context'
             },
         })
 
