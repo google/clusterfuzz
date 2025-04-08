@@ -190,6 +190,10 @@ class FormatRecordTest(unittest.TestCase):
         levelname='INFO',
         exc_info='exc_info',
         created=10,
+        # This extras field is needed because the call
+        # getattr(record, 'extras', {}) returns None and not the
+        # default for the case of running against a mock
+        extras={"test": "1"},
         location={
             'path': 'path',
             'line': 123,
@@ -231,11 +235,13 @@ class FormatRecordTest(unittest.TestCase):
   def test_no_extras(self):
     """Test format record with no extras."""
     record = self.get_record()
-    record.extras = None
     self.assertEqual({
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'docker_image': '',
+        'extras': {
+            'test': '1'
+        },
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
@@ -255,10 +261,12 @@ class FormatRecordTest(unittest.TestCase):
     """Test format record with a worker bot name."""
     os.environ['WORKER_BOT_NAME'] = 'worker'
     record = self.get_record()
-    record.extras = None
 
     self.assertEqual({
         'docker_image': '',
+        'extras': {
+            'test': '1'
+        },
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'severity': 'INFO',
