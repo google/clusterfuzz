@@ -436,7 +436,7 @@ def _set_regression_testcase_upload_url(
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for progression task."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  with logs.progression_log_context(testcase):
+  with logs.progression_log_context(testcase, testcase.get_fuzz_target()):
     if not testcase:
       return None
     if testcase.fixed:
@@ -684,7 +684,8 @@ def utask_main(uworker_input):
   """Executes the untrusted part of progression_task."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  with logs.progression_log_context(testcase):
+  with logs.progression_log_context(
+      testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
     uworker_io.check_handling_testcase_safe(testcase)
     return find_fixed_range(uworker_input)
 
@@ -714,7 +715,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  with logs.progression_log_context(testcase):
+  with logs.progression_log_context(testcase, testcase.get_fuzz_target()):
     _maybe_clear_progression_last_min_max_metadata(testcase, output)
     _cleanup_stacktrace_blob_from_storage(output)
     task_output = None

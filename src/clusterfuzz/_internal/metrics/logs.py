@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING
 
 # This is needed to avoid circular import
 if TYPE_CHECKING:
+  from clusterfuzz._internal.datastore.data_types import FuzzTarget
   from clusterfuzz._internal.datastore.data_types import Testcase
 
 # The maximum allowed log entry size is 256 KB for GCP. We set the
@@ -695,8 +696,13 @@ class LogContextType(enum.Enum):
               ignore_context=True)
           return GenericLogStruct()
 
-        fuzz_target = testcase.get_fuzz_target()
-        fuzz_target_bin = fuzz_target.binary if fuzz_target else 'unknown'
+        fuzz_target: 'FuzzTarget | None' = log_contexts.meta.get('fuzz_target')
+        if fuzz_target and fuzz_target.binary:
+          fuzz_target_bin = fuzz_target.binary
+        else:
+          fuzz_target_bin = testcase.get_metadata('fuzzer_binary_name',
+                                                  'unknown')
+
         return TestcaseLogStruct(
             testcase_id=testcase.key.id(),  # type: ignore
             fuzz_target=fuzz_target_bin,  # type: ignore
@@ -796,30 +802,35 @@ def task_stage_context(stage: Stage):
 
 
 @contextlib.contextmanager
-def testcase_log_context(testcase: 'Testcase | None'):
+def testcase_log_context(testcase: 'Testcase',
+                         fuzz_target: 'FuzzTarget | None'):
   """Creates a testcase context for a given testcase"""
   with wrap_log_context(contexts=[LogContextType.TESTCASE]):
     try:
       log_contexts.add_metadata('testcase', testcase)
+      log_contexts.add_metadata('fuzz_target', fuzz_target)
       yield
     except Exception as e:
       error(message='Error during testcase context.')
       raise e
     finally:
       log_contexts.delete_metadata('testcase')
+      log_contexts.delete_metadata('fuzz_target')
 
 
 # Keeping a context for each testcase-based task to make it
 # easier to add speficic metadata if needed.
 @contextlib.contextmanager
-def progression_log_context(testcase: 'Testcase | None'):
-  with testcase_log_context(testcase):
+def progression_log_context(testcase: 'Testcase',
+                            fuzz_target: 'FuzzTarget | None'):
+  with testcase_log_context(testcase, fuzz_target):
     with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
       yield
 
 
 @contextlib.contextmanager
-def regression_log_context(testcase: 'Testcase | None'):
-  with testcase_log_context(testcase):
+def regression_log_context(testcase: 'Testcase',
+                           fuzz_target: 'FuzzTarget | None'):
+  with testcase_log_context(testcase, fuzz_target):
     with wrap_log_context(contexts=[LogContextType.REGRESSION]):
       yield
