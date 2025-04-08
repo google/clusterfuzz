@@ -551,6 +551,9 @@ def execute(args):
 
   _enforce_safe_day_to_deploy()
 
+  # Needed for some subsequent steps.
+  common.execute('gcloud auth application-default login')
+
   # Build templates before deployment.
   appengine.build_templates()
 
@@ -590,6 +593,15 @@ def execute(args):
     deploy_appengine = False
     deploy_k8s = False
     deploy_zips = True
+
+  if deploy_k8s:
+    if not common.has_file_in_path('terraform'):
+      print('terraform not found in PATH.')
+      sys.exit(1)
+
+    if not common.has_file_in_path('kubectl'):
+      print('kubectl not found in PATH.')
+      sys.exit(1)
 
   package_zip_paths = []
   if deploy_zips:
