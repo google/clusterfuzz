@@ -804,7 +804,12 @@ def task_stage_context(stage: Stage):
 @contextlib.contextmanager
 def testcase_log_context(testcase: 'Testcase',
                          fuzz_target: 'FuzzTarget | None'):
-  """Creates a testcase context for a given testcase"""
+  """Creates a testcase-based context for a given testcase.
+
+  Fuzz target as an argument is needed since retrieving this entity depends on
+  the task's stage. In trusted part, it can be retrieved by querying the DB,
+  while in untrusted part is only accessible through the protobuf.
+  """
   with wrap_log_context(contexts=[LogContextType.TESTCASE]):
     try:
       log_contexts.add_metadata('testcase', testcase)
