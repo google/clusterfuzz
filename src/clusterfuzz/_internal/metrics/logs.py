@@ -795,7 +795,7 @@ def task_stage_context(stage: Stage):
       log_contexts.add_metadata('stage', stage)
       yield
     except Exception as e:
-      error(message='Error during task.')
+      warning(message='Error during task.')
       raise e
     finally:
       log_contexts.delete_metadata('stage')
@@ -816,7 +816,7 @@ def testcase_log_context(testcase: 'Testcase',
       log_contexts.add_metadata('fuzz_target', fuzz_target)
       yield
     except Exception as e:
-      error(message='Error during testcase context.')
+      warning(message='Error during testcase context.')
       raise e
     finally:
       log_contexts.delete_metadata('testcase')
