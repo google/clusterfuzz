@@ -41,6 +41,8 @@ APPENGINE_FILESIZE_LIMIT = 30 * 1000 * 1000  # ~32 MB
 DEPLOY_RETRIES = 3
 MATCH_ALL = '*'
 RETRY_WAIT_SECONDS = 10
+CLUSTERFUZZ_DEFAULT_BRANCH = 'master'
+CLUSTERFUZZ_CONFIG_DEFAULT_BRANCH = 'main'
 
 # Give 12 hours for cron jobs to complete before deleting a version.
 VERSION_DELETE_WINDOW_MINUTES = 12 * 60
@@ -370,20 +372,21 @@ def _update_redis(project):
                    '--project={project}'.format(project=project, region=region))
 
 
-def get_remote_sha(git_dir: str = '.'):
-  """Get remote sha of origin/master."""
+def get_remote_sha(git_dir: str = '.', branch='master'):
+  """Get remote sha of origin main or master branch."""
   _, remote_sha_line = common.execute(
-      f'git -C {git_dir} ls-remote origin refs/heads/master')
+      f'git -C {git_dir} ls-remote origin refs/heads/{branch}')
 
   return re.split(br'\s+', remote_sha_line)[0]
 
 
-def is_diff_origin_master(git_dir: str = '.'):
-  """Check if the current state is different from origin/master."""
+def is_diff_origin(git_dir: str = '.', branch='master'):
+  """Check if the current state is different from origin main or master."""
   common.execute(f'git -C {git_dir} fetch')
-  remote_sha = get_remote_sha(git_dir)
+  remote_sha = get_remote_sha(git_dir, branch)
   _, local_sha = common.execute(f'git -C {git_dir} rev-parse HEAD')
-  _, diff_output = common.execute(f'git -C {git_dir} diff origin/master --stat')
+  _, diff_output = common.execute(
+      f'git -C {git_dir} diff origin/{branch} --stat')
 
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
@@ -555,18 +558,20 @@ def execute(args):
   appengine.build_templates()
 
   if not is_ci and not args.staging:
-    if is_diff_origin_master() or is_diff_origin_master(
-        environment.get_config_directory()):
+    if is_diff_origin(branch=CLUSTERFUZZ_DEFAULT_BRANCH) or is_diff_origin(
+        # Running diff for clusterfuzz-config repo
+        environment.get_config_directory(),
+        branch=CLUSTERFUZZ_CONFIG_DEFAULT_BRANCH):
       if args.force:
         print('You are not on origin/master for clusterfuzz'
-              'or clusterfuzz-config. --force is used. Continue.')
+              'or origin/main clusterfuzz-config. --force is used. Continue.')
         for _ in range(3):
           print('.')
           time.sleep(1)
         print()
       else:
         print('You are not on origin/master for clusterfuzz'
-              'or clusterfuzz-config. Please fix or use --force.')
+              'or origin/main clusterfuzz-config. Please fix or use --force.')
         sys.exit(1)
 
   if args.staging:
