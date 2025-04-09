@@ -193,7 +193,7 @@ class FormatRecordTest(unittest.TestCase):
         # This extras field is needed because the call
         # getattr(record, 'extras', {}) returns None and not the
         # default for the case of running against a mock
-        extras={"test": "1"},
+        extras={},
         location={
             'path': 'path',
             'line': 123,
@@ -212,6 +212,9 @@ class FormatRecordTest(unittest.TestCase):
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'docker_image': '',
+        'extras': {
+            'a': 1
+        },
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
@@ -219,9 +222,6 @@ class FormatRecordTest(unittest.TestCase):
         'name': 'logger_name',
         'pid': 1337,
         'release': 'prod',
-        'extras': {
-            'a': 1,
-        },
         'location': {
             'path': 'path',
             'line': 123,
@@ -239,9 +239,6 @@ class FormatRecordTest(unittest.TestCase):
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'docker_image': '',
-        'extras': {
-            'test': '1'
-        },
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
@@ -264,9 +261,6 @@ class FormatRecordTest(unittest.TestCase):
 
     self.assertEqual({
         'docker_image': '',
-        'extras': {
-            'test': '1'
-        },
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'severity': 'INFO',
