@@ -377,7 +377,7 @@ class GetRemoteShaTest(unittest.TestCase):
 
 
 class IsDiffOriginMasterTest(unittest.TestCase):
-  """Test is_diff_origin_master."""
+  """Test is_diff_origin."""
 
   def setUp(self):
     helpers.patch(
@@ -404,7 +404,7 @@ class IsDiffOriginMasterTest(unittest.TestCase):
     self.mock.get_remote_sha.return_value = 'sha'
     self.head = 'sha'
 
-    self.assertFalse(deploy.is_diff_origin_master())
+    self.assertFalse(deploy.is_diff_origin())
 
   def test_diff(self):
     """Test diff."""
@@ -412,7 +412,7 @@ class IsDiffOriginMasterTest(unittest.TestCase):
     self.mock.get_remote_sha.return_value = 'sha'
     self.head = 'sha'
 
-    self.assertTrue(deploy.is_diff_origin_master())
+    self.assertTrue(deploy.is_diff_origin())
 
   def test_diff_sha(self):
     """Test different sha."""
@@ -420,7 +420,7 @@ class IsDiffOriginMasterTest(unittest.TestCase):
     self.mock.get_remote_sha.return_value = 'sha'
     self.head = 'sha2'
 
-    self.assertTrue(deploy.is_diff_origin_master())
+    self.assertTrue(deploy.is_diff_origin())
 
 
 class VersionsToDeleteTest(unittest.TestCase):
