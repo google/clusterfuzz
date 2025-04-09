@@ -249,7 +249,8 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
     logs.error('Failed to parse git hash from url: ' + query_url)
     return None
 
-  print(f'git sha = {result_dict['git_sha']}')
+  sha = result_dict['git_sha']
+  logs.info(f'git sha = {sha}')
 
   return result_dict['git_sha']
 
