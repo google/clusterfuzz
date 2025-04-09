@@ -998,7 +998,7 @@ def is_oss_fuzz():
 
 def is_chromium():
   """If this is an instance of chromium fuzzing."""
-  return default_project_name() in ('chromium', 'chromium-testing')
+  return default_project_name() in ('chromium', 'chromium-testing', 'clusterfuzz-staging')
 
 
 def file_hash(file_path):
