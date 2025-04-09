@@ -249,6 +249,8 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
     logs.error('Failed to parse git hash from url: ' + query_url)
     return None
 
+  print(f'git sha = {result_dict['git_sha']}')
+
   return result_dict['git_sha']
 
 
@@ -370,7 +372,9 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
   if utils.is_chromium():
     component = data_handler.get_component_name(job_type)
     repository = data_handler.get_repository_for_component(component)
+    logs.info('Is chrome, trying to figure out revision')
     if repository and not _is_clank(revision_vars_url_format):
+      logs.info('Hit codepath for chromium hash')
       revision_hash = _git_commit_position_to_git_hash_for_chromium(
           revision, repository)
       if revision_hash is None:
@@ -389,6 +393,9 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
 
       # Use revision hash for info url later.
       revision = revision_hash
+      logs.info(f'revision hash = {revision_hash}, revisions_dict = {revisions_dict}')
+    else:
+      logs.info(f'DId not hit codepath for revision hash: repository={repository} and _is_clank={_is_clank(revision_vars_url_format)}')
 
   revision_vars_url = revision_vars_url_format % revision
   url_content = _get_url_content(revision_vars_url)
