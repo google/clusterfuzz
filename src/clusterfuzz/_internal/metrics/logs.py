@@ -182,7 +182,7 @@ def get_logging_config_dict(name):
 
 def truncate(msg, limit):
   """We need to truncate the message in the middle if it gets too long."""
-  if len(msg) <= limit:
+  if not isinstance(msg, str) or len(msg) <= limit:
     return msg
 
   half = limit // 2
@@ -225,7 +225,12 @@ class JsonFormatter(logging.Formatter):
       entry['task_payload'] = initial_payload
 
     entry['location'] = getattr(record, 'location', {'error': True})
-    entry['extras'] = getattr(record, 'extras', {})
+    # This is needed to truncate the extras value, as it can be used
+    # to log exceptions stacktrace.
+    entry['extras'] = {
+        k: truncate(v, STACKDRIVER_LOG_MESSAGE_LIMIT)
+        for k, v in getattr(record, 'extras', {}).items()
+    }
     update_entry_with_exc(entry, record.exc_info)
 
     if not entry['extras']:
