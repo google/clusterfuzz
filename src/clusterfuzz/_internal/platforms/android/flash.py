@@ -91,6 +91,15 @@ def download_latest_build(build_info, image_regexes, image_directory):
           reader.extract_all(image_directory)
 
 
+def boot_stable_build_cuttlefish(branch, target, image_directory):
+  """Boot cuttlefish instance using stable build id fetched from gcs."""
+  build_info = fetch_artifact.get_latest_artifact_info(
+      branch, target, stable_build=True)
+  download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
+  adb.recreate_cuttlefish_device()
+  adb.connect_to_cuttlefish_device()
+
+
 def flash_to_latest_build_if_needed():
   """Wipes user data, resetting the device to original factory state."""
   if environment.get_value('LOCAL_DEVELOPMENT'):
@@ -207,12 +216,19 @@ def flash_to_latest_build_if_needed():
     locks.release_lock(flash_lock_key_name, by_zone=True)
 
   if adb.get_device_state() != 'device':
-    monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
-        'build_id': build_info['bid'],
-        'is_succeeded': False
-    })
-    logs.error('Unable to find device. Reimaging failed.')
-    adb.bad_state_reached()
+    if environment.is_android_cuttlefish():
+      logs.info('Trying to boot cuttlefish instance using stable build.')
+      monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
+          'build_id': build_info['bid'],
+          'is_succeeded': False
+      })
+      boot_stable_build_cuttlefish(branch, target, image_directory)
+      if adb.get_device_state() != 'device':
+        logs.error('Unable to find device. Reimaging failed.')
+        adb.bad_state_reached()
+    else:
+      logs.error('Unable to find device. Reimaging failed.')
+      adb.bad_state_reached()
 
   monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
       'build_id': build_info['bid'],
