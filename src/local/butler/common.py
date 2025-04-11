@@ -99,11 +99,12 @@ def _get_clusterfuzz_config_commit_sha():
 
 
 def _compute_revision(timestamp, is_staging=False):
-  """Return a revision containing the timestamp, git-sha, user, config git-sha,
-  and release (prod or staging).
-
-  The ordinality of revision is crucial for updating source code. Later
-  revision *must* be greater than earlier revision. See: crbug.com/674173.
+  """Return a source code revision.
+   
+  This revision contains the timestamp, git-sha, user, config git-sha,
+  and release (prod or staging). The ordinality of revision is crucial
+  for updating source code. Later revision *must* be greater than earlier
+  revision. See: crbug.com/674173.
   """
   timestamp = timestamp.strftime('%Y%m%d%H%M%S-utc')
   clusterfuzz_git_sha = _get_clusterfuzz_commit_sha()

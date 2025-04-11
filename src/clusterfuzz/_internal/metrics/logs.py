@@ -642,6 +642,39 @@ def log_fatal_and_exit(message, **extras):
   sys.exit(-1)
 
 
+def get_common_log_context() -> dict[str, str]:
+  """Return common context to be propagated by logs."""
+  from clusterfuzz._internal.base import utils
+  from clusterfuzz._internal.system import environment
+
+  try:
+    os_type = environment.platform()
+    os_version = platform.release()
+    instance_id = utils.get_instance_name()
+    if not instance_id:
+      instance_id = 'null'
+
+    parsed_source_version = utils.parse_manifest_data(
+        file_data=utils.current_source_version())
+    if parsed_source_version:
+      cf_version = parsed_source_version['cf_commit_sha']
+      cf_config_version = parsed_source_version['cf_config_commit_sha']
+    else:
+      cf_version, cf_config_version = 'null', 'null'
+
+    return {
+        'clusterfuzz_version': cf_version,
+        'clusterfuzz_config_version': cf_config_version,
+        'instance_id': instance_id,
+        'operating_system': os_type,
+        'os_version': os_version
+    }
+
+  except Exception:
+    warning('Failed setting common logs context.', ignore_context=True)
+    return {}
+
+
 class GenericLogStruct(NamedTuple):
   pass
 
@@ -685,18 +718,23 @@ class LogContextType(enum.Enum):
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
     if self == LogContextType.COMMON:
-      try:
-        return CommonLogStruct(
-            clusterfuzz_version=os.getenv('CF_VERSION', 'null'),
-            clusterfuzz_config_version=os.getenv('CF_CONFIG_VERSION', 'null'),
-            instance_id=os.getenv('INSTANCE_ID', 'null'),
-            operating_system=os.getenv('OS_TYPE', 'null'),
-            os_version=platform.release())
-      except Exception as e:
-        error(str(e), ignore_context=True)
-        return GenericLogStruct()
+      common_ctx = log_contexts.meta.get('common_ctx')
+      if common_ctx is None:
+        # Needed to avoid issues if a method used to get the common context
+        # also tries to log.
+        log_contexts.add_metadata('common_ctx', {})
+        common_ctx = get_common_log_context()
+        log_contexts.add_metadata('common_ctx', common_ctx)
 
-    elif self == LogContextType.TASK:
+      return CommonLogStruct(
+          clusterfuzz_version=common_ctx.get('clusterfuzz_version', 'null'),
+          clusterfuzz_config_version=common_ctx.get(
+              'clusterfuzz_config_version', 'null'),
+          instance_id=common_ctx.get('instance_id', 'null'),
+          operating_system=common_ctx.get('operating_system', 'null'),
+          os_version=common_ctx.get('os_version', 'null'))
+
+    if self == LogContextType.TASK:
       stage = log_contexts.meta.get('stage', Stage.UNKNOWN).value
       try:
         task_id = os.getenv('CF_TASK_ID', 'null')
@@ -715,7 +753,7 @@ class LogContextType(enum.Enum):
         error('Error retrieving context for task logs.', ignore_context=True)
         return GenericLogStruct()
 
-    elif self == LogContextType.TESTCASE:
+    if self == LogContextType.TESTCASE:
       try:
         testcase: 'Testcase | None' = log_contexts.meta.get('testcase')
         if not testcase:
@@ -743,15 +781,15 @@ class LogContextType(enum.Enum):
             ignore_context=True)
         return GenericLogStruct()
 
-    elif self == LogContextType.PROGRESSION:
+    if self == LogContextType.PROGRESSION:
       # Field to add specific metadata for progression.
       return GenericLogStruct()
 
-    elif self == LogContextType.REGRESSION:
+    if self == LogContextType.REGRESSION:
       # Field to add specific metadata for regression.
       return GenericLogStruct()
 
-    elif self == LogContextType.MINIMIZE:
+    if self == LogContextType.MINIMIZE:
       # Field to add specific metadata for minimize
       return GenericLogStruct()
 
@@ -827,6 +865,9 @@ def task_stage_context(stage: Stage):
       log_contexts.add_metadata('stage', stage)
       yield
     except Exception as e:
+      # TODO(vtcosta): This warning logs the location (line number/function) of
+      # the contextlib module. Maybe we should have a better way to retrieve
+      # the location in this case.
       warning(message='Error during task.')
       raise e
     finally:
@@ -848,9 +889,9 @@ def testcase_log_context(testcase: 'Testcase',
       log_contexts.add_metadata('fuzz_target', fuzz_target)
       yield
     except Exception as e:
-      # We've put as warning because this error will be
-      # handled in a upper level, and we would like to have
-      # a way to track it with the current context logs
+      # Logging as a warning because this error will be handled
+      # in an upper level, and we would like to still have a way
+      # to track it with the current context logs.
       warning(message='Error during testcase context.')
       raise e
     finally:

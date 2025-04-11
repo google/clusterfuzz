@@ -964,18 +964,6 @@ def get_instance_name() -> str:
   return environment.get_value('BOT_NAME', '')
 
 
-def set_common_log_context() -> None:
-  """Set env variables to propagate common context used by logs."""
-  parsed_source_version = parse_manifest_data(
-      file_data=current_source_version())
-  if parsed_source_version:
-    environment.set_value('CF_VERSION', parsed_source_version['cf_commit_sha'])
-    environment.set_value('CF_CONFIG_VERSION',
-                          parsed_source_version['cf_config_commit_sha'])
-  environment.set_value('OS_TYPE', environment.platform())
-  environment.set_value('INSTANCE_ID', get_instance_name())
-
-
 def read_from_handle_truncated(file_handle, max_len):
   """Read from file handle, limiting output to |max_len| by removing output in
   the middle."""

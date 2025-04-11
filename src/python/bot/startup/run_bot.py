@@ -189,7 +189,6 @@ def main():
 
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
-  utils.set_common_log_context()
 
   if not profiler.start_if_needed('python_profiler_bot'):
     sys.exit(-1)

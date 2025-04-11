@@ -24,7 +24,6 @@ import importlib
 import os
 import sys
 
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
@@ -38,7 +37,6 @@ def main():
 
   root_directory = environment.get_value('ROOT_DIR')
   local_config.ProjectConfig().set_environment()
-  utils.set_common_log_context()
 
   if not root_directory:
     print('Please set ROOT_DIR environment variable to the root of the source '

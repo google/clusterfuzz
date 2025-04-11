@@ -559,6 +559,8 @@ class SearchBytesInFileTestComplex(unittest.TestCase):
       self.assertFalse(utils.search_bytes_in_file(b'A\n\nB', f))
 
 
+@mock.patch('clusterfuzz._internal.base.utils.LOCAL_SOURCE_MANIFEST',
+            'clusterfuzz-source.manifest')
 class CurrentSourceVersionTest(unittest.TestCase):
   """Test current_source_version method."""
 
@@ -568,7 +570,6 @@ class CurrentSourceVersionTest(unittest.TestCase):
 
     self.temp_dir = tempfile.mkdtemp()
     self.test_path = os.path.join(self.temp_dir, 'clusterfuzz-source.manifest')
-    utils.LOCAL_SOURCE_MANIFEST = 'clusterfuzz-source.manifest'
     os.environ['ROOT_DIR'] = self.temp_dir
     return super().setUp()
 

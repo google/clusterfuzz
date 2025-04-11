@@ -27,7 +27,6 @@ import sys
 import time
 
 from clusterfuzz._internal.base import persistent_cache
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.untrusted import untrusted_noop
 from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.datastore import data_handler
@@ -232,7 +231,6 @@ def main():
   environment.set_bot_environment()
   persistent_cache.initialize()
   logs.configure('run')
-  utils.set_common_log_context()
 
   # Python buffering can otherwise cause exception logs in the child run_*.py
   # processes to be lost.
