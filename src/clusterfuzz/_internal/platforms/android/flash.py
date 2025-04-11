@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.datastore import locks
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -88,6 +89,15 @@ def download_latest_build(build_info, image_regexes, image_directory):
       if file_path.endswith('.zip') or file_path.endswith('.tar.gz'):
         with archive.open(file_path) as reader:
           reader.extract_all(image_directory)
+
+
+def boot_stable_build_cuttlefish(branch, target, image_directory):
+  """Boot cuttlefish instance using stable build id fetched from gcs."""
+  build_info = fetch_artifact.get_latest_artifact_info(
+      branch, target, stable_build=True)
+  download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
+  adb.recreate_cuttlefish_device()
+  adb.connect_to_cuttlefish_device()
 
 
 def flash_to_latest_build_if_needed():
@@ -206,9 +216,24 @@ def flash_to_latest_build_if_needed():
     locks.release_lock(flash_lock_key_name, by_zone=True)
 
   if adb.get_device_state() != 'device':
-    logs.error('Unable to find device. Reimaging failed.')
-    adb.bad_state_reached()
+    if environment.is_android_cuttlefish():
+      logs.info('Trying to boot cuttlefish instance using stable build.')
+      monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
+          'build_id': build_info['bid'],
+          'is_succeeded': False
+      })
+      boot_stable_build_cuttlefish(branch, target, image_directory)
+      if adb.get_device_state() != 'device':
+        logs.error('Unable to find device. Reimaging failed.')
+        adb.bad_state_reached()
+    else:
+      logs.error('Unable to find device. Reimaging failed.')
+      adb.bad_state_reached()
 
+  monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
+      'build_id': build_info['bid'],
+      'is_succeeded': True
+  })
   logs.info('Reimaging finished.')
 
   # Reset all of our persistent keys after wipe.
