@@ -34,7 +34,7 @@ BATCH_PATH = 'batch.batch'
 MONITORING_REGIONS_PATH = 'monitoring.regions'
 PROJECT_PATH = 'project'
 SWARMING_PATH = 'swarming.swarming'
-EXTERNAL_TESTCASE_UPLOADER_PATH = 'external_testcase_reader.config'
+EXTERNAL_TESTCASE_UPLOADER_PATH = 'k8s.external_testcase_reader'
 
 
 def _load_yaml_file(yaml_file_path):
