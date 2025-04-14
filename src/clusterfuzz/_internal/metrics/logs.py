@@ -731,11 +731,11 @@ class LogContextType(enum.Enum):
       return GenericLogStruct()
 
     elif self == LogContextType.MINIMIZE:
-      # Field to add specific metadata for minimize
+      # Field to add specific metadata for minimize.
       return GenericLogStruct()
 
     elif self == LogContextType.VARIANT:
-      # Field to add specific metadata for minimize
+      # Field to add specific metadata for variant.
       return GenericLogStruct()
 
     return GenericLogStruct()
