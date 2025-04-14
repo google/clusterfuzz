@@ -467,6 +467,8 @@ class EmitTest(unittest.TestCase):
     }
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
+    # Reset the `common_ctx` metadata as it may be setted by other test runs.
+    logs.log_contexts.delete_metadata('common_ctx')
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
 
   def tearDown(self):
@@ -525,6 +527,20 @@ class EmitTest(unittest.TestCase):
             }
         })
 
+  def test_common_context_logs(self):
+    """Test logs common context is instanced once for distinct modules."""
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.COMMON])
+    self.assertEqual(logs.log_contexts.meta, {})
+    logs.info('msg')
+    self.assertEqual(logs.log_contexts.meta,
+                     {'common_ctx': self.common_context})
+    from python.bot.startup.run_bot import logs as logs_from_run_bot
+    self.assertEqual(logs_from_run_bot.log_contexts.meta,
+                     {'common_ctx': self.common_context})
+
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def test_task_log_context(self):
     """Test that the logger is called with the correct arguments considering
@@ -534,12 +550,7 @@ class EmitTest(unittest.TestCase):
     self.mock.get_logger.return_value = logger
     self.assertEqual(logs.log_contexts.contexts,
                      [logs.LogContextType.COMMON, logs.LogContextType.TASK])
-    self.assertEqual(logs.log_contexts.meta, {
-        'common_ctx': self.common_context,
-        'stage': logs.Stage.PREPROCESS
-    })
-    statement_line = inspect.currentframe().f_lineno + 1
-    logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+    self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
     logs_extra = {'target': 'bot', 'test': 'yes'}
     logs_extra.update(self.common_context)
     logs_extra.update({
@@ -549,7 +560,13 @@ class EmitTest(unittest.TestCase):
         'task_job_name': 'libfuzzer_asan_gopacket',
         'stage': 'preprocess'
     })
-
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+    # Assert that the common context was added after the first logs call.
+    self.assertEqual(logs.log_contexts.meta, {
+        'common_ctx': self.common_context,
+        'stage': logs.Stage.PREPROCESS
+    })
     logger.log.assert_called_once_with(
         logging.ERROR,
         'msg',
@@ -565,7 +582,7 @@ class EmitTest(unittest.TestCase):
 
   def test_progression_log_context(self):
     """Test that the logger is called with the correct arguments considering
-    a testcase-based context and metadata.
+    a testcase-based task context and metadata.
     """
     from clusterfuzz._internal.datastore import data_types
     logger = mock.MagicMock()
@@ -583,14 +600,15 @@ class EmitTest(unittest.TestCase):
           logs.LogContextType.COMMON, logs.LogContextType.TESTCASE,
           logs.LogContextType.PROGRESSION
       ])
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+      # Assert metadata after emit to ensure that `common_ctx` has been added.
       self.assertEqual(
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase': testcase,
               'fuzz_target': fuzz_target
           })
-      statement_line = inspect.currentframe().f_lineno + 1
-      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
     logs_extra = {'target': 'bot', 'test': 'yes'}
     logs_extra.update(self.common_context)
@@ -600,7 +618,6 @@ class EmitTest(unittest.TestCase):
         'job': 'test_job',
         'fuzzer': 'test_fuzzer'
     })
-
     logger.log.assert_called_with(
         logging.ERROR,
         'msg',
@@ -662,7 +679,6 @@ class EmitTest(unittest.TestCase):
     method_name = '__exit__'
     self.mock.get_source_location.return_value = (path_name, line_number,
                                                   method_name)
-
     logs_extras = {
         'task_id': 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868',
         'task_name': 'fuzz',
@@ -700,10 +716,7 @@ class EmitTest(unittest.TestCase):
 
     self.assertEqual(logs.log_contexts.contexts,
                      [logs.LogContextType.COMMON, logs.LogContextType.TASK])
-    self.assertEqual(logs.log_contexts.meta, {
-        'common_ctx': self.common_context,
-        'stage': logs.Stage.PREPROCESS
-    })
+    self.assertEqual(logs.log_contexts.meta, {'stage': logs.Stage.PREPROCESS})
     statement_line = inspect.currentframe().f_lineno + 1
     logs.emit(
         logging.ERROR,
@@ -734,6 +747,7 @@ class EmitTest(unittest.TestCase):
     self.mock.get_logger.return_value = logger
     testcase = data_types.Testcase(
         fuzzer_name="test_fuzzer", job_type='test_job')
+    # Set this metadata to be used instead of the fuzz_target entity.
     testcase.set_metadata('fuzzer_binary_name', 'fuzz_abc')
     testcase.put()
 
@@ -751,14 +765,14 @@ class EmitTest(unittest.TestCase):
           logs.LogContextType.COMMON, logs.LogContextType.TESTCASE,
           logs.LogContextType.REGRESSION
       ])
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       self.assertEqual(
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase': testcase,
               'fuzz_target': None
           })
-      statement_line = inspect.currentframe().f_lineno + 1
-      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
 
     logger.log.assert_called_with(
         logging.ERROR,
@@ -810,12 +824,13 @@ class ErrorTest(unittest.TestCase):
 
 
 class TestLogContextSingleton(unittest.TestCase):
-  """Tests for the log context singleton
-     It checks the singleton behavior works and is thread safe
+  """Tests for the log context singleton.
+
+  It checks the singleton behavior works and is thread safe.
   """
 
   def test_is_same(self):
-    """Test the singleton is the same instance for different module loads"""
+    """Test the singleton is the same instance for different module loads."""
     from clusterfuzz._internal.base.tasks.task_rate_limiting import \
         logs as logs_from_task_rate_limiting
     from python.bot.startup.run_bot import logs as logs_from_run_bot
@@ -830,7 +845,7 @@ class TestLogContextSingleton(unittest.TestCase):
     logs_from_run_bot.log_contexts.clear()
 
   def test_multi_threading(self):
-    """Test multithread"""
+    """Test multithread."""
 
     def incrementer():
       from python.bot.startup.run_bot import logs as run_bot_logs
