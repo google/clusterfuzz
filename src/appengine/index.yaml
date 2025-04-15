@@ -106,9 +106,6 @@ indexes:
   properties:
   - name: engine
   - name: weight
-
-- kind: FuzzTargetJob
-  properties:
   - name: last_run
 
 - kind: ReportMetadata
