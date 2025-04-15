@@ -34,7 +34,7 @@ class ComputeRevisionTest(unittest.TestCase):
     return super().setUp()
 
   def test_valid_revision_prod(self):
-    """Test valid revision with prod release."""
+    """Test valid revision with prod appengine release."""
     self.mock._get_clusterfuzz_commit_sha.return_value = '9adf34c'
     self.mock._get_clusterfuzz_config_commit_sha.return_value = 'ac37ff21'
     timestamp = datetime.datetime.strptime('20250401123000', '%Y%m%d%H%M%S')
@@ -43,7 +43,7 @@ class ComputeRevisionTest(unittest.TestCase):
     self.assertEqual(common._compute_revision(timestamp), revision)
 
   def test_valid_revision_staging(self):
-    """Test valid revision with staging release."""
+    """Test valid revision with staging appengine release."""
     self.mock._get_clusterfuzz_commit_sha.return_value = '9adf34c'
     self.mock._get_clusterfuzz_config_commit_sha.return_value = 'ac37ff21'
     timestamp = datetime.datetime.strptime('20250401123000', '%Y%m%d%H%M%S')

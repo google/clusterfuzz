@@ -101,8 +101,8 @@ def _get_clusterfuzz_config_commit_sha():
 def _compute_revision(timestamp, is_staging=False):
   """Return a source code revision.
    
-  This revision contains the timestamp, git-sha, user, config git-sha,
-  and release (prod or staging). The ordinality of revision is crucial
+  This revision contains the timestamp, git-sha, user, config git-sha, and
+  appengine release (prod or staging). The ordinality of revision is crucial
   for updating source code. Later revision *must* be greater than earlier
   revision. See: crbug.com/674173.
   """
@@ -111,13 +111,14 @@ def _compute_revision(timestamp, is_staging=False):
 
   # Adding also the clusterfuzz-config version to the revision
   clusterfuzz_config_git_sha = _get_clusterfuzz_config_commit_sha()
-  release = 'prod'
+  appengine_release = 'prod'
   if is_staging:
-    release = 'staging'
+    appengine_release = 'staging'
 
   user = os.environ['USER']
   components = [
-      timestamp, clusterfuzz_git_sha, user, clusterfuzz_config_git_sha, release
+      timestamp, clusterfuzz_git_sha, user, clusterfuzz_config_git_sha,
+      appengine_release
   ]
   return '-'.join(components)
 

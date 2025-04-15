@@ -949,7 +949,7 @@ def parse_manifest_data(file_data: str | None) -> dict[str, str] | None:
         'cf_commit_sha': result.group(2),
         'user': result.group(3),
         'cf_config_commit_sha': result.group(4),
-        'release': result.group(5)
+        'appengine_release': result.group(5)
     }
   return None
 

@@ -635,26 +635,26 @@ class ParseManifestDataTest(unittest.TestCase):
     self.assertIsNone(utils.parse_manifest_data(file_data))
 
   def test_valid_manifest_prod(self):
-    """Test parsing valid manifest data with prod release."""
+    """Test parsing valid manifest data with prod appengine release."""
     file_data = '20250402153042-utc-40773ac0-username_test123-cad6977-prod'
     parsed_data = {
         'timestamp': '20250402153042-utc',
         'cf_commit_sha': '40773ac0',
         'user': 'username_test123',
         'cf_config_commit_sha': 'cad6977',
-        'release': 'prod'
+        'appengine_release': 'prod'
     }
     self.assertEqual(utils.parse_manifest_data(file_data), parsed_data)
 
   def test_valid_manifest_staging(self):
-    """Test parsing valid manifest data with staging."""
+    """Test parsing valid manifest data with staging appengine."""
     file_data = '20261224235959-utc-7a257f7a-abcdef42-user-name-f3e9e7ac-staging'
     parsed_data = {
         'timestamp': '20261224235959-utc',
         'cf_commit_sha': '7a257f7a',
         'user': 'abcdef42-user-name',
         'cf_config_commit_sha': 'f3e9e7ac',
-        'release': 'staging'
+        'appengine_release': 'staging'
     }
     self.assertEqual(utils.parse_manifest_data(file_data), parsed_data)
 
@@ -669,7 +669,7 @@ class ParseManifestDataTest(unittest.TestCase):
       self.assertIsNone(utils.parse_manifest_data(file_data))
 
   def test_invalid_release(self):
-    """Test parsing manifest data with invalid release type."""
+    """Test parsing manifest data with invalid appengine release type."""
     file_data = '20250402153042-utc-40773ac0-user-cad6977-release'
     self.assertIsNone(utils.parse_manifest_data(file_data))
 
@@ -684,7 +684,7 @@ class ParseManifestDataTest(unittest.TestCase):
         'cf_commit_sha': '40773ac0',
         'user': '',
         'cf_config_commit_sha': 'cad6977',
-        'release': 'prod'
+        'appengine_release': 'prod'
     }
     self.assertEqual(utils.parse_manifest_data(file_data), parsed_data)
 
