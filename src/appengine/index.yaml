@@ -106,6 +106,7 @@ indexes:
   properties:
   - name: engine
   - name: weight
+  - name: last_run
 
 - kind: ReportMetadata
   properties:
