@@ -19,18 +19,27 @@ import re
 from google.cloud import storage
 import requests
 
-from appengine.libs import form
-from appengine.libs import gcs
-from appengine.libs import helpers
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
+from clusterfuzz._internal.metrics import logs
 
 ACCEPTED_FILETYPES = [
     'text/javascript', 'application/pdf', 'text/html', 'application/zip'
 ]
 ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
 ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
+_CLUSTERFUZZ_GET_URL = (
+    'https://clusterfuzz.corp.google.com/upload-testcase/get-url-oauth')
+_UPLOAD_URL_PROPERTY = 'uploadUrl'
+_TESTCASE_ID_PROPERTY = 'id'
+
+
+class ExternalTestcaseReaderException(Exception):
+  """Error when uploading an externally submitted testcase.."""
+
+  def __init__(self, message):
+    super().__init__(message)
 
 
 def get_vrp_uploaders(config):
@@ -42,8 +51,7 @@ def get_vrp_uploaders(config):
   return members
 
 
-def close_issue_if_invalid(upload_request, attachment_info, description,
-                           vrp_uploaders):
+def close_issue_if_invalid(issue, attachment_info, description, vrp_uploaders):
   """Closes any invalid upload requests with a helpful message."""
   comment_message = (
       'Hello, this issue is automatically closed. Please file a new bug after'
@@ -51,10 +59,10 @@ def close_issue_if_invalid(upload_request, attachment_info, description,
   invalid = False
 
   # TODO(pgrace) Remove after testing.
-  if upload_request.id == 373893311:
+  if issue.id == 373893311:
     return False
 
-  if not upload_request.reporter in vrp_uploaders:
+  if not issue.reporter in vrp_uploaders:
     comment_message += (
         'You are not authorized to submit testcases to Clusterfuzz.'
         ' If you believe you should be, please reach out to'
@@ -90,8 +98,8 @@ def close_issue_if_invalid(upload_request, attachment_info, description,
     comment_message += (
         '\nPlease see the new bug template for more information on how to use'
         ' Clusterfuzz direct uploads.')
-    upload_request.status = ISSUETRACKER_WONTFIX_STATE
-    upload_request.save(new_comment=comment_message, notify=True)
+    issue.status = ISSUETRACKER_WONTFIX_STATE
+    issue.save(new_comment=comment_message, notify=True)
 
   return invalid
 
@@ -116,40 +124,48 @@ def filed_n_days_ago(issue_created_time_string, config):
 
 def submit_testcase(issue_id, file, filename, filetype, cmds):
   """Uploads the given testcase file to Clusterfuzz."""
+  get_url_response = requests.post(_CLUSTERFUZZ_GET_URL, timeout=10)
+  if _UPLOAD_URL_PROPERTY not in get_url_response:
+    logs.error('Unexpected response (missing uploadUrl): %s' % get_url_response)
+    raise ExternalTestcaseReaderException(
+        'Unexpected response (missing uploadUrl): %s' % get_url_response)
+  upload_url = get_url_response[_UPLOAD_URL_PROPERTY]
+
+  target = None
   if filetype == 'text/javascript':
     job = 'linux_asan_d8_dbg'
   elif filetype == 'application/pdf':
     job = 'libfuzzer_pdfium_asan'
+    # Only libfuzzer_pdfium_asan needs a fuzzer target specified
+    target = 'pdfium_xfa_fuzzer'
   elif filetype == 'text/html':
     job = 'linux_asan_chrome_mp'
   elif filetype == 'application/zip':
     job = 'linux_asan_chrome_mp'
   else:
     raise TypeError
-  upload_info = gcs.prepare_blob_upload()._asdict()
-
   data = {
-      # Content provided by uploader.
-      'issue': issue_id,
-      'job': job,
-      'file': file,
-      'cmd': cmds,
-      'x-goog-meta-filename': filename,
-
-      # Content generated internally.
       'platform': 'Linux',
-      'csrf_token': form.generate_csrf_token(),
-      'upload_key': upload_info['key'],
-      # TODO(pgrace) Replace with upload_info['bucket'] once testing complete.
-      'bucket': 'clusterfuzz-test-bucket',
-      'key': upload_info['key'],
-      'GoogleAccessId': upload_info['google_access_id'],
-      'policy': upload_info['policy'],
-      'signature': upload_info['signature'],
+      'job': job,
+      'issue': issue_id,
+      'cmd': cmds,
+      'file': file,
+      'x-goog-meta-filename': filename,
   }
 
-  return requests.post(
-      'https://clusterfuzz.com/upload-testcase/upload', data=data, timeout=10)
+  if target:
+    data['target'] = target
+
+  upload_response = requests.post(upload_url, data=data, timeout=10)
+  is_error_code = upload_response.status_code != 200
+  is_missing_testcase_id = _TESTCASE_ID_PROPERTY not in upload_response
+  if is_error_code or is_missing_testcase_id:
+    reason = 'missing testcase id' if is_missing_testcase_id else 'failure code'
+    msg = 'Unexpected response (%s): %s' % (reason, upload_response)
+    logs.error(msg)
+    raise ExternalTestcaseReaderException(msg)
+
+  return upload_response
 
 
 def handle_testcases(tracker, config):
@@ -163,15 +179,15 @@ def handle_testcases(tracker, config):
   for issue in older_issues:
     # Close out older bugs that may have failed to reproduce.
     if close_issue_if_not_reproducible(issue, config):
-      helpers.log('Closing issue {issue_id} as it failed to reproduce',
-                  issue.id)
+      logs.info('Closing issue %s as it failed to reproduce' & issue.id)
 
   # Handle new bugs that may need to be submitted.
   issues = tracker.find_issues_with_filters(
       keywords=[],
       query_filters=['componentid:1600865', 'status:new'],
       only_open=True)
-  if len(issues) == 0:
+  issues_list = list(issues)
+  if len(issues_list) == 0:
     return
 
   vrp_uploaders = get_vrp_uploaders(config)
@@ -180,7 +196,7 @@ def handle_testcases(tracker, config):
   # Process only a certain number of bugs per reporter for each job run.
   reporters_map = {}
 
-  for issue in issues:
+  for issue in issues_list:
     attachment_metadata = tracker.get_attachment_metadata(issue.id)
     commandline_flags = tracker.get_description(issue.id)
     if reporters_map.get(issue.reporter,
@@ -189,7 +205,7 @@ def handle_testcases(tracker, config):
     reporters_map[issue.reporter] = reporters_map.get(issue.reporter, 1) + 1
     if close_issue_if_invalid(issue, attachment_metadata, commandline_flags,
                               vrp_uploaders):
-      helpers.log('Closing issue {issue_id} as it is invalid', issue.id)
+      logs.info('Closing issue %s as it is invalid' % issue.id)
       continue
 
     # Submit valid testcases.
@@ -202,12 +218,17 @@ def handle_testcases(tracker, config):
     issue.status = ISSUETRACKER_ACCEPTED_STATE
     issue.assignee = 'clusterfuzz@chromium.org'
     issue.save(new_comment=comment_message, notify=True)
-    helpers.log('Submitted testcase file for issue {issue_id}', issue.id)
+    logs.info('Submitted testcase file for issue %s' % issue.id)
+
+
+_ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 
 
 def main():
-  tracker = issue_tracker.IssueTracker('chromium', None,
-                                       {'default_component_id': 1363614})
+  tracker = issue_tracker.IssueTracker('chromium', None, {
+      'default_component_id': 1363614,
+      'url': _ISSUE_TRACKER_URL
+  })
   handle_testcases(tracker, local_config.ExternalTestcaseReaderConfig())
 
 
