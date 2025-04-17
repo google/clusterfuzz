@@ -799,7 +799,7 @@ class LogContextType(enum.Enum):
       # Field to add specific metadata for variant.
       return GenericLogStruct()
 
-    elif self == LogContextType.SYMBOLIZE:
+    if self == LogContextType.SYMBOLIZE:
       # Field to add specific metadata for symbolize.
       return GenericLogStruct()
 
