@@ -568,14 +568,7 @@ def _initialize_monitored_resource():
   # where the instance lives.
   _monitored_resource.labels['project_id'] = utils.get_application_id()
 
-  # Use bot name here instance as that's more useful to us.
-  if environment.is_running_on_k8s():
-    instance_name = environment.get_value('HOSTNAME')
-  elif environment.is_running_on_app_engine():
-    instance_name = environment.get_value('GAE_INSTANCE')
-  else:
-    instance_name = environment.get_value('BOT_NAME')
-  _monitored_resource.labels['instance_id'] = instance_name
+  _monitored_resource.labels['instance_id'] = utils.get_instance_name()
 
   if compute_metadata.is_gce():
     # Returned in the form projects/{id}/zones/{zone}

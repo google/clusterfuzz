@@ -557,3 +557,146 @@ class SearchBytesInFileTestComplex(unittest.TestCase):
     utils.DEFAULT_SEARCH_BUFFER_LENGTH = buffer_length
     with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'A\n\nB', f))
+
+
+@mock.patch('clusterfuzz._internal.base.utils.LOCAL_SOURCE_MANIFEST',
+            'clusterfuzz-source.manifest')
+class CurrentSourceVersionTest(unittest.TestCase):
+  """Test current_source_version method."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    self.original_env = dict(os.environ)
+
+    self.temp_dir = tempfile.mkdtemp()
+    self.test_path = os.path.join(self.temp_dir, 'clusterfuzz-source.manifest')
+    os.environ['ROOT_DIR'] = self.temp_dir
+    return super().setUp()
+
+  def tearDown(self):
+    os.environ.clear()
+    os.environ.update(self.original_env)
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+    return super().tearDown()
+
+  def test_source_version_override(self):
+    """Test override source version."""
+    os.environ['SOURCE_VERSION_OVERRIDE'] = 'VERSION'
+    self.assertEqual(utils.current_source_version(), 'VERSION')
+
+  def test_file_not_exists(self):
+    """Test manifest file not exists."""
+    os.environ['ROOT_DIR'] = '.'
+    self.assertIsNone(utils.current_source_version())
+
+  def test_file_exists_valid_content(self):
+    """Test reading manifest file with valid content."""
+    file_data = '20250402153059-utc-40773ac0-username-cad6977-prod'
+    with open(self.test_path, 'w') as f:
+      f.write(f'{file_data}\n')
+    self.assertEqual(utils.current_source_version(), file_data)
+
+  def test_file_exists_empty_content(self):
+    """Test reading empty manifest file."""
+    f = open(self.test_path, 'w')
+    f.close()
+    self.assertEqual(utils.current_source_version(), '')
+
+  def test_file_exists_invalid_content(self):
+    """Test handling exception when decoding manifest data."""
+    file_data = b'\xff\xfeinvalid utf-8'
+    with open(self.test_path, 'wb') as f:
+      f.write(file_data)
+    self.assertIsNone(utils.current_source_version())
+
+  def test_read_file_failed(self):
+    """Test handling None return from reading data from file."""
+    helpers.patch(self,
+                  ['clusterfuzz._internal.base.utils.read_data_from_file'])
+    self.mock.read_data_from_file.return_value = None
+    self.assertIsNone(utils.current_source_version())
+
+
+class ParseManifestDataTest(unittest.TestCase):
+  """"Test parse manifest file data method."""
+
+  def test_missing_manifest_data(self):
+    """Test parsing with None input."""
+    self.assertIsNone(utils.parse_manifest_data(None))
+
+  def test_empty_manifest_data(self):
+    """Test parsing manifest with an empty string."""
+    file_data = ''
+    self.assertIsNone(utils.parse_manifest_data(file_data))
+
+  def test_random_string_data(self):
+    """Test parsing manifest data with generic string."""
+    file_data = 'VERSION'
+    self.assertIsNone(utils.parse_manifest_data(file_data))
+
+  def test_valid_manifest_prod(self):
+    """Test parsing valid manifest data with prod appengine release."""
+    file_data = '20250402153042-utc-40773ac0-username_test123-cad6977-prod'
+    parsed_data = {
+        'timestamp': '20250402153042-utc',
+        'cf_commit_sha': '40773ac0',
+        'user': 'username_test123',
+        'cf_config_commit_sha': 'cad6977',
+        'appengine_release': 'prod'
+    }
+    self.assertEqual(utils.parse_manifest_data(file_data), parsed_data)
+
+  def test_valid_manifest_staging(self):
+    """Test parsing valid manifest data with staging appengine."""
+    file_data = '20261224235959-utc-7a257f7a-abcdef42-user-name-f3e9e7ac-staging'
+    parsed_data = {
+        'timestamp': '20261224235959-utc',
+        'cf_commit_sha': '7a257f7a',
+        'user': 'abcdef42-user-name',
+        'cf_config_commit_sha': 'f3e9e7ac',
+        'appengine_release': 'staging'
+    }
+    self.assertEqual(utils.parse_manifest_data(file_data), parsed_data)
+
+  def test_incorrect_timestamp_format(self):
+    """Test parsing manifest data with incorrect timestamp format."""
+    incorrect_timestamps = [
+        '2026-12-24-235959-utc', '2026122523:59:59-utc', '2026122523595900-utc',
+        '20261224235959'
+    ]
+    for timestamp in incorrect_timestamps:
+      file_data = f'{timestamp}-7a257f7a-username-f3e9e7ac-prod'
+      self.assertIsNone(utils.parse_manifest_data(file_data))
+
+  def test_invalid_release(self):
+    """Test parsing manifest data with invalid appengine release type."""
+    file_data = '20250402153042-utc-40773ac0-user-cad6977-release'
+    self.assertIsNone(utils.parse_manifest_data(file_data))
+
+    file_data = '20250402153042-utc-40773ac0-user-cad6977-'
+    self.assertIsNone(utils.parse_manifest_data(file_data))
+
+  def test_empty_user_name(self):
+    """Test parsing manifest data with empty user name."""
+    file_data = '20250402153042-utc-40773ac0--cad6977-prod'
+    parsed_data = {
+        'timestamp': '20250402153042-utc',
+        'cf_commit_sha': '40773ac0',
+        'user': '',
+        'cf_config_commit_sha': 'cad6977',
+        'appengine_release': 'prod'
+    }
+    self.assertEqual(utils.parse_manifest_data(file_data), parsed_data)
+
+  def test_missing_commits(self):
+    """Test parsing manifest data without commits versions."""
+    file_data = '20250402153042-utc--abcd312-cad6977-prod'
+    self.assertIsNone(utils.parse_manifest_data(file_data))
+
+    file_data = '20250402153042-utc-40773ac0-abcd312--prod'
+    self.assertIsNone(utils.parse_manifest_data(file_data))
+
+  def test_additional_prefix(self):
+    """Test parsing manifest data with an added prefix."""
+    file_data = 'prefix123-20250402153042-utc-40773ac0-username_test123-cad6977-prod'
+    self.assertIsNone(utils.parse_manifest_data(file_data))

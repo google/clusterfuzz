@@ -21,6 +21,7 @@ import hashlib
 import inspect
 import os
 import random
+import re
 import sys
 import time
 import urllib.parse
@@ -916,19 +917,51 @@ def current_project():
   return environment.get_value('PROJECT_NAME', default_project_name())
 
 
-def current_source_version():
+def current_source_version() -> str | None:
   """Return the current source revision."""
   source_version_override = environment.get_value('SOURCE_VERSION_OVERRIDE')
   if source_version_override:
     return source_version_override
 
-  root_directory = environment.get_value('ROOT_DIR')
+  root_directory = environment.get_value('ROOT_DIR', '.')
   local_manifest_path = os.path.join(root_directory, LOCAL_SOURCE_MANIFEST)
   if os.path.exists(local_manifest_path):
-    return read_data_from_file(
-        local_manifest_path, eval_data=False).strip().decode('utf-8')
+    file_data = read_data_from_file(local_manifest_path, eval_data=False)
+    if file_data is not None:
+      try:
+        file_data = file_data.strip().decode('utf-8')
+      except UnicodeDecodeError as e:
+        logs.error(f'Error decoding manifest file content - {str(e.reason)}')
+        file_data = None
+    return file_data
 
+
+def parse_manifest_data(file_data: str | None) -> dict[str, str] | None:
+  """Parse the manifest revision data and return it as a dict."""
+  if not file_data:
+    return None
+
+  pattern = r'^([0-9]{14}-utc)-([0-9a-f]+)-(.*)-([0-9a-f]+)-(prod|staging)'
+  result = re.match(pattern, file_data)
+  if result:
+    return {
+        'timestamp': result.group(1),
+        'cf_commit_sha': result.group(2),
+        'user': result.group(3),
+        'cf_config_commit_sha': result.group(4),
+        'appengine_release': result.group(5)
+    }
   return None
+
+
+def get_instance_name() -> str:
+  """Return the instance name based on the running environment."""
+  if environment.is_running_on_k8s():
+    return environment.get_value('HOSTNAME', '')
+  if environment.is_running_on_app_engine():
+    return environment.get_value('GAE_INSTANCE', '')
+  # Use bot name here as instance as that's more useful to us.
+  return environment.get_value('BOT_NAME', '')
 
 
 def read_from_handle_truncated(file_handle, max_len):
