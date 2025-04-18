@@ -715,6 +715,7 @@ class LogContextType(enum.Enum):
   REGRESSION = 'regression'
   MINIMIZE = 'minimize'
   VARIANT = 'variant'
+  SYMBOLIZE = 'symbolize'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
@@ -796,6 +797,10 @@ class LogContextType(enum.Enum):
 
     if self == LogContextType.VARIANT:
       # Field to add specific metadata for variant.
+      return GenericLogStruct()
+
+    if self == LogContextType.SYMBOLIZE:
+      # Field to add specific metadata for symbolize.
       return GenericLogStruct()
 
     return GenericLogStruct()
@@ -934,4 +939,12 @@ def minimize_log_context(testcase: 'Testcase',
 def variant_log_context(testcase: 'Testcase', fuzz_target: 'FuzzTarget | None'):
   with testcase_log_context(testcase, fuzz_target):
     with wrap_log_context(contexts=[LogContextType.VARIANT]):
+      yield
+
+
+@contextlib.contextmanager
+def symbolize_log_context(testcase: 'Testcase',
+                          fuzz_target: 'FuzzTarget | None'):
+  with testcase_log_context(testcase, fuzz_target):
+    with wrap_log_context(contexts=[LogContextType.SYMBOLIZE]):
       yield
