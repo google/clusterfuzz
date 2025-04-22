@@ -376,7 +376,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  with logs.minimize_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     # Allow setting up a different fuzzer.
     minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
     setup_input = setup.preprocess_setup_testcase(
@@ -406,7 +406,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
   """Attempt to minimize a given testcase."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  with logs.minimize_log_context(
+  with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
     uworker_io.check_handling_testcase_safe(testcase)
     minimize_task_input = uworker_input.minimize_task_input
@@ -883,7 +883,7 @@ def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   # Retrive the testcase early for logs context.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  with logs.minimize_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     testcase_utils.emit_testcase_triage_duration_metric(
         int(output.uworker_input.testcase_id),
         testcase_utils.TESTCASE_TRIAGE_DURATION_MINIMIZE_COMPLETED_STEP)

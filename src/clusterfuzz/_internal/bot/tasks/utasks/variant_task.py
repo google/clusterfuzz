@@ -60,7 +60,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  with logs.variant_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     uworker_io.check_handling_testcase_safe(testcase)
 
     if (environment.is_engine_fuzzer_job(testcase.job_type) !=
@@ -95,7 +95,7 @@ def utask_main(uworker_input):
   if the build can reproduce the error."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  with logs.variant_log_context(
+  with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
     if environment.is_engine_fuzzer_job(testcase.job_type):
       # Remove put() method to avoid updates. DO NOT REMOVE THIS.
@@ -218,7 +218,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 def utask_postprocess(output):
   """Handle the output from utask_main."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  with logs.variant_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
       _ERROR_HANDLER.handle(output)
       return
