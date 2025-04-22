@@ -49,11 +49,8 @@ def handle_build_setup_error(output):
   tasks.add_task('symbolize', testcase_id, job_type, wait_time=build_fail_wait)
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
-  """Runs preprocessing for symbolize task."""
-  # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-
+def _utask_preprocess(testcase_id, job_type, uworker_env, testcase):
+  """Run preprocessing for symbolize task."""
   # We should atleast have a symbolized debug or release build.
   if not build_manager.has_symbolized_builds():
     return None
@@ -74,11 +71,17 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
           old_crash_stacktrace=old_crash_stacktrace))
 
 
-def utask_main(uworker_input):
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  """Set logs context and run preprocessing for symbolize task."""
+  # Locate the testcase associated with the id.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  with logs.symbolize_log_context(testcase, testcase.get_fuzz_target()):
+    return _utask_preprocess(testcase_id, job_type, uworker_env, testcase)
+
+
+def _utask_main(uworker_input, testcase):
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
-                                             data_types.Testcase)
   uworker_io.check_handling_testcase_safe(testcase)
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
@@ -224,6 +227,15 @@ def utask_main(uworker_input):
   return uworker_msg_pb2.Output(symbolize_task_output=symbolize_task_output)  # pylint: disable=no-member
 
 
+def utask_main(uworker_input):
+  """Set logs context and run the untrusted part of a symbolize command."""
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
+  with logs.symbolize_log_context(
+      testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
+    return _utask_main(uworker_input, testcase)
+
+
 def get_symbolized_stacktraces(testcase_file_path, testcase,
                                old_crash_stacktrace, expected_state):
   """Use the symbolized builds to generate an updated stacktrace."""
@@ -319,7 +331,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 )
 
 
-def utask_postprocess(output):
+def _utask_postprocess(output, testcase):
   """Handle the output from utask_main."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -328,7 +340,6 @@ def utask_postprocess(output):
   symbolize_task_output = output.symbolize_task_output
 
   # Update crash parameters.
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase.crash_type = symbolize_task_output.crash_type
   testcase.crash_address = symbolize_task_output.crash_address
   testcase.crash_state = symbolize_task_output.crash_state
@@ -358,3 +369,11 @@ def utask_postprocess(output):
   data_handler.handle_duplicate_entry(testcase)
 
   task_creation.create_blame_task_if_needed(testcase)
+
+
+def utask_postprocess(output):
+  """Set logs context and handle the output from utask_main."""
+  # Retrieve the testcase associated with the id.
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  with logs.symbolize_log_context(testcase, testcase.get_fuzz_target()):
+    return _utask_postprocess(output, testcase)
