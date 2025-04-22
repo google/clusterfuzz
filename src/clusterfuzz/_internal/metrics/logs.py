@@ -860,7 +860,8 @@ def task_stage_context(stage: Stage):
 
 
 @contextlib.contextmanager
-def testcase_log_context(testcase: 'Testcase', fuzz_target: 'FuzzTarget | None'):
+def testcase_log_context(testcase: 'Testcase',
+                         fuzz_target: 'FuzzTarget | None'):
   """Creates a testcase-based context for a given testcase.
 
   Fuzz target as an argument is needed since retrieving this entity depends on

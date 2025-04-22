@@ -596,7 +596,9 @@ class EmitTest(unittest.TestCase):
     testcase.put()
 
     with logs.testcase_log_context(testcase, fuzz_target):
-      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       # Assert metadata after emit to ensure that `common_ctx` has been added.
@@ -758,7 +760,9 @@ class EmitTest(unittest.TestCase):
     logs_extra.update(self.common_context)
 
     with logs.testcase_log_context(testcase, None):
-      self.assertEqual(logs.log_contexts.contexts, [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       self.assertEqual(
