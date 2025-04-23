@@ -42,6 +42,7 @@ class BaseTask:
 class TrustedTask(BaseTask):
   """Implementation of a task that is run on a single machine. These tasks were
   the original ones in ClusterFuzz."""
+
   @logs.task_stage_context(logs.Stage.NA)
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
