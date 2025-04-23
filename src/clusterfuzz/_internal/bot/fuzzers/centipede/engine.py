@@ -456,6 +456,7 @@ class Engine(engine.Engine):
         constants.MAX_LEN_FLAGNAME,
         constants.NUM_RUNS_FLAGNAME,
         constants.EXIT_ON_CRASH_FLAGNAME,
+        constants.BATCH_SIZE_FLAGNAME,
     ]:
       if argument in arguments:
         del arguments[argument]
@@ -488,19 +489,7 @@ class Engine(engine.Engine):
     _set_sanitizer_options(target_path)
 
     minimize_arguments = self._get_arguments(target_path)
-    minimize_arguments = self._strip_fuzzing_arguments(minimize_arguments)
-
-    # Here is a tricky thing. Basically, during minimization, we want to make
-    # sure we are finding all possible crashes in the corpus so that we have a
-    # clean corpus. However, there can be a lot of crashes in the corpus,
-    # especially for the ones that never ran corpus_pruning before. On top of
-    # that, some fuzzers have insane set-up time, and running test cases
-    # one-by-one can take a serious amount of time. Reducing batch_size will:
-    #   - Reduce the probability to have a crash in all batches (thus speed up
-    # execution time).
-    #   - Reduce the amount of time we spend running test cases one-by-one.
-    minimize_arguments[constants.BATCH_SIZE_FLAGNAME] = min(
-        minimize_arguments.get(constants.BATCH_SIZE_FLAGNAME, default=200), 200)
+    self._strip_fuzzing_arguments(minimize_arguments)
 
     # Step 1: Generate corpus file for Centipede.
     # When calling this during a fuzzing session, use the existing workdir.
