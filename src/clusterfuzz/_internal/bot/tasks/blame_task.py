@@ -273,6 +273,7 @@ def _execute_task(testcase_id):
   """Attempt to find the CL introducing the bug associated with testcase_id."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
+
   # Make sure that predator topic is configured. If not, nothing to do here.
   topic = db_config.get_value('predator_crash_topic')
   if not topic:
