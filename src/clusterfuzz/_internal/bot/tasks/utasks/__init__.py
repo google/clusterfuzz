@@ -305,7 +305,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
 
     utask_module.utask_postprocess(uworker_output)
 
-
+@logs.task_stage_context(logs.Stage.PREPROCESS)
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
