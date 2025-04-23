@@ -293,9 +293,10 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
       analyze_task_output.security_severity = testcase.security_severity
 
 
-def _utask_preprocess(testcase_id, job_type, uworker_env, testcase):
+def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
-  # Mark the testcase as started.
+  # Get the testcase from the database and mark the testcase as started.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
@@ -339,7 +340,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Get the testcase from the database.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    return _utask_preprocess(testcase_id, job_type, uworker_env, testcase)
+    return _utask_preprocess(testcase_id, job_type, uworker_env)
 
 
 def get_analyze_task_input():
@@ -368,10 +369,12 @@ def _build_task_output(
   return analyze_task_output
 
 
-def _utask_main(uworker_input, testcase):
+def _utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
   testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   uworker_io.check_handling_testcase_safe(testcase)
   prepare_env_for_main(testcase_upload_metadata)
 
@@ -474,7 +477,7 @@ def utask_main(uworker_input):
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
-    return _utask_main(uworker_input, testcase)
+    return _utask_main(uworker_input)
 
 
 def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
@@ -571,7 +574,7 @@ def _update_testcase(output):
   testcase.put()
 
 
-def _utask_postprocess(output, testcase):
+def _utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase_utils.emit_testcase_triage_duration_metric(
@@ -582,6 +585,7 @@ def _utask_postprocess(output, testcase):
     _ERROR_HANDLER.handle(output)
     return
 
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
 
@@ -647,4 +651,4 @@ def utask_postprocess(output):
   """Sets logs context and runs postprocess of the analyze_task."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    return _utask_postprocess(output, testcase)
+    return _utask_postprocess(output)
