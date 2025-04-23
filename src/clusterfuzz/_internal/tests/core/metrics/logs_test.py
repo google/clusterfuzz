@@ -580,7 +580,7 @@ class EmitTest(unittest.TestCase):
             },
         })
 
-  def test_progression_log_context(self):
+  def test_testcase_log_context(self):
     """Test that the logger is called with the correct arguments considering
     a testcase-based task context and metadata.
     """
@@ -595,11 +595,10 @@ class EmitTest(unittest.TestCase):
         fuzzer_name="test_fuzzer", job_type='test_job')
     testcase.put()
 
-    with logs.progression_log_context(testcase, fuzz_target):
-      self.assertEqual(logs.log_contexts.contexts, [
-          logs.LogContextType.COMMON, logs.LogContextType.TESTCASE,
-          logs.LogContextType.PROGRESSION
-      ])
+    with logs.testcase_log_context(testcase, fuzz_target):
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       # Assert metadata after emit to ensure that `common_ctx` has been added.
@@ -627,7 +626,7 @@ class EmitTest(unittest.TestCase):
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_progression_log_context'
+                'method': 'test_testcase_log_context'
             },
         })
 
@@ -760,11 +759,10 @@ class EmitTest(unittest.TestCase):
     })
     logs_extra.update(self.common_context)
 
-    with logs.regression_log_context(testcase, None):
-      self.assertEqual(logs.log_contexts.contexts, [
-          logs.LogContextType.COMMON, logs.LogContextType.TESTCASE,
-          logs.LogContextType.REGRESSION
-      ])
+    with logs.testcase_log_context(testcase, None):
+      self.assertEqual(
+          logs.log_contexts.contexts,
+          [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       self.assertEqual(

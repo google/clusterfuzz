@@ -592,7 +592,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
   Runs on a trusted worker.
   """
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  with logs.regression_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if testcase.regression:
       logs.error(
           f'Regression range is already set as {testcase.regression}, skip.')
@@ -634,7 +634,7 @@ def utask_main(
   """
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  with logs.regression_log_context(
+  with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
     uworker_io.check_handling_testcase_safe(testcase)
     return find_regression_range(uworker_input)
@@ -732,7 +732,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
   testcase_id = output.uworker_input.testcase_id
   # Retrieve the testcase early to be used by logs context.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  with logs.regression_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     testcase_utils.emit_testcase_triage_duration_metric(
         int(testcase_id),
         testcase_utils.TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP)
