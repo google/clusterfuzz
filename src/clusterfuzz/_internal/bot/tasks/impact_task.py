@@ -268,7 +268,7 @@ def set_testcase_with_impacts(testcase, impacts):
   testcase.is_impact_set_flag = True
 
 
-def _execute_task(testcase_id, job_type, testcase):
+def _execute_task(testcase_id, job_type):
   """Attempt to find if the testcase affects release branches on Chromium."""
   # We don't need job_type but it's supplied to all tasks.
   del job_type
@@ -276,6 +276,9 @@ def _execute_task(testcase_id, job_type, testcase):
   # This shouldn't ever get scheduled, but check just in case.
   if not utils.is_chromium():
     return
+
+  # Locate the testcase associated with the id.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # If this testcase is fixed, we should no longer be doing impact testing.
   if testcase.fixed and testcase.is_impact_set_flag:
@@ -332,7 +335,6 @@ def _execute_task(testcase_id, job_type, testcase):
 
 def execute_task(testcase_id, job_type):
   """Set logs context and execute Chromium impact task."""
-  # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    return _execute_task(testcase_id, job_type, testcase)
+    return _execute_task(testcase_id, job_type)
