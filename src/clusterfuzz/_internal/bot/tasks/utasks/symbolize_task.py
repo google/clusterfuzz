@@ -75,7 +75,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Set logs context and run preprocessing for symbolize task."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  with logs.symbolize_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     return _utask_preprocess(testcase_id, job_type, uworker_env, testcase)
 
 
@@ -231,7 +231,7 @@ def utask_main(uworker_input):
   """Set logs context and run the untrusted part of a symbolize command."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  with logs.symbolize_log_context(
+  with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
     return _utask_main(uworker_input, testcase)
 
@@ -375,5 +375,5 @@ def utask_postprocess(output):
   """Set logs context and handle the output from utask_main."""
   # Retrieve the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  with logs.symbolize_log_context(testcase, testcase.get_fuzz_target()):
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     return _utask_postprocess(output, testcase)

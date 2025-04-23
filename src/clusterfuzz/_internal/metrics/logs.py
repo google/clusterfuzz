@@ -550,7 +550,7 @@ def intercept_log_context(func):
       for context in log_contexts.contexts:
         kwargs.update(context.get_extras()._asdict())
     else:
-      # This is needed to avoid logging the label 'ingore_context: True'
+      # This is needed to avoid logging the label 'ingore_context: True'.
       del kwargs["ignore_context"]
     return func(*args, **kwargs)
 
@@ -711,11 +711,6 @@ class LogContextType(enum.Enum):
   COMMON = 'common'
   TASK = 'task'
   TESTCASE = 'testcase'
-  PROGRESSION = 'progression'
-  REGRESSION = 'regression'
-  MINIMIZE = 'minimize'
-  VARIANT = 'variant'
-  SYMBOLIZE = 'symbolize'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
@@ -782,26 +777,6 @@ class LogContextType(enum.Enum):
             'Error retrieving context for testcase-based logs.',
             ignore_context=True)
         return GenericLogStruct()
-
-    if self == LogContextType.PROGRESSION:
-      # Field to add specific metadata for progression.
-      return GenericLogStruct()
-
-    if self == LogContextType.REGRESSION:
-      # Field to add specific metadata for regression.
-      return GenericLogStruct()
-
-    if self == LogContextType.MINIMIZE:
-      # Field to add specific metadata for minimize
-      return GenericLogStruct()
-
-    if self == LogContextType.VARIANT:
-      # Field to add specific metadata for variant.
-      return GenericLogStruct()
-
-    if self == LogContextType.SYMBOLIZE:
-      # Field to add specific metadata for symbolize.
-      return GenericLogStruct()
 
     return GenericLogStruct()
 
@@ -908,44 +883,3 @@ def testcase_log_context(testcase: 'Testcase',
     finally:
       log_contexts.delete_metadata('testcase')
       log_contexts.delete_metadata('fuzz_target')
-
-
-# Keeping a context for each testcase-based task to make it
-# easier to add speficic metadata if needed.
-@contextlib.contextmanager
-def progression_log_context(testcase: 'Testcase',
-                            fuzz_target: 'FuzzTarget | None'):
-  with testcase_log_context(testcase, fuzz_target):
-    with wrap_log_context(contexts=[LogContextType.PROGRESSION]):
-      yield
-
-
-@contextlib.contextmanager
-def regression_log_context(testcase: 'Testcase',
-                           fuzz_target: 'FuzzTarget | None'):
-  with testcase_log_context(testcase, fuzz_target):
-    with wrap_log_context(contexts=[LogContextType.REGRESSION]):
-      yield
-
-
-@contextlib.contextmanager
-def minimize_log_context(testcase: 'Testcase',
-                         fuzz_target: 'FuzzTarget | None'):
-  with testcase_log_context(testcase, fuzz_target):
-    with wrap_log_context(contexts=[LogContextType.MINIMIZE]):
-      yield
-
-
-@contextlib.contextmanager
-def variant_log_context(testcase: 'Testcase', fuzz_target: 'FuzzTarget | None'):
-  with testcase_log_context(testcase, fuzz_target):
-    with wrap_log_context(contexts=[LogContextType.VARIANT]):
-      yield
-
-
-@contextlib.contextmanager
-def symbolize_log_context(testcase: 'Testcase',
-                          fuzz_target: 'FuzzTarget | None'):
-  with testcase_log_context(testcase, fuzz_target):
-    with wrap_log_context(contexts=[LogContextType.SYMBOLIZE]):
-      yield
