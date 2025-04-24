@@ -85,7 +85,8 @@ class GetTaskTest(unittest.TestCase):
     self.assertEqual('test', task.command)
     self.assertEqual('high', task.argument)
     self.assertEqual('job', task.job)
-    self.assertEqual('test high job', task.payload())
+    self.assertEqual('high-end-jobs-linux', task.queue)
+    self.assertEqual('test high job high-end-jobs-linux', task.payload())
 
   def test_regular(self):
     """Test regular tasks."""
@@ -98,7 +99,8 @@ class GetTaskTest(unittest.TestCase):
     self.assertEqual('test', task.command)
     self.assertEqual('normal', task.argument)
     self.assertEqual('job', task.job)
-    self.assertEqual('test normal job', task.payload())
+    self.assertEqual('jobs-linux', task.queue)
+    self.assertEqual('test normal job jobs-linux', task.payload())
 
   def test_preemptible(self):
     """Test preemptible bot tasks."""
@@ -124,7 +126,8 @@ class GetTaskTest(unittest.TestCase):
       self.assertEqual('test', task.command)
       self.assertEqual('normal4', task.argument)
       self.assertEqual('job', task.job)
-      self.assertEqual('test normal4 job', task.payload())
+      self.assertEqual('jobs-linux', task.queue)
+      self.assertEqual('test normal4 job jobs-linux', task.payload())
 
       self.assertEqual(3, mock_modify.call_count)
       mock_modify.assert_has_calls([
@@ -142,7 +145,8 @@ class GetTaskTest(unittest.TestCase):
     self.assertEqual('test', task.command)
     self.assertEqual('override', task.argument)
     self.assertEqual('job', task.job)
-    self.assertEqual('test override job', task.payload())
+    self.assertEqual(None, task.queue)
+    self.assertEqual('test override job None', task.payload())
 
 
 class LeaseTaskTest(unittest.TestCase):
