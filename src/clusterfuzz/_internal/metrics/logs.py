@@ -761,8 +761,9 @@ class LogContextType(enum.Enum):
             job=log_contexts.meta.get('job_type', 'null'),
             fuzz_target=log_contexts.meta.get('fuzz_target', 'null'))
       except:
-        error('Error retrieving context for fuzzing-based logs.',
-              ignore_context=True)
+        error(
+            'Error retrieving context for fuzzing-based logs.',
+            ignore_context=True)
         return GenericLogStruct()
 
     if self == LogContextType.TESTCASE:
