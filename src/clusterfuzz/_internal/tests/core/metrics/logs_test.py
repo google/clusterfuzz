@@ -528,7 +528,7 @@ class EmitTest(unittest.TestCase):
         })
 
   def test_common_context_logs(self):
-    """Test logs common context is instanced once for distinct modules."""
+    """Test that logs common context is instanced once for distinct modules."""
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
@@ -590,15 +590,15 @@ class EmitTest(unittest.TestCase):
     fuzz_target = data_types.FuzzTarget(
         id='libFuzzer_abc', engine='libFuzzer', binary='abc')
     fuzz_target.put()
-    self.mock.get_fuzz_target.return_value = fuzz_target
     testcase = data_types.Testcase(
         fuzzer_name="test_fuzzer", job_type='test_job')
     testcase.put()
 
     with logs.testcase_log_context(testcase, fuzz_target):
-      self.assertEqual(
-          logs.log_contexts.contexts,
-          [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
+      self.assertEqual(logs.log_contexts.contexts, [
+          logs.LogContextType.COMMON, logs.LogContextType.FUZZ,
+          logs.LogContextType.TESTCASE
+      ])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       # Assert metadata after emit to ensure that `common_ctx` has been added.
@@ -606,7 +606,9 @@ class EmitTest(unittest.TestCase):
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase': testcase,
-              'fuzz_target': fuzz_target
+              'fuzz_target': fuzz_target.binary,
+              'fuzzer_name': testcase.fuzzer_name,
+              'job_type': testcase.job_type
           })
 
     logs_extra = {'target': 'bot', 'test': 'yes'}
@@ -739,13 +741,13 @@ class EmitTest(unittest.TestCase):
             },
         })
 
-  def test_missing_fuzz_target_in_log_context(self):
+  def test_missing_fuzz_target_in_testcase_context(self):
     """Test the testcase-based log context when the fuzz target is missing."""
     from clusterfuzz._internal.datastore import data_types
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
     testcase = data_types.Testcase(
-        fuzzer_name="test_fuzzer", job_type='test_job')
+        fuzzer_name='test_fuzzer', job_type='test_job')
     # Set this metadata to be used instead of the fuzz_target entity.
     testcase.set_metadata('fuzzer_binary_name', 'fuzz_abc')
     testcase.put()
@@ -760,16 +762,19 @@ class EmitTest(unittest.TestCase):
     logs_extra.update(self.common_context)
 
     with logs.testcase_log_context(testcase, None):
-      self.assertEqual(
-          logs.log_contexts.contexts,
-          [logs.LogContextType.COMMON, logs.LogContextType.TESTCASE])
+      self.assertEqual(logs.log_contexts.contexts, [
+          logs.LogContextType.COMMON, logs.LogContextType.FUZZ,
+          logs.LogContextType.TESTCASE
+      ])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       self.assertEqual(
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase': testcase,
-              'fuzz_target': None
+              'fuzz_target': testcase.get_metadata('fuzzer_binary_name'),
+              'fuzzer_name': testcase.fuzzer_name,
+              'job_type': testcase.job_type
           })
 
     logger.log.assert_called_with(
@@ -781,7 +786,53 @@ class EmitTest(unittest.TestCase):
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_missing_fuzz_target_in_log_context'
+                'method': 'test_missing_fuzz_target_in_testcase_context'
+            },
+        })
+
+  def test_fuzz_logs_context(self):
+    """Test the correct logger call for the fuzz-based log context."""
+    from clusterfuzz._internal.datastore import data_types
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    fuzz_target = data_types.FuzzTarget(
+        id='libFuzzer_abc', engine='libFuzzer', binary='abc')
+    fuzz_target.put()
+    fuzzer_name = 'test_fuzzer'
+    job_type = 'test_job'
+
+    with logs.fuzz_log_context(fuzzer_name, job_type, fuzz_target):
+      self.assertEqual(logs.log_contexts.contexts,
+                       [logs.LogContextType.COMMON, logs.LogContextType.FUZZ])
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+      # Assert metadata after emit to ensure that `common_ctx` has been added.
+      self.assertEqual(
+          logs.log_contexts.meta, {
+              'common_ctx': self.common_context,
+              'fuzz_target': fuzz_target.binary,
+              'fuzzer_name': fuzzer_name,
+              'job_type': job_type
+          })
+
+    logs_extra = {'target': 'bot', 'test': 'yes'}
+    logs_extra.update(self.common_context)
+    logs_extra.update({
+        'fuzz_target': 'abc',
+        'job': 'test_job',
+        'fuzzer': 'test_fuzzer'
+    })
+    logger.log.assert_called_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_fuzz_logs_context'
             },
         })
 

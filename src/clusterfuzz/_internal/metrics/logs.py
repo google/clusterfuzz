@@ -695,21 +695,25 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
-class TestcaseLogStruct(NamedTuple):
-  testcase_id: str
+class FuzzLogStruct(NamedTuple):
   fuzz_target: str
   job: str
   fuzzer: str
 
 
+class TestcaseLogStruct(NamedTuple):
+  testcase_id: str
+
+
 class LogContextType(enum.Enum):
-  """Log context types
-     This is the way to define the context for a given entrypoint
-     and this context is used for define the adicional labels
-     to be added to the log.
+  """Log context types.
+  
+  This is the way to define the context for a given entrypoint and this
+  context is used for define the adicional labels to be added to the log.
   """
   COMMON = 'common'
   TASK = 'task'
+  FUZZ = 'fuzz'
   TESTCASE = 'testcase'
 
   def get_extras(self) -> NamedTuple:
@@ -750,6 +754,16 @@ class LogContextType(enum.Enum):
         error('Error retrieving context for task logs.', ignore_context=True)
         return GenericLogStruct()
 
+    if self == LogContextType.FUZZ:
+      try:
+        return FuzzLogStruct(
+            fuzzer=log_contexts.meta.get('fuzzer_name', 'null'),
+            job=log_contexts.meta.get('job_type', 'null'),
+            fuzz_target=log_contexts.meta.get('fuzz_target', 'null'))
+      except:
+        error('Error retrieving context for fuzzing-based logs.')
+        return GenericLogStruct()
+
     if self == LogContextType.TESTCASE:
       try:
         testcase: 'Testcase | None' = log_contexts.meta.get('testcase')
@@ -759,19 +773,8 @@ class LogContextType(enum.Enum):
               ignore_context=True)
           return GenericLogStruct()
 
-        fuzz_target: 'FuzzTarget | None' = log_contexts.meta.get('fuzz_target')
-        if fuzz_target and fuzz_target.binary:
-          fuzz_target_bin = fuzz_target.binary
-        else:
-          fuzz_target_bin = testcase.get_metadata('fuzzer_binary_name',
-                                                  'unknown')
+        return TestcaseLogStruct(testcase_id=testcase.key.id())  # type: ignore
 
-        return TestcaseLogStruct(
-            testcase_id=testcase.key.id(),  # type: ignore
-            fuzz_target=fuzz_target_bin,  # type: ignore
-            job=testcase.job_type,  # type: ignore
-            fuzzer=testcase.fuzzer_name  # type: ignore
-        )
       except:
         error(
             'Error retrieving context for testcase-based logs.',
@@ -800,7 +803,7 @@ class Singleton(type):
 
 
 class LogContexts(metaclass=Singleton):
-  """Class to keep the log contexts and metadata"""
+  """Class to keep the log contexts and metadata."""
 
   def __init__(self):
     self.contexts: list[LogContextType] = [LogContextType.COMMON]
@@ -844,7 +847,7 @@ def wrap_log_context(contexts: list[LogContextType]):
 
 @contextlib.contextmanager
 def task_stage_context(stage: Stage):
-  """Creates a task context for a given stage"""
+  """Creates a task context for a given stage."""
   with wrap_log_context(contexts=[LogContextType.TASK]):
     try:
       log_contexts.add_metadata('stage', stage)
@@ -860,6 +863,29 @@ def task_stage_context(stage: Stage):
 
 
 @contextlib.contextmanager
+def fuzz_log_context(fuzzer_name: str, job_type: str,
+                     fuzz_target: 'FuzzTarget | None'):
+  """Creates a fuzz context for a given fuzzer, job, and target (optional)."""
+  with wrap_log_context(contexts=[LogContextType.FUZZ]):
+    try:
+      if fuzz_target and fuzz_target.binary:
+        fuzz_target_bin = fuzz_target.binary
+      else:
+        fuzz_target_bin = 'unknown'
+      log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
+      log_contexts.add_metadata('fuzzer_name', fuzzer_name)
+      log_contexts.add_metadata('job_type', job_type)
+      yield
+    except Exception as e:
+      warning(message='Error during fuzz context.')
+      raise e
+    finally:
+      log_contexts.delete_metadata('fuzz_target')
+      log_contexts.delete_metadata('fuzzer_name')
+      log_contexts.delete_metadata('job_type')
+
+
+@contextlib.contextmanager
 def testcase_log_context(testcase: 'Testcase',
                          fuzz_target: 'FuzzTarget | None'):
   """Creates a testcase-based context for a given testcase.
@@ -868,10 +894,19 @@ def testcase_log_context(testcase: 'Testcase',
   the task's stage. In trusted part, it can be retrieved by querying the DB,
   while in untrusted part is only accessible through the protobuf.
   """
-  with wrap_log_context(contexts=[LogContextType.TESTCASE]):
+  with wrap_log_context(
+      contexts=[LogContextType.FUZZ, LogContextType.TESTCASE]):
     try:
-      log_contexts.add_metadata('testcase', testcase)
-      log_contexts.add_metadata('fuzz_target', fuzz_target)
+      log_contexts.add_metadata('testcase', testcase)  # type: ignore
+      if testcase:
+        log_contexts.add_metadata('fuzzer_name', testcase.fuzzer_name)
+        log_contexts.add_metadata('job_type', testcase.job_type)
+        if fuzz_target and fuzz_target.binary:
+          fuzz_target_bin = fuzz_target.binary
+        else:
+          fuzz_target_bin = testcase.get_metadata('fuzzer_binary_name',
+                                                  'unknown')
+        log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
       yield
     except Exception as e:
       # Logging as a warning because this error will be handled
@@ -881,4 +916,6 @@ def testcase_log_context(testcase: 'Testcase',
       raise e
     finally:
       log_contexts.delete_metadata('testcase')
+      log_contexts.delete_metadata('fuzzer_name')
+      log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
