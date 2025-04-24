@@ -1022,7 +1022,7 @@ def _extract_coverage_information(context, result):
   return coverage_info
 
 
-def utask_main(uworker_input):
+def _utask_main(uworker_input):
   """Execute corpus pruning task."""
   fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
@@ -1073,6 +1073,16 @@ def utask_main(uworker_input):
   return uworker_output
 
 
+def utask_main(uworker_input):
+  """Sets logs context and executes corpus pruning task."""
+  fuzz_target = uworker_io.entity_from_protobuf(
+      uworker_input.corpus_pruning_task_input.fuzz_target,
+      data_types.FuzzTarget)
+  with logs.fuzz_log_context(uworker_input.fuzzer_name, uworker_input.job_type,
+                             fuzz_target):
+    return _utask_main(uworker_input)
+
+
 def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'
                f'{output.uworker_input.job_type}')
@@ -1104,7 +1114,7 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
   corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
 
 
-def utask_preprocess(fuzzer_name, job_type, uworker_env):
+def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
 
@@ -1170,6 +1180,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       corpus_pruning_task_input=corpus_pruning_task_input)
 
 
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  """Sets logs context and runs preprocessing for corpus pruning task."""
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  with logs.fuzz_log_context(fuzzer_name, job_type, fuzz_target):
+    return _utask_preprocess(fuzzer_name, job_type, uworker_env)
+
+
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:  # pylint: disable=no-member
         uworker_handle_errors.noop_handler,
@@ -1198,7 +1215,7 @@ def _update_latest_backup(output):
                f'{latest_backup_gcs_url}.')
 
 
-def utask_postprocess(output):
+def _utask_postprocess(output):
   """Trusted: Handles errors and writes anything needed to the db."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -1211,3 +1228,12 @@ def utask_postprocess(output):
   _save_coverage_information(output)
   _process_corpus_crashes(output)
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
+
+
+def utask_postprocess(output):
+  """Sets logs context and runs postprocess for corpus pruning task."""
+  fuzzer_name = output.uworker_input.fuzzer_name
+  job_type = output.uworker_input.job_type
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  with logs.fuzz_log_context(fuzzer_name, job_type, fuzz_target):
+    return _utask_postprocess(output)
