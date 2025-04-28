@@ -293,7 +293,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
       analyze_task_output.security_severity = testcase.security_severity
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
   # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -335,6 +335,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return uworker_input
 
 
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  """Sets logs context and runs preprocessing for analyze task."""
+  # Get the testcase from the database.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+    return _utask_preprocess(testcase_id, job_type, uworker_env)
+
+
 def get_analyze_task_input():
   return uworker_msg_pb2.AnalyzeTaskInput(  # pylint: disable=no-member
       bad_revisions=build_manager.get_job_bad_revisions())
@@ -361,7 +369,7 @@ def _build_task_output(
   return analyze_task_output
 
 
-def utask_main(uworker_input):
+def _utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
   testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
@@ -463,6 +471,15 @@ def utask_main(uworker_input):
       issue_metadata=json.dumps(fuzz_target_metadata))
 
 
+def utask_main(uworker_input):
+  """Sets logs context and runs the untrusted part of analyze_task."""
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
+  with logs.testcase_log_context(
+      testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
+    return _utask_main(uworker_input)
+
+
 def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                              test_timeout):
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
@@ -557,7 +574,7 @@ def _update_testcase(output):
   testcase.put()
 
 
-def utask_postprocess(output):
+def _utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase_utils.emit_testcase_triage_duration_metric(
@@ -628,3 +645,10 @@ def utask_postprocess(output):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
+
+
+def utask_postprocess(output):
+  """Sets logs context and runs postprocess of the analyze_task."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+    return _utask_postprocess(output)

@@ -791,6 +791,7 @@ class Stage(enum.Enum):
   MAIN = 'main'
   POSTPROCESS = 'postprocess'
   UNKNOWN = 'unknown'
+  NA = 'n/a'
 
 
 class Singleton(type):
