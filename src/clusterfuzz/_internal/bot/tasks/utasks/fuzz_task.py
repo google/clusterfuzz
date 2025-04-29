@@ -1984,8 +1984,16 @@ def handle_fuzz_bad_build(uworker_output):
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
-  session = _make_session(uworker_input)
-  return session.run()
+  # Sets fuzzing logs context before running the fuzzer.
+  if uworker_input.fuzz_task_input.HasField('fuzz_target'):
+    fuzz_target = uworker_io.entity_from_protobuf(
+        uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
+  else:
+    fuzz_target = None
+  with logs.fuzzer_log_context(uworker_input.fuzzer_name, uworker_input.job_type,
+                             fuzz_target):
+    session = _make_session(uworker_input)
+    return session.run()
 
 
 def handle_fuzz_no_fuzz_target_selected(output):
@@ -2051,7 +2059,7 @@ def _preprocess_get_fuzz_target(fuzzer_name, job_type):
   return None
 
 
-def utask_preprocess(fuzzer_name, job_type, uworker_env):
+def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
   fuzz_task_knobs.do_multiarmed_bandit_strategy_selection(uworker_env)
@@ -2060,6 +2068,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   fuzz_target = _preprocess_get_fuzz_target(fuzzer_name, job_type)
   fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()  # pylint: disable=no-member
   if fuzz_target:
+    # Add the chosen fuzz target to logs context.
+    logs.log_contexts.add_metadata('fuzz_target', fuzz_target.binary)
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
     fuzz_task_input.corpus.CopyFrom(
@@ -2089,6 +2099,14 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       uworker_env=uworker_env,
       setup_input=setup_input,
   )
+
+
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  """Set logs context and preprocess untrusted task."""
+  # Delay adding the fuzz target to logs context until it is chosen in
+  # preprocess.
+  with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target=None):
+    return _utask_preprocess(fuzzer_name, job_type, uworker_env)
 
 
 def save_fuzz_targets(output):
@@ -2132,7 +2150,7 @@ def _upload_engine_output(engine_output):
   testcase_manager.upload_testcase(None, engine_output.testcase, timestamp)
 
 
-def utask_postprocess(output):
+def _utask_postprocess(output):
   """Postprocesses fuzz_task."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -2148,3 +2166,16 @@ def utask_postprocess(output):
   # utask_main.
   for engine_output in output.fuzz_task_output.engine_outputs:
     _upload_engine_output(engine_output)
+
+
+def utask_postprocess(output):
+  """Sets fuzzing logs context and postprocesses fuzz_task."""
+  fuzzer_name = output.uworker_input.fuzzer_name
+  job_type = output.uworker_input.job_type
+  if output.uworker_input.fuzz_task_input.HasField('fuzz_target'):
+    fuzz_target = uworker_io.entity_from_protobuf(
+        output.uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
+  else:
+    fuzz_target = None
+  with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
+    return _utask_postprocess(output)
