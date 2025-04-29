@@ -1078,8 +1078,8 @@ def utask_main(uworker_input):
   fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
       data_types.FuzzTarget)
-  with logs.fuzz_log_context(uworker_input.fuzzer_name, uworker_input.job_type,
-                             fuzz_target):
+  with logs.fuzzer_log_context(uworker_input.fuzzer_name,
+                               uworker_input.job_type, fuzz_target):
     return _utask_main(uworker_input)
 
 
@@ -1183,7 +1183,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Sets logs context and runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-  with logs.fuzz_log_context(fuzzer_name, job_type, fuzz_target):
+  with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
     return _utask_preprocess(fuzzer_name, job_type, uworker_env)
 
 
@@ -1235,5 +1235,5 @@ def utask_postprocess(output):
   fuzzer_name = output.uworker_input.fuzzer_name
   job_type = output.uworker_input.job_type
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-  with logs.fuzz_log_context(fuzzer_name, job_type, fuzz_target):
+  with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
     return _utask_postprocess(output)

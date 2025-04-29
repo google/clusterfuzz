@@ -695,7 +695,7 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
-class FuzzLogStruct(NamedTuple):
+class FuzzerLogStruct(NamedTuple):
   fuzz_target: str
   job: str
   fuzzer: str
@@ -713,7 +713,7 @@ class LogContextType(enum.Enum):
   """
   COMMON = 'common'
   TASK = 'task'
-  FUZZ = 'fuzz'
+  FUZZER = 'fuzzer'
   TESTCASE = 'testcase'
 
   def get_extras(self) -> NamedTuple:
@@ -754,15 +754,15 @@ class LogContextType(enum.Enum):
         error('Error retrieving context for task logs.', ignore_context=True)
         return GenericLogStruct()
 
-    if self == LogContextType.FUZZ:
+    if self == LogContextType.FUZZER:
       try:
-        return FuzzLogStruct(
+        return FuzzerLogStruct(
             fuzzer=log_contexts.meta.get('fuzzer_name', 'null'),
             job=log_contexts.meta.get('job_type', 'null'),
             fuzz_target=log_contexts.meta.get('fuzz_target', 'null'))
       except:
         error(
-            'Error retrieving context for fuzzing-based logs.',
+            'Error retrieving context for fuzzer-based logs.',
             ignore_context=True)
         return GenericLogStruct()
 
@@ -859,17 +859,17 @@ def task_stage_context(stage: Stage):
       # TODO(vtcosta): This warning logs the location (line number/function) of
       # the contextlib module. Maybe we should have a better way to retrieve
       # the location in this case.
-      warning(message='Error during task.')
+      warning(message='Error during task context.')
       raise e
     finally:
       log_contexts.delete_metadata('stage')
 
 
 @contextlib.contextmanager
-def fuzz_log_context(fuzzer_name: str, job_type: str,
-                     fuzz_target: 'FuzzTarget | None'):
-  """Creates a fuzz context for a given fuzzer, job, and target (optional)."""
-  with wrap_log_context(contexts=[LogContextType.FUZZ]):
+def fuzzer_log_context(fuzzer_name: str, job_type: str,
+                       fuzz_target: 'FuzzTarget | None'):
+  """Creates a fuzzer context for a given fuzzer, job, and target (optional)."""
+  with wrap_log_context(contexts=[LogContextType.FUZZER]):
     try:
       if fuzz_target and fuzz_target.binary:
         fuzz_target_bin = fuzz_target.binary
@@ -880,7 +880,7 @@ def fuzz_log_context(fuzzer_name: str, job_type: str,
       log_contexts.add_metadata('job_type', job_type)
       yield
     except Exception as e:
-      warning(message='Error during fuzz context.')
+      warning(message='Error during fuzzer context.')
       raise e
     finally:
       log_contexts.delete_metadata('fuzz_target')
@@ -898,7 +898,7 @@ def testcase_log_context(testcase: 'Testcase',
   while in untrusted part is only accessible through the protobuf.
   """
   with wrap_log_context(
-      contexts=[LogContextType.FUZZ, LogContextType.TESTCASE]):
+      contexts=[LogContextType.FUZZER, LogContextType.TESTCASE]):
     try:
       log_contexts.add_metadata('testcase', testcase)  # type: ignore
       if testcase:

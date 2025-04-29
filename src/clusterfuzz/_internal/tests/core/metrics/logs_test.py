@@ -596,7 +596,7 @@ class EmitTest(unittest.TestCase):
 
     with logs.testcase_log_context(testcase, fuzz_target):
       self.assertEqual(logs.log_contexts.contexts, [
-          logs.LogContextType.COMMON, logs.LogContextType.FUZZ,
+          logs.LogContextType.COMMON, logs.LogContextType.FUZZER,
           logs.LogContextType.TESTCASE
       ])
       statement_line = inspect.currentframe().f_lineno + 1
@@ -696,7 +696,7 @@ class EmitTest(unittest.TestCase):
     except Exception:
       logger.log.assert_called_once_with(
           logging.WARNING,
-          'Error during task.',
+          'Error during task context.',
           exc_info=mock.ANY,
           extra={
               'extras': logs_extras,
@@ -763,7 +763,7 @@ class EmitTest(unittest.TestCase):
 
     with logs.testcase_log_context(testcase, None):
       self.assertEqual(logs.log_contexts.contexts, [
-          logs.LogContextType.COMMON, logs.LogContextType.FUZZ,
+          logs.LogContextType.COMMON, logs.LogContextType.FUZZER,
           logs.LogContextType.TESTCASE
       ])
       statement_line = inspect.currentframe().f_lineno + 1
@@ -790,8 +790,8 @@ class EmitTest(unittest.TestCase):
             },
         })
 
-  def test_fuzz_logs_context(self):
-    """Test the correct logger call for the fuzz-based log context."""
+  def test_fuzzer_logs_context(self):
+    """Test the correct logger call for the fuzzer-based log context."""
     from clusterfuzz._internal.datastore import data_types
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
@@ -802,9 +802,9 @@ class EmitTest(unittest.TestCase):
     fuzzer_name = 'test_fuzzer'
     job_type = 'test_job'
 
-    with logs.fuzz_log_context(fuzzer_name, job_type, fuzz_target):
+    with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
       self.assertEqual(logs.log_contexts.contexts,
-                       [logs.LogContextType.COMMON, logs.LogContextType.FUZZ])
+                       [logs.LogContextType.COMMON, logs.LogContextType.FUZZER])
       statement_line = inspect.currentframe().f_lineno + 1
       logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
       # Assert metadata after emit to ensure that `common_ctx` has been added.
@@ -832,7 +832,7 @@ class EmitTest(unittest.TestCase):
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_fuzz_logs_context'
+                'method': 'test_fuzzer_logs_context'
             },
         })
 
