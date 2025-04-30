@@ -38,6 +38,7 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.config import local_config
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')
@@ -1144,6 +1145,9 @@ def _sanitize_ccs_list(ccs_list):
 def update_issue_ccs_from_owners_file(policy, testcase, issue):
   """Add cc to an issue based on owners list from owners file. This is
   currently applicable to fuzz targets only."""
+  if local_config.ProjectConfig().get('staging.enabled', False):
+    return
+
   auto_cc_label = policy.label('auto_cc_from_owners')
   if not auto_cc_label:
     return
@@ -1250,6 +1254,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
                                                      only_allow_ccs=False):
   """Assign the issue to an appropriate owner if possible."""
   logs.info(f'{update_issue_owner_and_ccs_from_predator_results}')
+  if local_config.ProjectConfig().get('staging.enabled', False):
+    return
+  
   if not issue or not issue.is_open:
     return
 
