@@ -38,7 +38,6 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.config import local_config
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')
@@ -1145,9 +1144,6 @@ def _sanitize_ccs_list(ccs_list):
 def update_issue_ccs_from_owners_file(policy, testcase, issue):
   """Add cc to an issue based on owners list from owners file. This is
   currently applicable to fuzz targets only."""
-  if local_config.ProjectConfig().get('staging.enabled', False):
-    return
-
   auto_cc_label = policy.label('auto_cc_from_owners')
   if not auto_cc_label:
     return
@@ -1218,7 +1214,32 @@ def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
   unreproducible."""
   if not issue or not issue.is_open:
     return
-s
+
+  # If the testcase is reproducible, then no change is needed. Bail out.
+  if not testcase.one_time_crasher_flag:
+    return
+
+  # Make sure that no other reproducible testcases associated with this issue
+  # are open. If yes, no need to update label.
+  similar_reproducible_testcase = data_types.Testcase.query(
+      data_types.Testcase.bug_information == testcase.bug_information,
+      ndb_utils.is_true(data_types.Testcase.open),
+      ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag)).get()
+  if similar_reproducible_testcase:
+    return
+
+  reproducible_label = policy.label('reproducible')
+  unreproducible_label = policy.label('unreproducible')
+  if not reproducible_label or not unreproducible_label:
+    return
+
+  # Make sure that this issue is not already marked Unreproducible.
+  if unreproducible_label in issue.labels:
+    return
+
+  issue.labels.remove(reproducible_label)
+  issue.labels.add(unreproducible_label)
+  comment = (f'ClusterFuzz testcase {testcase.key.id()} appears to be flaky, '
              f'updating reproducibility {issue.issue_tracker.label_type}.')
   issue.save(new_comment=comment)
 
@@ -1229,9 +1250,6 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
                                                      only_allow_ccs=False):
   """Assign the issue to an appropriate owner if possible."""
   logs.info(f'{update_issue_owner_and_ccs_from_predator_results}')
-  if local_config.ProjectConfig().get('staging.enabled', False):
-    return
-  
   if not issue or not issue.is_open:
     return
 
