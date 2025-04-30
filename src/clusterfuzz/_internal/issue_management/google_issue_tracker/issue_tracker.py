@@ -748,6 +748,11 @@ class Issue(issue_tracker.Issue):
   def save(self, new_comment=None, notify=True, skip_emails=[]):  # pylint: disable=dangerous-default-value
     """Saves the issue."""
     logs.info(f'Skipping supposed non gaia emails emails: {skip_emails}.')
+    # Just for a proof of concept
+    # Assert in runtime that we actually do not notify anyone
+    assert not self.assignee
+    assert not self.ccs
+    assert not self._collaborators
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-') or _DEFAULT_PRIORITY

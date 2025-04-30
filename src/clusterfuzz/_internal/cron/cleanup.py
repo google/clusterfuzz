@@ -1218,32 +1218,7 @@ def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
   unreproducible."""
   if not issue or not issue.is_open:
     return
-
-  # If the testcase is reproducible, then no change is needed. Bail out.
-  if not testcase.one_time_crasher_flag:
-    return
-
-  # Make sure that no other reproducible testcases associated with this issue
-  # are open. If yes, no need to update label.
-  similar_reproducible_testcase = data_types.Testcase.query(
-      data_types.Testcase.bug_information == testcase.bug_information,
-      ndb_utils.is_true(data_types.Testcase.open),
-      ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag)).get()
-  if similar_reproducible_testcase:
-    return
-
-  reproducible_label = policy.label('reproducible')
-  unreproducible_label = policy.label('unreproducible')
-  if not reproducible_label or not unreproducible_label:
-    return
-
-  # Make sure that this issue is not already marked Unreproducible.
-  if unreproducible_label in issue.labels:
-    return
-
-  issue.labels.remove(reproducible_label)
-  issue.labels.add(unreproducible_label)
-  comment = (f'ClusterFuzz testcase {testcase.key.id()} appears to be flaky, '
+s
              f'updating reproducibility {issue.issue_tracker.label_type}.')
   issue.save(new_comment=comment)
 
