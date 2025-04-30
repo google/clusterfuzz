@@ -1990,8 +1990,8 @@ def utask_main(uworker_input):
         uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
   else:
     fuzz_target = None
-  with logs.fuzzer_log_context(uworker_input.fuzzer_name, uworker_input.job_type,
-                             fuzz_target):
+  with logs.fuzzer_log_context(uworker_input.fuzzer_name,
+                               uworker_input.job_type, fuzz_target):
     session = _make_session(uworker_input)
     return session.run()
 
