@@ -695,6 +695,11 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
+class CronLogStruct(NamedTuple):
+  task_id: str
+  task_name: str
+
+
 class FuzzerLogStruct(NamedTuple):
   fuzz_target: str
   job: str
@@ -715,6 +720,7 @@ class LogContextType(enum.Enum):
   TASK = 'task'
   FUZZER = 'fuzzer'
   TESTCASE = 'testcase'
+  CRON = 'cron'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
@@ -780,6 +786,17 @@ class LogContextType(enum.Enum):
       except:
         error(
             'Error retrieving context for testcase-based logs.',
+            ignore_context=True)
+        return GenericLogStruct()
+
+    if self == LogContextType.CRON:
+      try:
+        return CronLogStruct(
+            task_name=os.getenv('CF_TASK_NAME', 'null'),
+            task_id=os.getenv('CF_TASK_ID', 'null'))
+      except:
+        error(
+            'Error retrieving context for cron-based logs.',
             ignore_context=True)
         return GenericLogStruct()
 
@@ -922,3 +939,13 @@ def testcase_log_context(testcase: 'Testcase',
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
+
+
+@contextlib.contextmanager
+def cron_log_context():
+  with wrap_log_context(contexts=[LogContextType.CRON]):
+    try:
+      yield
+    except Exception as e:
+      warning(message='Error during cronjob context.')
+      raise e

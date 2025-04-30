@@ -23,6 +23,7 @@ modules.fix_module_search_paths()
 import importlib
 import os
 import sys
+import uuid
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import ndb_init
@@ -59,6 +60,11 @@ def main():
   task = sys.argv[1]
 
   task_module_name = f'clusterfuzz._internal.cron.{task}'
+
+  task_id = uuid.uuid4()
+  environment.set_value('CF_TASK_ID', task_id)
+  environment.set_value('CF_TASK_NAME', task)
+
   with monitor.wrap_with_monitoring(), ndb_init.context():
     task_module = importlib.import_module(task_module_name)
     return 0 if task_module.main() else 1
