@@ -1256,7 +1256,6 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
   logs.info(f'{update_issue_owner_and_ccs_from_predator_results}')
   if local_config.ProjectConfig().get('staging.enabled', False):
     return
-  
   if not issue or not issue.is_open:
     return
 
