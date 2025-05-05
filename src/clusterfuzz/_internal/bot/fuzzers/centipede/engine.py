@@ -327,6 +327,13 @@ class Engine(engine.Engine):
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
     if reproducer_path:
+      # Centipde doesn't remove carshing inputs from the corpus, this workaround
+      # removes the crashing input in case it's present in the corpus directory.
+      crash_input_in_corpus = pathlib.Path(
+          options.corpus_dir) / os.path.basename(reproducer_path)
+      if crash_input_in_corpus.exists():
+        crash_input_in_corpus.unlink()
+        logs.info(f'Removed {crash_input_in_corpus} from the corpus')
       crashes.append(
           engine.Crash(
               str(reproducer_path), fuzz_result.output, [],
