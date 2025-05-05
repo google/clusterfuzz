@@ -325,6 +325,23 @@ def uncaught_exception_handler(exception_type, exception_value,
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
 
+def json_fields_filter(record):
+  """Add logs `extras` argument to `json_fields` metadata for cloud logging."""
+  # TODO(vtcosta): This is a workaround to allow structured logs for
+  # cleanup/triage cronjobs in GKE/GAE. We should try to refactor and
+  # centralize the logs configurations for all environments.
+  if not hasattr(record, 'json_fields'):
+    record.json_fields = {}
+
+  record.json_fields.update({
+      'extras': {
+          k: truncate(v, STACKDRIVER_LOG_MESSAGE_LIMIT)
+          for k, v in getattr(record, 'extras', {}).items()
+      }
+  })
+  return True
+
+
 def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
@@ -335,6 +352,7 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
+  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
@@ -374,6 +392,7 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
+  logging.getLogger().addFilter(json_fields_filter)
   logging.getLogger().setLevel(logging.INFO)
 
 
