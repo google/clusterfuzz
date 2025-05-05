@@ -353,7 +353,7 @@ def _file_issue(testcase, issue_tracker, throttler):
     file_exception = e
 
   if file_exception:
-    logs.error(f'Failed to file issue for testcase {testcase.key.id()}.')
+    logs.error(f'Failed to file issue for testcase {testcase.key.id()}: {file_exception}')
     monitoring_metrics.ISSUE_FILING.increment({
         'fuzzer_name': testcase.fuzzer_name,
         'status': 'failed',
