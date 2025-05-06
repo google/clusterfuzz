@@ -19,6 +19,7 @@ import os
 import tempfile
 import unittest
 from unittest import mock
+import zlib
 
 from google.cloud import ndb
 
@@ -387,3 +388,47 @@ class ComplexFieldsTest(unittest.TestCase):
     wire_format = uworker_io.serialize_uworker_input(output)
     deserialized = uworker_io.deserialize_uworker_output(wire_format)
     self.assertEqual(json.loads(deserialized.issue_metadata), metadata)
+
+
+class FakeProto:
+
+  def __init__(self, data):
+    self.data = data
+
+
+class TestDownloadInputBasedOnOutputUrl(unittest.TestCase):
+  """Tests download_input_based_on_output_url."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.uworker_output_path_to_input_path',
+        'clusterfuzz._internal.google_cloud_utils.storage.read_data',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.deserialize_uworker_input',
+    ])
+
+  def test_compressed_data(self):
+    """Tests that we can decompress and deserialize compressed input data."""
+    initial_data = b'some serialized uworker input'
+    compressed_data = zlib.compress(initial_data)
+    self.mock.uworker_output_path_to_input_path.return_value = 'fake_input_url'
+    self.mock.read_data.return_value = compressed_data
+    self.mock.deserialize_uworker_input.return_value = FakeProto(None)
+    result = uworker_io.download_input_based_on_output_url('fake_output_url')
+    self.mock.uworker_output_path_to_input_path.assert_called_once_with(
+        'fake_output_url')
+    self.mock.read_data.assert_called_once_with('fake_input_url')
+    self.mock.deserialize_uworker_input.assert_called_once_with(initial_data)
+    self.assertIsInstance(result, FakeProto)
+
+  def test_uncompressed_data(self):
+    """Tests deserializing uncompressed data."""
+    initial_data = b'some serialized uworker input'
+    self.mock.uworker_output_path_to_input_path.return_value = 'fake_input_url'
+    self.mock.read_data.return_value = initial_data
+    self.mock.deserialize_uworker_input.return_value = FakeProto(None)
+    result = uworker_io.download_input_based_on_output_url('fake_output_url')
+    self.mock.uworker_output_path_to_input_path.assert_called_once_with(
+        'fake_output_url')
+    self.mock.read_data.assert_called_once_with('fake_input_url')
+    self.mock.deserialize_uworker_input.assert_called_once_with(initial_data)
+    self.assertIsInstance(result, FakeProto)
