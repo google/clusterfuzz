@@ -17,7 +17,6 @@ import datetime
 import functools
 import json
 import re
-import uuid
 
 from flask import g
 from flask import make_response
@@ -99,9 +98,8 @@ def cron():
         raise helpers.AccessDeniedError('You are not a cron.')
 
       # Add env vars used by logs context for cleanup/triage.
-      task_id = uuid.uuid4()
-      environment.set_value('CF_TASK_ID', task_id)
-      environment.set_value('CF_TASK_NAME', self.__module__)
+      environment.set_task_id_vars(self.__module__)
+
       with monitor.wrap_with_monitoring():
         result = func(self)
         if result is None:
