@@ -1124,9 +1124,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
-  logs.info('checking last')
+  logs.info('Checking last execution status.')
   if last_execution_failed:
-    logs.info('last')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
@@ -1154,7 +1153,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     setup_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
-  logs.info('done preprocess')
+  logs.info('Finished preprocess.')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       job_type=job_type,
       fuzzer_name=fuzzer_name,
