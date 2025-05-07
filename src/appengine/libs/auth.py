@@ -161,8 +161,8 @@ def get_current_user():
 
   try:
     decoded_claims = decode_claims(get_session_cookie())
-  except AuthError:
-    logs.warning('Invalid session cookie.')
+  except AuthError as e:
+    logs.warning(f'Error decoding session cookie: {e}')
     return None
 
   allowed_firebase_providers = local_config.ProjectConfig().get(
@@ -196,8 +196,10 @@ def create_session_cookie(id_token, expires_in):
   """Create a new session cookie."""
   try:
     return auth.create_session_cookie(id_token, expires_in=expires_in)
-  except auth.AuthError:
-    raise AuthError('Failed to create session cookie.')
+  except ValueError as e:
+    raise AuthError(f'Invalid input parameters: {e}')
+  except auth.FirebaseError as e:
+    raise AuthError(f'Firebase error: {e}')
 
 
 def get_session_cookie():
@@ -208,12 +210,27 @@ def get_session_cookie():
 def revoke_session_cookie(session_cookie):
   """Revoke a session cookie."""
   decoded_claims = decode_claims(session_cookie)
-  auth.revoke_refresh_tokens(decoded_claims['sub'])
+  try:
+    auth.revoke_refresh_tokens(decoded_claims['sub'])
+  except ValueError as e:
+    raise AuthError(f'Invalid input parameters: {e}')
+  except auth.FirebaseError as e:
+    raise AuthError(f'Firebase error: {e}')
 
 
 def decode_claims(session_cookie):
   """Decode the claims for the current session cookie."""
   try:
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
-  except (ValueError, auth.AuthError):
+  except ValueError as e:
+    raise AuthError(f'Invalid input parameters: {e}')
+  except auth.InvalidSessionCookieError:
     raise AuthError('Invalid session cookie.')
+  except auth.ExpiredSessionCookieError:
+    raise AuthError('Session cookie has expired.')
+  except auth.RevokedSessionCookieError:
+    raise AuthError('Session cookie has been revoked.')
+  except auth.CertificateFetchError:
+    raise AuthError('Failed to fetch public key certificates.')
+  except auth.UserDisabledError:
+    raise AuthError('User account has been disabled.')
