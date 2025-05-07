@@ -31,8 +31,6 @@ from typing import Any
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
-from google.cloud import ndb
-
 # This is needed to avoid circular import
 if TYPE_CHECKING:
   from clusterfuzz._internal.cron.grouper import TestcaseAttributes
@@ -700,6 +698,8 @@ def get_common_log_context() -> dict[str, str]:
 def get_testcase_id(
     testcase: 'Testcase | TestcaseAttributes') -> int | str | None:
   """Return the ID for a testcase or testcase attribute object."""
+  from google.cloud import ndb
+
   if isinstance(testcase, ndb.Model):
     return testcase.key.id()  # type: ignore
   return getattr(testcase, 'id', None)

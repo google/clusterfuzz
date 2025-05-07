@@ -849,7 +849,7 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
     self.assertEqual(logs.log_contexts.contexts,
-                      [logs.LogContextType.COMMON, logs.LogContextType.CRON])
+                     [logs.LogContextType.COMMON, logs.LogContextType.CRON])
     logs_extra = {'target': 'bot', 'test': 'yes'}
     logs_extra.update(self.common_context)
     logs_extra.update({
