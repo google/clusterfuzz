@@ -13,7 +13,9 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
+import functools
 import threading
+import os
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -36,6 +38,8 @@ from . import credentials
 _local = threading.local()
 
 DEFAULT_RETRY_COUNT = 0
+
+LINUX_INIT_SCRIPT_FILENAME = 'batch-init-linux.bash'
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
@@ -122,19 +126,19 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   return jobs
 
 
+@functools.cache
+def get_linux_linit_script() -> str:
+  init_script_path = os.path.join(
+    os.path.dirname(__file__), LINUX_INIT_SCRIPT_FILENAME)
+  with open(init_script_path, 'r') as f:
+    return f.read()
+
+
 def _get_task_spec(batch_workload_spec):
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
-  runnable.container = batch.Runnable.Container()
-  runnable.container.image_uri = batch_workload_spec.docker_image
-  clusterfuzz_release = batch_workload_spec.clusterfuzz_release
-  runnable.container.options = (
-      '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
-      '-e HOST_UID=1337 -P --privileged --cap-add=all '
-      f'-e CLUSTERFUZZ_RELEASE={clusterfuzz_release} '
-      '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      '-e UWORKER_INPUT_DOWNLOAD_URL')
-  runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
+  runnable.script = batch.Runnable.Script()
+  runnable.script = batch.Runnable.Script(text=get_linux_linit_script())
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   if batch_workload_spec.retry:
@@ -195,8 +199,11 @@ def _create_job(spec, input_urls):
   task_group.task_count = len(input_urls)
   assert task_group.task_count < MAX_CONCURRENT_VMS_PER_JOB
   task_environments = [
-      batch.Environment(variables={'UWORKER_INPUT_DOWNLOAD_URL': input_url})
-      for input_url in input_urls
+    batch.Environment(variables={
+      'CLUSTERFUZZ_RELEASE': spec.clusterfuzz_release,
+      'UWORKER_INPUT_DOWNLOAD_URL': input_url,
+    })
+    for input_url in input_urls
   ]
   task_group.task_environments = task_environments
   task_group.task_spec = _get_task_spec(spec)
