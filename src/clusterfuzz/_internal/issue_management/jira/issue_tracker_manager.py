@@ -18,6 +18,7 @@ import json
 import jira
 
 from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.metrics import logs
 
 
 class IssueTrackerManager:
@@ -79,12 +80,25 @@ class IssueTrackerManager:
     """Add watchers to the ticket. Jira has a separate endpoint to
     add watchers."""
 
+    # return if issue was not created yet
+    if issue.id == -1:
+      return
+
     # Get watchers from LabelStore.
     watchers = list(issue.ccs)
 
+    # Get existing watchers to avoid duplicate calls
+    existing_watchers = set(self.get_watchers(issue))
+    
+    # Only add watchers that don't already exist
+    new_watchers = [w for w in watchers if w not in existing_watchers]
+
     # Jira weirdness, update watchers this way.
-    for watcher in watchers:
-      self.client.add_watcher(issue.jira_issue, watcher)
+    for watcher in new_watchers:
+      try: 
+        self.client.add_watcher(issue.jira_issue, watcher)
+      except Exception as e:
+        logs.error(f'Error adding watcher {watcher} to issue {issue.id}: {e}')
 
   def _get_issue_fields(self, issue):
     """Get issue fields to populate the ticket"""
