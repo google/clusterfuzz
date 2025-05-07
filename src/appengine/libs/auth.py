@@ -197,9 +197,9 @@ def create_session_cookie(id_token, expires_in):
   try:
     return auth.create_session_cookie(id_token, expires_in=expires_in)
   except ValueError as e:
-    raise AuthError(f'Invalid input parameters: {str(e)}')
+    raise AuthError(f'Invalid input parameters: {e}')
   except auth.FirebaseError as e:
-    raise AuthError(f'Firebase error: {str(e)}')
+    raise AuthError(f'Firebase error: {e}')
 
 
 def get_session_cookie():
@@ -213,9 +213,9 @@ def revoke_session_cookie(session_cookie):
   try:
     auth.revoke_refresh_tokens(decoded_claims['sub'])
   except ValueError as e:
-    raise AuthError(f'Invalid input parameters: {str(e)}')
+    raise AuthError(f'Invalid input parameters: {e}')
   except auth.FirebaseError as e:
-    raise AuthError(f'Firebase error: {str(e)}')
+    raise AuthError(f'Firebase error: {e}')
 
 
 def decode_claims(session_cookie):
@@ -223,7 +223,7 @@ def decode_claims(session_cookie):
   try:
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
   except ValueError as e:
-    raise AuthError(f'Invalid input parameters: {str(e)}')
+    raise AuthError(f'Invalid input parameters: {e}')
   except auth.InvalidSessionCookieError:
     raise AuthError('Invalid session cookie.')
   except auth.ExpiredSessionCookieError:
