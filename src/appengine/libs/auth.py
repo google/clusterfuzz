@@ -161,8 +161,8 @@ def get_current_user():
 
   try:
     decoded_claims = decode_claims(get_session_cookie())
-  except AuthError:
-    logs.warning('Invalid session cookie.')
+  except AuthError as e:
+    logs.warning(f'Error decoding session cookie: {e}')
     return None
 
   allowed_firebase_providers = local_config.ProjectConfig().get(
@@ -215,5 +215,13 @@ def decode_claims(session_cookie):
   """Decode the claims for the current session cookie."""
   try:
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
-  except (ValueError, auth.AuthError):
+  except (ValueError, auth.InvalidSessionCookieError):
     raise AuthError('Invalid session cookie.')
+  except auth.ExpiredSessionCookieError:
+    raise AuthError('Session cookie has expired.')
+  except auth.RevokedSessionCookieError:
+    raise AuthError('Session cookie has been revoked.')
+  except auth.CertificateFetchError:
+    raise AuthError('Failed to fetch public key certificates.')
+  except auth.UserDisabledError:
+    raise AuthError('User account has been disabled.')
