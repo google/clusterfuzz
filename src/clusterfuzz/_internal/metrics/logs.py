@@ -31,8 +31,11 @@ from typing import Any
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
+from google.cloud import ndb
+
 # This is needed to avoid circular import
 if TYPE_CHECKING:
+  from clusterfuzz._internal.cron.grouper import TestcaseAttributes
   from clusterfuzz._internal.datastore.data_types import FuzzTarget
   from clusterfuzz._internal.datastore.data_types import Testcase
 
@@ -694,6 +697,14 @@ def get_common_log_context() -> dict[str, str]:
     return {}
 
 
+def get_testcase_id(
+    testcase: 'Testcase | TestcaseAttributes') -> int | str | None:
+  """Return the ID for a testcase or testcase attribute object."""
+  if isinstance(testcase, ndb.Model):
+    return testcase.key.id()  # type: ignore
+  return getattr(testcase, 'id', None)
+
+
 class GenericLogStruct(NamedTuple):
   pass
 
@@ -729,6 +740,11 @@ class TestcaseLogStruct(NamedTuple):
   testcase_id: str
 
 
+class GrouperLogStruct(NamedTuple):
+  testcase_1_id: str
+  testcase_2_id: str
+
+
 class LogContextType(enum.Enum):
   """Log context types.
   
@@ -740,6 +756,7 @@ class LogContextType(enum.Enum):
   FUZZER = 'fuzzer'
   TESTCASE = 'testcase'
   CRON = 'cron'
+  GROUPER = 'grouper'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
@@ -793,15 +810,8 @@ class LogContextType(enum.Enum):
 
     if self == LogContextType.TESTCASE:
       try:
-        testcase: 'Testcase | None' = log_contexts.meta.get('testcase')
-        if not testcase:
-          error(
-              'Testcase not found in log context metadata.',
-              ignore_context=True)
-          return GenericLogStruct()
-
-        return TestcaseLogStruct(testcase_id=testcase.key.id())  # type: ignore
-
+        return TestcaseLogStruct(
+            testcase_id=log_contexts.meta.get('testcase_id', 'null'))
       except:
         error(
             'Error retrieving context for testcase-based logs.',
@@ -816,6 +826,17 @@ class LogContextType(enum.Enum):
       except:
         error(
             'Error retrieving context for cron-based logs.',
+            ignore_context=True)
+        return GenericLogStruct()
+
+    if self == LogContextType.GROUPER:
+      try:
+        return GrouperLogStruct(
+            testcase_1_id=log_contexts.meta.get('testcase_1_id', 'null'),
+            testcase_2_id=log_contexts.meta.get('testcase_2_id', 'null'))
+      except:
+        error(
+            'Error retrieving context for grouper-based logs.',
             ignore_context=True)
         return GenericLogStruct()
 
@@ -925,7 +946,7 @@ def fuzzer_log_context(fuzzer_name: str, job_type: str,
 
 
 @contextlib.contextmanager
-def testcase_log_context(testcase: 'Testcase',
+def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
                          fuzz_target: 'FuzzTarget | None'):
   """Creates a testcase-based context for a given testcase.
 
@@ -936,10 +957,12 @@ def testcase_log_context(testcase: 'Testcase',
   with wrap_log_context(
       contexts=[LogContextType.FUZZER, LogContextType.TESTCASE]):
     try:
-      log_contexts.add_metadata('testcase', testcase)  # type: ignore
+      log_contexts.add_metadata('testcase', testcase)
       if testcase:
-        log_contexts.add_metadata('fuzzer_name', testcase.fuzzer_name)
-        log_contexts.add_metadata('job_type', testcase.job_type)
+        log_contexts.add_metadata('testcase_id', get_testcase_id(testcase))
+        log_contexts.add_metadata('fuzzer_name',
+                                  testcase.fuzzer_name)  # type: ignore
+        log_contexts.add_metadata('job_type', testcase.job_type)  # type: ignore
         if fuzz_target and fuzz_target.binary:
           fuzz_target_bin = fuzz_target.binary
         else:
@@ -955,6 +978,7 @@ def testcase_log_context(testcase: 'Testcase',
       raise e
     finally:
       log_contexts.delete_metadata('testcase')
+      log_contexts.delete_metadata('testcase_id')
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
@@ -962,9 +986,29 @@ def testcase_log_context(testcase: 'Testcase',
 
 @contextlib.contextmanager
 def cron_log_context():
+  """Creates a cronjob log context, mainly for triage/cleanup tasks."""
   with wrap_log_context(contexts=[LogContextType.CRON]):
     try:
       yield
     except Exception as e:
       warning(message='Error during cronjob context.')
       raise e
+
+
+@contextlib.contextmanager
+def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
+                        testcase_2: 'Testcase | TestcaseAttributes'):
+  """Creates a grouper context for a given pair of testcases."""
+  with wrap_log_context(contexts=[LogContextType.GROUPER]):
+    try:
+      if testcase_1:
+        log_contexts.add_metadata('testcase_1_id', get_testcase_id(testcase_1))
+      if testcase_2:
+        log_contexts.add_metadata('testcase_2_id', get_testcase_id(testcase_2))
+      yield
+    except Exception as e:
+      warning(message='Error during grouper context.')
+      raise e
+    finally:
+      log_contexts.delete_metadata('testcase_1_id')
+      log_contexts.delete_metadata('testcase_2_id')
