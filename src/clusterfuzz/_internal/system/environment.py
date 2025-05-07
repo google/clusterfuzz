@@ -20,6 +20,7 @@ import re
 import socket
 import subprocess
 import sys
+import uuid
 
 import yaml
 
@@ -1012,6 +1013,14 @@ def set_tsan_max_history_size():
                              'history_size=%d' % tsan_max_history_size))
 
   set_value('TSAN_OPTIONS', tsan_options)
+
+
+def set_task_id_vars(task_name, task_id=None):
+  """Sets environment vars for task name and ID."""
+  if not task_id:
+    task_id = uuid.uuid4()
+  set_value('CF_TASK_ID', task_id)
+  set_value('CF_TASK_NAME', task_name)
 
 
 def set_value(environment_variable, value, env=None):

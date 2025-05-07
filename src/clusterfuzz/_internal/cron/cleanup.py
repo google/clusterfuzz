@@ -100,6 +100,60 @@ def cleanup_reports_metadata():
   ndb_utils.delete_multi(uploaded_reports)
 
 
+def _cleanup_testcases_and_issues(testcase, jobs,
+                                  top_crashes_by_project_and_platform_map,
+                                  empty_issue_tracker_policy):
+  """Clean up unneeded open testcase and its associated issues."""
+  testcase_id = testcase.key.id()
+  logs.info(f'Processing testcase {testcase_id}.')
+
+  try:
+    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+    policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
+    if not policy:
+      logs.info('No policy')
+      policy = empty_issue_tracker_policy
+
+    # Issue updates.
+    update_os_labels(policy, testcase, issue)
+    logs.info('maybe updated os')
+    update_fuzz_blocker_label(policy, testcase, issue,
+                              top_crashes_by_project_and_platform_map)
+    logs.info('maybe updated fuzz blocker')
+    update_component_labels_and_id(policy, testcase, issue)
+    logs.info('maybe updated component labels and component id')
+    update_issue_ccs_from_owners_file(policy, testcase, issue)
+    logs.info('maybe updated issueccs')
+    update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
+    logs.info('maybe updated update_issue_owner_and_ccs_from_predator_results')
+    update_issue_labels_for_flaky_testcase(policy, testcase, issue)
+
+    # Testcase marking rules.
+    mark_duplicate_testcase_as_closed_with_no_issue(testcase)
+    mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue)
+    mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue)
+    mark_testcase_as_closed_if_job_is_invalid(testcase, jobs)
+    mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
+    mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
+        policy, testcase, issue)
+    mark_na_testcase_issues_as_wontfix(policy, testcase, issue)
+
+    # Notification, to be done at end after testcase state is updated from
+    # previous rules.
+    notify_closed_issue_if_testcase_is_open(policy, testcase, issue)
+    notify_issue_if_testcase_is_invalid(policy, testcase, issue)
+    notify_uploader_when_testcase_is_processed(policy, testcase, issue)
+
+    # Mark testcase as triage complete if both testcase and associated issue
+    # are closed. This also need to be done before the deletion rules.
+    mark_testcase_as_triaged_if_needed(testcase, issue)
+
+    # Testcase deletion rules.
+    delete_unreproducible_testcase_with_no_issue(testcase)
+  except Exception:
+    logs.error(f'Failed to process testcase {testcase_id}.')
+
+
 def cleanup_testcases_and_issues():
   """Clean up unneeded open testcases and their associated issues."""
   logs.info('Getting all job type names.')
@@ -125,55 +179,10 @@ def cleanup_testcases_and_issues():
       # Already deleted.
       continue
 
-    logs.info(f'Processing testcase {testcase_id}.')
-
-    try:
-      issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-      policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(
-          testcase)
-      if not policy:
-        logs.info('No policy')
-        policy = empty_issue_tracker_policy
-
-      # Issue updates.
-      update_os_labels(policy, testcase, issue)
-      logs.info('maybe updated os')
-      update_fuzz_blocker_label(policy, testcase, issue,
-                                top_crashes_by_project_and_platform_map)
-      logs.info('maybe updated fuzz blocker')
-      update_component_labels_and_id(policy, testcase, issue)
-      logs.info('maybe updated component labels and component id')
-      update_issue_ccs_from_owners_file(policy, testcase, issue)
-      logs.info('maybe updated issueccs')
-      update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
-      logs.info(
-          'maybe updated update_issue_owner_and_ccs_from_predator_results')
-      update_issue_labels_for_flaky_testcase(policy, testcase, issue)
-
-      # Testcase marking rules.
-      mark_duplicate_testcase_as_closed_with_no_issue(testcase)
-      mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue)
-      mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue)
-      mark_testcase_as_closed_if_job_is_invalid(testcase, jobs)
-      mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
-      mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-          policy, testcase, issue)
-      mark_na_testcase_issues_as_wontfix(policy, testcase, issue)
-
-      # Notification, to be done at end after testcase state is updated from
-      # previous rules.
-      notify_closed_issue_if_testcase_is_open(policy, testcase, issue)
-      notify_issue_if_testcase_is_invalid(policy, testcase, issue)
-      notify_uploader_when_testcase_is_processed(policy, testcase, issue)
-
-      # Mark testcase as triage complete if both testcase and associated issue
-      # are closed. This also need to be done before the deletion rules.
-      mark_testcase_as_triaged_if_needed(testcase, issue)
-
-      # Testcase deletion rules.
-      delete_unreproducible_testcase_with_no_issue(testcase)
-    except Exception:
-      logs.error(f'Failed to process testcase {testcase_id}.')
+    with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+      _cleanup_testcases_and_issues(testcase, jobs,
+                                    top_crashes_by_project_and_platform_map,
+                                    empty_issue_tracker_policy)
 
     testcases_processed += 1
     if testcases_processed % 100 == 0:
@@ -1406,6 +1415,7 @@ def cleanup_unused_heartbeats():
   ndb_utils.delete_multi(unused_heartbeats)
 
 
+@logs.cron_log_context()
 def main():
   """Cleaning up unneeded testcases"""
   cleanup_testcases_and_issues()

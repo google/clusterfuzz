@@ -325,6 +325,23 @@ def uncaught_exception_handler(exception_type, exception_value,
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
 
+def json_fields_filter(record):
+  """Add logs `extras` argument to `json_fields` metadata for cloud logging."""
+  # TODO(vtcosta): This is a workaround to allow structured logs for
+  # cleanup/triage cronjobs in GKE/GAE. We should try to refactor and
+  # centralize the logs configurations for all environments.
+  if not hasattr(record, 'json_fields'):
+    record.json_fields = {}
+
+  record.json_fields.update({
+      'extras': {
+          k: truncate(v, STACKDRIVER_LOG_MESSAGE_LIMIT)
+          for k, v in getattr(record, 'extras', {}).items()
+      }
+  })
+  return True
+
+
 def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
@@ -335,6 +352,7 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
+  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
@@ -374,6 +392,7 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
+  logging.getLogger().addFilter(json_fields_filter)
   logging.getLogger().setLevel(logging.INFO)
 
 
@@ -695,6 +714,11 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
+class CronLogStruct(NamedTuple):
+  task_id: str
+  task_name: str
+
+
 class FuzzerLogStruct(NamedTuple):
   fuzz_target: str
   job: str
@@ -715,6 +739,7 @@ class LogContextType(enum.Enum):
   TASK = 'task'
   FUZZER = 'fuzzer'
   TESTCASE = 'testcase'
+  CRON = 'cron'
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log for a given context"""
@@ -780,6 +805,17 @@ class LogContextType(enum.Enum):
       except:
         error(
             'Error retrieving context for testcase-based logs.',
+            ignore_context=True)
+        return GenericLogStruct()
+
+    if self == LogContextType.CRON:
+      try:
+        return CronLogStruct(
+            task_name=os.getenv('CF_TASK_NAME', 'null'),
+            task_id=os.getenv('CF_TASK_ID', 'null'))
+      except:
+        error(
+            'Error retrieving context for cron-based logs.',
             ignore_context=True)
         return GenericLogStruct()
 
@@ -922,3 +958,13 @@ def testcase_log_context(testcase: 'Testcase',
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
+
+
+@contextlib.contextmanager
+def cron_log_context():
+  with wrap_log_context(contexts=[LogContextType.CRON]):
+    try:
+      yield
+    except Exception as e:
+      warning(message='Error during cronjob context.')
+      raise e
