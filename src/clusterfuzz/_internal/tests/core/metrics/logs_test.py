@@ -878,18 +878,27 @@ class EmitTest(unittest.TestCase):
   @logs.cron_log_context()
   def test_grouper_log_context(self):
     """Test the logger call and metadata for a grouper-based context."""
+    from clusterfuzz._internal.datastore import data_types
     from clusterfuzz._internal.cron.grouper import TestcaseAttributes
     from clusterfuzz._internal.system.environment import set_task_id_vars
     task_name = 'triage'
     task_id = 'abcd-12345'
     set_task_id_vars(task_name, task_id)
 
+    testcase_1 = data_types.Testcase()
+    testcase_2 = data_types.Testcase(group_id=112233)
+    testcase_1.put()
+    testcase_2.put()
+
+    testcase_1_attr = TestcaseAttributes(testcase_1.key.id())
+    testcase_1_attr.group_id = testcase_1.group_id
+    testcase_2_attr = TestcaseAttributes(testcase_2.key.id())
+    testcase_2_attr.group_id = testcase_2.group_id
+
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
-    testcase_1 = TestcaseAttributes(testcase_id=1)
-    testcase_2 = TestcaseAttributes(testcase_id=2)
-    with logs.grouper_log_context(testcase_1, testcase_2):
+    with logs.grouper_log_context(testcase_1_attr, testcase_2_attr):
       self.assertEqual(logs.log_contexts.contexts, [
           logs.LogContextType.COMMON, logs.LogContextType.CRON,
           logs.LogContextType.GROUPER
@@ -902,6 +911,8 @@ class EmitTest(unittest.TestCase):
               'common_ctx': self.common_context,
               'testcase_1_id': 1,
               'testcase_2_id': 2,
+              'testcase_1_group': 0,
+              'testcase_2_group': 112233
           })
 
     logs_extra = {'target': 'bot', 'test': 'yes'}
@@ -910,7 +921,9 @@ class EmitTest(unittest.TestCase):
         'task_id': task_id,
         'task_name': task_name,
         'testcase_1_id': 1,
-        'testcase_2_id': 2
+        'testcase_2_id': 2,
+        'testcase_1_group': 0,
+        'testcase_2_group': 112233
     })
     logger.log.assert_called_with(
         logging.ERROR,

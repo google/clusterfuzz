@@ -742,7 +742,9 @@ class TestcaseLogStruct(NamedTuple):
 
 class GrouperLogStruct(NamedTuple):
   testcase_1_id: str
+  testcase_1_group: str | int
   testcase_2_id: str
+  testcase_2_group: str | int
 
 
 class LogContextType(enum.Enum):
@@ -833,7 +835,9 @@ class LogContextType(enum.Enum):
       try:
         return GrouperLogStruct(
             testcase_1_id=log_contexts.meta.get('testcase_1_id', 'null'),
-            testcase_2_id=log_contexts.meta.get('testcase_2_id', 'null'))
+            testcase_2_id=log_contexts.meta.get('testcase_2_id', 'null'),
+            testcase_1_group=log_contexts.meta.get('testcase_1_group', 'null'),
+            testcase_2_group=log_contexts.meta.get('testcase_2_group', 'null'))
       except:
         error(
             'Error retrieving context for grouper-based logs.',
@@ -1003,8 +1007,10 @@ def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
     try:
       if testcase_1:
         log_contexts.add_metadata('testcase_1_id', get_testcase_id(testcase_1))
+        log_contexts.add_metadata('testcase_1_group', getattr(testcase_1, 'group_id', 0))
       if testcase_2:
         log_contexts.add_metadata('testcase_2_id', get_testcase_id(testcase_2))
+        log_contexts.add_metadata('testcase_2_group', getattr(testcase_2, 'group_id', 0))
       yield
     except Exception as e:
       warning(message='Error during grouper context.')
@@ -1012,3 +1018,5 @@ def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
     finally:
       log_contexts.delete_metadata('testcase_1_id')
       log_contexts.delete_metadata('testcase_2_id')
+      log_contexts.delete_metadata('testcase_1_group')
+      log_contexts.delete_metadata('testcase_2_group')
