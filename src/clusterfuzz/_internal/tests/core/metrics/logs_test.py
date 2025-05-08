@@ -878,8 +878,8 @@ class EmitTest(unittest.TestCase):
   @logs.cron_log_context()
   def test_grouper_log_context(self):
     """Test the logger call and metadata for a grouper-based context."""
-    from clusterfuzz._internal.datastore import data_types
     from clusterfuzz._internal.cron.grouper import TestcaseAttributes
+    from clusterfuzz._internal.datastore import data_types
     from clusterfuzz._internal.system.environment import set_task_id_vars
     task_name = 'triage'
     task_id = 'abcd-12345'

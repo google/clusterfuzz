@@ -1007,10 +1007,12 @@ def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
     try:
       if testcase_1:
         log_contexts.add_metadata('testcase_1_id', get_testcase_id(testcase_1))
-        log_contexts.add_metadata('testcase_1_group', getattr(testcase_1, 'group_id', 0))
+        log_contexts.add_metadata('testcase_1_group',
+                                  getattr(testcase_1, 'group_id', 0))
       if testcase_2:
         log_contexts.add_metadata('testcase_2_id', get_testcase_id(testcase_2))
-        log_contexts.add_metadata('testcase_2_group', getattr(testcase_2, 'group_id', 0))
+        log_contexts.add_metadata('testcase_2_group',
+                                  getattr(testcase_2, 'group_id', 0))
       yield
     except Exception as e:
       warning(message='Error during grouper context.')
