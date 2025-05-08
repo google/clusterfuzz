@@ -502,6 +502,9 @@ def _enforce_safe_day_to_deploy():
 
 def _deploy_k8s(config_dir):
   """Deploys all k8s workloads."""
+  is_managed_by_argo_cd = environment.get_value('MANAGED_BY_ARGOCD', False)
+  if is_managed_by_argo_cd:
+    return
   k8s_dir = os.path.join('infra', 'k8s')
   k8s_instance_dir = os.path.join(config_dir, 'k8s')
   k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
