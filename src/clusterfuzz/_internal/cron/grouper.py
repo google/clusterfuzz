@@ -59,8 +59,8 @@ class TestcaseAttributes:
     """Retrieve class attributes."""
     # This is done to simulate the same method in the Testcase class.
     if not key:
-      return self.__dict__
-    return self.__dict__.get(key, default)
+      return {k: getattr(self, k) for k in self.__slots__ if hasattr(self, k)}
+    return getattr(self, key, default)
 
 
 def combine_testcases_into_group(
@@ -511,7 +511,8 @@ def group_testcases():
       # A new testcase that was just created. Skip for now, will be grouped in
       # next iteration of group task.
       continue
-    with logs.testcase_log_context(testcase_map[testcase_id], None):
+    testcase_attr = testcase_map[testcase_id]
+    with logs.testcase_log_context(testcase_attr, None):
       # If we are part of a group, then calculate the number of testcases in
       # that group and lowest issue id of issues associated with testcases in
       # that group.
