@@ -502,9 +502,13 @@ def _enforce_safe_day_to_deploy():
 
 def _deploy_k8s(config_dir):
   """Deploys all k8s workloads."""
+  config = local_config.ProjectConfig()
+  is_argocd_enabled = config.get('argocd.enabled', False)
+  if is_argocd_enabled:
+    return
   k8s_dir = os.path.join('infra', 'k8s')
   k8s_instance_dir = os.path.join(config_dir, 'k8s')
-  k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
+  k8s_project = config.get('env.K8S_PROJECT')
   redis_host = _get_redis_ip(k8s_project)
   os.environ['REDIS_HOST'] = redis_host
   common.execute(f'gcloud config set project {k8s_project}')
