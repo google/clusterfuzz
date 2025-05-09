@@ -664,6 +664,7 @@ def log_fatal_and_exit(message, **extras):
 
 def get_common_log_context() -> dict[str, str]:
   """Return common context to be propagated by logs."""
+  # Avoid circular imports on the top level.
   from clusterfuzz._internal.base import utils
   from clusterfuzz._internal.system import environment
 
@@ -697,7 +698,9 @@ def get_common_log_context() -> dict[str, str]:
 
 def get_testcase_id(
     testcase: 'Testcase | TestcaseAttributes') -> int | str | None:
-  """Return the ID for a testcase or testcase attribute object."""
+  """Return the ID for a testcase or testcase attributes object."""
+  # Importing here as 3P libs becomes accessible during runtime, after modules
+  # path search is resolved (and logs may be imported before that).
   from google.cloud import ndb
 
   if isinstance(testcase, ndb.Model):
