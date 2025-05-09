@@ -606,6 +606,7 @@ class EmitTest(unittest.TestCase):
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase': testcase,
+              'testcase_id': 1,
               'fuzz_target': fuzz_target.binary,
               'fuzzer_name': testcase.fuzzer_name,
               'job_type': testcase.job_type
@@ -772,6 +773,7 @@ class EmitTest(unittest.TestCase):
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase': testcase,
+              'testcase_id': 1,
               'fuzz_target': testcase.get_metadata('fuzzer_binary_name'),
               'fuzzer_name': testcase.fuzzer_name,
               'job_type': testcase.job_type
@@ -790,7 +792,7 @@ class EmitTest(unittest.TestCase):
             },
         })
 
-  def test_fuzzer_logs_context(self):
+  def test_fuzzer_log_context(self):
     """Test the correct logger call for the fuzzer-based log context."""
     from clusterfuzz._internal.datastore import data_types
     logger = mock.MagicMock()
@@ -832,7 +834,107 @@ class EmitTest(unittest.TestCase):
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_fuzzer_logs_context'
+                'method': 'test_fuzzer_log_context'
+            },
+        })
+
+  @logs.cron_log_context()
+  def test_cron_log_context(self):
+    """Test the correct logger call for the cron-based log context."""
+    from clusterfuzz._internal.system.environment import set_task_id_vars
+    task_name = 'cleanup'
+    task_id = '12345-6789'
+    set_task_id_vars(task_name, task_id)
+
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+    self.assertEqual(logs.log_contexts.contexts,
+                     [logs.LogContextType.COMMON, logs.LogContextType.CRON])
+    logs_extra = {'target': 'bot', 'test': 'yes'}
+    logs_extra.update(self.common_context)
+    logs_extra.update({
+        'task_id': task_id,
+        'task_name': task_name,
+    })
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+    # Assert that the common context was added after the first logs call.
+    self.assertEqual(logs.log_contexts.meta, {
+        'common_ctx': self.common_context,
+    })
+    logger.log.assert_called_once_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_cron_log_context'
+            },
+        })
+
+  @logs.cron_log_context()
+  def test_grouper_log_context(self):
+    """Test the logger call and metadata for a grouper-based context."""
+    from clusterfuzz._internal.cron.grouper import TestcaseAttributes
+    from clusterfuzz._internal.datastore import data_types
+    from clusterfuzz._internal.system.environment import set_task_id_vars
+    task_name = 'triage'
+    task_id = 'abcd-12345'
+    set_task_id_vars(task_name, task_id)
+
+    testcase_1 = data_types.Testcase()
+    testcase_2 = data_types.Testcase(group_id=112233)
+    testcase_1.put()
+    testcase_2.put()
+
+    testcase_1_attr = TestcaseAttributes(testcase_1.key.id())
+    testcase_1_attr.group_id = testcase_1.group_id
+    testcase_2_attr = TestcaseAttributes(testcase_2.key.id())
+    testcase_2_attr.group_id = testcase_2.group_id
+
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    with logs.grouper_log_context(testcase_1_attr, testcase_2_attr):
+      self.assertEqual(logs.log_contexts.contexts, [
+          logs.LogContextType.COMMON, logs.LogContextType.CRON,
+          logs.LogContextType.GROUPER
+      ])
+      statement_line = inspect.currentframe().f_lineno + 1
+      logs.emit(logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes')
+      # Assert metadata after emit to ensure that `common_ctx` has been added.
+      self.assertEqual(
+          logs.log_contexts.meta, {
+              'common_ctx': self.common_context,
+              'testcase_1_id': 1,
+              'testcase_2_id': 2,
+              'testcase_1_group': 0,
+              'testcase_2_group': 112233
+          })
+
+    logs_extra = {'target': 'bot', 'test': 'yes'}
+    logs_extra.update(self.common_context)
+    logs_extra.update({
+        'task_id': task_id,
+        'task_name': task_name,
+        'testcase_1_id': 1,
+        'testcase_2_id': 2,
+        'testcase_1_group': 0,
+        'testcase_2_group': 112233
+    })
+    logger.log.assert_called_with(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_grouper_log_context'
             },
         })
 
