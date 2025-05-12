@@ -117,9 +117,6 @@ def get_fuzz_targets_local(path):
 
 def get_fuzz_targets(path):
   """Get list of fuzz targets paths."""
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    return file_host.get_fuzz_targets(path)
   return get_fuzz_targets_local(path)
 
 

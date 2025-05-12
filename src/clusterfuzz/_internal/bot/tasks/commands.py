@@ -139,11 +139,6 @@ def update_environment_for_job(environment_string):
     uworker_env['MAX_TESTCASES'] = max_testcases_override
 
   uworker_env['JOB_NAME'] = environment.get_value('JOB_NAME')
-  if environment.is_trusted_host():
-    env['JOB_NAME'] = environment.get_value('JOB_NAME')
-    from clusterfuzz._internal.bot.untrusted_runner import \
-        environment as worker_environment
-    worker_environment.update_environment(env)
   return uworker_env
 
 
@@ -322,7 +317,6 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
     # old untrusted worker architecture.
     if (not environment.get_value('DEBUG_TASK') and
         not environment.is_tworker() and
-        not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix):
       # This happens rarely, store this as a hard exception.
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
