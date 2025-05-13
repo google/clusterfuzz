@@ -266,6 +266,8 @@ def execute(args):
       ('test-shared-corpus-bucket',
        project_bucket(args.project_id, 'shared-corpus')),
       ('test-fuzz-logs-bucket', project_bucket(args.project_id, 'fuzz-logs')),
+      ('test-uworker-input', project_bucket(args.project_id, 'uworker-input')),
+      ('test-uworker-output', project_bucket(args.project_id, 'uworker-output')),
   )
 
   # Write new configs.
