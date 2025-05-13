@@ -751,8 +751,8 @@ class Issue(issue_tracker.Issue):
     # Just for a proof of concept
     # Assert in runtime that we actually do not notify anyone
     assert not self.assignee
-    assert not self.ccs
-    assert not self._collaborators
+    assert not list(self._ccs) # This is a LabelStore
+    assert not list(self._collaborators) # Ditto
     if self._is_new:
       logs.info('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-') or _DEFAULT_PRIORITY
