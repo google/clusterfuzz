@@ -197,7 +197,7 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
     gcloud.run('app', 'create', '--region=' + appengine_location)
 
   subprocess.check_call([
-      'python', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
+      'python3', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
       '--prod', '--config-dir', config_dir
   ])
 
@@ -205,7 +205,7 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
 def deploy_zips(config_dir):
   """Deploy source zips."""
   subprocess.check_call([
-      'python', 'butler.py', 'deploy', '--force', '--targets', 'zips', '--prod',
+      'python3', 'butler.py', 'deploy', '--force', '--targets', 'zips', '--prod',
       '--config-dir', config_dir
   ])
 
