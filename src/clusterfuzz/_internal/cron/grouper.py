@@ -57,7 +57,8 @@ class TestcaseAttributes:
 
   def get_metadata(self, key=None, default=None):
     """Retrieve class attributes."""
-    # This is done to simulate the same method in the Testcase class.
+    # This method is useful so that an object calling it gets a similar result
+    # independently of its class being a Testcase or TestcaseAttributes.
     if not key:
       return {k: getattr(self, k) for k in self.__slots__ if hasattr(self, k)}
     return getattr(self, key, default)
@@ -139,9 +140,14 @@ def matches_top_crash(testcase, top_crashes_by_project_and_platform):
   return False
 
 
-def _check_variant_grouping_candidate(testcase_1, testcase_2,
-                                      grouping_candidates):
-  """"Check if a pair of testcases is a candidate for variant-based grouping."""
+def _check_variant_grouping_candidate(testcase_1: TestcaseAttributes,
+                                      testcase_2: TestcaseAttributes,
+                                      grouping_candidates: dict[str, list]):
+  """Check if a pair of testcases is a candidate for variant-based grouping.
+  
+  If the pair is a valid candidate for variant grouping, their IDs are appended
+  as a tuple to the corresponding project in the `grouping_candidates` map.
+  """
   testcase_1_id = testcase_1.id
   testcase_2_id = testcase_2.id
 
