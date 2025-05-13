@@ -35,10 +35,6 @@ from clusterfuzz._internal.metrics import logs
 # TODO(metzman): Actually implement this.
 CPUS_PER_FUZZ_JOB = 2
 
-# Pretend like our CPU limit is 3% higher than it actually is so that we use the
-# full CPU capacity even when scheduling is slow.
-CPU_BUFFER_MULTIPLIER = 1.03
-
 
 def _get_quotas(creds, project, region):
   compute = discovery.build('compute', 'v1', credentials=creds)
@@ -110,7 +106,7 @@ def get_cpu_usage(creds, project: str, region: str) -> int:
   # We need this because us-central1 and us-east4 have different numbers of
   # cores alloted to us in their quota. Treat them the same to simplify things.
   limit = quota['limit']
-  limit = min(limit, 100_000)
+  limit = min(limit, 110_000)
   return limit, quota['usage']
 
 
@@ -265,7 +261,6 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
     # Only worry about queueing build up if we are above 95% utilization.
     count_args = ((project, region) for region in regions)
     with multiprocessing.Pool(2) as pool:
-      target *= CPU_BUFFER_MULTIPLIER
       # These calls are extremely slow (about 30 minutes total).
       result = pool.starmap_async(  # pylint: disable=no-member
           batch.count_queued_or_scheduled_tasks, count_args)
