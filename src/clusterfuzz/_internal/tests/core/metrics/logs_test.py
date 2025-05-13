@@ -469,6 +469,7 @@ class EmitTest(unittest.TestCase):
     logs._default_extras = {}  # pylint: disable=protected-access
     # Reset the `common_ctx` metadata as it may be setted by other test runs.
     logs.log_contexts.delete_metadata('common_ctx')
+    logs.log_contexts.clear()
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
 
   def tearDown(self):
@@ -607,6 +608,7 @@ class EmitTest(unittest.TestCase):
               'common_ctx': self.common_context,
               'testcase': testcase,
               'testcase_id': 1,
+              'testcase_group': 0,
               'fuzz_target': fuzz_target.binary,
               'fuzzer_name': testcase.fuzzer_name,
               'job_type': testcase.job_type
@@ -616,6 +618,7 @@ class EmitTest(unittest.TestCase):
     logs_extra.update(self.common_context)
     logs_extra.update({
         'testcase_id': 1,
+        'testcase_group': 0,
         'fuzz_target': 'abc',
         'job': 'test_job',
         'fuzzer': 'test_fuzzer'
@@ -756,6 +759,7 @@ class EmitTest(unittest.TestCase):
     logs_extra = {'target': 'bot', 'test': 'yes'}
     logs_extra.update({
         'testcase_id': 1,
+        'testcase_group': 0,
         'fuzz_target': 'fuzz_abc',
         'job': 'test_job',
         'fuzzer': 'test_fuzzer'
@@ -774,6 +778,7 @@ class EmitTest(unittest.TestCase):
               'common_ctx': self.common_context,
               'testcase': testcase,
               'testcase_id': 1,
+              'testcase_group': 0,
               'fuzz_target': testcase.get_metadata('fuzzer_binary_name'),
               'fuzzer_name': testcase.fuzzer_name,
               'job_type': testcase.job_type
@@ -920,12 +925,32 @@ class EmitTest(unittest.TestCase):
     logs_extra.update({
         'task_id': task_id,
         'task_name': task_name,
-        'testcase_1_id': 1,
-        'testcase_2_id': 2,
-        'testcase_1_group': 0,
-        'testcase_2_group': 112233
     })
-    logger.log.assert_called_with(
+
+    # Logger call with testcase 1
+    logs_extra.update({
+        'testcase_id': 1,
+        'testcase_group': 0,
+    })
+    logger.log.assert_any_call(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_grouper_log_context'
+            },
+        })
+
+    # Logger call with testcase 2
+    logs_extra.update({
+        'testcase_id': 2,
+        'testcase_group': 112233,
+    })
+    logger.log.assert_any_call(
         logging.ERROR,
         'msg',
         exc_info='ex',

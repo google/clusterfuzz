@@ -568,7 +568,9 @@ def intercept_log_context(func):
   def wrapper(*args, **kwargs):
     if not kwargs.get('ignore_context'):
       for context in log_contexts.contexts:
+        context.setup(*args, **kwargs)
         kwargs.update(context.get_extras()._asdict())
+        context.tear_down()
     else:
       # This is needed to avoid logging the label 'ingore_context: True'.
       del kwargs["ignore_context"]
@@ -741,13 +743,7 @@ class FuzzerLogStruct(NamedTuple):
 
 class TestcaseLogStruct(NamedTuple):
   testcase_id: str
-
-
-class GrouperLogStruct(NamedTuple):
-  testcase_1_id: str
-  testcase_1_group: str | int
-  testcase_2_id: str
-  testcase_2_group: str | int
+  testcase_group: str | int
 
 
 class LogContextType(enum.Enum):
@@ -763,8 +759,8 @@ class LogContextType(enum.Enum):
   CRON = 'cron'
   GROUPER = 'grouper'
 
-  def get_extras(self) -> NamedTuple:
-    """Get the structured log for a given context"""
+  def setup(self, *args, **kwargs) -> None:
+    """Setup metadata needed for the context."""
     if self == LogContextType.COMMON:
       common_ctx = log_contexts.meta.get('common_ctx')
       if common_ctx is None:
@@ -774,6 +770,23 @@ class LogContextType(enum.Enum):
         common_ctx = get_common_log_context()
         log_contexts.add_metadata('common_ctx', common_ctx)
 
+    if self == LogContextType.GROUPER:
+      if log_contexts.meta.get('in_grouper_ctx'):
+        return
+      log_contexts.add_metadata('in_grouper_ctx', True)
+      # Duplicate the emit so that we have a log entry with the context of each
+      # testcase in the pair being grouped.
+      emit(*args, **kwargs)
+
+  def tear_down(self) -> None:
+    """Tear down metadata used by the context, if needed."""
+    if self == LogContextType.GROUPER:
+      log_contexts.delete_metadata('in_grouper_ctx')
+
+  def get_extras(self) -> NamedTuple:
+    """Get the structured log fields for a given context."""
+    if self == LogContextType.COMMON:
+      common_ctx = log_contexts.meta.get('common_ctx', {})
       return CommonLogStruct(
           clusterfuzz_version=common_ctx.get('clusterfuzz_version', 'null'),
           clusterfuzz_config_version=common_ctx.get(
@@ -816,7 +829,8 @@ class LogContextType(enum.Enum):
     if self == LogContextType.TESTCASE:
       try:
         return TestcaseLogStruct(
-            testcase_id=log_contexts.meta.get('testcase_id', 'null'))
+            testcase_id=log_contexts.meta.get('testcase_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_group', 'null'))
       except:
         error(
             'Error retrieving context for testcase-based logs.',
@@ -836,11 +850,13 @@ class LogContextType(enum.Enum):
 
     if self == LogContextType.GROUPER:
       try:
-        return GrouperLogStruct(
-            testcase_1_id=log_contexts.meta.get('testcase_1_id', 'null'),
-            testcase_2_id=log_contexts.meta.get('testcase_2_id', 'null'),
-            testcase_1_group=log_contexts.meta.get('testcase_1_group', 'null'),
-            testcase_2_group=log_contexts.meta.get('testcase_2_group', 'null'))
+        if log_contexts.meta.get('in_grouper_ctx'):
+          return TestcaseLogStruct(
+              testcase_id=log_contexts.meta.get('testcase_2_id', 'null'),
+              testcase_group=log_contexts.meta.get('testcase_2_group', 'null'))
+        return TestcaseLogStruct(
+            testcase_id=log_contexts.meta.get('testcase_1_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_1_group', 'null'))
       except:
         error(
             'Error retrieving context for grouper-based logs.',
@@ -967,6 +983,8 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
       log_contexts.add_metadata('testcase', testcase)
       if testcase:
         log_contexts.add_metadata('testcase_id', get_testcase_id(testcase))
+        log_contexts.add_metadata('testcase_group',
+                                  testcase.group_id)  # type: ignore
         log_contexts.add_metadata('fuzzer_name',
                                   testcase.fuzzer_name)  # type: ignore
         log_contexts.add_metadata('job_type', testcase.job_type)  # type: ignore
@@ -986,6 +1004,7 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
     finally:
       log_contexts.delete_metadata('testcase')
       log_contexts.delete_metadata('testcase_id')
+      log_contexts.delete_metadata('testcase_group')
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
