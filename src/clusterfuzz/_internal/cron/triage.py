@@ -416,6 +416,133 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
       })
 
 
+def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
+  """Files a bug for a given testcase."""
+  testcase_id = testcase.key.id()
+  critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
+
+  # Skip if testcase's job is removed.
+  if testcase.job_type not in all_jobs:
+    _set_testcase_stuck_state(testcase, False)
+    logs.info(f'Skipping testcase {testcase_id}, since its job was removed '
+              f' ({testcase.job_type})')
+    return
+
+  # Skip if testcase's job is in exclusions list.
+  if testcase.job_type in excluded_jobs:
+    _set_testcase_stuck_state(testcase, False)
+    logs.info(f'Skipping testcase {testcase_id}, since its job is in the'
+              f' exclusion list ({testcase.job_type})')
+    return
+
+  # Skip if we are running progression task at this time.
+  if testcase.get_metadata('progression_pending'):
+    _set_testcase_stuck_state(testcase, True)
+    logs.info(f'Skipping testcase {testcase_id}, progression pending')
+    _emit_untriaged_testcase_age_metric(testcase, PENDING_PROGRESSION)
+    _increment_untriaged_testcase_count(testcase.job_type, PENDING_PROGRESSION)
+    return
+
+  # If the testcase has a bug filed already, no triage is needed.
+  if _is_bug_filed(testcase):
+    _set_testcase_stuck_state(testcase, False)
+    logs.info(
+        f'Skipping testcase {testcase_id}, since a bug was already filed.')
+    return
+
+  # Check if the crash is important, i.e. it is either a reproducible crash
+  # or an unreproducible crash happening frequently.
+  if not _is_crash_important(testcase):
+    # Check if the crash is a startup crash, i.e. it is causing the fuzzer
+    # to crash on startup and not allowing the fuzzer to run longer
+    if testcase.platform == "android" and is_crash_important_android(testcase):
+      logs.info(
+          f'Considering testcase {testcase_id}, since it is a startup crash'
+          ' on android platform.')
+    else:
+      _set_testcase_stuck_state(testcase, False)
+      logs.info(
+          f'Skipping testcase {testcase_id}, as the crash is not important.')
+      return
+
+  # Require that all tasks like minimizaton, regression testing, etc have
+  # finished.
+  if not critical_tasks_completed:
+    status = PENDING_CRITICAL_TASKS
+    if testcase.analyze_pending:
+      status = PENDING_ANALYZE
+    _emit_untriaged_testcase_age_metric(testcase, status)
+    _set_testcase_stuck_state(testcase, True)
+    _increment_untriaged_testcase_count(testcase.job_type, status)
+    logs.info(f'Skipping testcase {testcase_id}, critical tasks still pending.')
+    return
+
+  # For testcases that are not part of a group, wait an additional time to
+  # make sure it is grouped.
+  # The grouper runs prior to this step in the same cron, but there is a
+  # window of time where new testcases can come in after the grouper starts.
+  # This delay needs to be longer than the maximum time the grouper can take
+  # to account for that.
+  # FIXME: In future, grouping might be dependent on regression range, so we
+  # would have to add an additional wait time.
+  # TODO(ochang): Remove this after verifying that the `ran_grouper`
+  # metadata works well.
+  if not testcase.group_id and not dates.time_has_expired(
+      testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
+    _emit_untriaged_testcase_age_metric(testcase, PENDING_GROUPING)
+    _set_testcase_stuck_state(testcase, True)
+    _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
+    logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
+    return
+
+  if not testcase.get_metadata('ran_grouper'):
+    # Testcase should be considered by the grouper first before filing.
+    _emit_untriaged_testcase_age_metric(testcase, PENDING_GROUPING)
+    _set_testcase_stuck_state(testcase, True)
+    _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
+    logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
+    return
+
+  # If this project does not have an associated issue tracker, we cannot
+  # file this crash anywhere.
+  try:
+    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+  except ValueError:
+    issue_tracker = None
+  if not issue_tracker:
+    logs.info(f'No issue tracker detected for testcase {testcase_id}, '
+              'publishing message.')
+    issue_filer.notify_issue_update(testcase, 'new')
+    return
+
+  # If there are similar issues to this test case already filed or recently
+  # closed, skip filing a duplicate bug.
+  if _check_and_update_similar_bug(testcase, issue_tracker):
+    _set_testcase_stuck_state(testcase, False)
+    logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
+              ' was already filed.')
+    return
+
+  # Clean up old triage messages that would be not applicable now.
+  testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
+
+  # File the bug first and then create filed bug metadata.
+  if not _file_issue(testcase, issue_tracker, throttler):
+    _emit_untriaged_testcase_age_metric(testcase, PENDING_FILING)
+    _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
+    logs.info(f'Issue filing failed for testcase id {testcase_id}')
+    return
+
+  _set_testcase_stuck_state(testcase, False)
+
+  _create_filed_bug_metadata(testcase)
+  issue_filer.notify_issue_update(testcase, 'new')
+
+  logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
+                                                     testcase_id))
+
+
+@logs.cron_log_context()
 def main():
   """Files bugs."""
   try:
@@ -439,7 +566,6 @@ def main():
   throttler = Throttler()
 
   for testcase_id in data_handler.get_open_testcase_id_iterator():
-    logs.info(f'Triaging {testcase_id}')
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
@@ -448,131 +574,9 @@ def main():
           f'Skipping testcase {testcase_id}, since it was already deleted.')
       continue
 
-    critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
-
-    # Skip if testcase's job is removed.
-    if testcase.job_type not in all_jobs:
-      _set_testcase_stuck_state(testcase, False)
-      logs.info(f'Skipping testcase {testcase_id}, since its job was removed '
-                f' ({testcase.job_type})')
-      continue
-
-    # Skip if testcase's job is in exclusions list.
-    if testcase.job_type in excluded_jobs:
-      _set_testcase_stuck_state(testcase, False)
-      logs.info(f'Skipping testcase {testcase_id}, since its job is in the'
-                f' exclusion list ({testcase.job_type})')
-      continue
-
-    # Skip if we are running progression task at this time.
-    if testcase.get_metadata('progression_pending'):
-      _set_testcase_stuck_state(testcase, True)
-      logs.info(f'Skipping testcase {testcase_id}, progression pending')
-      _emit_untriaged_testcase_age_metric(testcase, PENDING_PROGRESSION)
-      _increment_untriaged_testcase_count(testcase.job_type,
-                                          PENDING_PROGRESSION)
-      continue
-
-    # If the testcase has a bug filed already, no triage is needed.
-    if _is_bug_filed(testcase):
-      _set_testcase_stuck_state(testcase, False)
-      logs.info(
-          f'Skipping testcase {testcase_id}, since a bug was already filed.')
-      continue
-
-    # Check if the crash is important, i.e. it is either a reproducible crash
-    # or an unreproducible crash happening frequently.
-    if not _is_crash_important(testcase):
-      # Check if the crash is a startup crash, i.e. it is causing the fuzzer
-      # to crash on startup and not allowing the fuzzer to run longer
-      if testcase.platform == "android" and is_crash_important_android(
-          testcase):
-        logs.info(
-            f'Considering testcase {testcase_id}, since it is a startup crash'
-            ' on android platform.')
-      else:
-        _set_testcase_stuck_state(testcase, False)
-        logs.info(
-            f'Skipping testcase {testcase_id}, as the crash is not important.')
-        continue
-
-    # Require that all tasks like minimizaton, regression testing, etc have
-    # finished.
-    if not critical_tasks_completed:
-      status = PENDING_CRITICAL_TASKS
-      if testcase.analyze_pending:
-        status = PENDING_ANALYZE
-      _emit_untriaged_testcase_age_metric(testcase, status)
-      _set_testcase_stuck_state(testcase, True)
-      _increment_untriaged_testcase_count(testcase.job_type, status)
-      logs.info(
-          f'Skipping testcase {testcase_id}, critical tasks still pending.')
-      continue
-
-    # For testcases that are not part of a group, wait an additional time to
-    # make sure it is grouped.
-    # The grouper runs prior to this step in the same cron, but there is a
-    # window of time where new testcases can come in after the grouper starts.
-    # This delay needs to be longer than the maximum time the grouper can take
-    # to account for that.
-    # FIXME: In future, grouping might be dependent on regression range, so we
-    # would have to add an additional wait time.
-    # TODO(ochang): Remove this after verifying that the `ran_grouper`
-    # metadata works well.
-    if not testcase.group_id and not dates.time_has_expired(
-        testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
-      _emit_untriaged_testcase_age_metric(testcase, PENDING_GROUPING)
-      _set_testcase_stuck_state(testcase, True)
-      _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
-      logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
-      continue
-
-    if not testcase.get_metadata('ran_grouper'):
-      # Testcase should be considered by the grouper first before filing.
-      _emit_untriaged_testcase_age_metric(testcase, PENDING_GROUPING)
-      _set_testcase_stuck_state(testcase, True)
-      _increment_untriaged_testcase_count(testcase.job_type, PENDING_GROUPING)
-      logs.info(f'Skipping testcase {testcase_id}, pending grouping.')
-      continue
-
-    # If this project does not have an associated issue tracker, we cannot
-    # file this crash anywhere.
-    try:
-      issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-          testcase)
-    except ValueError:
-      issue_tracker = None
-    if not issue_tracker:
-      logs.info(f'No issue tracker detected for testcase {testcase_id}, '
-                'publishing message.')
-      issue_filer.notify_issue_update(testcase, 'new')
-      continue
-
-    # If there are similar issues to this test case already filed or recently
-    # closed, skip filing a duplicate bug.
-    if _check_and_update_similar_bug(testcase, issue_tracker):
-      _set_testcase_stuck_state(testcase, False)
-      logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
-                ' was already filed.')
-      continue
-
-    # Clean up old triage messages that would be not applicable now.
-    testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
-
-    # File the bug first and then create filed bug metadata.
-    if not _file_issue(testcase, issue_tracker, throttler):
-      _emit_untriaged_testcase_age_metric(testcase, PENDING_FILING)
-      _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
-      logs.info(f'Issue filing failed for testcase id {testcase_id}')
-      continue
-
-    _set_testcase_stuck_state(testcase, False)
-
-    _create_filed_bug_metadata(testcase)
-    issue_filer.notify_issue_update(testcase, 'new')
-
-    logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
-                                                       testcase_id))
+    with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+      logs.info(f'Triaging {testcase_id}')
+      _triage_testcase(testcase, excluded_jobs, all_jobs, throttler)
 
   _emit_untriaged_testcase_count_metric()
   logs.info('Triage testcases succeeded.')
