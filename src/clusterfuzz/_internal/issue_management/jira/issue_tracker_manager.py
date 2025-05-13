@@ -89,13 +89,13 @@ class IssueTrackerManager:
 
     # Get existing watchers to avoid duplicate calls
     existing_watchers = set(self.get_watchers(issue))
-    
+
     # Only add watchers that don't already exist
     new_watchers = [w for w in watchers if w not in existing_watchers]
 
     # Jira weirdness, update watchers this way.
     for watcher in new_watchers:
-      try: 
+      try:
         self.client.add_watcher(issue.jira_issue, watcher)
       except Exception as e:
         logs.error(f'Error adding watcher {watcher} to issue {issue.id}: {e}')
