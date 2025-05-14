@@ -133,6 +133,11 @@ def compute_engine_service_account(gcloud, project_id):
           '-compute@developer.gserviceaccount.com')
 
 
+def gcs_signer_service_account(project_id):
+  """Get the gcs signer service account."""
+  return f'gcs-signer@{project_id}.iam.gserviceaccount.com'
+
+
 def untrusted_worker_service_account(project_id):
   """Get the untrusted worker service account."""
   return f'untrusted-worker@{project_id}.iam.gserviceaccount.com'
@@ -338,7 +343,15 @@ def execute(args):
                            'roles/logging.logWriter')
   add_service_account_role(gcloud, args.project_id, uworker_service_account,
                            'roles/monitoring.metricWriter')
-  
+
+  # GCS Signer service account requires:
+  # - Access to blob storage, to generate presigned URLs
+  signer_service_account = gcs_signer_service_account(args.project_id)
+  create_service_account(
+    gcloud, args.project_id, signer_service_account,
+    'Service account for GCS signer.')
+  add_service_account_role(gcloud, args.project_id, signer_service_account,
+                           'roles/storage.objectAdmin')  
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
 
