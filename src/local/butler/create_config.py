@@ -270,6 +270,15 @@ def add_service_account_role(gcloud, project_id, service_account, role):
   gcloud.run('projects', 'add-iam-policy-binding', project_id, '--member',
              'serviceAccount:' + service_account, '--role', role)
 
+
+def add_role_to_service_account_in_bucket(
+    gcloud, bucket, role, service_account):
+  """Add an IAM role to a service accountet for a single buck."""
+  gcloud.run('storage', 'buckets', 'add-iam-binding', 
+             bucket, f'--member=\"serviceAccount:{service_account}\"',
+             '--role={role}')
+
+
 def get_json_key_from_service_account(gcloud, service_account):
   """Retrieves JSON key from a service account in the given project."""  
   with tempfile.NamedTemporaryFile(mode='w+', delete=True) as tmp_file:
