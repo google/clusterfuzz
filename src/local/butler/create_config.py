@@ -133,6 +133,11 @@ def compute_engine_service_account(gcloud, project_id):
           '-compute@developer.gserviceaccount.com')
 
 
+def untrusted_worker_service_account(project_id):
+  """Get the untrusted worker service account."""
+  return f'untrusted-worker@{project_id}.iam.gserviceaccount.com'
+
+
 def enable_services(gcloud):
   """Enable required services."""
   for i in range(0, len(_REQUIRED_SERVICES), _ENABLE_SERVICE_BATCH_SIZE):
@@ -314,8 +319,26 @@ def execute(args):
   add_service_account_role(gcloud, args.project_id, gce_default_service_account,
                            'roles/secretmanager.secretAccessor')
   add_service_account_role(gcloud, args.project_id, gce_default_service_account,
-                           'roles/storage.objectAdmin')                           
-                           
+                           'roles/storage.objectAdmin')
+
+  # Untrusted worker service account requires:
+  # - Read access to the deployment bucket
+  # - Batch agent reporter
+  # - Error reporting writer
+  # - Logs writer
+  # - Monitoring metric writer
+  uworker_service_account = untrusted_worker_service_account(args.project_id)
+  create_service_account(gcloud, args.project_id, uworker_service_account,
+    'Service account for the untrusted worker.')
+  add_service_account_role(gcloud, args.project_id, uworker_service_account,
+                           'roles/batch.agentReporter')
+  add_service_account_role(gcloud, args.project_id, uworker_service_account,
+                           'roles/errorreporting.writer')
+  add_service_account_role(gcloud, args.project_id, uworker_service_account,
+                           'roles/logging.logWriter')
+  add_service_account_role(gcloud, args.project_id, uworker_service_account,
+                           'roles/monitoring.metricWriter')
+  
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
 
