@@ -231,6 +231,13 @@ def create_buckets(project_id, buckets):
       gsutil.run('mb', '-p', project_id, 'gs://' + bucket)
 
 
+def create_pubsub_notification_from_storage_bucket(
+    gcloud, bucket, topic):
+  """Sets up a bucket to trigger notifications to a topic."""
+  gcloud.run('storage', 'buckets', 'notifications', 'create',
+             f'gs://{bucket}', f'--topic={topic}',)
+
+
 def set_cors(config_dir, buckets):
   """Sets cors settings."""
   gsutil = common.Gsutil()
@@ -354,7 +361,9 @@ def execute(args):
                            'roles/storage.objectAdmin')  
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
-
+  #Creates the required pubsub triggers from buckets
+  create_pubsub_notification_from_storage_bucket(
+    gcloud, project_bucket(args.project_id, 'uworker-output'), 'postprocess')
   # Set CORS settings on the buckets.
   set_cors(args.new_config_dir, [blobs_bucket])
 
