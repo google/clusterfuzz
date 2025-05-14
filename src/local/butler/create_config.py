@@ -229,6 +229,14 @@ def set_cors(config_dir, buckets):
     gsutil.run('cors', 'set', cors_file_path, 'gs://' + bucket)
 
 
+def create_service_account(
+    gcloud, project_id, service_account_name, display_name):
+  """Creates a Service Account in the specified GCP project."""
+  gcloud.run(
+    'iam', 'service-accounts', 'create', service_account_name,
+      f'--display-name={display_name}')
+
+
 def add_service_account_role(gcloud, project_id, service_account, role):
   """Add an IAM role to a service account."""
   gcloud.run('projects', 'add-iam-policy-binding', project_id, '--member',
