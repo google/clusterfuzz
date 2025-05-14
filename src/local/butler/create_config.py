@@ -288,13 +288,26 @@ def execute(args):
   # - Domain ownership to create domain namespaced GCS buckets
   # - Datastore export permission for periodic backups.
   # - Service account signing permission for GCS uploads.
-  service_account = app_engine_service_account(args.project_id)
-  verifier.add_owner(appspot_domain, service_account)
-  add_service_account_role(gcloud, args.project_id, service_account,
+  gae_service_account = app_engine_service_account(args.project_id)
+  verifier.add_owner(appspot_domain, gae_service_account)
+  add_service_account_role(gcloud, args.project_id, gae_service_account,
                            'roles/datastore.importExportAdmin')
-  add_service_account_role(gcloud, args.project_id, service_account,
+  add_service_account_role(gcloud, args.project_id, gae_service_account,
                            'roles/iam.serviceAccountTokenCreator')
 
+  # Compute engine service account requires:
+  # - Access to storage buckets, to handle corpus
+  # - Access to secrets, to fetch the GCS signer json key
+  # - Metric publisher access
+  gce_default_service_account = compute_engine_service_account(
+    gcloud,args.project_id)
+  add_service_account_role(gcloud, args.project_id, gce_default_service_account,
+                           'roles/monitoring.metricWriter')
+  add_service_account_role(gcloud, args.project_id, gce_default_service_account,
+                           'roles/secretmanager.secretAccessor')
+  add_service_account_role(gcloud, args.project_id, gce_default_service_account,
+                           'roles/storage.objectAdmin')                           
+                           
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
 
