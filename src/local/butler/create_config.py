@@ -32,6 +32,7 @@ from local.butler import common
 
 _REQUIRED_SERVICES = (
     'appengineflex.googleapis.com',
+    'batch.googleapis.com',
     'bigquery-json.googleapis.com',
     'cloudapis.googleapis.com',
     'cloudbuild.googleapis.com',
@@ -54,6 +55,7 @@ _REQUIRED_SERVICES = (
     'replicapool.googleapis.com',
     'replicapoolupdater.googleapis.com',
     'resourceviews.googleapis.com',
+    'secretmanager.googleapis.com',
     'siteverification.googleapis.com',
     'sourcerepo.googleapis.com',
     'stackdriver.googleapis.com',
