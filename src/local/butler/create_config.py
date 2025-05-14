@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 import google_auth_httplib2
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -258,6 +259,14 @@ def add_service_account_role(gcloud, project_id, service_account, role):
   """Add an IAM role to a service account."""
   gcloud.run('projects', 'add-iam-policy-binding', project_id, '--member',
              'serviceAccount:' + service_account, '--role', role)
+
+def get_json_key_from_service_account(gcloud, service_account):
+  """Retrieves JSON key from a service account in the given project."""  
+  with tempfile.NamedTemporaryFile(mode='w+', delete=True) as tmp_file:
+    gcloud.run('iam', 'service-accounts', 'keys', 'create',
+              f'--iam-account={service_account}', '--key-file-type=json',
+              tmp_file.name)
+    return tmp_file.read()
 
 
 def execute(args):
