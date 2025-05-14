@@ -21,6 +21,7 @@ import uuid
 
 from google.cloud import batch_v1 as batch
 
+from clusterfuzz._internal.base import redis_client_lib
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -284,16 +285,26 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
                                            ['name', 'weight'])
 
 
+def _get_region_weight(region):
+  return redis_client_lib.client().get(f'batch_{region}_region_cpu_weight')
+
+
 def _get_subconfig(batch_config, instance_spec):
-  # TODO(metzman): Make this pick one at random or based on conditions.
-  all_subconfigs = batch_config.get('subconfigs', {})
-  instance_subconfigs = instance_spec['subconfigs']
-  weighted_subconfigs = [
-      WeightedSubconfig(subconfig['name'], subconfig['weight'])
-      for subconfig in instance_subconfigs
-  ]
-  weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
-  return all_subconfigs[weighted_subconfig.name]
+  all_subconfs = batch_config.get('subconfigs', {})
+  instance_subconfs = instance_spec['subconfigs']
+  subconf_counts = defaultdict(int)
+  for subconf in instance_subconfs:
+    region_counts[subconf['region']] += 1
+
+  weighted_subconfs = []
+  for subconf in instance_subconfs:
+    region = subconf['region']
+    region_weight = _get_region_weight(region)
+    count = region_counts[region]
+    weighted_subconfs.append(WeightedSubconfig(
+      subconf['name'], region_weight / count))
+  weighted_subconf = utils.random_weighted_choice(weighted_subconfs)
+  return all_subconfs[weighted_subconf.name]
 
 
 def _get_specs_from_config(batch_tasks) -> Dict:

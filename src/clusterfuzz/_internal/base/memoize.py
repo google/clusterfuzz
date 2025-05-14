@@ -19,6 +19,7 @@ import json
 import threading
 
 from clusterfuzz._internal.base import persistent_cache
+from clusterfuzz._internal.base import redis_client_lib
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system.environment import appengine_noop
@@ -27,23 +28,6 @@ from clusterfuzz._internal.system.environment import local_noop
 
 # Thead local globals.
 _local = threading.local()
-
-_DEFAULT_REDIS_HOST = 'localhost'
-_DEFAULT_REDIS_PORT = 6379
-
-
-def _redis_client():
-  """Get the redis client."""
-  import redis
-
-  if hasattr(_local, 'redis'):
-    return _local.redis
-
-  host = environment.get_value('REDIS_HOST', _DEFAULT_REDIS_HOST)
-  port = environment.get_value('REDIS_PORT', _DEFAULT_REDIS_PORT)
-
-  _local.redis = redis.Redis(host=host, port=port)
-  return _local.redis
 
 
 class FifoInMemory:
@@ -135,7 +119,7 @@ class Memcache:
     """Put (key, value) into cache."""
     import redis
     try:
-      _redis_client().set(
+      redis_client_lib.client().set(
           json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
     except redis.RedisError:
       logs.error('Failed to store key in cache.', key=key, value=value)
@@ -146,7 +130,7 @@ class Memcache:
     """Get the value from cache."""
     import redis
     try:
-      value_raw = _redis_client().get(json.dumps(key))
+      value_raw = redis_client_lib.client().get(json.dumps(key))
     except redis.RedisError:
       logs.error('Failed to retrieve key from cache.', key=key)
       return None
