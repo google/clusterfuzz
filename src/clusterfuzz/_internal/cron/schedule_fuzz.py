@@ -111,6 +111,7 @@ def get_cpu_usage(creds, project: str, region: str) -> int:
   # We need this because us-central1 and us-east4 have different numbers of
   # cores alloted to us in their quota. Treat them the same to simplify things.
   limit = quota['limit']
+  limit = min(limit, 110_000)
   return limit, quota['usage']
 
 
@@ -254,18 +255,20 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   target = 0
   usage = 0
   region_miss = {}
-  miss = 0
+  total_miss = 0
+  breakpoint()
   for region in regions:
     region_target, region_usage = get_cpu_usage(creds, project, region)    
-    miss = min(region_target - region_usage, 0)
+    miss = max(region_target - region_usage, 0)
     region_miss[region] = miss
     total_miss += miss
     target += region_target
     usage += region_usage
-
+  
   for region, miss in region_miss.items():
     # TODO(metzman): Abstract this into a new module.
-    redis_client_lib.client().set(f'batch_{region}_region_cpu_weight', miss / total_miss)
+    weight = miss / total_miss if total_miss else .05
+    redis_client_lib.client().set(f'batch_{region}_region_cpu_weight', weight)
 
   waiting_tasks = (
       count_unacked(creds, project, 'preprocess') + count_unacked(

@@ -286,7 +286,8 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
 
 
 def _get_region_weight(region):
-  return redis_client_lib.client().get(f'batch_{region}_region_cpu_weight')
+  # TODO(metzman): Get rid of weights in the config.
+  return redis_client_lib.client().get(f'batch_{region}_region_cpu_weight', 1)
 
 
 def _get_subconfig(batch_config, instance_spec):
