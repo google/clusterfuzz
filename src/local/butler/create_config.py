@@ -375,7 +375,10 @@ def execute(args):
     gcloud, args.project_id, signer_service_account,
     'Service account for GCS signer.')
   add_service_account_role(gcloud, args.project_id, signer_service_account,
-                           'roles/storage.objectAdmin')  
+                           'roles/storage.objectAdmin')
+  # Create gcs-signer-secret from the signer service account
+  json_key = get_json_key_from_service_account(gcloud, signer_service_account)
+  create_secret(gcloud, 'gcs-signer-secret', json_key)
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
   #Creates the required pubsub triggers from buckets
