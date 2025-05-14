@@ -21,7 +21,6 @@ import threading
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import redis_client_lib
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system.environment import appengine_noop
 from clusterfuzz._internal.system.environment import if_redis_available
 from clusterfuzz._internal.system.environment import local_noop

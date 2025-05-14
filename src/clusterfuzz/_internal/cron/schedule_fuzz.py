@@ -32,13 +32,14 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 # TODO(metzman): Actually implement this.
 CPUS_PER_FUZZ_JOB = 2
 
 # Pretend like our CPU limit is 3% higher than it actually is so that we use the
 # full CPU capacity even when scheduling is slow.
-CPU_BUFFER_MULTIPLIER = 1.1
+CPU_BUFFER_MULTIPLIER = 1.03
 
 
 def _get_quotas(creds, project, region):
@@ -245,6 +246,18 @@ def get_batch_regions(batch_config):
           if subconf in fuzz_subconf_names))
 
 
+def set_region_weight(region, weight):
+  if environment.get_value('NO_REDIS_WEIGHTS'):
+    # For local development.
+    return
+  import redis
+
+  try:
+    redis_client_lib.client().set(f'batch_{region}_region_cpu_weight', weight)
+  except redis.exceptions.TimeoutError:
+    logs.error('Timeout connecting to redis')
+
+
 def get_available_cpus(project: str, regions: List[str]) -> int:
   """Returns the available CPUs for fuzz tasks."""
   # TODO(metzman): This doesn't distinguish between fuzz and non-fuzz
@@ -256,19 +269,18 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   usage = 0
   region_miss = {}
   total_miss = 0
-  breakpoint()
   for region in regions:
-    region_target, region_usage = get_cpu_usage(creds, project, region)    
+    region_target, region_usage = get_cpu_usage(creds, project, region)
     miss = max(region_target - region_usage, 0)
     region_miss[region] = miss
     total_miss += miss
     target += region_target
     usage += region_usage
-  
+
   for region, miss in region_miss.items():
     # TODO(metzman): Abstract this into a new module.
     weight = miss / total_miss if total_miss else .05
-    redis_client_lib.client().set(f'batch_{region}_region_cpu_weight', weight)
+    set_region_weight(region, weight)
 
   waiting_tasks = (
       count_unacked(creds, project, 'preprocess') + count_unacked(

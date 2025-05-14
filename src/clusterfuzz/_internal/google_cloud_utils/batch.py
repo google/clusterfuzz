@@ -286,14 +286,24 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
 
 
 def _get_region_weight(region):
-  # TODO(metzman): Get rid of weights in the config.
-  return redis_client_lib.client().get(f'batch_{region}_region_cpu_weight', 1)
+  """Gets the weight for the region set by schedule_fuzz."""
+  import redis
+  if environment.get_value('NO_REDIS_WEIGHTS'):
+    # For local development.
+    return None
+  # TODO(metzman): Get rid of weights in the config and only use this
+  # for fuzzing.
+  try:
+    return redis_client_lib.client().get(f'batch_{region}_region_cpu_weight', 1)
+  except redis.exceptions.TimeoutError:
+    logs.error('Timeout connecting to redis')
+  return .05
 
 
 def _get_subconfig(batch_config, instance_spec):
   all_subconfs = batch_config.get('subconfigs', {})
   instance_subconfs = instance_spec['subconfigs']
-  subconf_counts = defaultdict(int)
+  region_counts = collections.defaultdict(int)
   for subconf in instance_subconfs:
     region_counts[subconf['region']] += 1
 
@@ -302,8 +312,8 @@ def _get_subconfig(batch_config, instance_spec):
     region = subconf['region']
     region_weight = _get_region_weight(region)
     count = region_counts[region]
-    weighted_subconfs.append(WeightedSubconfig(
-      subconf['name'], region_weight / count))
+    weighted_subconfs.append(
+        WeightedSubconfig(subconf['name'], region_weight / count))
   weighted_subconf = utils.random_weighted_choice(weighted_subconfs)
   return all_subconfs[weighted_subconf.name]
 
