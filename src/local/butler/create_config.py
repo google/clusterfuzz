@@ -246,6 +246,14 @@ def set_cors(config_dir, buckets):
   for bucket in buckets:
     gsutil.run('cors', 'set', cors_file_path, 'gs://' + bucket)
 
+def create_secret(gcloud, secret_name, secret_contents):
+  """Create a Google Managed secret."""
+  with tempfile.NamedTemporaryFile(mode='w+', delete=True) as tmp_file:
+    tmp_file.write(secret_contents)
+    tmp_file.seek(0)
+    gcloud.run('secrets', 'create', secret_name,
+               f'--data-file={tmp_file.name}')
+
 
 def create_service_account(
     gcloud, project_id, service_account_name, display_name):
