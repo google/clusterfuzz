@@ -273,10 +273,10 @@ def add_service_account_role(gcloud, project_id, service_account, role):
 
 def add_role_to_service_account_in_bucket(
     gcloud, bucket, role, service_account):
-  """Add an IAM role to a service accountet for a single buck."""
-  gcloud.run('storage', 'buckets', 'add-iam-binding', 
-             bucket, f'--member=\"serviceAccount:{service_account}\"',
-             '--role={role}')
+  """Add an IAM role to a service account for a single buck."""
+  gcloud.run('storage', 'buckets', 'add-iam-policy-binding', 
+             bucket, f'--member=serviceAccount:{service_account}',
+             f'--role={role}')
 
 
 def get_json_key_from_service_account(gcloud, service_account):
