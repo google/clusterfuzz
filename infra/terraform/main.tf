@@ -103,6 +103,14 @@ resource "google_redis_instance" "memorystore_redis_instance" {
   }
 }
 
+resource "google_vpc_access_connector" "connector" {
+  name          = "connector"
+  ip_cidr_range = "10.8.0.0/28"
+  network       = google_compute_network.vpc.name
+  min_instances = 2
+  max_instances = 10
+}
+
 resource "google_compute_router" "router" {
   project = var.project_id
   name    = "router"
