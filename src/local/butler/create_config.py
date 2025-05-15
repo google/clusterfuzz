@@ -402,5 +402,13 @@ def execute(args):
   gcloud.run('compute', 'project-info', 'add-metadata',
              '--metadata=deployment-bucket=' + deployment_bucket)
 
+  # Give untrusted worker reader permissions to fetch deployment artifacts
+  add_role_to_service_account_in_bucket(
+    gcloud, deployment_bucket,'roles/storage.objectViewer',
+    untrusted_worker_service_account(args.project_id))
+  add_role_to_service_account_in_bucket(
+    gcloud, deployment_bucket,'roles/storage.legacyBucketReader',
+    untrusted_worker_service_account(args.project_id))
+
   # Deploy source zips.
   deploy_zips(args.new_config_dir)
