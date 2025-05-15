@@ -218,8 +218,8 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
 def deploy_zips(config_dir):
   """Deploy source zips."""
   subprocess.check_call([
-      'python3', 'butler.py', 'deploy', '--force', '--targets', 'zips', '--prod',
-      '--config-dir', config_dir
+      'python3', 'butler.py', 'deploy', '--force', '--targets', 'zips',
+      '--prod', '--config-dir', config_dir
   ])
 
 
@@ -234,11 +234,16 @@ def create_buckets(project_id, buckets):
       gsutil.run('mb', '-p', project_id, 'gs://' + bucket)
 
 
-def create_pubsub_notification_from_storage_bucket(
-    gcloud, bucket, topic):
+def create_pubsub_notification_from_storage_bucket(gcloud, bucket, topic):
   """Sets up a bucket to trigger notifications to a topic."""
-  gcloud.run('storage', 'buckets', 'notifications', 'create',
-             f'gs://{bucket}', f'--topic={topic}',)
+  gcloud.run(
+      'storage',
+      'buckets',
+      'notifications',
+      'create',
+      f'gs://{bucket}',
+      f'--topic={topic}',
+  )
 
 
 def set_cors(config_dir, buckets):
@@ -248,21 +253,19 @@ def set_cors(config_dir, buckets):
   for bucket in buckets:
     gsutil.run('cors', 'set', cors_file_path, 'gs://' + bucket)
 
+
 def create_secret(gcloud, secret_name, secret_contents):
   """Create a Google Managed secret."""
   with tempfile.NamedTemporaryFile(mode='w+', delete=True) as tmp_file:
     tmp_file.write(secret_contents)
     tmp_file.seek(0)
-    gcloud.run('secrets', 'create', secret_name,
-               f'--data-file={tmp_file.name}')
+    gcloud.run('secrets', 'create', secret_name, f'--data-file={tmp_file.name}')
 
 
-def create_service_account(
-    gcloud, project_id, service_account_name, display_name):
+def create_service_account(gcloud, service_account_name, display_name):
   """Creates a Service Account in the specified GCP project."""
-  gcloud.run(
-    'iam', 'service-accounts', 'create', service_account_name,
-      f'--display-name={display_name}')
+  gcloud.run('iam', 'service-accounts', 'create', service_account_name,
+             f'--display-name={display_name}')
 
 
 def add_service_account_role(gcloud, project_id, service_account, role):
@@ -271,20 +274,19 @@ def add_service_account_role(gcloud, project_id, service_account, role):
              'serviceAccount:' + service_account, '--role', role)
 
 
-def add_role_to_service_account_in_bucket(
-    gcloud, bucket, role, service_account):
+def add_role_to_service_account_in_bucket(gcloud, bucket, role,
+                                          service_account):
   """Add an IAM role to a service account for a single buck."""
-  gcloud.run('storage', 'buckets', 'add-iam-policy-binding', 
-             bucket, f'--member=serviceAccount:{service_account}',
-             f'--role={role}')
+  gcloud.run('storage', 'buckets', 'add-iam-policy-binding', bucket,
+             f'--member=serviceAccount:{service_account}', f'--role={role}')
 
 
 def get_json_key_from_service_account(gcloud, service_account):
-  """Retrieves JSON key from a service account in the given project."""  
+  """Retrieves JSON key from a service account in the given project."""
   with tempfile.NamedTemporaryFile(mode='w+', delete=True) as tmp_file:
     gcloud.run('iam', 'service-accounts', 'keys', 'create',
-              f'--iam-account={service_account}', '--key-file-type=json',
-              tmp_file.name)
+               f'--iam-account={service_account}', '--key-file-type=json',
+               tmp_file.name)
     return tmp_file.read()
 
 
@@ -320,7 +322,8 @@ def execute(args):
        project_bucket(args.project_id, 'shared-corpus')),
       ('test-fuzz-logs-bucket', project_bucket(args.project_id, 'fuzz-logs')),
       ('test-uworker-input', project_bucket(args.project_id, 'uworker-input')),
-      ('test-uworker-output', project_bucket(args.project_id, 'uworker-output')),
+      ('test-uworker-output', project_bucket(args.project_id,
+                                             'uworker-output')),
   )
 
   # Write new configs.
@@ -353,7 +356,7 @@ def execute(args):
   # - Access to secrets, to fetch the GCS signer json key
   # - Metric publisher access
   gce_default_service_account = compute_engine_service_account(
-    gcloud,args.project_id)
+      gcloud, args.project_id)
   add_service_account_role(gcloud, args.project_id, gce_default_service_account,
                            'roles/monitoring.metricWriter')
   add_service_account_role(gcloud, args.project_id, gce_default_service_account,
@@ -368,8 +371,8 @@ def execute(args):
   # - Logs writer
   # - Monitoring metric writer
   uworker_service_account = untrusted_worker_service_account(args.project_id)
-  create_service_account(gcloud, args.project_id, 'untrusted-worker',
-    'Service account for the untrusted worker.')
+  create_service_account(gcloud, 'untrusted-worker',
+                         'Service account for the untrusted worker.')
   add_service_account_role(gcloud, args.project_id, uworker_service_account,
                            'roles/batch.agentReporter')
   add_service_account_role(gcloud, args.project_id, uworker_service_account,
@@ -382,8 +385,8 @@ def execute(args):
   # GCS Signer service account requires:
   # - Access to blob storage, to generate presigned URLs
   signer_service_account = gcs_signer_service_account(args.project_id)
-  create_service_account(
-    gcloud, args.project_id, 'gcs-signer', 'Service account for GCS signer.')
+  create_service_account(gcloud, 'gcs-signer',
+                         'Service account for GCS signer.')
   add_service_account_role(gcloud, args.project_id, signer_service_account,
                            'roles/storage.objectAdmin')
   # Create gcs-signer-secret from the signer service account
@@ -393,7 +396,7 @@ def execute(args):
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
   #Creates the required pubsub triggers from buckets
   create_pubsub_notification_from_storage_bucket(
-    gcloud, project_bucket(args.project_id, 'uworker-output'), 'postprocess')
+      gcloud, project_bucket(args.project_id, 'uworker-output'), 'postprocess')
   # Set CORS settings on the buckets.
   set_cors(args.new_config_dir, [blobs_bucket])
 
@@ -403,11 +406,11 @@ def execute(args):
 
   # Give untrusted worker reader permissions to fetch deployment artifacts
   add_role_to_service_account_in_bucket(
-    gcloud, deployment_bucket,'roles/storage.objectViewer',
-    untrusted_worker_service_account(args.project_id))
+      gcloud, deployment_bucket, 'roles/storage.objectViewer',
+      untrusted_worker_service_account(args.project_id))
   add_role_to_service_account_in_bucket(
-    gcloud, deployment_bucket,'roles/storage.legacyBucketReader',
-    untrusted_worker_service_account(args.project_id))
+      gcloud, deployment_bucket, 'roles/storage.legacyBucketReader',
+      untrusted_worker_service_account(args.project_id))
 
   # Deploy source zips.
   deploy_zips(args.new_config_dir)
