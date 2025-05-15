@@ -291,7 +291,7 @@ def _get_region_weight(region):
   # TODO(metzman): Get rid of weights in the config and only use this
   # for fuzzing.
   weight = redis_client_lib.get(f'batch_{region}_region_cpu_weight')
-  logging.info(f'Region weight {region}: {weight}')
+  logs.info(f'Region weight {region}: {weight}')
   return weight if weight else .05
 
 
