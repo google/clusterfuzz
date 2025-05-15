@@ -287,29 +287,25 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
 
 def _get_region_weight(region):
   """Gets the weight for the region set by schedule_fuzz."""
-  import redis
-  if environment.get_value('NO_REDIS_WEIGHTS'):
-    # For local development.
-    return None
+
   # TODO(metzman): Get rid of weights in the config and only use this
   # for fuzzing.
-  try:
-    return redis_client_lib.client().get(f'batch_{region}_region_cpu_weight', 1)
-  except redis.exceptions.TimeoutError:
-    logs.error('Timeout connecting to redis')
-  return .05
+  weight = redis_client_lib.get(f'batch_{region}_region_cpu_weight')
+  logging.info(f'Region weight {region}: {weight}')
+  return weight if weight else .05
 
 
-def _get_subconfig(batch_config, instance_spec):
+def _get_subconfig(batch_config: Dict, instance_spec: Dict) -> Dict:
   all_subconfs = batch_config.get('subconfigs', {})
   instance_subconfs = instance_spec['subconfigs']
   region_counts = collections.defaultdict(int)
   for subconf in instance_subconfs:
-    region_counts[subconf['region']] += 1
+    region = all_subconfs[subconf['name']]['region']
+    region_counts[region] += 1
 
   weighted_subconfs = []
   for subconf in instance_subconfs:
-    region = subconf['region']
+    region = all_subconfs[subconf['name']]['region']
     region_weight = _get_region_weight(region)
     count = region_counts[region]
     weighted_subconfs.append(
@@ -343,6 +339,7 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     max_run_duration = f'{_get_task_duration(task.command)}s'
     # This saves us time and reduces fragementation, e.g. every linux fuzz task
     # run in this call will run in the same zone.
+
     if config_name not in subconfig_map:
       subconfig = _get_subconfig(batch_config, instance_spec)
       subconfig_map[config_name] = subconfig

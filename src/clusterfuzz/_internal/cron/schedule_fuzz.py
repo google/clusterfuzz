@@ -39,7 +39,7 @@ CPUS_PER_FUZZ_JOB = 2
 
 # Pretend like our CPU limit is 3% higher than it actually is so that we use the
 # full CPU capacity even when scheduling is slow.
-CPU_BUFFER_MULTIPLIER = 1.03
+CPU_BUFFER_MULTIPLIER = 1.04
 
 
 def _get_quotas(creds, project, region):

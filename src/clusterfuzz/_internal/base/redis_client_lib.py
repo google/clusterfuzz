@@ -16,12 +16,20 @@
 import threading
 
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system.environment import if_redis_available
+from clusterfuzz._internal.system.environment import local_noop
 
 # Thead local globals.
 _local = threading.local()
 
-_DEFAULT_REDIS_HOST = 'localhost'
+_DEFAULT_REDIS_HOST = '10.5.219.187'
 _DEFAULT_REDIS_PORT = 6379
+
+
+@local_noop
+@if_redis_available
+def get(key):
+  client().get(key)
 
 
 def client():
