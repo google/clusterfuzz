@@ -368,7 +368,7 @@ def execute(args):
   # - Logs writer
   # - Monitoring metric writer
   uworker_service_account = untrusted_worker_service_account(args.project_id)
-  create_service_account(gcloud, args.project_id, uworker_service_account,
+  create_service_account(gcloud, args.project_id, 'untrusted-worker',
     'Service account for the untrusted worker.')
   add_service_account_role(gcloud, args.project_id, uworker_service_account,
                            'roles/batch.agentReporter')
@@ -383,8 +383,7 @@ def execute(args):
   # - Access to blob storage, to generate presigned URLs
   signer_service_account = gcs_signer_service_account(args.project_id)
   create_service_account(
-    gcloud, args.project_id, signer_service_account,
-    'Service account for GCS signer.')
+    gcloud, args.project_id, 'gcs-signer', 'Service account for GCS signer.')
   add_service_account_role(gcloud, args.project_id, signer_service_account,
                            'roles/storage.objectAdmin')
   # Create gcs-signer-secret from the signer service account
