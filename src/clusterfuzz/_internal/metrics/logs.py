@@ -353,7 +353,6 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
-  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
@@ -393,7 +392,6 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
-  logging.getLogger().addFilter(json_fields_filter)
   logging.getLogger().setLevel(logging.INFO)
 
 
