@@ -499,6 +499,7 @@ def _enforce_safe_day_to_deploy():
                        'delete+commit this. You are not too l33t for this '
                        'rule. Do not break it!')
 
+
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
   if sys.version_info.major != 3 or sys.version_info.minor != 11:
