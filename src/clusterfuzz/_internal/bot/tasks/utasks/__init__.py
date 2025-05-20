@@ -25,6 +25,7 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -338,8 +339,13 @@ def uworker_main(input_download_url) -> None:
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
   with _MetricRecorder(_Subtask.UWORKER_MAIN) as recorder:
-    uworker_input = uworker_io.download_and_deserialize_uworker_input(
-        input_download_url)
+    try:
+      uworker_input = uworker_io.download_and_deserialize_uworker_input(
+          input_download_url)
+    except storage.ExpiredSignedUrlError as e:
+      raise storage.ExpiredSignedUrlError(
+          'Expired token, failed to download uworker_input: '
+          f'{e.url}. {e.response_text}', e.url, e.response_text)
     uworker_output_upload_url = uworker_input.uworker_output_upload_url
     uworker_input.ClearField('uworker_output_upload_url')
 

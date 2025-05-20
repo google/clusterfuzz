@@ -16,8 +16,10 @@ import asyncio
 import itertools
 from typing import List
 from typing import Tuple
+import urllib.parse
 
 import aiohttp
+import google.api_core.exceptions
 
 from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import utils
@@ -74,7 +76,6 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
   """Asynchronously downloads |url| and writes it to |path|."""
   async with session.get(url) as response:
     if response.status != 200:
-      print(response.status, url)
       raise aiohttp.ClientResponseError(
           response.request_info,
           response.history,
@@ -84,3 +85,59 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
     with open(path, 'wb') as fp:
       async for chunk in response.content.iter_any():
         fp.write(chunk)
+
+
+async def delete_blob_async(bucket_name, blob_name, session, auth_token):
+  """Asynchronously deletes a GCS blob."""
+  blob_name = urllib.parse.quote(blob_name, safe='')
+  url = (
+      f'https://storage.googleapis.com/storage/v1/b/{bucket_name}/o/{blob_name}'
+  )
+  headers = {
+      'Authorization': f'Bearer {auth_token}',
+  }
+
+  try:
+    async with session.delete(url, headers=headers) as response:
+      if response.status != 204:
+        response_text = await response.text()
+        logs.error(f'Failed to delete blob {blob_name}. Status code: '
+                   f'{response.status} {response_text}')
+  except google.api_core.exceptions.NotFound:
+    logs.info(f'Not found: {blob_name} {response_text}')
+  except Exception as e:
+    logs.error(f'Error deleting {blob_name}: {e}')
+
+
+async def list_blobs_async(bucket_name, path, auth_token):
+  """Asynchronously lists blobs, yielding dicts containing their size, updated
+  time and name."""
+  async with aiohttp.ClientSession() as session:
+    url = f'https://storage.googleapis.com/storage/v1/b/{bucket_name}/o'
+    params = {
+        'prefix': path,
+        'delimiter': '/',
+        # Need token and save space in response.
+        'fields': 'items(name,size,updated),nextPageToken'
+    }
+    while True:
+      async with session.get(
+          url, headers={'Authorization': f'Bearer {auth_token}'},
+          params=params) as response:
+        if response.status == 200:
+          data = await response.json()
+          items = data.get('items', [])
+          for blob in items:
+            yield {
+                'size': int(blob['size']),
+                'updated': blob['updated'],
+                'name': blob['name'],
+            }
+
+          next_page_token = data.get('nextPageToken')
+          if not next_page_token:
+            break
+          params['pageToken'] = next_page_token
+        else:
+          logs.error(f'No blobsm, tatus code: {response.status}')
+          break
