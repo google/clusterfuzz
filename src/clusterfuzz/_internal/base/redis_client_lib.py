@@ -29,7 +29,7 @@ _DEFAULT_REDIS_PORT = 6379
 @local_noop
 @if_redis_available
 def get(key):
-  client().get(key)
+  return client().get(key)
 
 
 def client():

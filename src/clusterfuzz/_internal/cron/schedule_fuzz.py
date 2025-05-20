@@ -253,7 +253,13 @@ def set_region_weight(region, weight):
   import redis
 
   try:
-    redis_client_lib.client().set(f'batch_{region}_region_cpu_weight', weight)
+    logs.info(f'Set weight for "batch_{region}_region_cpu_weight" to {weight}.')
+    result = redis_client_lib.client().set(f'batch_{region}_region_cpu_weight', weight)
+    logs.info(f"{result}")
+    batch_weight = redis_client_lib.get(f'batch_{region}_region_cpu_weight')
+    logs.info(f'Debug batch_weight {batch_weight}')
+    keys = redis_client_lib.client().keys('*')
+    logs.info(f'keys {keys}')
   except redis.exceptions.TimeoutError:
     logs.error('Timeout connecting to redis')
 
