@@ -420,10 +420,10 @@ def execute(args):
 
   # Give untrusted worker reader permissions to fetch deployment artifacts
   add_role_to_service_account_in_bucket(
-      gcloud, deployment_bucket, 'roles/storage.objectViewer',
+      gcloud, f'gs://{deployment_bucket}', 'roles/storage.objectViewer',
       untrusted_worker_service_account(args.project_id))
   add_role_to_service_account_in_bucket(
-      gcloud, deployment_bucket, 'roles/storage.legacyBucketReader',
+      gcloud, f'gs://{deployment_bucket}', 'roles/storage.legacyBucketReader',
       untrusted_worker_service_account(args.project_id))
 
   # Deploy source zips.
