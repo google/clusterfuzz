@@ -353,7 +353,6 @@ def execute(args):
   # - Datastore export permission for periodic backups.
   # - Service account signing permission for GCS uploads.
   gae_service_account = app_engine_service_account(args.project_id)
-  verifier.add_owner(appspot_domain, gae_service_account)
   add_service_account_role(gcloud, args.project_id, gae_service_account,
                            'roles/datastore.importExportAdmin')
   add_service_account_role(gcloud, args.project_id, gae_service_account,
@@ -364,6 +363,7 @@ def execute(args):
   deploy_appengine(
       gcloud, args.new_config_dir, appengine_location=args.appengine_location)
   verifier.verify(appspot_domain)
+  verifier.add_owner(appspot_domain, gae_service_account)
 
   # Compute engine service account requires:
   # - Access to storage buckets, to handle corpus
