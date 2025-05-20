@@ -347,9 +347,6 @@ def execute(args):
   # Terraform must be deployed first, since it manages redis and appengine 
   # depends on it.
   deploy_terraform(args.new_config_dir)
-  deploy_appengine(
-      gcloud, args.new_config_dir, appengine_location=args.appengine_location)
-  verifier.verify(appspot_domain)
 
   # App Engine service account requires:
   # - Domain ownership to create domain namespaced GCS buckets
@@ -361,6 +358,12 @@ def execute(args):
                            'roles/datastore.importExportAdmin')
   add_service_account_role(gcloud, args.project_id, gae_service_account,
                            'roles/iam.serviceAccountTokenCreator')
+  add_service_account_role(gcloud, args.project_id, gae_service_account,
+                           'roles/editor')
+
+  deploy_appengine(
+      gcloud, args.new_config_dir, appengine_location=args.appengine_location)
+  verifier.verify(appspot_domain)
 
   # Compute engine service account requires:
   # - Access to storage buckets, to handle corpus
