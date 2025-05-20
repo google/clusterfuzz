@@ -303,6 +303,7 @@ def schedule_fuzz_tasks() -> bool:
   project = batch_config.get('project')
   regions = get_batch_regions(batch_config)
   start = time.time()
+  breakpoint()
   available_cpus = get_available_cpus(project, regions)
   logs.info(f'{available_cpus} available CPUs.')
   if not available_cpus:

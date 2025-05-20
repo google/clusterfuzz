@@ -322,7 +322,8 @@ def get_preprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0], PREPROCESS_QUEUE, task_cls=PubSubTTask)
+  task = get_task_from_message(
+      messages[0], PREPROCESS_QUEUE, task_cls=PubSubTTask)
   if task:
     logs.info('Pulled from preprocess queue.')
   return task
