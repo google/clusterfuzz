@@ -411,7 +411,7 @@ def _staging_deployment_helper():
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
-                            deploy_k8s=True,
+                            deploy_terraform=True,
                             test_deployment=False,
                             release='prod'):
   """Helper for production deployment."""
@@ -438,7 +438,8 @@ def _prod_deployment_helper(config_dir,
   labels: dict[str, Any] = {
       'deploy_zip': bool(package_zip_paths),
       'deploy_app_engine': deploy_appengine,
-      'deploy_kubernetes': deploy_k8s,
+      'deploy_kubernetes': False,
+      'deploy_terraform': deploy_terraform,
       'success': True,
       'release': release,
       'clusterfuzz_version': utils.current_source_version()
@@ -458,9 +459,8 @@ def _prod_deployment_helper(config_dir,
       common.execute(
           f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
 
-    if deploy_k8s:
+    if deploy_terraform:
       _deploy_terraform(config_dir)
-      _deploy_k8s(config_dir)
 
     print(f'Production deployment finished. {labels}')
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
@@ -498,31 +498,6 @@ def _enforce_safe_day_to_deploy():
                        'urgent fixes. See b/384493595. If needed, temporarily '
                        'delete+commit this. You are not too l33t for this '
                        'rule. Do not break it!')
-
-
-def _deploy_k8s(config_dir):
-  """Deploys all k8s workloads."""
-  config = local_config.ProjectConfig()
-  is_argocd_enabled = config.get('argocd.enabled', False)
-  if is_argocd_enabled:
-    return
-  k8s_dir = os.path.join('infra', 'k8s')
-  k8s_instance_dir = os.path.join(config_dir, 'k8s')
-  k8s_project = config.get('env.K8S_PROJECT')
-  redis_host = _get_redis_ip(k8s_project)
-  os.environ['REDIS_HOST'] = redis_host
-  common.execute(f'gcloud config set project {k8s_project}')
-  common.execute(
-      'gcloud container clusters get-credentials clusterfuzz-cronjobs-gke '
-      f'--region={appengine.region(k8s_project)}')
-  for workload in common.get_all_files(k8s_dir):
-    # pylint:disable=anomalous-backslash-in-string
-    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
-
-  # Deploys cron jobs that are defined in the current instance configuration.
-  for workload in common.get_all_files(k8s_instance_dir):
-    # pylint:disable=anomalous-backslash-in-string
-    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
 
 def execute(args):
@@ -587,12 +562,12 @@ def execute(args):
 
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
-  deploy_k8s = 'k8s' in args.targets
+  deploy_terraform = 'terraform' in args.targets
   test_deployment = 'test_deployment' in args.targets
 
   if test_deployment:
     deploy_appengine = False
-    deploy_k8s = False
+    deploy_terraform = False
     deploy_zips = True
 
   package_zip_paths = []
@@ -627,7 +602,7 @@ def execute(args):
         args.config_dir,
         package_zip_paths,
         deploy_appengine,
-        deploy_k8s,
+        deploy_terraform,
         test_deployment=test_deployment,
         release=args.release)
 
