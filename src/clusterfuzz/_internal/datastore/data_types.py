@@ -1681,7 +1681,7 @@ class TestcaseLifecycleEvent(Model):
   # Reason for closing issue (e.g., testcase fixed).
   closing_reason = ndb.StringProperty()
 
-  ### Task execution. ###
+  ### Task execution.
   # UTask stage, i.e., preprocess, main or postprocess.
   stage = ndb.StringProperty()
 
