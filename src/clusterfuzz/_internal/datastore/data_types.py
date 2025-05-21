@@ -1599,3 +1599,75 @@ class TestcaseVariant(Model):
 
   # Platform (e.g. windows, linux, android).
   platform = ndb.StringProperty()
+
+class TestcaseLifecycleEvent(Model):
+  """Represents an event from a testcase lifecycle."""
+  ## Event definition
+  # Event type (testcase_creation, issue_filed, etc).
+  event_type = ndb.StringProperty(required=True)
+  # Event creation time.
+  timestamp = ndb.DateTimeProperty()
+  # Source that emitted the event.
+  source = ndb.StringProperty()
+
+  ## Common metadata
+  # Source code commit hash.
+  clusterfuzz_version = ndb.StringProperty()
+  # Config code commit hash.
+  clusterfuzz_config_version = ndb.StringProperty()
+  # Identifier for the running instance on batch, GCE, GKE, etc.
+  instance_id = ndb.StringProperty()
+  # Operating system name.
+  operating_system = ndb.StringProperty()
+  # Operating system version.
+  os_version = ndb.StringProperty()
+
+  ## Testcase-related properties
+  # Testcase identifier/key.
+  testcase_id = ndb.IntegerProperty()
+  # Name of the fuzzer associated with the testcase.
+  fuzzer = ndb.StringProperty()
+  # Type of the job associated with the testcase.
+  job = ndb.StringProperty()
+  # Revision that the testcase was created.
+  crash_revision = ndb.StringProperty()
+
+  ## Task-related properties
+  # Task ID (artificial or corresponding to the utask execution).
+  task_id = ndb.StringProperty()
+
+  ## Testcase Creation
+  # How testcase was created (manual upload, fuzz, corpus pruning).
+  origin = ndb.StringProperty()
+  # If testcase is manually uploaded, the user email.
+  uploader = ndb.StringProperty()
+
+  ## Testcase Grouping
+  # Testcase grouping outcome (either leader or duplicated).
+  grouper_outcome = ndb.StringProperty()
+  # Group ID assigned to the testcase.
+  group_id = ndb.StringProperty()
+
+  ## Testcase Rejection
+  # Reason for testcase rejection (analyze_no_repro, triage_duplicated, etc).
+  rejection_reason = ndb.StringProperty()
+
+  ## Issue Fixed
+  # Revision where the testcase was fixed.
+  fixed_revision = ndb.StringProperty()
+
+  ## Issue Filing/Closing
+  # Name of the issue tracker (e.g., buganizer).
+  issue_tracker = ndb.StringProperty()
+  # ID from issue tracker bug (same as `bug_information`).
+  issue_id = ndb.IntegerProperty()
+  # Outcome from issue filing (failed or success).
+  triage_outcome = ndb.StringProperty()
+  # Reason for closing issue (e.g., testcase fixed).
+  closing_reason = ndb.StringProperty()
+
+  ## Task execution
+  # UTask stage, i.e., preprocess, main or postprocess.
+  stage = ndb.StringProperty()
+  # Task outcome depending on UTask return code (e.g., exception, success).
+  task_outcome = ndb.StringProperty()
