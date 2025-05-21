@@ -218,8 +218,8 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
 def deploy_terraform(config_dir):
   """Deploy terraform"""
   subprocess.check_call([
-      'python3', 'butler.py', 'deploy', '--force', '--targets', 'terraform', 
-       '--prod', '--config-dir', config_dir
+      'python3', 'butler.py', 'deploy', '--force', '--targets', 'terraform',
+      '--prod', '--config-dir', config_dir
   ])
 
 
@@ -344,7 +344,7 @@ def execute(args):
 
   # Deploy App Engine and finish verification of domain.
   os.chdir(prev_dir)
-  # Terraform must be deployed first, since it manages redis and appengine 
+  # Terraform must be deployed first, since it manages redis and appengine
   # depends on it.
   deploy_terraform(args.new_config_dir)
 
