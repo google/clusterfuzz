@@ -20,7 +20,6 @@ import os
 import random
 import shutil
 import time
-from typing import Dict
 from typing import List
 import zipfile
 
@@ -683,7 +682,7 @@ def _get_pruner_and_runner(context):
   return pruner, runner
 
 
-def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
+def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
@@ -1072,7 +1071,7 @@ def _utask_main(uworker_input):
 
   uworker_output = None
   try:
-    result = do_corpus_pruning(uworker_input, context, revision)
+    result = do_corpus_pruning(context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
     # TODO(metzman): Fix this issue.
