@@ -592,7 +592,7 @@ def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   bot."""
   tasks = []
   for message in messages:
-    # We shouldn't defer as that was done for the preprocess part of this ttask. 
+    # We shouldn't defer as that was done for the preprocess part of this ttask.
     task = get_task_from_message(message, queue, can_defer=False)
     if task is None:
       continue
