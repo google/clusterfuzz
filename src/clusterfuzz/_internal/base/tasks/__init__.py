@@ -98,15 +98,6 @@ UTASK_QUEUE_PULL_SECONDS = 150
 # scheduling on batch.
 MAX_UTASKS = 3000
 
-UTASKS = {
-    'analyze',
-    'corpus_pruning',
-    'minimize',
-    'progression',
-    'regression',
-    'variant',
-}
-
 
 class Error(Exception):
   """Base exception class."""
@@ -337,6 +328,8 @@ def tworker_get_task():
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
   if random.random() < .5:
+    # Pick either one with equal probability so we don't hurt the
+    # throughput of one compared to the other.
     return get_postprocess_task()
   return get_preprocess_task()
 
@@ -529,7 +522,7 @@ class PubSubTask(Task):
 
 
 class PubSubTTask(PubSubTask):
-  """TTask that won't repeat on timeout."""
+  """TTask from pubsub."""
   TTASK_TIMEOUT = 30 * 60
 
   @contextlib.contextmanager
@@ -542,6 +535,8 @@ class PubSubTTask(PubSubTask):
     track_task_start(self, task_lease_timeout)
     if _event is None:
       _event = threading.Event()
+    # We won't repeat fuzz task if we timeout, there's nothing
+    # important about any particular fuzz task.
     if self.command != 'fuzz':
       leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
                                           task_lease_timeout)
@@ -589,7 +584,7 @@ def get_utask_mains() -> List[PubSubTask]:
   pubsub_puller = PubSubPuller(UTASK_MAIN_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
+  return handle_multiple_utask_main_messages(messages, UTASK_MAINS_QUEUE)
 
 
 def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
@@ -597,6 +592,7 @@ def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   bot."""
   tasks = []
   for message in messages:
+    # We shouldn't defer as that was done for the preprocess part of this ttask. 
     task = get_task_from_message(message, queue, can_defer=False)
     if task is None:
       continue
@@ -627,7 +623,8 @@ def initialize_task(message, task_cls=None) -> PubSubTask:
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
   task = PostprocessPubSubTask(output_url_argument, message)
   if message.attributes.get('eventType') == 'OBJECT_DELETE':
-    # Get this out of the queue.
+    # These may be from maintainer action to reduce the size of the buckets,
+    # just ignore these.
     task.ack()
     return None
   return task
@@ -724,17 +721,6 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False, utask_main=False):
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
-
-  # We can preprocess on the preprocess bots regardless of queue.
-  if (utils.is_oss_fuzz() and queue != UTASK_MAIN_QUEUE and
-      tasks[0].command in UTASKS and not utask_main):
-    # TODO(metzman): `queue != UTASK_MAIN_QUEUE` and `not utask_main` are
-    # probably redundant. Get rid of the former.
-    # TODO(metzman): Do this everywhere, not just oss-fuzz.
-    logs.info(f'Using {PREPROCESS_QUEUE}.')
-    queue = PREPROCESS_QUEUE
-    for task in tasks:
-      assert task.command in UTASKS
 
   # If callers want delays, they must do it themselves, because this function is
   # meant to be used for batch tasks which don't need this.
