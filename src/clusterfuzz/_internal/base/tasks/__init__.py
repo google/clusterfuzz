@@ -584,7 +584,7 @@ def get_utask_mains() -> List[PubSubTask]:
   pubsub_puller = PubSubPuller(UTASK_MAIN_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_utask_main_messages(messages, UTASK_MAINS_QUEUE)
+  return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
 
 
 def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
