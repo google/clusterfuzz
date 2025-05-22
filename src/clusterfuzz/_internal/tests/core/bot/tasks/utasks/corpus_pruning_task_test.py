@@ -236,14 +236,15 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '6fa8c57336628a7d733f684dc9404fbd09020543',
     ], corpus)
 
-    testcases = list(data_types.Testcase.query())
-    self.assertEqual(1, len(testcases))
-    self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
-    self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
-    self.assertEqual(1337, testcases[0].crash_revision)
-    self.assertEqual('test_fuzzer',
-                     testcases[0].get_metadata('fuzzer_binary_name'))
-    self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
+    # TODO(metzman): Re-enable this when we re-enable corpus crash reporting.
+    # testcases = list(data_types.Testcase.query())
+    # self.assertEqual(1, len(testcases))
+    # self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
+    # self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
+    # self.assertEqual(1337, testcases[0].crash_revision)
+    # self.assertEqual('test_fuzzer',
+    #                  testcases[0].get_metadata('fuzzer_binary_name'))
+    # self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
 
     today = datetime.datetime.utcnow().date()
     # get_coverage_information on test_fuzzer rather than libFuzzer_test_fuzzer
@@ -548,8 +549,7 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
         cross_pollination_stats=None)
 
     corpus_pruning_task._upload_corpus_crashes_zip(
-        None, result, self.corpus_crashes_blob_name,
-        self.corpus_crashes_upload_url)
+        result, self.corpus_crashes_blob_name, self.corpus_crashes_upload_url)
 
     corpus_crashes_zip_local_path = os.path.join(
         self.temp_dir, f'{self.corpus_crashes_blob_name}.zip')

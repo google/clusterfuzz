@@ -63,8 +63,12 @@ def main():
   environment.set_task_id_vars(task)
 
   with monitor.wrap_with_monitoring(), ndb_init.context():
-    task_module = importlib.import_module(task_module_name)
-    return 0 if task_module.main() else 1
+    try:
+      task_module = importlib.import_module(task_module_name)
+      return 0 if task_module.main() else 1
+    except Exception as e:
+      logs.error(f'Unhandled exception in cron: {e}')
+      return 1
 
 
 if __name__ == '__main__':

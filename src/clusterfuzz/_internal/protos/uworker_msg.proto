@@ -74,6 +74,7 @@ message Corpus {
   optional google.protobuf.Timestamp last_updated_time = 2;
   optional string gcs_url = 3;
   repeated string upload_urls = 4;
+  optional string backup_url = 5;
 }
 
 message MinimizeTaskInput {
