@@ -196,6 +196,7 @@ def cleanup_unused_fuzz_targets_and_jobs():
 
   unused_target_jobs = data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run < last_run_cutoff)
+  # The order by last_run DESC filter is from b/418807403
   valid_target_jobs = data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
           -data_types.FuzzTargetJob.last_run)
