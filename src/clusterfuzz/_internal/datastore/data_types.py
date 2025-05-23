@@ -1599,3 +1599,16 @@ class TestcaseVariant(Model):
 
   # Platform (e.g. windows, linux, android).
   platform = ndb.StringProperty()
+
+
+class TestcaseLifecycleEvent(Model):
+  """Represents an event from a testcase lifecycle."""
+  ### Event definition.
+  # Event type (testcase_creation, issue_filed, etc).
+  event_type = ndb.StringProperty(required=True)
+
+  # Event creation time.
+  timestamp = ndb.DateTimeProperty()
+
+  # Source location that emitted the event.
+  source = ndb.StringProperty()
