@@ -197,7 +197,8 @@ def cleanup_unused_fuzz_targets_and_jobs():
   unused_target_jobs = data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run < last_run_cutoff)
   valid_target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTargetJob.last_run >= last_run_cutoff)
+      data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
+          -data_types.FuzzTargetJob.last_run)
 
   to_delete = [t.key for t in unused_target_jobs]
 
