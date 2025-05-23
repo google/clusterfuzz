@@ -528,6 +528,68 @@ class EmitTest(unittest.TestCase):
             }
         })
 
+  def test_symmetric_logs(self):
+    """Test symmetric logs emit."""
+    logger = mock.MagicMock()
+    self.mock.get_logger.return_value = logger
+
+    symmetric_logs = [
+      {'label1': 'first_sym', 'label2': 0},
+      {'label1': 'second_sym', 'label2': 1},
+      {'label1': 'third_sym', 'label2': 2, 'label3': True}]
+
+    statement_line = inspect.currentframe().f_lineno + 1
+    logs.emit(
+      logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes',
+      symmetric_logs=symmetric_logs)
+    logs_extra = {'target': 'bot', 'test': 'yes'}
+    logs_extra.update(self.common_context)
+
+    logs_extra_sym1 = logs_extra.copy()
+    logs_extra_sym1.update({'label1': 'first_sym', 'label2': 0})
+    logger.log.assert_any_call(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra_sym1,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_symmetric_logs'
+            }
+        })
+
+    logs_extra_sym2 = logs_extra.copy()
+    logs_extra_sym2.update({'label1': 'second_sym', 'label2': 1})
+    logger.log.assert_any_call(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra_sym2,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_symmetric_logs'
+            }
+        })
+
+    logs_extra_sym3 = logs_extra.copy()
+    logs_extra_sym3.update({'label1':'third_sym', 'label2':2, 'label3': True})
+    logger.log.assert_any_call(
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        extra={
+            'extras': logs_extra_sym3,
+            'location': {
+                'path': os.path.abspath(__file__).rstrip('c'),
+                'line': statement_line,
+                'method': 'test_symmetric_logs'
+            }
+        })
+
   def test_common_context_logs(self):
     """Test that logs common context is instanced once for distinct modules."""
     logger = mock.MagicMock()

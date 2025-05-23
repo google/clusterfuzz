@@ -570,13 +570,34 @@ def intercept_log_context(func):
       for context in log_contexts.contexts:
         context.setup(*args, **kwargs)
         kwargs.update(context.get_extras()._asdict())
-        context.tear_down()
     else:
       # This is needed to avoid logging the label 'ingore_context: True'.
       del kwargs["ignore_context"]
     return func(*args, **kwargs)
 
   return wrapper
+
+
+def _parse_symmetric_logs(extras):
+  """Return a list containing the fields of each symmetrics log entry.
+
+  Checks if the symmetric logs label was passed and formatted as expected,
+  i.e., a label called `symmetric_logs` containing a list of dicts, which
+  represent the fields used for each log entry. Then, removes this label from
+  extras and return it. Otherwise, return None.
+  """
+  symmetric_logs = extras.pop('symmetric_logs', None)
+  if not symmetric_logs:
+    return None
+
+  if not isinstance(symmetric_logs, list):
+    return None
+
+  for sl in symmetric_logs:
+    if not isinstance(sl, dict):
+      return None
+
+  return symmetric_logs
 
 
 @intercept_log_context
@@ -613,21 +634,32 @@ def emit(level, message, exc_info=None, **extras):
   log_limit = STACKDRIVER_LOG_MESSAGE_LIMIT if _cloud_logging_enabled(
   ) else LOCAL_LOG_MESSAGE_LIMIT
 
-  # We need to make a dict out of it because member of the dict becomes the
-  # first class attributes of LogEntry. It is very tricky to identify the extra
-  # attributes. Therefore, we wrap extra fields under the attribute 'extras'.
-  logger.log(
-      level,
-      truncate(message, log_limit),
-      exc_info=exc_info,
-      extra={
-          'extras': all_extras,
-          'location': {
-              'path': path_name,
-              'line': line_number,
-              'method': method_name
-          }
-      })
+  # Enable symmetric logs, i.e., multiple log entries from the same emit call
+  # setting distinc values for labels in each entry.
+  symmetric_logs = _parse_symmetric_logs(all_extras)
+  symmetric_logs = [{}] if symmetric_logs is None else symmetric_logs
+  for sym_extras in symmetric_logs:
+    # Make a copy of the mutable params that can change in the logger call.
+    _all_extras = all_extras.copy()
+    _all_extras.update(sym_extras)
+    message_truncated = truncate(message, log_limit)
+
+    # We need to make a dict out of it because member of the dict becomes the
+    # first class attributes of LogEntry. It is very tricky to identify the
+    # extra attributes. Therefore, we wrap extra fields under the attribute
+    # 'extras'.
+    logger.log(
+        level,
+        message_truncated,
+        exc_info=exc_info,
+        extra={
+            'extras': _all_extras,
+            'location': {
+                'path': path_name,
+                'line': line_number,
+                'method': method_name
+            }
+        })
 
 
 def info(message, **extras):
@@ -746,6 +778,11 @@ class TestcaseLogStruct(NamedTuple):
   testcase_group: str | int
 
 
+class GrouperStruct(NamedTuple):
+  # Represents the TestcaseLogStruct for each testcase being grouped.
+  symmetric_logs: list[dict]
+
+
 class LogContextType(enum.Enum):
   """Log context types.
   
@@ -769,19 +806,6 @@ class LogContextType(enum.Enum):
         log_contexts.add_metadata('common_ctx', {})
         common_ctx = get_common_log_context()
         log_contexts.add_metadata('common_ctx', common_ctx)
-
-    if self == LogContextType.GROUPER:
-      if log_contexts.meta.get('in_grouper_ctx'):
-        return
-      log_contexts.add_metadata('in_grouper_ctx', True)
-      # Duplicate the emit so that we have a log entry with the context of each
-      # testcase in the pair being grouped.
-      emit(*args, **kwargs)
-
-  def tear_down(self) -> None:
-    """Tear down metadata used by the context, if needed."""
-    if self == LogContextType.GROUPER:
-      log_contexts.delete_metadata('in_grouper_ctx')
 
   def get_extras(self) -> NamedTuple:
     """Get the structured log fields for a given context."""
@@ -850,13 +874,14 @@ class LogContextType(enum.Enum):
 
     if self == LogContextType.GROUPER:
       try:
-        if log_contexts.meta.get('in_grouper_ctx'):
-          return TestcaseLogStruct(
-              testcase_id=log_contexts.meta.get('testcase_2_id', 'null'),
-              testcase_group=log_contexts.meta.get('testcase_2_group', 'null'))
-        return TestcaseLogStruct(
+        first_testcase = TestcaseLogStruct(
             testcase_id=log_contexts.meta.get('testcase_1_id', 'null'),
             testcase_group=log_contexts.meta.get('testcase_1_group', 'null'))
+        second_testcase = TestcaseLogStruct(
+            testcase_id=log_contexts.meta.get('testcase_2_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_2_group', 'null'))
+        symmetric_logs = [first_testcase._asdict(), second_testcase._asdict()]
+        return GrouperStruct(symmetric_logs=symmetric_logs)
       except:
         error(
             'Error retrieving context for grouper-based logs.',
