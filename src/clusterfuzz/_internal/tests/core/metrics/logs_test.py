@@ -533,15 +533,26 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
 
-    symmetric_logs = [
-      {'label1': 'first_sym', 'label2': 0},
-      {'label1': 'second_sym', 'label2': 1},
-      {'label1': 'third_sym', 'label2': 2, 'label3': True}]
+    symmetric_logs = [{
+        'label1': 'first_sym',
+        'label2': 0
+    }, {
+        'label1': 'second_sym',
+        'label2': 1
+    }, {
+        'label1': 'third_sym',
+        'label2': 2,
+        'label3': True
+    }]
 
     statement_line = inspect.currentframe().f_lineno + 1
     logs.emit(
-      logging.ERROR, 'msg', exc_info='ex', target='bot', test='yes',
-      symmetric_logs=symmetric_logs)
+        logging.ERROR,
+        'msg',
+        exc_info='ex',
+        target='bot',
+        test='yes',
+        symmetric_logs=symmetric_logs)
     logs_extra = {'target': 'bot', 'test': 'yes'}
     logs_extra.update(self.common_context)
 
@@ -576,7 +587,7 @@ class EmitTest(unittest.TestCase):
         })
 
     logs_extra_sym3 = logs_extra.copy()
-    logs_extra_sym3.update({'label1':'third_sym', 'label2':2, 'label3': True})
+    logs_extra_sym3.update({'label1': 'third_sym', 'label2': 2, 'label3': True})
     logger.log.assert_any_call(
         logging.ERROR,
         'msg',

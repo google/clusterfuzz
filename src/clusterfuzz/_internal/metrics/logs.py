@@ -568,7 +568,7 @@ def intercept_log_context(func):
   def wrapper(*args, **kwargs):
     if not kwargs.get('ignore_context'):
       for context in log_contexts.contexts:
-        context.setup(*args, **kwargs)
+        context.setup()
         kwargs.update(context.get_extras()._asdict())
     else:
       # This is needed to avoid logging the label 'ingore_context: True'.
@@ -640,8 +640,8 @@ def emit(level, message, exc_info=None, **extras):
   symmetric_logs = [{}] if symmetric_logs is None else symmetric_logs
   for sym_extras in symmetric_logs:
     # Make a copy of the mutable params that can change in the logger call.
-    _all_extras = all_extras.copy()
-    _all_extras.update(sym_extras)
+    all_extras_local = all_extras.copy()
+    all_extras_local.update(sym_extras)
     message_truncated = truncate(message, log_limit)
 
     # We need to make a dict out of it because member of the dict becomes the
@@ -653,7 +653,7 @@ def emit(level, message, exc_info=None, **extras):
         message_truncated,
         exc_info=exc_info,
         extra={
-            'extras': _all_extras,
+            'extras': all_extras_local,
             'location': {
                 'path': path_name,
                 'line': line_number,
@@ -796,7 +796,7 @@ class LogContextType(enum.Enum):
   CRON = 'cron'
   GROUPER = 'grouper'
 
-  def setup(self, *args, **kwargs) -> None:
+  def setup(self) -> None:
     """Setup metadata needed for the context."""
     if self == LogContextType.COMMON:
       common_ctx = log_contexts.meta.get('common_ctx')
