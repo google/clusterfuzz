@@ -31,12 +31,12 @@ MAX_RETRIES = 3
 
 #TODO(vitorguidi): generalize this so we can point to other projects
 prod_blob_bucket = 'clusterfuzz-blobs'
-staging_blob_bucket = 'blobs.clusterfuzz-staging.appspot.com'
+staging_blob_bucket = 'blobs.clusterfuzz-development.appspot.com'
 prod_bucket_domains = [
    'cluster-fuzz.appspot.com',
    'clusterfuzz.com',
 ]
-staging_bucket_domain = 'clusterfuzz-staging.appspot.com'
+staging_bucket_domain = 'clusterfuzz-development.appspot.com'
 
 def _copy_blob(origin_blob_path, target_blob_path):
    assert not prod_blob_bucket in target_blob_path
@@ -123,6 +123,10 @@ def migrate_data_bundle(data_bundle):
       if domain in bundle_corpus_gcs_bucket:
          target_corpus_bucket = bundle_corpus_gcs_bucket.replace(domain, staging_bucket_domain)
 
+   if bundle_corpus_gcs_bucket == target_corpus_bucket:
+      # rsync already succeeded before and the entity was persisted
+      return
+   
    assert staging_bucket_domain in target_corpus_bucket
 
    migrate_bucket(bundle_corpus_gcs_bucket, target_corpus_bucket)
