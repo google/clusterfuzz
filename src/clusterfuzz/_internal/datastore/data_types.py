@@ -1603,7 +1603,7 @@ class TestcaseVariant(Model):
 
 class TestcaseLifecycleEvent(Model):
   """Represents an event from a testcase lifecycle."""
-  # Entities' TTL, currently set to ~5Y
+  # Events' TTL, currently set to ~5Y.
   TESTCASE_EVENT_TTL = datetime.timedelta(days=1826)
 
   ### Event definition.
