@@ -1620,4 +1620,5 @@ class TestcaseLifecycleEvent(Model):
   source = ndb.StringProperty()
 
   def _pre_put_hook(self):
-    self.ttl_expiry_timestamp = datetime.datetime.now() + self.TESTCASE_EVENT_TTL
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
