@@ -57,8 +57,8 @@ firebase:
   - google.com
   # - github.com
 
-uworker_tasks:
-  - analyze
+full_utask_model:
+  enabled: false
 
 
 stacktrace:

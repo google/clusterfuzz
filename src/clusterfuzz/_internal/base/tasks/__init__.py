@@ -15,6 +15,7 @@
 
 import contextlib
 import datetime
+import functools
 import json
 import random
 import threading
@@ -779,8 +780,16 @@ def get_task_completion_deadline():
   return start_time + task_lease_timeout - TASK_COMPLETION_BUFFER
 
 
+@functools.lru_cache
+def full_utask_task_model():
+  local_config.ProjectConfig().get('full_utask_model.enabled', False)
+
+
 def queue_for_platform(platform, is_high_end=False):
   """Return the queue for the platform."""
+  if full_utask_task_model():
+    prefix = HIGH_END_JOBS_PREFIX + '-' if is_high_end else ''
+    return prefix + PREPROCESS_QUEUE
   prefix = HIGH_END_JOBS_PREFIX if is_high_end else JOBS_PREFIX
   return prefix + queue_suffix_for_platform(platform)
 
