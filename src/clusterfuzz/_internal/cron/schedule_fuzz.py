@@ -170,8 +170,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     candidates_by_job = {}
     for job in ndb_utils.get_all_from_query(data_types.Job.query()):
       candidates_by_job[job.name] = FuzzTaskCandidate(
-          job=job.name,
-          project=job.project)
+          job=job.name, project=job.project)
 
     fuzzer_job_weight_by_project = collections.defaultdict(int)
     fuzz_task_candidates = []

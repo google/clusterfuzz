@@ -2364,6 +2364,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'SUMMARY_PREFIX = chrome_android_pixel7\n'
         'MANAGED = True\n'
         'DISABLE_DISCLOSURE = True\n'
+        'DISK_SIZE_GB = None\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'

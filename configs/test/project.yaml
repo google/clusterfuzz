@@ -60,7 +60,6 @@ firebase:
 full_utask_model:
   enabled: false
 
-
 stacktrace:
   # Stack frames to ignore when determining the crash signature.
   stack_frame_ignore_regexes:
