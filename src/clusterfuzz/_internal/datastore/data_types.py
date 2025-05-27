@@ -1603,6 +1603,9 @@ class TestcaseVariant(Model):
 
 class TestcaseLifecycleEvent(Model):
   """Represents an event from a testcase lifecycle."""
+  # Entities' TTL, currently set to ~5Y
+  TESTCASE_EVENT_TTL = datetime.timedelta(days=1826)
+
   ### Event definition.
   # Event type (testcase_creation, issue_filed, etc).
   event_type = ndb.StringProperty(required=True)
@@ -1610,5 +1613,11 @@ class TestcaseLifecycleEvent(Model):
   # Event creation time.
   timestamp = ndb.DateTimeProperty()
 
+  # Event expiration time (should only be used for TTL, not read by CF).
+  ttl_expiry_timestamp = ndb.DateTimeProperty(indexed=False)
+
   # Source location that emitted the event.
   source = ndb.StringProperty()
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = datetime.datetime.now() + self.TESTCASE_EVENT_TTL
