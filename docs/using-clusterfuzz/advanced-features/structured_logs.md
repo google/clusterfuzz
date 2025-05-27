@@ -9,7 +9,7 @@ nav_order: 3
 
 # Structured Logs
 
-This document describes the structured logging technique implemented in ClusterFuzz to increase observability and which fields are available in each execution context.
+This document describes the structured logging technique implemented in ClusterFuzz to increase observability, and the fields available in each execution context.
 
 - TOC
 {:toc}
@@ -18,7 +18,7 @@ This document describes the structured logging technique implemented in ClusterF
 
 ## Structured Logging in ClusterFuzz
 
-A set of consistent structured metadata are added to ClusterFuzz log entries, enabling better filtering and faster indexed queries for tracing and troubleshooting.
+A set of consistent structured metadata is added to ClusterFuzz log entries, enabling better filtering and faster indexed queries for tracing and troubleshooting.
 
 The fields are described in the following section. Notice that they are categorized by context, but most logs will belong to more than one context depending on the location they are called. For instance, all entries should contain the common context; logs called while running a task also contain the task context; logs called during a testcase-related execution append the testcase context; and so on.
 
