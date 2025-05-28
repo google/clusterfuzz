@@ -101,3 +101,129 @@ class TestcaseRejectionEvent(TestcaseEvent, TaskEvent):
   event_type: str = field(default='testcase_rejection', init=False)
   # Reason for rejection (e.g., triage_duplicated)
   reason: str | None = None
+
+
+# Mapping of specific event types to their classes.
+_EVENT_TYPE_CLASSES = {
+    'testcase_creation': TestcaseCreationEvent,
+    'testcase_rejection': TestcaseRejectionEvent
+}
+
+
+class IEventRepository(ABC):
+  """Event repository abstract class (interface).
+
+  This class is responsable for defining the expected operations for event
+  storage and retrieval in a repository/database.
+  All concrete event repositories must implement these methods.
+  """
+
+  @abstractmethod
+  def serialize_event(self, event: Event) -> Any:
+    """Serialize an event into the underlying database entity."""
+
+  @abstractmethod
+  def deserialize_event(self, entity: Any) -> Event | None:
+    """Deserialize a database entity into an event."""
+
+  @abstractmethod
+  def store_event(self, entity: Any) -> str | int | None:
+    """Save an event entity into the underlying database and return its ID."""
+
+
+class NDBEventRepository(IEventRepository):
+  """Implements the event repository for Datastore.
+  
+  Handles conversion between Event objects and Datastore entities. If a new
+  Datastore entity model is needed, it relies on mapping the event types to
+  the correct entity.
+  """
+  # Maps `event_type` to a Datastore model.
+  # For now, only testcase lifecycle events are being traced.
+  _event_to_entity_map = {}
+  _default_entity = data_types.TestcaseLifecycleEvent
+
+  def _to_entity(self, event: Event) -> data_types.Model:
+    """Converts the event object into the Datastore entity."""
+    entity_model = self._event_to_entity_map.get(event.event_type,
+                                                 self._default_entity)
+
+    event_entity = entity_model(event_type=event.event_type)
+    for key, val in asdict(event).items():
+      setattr(event_entity, key, val)
+    return event_entity
+
+  def _from_entity(self, entity: data_types.Model) -> Event:
+    """Converts a Datastore entity into an event object."""
+    if not hasattr(entity, 'event_type'):
+      raise TypeError('Datastore model should contain an event_type.')
+
+    event_type = entity.event_type  # type: ignore
+    event_class = _EVENT_TYPE_CLASSES.get(event_type, None)
+    if event_class is None:
+      event = Event(event_type=event_type)
+    else:
+      event = event_class()
+    for key, val in entity.to_dict().items():
+      setattr(event, key, val)
+    return event
+
+  def serialize_event(self, event: Event) -> data_types.Model | None:
+    """Converts an event object into the Datastore entity."""
+    try:
+      event_entity = self._to_entity(event)
+      return event_entity
+    except:
+      logs.error(
+          f'Error serializing event of type {event.event_type} to Datastore.')
+    return None
+
+  def deserialize_event(self, entity: data_types.Model) -> Event | None:
+    """Converts a Datastore entity into an event object, if possible."""
+    try:
+      event = self._from_entity(entity)
+      return event
+    except:
+      logs.error('Error deserializing Datastore entity to event.')
+    return None
+
+  def store_event(self, entity: data_types.Model) -> str | int | None:
+    """Stores a Datastore entity and return its ID."""
+    try:
+      entity.put()
+      return entity.key.id()
+    except:
+      logs.error('Error storing Datastore event entity.')
+    return None
+
+
+_repository: IEventRepository | None = None
+
+
+def config_repository() -> None:
+  """Config the repository used to handle and store events."""
+  global _repository
+  # Any other repository implementations should be added here
+  # based on the project config.
+  _repository = NDBEventRepository()
+
+
+def get_repository() -> IEventRepository | None:
+  """Return the repository interface to handle and store events."""
+  if not _repository:
+    config_repository()
+  return _repository
+
+
+def emit(event: Event) -> str | int | None:
+  """Emit an event to be stored in the configured repository."""
+  repository = get_repository()
+  if repository is None:
+    return None
+
+  event_entity = repository.serialize_event(event)
+  if event_entity is None:
+    return None
+
+  event_id = repository.store_event(event_entity)
+  return event_id
