@@ -404,6 +404,10 @@ def main():
   subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')
 
+  subparsers.add_parser(
+      'schedule_minimize',
+      help='Schedule minimize tasks for all open testcases.')
+
   _add_weights_subparser(subparsers)
 
   args = parser.parse_args()
