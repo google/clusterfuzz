@@ -62,7 +62,7 @@ class TestcaseEvent(Event):
   testcase_id: str | None = None
   fuzzer: str | None = None
   job: str | None = None
-  crash_revision: str | None = None
+  crash_revision: int | None = None
 
   def __post_init__(self, testcase=None, **kwargs):
     if testcase is not None:
