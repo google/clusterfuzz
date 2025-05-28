@@ -322,6 +322,7 @@ def get_preprocess_task():
 
 
 def tworker_get_task():
+  """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
   # preprocessing. It's too expensive to pull twice (once from the postproces
@@ -331,6 +332,8 @@ def tworker_get_task():
   if random.random() < .5:
     # Pick either one with equal probability so we don't hurt the
     # throughput of one compared to the other.
+    # TODO(metzman): We may want to combine these queues to save time reading
+    # from queues.
     return get_postprocess_task()
   return get_preprocess_task()
 
@@ -711,7 +714,7 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       input_url,
       job_type,
       queue=UTASK_MAIN_QUEUE,
-      utask_main=True,
+      utask_main=True,  # pylint:disable=unused-argument
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 
