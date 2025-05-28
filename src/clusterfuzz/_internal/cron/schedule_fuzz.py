@@ -133,10 +133,9 @@ class FuzzTaskCandidate:
   Something like this would probably not be needed if we were using SQL and
   could use joins."""
 
-  def __init__(self, job, project, queue, fuzzer=None, weight=None):
+  def __init__(self, job, project, fuzzer=None, weight=None):
     self.job = job
     self.project = project
-    self.queue = queue
     self.fuzzer = fuzzer
     self.weight = weight
 
@@ -144,7 +143,6 @@ class FuzzTaskCandidate:
     return FuzzTaskCandidate(
         job=self.job,
         project=self.project,
-        queue=self.queue,
         fuzzer=self.fuzzer,
         weight=self.weight)
 
@@ -172,9 +170,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     candidates_by_job = {}
     for job in ndb_utils.get_all_from_query(data_types.Job.query()):
       candidates_by_job[job.name] = FuzzTaskCandidate(
-          job=job.name,
-          project=job.project,
-          queue=tasks.queue_for_platform(job.platform))
+          job=job.name, project=job.project)
 
     fuzzer_job_weight_by_project = collections.defaultdict(int)
     fuzz_task_candidates = []
