@@ -714,12 +714,11 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       input_url,
       job_type,
       queue=UTASK_MAIN_QUEUE,
-      utask_main=True,  # pylint:disable=unused-argument
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 
 
-def bulk_add_tasks(tasks, queue=None, eta_now=False, utask_main=False):
+def bulk_add_tasks(tasks, queue=None, eta_now=False):
   """Adds |tasks| in bulk to |queue|."""
 
   # Old testcases may pass in queue=None explicitly, so we must check this here.
@@ -748,8 +747,7 @@ def add_task(command,
              job_type,
              queue=None,
              wait_time=None,
-             extra_info=None,
-             utask_main=False):
+             extra_info=None):
   """Add a new task to the job queue."""
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
@@ -767,7 +765,7 @@ def add_task(command,
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
 
-  bulk_add_tasks([task], queue=queue, utask_main=utask_main)
+  bulk_add_tasks([task], queue=queue)
 
 
 def get_task_lease_timeout():
