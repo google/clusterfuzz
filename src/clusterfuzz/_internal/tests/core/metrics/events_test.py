@@ -114,12 +114,3 @@ class EventsDataTest(unittest.TestCase):
                                      source)
     self.assertEqual(event_creation_fuzz.origin, 'fuzz_task')
     self.assertIsNone(event_creation_fuzz.uploader)
-
-  def test_testcase_rejection_event(self):
-    """Test testcase rejection event class."""
-    source = 'events_test'
-    testcase = test_utils.create_generic_testcase()
-
-    event_rejection = events.TestcaseRejectionEvent(
-        source=source, testcase=testcase, reason='triage_duplicate_testcase')
-    self.assertEqual(event_rejection.reason, 'triage_duplicate_testcase')

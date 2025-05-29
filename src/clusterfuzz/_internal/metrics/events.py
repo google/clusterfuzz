@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Events definition and handling."""
+"""Events handling and emitting."""
 
 from abc import ABC
 from abc import abstractmethod
@@ -95,18 +95,9 @@ class TestcaseCreationEvent(TestcaseEvent, TaskEvent):
   uploader: str | None = None
 
 
-@dataclass(kw_only=True)
-class TestcaseRejectionEvent(TestcaseEvent, TaskEvent):
-  """Testcase rejection event."""
-  event_type: str = field(default='testcase_rejection', init=False)
-  # Reason for rejection (e.g., triage_duplicated)
-  reason: str | None = None
-
-
 # Mapping of specific event types to their classes.
 _EVENT_TYPE_CLASSES = {
     'testcase_creation': TestcaseCreationEvent,
-    'testcase_rejection': TestcaseRejectionEvent
 }
 
 
