@@ -260,6 +260,8 @@ class GcsProvider(StorageProvider):
 
     if names_only:
       fields = 'items(name),nextPageToken'
+      if not recursive:
+        fields += ',prefixes'
     else:
       fields = None
 
