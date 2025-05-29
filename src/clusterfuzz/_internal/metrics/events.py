@@ -36,7 +36,7 @@ class Event:
   source: str | None = None
   # Timestamp when the event was created.
   timestamp: datetime.datetime = field(
-      init=False, default=datetime.datetime.now(datetime.timezone.utc))
+      init=False, default=datetime.datetime.now())
 
   # Common metadata retrieved from running environment.
   clusterfuzz_version: str | None = field(init=False, default=None)
@@ -156,7 +156,8 @@ class NDBEventRepository(IEventRepository):
     else:
       event = event_class()
     for key, val in entity.to_dict().items():
-      setattr(event, key, val)
+      if hasattr(event, key):
+        setattr(event, key, val)
     return event
 
   def serialize_event(self, event: Event) -> data_types.Model | None:
