@@ -277,7 +277,6 @@ class GcsProvider(StorageProvider):
             'name': blob.name,
             'updated': blob.updated,
             'size': blob.size,
-            'next_page_token': next_page_token,
         }
 
         yield properties

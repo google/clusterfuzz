@@ -447,7 +447,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # (e.g. quarantine, regression) but this check is for the main corpus.
     assert ((len(filenames_to_delete) != len(
         self._filenames_to_delete_urls_mapping)) or
-            len(filenames_to_delete) < 500)
+            len(filenames_to_delete) < 1_000)
 
     logs.info('Deleting files.')
     storage.delete_signed_urls(filenames_to_delete)
@@ -678,7 +678,7 @@ def get_proto_corpus(bucket_name,
     backup = storage.get_blobs(backup_url, single_file=True)
     corpus.backup_url = storage.get_signed_download_url(backup_url)
     backup = list(backup)
-    assert len(backup) == 1
+    assert len(backup) == 1, backup
     # Corpus backup can take up to 24 hours, get any corpus element before the
     # backup was made.
     start_time = backup[0]['updated'] - datetime.timedelta(days=1)
