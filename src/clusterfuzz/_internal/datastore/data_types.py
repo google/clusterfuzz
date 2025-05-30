@@ -1619,6 +1619,46 @@ class TestcaseLifecycleEvent(Model):
   # Source location that emitted the event.
   source = ndb.StringProperty()
 
+  ### Common metadata.
+  # Source code commit hash.
+  clusterfuzz_version = ndb.StringProperty()
+
+  # Config code commit hash.
+  clusterfuzz_config_version = ndb.StringProperty()
+
+  # Identifier for the running instance on batch, GCE, GKE, etc.
+  instance_id = ndb.StringProperty()
+
+  # Operating system name.
+  operating_system = ndb.StringProperty()
+
+  # Operating system version.
+  os_version = ndb.StringProperty()
+
+  ### Testcase-related properties.
+  # Testcase identifier/key.
+  testcase_id = ndb.IntegerProperty()
+
+  # Name of the fuzzer associated with the testcase.
+  fuzzer = ndb.StringProperty()
+
+  # Type of the job associated with the testcase.
+  job = ndb.StringProperty()
+
+  # Revision that the testcase was created.
+  crash_revision = ndb.IntegerProperty()
+
+  ### Task-related properties.
+  # Task ID (artificial or corresponding to the utask execution).
+  task_id = ndb.StringProperty()
+
+  ### Testcase Creation.
+  # How testcase was created (manual upload, fuzz, corpus pruning).
+  origin = ndb.StringProperty()
+
+  # If testcase is manually uploaded, the user email.
+  uploader = ndb.StringProperty()
+
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
