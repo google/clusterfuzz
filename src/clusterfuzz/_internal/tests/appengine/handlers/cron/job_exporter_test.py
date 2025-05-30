@@ -20,6 +20,37 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 import unittest
 
 @test_utils.with_cloud_emulators('datastore')
+class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
+  """Test the job exporter job with Fuzzer entitites."""
+  def setUp(self):
+    pass
+
+  def tearDown(self):
+    pass
+
+  def _sample_data_bundle(self):
+    return data_types.DataBundle(
+      name = 'some-job',
+      bucket_name = 'some-bucket',
+    )
+  
+  def _assert_data_bundles_equal(self, bundle, another_bundle):
+    self.assertEqual(bundle.name, another_bundle.name)
+    self.assertEqual(bundle.bucket_name, another_bundle.bucket_name)
+
+  def test_data_bundle_serializes_and_deserializes_correctly(self):
+    """Test data_types.JobTemplate serialization/deserialization."""
+    data_bundle = self._sample_data_bundle()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.DataBundle, [], 'databundle')
+  
+    serialized_data_bundle = entity_migrator._serialize(data_bundle)
+    deserialized_data_bundle = entity_migrator._deserialize(serialized_data_bundle)
+
+    self._assert_data_bundles_equal(data_bundle, deserialized_data_bundle)
+
+
+@test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
   def setUp(self):
@@ -41,14 +72,14 @@ class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
 
   def test_jobs_serializes_and_deserializes_correctly(self):
     """Test data_types.JobTemplate serialization/deserialization."""
-    job = self._sample_job_template()
+    job_template = self._sample_job_template()
     entity_migrator = job_exporter.EntityMigrator(
-      data_types.JobTemplate, ['custom_binary_key'], 'jobtemplate')
+      data_types.JobTemplate, [], 'jobtemplate')
   
-    serialized_job = entity_migrator._serialize(job)
-    deserialized_job = entity_migrator._deserialize(serialized_job)
+    serialized_job_template = entity_migrator._serialize(job_template)
+    deserialized_job_template = entity_migrator._deserialize(serialized_job_template)
 
-    self._assert_job_templates_equal(job, deserialized_job)
+    self._assert_job_templates_equal(job_template, deserialized_job_template)
 
 
 @test_utils.with_cloud_emulators('datastore')
