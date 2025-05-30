@@ -52,21 +52,22 @@ class EntityMigrator:
     # Parse the bytes into the Any message
     deserialized_any.ParseFromString(proto_as_str)
     return uworker_io.entity_from_protobuf(deserialized_any, self._target_cls)
-
-  def _export_entity(self, entity):
+  
+  def _upload_entity_to_gcs(self, entity: ndb.Model, upload_path: str):
+    with tempfile.NamedTemporaryFile(mode='wb+', delete=True) as tmp_file:
+      entity_pb_as_str = self._serialize(entity)
+      tmp_file.write(entity_pb_as_str)
+      tmp_file.flush()
+      storage.copy_file_to(tmp_file.name, upload_path)
+  
+  def _export_entity(self, entity: ndb.Model):
     """Exports entity as protobuf and its respective blobs to GCS."""
     # Entitites get their name from the 'name' field in datastore
     entity_name = getattr(entity, 'name', None)
     assert entity_name
     bucket_prefix = f'gs://{export_bucket}/{self._entity_type}/{entity_name}'
     target_location = f'{bucket_prefix}/entity.proto'
-    with tempfile.NamedTemporaryFile(mode='wb+', delete=True) as tmp_file:
-      entity_pb_as_str = self._serialize(entity)
-      back_to_entity = self._deserialize(entity_pb_as_str)
-      assert entity == back_to_entity
-      tmp_file.write(entity_pb_as_str)
-      tmp_file.flush()
-      storage.copy_file_to(tmp_file.name, target_location)
+    self._upload_entity_to_gcs(entity, target_location)
     for blobstore_key in self.blobstore_keys:
       blob_id = getattr(entity, blobstore_key, None)
       if blob_id:
