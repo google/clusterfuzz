@@ -44,6 +44,18 @@ class TestJobsExporterIntegrationTests(unittest.TestCase):
     self.assertEqual(fuzzer.jobs, another_fuzzer.jobs)
     self.assertEqual(fuzzer.blobstore_key, another_fuzzer.blobstore_key)
 
+  def _sample_job(self):
+    return data_types.Job(
+      name = 'some-job',
+      custom_binary_key = 'some-key',
+      platform = 'some-platform'
+    )
+  
+  def _assert_jobs_equal(self, job, another_job):
+    self.assertEqual(job.name, another_job.name)
+    self.assertEqual(job.custom_binary_key, another_job.custom_binary_key)
+    self.assertEqual(job.platform, another_job.platform)
+
   def test_fuzzer_serializes_and_deserializes_correctly(self):
     """Test data_types.Fuzzer serialization/deserialization."""
     fuzzer = self._sample_fuzzer()
@@ -54,3 +66,14 @@ class TestJobsExporterIntegrationTests(unittest.TestCase):
     deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
 
     self._assert_fuzzers_equal(fuzzer, deserialized_fuzzer)
+
+  def test_jobs_serializes_and_deserializes_correctly(self):
+    """Test data_types.Fuzzer serialization/deserialization."""
+    job = self._sample_job()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.Job, ['custom_binary_key'], 'job')
+  
+    serialized_job = entity_migrator._serialize(job)
+    deserialized_job = entity_migrator._deserialize(serialized_job)
+
+    self._assert_jobs_equal(job, deserialized_job)
