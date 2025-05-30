@@ -782,8 +782,8 @@ def get_task_completion_deadline():
 
 
 @functools.lru_cache
-def full_utask_task_model():
-  local_config.ProjectConfig().get('full_utask_model.enabled', False)
+def full_utask_task_model() -> bool:
+  return local_config.ProjectConfig().get('full_utask_model.enabled', False)
 
 
 def queue_for_platform(platform, is_high_end=False):
