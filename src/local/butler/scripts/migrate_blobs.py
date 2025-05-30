@@ -155,7 +155,7 @@ def migrate_fuzzer(fuzzer):
   new_blob_key = migrate_blob(source_blob)
   fuzzer.blobstore_key = new_blob_key
   fuzzer.put()
-  print(f'Migrated {fuzzer.name} to gcs://{_STAGING_BLOB_BUCKET}/{new_blob_key}')
+  print(f'Migrated {fuzzer.name} to gs://{_STAGING_BLOB_BUCKET}/{new_blob_key}')
 
 
 def migrate_job(job):
@@ -179,12 +179,12 @@ def execute(args):  #pylint: disable=unused-argument
   environment.set_bot_environment()
   print('checking jobs')
   for job in data_types.Job.query():
-     migrate_job(job)
+    migrate_job(job)
   print('\n\n')
 
   print('checking fuzzers')
   for fuzzer in data_types.Fuzzer.query():
-     migrate_fuzzer(fuzzer)
+    migrate_fuzzer(fuzzer)
   print('\n\n')
 
   print('checking databundle')
