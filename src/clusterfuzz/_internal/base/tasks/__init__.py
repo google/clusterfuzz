@@ -130,6 +130,8 @@ def default_queue_suffix():
 
 def regular_queue(prefix=JOBS_PREFIX):
   """Get the regular jobs queue."""
+  if full_utask_task_model():
+    return PREPROCESS_QUEUE
   return prefix + default_queue_suffix()
 
 
@@ -720,7 +722,6 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
 
 def bulk_add_tasks(tasks, queue=None, eta_now=False):
   """Adds |tasks| in bulk to |queue|."""
-
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
@@ -789,8 +790,7 @@ def full_utask_task_model() -> bool:
 def queue_for_platform(platform, is_high_end=False):
   """Return the queue for the platform."""
   if full_utask_task_model():
-    prefix = HIGH_END_JOBS_PREFIX + '-' if is_high_end else ''
-    return prefix + PREPROCESS_QUEUE
+    return PREPROCESS_QUEUE
   prefix = HIGH_END_JOBS_PREFIX if is_high_end else JOBS_PREFIX
   return prefix + queue_suffix_for_platform(platform)
 
