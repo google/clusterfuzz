@@ -22,11 +22,13 @@ import os
 import shutil
 from clusterfuzz._internal.google_cloud_utils import storage
 import tempfile
+from clusterfuzz._internal.tests.test_libs import helpers
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
   def setUp(self):
+    helpers.patch_environ(self)
     self.local_gcs_buckets_path = tempfile.mkdtemp()
     self.mock_bucket = 'MOCK_BUCKET'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
@@ -69,7 +71,11 @@ class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
 class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
   def setUp(self):
-    pass
+    helpers.patch_environ(self)
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    self.mock_bucket = 'MOCK_BUCKET'
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    storage._provider().create_bucket(self.mock_bucket, None, None, None)
 
   def tearDown(self):
     pass
@@ -101,7 +107,11 @@ class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
 class TestJobsExporterFuzzerIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
   def setUp(self):
-    pass
+    helpers.patch_environ(self)
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    self.mock_bucket = 'MOCK_BUCKET'
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    storage._provider().create_bucket(self.mock_bucket, None, None, None)
 
   def tearDown(self):
     pass
@@ -135,7 +145,11 @@ class TestJobsExporterJobIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Job entitites."""
 
   def setUp(self):
-    pass
+    helpers.patch_environ(self)
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    self.mock_bucket = 'MOCK_BUCKET'
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    storage._provider().create_bucket(self.mock_bucket, None, None, None)
 
   def tearDown(self):
     pass
