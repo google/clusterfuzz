@@ -18,15 +18,22 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.cron import job_exporter
 from clusterfuzz._internal.tests.test_libs import test_utils
 import unittest
+import os
+import shutil
+from clusterfuzz._internal.google_cloud_utils import storage
+import tempfile
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
   def setUp(self):
-    pass
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    self.mock_bucket = 'MOCK_BUCKET'
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    storage._provider().create_bucket(self.mock_bucket, None, None, None)
 
   def tearDown(self):
-    pass
+    shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
 
   def _sample_data_bundle(self):
     return data_types.DataBundle(
@@ -49,6 +56,14 @@ class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
 
     self._assert_data_bundles_equal(data_bundle, deserialized_data_bundle)
 
+  def test_data_bundle_proto_is_uploaded_to_gcs(self):
+    data_bundle = self._sample_data_bundle()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.DataBundle, [], 'databundle')
+    expected_path = f'gs://{self.mock_bucket}/bundle.proto'
+    entity_migrator._upload_entity_to_gcs(data_bundle, expected_path)
+    deserialized_data_bundle = entity_migrator._deserialize_entity_from_gcs(expected_path)
+    self._assert_data_bundles_equal(data_bundle, deserialized_data_bundle)
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
