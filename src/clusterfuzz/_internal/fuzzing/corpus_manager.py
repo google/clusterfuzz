@@ -672,13 +672,17 @@ def get_proto_corpus(bucket_name,
                      backup_url=None):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
-
   corpus = uworker_msg_pb2.Corpus(gcs_url=gcs_url)  # pylint: disable=no-member
+
+  backup = None
   if backup_url:
+    # TODO(unassigned): Use any backup, not just latest.zip. You can list the
+    # directory and pick the last element in the list that isn't public.zip.
     backup = storage.get_blobs(backup_url, single_file=True)
     corpus.backup_url = storage.get_signed_download_url(backup_url)
     backup = list(backup)
-    assert len(backup) == 1, backup
+
+  if backup:
     # Corpus backup can take up to 24 hours, get any corpus element before the
     # backup was made.
     start_time = backup[0]['updated'] - datetime.timedelta(days=1)
@@ -689,11 +693,14 @@ def get_proto_corpus(bucket_name,
   else:
     urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
             for url in storage.list_blobs(gcs_url))
+
   if max_download_urls is not None:
     urls = itertools.islice(urls, max_download_urls)
+
   corpus_urls = storage.sign_urls_for_existing_files(urls, include_delete_urls)
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
+
   # Iterate over imap_unordered results.
   for upload_url in upload_urls:
     corpus.upload_urls.append(upload_url)
