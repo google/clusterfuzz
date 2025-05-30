@@ -17,7 +17,9 @@
 import os
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
-
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.google_cloud_utils import blobs
+import tempfile
 
 target_entities = [
     (data_types.Fuzzer, ['blobstore_key']),
@@ -34,11 +36,29 @@ class EntityMigrator:
         self.target_type = target_type
         self.blobstore_keys = blobstore_keys
 
+    def _export_entity(self, entity):
+        assert entity is self.target_type
+        entity_name = 'todo'
+        target_location = f'gs://{export_bucket}/{entity_name}/{entity.key.id()}/entity.proto'
+        with tempfile.NamedTemporaryFile(mode='w+', delete=True) as tmp_file:
+            entity_pb = uworker_io.entity_to_protobuf(entity)
+            tmp_file.write(entity_pb)
+            storage.copy_file_to(tmp_file.name, target_location)
+        for blobstore_key in self.blobstore_keys:
+            blob_id = getattr(entity, blobstore_key, None)
+            if blob_id:
+                # TODO: COPY BLOB TO DESIRED PLACE
+
+
     def export_entities(self):
-        pass
+        for entity in self.target_type.query():
+            self._export_entity(entity)
 
     def import_entities(self):
         pass
+
+    
+
 
 def process_entities(operation_mode: str):
     for (entity, blobstore_keys) in target_entities:
@@ -55,3 +75,4 @@ def main():
     assert operation_mode in ['import', 'export']
 
     process_entities(operation_mode)
+    return True
