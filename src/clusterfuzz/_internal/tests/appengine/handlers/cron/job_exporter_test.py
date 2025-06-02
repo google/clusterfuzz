@@ -38,9 +38,10 @@ class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
     shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
 
   def _sample_data_bundle(self):
+    bundle_name = 'some-bundle'
     return data_types.DataBundle(
-      name = 'some-job',
-      bucket_name = 'some-bucket',
+      name = bundle_name,
+      bucket_name = bundle_name,
     )
   
   def _assert_data_bundles_equal(self, bundle, another_bundle):
@@ -63,9 +64,34 @@ class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
     entity_migrator = job_exporter.EntityMigrator(
       data_types.DataBundle, [], 'databundle')
     expected_path = f'gs://{self.mock_bucket}/bundle.proto'
-    entity_migrator._upload_entity_to_gcs(data_bundle, expected_path)
+    entity_migrator._serialize_entity_to_gcs(data_bundle, expected_path)
     deserialized_data_bundle = entity_migrator._deserialize_entity_from_gcs(expected_path)
     self._assert_data_bundles_equal(data_bundle, deserialized_data_bundle)
+
+  def test_data_bundle_contents_are_rsynced_correctly(self):
+    data_bundle = self._sample_data_bundle()
+    file_contents = b'some_data'
+    data_bundle_bucket = data_bundle.bucket_name
+    data_bundle_file_path = f'{data_bundle_bucket}/some_file'
+
+    rsync_client = job_exporter.StorageRSync()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.DataBundle, [], 'databundle', rsync_client)
+
+    storage.create_bucket_if_needed(data_bundle_bucket)
+    entity_migrator._upload_bytes_to_gcs(file_contents, f'gs://{data_bundle_file_path}')
+
+    target_bucket = 'migrated-bundle'
+    expected_path = f'{target_bucket}/contents/some_file'
+    
+    storage.create_bucket_if_needed(target_bucket)
+    entity_migrator._export_data_bundle_contents_if_applicable(data_bundle, target_bucket)
+    rsynced_file_contents = entity_migrator._download_bytes_from_gcs(f'gs://{expected_path}')
+    target_blobs = [blob for blob in storage.list_blobs(f'gs://{target_bucket}')]
+    self.assertEqual(1, len(target_blobs))
+    print(target_blobs)
+    self.assertTrue('contents/some_file' in target_blobs)
+    self.assertEquals(file_contents, rsynced_file_contents)
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
