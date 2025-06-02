@@ -168,6 +168,15 @@ class TestJobsExporterFuzzerIntegrationTests(unittest.TestCase):
 
     self._assert_jobs_equal(job, deserialized_job)
 
+  def test_job_proto_is_uploaded_to_gcs(self):
+    job = self._sample_job()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.Job, ['custom_binary_key'], 'job')
+    expected_path = f'gs://{self.mock_bucket}/job.proto'
+    entity_migrator._serialize_entity_to_gcs(job, expected_path)
+    deserialized_job = entity_migrator._deserialize_entity_from_gcs(expected_path)
+    self._assert_jobs_equal(job, deserialized_job)
+
   def test_custom_binary_key_is_copied_correctly(self):
     job = self._sample_job()
     original_blob_location = f'{self.mock_bucket}/original_blob'
