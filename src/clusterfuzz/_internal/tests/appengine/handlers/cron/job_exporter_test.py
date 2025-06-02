@@ -192,6 +192,9 @@ class TestJobsExporterJobIntegrationTests(unittest.TestCase):
     self.mock_bucket = 'MOCK_BUCKET'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
     storage._provider().create_bucket(self.mock_bucket, None, None, None)
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_gcs_path',
+    ])
 
   def tearDown(self):
     pass
@@ -220,3 +223,17 @@ class TestJobsExporterJobIntegrationTests(unittest.TestCase):
     deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
 
     self._assert_fuzzers_equal(fuzzer, deserialized_fuzzer)
+
+  def test_blobstore_key_is_copied_correctly(self):
+    job = self._sample_fuzzer()
+    original_blob_location = f'{self.mock_bucket}/original_blob'
+    original_blob_contents = b'some data'
+    expected_target_location = f'{self.mock_bucket}/blobstore_key'
+    self.mock.get_gcs_path.return_value = f'gs://{original_blob_location}'
+    entity_migrator = job_exporter.EntityMigrator(data_types.Job, ['blobstore_key'], 'fuzzer')
+
+    entity_migrator._upload_bytes_to_gcs(original_blob_contents, f'gs://{original_blob_location}')
+    entity_migrator._export_blobs(job, f'gs://{self.mock_bucket}')
+
+    retrieved_blob = entity_migrator._download_bytes_from_gcs(f'gs://{expected_target_location}')
+    self.assertEqual(original_blob_contents, retrieved_blob)
