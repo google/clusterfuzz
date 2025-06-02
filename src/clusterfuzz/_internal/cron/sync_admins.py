@@ -13,8 +13,6 @@
 # limitations under the License.
 """Cron to sync admin users."""
 
-from typing import List
-
 from googleapiclient import discovery
 
 from clusterfuzz._internal.base import utils
