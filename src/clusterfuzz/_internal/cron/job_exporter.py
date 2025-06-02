@@ -115,6 +115,8 @@ class EntityMigrator:
       if blob_id:
         blob_gcs_path = blobs.get_gcs_path(blob_id)
         blob_destination_path = f'{bucket_prefix}/{blobstore_key}'
+        print(blob_gcs_path)
+        print(blob_destination_path)
         storage.copy_blob(blob_gcs_path, blob_destination_path)
 
   def _export_data_bundle_contents_if_applicable(self, entity: ndb.Model, bucket_prefix: str):
