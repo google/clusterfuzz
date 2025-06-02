@@ -59,7 +59,7 @@ class TestcaseEvent(Event):
   testcase: InitVar[data_types.Testcase | None] = None
 
   # Testcase metadata (retrieved from the testcase entity, if available).
-  testcase_id: str | None = None
+  testcase_id: int | None = None
   fuzzer: str | None = None
   job: str | None = None
   crash_revision: int | None = None
