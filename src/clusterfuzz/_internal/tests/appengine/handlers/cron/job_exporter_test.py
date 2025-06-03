@@ -71,12 +71,14 @@ def _sample_fuzzer(  # pylint: disable=dangerous-default-value
     name='some-fuzzer',
     data_bundle_name='some-data-bundle',
     jobs=['some-job'],
-    blobstore_key='some-key'):
+    blobstore_key='some-key',
+    sample_testcase='some-testcase-key'):
   return data_types.Fuzzer(
       name=name,
       data_bundle_name=data_bundle_name,
       jobs=jobs,
       blobstore_key=blobstore_key,
+      sample_testcase=sample_testcase,
   )
 
 
@@ -84,7 +86,8 @@ def _fuzzers_equal(fuzzer, another_fuzzer):
   return (fuzzer.name == another_fuzzer.name and
           fuzzer.data_bundle_name == another_fuzzer.data_bundle_name and
           fuzzer.jobs == another_fuzzer.jobs and
-          fuzzer.blobstore_key == another_fuzzer.blobstore_key)
+          fuzzer.blobstore_key == another_fuzzer.blobstore_key and
+          fuzzer.sample_testcase == another_fuzzer.sample_testcase)
 
 
 def _blob_is_present_in_gcs(blob_path):
@@ -140,7 +143,7 @@ class TestEntitySerializationAndDeserializastion(unittest.TestCase):
     """Test data_types.Fuzzer serialization/deserialization."""
     fuzzer = _sample_fuzzer()
     entity_migrator = job_exporter.EntityMigrator(
-        data_types.Fuzzer, ['blobstore_key'], 'fuzzer', None, None)
+        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer', None, None)
 
     serialized_fuzzer = entity_migrator._serialize(fuzzer)
     deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
@@ -171,36 +174,56 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
   def test_fuzzers_are_correctly_exported(self):
     """Verifies fuzzer protos and blobs are uploaded. If no blobstore
         key is present, no blob is uploaded."""
+    blobstore_key = 'blobstore-key'
+    sample_testcase_key = 'some-blobstore-key'
+
     fuzzer = _sample_fuzzer(
         name='some-fuzzer',
         data_bundle_name='some-bundle',
         jobs=['some-job'],
-        blobstore_key='some-key')
+        blobstore_key=blobstore_key,
+        sample_testcase=sample_testcase_key)
     another_fuzzer = _sample_fuzzer(
         name='another-fuzzer',
         data_bundle_name='another-bundle',
         jobs=['another-job'],
-        blobstore_key=None)
+        blobstore_key=None,
+        sample_testcase=None)
     fuzzer.put()
     another_fuzzer.put()
     entity_migrator = job_exporter.EntityMigrator(
-        data_types.Fuzzer, ['blobstore_key'], 'fuzzer',
+        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer',
         job_exporter.StorageRSync(), self.target_bucket)
-    fuzzer_blob_data = b'some-data'
-    fuzzer_blob_id = 'some-blob'
-    fuzzer_proto_location = (f'gs://{self.target_bucket}/'
-                             f'fuzzer/{fuzzer.name}/'
-                             f'entity.proto')
-    blob_location = f'gs://{self.blobs_bucket}/{fuzzer_blob_id}'
-    another_fuzzer_proto_location = (f'gs://{self.target_bucket}/'
-                                     f'fuzzer/{another_fuzzer.name}/'
-                                     f'entity.proto')
-    another_fuzzer_blob_location = (f'gs://{self.target_bucket}/'
-                                    f'fuzzer/{another_fuzzer.name}/'
-                                    f'blobstore_key')
-    storage.write_data(fuzzer_blob_data, blob_location)
 
-    self.mock.get_gcs_path.return_value = blob_location
+    blob_id = 'some-blob-id'
+    sample_testcase_blob_id = 'some-testcase-blob-id'
+    blob_data = b'some-blob-data'
+    sample_testcase_blob_data = b'some-sample-testcase-data'
+    blobstore_key_location = f'gs://{self.blobs_bucket}/{blob_id}'
+    sample_testcase_location = f'gs://{self.blobs_bucket}/{sample_testcase_blob_id}'
+    storage.write_data(blob_data, blobstore_key_location)
+    storage.write_data(sample_testcase_blob_data, sample_testcase_location)
+
+    fuzzer_gcs_prefix = f'gs://{self.target_bucket}/fuzzer/{fuzzer.name}'
+    fuzzer_proto_location = f'{fuzzer_gcs_prefix}/entity.proto'
+    fuzzer_blob_location = f'{fuzzer_gcs_prefix}/blobstore_key'
+    fuzzer_testcase_location = f'{fuzzer_gcs_prefix}/sample_testcase'
+
+    another_fuzzer_gcs_prefix = f'gs://{self.target_bucket}/fuzzer/{another_fuzzer.name}'
+    another_fuzzer_proto_location = f'{another_fuzzer_gcs_prefix}/entity.proto'
+    another_fuzzer_blob_location = f'{another_fuzzer_gcs_prefix}/blobstore_key'
+    another_fuzzer_testcase_location = f'{another_fuzzer_gcs_prefix}/sample_testcase'
+
+
+    def get_gcs_key_mock_override(blob_key: str):
+      bucket_prefix = f'gs://{self.blobs_bucket}'
+      return_values = {
+        blobstore_key: f'{bucket_prefix}/{blob_id}',
+        sample_testcase_key: f'{bucket_prefix}/{sample_testcase_blob_id}',
+      }
+      return return_values.get(blob_key, None)
+
+    self.mock.get_gcs_path.side_effect = get_gcs_key_mock_override
     entity_migrator.export_entities()
 
     self.assertTrue(_blob_is_present_in_gcs(fuzzer_proto_location))
@@ -209,8 +232,10 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
         serialized_fuzzer_proto)
     self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer_proto))
 
-    self.assertTrue(_blob_is_present_in_gcs(blob_location))
-    self.assertTrue(_blob_content_is_equal(blob_location, fuzzer_blob_data))
+    self.assertTrue(_blob_is_present_in_gcs(fuzzer_blob_location))
+    self.assertTrue(_blob_content_is_equal(fuzzer_blob_location, blob_data))
+    self.assertTrue(_blob_is_present_in_gcs(fuzzer_testcase_location))
+    self.assertTrue(_blob_content_is_equal(fuzzer_testcase_location, sample_testcase_blob_data))
 
     self.assertTrue(_blob_is_present_in_gcs(another_fuzzer_proto_location))
     serialized_another_fuzzer_proto = storage.read_data(
@@ -221,6 +246,7 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
         _fuzzers_equal(another_fuzzer, deserialized_another_fuzzer_proto))
 
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_blob_location))
+    self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_testcase_location))
 
   def test_jobs_are_correctly_exported(self):
     """Verifies job protos and custom binary blobs are uploaded. If no custom

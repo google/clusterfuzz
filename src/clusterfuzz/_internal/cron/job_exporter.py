@@ -27,7 +27,7 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 
 target_entities = [
-    (data_types.Fuzzer, ['blobstore_key'], 'fuzzer'),
+    (data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer'),
     (data_types.Job, ['custom_binary_key'], 'job'),
     (data_types.DataBundle, [], 'databundle'),
     (data_types.JobTemplate, [], 'jobtemplate'),
