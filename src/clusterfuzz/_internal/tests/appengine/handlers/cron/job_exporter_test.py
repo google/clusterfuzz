@@ -67,10 +67,11 @@ def _jobs_equal(job, another_job):
           job.platform == another_job.platform)
 
 
-def _sample_fuzzer(name='some-fuzzer',
-                   data_bundle_name='some-data-bundle',
-                   jobs=['some-job'],
-                   blobstore_key='some-key'):
+def _sample_fuzzer(  # pylint: disable=dangerous-default-value
+    name='some-fuzzer',
+    data_bundle_name='some-data-bundle',
+    jobs=['some-job'],
+    blobstore_key='some-key'):
   return data_types.Fuzzer(
       name=name,
       data_bundle_name=data_bundle_name,
