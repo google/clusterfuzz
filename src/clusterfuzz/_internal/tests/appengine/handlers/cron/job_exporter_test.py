@@ -193,7 +193,7 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
                              f'entity.proto')
     blob_location = f'gs://{self.blobs_bucket}/{fuzzer_blob_id}'
     another_fuzzer_proto_location = (f'gs://{self.target_bucket}/'
-                                     f'fuzzer/{fuzzer.name}/'
+                                     f'fuzzer/{another_fuzzer.name}/'
                                      f'entity.proto')
     another_fuzzer_blob_location = (f'gs://{self.target_bucket}/'
                                     f'fuzzer/{another_fuzzer.name}/'
