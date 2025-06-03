@@ -24,42 +24,41 @@ from clusterfuzz._internal.google_cloud_utils import storage
 import tempfile
 from clusterfuzz._internal.tests.test_libs import helpers
 
-def _sample_data_bundle():
-  bundle_name = 'some-bundle'
+def _sample_data_bundle(name='some_bundle', bucket_name='some-data-bundle-bucket'):
   return data_types.DataBundle(
-    name = bundle_name,
-    bucket_name = bundle_name,
+    name = name,
+    bucket_name = bucket_name,
   )
 
 def _data_bundles_equal(bundle, another_bundle):
   return bundle.name == another_bundle.name and bundle.bucket_name, another_bundle.bucket_name
 
-def _sample_job_template():
+def _sample_job_template(name='some-job', environment_string='some-env'):
   return data_types.JobTemplate(
-    name = 'some-job',
-    environment_string = 'some-env',
+    name = name,
+    environment_string = environment_string,
   )
 
 def _job_templates_equal(template, another_template):
   return template.name == another_template.name and template.environment_string == another_template.environment_string
 
 
-def _sample_job():
+def _sample_job(name='some-job', custom_binary_key='some-key', platform='some-platform'):
   return data_types.Job(
-    name = 'some-job',
-    custom_binary_key = 'some-key',
-    platform = 'some-platform'
+    name = name,
+    custom_binary_key = custom_binary_key,
+    platform = platform,
   )
 
 def _jobs_equal(job, another_job):
   return job.name == another_job.name and job.custom_binary_key == another_job.custom_binary_key and job.platform == another_job.platform
 
-def _sample_fuzzer():
+def _sample_fuzzer(name='some-fuzzer', data_bundle_name='some-data-bundle', jobs=['some-job'], blobstore_key='some-key'):
   return data_types.Fuzzer(
-    name = 'some-fuzzer',
-    data_bundle_name = 'some-data-bundle',
-    jobs = ['some-job', 'another-job'],
-    blobstore_key = 'some-blob-key'
+    name = name,
+    data_bundle_name = data_bundle_name,
+    jobs = jobs,
+    blobstore_key = blobstore_key,
   )
 
 def _fuzzers_equal(fuzzer, another_fuzzer):
@@ -112,6 +111,24 @@ class TestEntitySerializationAndDeserializastion(unittest.TestCase):
     deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
 
     self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer))
+
+@test_utils.with_cloud_emulators('datastore')
+class TestEntitiesAreCorrectlyExported(unittest.TestCase):
+  """Test the job exporter job with Fuzzer entitites."""
+  def setUp(self):
+    helpers.patch_environ(self)
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    self.source_bucket = 'SOURCE_BUCKET'
+    self.target_bucket = 'TARGET_BUCKET'
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    storage.create_bucket_if_needed(self.source_bucket)
+    storage.create_bucket_if_needed(self.target_bucket)
+
+  def tearDown(self):
+    shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
+
+  def test_fuzzers_are_correctly_exported(self):
+    pass
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
