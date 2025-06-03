@@ -205,7 +205,7 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     job_proto_location = f'gs://{self.target_bucket}/job/{job.name}/entity.proto'
     blob_location = f'gs://{self.blobs_bucket}/{job_blob_id}'    
     another_job_proto_location = f'gs://{self.target_bucket}/job/{another_job.name}/entity.proto'
-    anoter_job_blob_location = f'gs://{self.target_bucket}/job/{another_job.name}/blobstore_key'
+    another_job_blob_location = f'gs://{self.target_bucket}/job/{another_job.name}/blobstore_key'
     storage.write_data(job_blob_data, blob_location)
 
     self.mock.get_gcs_path.return_value = blob_location
@@ -224,7 +224,7 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     deserialized_another_job_proto = entity_migrator._deserialize(serialized_another_job_proto)
     self.assertTrue(_jobs_equal(another_job, deserialized_another_job_proto))
 
-    self.assertFalse(_blob_is_present_in_gcs(anoter_job_blob_location))
+    self.assertFalse(_blob_is_present_in_gcs(another_job_blob_location))
 
   def test_job_templates_are_correctly_exported(self):
     template = _sample_job_template(
@@ -246,49 +246,31 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     deserialized_template_proto = entity_migrator._deserialize(serialized_template_proto)
     self.assertTrue(_job_templates_equal(template, deserialized_template_proto))
 
-@test_utils.with_cloud_emulators('datastore')
-class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
-  """Test the job exporter job with Fuzzer entitites."""
-  def setUp(self):
-    helpers.patch_environ(self)
-    self.local_gcs_buckets_path = tempfile.mkdtemp()
-    self.mock_bucket = 'MOCK_BUCKET'
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
-    storage._provider().create_bucket(self.mock_bucket, None, None, None)
-
-  def tearDown(self):
-    shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
-
-  def test_data_bundle_proto_is_uploaded_to_gcs(self):
-    data_bundle = _sample_data_bundle()
+  def test_data_bundles_are_correctly_exported(self):
+    data_bundle = _sample_data_bundle(
+      name='some-data-bundle',
+      bucket_name='some-data-bundle-bucket',
+    )
+    data_bundle.put()
     entity_migrator = job_exporter.EntityMigrator(
-      data_types.DataBundle, [], 'databundle', job_exporter.StorageRSync(), self.mock_bucket)
-    expected_path = f'gs://{self.mock_bucket}/bundle.proto'
-    entity_migrator._serialize_entity_to_gcs(data_bundle, expected_path)
-    deserialized_data_bundle = entity_migrator._deserialize_entity_from_gcs(expected_path)
-    self.assertTrue(_data_bundles_equal(data_bundle, deserialized_data_bundle))
-
-  def test_data_bundle_contents_are_rsynced_correctly(self):
-    data_bundle = _sample_data_bundle()
-    file_contents = b'some_data'
-    data_bundle_bucket = data_bundle.bucket_name
-    data_bundle_file_path = f'{data_bundle_bucket}/some_file'
-
-    rsync_client = job_exporter.StorageRSync()
-    entity_migrator = job_exporter.EntityMigrator(
-      data_types.DataBundle, [], 'databundle', rsync_client, self.mock_bucket)
-
-    storage.create_bucket_if_needed(data_bundle_bucket)
-    storage.write_data(file_contents, f'gs://{data_bundle_file_path}')
-
-    target_bucket = 'migrated-bundle'
-    expected_path = f'{target_bucket}/contents/some_file'
+      data_types.DataBundle,
+      [],
+      'databundle',
+      job_exporter.StorageRSync(),
+      self.target_bucket)
     
-    storage.create_bucket_if_needed(target_bucket)
-    entity_migrator._export_data_bundle_contents_if_applicable(data_bundle, target_bucket)
-    rsynced_file_contents = storage.read_data(f'gs://{expected_path}')
-    target_blobs = [blob for blob in storage.list_blobs(f'gs://{target_bucket}')]
-    self.assertEqual(1, len(target_blobs))
-    print(target_blobs)
-    self.assertTrue('contents/some_file' in target_blobs)
-    self.assertEquals(file_contents, rsynced_file_contents)
+    blob_data = b'some data'
+    storage.create_bucket_if_needed(data_bundle.bucket_name)
+    storage.write_data(blob_data, f'gs://{data_bundle.bucket_name}/blob')
+
+    entity_migrator.export_entities()
+    bundle_proto_location = f'gs://{self.target_bucket}/databundle/{data_bundle.name}/entity.proto'
+    bundle_contents_location = f'gs://{self.target_bucket}/databundle/{data_bundle.name}/contents/blob'
+
+    self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
+    serialized_bundle_proto = storage.read_data(bundle_proto_location)
+    deserialized_bundle_proto = entity_migrator._deserialize(serialized_bundle_proto)
+    self.assertTrue(_data_bundles_equal(data_bundle, deserialized_bundle_proto))
+
+    self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
+    self.assertTrue(_blob_content_is_equal(bundle_contents_location, blob_data))

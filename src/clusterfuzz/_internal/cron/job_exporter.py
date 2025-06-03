@@ -69,15 +69,9 @@ class StorageRSync(RSyncClient):
     pass
 
   def rsync(self, source: str, target: str):
-    print(source)
-    print(target)
     for blob in storage.list_blobs(f'gs://{source}'):
-      print(f'blob = {blob}')
       blob_target_path = f'{target}/{blob}'
-      print(blob_target_path)
-      print(
-          storage.copy_blob(f'gs://{source}/{blob}',
-                            f'gs://{blob_target_path}'))
+      storage.copy_blob(f'gs://{source}/{blob}', blob_target_path)
 
 
 class EntityMigrator:
@@ -117,8 +111,6 @@ class EntityMigrator:
       if blob_id:
         blob_gcs_path = blobs.get_gcs_path(blob_id)
         blob_destination_path = f'{bucket_prefix}/{blobstore_key}'
-        print(blob_gcs_path)
-        print(blob_destination_path)
         storage.copy_blob(blob_gcs_path, blob_destination_path)
 
   def _export_data_bundle_contents_if_applicable(self, entity: ndb.Model,
