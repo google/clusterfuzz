@@ -87,12 +87,13 @@ class EntityMigrator:
                target_cls: ndb.Model,
                blobstore_keys: list[str],
                entity_type: str,
-               rsync_client: RSyncClient = None):
+               rsync_client: RSyncClient,
+               export_bucket: str):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
     self._rsync_client = rsync_client
-
+    self._export_bucket = export_bucket
   def _serialize(self, entity) -> bytes:
     return uworker_io.entity_to_protobuf(entity).SerializeToString()
 
@@ -102,24 +103,12 @@ class EntityMigrator:
     deserialized_any.ParseFromString(proto_as_str)
     return uworker_io.entity_from_protobuf(deserialized_any, self._target_cls)
 
-  def _upload_bytes_to_gcs(self, data: bytes, upload_path: str):
-    with tempfile.NamedTemporaryFile(mode='wb+', delete=True) as tmp_file:
-      tmp_file.write(data)
-      tmp_file.flush()
-      storage.copy_file_to(tmp_file.name, upload_path)
-
-  def _download_bytes_from_gcs(self, download_path: str) -> bytes:
-    with tempfile.NamedTemporaryFile(mode='rb+', delete=True) as tmp_file:
-      storage.copy_file_from(download_path, tmp_file.name)
-      tmp_file.seek(0)
-      return tmp_file.read()
-
   def _serialize_entity_to_gcs(self, entity: ndb.Model, upload_path: str):
     entity_as_bytes = self._serialize(entity)
-    self._upload_bytes_to_gcs(entity_as_bytes, upload_path)
+    storage.write_data(entity_as_bytes, upload_path)
 
   def _deserialize_entity_from_gcs(self, download_path: str):
-    entity_as_bytes = self._download_bytes_from_gcs(download_path)
+    entity_as_bytes = storage.read_data(download_path)
     return self._deserialize(entity_as_bytes)
 
   def _export_blobs(self, entity: ndb.Model, bucket_prefix: str):
@@ -141,6 +130,7 @@ class EntityMigrator:
     if not entity.bucket_name:
       logs.info(
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
+      return
     target_location = f'{bucket_prefix}/contents'
     self._rsync_client.rsync(entity.bucket_name, target_location)
 
@@ -149,7 +139,7 @@ class EntityMigrator:
     # Entitites get their name from the 'name' field in datastore
     entity_name = getattr(entity, 'name', None)
     assert entity_name
-    bucket_prefix = f'gs://{export_bucket}/{self._entity_type}/{entity_name}'
+    bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}/{entity_name}'
     entity_target_location = f'{bucket_prefix}/entity.proto'
     self._serialize_entity_to_gcs(entity, entity_target_location)
     self._export_blobs(entity, bucket_prefix)
@@ -174,7 +164,7 @@ def main():
   rsync_client = GCloudCLIRSync()
 
   for (entity, blobstore_keys, entity_name) in target_entities:
-    migrator = EntityMigrator(entity, blobstore_keys, entity_name, rsync_client)
+    migrator = EntityMigrator(entity, blobstore_keys, entity_name, rsync_client, export_bucket)
     if entity_name != 'databundle':
       continue
     if operation_mode == 'export':
