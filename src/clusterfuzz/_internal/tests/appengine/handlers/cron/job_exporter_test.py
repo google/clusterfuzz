@@ -143,7 +143,8 @@ class TestEntitySerializationAndDeserializastion(unittest.TestCase):
     """Test data_types.Fuzzer serialization/deserialization."""
     fuzzer = _sample_fuzzer()
     entity_migrator = job_exporter.EntityMigrator(
-        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer', None, None)
+        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer', None,
+        None)
 
     serialized_fuzzer = entity_migrator._serialize(fuzzer)
     deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
@@ -214,12 +215,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     another_fuzzer_blob_location = f'{another_fuzzer_gcs_prefix}/blobstore_key'
     another_fuzzer_testcase_location = f'{another_fuzzer_gcs_prefix}/sample_testcase'
 
-
     def get_gcs_key_mock_override(blob_key: str):
       bucket_prefix = f'gs://{self.blobs_bucket}'
       return_values = {
-        blobstore_key: f'{bucket_prefix}/{blob_id}',
-        sample_testcase_key: f'{bucket_prefix}/{sample_testcase_blob_id}',
+          blobstore_key: f'{bucket_prefix}/{blob_id}',
+          sample_testcase_key: f'{bucket_prefix}/{sample_testcase_blob_id}',
       }
       return return_values.get(blob_key, None)
 
@@ -235,7 +235,9 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     self.assertTrue(_blob_is_present_in_gcs(fuzzer_blob_location))
     self.assertTrue(_blob_content_is_equal(fuzzer_blob_location, blob_data))
     self.assertTrue(_blob_is_present_in_gcs(fuzzer_testcase_location))
-    self.assertTrue(_blob_content_is_equal(fuzzer_testcase_location, sample_testcase_blob_data))
+    self.assertTrue(
+        _blob_content_is_equal(fuzzer_testcase_location,
+                               sample_testcase_blob_data))
 
     self.assertTrue(_blob_is_present_in_gcs(another_fuzzer_proto_location))
     serialized_another_fuzzer_proto = storage.read_data(

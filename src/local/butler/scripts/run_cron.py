@@ -13,11 +13,11 @@
 # limitations under the License.
 """Executes update task locally, so we can run it through a debugger."""
 
-from clusterfuzz._internal.cron import job_exporter
+from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 from clusterfuzz._internal.system import environment
 
 
 def execute(args):  #pylint: disable=unused-argument
   """Build keywords."""
   environment.set_bot_environment()
-  job_exporter.main()
+  oss_fuzz_apply_ccs.main()
