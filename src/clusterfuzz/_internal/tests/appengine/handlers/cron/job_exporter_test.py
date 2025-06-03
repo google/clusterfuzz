@@ -183,6 +183,49 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
     self.assertFalse(_blob_is_present_in_gcs(anoter_fuzzer_blob_location))
 
+  def test_jobs_are_correctly_exported(self):
+    job = _sample_job(
+      name='some-job',
+      custom_binary_key='some-key',
+      platform='some-platform')
+    another_job = _sample_job(
+      name='another-job',
+      custom_binary_key='another-key',
+      platform='another-platform')
+    job.put()
+    another_job.put()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.Job,
+      ['custom_binary_key'],
+      'job',
+      job_exporter.StorageRSync(),
+      self.target_bucket)
+    job_blob_data = b'some-data'
+    job_blob_id = 'some-blob'
+    job_proto_location = f'gs://{self.target_bucket}/job/{job.name}/entity.proto'
+    blob_location = f'gs://{self.blobs_bucket}/{job_blob_id}'    
+    another_job_proto_location = f'gs://{self.target_bucket}/job/{another_job.name}/entity.proto'
+    anoter_job_blob_location = f'gs://{self.target_bucket}/job/{another_job.name}/blobstore_key'
+    storage.write_data(job_blob_data, blob_location)
+
+    self.mock.get_gcs_path.return_value = blob_location
+    entity_migrator.export_entities()
+
+    self.assertTrue(_blob_is_present_in_gcs(job_proto_location))
+    serialized_job_proto = storage.read_data(job_proto_location)
+    deserialized_job_proto = entity_migrator._deserialize(serialized_job_proto)
+    self.assertTrue(_jobs_equal(job, deserialized_job_proto))
+    
+    self.assertTrue(_blob_is_present_in_gcs(blob_location))
+    self.assertTrue(_blob_content_is_equal(blob_location, job_blob_data))
+
+    self.assertTrue(_blob_is_present_in_gcs(another_job_proto_location))
+    serialized_another_job_proto = storage.read_data(another_job_proto_location)
+    deserialized_another_job_proto = entity_migrator._deserialize(serialized_another_job_proto)
+    self.assertTrue(_jobs_equal(another_job, deserialized_another_job_proto))
+
+    self.assertFalse(_blob_is_present_in_gcs(anoter_job_blob_location))
+
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
@@ -239,41 +282,3 @@ class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
     self.mock_bucket = 'MOCK_BUCKET'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
     storage._provider().create_bucket(self.mock_bucket, None, None, None)
-
-
-@test_utils.with_cloud_emulators('datastore')
-class TestJobsExporterJobIntegrationTests(unittest.TestCase):
-  """Test the job exporter job with Job entitites."""
-
-  def setUp(self):
-    helpers.patch_environ(self)
-    self.local_gcs_buckets_path = tempfile.mkdtemp()
-    self.mock_bucket = 'MOCK_BUCKET'
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
-    storage._provider().create_bucket(self.mock_bucket, None, None, None)
-    helpers.patch(self, [
-        'clusterfuzz._internal.google_cloud_utils.blobs.get_gcs_path',
-    ])
-
-  def test_fuzzer_proto_is_uploaded_to_gcs(self):
-    fuzzer = _sample_fuzzer()
-    entity_migrator = job_exporter.EntityMigrator(
-      data_types.Fuzzer, ['blobstore_key'], 'fuzzer', job_exporter.StorageRSync(), self.mock_bucket)
-    expected_path = f'gs://{self.mock_bucket}/fuzzer.proto'
-    entity_migrator._serialize_entity_to_gcs(fuzzer, expected_path)
-    deserialized_fuzzer = entity_migrator._deserialize_entity_from_gcs(expected_path)
-    self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer))
-
-  def test_blobstore_key_is_copied_correctly(self):
-    fuzzer = _sample_fuzzer()
-    original_blob_location = f'{self.mock_bucket}/original_blob'
-    original_blob_contents = b'some data'
-    expected_target_location = f'{self.mock_bucket}/blobstore_key'
-    self.mock.get_gcs_path.return_value = f'gs://{original_blob_location}'
-    entity_migrator = job_exporter.EntityMigrator(data_types.Fuzzer, ['blobstore_key'], 'fuzzer', job_exporter.StorageRSync(), self.mock_bucket)
-
-    storage.write_data(original_blob_contents, f'gs://{original_blob_location}')
-    entity_migrator._export_blobs(fuzzer, f'gs://{self.mock_bucket}')
-
-    retrieved_blob = storage.read_data(f'gs://{expected_target_location}')
-    self.assertEqual(original_blob_contents, retrieved_blob)
