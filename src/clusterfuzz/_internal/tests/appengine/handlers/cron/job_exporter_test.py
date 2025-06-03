@@ -226,6 +226,26 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
     self.assertFalse(_blob_is_present_in_gcs(anoter_job_blob_location))
 
+  def test_job_templates_are_correctly_exported(self):
+    template = _sample_job_template(
+      name='some-job-template',
+      environment_string='some-env-string')
+    template.put()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.JobTemplate,
+      [],
+      'jobtemplate',
+      job_exporter.StorageRSync(),
+      self.target_bucket)
+    template_proto_location = f'gs://{self.target_bucket}/jobtemplate/{template.name}/entity.proto'
+
+    entity_migrator.export_entities()
+
+    self.assertTrue(_blob_is_present_in_gcs(template_proto_location))
+    serialized_template_proto = storage.read_data(template_proto_location)
+    deserialized_template_proto = entity_migrator._deserialize(serialized_template_proto)
+    self.assertTrue(_job_templates_equal(template, deserialized_template_proto))
+
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
@@ -272,13 +292,3 @@ class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
     print(target_blobs)
     self.assertTrue('contents/some_file' in target_blobs)
     self.assertEquals(file_contents, rsynced_file_contents)
-
-@test_utils.with_cloud_emulators('datastore')
-class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
-  """Test the job exporter job with Fuzzer entitites."""
-  def setUp(self):
-    helpers.patch_environ(self)
-    self.local_gcs_buckets_path = tempfile.mkdtemp()
-    self.mock_bucket = 'MOCK_BUCKET'
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
-    storage._provider().create_bucket(self.mock_bucket, None, None, None)
