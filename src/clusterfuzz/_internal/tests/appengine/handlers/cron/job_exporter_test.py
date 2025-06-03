@@ -24,6 +24,95 @@ from clusterfuzz._internal.google_cloud_utils import storage
 import tempfile
 from clusterfuzz._internal.tests.test_libs import helpers
 
+def _sample_data_bundle():
+  bundle_name = 'some-bundle'
+  return data_types.DataBundle(
+    name = bundle_name,
+    bucket_name = bundle_name,
+  )
+
+def _data_bundles_equal(bundle, another_bundle):
+  return bundle.name == another_bundle.name and bundle.bucket_name, another_bundle.bucket_name
+
+def _sample_job_template():
+  return data_types.JobTemplate(
+    name = 'some-job',
+    environment_string = 'some-env',
+  )
+
+def _job_templates_equal(template, another_template):
+  return template.name == another_template.name and template.environment_string == another_template.environment_string
+
+
+def _sample_job():
+  return data_types.Job(
+    name = 'some-job',
+    custom_binary_key = 'some-key',
+    platform = 'some-platform'
+  )
+
+def _jobs_equal(job, another_job):
+  return job.name == another_job.name and job.custom_binary_key == another_job.custom_binary_key and job.platform == another_job.platform
+
+def _sample_fuzzer():
+  return data_types.Fuzzer(
+    name = 'some-fuzzer',
+    data_bundle_name = 'some-data-bundle',
+    jobs = ['some-job', 'another-job'],
+    blobstore_key = 'some-blob-key'
+  )
+
+def _fuzzers_equal(fuzzer, another_fuzzer):
+  return fuzzer.name == another_fuzzer.name and fuzzer.data_bundle_name == another_fuzzer.data_bundle_name and fuzzer.jobs == another_fuzzer.jobs and fuzzer.blobstore_key, another_fuzzer.blobstore_key
+
+@test_utils.with_cloud_emulators('datastore')
+class TestEntitySerializationAndDeserializastion(unittest.TestCase):
+  """Test the serialization and deserialization of entities."""
+
+  def test_data_bundle_serializes_and_deserializes_correctly(self):
+    """Test data_types.JobTemplate serialization/deserialization."""
+    data_bundle = _sample_data_bundle()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.DataBundle, [], 'databundle')
+  
+    serialized_data_bundle = entity_migrator._serialize(data_bundle)
+    deserialized_data_bundle = entity_migrator._deserialize(serialized_data_bundle)
+
+    self.assertTrue(_data_bundles_equal(data_bundle, deserialized_data_bundle))
+
+  def test_jobs_serializes_and_deserializes_correctly(self):
+    """Test data_types.JobTemplate serialization/deserialization."""
+    job_template = _sample_job_template()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.JobTemplate, [], 'jobtemplate')
+  
+    serialized_job_template = entity_migrator._serialize(job_template)
+    deserialized_job_template = entity_migrator._deserialize(serialized_job_template)
+
+    self.assertTrue(_jobs_equal(job_template, deserialized_job_template))
+
+  def test_jobs_serializes_and_deserializes_correctly(self):
+    """Test data_types.Job serialization/deserialization."""
+    job = _sample_job()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.Job, ['custom_binary_key'], 'job')
+  
+    serialized_job = entity_migrator._serialize(job)
+    deserialized_job = entity_migrator._deserialize(serialized_job)
+
+    self.assertTrue(_jobs_equal(job, deserialized_job))
+
+  def test_fuzzer_serializes_and_deserializes_correctly(self):
+    """Test data_types.Fuzzer serialization/deserialization."""
+    fuzzer = _sample_fuzzer()
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.Fuzzer, ['blobstore_key'], 'fuzzer')
+
+    serialized_fuzzer = entity_migrator._serialize(fuzzer)
+    deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
+
+    self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer))
+
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
@@ -37,39 +126,17 @@ class TestJobsExporterDataBundleIntegrationTests(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
 
-  def _sample_data_bundle(self):
-    bundle_name = 'some-bundle'
-    return data_types.DataBundle(
-      name = bundle_name,
-      bucket_name = bundle_name,
-    )
-  
-  def _assert_data_bundles_equal(self, bundle, another_bundle):
-    self.assertEqual(bundle.name, another_bundle.name)
-    self.assertEqual(bundle.bucket_name, another_bundle.bucket_name)
-
-  def test_data_bundle_serializes_and_deserializes_correctly(self):
-    """Test data_types.JobTemplate serialization/deserialization."""
-    data_bundle = self._sample_data_bundle()
-    entity_migrator = job_exporter.EntityMigrator(
-      data_types.DataBundle, [], 'databundle')
-  
-    serialized_data_bundle = entity_migrator._serialize(data_bundle)
-    deserialized_data_bundle = entity_migrator._deserialize(serialized_data_bundle)
-
-    self._assert_data_bundles_equal(data_bundle, deserialized_data_bundle)
-
   def test_data_bundle_proto_is_uploaded_to_gcs(self):
-    data_bundle = self._sample_data_bundle()
+    data_bundle = _sample_data_bundle()
     entity_migrator = job_exporter.EntityMigrator(
       data_types.DataBundle, [], 'databundle')
     expected_path = f'gs://{self.mock_bucket}/bundle.proto'
     entity_migrator._serialize_entity_to_gcs(data_bundle, expected_path)
     deserialized_data_bundle = entity_migrator._deserialize_entity_from_gcs(expected_path)
-    self._assert_data_bundles_equal(data_bundle, deserialized_data_bundle)
+    self.assertTrue(_data_bundles_equal(data_bundle, deserialized_data_bundle))
 
   def test_data_bundle_contents_are_rsynced_correctly(self):
-    data_bundle = self._sample_data_bundle()
+    data_bundle = _sample_data_bundle()
     file_contents = b'some_data'
     data_bundle_bucket = data_bundle.bucket_name
     data_bundle_file_path = f'{data_bundle_bucket}/some_file'
@@ -103,31 +170,6 @@ class TestJobsExporterJobTemplateIntegrationTests(unittest.TestCase):
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
     storage._provider().create_bucket(self.mock_bucket, None, None, None)
 
-  def tearDown(self):
-    pass
-
-  def _sample_job_template(self):
-    return data_types.JobTemplate(
-      name = 'some-job',
-      environment_string = 'some-env',
-    )
-  
-  def _assert_job_templates_equal(self, template, another_template):
-    self.assertEqual(template.name, another_template.name)
-    self.assertEqual(template.environment_string,
-                      another_template.environment_string)
-
-  def test_jobs_serializes_and_deserializes_correctly(self):
-    """Test data_types.JobTemplate serialization/deserialization."""
-    job_template = self._sample_job_template()
-    entity_migrator = job_exporter.EntityMigrator(
-      data_types.JobTemplate, [], 'jobtemplate')
-  
-    serialized_job_template = entity_migrator._serialize(job_template)
-    deserialized_job_template = entity_migrator._deserialize(serialized_job_template)
-
-    self._assert_job_templates_equal(job_template, deserialized_job_template)
-
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsExporterFuzzerIntegrationTests(unittest.TestCase):
@@ -142,43 +184,17 @@ class TestJobsExporterFuzzerIntegrationTests(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.blobs.get_gcs_path',
     ])
 
-  def tearDown(self):
-    pass
-
-  def _sample_job(self):
-    return data_types.Job(
-      name = 'some-job',
-      custom_binary_key = 'some-key',
-      platform = 'some-platform'
-    )
-  
-  def _assert_jobs_equal(self, job, another_job):
-    self.assertEqual(job.name, another_job.name)
-    self.assertEqual(job.custom_binary_key, another_job.custom_binary_key)
-    self.assertEqual(job.platform, another_job.platform)
-
-  def test_jobs_serializes_and_deserializes_correctly(self):
-    """Test data_types.Job serialization/deserialization."""
-    job = self._sample_job()
-    entity_migrator = job_exporter.EntityMigrator(
-      data_types.Job, ['custom_binary_key'], 'job')
-  
-    serialized_job = entity_migrator._serialize(job)
-    deserialized_job = entity_migrator._deserialize(serialized_job)
-
-    self._assert_jobs_equal(job, deserialized_job)
-
   def test_job_proto_is_uploaded_to_gcs(self):
-    job = self._sample_job()
+    job = _sample_job()
     entity_migrator = job_exporter.EntityMigrator(
       data_types.Job, ['custom_binary_key'], 'job')
     expected_path = f'gs://{self.mock_bucket}/job.proto'
     entity_migrator._serialize_entity_to_gcs(job, expected_path)
     deserialized_job = entity_migrator._deserialize_entity_from_gcs(expected_path)
-    self._assert_jobs_equal(job, deserialized_job)
+    self.assertTrue(_jobs_equal(job, deserialized_job))
 
   def test_custom_binary_key_is_copied_correctly(self):
-    job = self._sample_job()
+    job = _sample_job()
     original_blob_location = f'{self.mock_bucket}/original_blob'
     original_blob_contents = b'some data'
     expected_target_location = f'{self.mock_bucket}/custom_binary_key'
@@ -205,53 +221,25 @@ class TestJobsExporterJobIntegrationTests(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.blobs.get_gcs_path',
     ])
 
-  def tearDown(self):
-    pass
-
-  def _sample_fuzzer(self):
-    return data_types.Fuzzer(
-      name = 'some-fuzzer',
-      data_bundle_name = 'some-data-bundle',
-      jobs = ['some-job', 'another-job'],
-      blobstore_key = 'some-blob-key'
-    )
-  
-  def _assert_fuzzers_equal(self, fuzzer, another_fuzzer):
-    self.assertEqual(fuzzer.name, another_fuzzer.name)
-    self.assertEqual(fuzzer.data_bundle_name, another_fuzzer.data_bundle_name)
-    self.assertEqual(fuzzer.jobs, another_fuzzer.jobs)
-    self.assertEqual(fuzzer.blobstore_key, another_fuzzer.blobstore_key)
-
-  def test_fuzzer_serializes_and_deserializes_correctly(self):
-    """Test data_types.Fuzzer serialization/deserialization."""
-    fuzzer = self._sample_fuzzer()
-    entity_migrator = job_exporter.EntityMigrator(
-      data_types.Fuzzer, ['blobstore_key'], 'fuzzer')
-
-    serialized_fuzzer = entity_migrator._serialize(fuzzer)
-    deserialized_fuzzer = entity_migrator._deserialize(serialized_fuzzer)
-
-    self._assert_fuzzers_equal(fuzzer, deserialized_fuzzer)
-
   def test_fuzzer_proto_is_uploaded_to_gcs(self):
-    fuzzer = self._sample_fuzzer()
+    fuzzer = _sample_fuzzer()
     entity_migrator = job_exporter.EntityMigrator(
       data_types.Fuzzer, ['blobstore_key'], 'fuzzer')
     expected_path = f'gs://{self.mock_bucket}/fuzzer.proto'
     entity_migrator._serialize_entity_to_gcs(fuzzer, expected_path)
     deserialized_fuzzer = entity_migrator._deserialize_entity_from_gcs(expected_path)
-    self._assert_fuzzers_equal(fuzzer, deserialized_fuzzer)
+    self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer))
 
   def test_blobstore_key_is_copied_correctly(self):
-    job = self._sample_fuzzer()
+    fuzzer = _sample_fuzzer()
     original_blob_location = f'{self.mock_bucket}/original_blob'
     original_blob_contents = b'some data'
     expected_target_location = f'{self.mock_bucket}/blobstore_key'
     self.mock.get_gcs_path.return_value = f'gs://{original_blob_location}'
-    entity_migrator = job_exporter.EntityMigrator(data_types.Job, ['blobstore_key'], 'fuzzer')
+    entity_migrator = job_exporter.EntityMigrator(data_types.Fuzzer, ['blobstore_key'], 'fuzzer')
 
     entity_migrator._upload_bytes_to_gcs(original_blob_contents, f'gs://{original_blob_location}')
-    entity_migrator._export_blobs(job, f'gs://{self.mock_bucket}')
+    entity_migrator._export_blobs(fuzzer, f'gs://{self.mock_bucket}')
 
     retrieved_blob = entity_migrator._download_bytes_from_gcs(f'gs://{expected_target_location}')
     self.assertEqual(original_blob_contents, retrieved_blob)

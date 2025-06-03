@@ -15,18 +15,18 @@
     in order to mirror the workloads on testing environments."""
 
 import os
-import tempfile
 import subprocess
+import tempfile
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
-from clusterfuzz._internal.metrics import logs
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
-from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.google_cloud_utils import gsutil
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
 
 target_entities = [
     (data_types.Fuzzer, ['blobstore_key'], 'fuzzer'),
@@ -37,8 +37,10 @@ target_entities = [
 export_bucket = os.getenv('EXPORT_BUCKET', None)
 operation_mode = os.getenv('OPERATION_MODE', None)
 
+
 class RSyncClient:
   """Interface that defines the rsync contract."""
+
   def __init__(self):
     pass
 
@@ -48,16 +50,21 @@ class RSyncClient:
 
 class GCloudCLIRSync(RSyncClient):
   """RSyncClient implementation that delegates to the gcloud cli. Unsuitable for unit testing."""
+
   def __init__(self):
     self._runner = gsutil.GSUtilRunner()
 
   def rsync(self, source: str, target: str):
     result = self._runner.rsync(f'gs://{source}', target)
     if not result:
-      raise Exception(f'rsync failed: source bucket = gs://{source}, target bucket = {target}') 
+      raise Exception(
+          f'rsync failed: source bucket = gs://{source}, target bucket = {target}'
+      )
+
 
 class StorageRSync(RSyncClient):
   """RSyncClient implementation for unit testing, meant for use with GCS emulator."""
+
   def __init__(self):
     pass
 
@@ -68,13 +75,19 @@ class StorageRSync(RSyncClient):
       print(f'blob = {blob}')
       blob_target_path = f'{target}/{blob}'
       print(blob_target_path)
-      print(storage.copy_blob(f'gs://{source}/{blob}', f'gs://{blob_target_path}'))
+      print(
+          storage.copy_blob(f'gs://{source}/{blob}',
+                            f'gs://{blob_target_path}'))
+
 
 class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
-  def __init__(self, target_cls: ndb.Model, blobstore_keys: list[str],
-               entity_type: str, rsync_client: RSyncClient = None):
+  def __init__(self,
+               target_cls: ndb.Model,
+               blobstore_keys: list[str],
+               entity_type: str,
+               rsync_client: RSyncClient = None):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
@@ -88,18 +101,18 @@ class EntityMigrator:
     # Parse the bytes into the Any message
     deserialized_any.ParseFromString(proto_as_str)
     return uworker_io.entity_from_protobuf(deserialized_any, self._target_cls)
-  
+
   def _upload_bytes_to_gcs(self, data: bytes, upload_path: str):
     with tempfile.NamedTemporaryFile(mode='wb+', delete=True) as tmp_file:
       tmp_file.write(data)
       tmp_file.flush()
       storage.copy_file_to(tmp_file.name, upload_path)
-  
+
   def _download_bytes_from_gcs(self, download_path: str) -> bytes:
     with tempfile.NamedTemporaryFile(mode='rb+', delete=True) as tmp_file:
       storage.copy_file_from(download_path, tmp_file.name)
       tmp_file.seek(0)
-      return tmp_file.read() 
+      return tmp_file.read()
 
   def _serialize_entity_to_gcs(self, entity: ndb.Model, upload_path: str):
     entity_as_bytes = self._serialize(entity)
@@ -119,12 +132,15 @@ class EntityMigrator:
         print(blob_destination_path)
         storage.copy_blob(blob_gcs_path, blob_destination_path)
 
-  def _export_data_bundle_contents_if_applicable(self, entity: ndb.Model, bucket_prefix: str):
+  def _export_data_bundle_contents_if_applicable(self, entity: ndb.Model,
+                                                 bucket_prefix: str):
     if not type(entity) == data_types.DataBundle:
-      logs.info(f'Entity is not a DataBundle, skipping bucket export: {type(entity)}')
+      logs.info(
+          f'Entity is not a DataBundle, skipping bucket export: {type(entity)}')
       return
     if not entity.bucket_name:
-      logs.info(f'DataBundle {entity.name} has no related gcs bucket, skipping.')
+      logs.info(
+          f'DataBundle {entity.name} has no related gcs bucket, skipping.')
     target_location = f'{bucket_prefix}/contents'
     self._rsync_client.rsync(entity.bucket_name, target_location)
 
