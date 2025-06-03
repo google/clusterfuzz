@@ -15,8 +15,6 @@
     in order to mirror the workloads on testing environments."""
 
 import os
-import subprocess
-import tempfile
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
@@ -34,8 +32,6 @@ target_entities = [
     (data_types.DataBundle, [], 'databundle'),
     (data_types.JobTemplate, [], 'jobtemplate'),
 ]
-export_bucket = os.getenv('EXPORT_BUCKET', None)
-operation_mode = os.getenv('OPERATION_MODE', None)
 
 
 class RSyncClient:
@@ -49,21 +45,19 @@ class RSyncClient:
 
 
 class GCloudCLIRSync(RSyncClient):
-  """RSyncClient implementation that delegates to the gcloud cli. Unsuitable for unit testing."""
+  """RSyncClient implementation that delegates to the gcloud cli.
+    Unsuitable for unit testing."""
 
   def __init__(self):
     self._runner = gsutil.GSUtilRunner()
 
   def rsync(self, source: str, target: str):
-    result = self._runner.rsync(f'gs://{source}', target)
-    if not result:
-      raise Exception(
-          f'rsync failed: source bucket = gs://{source}, target bucket = {target}'
-      )
+    self._runner.rsync(f'gs://{source}', target)
 
 
 class StorageRSync(RSyncClient):
-  """RSyncClient implementation for unit testing, meant for use with GCS emulator."""
+  """RSyncClient implementation for unit testing,
+    meant for use with GCS emulator."""
 
   def __init__(self):
     pass
@@ -77,17 +71,14 @@ class StorageRSync(RSyncClient):
 class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
-  def __init__(self,
-               target_cls: ndb.Model,
-               blobstore_keys: list[str],
-               entity_type: str,
-               rsync_client: RSyncClient,
-               export_bucket: str):
+  def __init__(self, target_cls: ndb.Model, blobstore_keys: list[str],
+               entity_type: str, rsync_client: RSyncClient, export_bucket: str):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
     self._rsync_client = rsync_client
     self._export_bucket = export_bucket
+
   def _serialize(self, entity) -> bytes:
     return uworker_io.entity_to_protobuf(entity).SerializeToString()
 
@@ -106,6 +97,7 @@ class EntityMigrator:
     return self._deserialize(entity_as_bytes)
 
   def _export_blobs(self, entity: ndb.Model, bucket_prefix: str):
+    """Exports blobs for an entity, if applicable (fuzzer/job only)."""
     for blobstore_key in self.blobstore_keys:
       blob_id = getattr(entity, blobstore_key, None)
       if blob_id:
@@ -115,7 +107,8 @@ class EntityMigrator:
 
   def _export_data_bundle_contents_if_applicable(self, entity: ndb.Model,
                                                  bucket_prefix: str):
-    if not type(entity) == data_types.DataBundle:
+    """Uploads data bundle proto and rsyncs the respective bucket contents."""
+    if not isinstance(entity, data_types.DataBundle):
       logs.info(
           f'Entity is not a DataBundle, skipping bucket export: {type(entity)}')
       return
@@ -131,7 +124,9 @@ class EntityMigrator:
     # Entitites get their name from the 'name' field in datastore
     entity_name = getattr(entity, 'name', None)
     assert entity_name
-    bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}/{entity_name}'
+    bucket_prefix = (f'gs://{self._export_bucket}/'
+                     f'{self._entity_type}/'
+                     f'{entity_name}')
     entity_target_location = f'{bucket_prefix}/entity.proto'
     self._serialize_entity_to_gcs(entity, entity_target_location)
     self._export_blobs(entity, bucket_prefix)
@@ -147,18 +142,16 @@ class EntityMigrator:
 
 def main():
   "Exports datastore entities and respective blobs"
-
+  export_bucket = os.getenv('EXPORT_BUCKET', None)
+  operation_mode = os.getenv('OPERATION_MODE', None)
   assert export_bucket
-  assert export_bucket == 'vguidi_exporting_exps'
   assert operation_mode in ['import', 'export']
-  assert operation_mode == 'export'
 
   rsync_client = GCloudCLIRSync()
 
   for (entity, blobstore_keys, entity_name) in target_entities:
-    migrator = EntityMigrator(entity, blobstore_keys, entity_name, rsync_client, export_bucket)
-    if entity_name != 'databundle':
-      continue
+    migrator = EntityMigrator(entity, blobstore_keys, entity_name, rsync_client,
+                              export_bucket)
     if operation_mode == 'export':
       migrator.export_entities()
     else:
