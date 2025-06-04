@@ -481,12 +481,15 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       tmpdir = environment.get_value('BOT_TMPDIR')
       with tempfile.NamedTemporaryFile(
           dir=tmpdir, suffix='.zip') as temp_zipfile:
-        storage.download_signed_url_to_file(corpus.backup_url,
-                                            temp_zipfile.name)
-        with archive.open(temp_zipfile.name) as reader:
-          reader.extract_all(directory)
-          for member in reader.list_members():
-            self._filenames_to_delete_urls_mapping[member.name] = None
+        try:
+          storage.download_signed_url_to_file(corpus.backup_url,
+                                              temp_zipfile.name)
+          with archive.open(temp_zipfile.name) as reader:
+            reader.extract_all(directory)
+            for member in reader.list_members():
+              self._filenames_to_delete_urls_mapping[member.name] = None
+        except RuntimeError:
+          logs.warning('Couldn\'t download corpus backup')
 
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
@@ -678,13 +681,12 @@ def get_proto_corpus(bucket_name,
   if backup_url:
     # TODO(unassigned): Use any backup, not just latest.zip. You can list the
     # directory and pick the last element in the list that isn't public.zip.
-    backup = storage.get_blobs(backup_url, single_file=True)
-    corpus.backup_url = storage.get_signed_download_url(backup_url)
-    backup = list(backup)
+    backup = list(storage.get_blobs(backup_url, single_file=True))
 
   if backup:
     # Corpus backup can take up to 24 hours, get any corpus element before the
     # backup was made.
+    corpus.backup_url = storage.get_signed_download_url(backup_url)
     start_time = backup[0]['updated'] - datetime.timedelta(days=1)
     blobs = storage.get_blobs(gcs_url)
     urls = (f'{storage.GS_PREFIX}/{bucket_name}/{blob["name"]}'
