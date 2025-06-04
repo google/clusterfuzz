@@ -391,7 +391,7 @@ def find_regression_range(
     uworker_input: uworker_msg_pb2.Input,  # pylint: disable=no-member
 ) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
   """Attempt to find when the testcase regressed."""
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   job_type = uworker_input.job_type
 
@@ -615,7 +615,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
     uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
         testcase_id=testcase_id,
-        testcase=uworker_io.entity_to_protobuf(testcase),
+        testcase=data_types.entity_to_protobuf(testcase),
         job_type=job_type,
         uworker_env=uworker_env,
         setup_input=setup_input,
@@ -632,7 +632,7 @@ def utask_main(
 
   Runs on an untrusted worker.
   """
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):

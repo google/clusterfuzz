@@ -608,7 +608,7 @@ def get_proto_data_bundle_corpus(
   data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()  # pylint: disable=no-member
   data_bundle_corpus.gcs_url = data_bundle.bucket_url()
   data_bundle_corpus.data_bundle.CopyFrom(
-      uworker_io.entity_to_protobuf(data_bundle))
+      data_types.entity_to_protobuf(data_bundle))
   if task_types.task_main_runs_on_uworker():
     # Slow path for when we need an untrusted worker to run a task. Note that
     # the security of the system (only the correctness) does not depend on this

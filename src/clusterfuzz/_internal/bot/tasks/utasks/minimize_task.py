@@ -394,7 +394,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
         job_type=job_type,
         testcase_id=str(testcase_id),
-        testcase=uworker_io.entity_to_protobuf(testcase),
+        testcase=data_types.entity_to_protobuf(testcase),
         setup_input=setup_input,
         minimize_task_input=_get_minimize_task_input(testcase),
         uworker_env=uworker_env)
@@ -404,7 +404,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-member
   """Attempt to minimize a given testcase."""
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):

@@ -120,7 +120,7 @@ class RoundTripTest(unittest.TestCase):
     serialization and deserialization works."""
     # Create input for the uworker.
     uworker_input = uworker_msg_pb2.Input(
-        testcase=uworker_io.entity_to_protobuf(self.testcase),
+        testcase=data_types.entity_to_protobuf(self.testcase),
         uworker_env=self.env,
         setup_input=uworker_msg_pb2.SetupInput(
             testcase_download_url=self.FAKE_URL),
@@ -161,7 +161,7 @@ class RoundTripTest(unittest.TestCase):
               self.FAKE_URL)
 
     # Test that testcase (de)serialization worked.
-    downloaded_testcase = uworker_io.entity_from_protobuf(
+    downloaded_testcase = data_types.entity_from_protobuf(
         downloaded_input.testcase, data_types.Testcase)
     self.assertEqual(self.testcase.crash_type, downloaded_testcase.crash_type)
     self.assertEqual(self.testcase.crash_address,
@@ -261,9 +261,9 @@ class RoundTripTest(unittest.TestCase):
     bundle2.put()
     data_bundle_corpuses = [
         uworker_msg_pb2.DataBundleCorpus(
-            data_bundle=uworker_io.entity_to_protobuf(bundle1)),
+            data_bundle=data_types.entity_to_protobuf(bundle1)),
         uworker_msg_pb2.DataBundleCorpus(
-            data_bundle=uworker_io.entity_to_protobuf(bundle2)),
+            data_bundle=data_types.entity_to_protobuf(bundle2)),
     ]
     setup_input = uworker_msg_pb2.SetupInput(
         data_bundle_corpuses=data_bundle_corpuses)
@@ -272,7 +272,7 @@ class RoundTripTest(unittest.TestCase):
     deserialized = uworker_io.deserialize_uworker_input(serialized)
     setup_input = deserialized.setup_input
     deserialized_data_bundles = [
-        uworker_io.entity_from_protobuf(bundle.data_bundle,
+        data_types.entity_from_protobuf(bundle.data_bundle,
                                         data_types.DataBundle)
         for bundle in setup_input.data_bundle_corpuses
     ]

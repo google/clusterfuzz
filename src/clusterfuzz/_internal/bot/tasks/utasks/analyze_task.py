@@ -322,9 +322,9 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
   analyze_task_input = get_analyze_task_input()
   uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
-      testcase_upload_metadata=uworker_io.entity_to_protobuf(
+      testcase_upload_metadata=data_types.entity_to_protobuf(
           testcase_upload_metadata),
-      testcase=uworker_io.entity_to_protobuf(testcase),
+      testcase=data_types.entity_to_protobuf(testcase),
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
@@ -371,9 +371,9 @@ def _build_task_output(
 
 def _utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
-  testcase_upload_metadata = uworker_io.entity_from_protobuf(
+  testcase_upload_metadata = data_types.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   uworker_io.check_handling_testcase_safe(testcase)
   prepare_env_for_main(testcase_upload_metadata)
@@ -473,7 +473,7 @@ def _utask_main(uworker_input):
 
 def utask_main(uworker_input):
   """Sets logs context and runs the untrusted part of analyze_task."""
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):

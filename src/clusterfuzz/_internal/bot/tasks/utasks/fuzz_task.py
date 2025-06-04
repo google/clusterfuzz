@@ -819,7 +819,7 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
   fuzz_task_output = uworker_output.fuzz_task_output
   fuzz_target = None
   if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-    fuzz_target = uworker_io.entity_from_protobuf(
+    fuzz_target = data_types.entity_from_protobuf(
         uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
 
     fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
@@ -1291,7 +1291,7 @@ class FuzzingSession:
 
     # Fuzzing engine specific state.
     if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-      self.fuzz_target = uworker_io.entity_from_protobuf(
+      self.fuzz_target = data_types.entity_from_protobuf(
           uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
     else:
       # We take this branch when no fuzz target is picked. Such as on a new
@@ -1986,7 +1986,7 @@ def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   # Sets fuzzing logs context before running the fuzzer.
   if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-    fuzz_target = uworker_io.entity_from_protobuf(
+    fuzz_target = data_types.entity_from_protobuf(
         uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
   else:
     fuzz_target = None
@@ -2071,7 +2071,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     # Add the chosen fuzz target to logs context.
     logs.log_contexts.add_metadata('fuzz_target', fuzz_target.binary)
     fuzz_task_input.fuzz_target.CopyFrom(
-        uworker_io.entity_to_protobuf(fuzz_target))
+        data_types.entity_to_protobuf(fuzz_target))
     fuzz_task_input.corpus.CopyFrom(
         corpus_manager.get_fuzz_target_corpus(
             fuzzer_name,
@@ -2173,7 +2173,7 @@ def utask_postprocess(output):
   fuzzer_name = output.uworker_input.fuzzer_name
   job_type = output.uworker_input.job_type
   if output.uworker_input.fuzz_task_input.HasField('fuzz_target'):
-    fuzz_target = uworker_io.entity_from_protobuf(
+    fuzz_target = data_types.entity_from_protobuf(
         output.uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
   else:
     fuzz_target = None

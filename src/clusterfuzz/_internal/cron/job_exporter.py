@@ -19,7 +19,6 @@ import os
 from google.cloud import ndb
 from google.protobuf import any_pb2
 
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -80,13 +79,13 @@ class EntityMigrator:
     self._export_bucket = export_bucket
 
   def _serialize(self, entity) -> bytes:
-    return uworker_io.entity_to_protobuf(entity).SerializeToString()
+    return data_types.entity_to_protobuf(entity).SerializeToString()
 
   def _deserialize(self, proto_as_str: bytes) -> ndb.Model:
     deserialized_any = any_pb2.Any()  # pylint: disable=no-member
     # Parse the bytes into the Any message
     deserialized_any.ParseFromString(proto_as_str)
-    return uworker_io.entity_from_protobuf(deserialized_any, self._target_cls)
+    return data_types.entity_from_protobuf(deserialized_any, self._target_cls)
 
   def _serialize_entity_to_gcs(self, entity: ndb.Model, upload_path: str):
     entity_as_bytes = self._serialize(entity)

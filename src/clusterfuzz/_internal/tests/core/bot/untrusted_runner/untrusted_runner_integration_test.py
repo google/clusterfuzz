@@ -529,13 +529,13 @@ class UntrustedRunnerIntegrationTest(
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()
 
-    returned_fuzzer = uworker_io.entity_from_protobuf(setup_input.fuzzer,
+    returned_fuzzer = data_types.entity_from_protobuf(setup_input.fuzzer,
                                                       data_types.Fuzzer)
 
     data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus(
         gcs_url='gs://clusterfuzz-test-bundle')
     data_bundle_corpus.data_bundle.CopyFrom(
-        uworker_io.entity_to_protobuf(bundle))
+        data_types.entity_to_protobuf(bundle))
     self.assertTrue(
         setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
 

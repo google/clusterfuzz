@@ -52,7 +52,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     result = symbolize_task.utask_preprocess(
         str(self.testcase.key.id()), 'job_type', None)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
+    returned_testcase = data_types.entity_from_protobuf(result.testcase,
                                                         data_types.Testcase)
     self.assertEqual(returned_testcase.key.id(), self.testcase.key.id())
     self.assertEqual(result.symbolize_task_input.old_crash_stacktrace,
@@ -181,7 +181,7 @@ class UtaskMainTest(unittest.TestCase):
         uworker_msg_pb2.Output(
             error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
     uworker_input = uworker_msg_pb2.Input(
-        testcase=uworker_io.entity_to_protobuf(self.testcase))
+        testcase=data_types.entity_to_protobuf(self.testcase))
     result = symbolize_task.utask_main(uworker_input)
     self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
@@ -190,7 +190,7 @@ class UtaskMainTest(unittest.TestCase):
     """Tests utask_main behaviour on build setup failure."""
     self.mock.setup_testcase.return_value = (None, '/testcase/file/path', None)
     uworker_input = uworker_msg_pb2.Input(
-        testcase=uworker_io.entity_to_protobuf(self.testcase),
+        testcase=data_types.entity_to_protobuf(self.testcase),
         job_type='job_type',
         setup_input=uworker_msg_pb2.SetupInput(),
         symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(

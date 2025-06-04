@@ -805,7 +805,7 @@ def test_for_crash_with_retries(fuzz_target,
 
 def get_fuzz_target_from_input(uworker_input):
   if uworker_input and uworker_input.HasField('fuzz_target'):
-    return uworker_io.entity_from_protobuf(uworker_input.fuzz_target,
+    return data_types.entity_from_protobuf(uworker_input.fuzz_target,
                                            data_types.FuzzTarget)
   return None
 
@@ -821,7 +821,7 @@ def preprocess_testcase_manager(testcase, uworker_input):
   if not fuzz_target:
     return
 
-  uworker_input.fuzz_target.CopyFrom(uworker_io.entity_to_protobuf(fuzz_target))
+  uworker_input.fuzz_target.CopyFrom(data_types.entity_to_protobuf(fuzz_target))
 
 
 def test_for_reproducibility(fuzz_target,

@@ -1311,7 +1311,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     """Test basic fuzzing session."""
     target = 'test_target'
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
-        fuzz_target=uworker_io.entity_to_protobuf(
+        fuzz_target=data_types.entity_to_protobuf(
             data_types.FuzzTarget(engine='libFuzzer', binary=target)),)
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name='libFuzzer_fuzz',
