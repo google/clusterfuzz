@@ -23,6 +23,7 @@ import tempfile
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import \
     environment as untrusted_env
 from clusterfuzz._internal.bot.untrusted_runner import config

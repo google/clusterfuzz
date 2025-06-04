@@ -22,7 +22,7 @@ from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_types
-from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2

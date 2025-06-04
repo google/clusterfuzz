@@ -34,6 +34,7 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types

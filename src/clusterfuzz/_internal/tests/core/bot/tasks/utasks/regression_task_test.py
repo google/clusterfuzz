@@ -20,6 +20,7 @@ import unittest
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
