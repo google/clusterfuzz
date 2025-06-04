@@ -22,6 +22,7 @@ from dataclasses import InitVar
 import datetime
 from typing import Any
 
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -118,8 +119,13 @@ class IEventRepository(ABC):
     """Deserialize a database entity into an event."""
 
   @abstractmethod
-  def store_event(self, entity: Any) -> str | int | None:
-    """Save an event entity into the underlying database and return its ID."""
+  def store_event(self, event: Event) -> str | int | None:
+    """Save an event into the underlying database and return its ID."""
+
+  @abstractmethod
+  def get_event(self, event_id: str | int,
+                event_type: str | None = None) -> Event | None:
+    """Retrieve an event from the underlying database and return it."""
 
 
 class NDBEventRepository(IEventRepository):
@@ -179,14 +185,30 @@ class NDBEventRepository(IEventRepository):
       logs.error('Error deserializing Datastore entity to event.')
     return None
 
-  def store_event(self, entity: data_types.Model) -> str | int | None:
-    """Stores a Datastore entity and return its ID."""
+  def store_event(self, event: Event) -> str | int | None:
+    """Stores a Datastore entity and returns its ID."""
+    entity = self.serialize_event(event)
+    if entity is None:
+      return None
     try:
       entity.put()
       return entity.key.id()
     except:
       logs.error('Error storing Datastore event entity.')
     return None
+
+  def get_event(self, event_id: str | int,
+                event_type: str | None = None) -> Event | None:
+    """Retrieve an event from a Datastore entity id."""
+    entity_kind = self._event_to_entity_map.get(event_type,
+                                                self._default_entity)
+    event_entity = data_handler.get_entity_by_type_and_id(entity_kind, event_id)
+    if event_entity is None:
+      logs.error(f'Event entity {event_id} not found.')
+      return None
+
+    event = self.deserialize_event(event_entity)
+    return event
 
 
 _repository: IEventRepository | None = None
@@ -213,9 +235,5 @@ def emit(event: Event) -> str | int | None:
   if repository is None:
     return None
 
-  event_entity = repository.serialize_event(event)
-  if event_entity is None:
-    return None
-
-  event_id = repository.store_event(event_entity)
+  event_id = repository.store_event(event)
   return event_id
