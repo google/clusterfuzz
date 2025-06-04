@@ -15,7 +15,6 @@
 import os
 import stat
 
-from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.afl import launcher
 from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz.fuzz import engine
