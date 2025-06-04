@@ -14,14 +14,8 @@
 """Module for dealing with input and output (I/O) to a uworker."""
 
 from typing import Tuple
-from typing import Type
-from typing import TypeVar
 import uuid
 
-from google.cloud import ndb
-from google.cloud.datastore_v1.types import entity as entity_pb2
-from google.cloud.ndb import model
-from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
 import google.protobuf.message
 

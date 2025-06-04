@@ -15,13 +15,19 @@
 
 import datetime
 import re
+from typing import Type
+from typing import TypeVar
 
 from google.cloud import ndb
+from google.cloud.datastore_v1.types import entity as entity_pb2
+from google.cloud.ndb import model
+from google.protobuf import any_pb2
 
 from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import search_tokenizer
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 # pylint: disable=no-member,arguments-differ

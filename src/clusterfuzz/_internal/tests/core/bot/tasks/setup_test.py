@@ -19,7 +19,6 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment

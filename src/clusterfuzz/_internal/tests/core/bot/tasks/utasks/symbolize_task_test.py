@@ -15,7 +15,6 @@
 import unittest
 
 from clusterfuzz._internal.bot.tasks.utasks import symbolize_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
