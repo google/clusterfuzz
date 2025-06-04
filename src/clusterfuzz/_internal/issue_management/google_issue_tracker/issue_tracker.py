@@ -81,7 +81,6 @@ def retry_on_invalid_gaia_accounts(func):
     except Exception as e:
       # Try to handle the case where a 400 buganizer response is
       # received due to a non gaia email.
-      logs.warning(f'Buganizer exception when filing: {e}')
       email_regex = r'[\w\.\-\+]+@[\w\.-]+'
       emails_to_skip = re.findall(email_regex, str(e))
       return func(self, *args, **kwargs, skip_emails=emails_to_skip)
@@ -1024,6 +1023,7 @@ class IssueTracker(issue_tracker.IssueTracker):
         self._client = client.build('issuetracker', http=http)
         return request.execute(num_retries=_NUM_RETRIES, http=http)
       except client.HttpError as e:
+        logs.error('Exception during issue filing to buganizer: {e}')
         if e.resp.status == 404:
           raise IssueTrackerNotFoundError(str(e))
         if e.resp.status == 403:
