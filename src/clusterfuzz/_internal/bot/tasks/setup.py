@@ -477,7 +477,7 @@ def update_data_bundle(
     fuzzer: data_types.Fuzzer,
     data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:  # pylint: disable=no-member
   """Updates a data bundle to the latest version."""
-  data_bundle = data_types.entity_from_protobuf(data_bundle_corpus.data_bundle,
+  data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
   logs.info('Setting up data bundle %s.' % data_bundle)
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
@@ -584,7 +584,7 @@ def preprocess_update_fuzzer_and_data_bundles(
 
   update_input = uworker_msg_pb2.SetupInput(  # pylint: disable=no-member
       fuzzer_name=fuzzer_name,
-      fuzzer=data_types.entity_to_protobuf(fuzzer))
+      fuzzer=uworker_io.entity_to_protobuf(fuzzer))
   preprocess_get_data_bundles(fuzzer.data_bundle_name, update_input)
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
@@ -603,7 +603,7 @@ def _update_fuzzer(
     fuzzer_directory: str,
     version_file: str) -> bool:
   """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
-  fuzzer = data_types.entity_from_protobuf(update_input.fuzzer,
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
   fuzzer_name = update_input.fuzzer_name
   if fuzzer.builtin:
@@ -666,7 +666,7 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):  # pylint: d
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
   logs.info('Setting up data bundles.')
-  fuzzer = data_types.entity_from_protobuf(update_input.fuzzer,
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
   for data_bundle_corpus in update_input.data_bundle_corpuses:
     if not update_data_bundle(fuzzer, data_bundle_corpus):
@@ -678,7 +678,7 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):  # pylint: d
 def update_fuzzer_and_data_bundles(
     update_input: uworker_msg_pb2.SetupInput) -> Optional[data_types.Fuzzer]:  # pylint: disable=no-member
   """Updates the fuzzer specified by |update_input| and its data bundles."""
-  fuzzer = data_types.entity_from_protobuf(update_input.fuzzer,
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
 
   _set_fuzzer_env_vars(fuzzer)
@@ -767,7 +767,7 @@ def get_data_bundle_directory(fuzzer, setup_input):
     # arbitrary data bundle. What should we actually do when there's more than
     # one?
     data_bundle = setup_input.data_bundle_corpuses[0].data_bundle
-    data_bundle = data_types.entity_from_protobuf(data_bundle,
+    data_bundle = uworker_io.entity_from_protobuf(data_bundle,
                                                   data_types.DataBundle)
   return _get_data_bundle_directory(fuzzer, data_bundle)
 

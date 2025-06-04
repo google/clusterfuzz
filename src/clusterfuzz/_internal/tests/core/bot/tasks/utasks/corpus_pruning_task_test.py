@@ -199,7 +199,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertEqual(uworker_input.fuzzer_name, fuzzer_name)
     fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
     self.assertEqual(
-        data_types.entity_from_protobuf(
+        uworker_io.entity_from_protobuf(
             uworker_input.corpus_pruning_task_input.fuzz_target,
             data_types.FuzzTarget), fuzz_target)
     self.assertTrue(

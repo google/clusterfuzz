@@ -463,7 +463,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
         testcase_id=str(testcase_id),
         uworker_env=uworker_env,
         progression_task_input=progression_input,
-        testcase=data_types.entity_to_protobuf(testcase),
+        testcase=uworker_io.entity_to_protobuf(testcase),
         setup_input=setup_input)
 
     testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
@@ -473,7 +473,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 def find_fixed_range(uworker_input):
   """Attempt to find the revision range where a testcase was fixed."""
   deadline = tasks.get_task_completion_deadline()
-  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
@@ -682,7 +682,7 @@ def find_fixed_range(uworker_input):
 
 def utask_main(uworker_input):
   """Executes the untrusted part of progression_task."""
-  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):

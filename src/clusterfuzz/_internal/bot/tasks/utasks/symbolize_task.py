@@ -69,7 +69,7 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      testcase=data_types.entity_to_protobuf(testcase),
+      testcase=uworker_io.entity_to_protobuf(testcase),
       symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(  # pylint: disable=no-member
           old_crash_stacktrace=old_crash_stacktrace))
 
@@ -85,7 +85,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 def _utask_main(uworker_input):
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
-  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   uworker_io.check_handling_testcase_safe(testcase)
   job_type = uworker_input.job_type
@@ -234,7 +234,7 @@ def _utask_main(uworker_input):
 
 def utask_main(uworker_input):
   """Set logs context and run the untrusted part of a symbolize command."""
-  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):

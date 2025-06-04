@@ -937,7 +937,7 @@ def _get_cross_pollinate_fuzzers(
 
     cross_pollinate_fuzzers.append(
         uworker_msg_pb2.CrossPollinateFuzzerProto(  # pylint: disable=no-member
-            fuzz_target=data_types.entity_to_protobuf(target),
+            fuzz_target=uworker_io.entity_to_protobuf(target),
             backup_bucket_name=backup_bucket_name,
             corpus_engine_name=corpus_engine_name,
         ))
@@ -948,7 +948,7 @@ def _get_cross_pollinate_fuzzers(
 def _get_cross_pollinate_fuzzers_from_protos(cross_pollinate_fuzzers_protos):
   return [
       CrossPollinateFuzzer(
-          data_types.entity_from_protobuf(proto.fuzz_target,
+          uworker_io.entity_from_protobuf(proto.fuzz_target,
                                           data_types.FuzzTarget),
           proto.backup_bucket_name,
           proto.corpus_engine_name,
@@ -1024,7 +1024,7 @@ def _extract_coverage_information(context, result):
 
 def _utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = data_types.entity_from_protobuf(
+  fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
       data_types.FuzzTarget)
   revision = 0  # Trunk revision
@@ -1075,7 +1075,7 @@ def _utask_main(uworker_input):
 
 def utask_main(uworker_input):
   """Sets logs context and executes corpus pruning task."""
-  fuzz_target = data_types.entity_from_protobuf(
+  fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
       data_types.FuzzTarget)
   with logs.fuzzer_log_context(uworker_input.fuzzer_name,
@@ -1157,7 +1157,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
    corpus_crashes_upload_url) = blobs.get_blob_signed_upload_url()
 
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(  # pylint: disable=no-member
-      fuzz_target=data_types.entity_to_protobuf(fuzz_target),
+      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
       corpus=corpus.proto_corpus,

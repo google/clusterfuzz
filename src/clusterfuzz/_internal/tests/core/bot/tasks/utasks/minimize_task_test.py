@@ -315,7 +315,7 @@ class UTaskPostprocessTest(unittest.TestCase):
         job_type='job_type',
         testcase_id=str(testcase.key.id()),
         minimize_task_input=minimize_task_input,
-        testcase=data_types.entity_to_protobuf(testcase))
+        testcase=uworker_io.entity_to_protobuf(testcase))
     return uworker_input
 
   def test_error_does_not_finalize_testcase(self):
@@ -379,7 +379,7 @@ class UTaskMainTest(unittest.TestCase):
     testcase.put()
     environment.set_value('FAIL_WAIT', 10)
     uworker_input = uworker_msg_pb2.Input(
-        testcase=data_types.entity_to_protobuf(testcase))
+        testcase=uworker_io.entity_to_protobuf(testcase))
     uworker_output = minimize_task.utask_main(uworker_input)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

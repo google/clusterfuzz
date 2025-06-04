@@ -80,7 +80,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
     uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
         job_type=job_type,
-        testcase=data_types.entity_to_protobuf(testcase),
+        testcase=uworker_io.entity_to_protobuf(testcase),
         uworker_env=uworker_env,
         testcase_id=testcase_id,
         variant_task_input=variant_input,
@@ -93,7 +93,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 def utask_main(uworker_input):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
-  testcase = data_types.entity_from_protobuf(uworker_input.testcase,
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):

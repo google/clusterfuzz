@@ -196,7 +196,7 @@ class PreprocessGetDataBundlesTest(unittest.TestCase):
       bundle.put()
     setup.preprocess_get_data_bundles(bundles_name, self.setup_input)
     saved_bundles = [
-        data_types.entity_from_protobuf(corpus.data_bundle,
+        uworker_io.entity_from_protobuf(corpus.data_bundle,
                                         data_types.DataBundle)
         for corpus in self.setup_input.data_bundle_corpuses
     ]

@@ -1622,38 +1622,3 @@ class TestcaseLifecycleEvent(Model):
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
-
-
-def entity_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
-  """Helper function to convert entity to protobuf format."""
-  #_entity_to_protobuf returns google.cloud.datastore_v1.types.Entity
-  ndb_proto = model._entity_to_protobuf(entity)  # pylint: disable=protected-access
-  return entity_to_any_message(ndb_proto)
-
-
-def db_entity_to_entity_message(entity):
-  any_entity_message = entity_to_any_message(entity)
-  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)  # pylint: disable=no-member
-
-
-def entity_to_any_message(entity_proto):
-  any_entity_message = any_pb2.Any()  # pylint: disable=no-member
-  any_entity_message.Pack(entity_proto._pb)  # pylint: disable=protected-access
-  return any_entity_message  # pylint: disable=protected-access
-
-
-T = TypeVar('T', bound=ndb.Model)
-
-
-def entity_from_protobuf(entity_proto: any_pb2.Any, model_type: Type[T]) -> T:  # pylint: disable=no-member
-  """Converts `entity_proto` to the `ndb.Model` of type `model_type` it encodes.
-
-  Raises:
-    AssertionError: if `entity_proto` does not encode a model of type
-    `model_type`
-  """
-  entity = entity_pb2.Entity()
-  entity_proto.Unpack(entity._pb)  # pylint: disable=protected-access
-  entity = model._entity_from_protobuf(entity)  # pylint: disable=protected-access
-  assert isinstance(entity, model_type)  # pylint: disable=protected-access
-  return entity
