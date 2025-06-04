@@ -13,8 +13,6 @@
 # limitations under the License.
 """Cron to sync admin users."""
 
-from typing import List
-
 from googleapiclient import discovery
 
 from clusterfuzz._internal.base import utils
@@ -24,9 +22,9 @@ from clusterfuzz._internal.metrics import logs
 
 
 def get_emails_from_bindings(iam_policy, principal_type,
-                             allowed_roles) -> List[str]:
+                             allowed_roles) -> set[str]:
   """Returns emails that should be admins, given constraints."""
-  admins = []
+  admins = set()
 
   assert principal_type in ['user', 'serviceAccount']
 
@@ -37,13 +35,13 @@ def get_emails_from_bindings(iam_policy, principal_type,
     for member in binding['members']:
       user_type, email = member.split(':', 2)
       if user_type == principal_type:
-        admins.append(email)
+        admins.add(email)
 
   return admins
 
 
 def admins_from_iam_policy(iam_policy):
-  """Gets a list of admins from the IAM policy."""
+  """Gets a set of admins from the IAM policy."""
   # Per
   # https://cloud.google.com/appengine/docs/standard/python/users/adminusers, An
   # administrator is a user who has the Viewer, Editor, or Owner primitive role,
@@ -61,7 +59,7 @@ def admins_from_iam_policy(iam_policy):
   service_account_admins = get_emails_from_bindings(
       iam_policy, 'serviceAccount', service_account_roles)
 
-  user_admins.extend(service_account_admins)
+  user_admins.update(service_account_admins)
   return user_admins
 
 
