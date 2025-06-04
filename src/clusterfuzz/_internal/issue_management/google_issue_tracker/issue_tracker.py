@@ -81,6 +81,7 @@ def retry_on_invalid_gaia_accounts(func):
     except Exception as e:
       # Try to handle the case where a 400 buganizer response is
       # received due to a non gaia email.
+      logs.warning(f'Buganizer exception when filing: {e}')
       email_regex = r'[\w\.\-\+]+@[\w\.-]+'
       emails_to_skip = re.findall(email_regex, str(e))
       return func(self, *args, **kwargs, skip_emails=emails_to_skip)
