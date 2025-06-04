@@ -141,7 +141,7 @@ class EntityMigrator:
 
 
 def main():
-  "Exports datastore entities and respective blobs"
+  """Exports datastore entities and respective blobs."""
   export_bucket = os.getenv('EXPORT_BUCKET', None)
   operation_mode = os.getenv('OPERATION_MODE', None)
   assert export_bucket
