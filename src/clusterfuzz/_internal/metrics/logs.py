@@ -566,6 +566,7 @@ def intercept_log_context(func):
   def wrapper(*args, **kwargs):
     if not kwargs.get('ignore_context'):
       for context in log_contexts.contexts:
+        context.setup()
         kwargs.update(context.get_extras()._asdict())
     else:
       # This is needed to avoid logging the label 'ingore_context: True'.
@@ -573,6 +574,28 @@ def intercept_log_context(func):
     return func(*args, **kwargs)
 
   return wrapper
+
+
+def _parse_symmetric_logs(extras):
+  """Return a list containing the fields of each symmetrics log entry.
+
+  Checks if the symmetric logs label was passed and formatted as expected,
+  i.e., a label called `symmetric_logs` containing a list of dicts, which
+  represent the fields used for each log entry. Then, removes this label from
+  extras and return it. Otherwise, return None.
+  """
+  symmetric_logs = extras.pop('symmetric_logs', None)
+  if not symmetric_logs:
+    return None
+
+  if not isinstance(symmetric_logs, list):
+    return None
+
+  for sl in symmetric_logs:
+    if not isinstance(sl, dict):
+      return None
+
+  return symmetric_logs
 
 
 @intercept_log_context
@@ -609,21 +632,32 @@ def emit(level, message, exc_info=None, **extras):
   log_limit = STACKDRIVER_LOG_MESSAGE_LIMIT if _cloud_logging_enabled(
   ) else LOCAL_LOG_MESSAGE_LIMIT
 
-  # We need to make a dict out of it because member of the dict becomes the
-  # first class attributes of LogEntry. It is very tricky to identify the extra
-  # attributes. Therefore, we wrap extra fields under the attribute 'extras'.
-  logger.log(
-      level,
-      truncate(message, log_limit),
-      exc_info=exc_info,
-      extra={
-          'extras': all_extras,
-          'location': {
-              'path': path_name,
-              'line': line_number,
-              'method': method_name
-          }
-      })
+  # Enable symmetric logs, i.e., multiple log entries from the same emit call
+  # setting distinc values for labels in each entry.
+  symmetric_logs = _parse_symmetric_logs(all_extras)
+  symmetric_logs = [{}] if symmetric_logs is None else symmetric_logs
+  for sym_extras in symmetric_logs:
+    # Make a copy of the mutable params that can change in the logger call.
+    all_extras_local = all_extras.copy()
+    all_extras_local.update(sym_extras)
+    message_truncated = truncate(message, log_limit)
+
+    # We need to make a dict out of it because member of the dict becomes the
+    # first class attributes of LogEntry. It is very tricky to identify the
+    # extra attributes. Therefore, we wrap extra fields under the attribute
+    # 'extras'.
+    logger.log(
+        level,
+        message_truncated,
+        exc_info=exc_info,
+        extra={
+            'extras': all_extras_local,
+            'location': {
+                'path': path_name,
+                'line': line_number,
+                'method': method_name
+            }
+        })
 
 
 def info(message, **extras):
@@ -739,13 +773,12 @@ class FuzzerLogStruct(NamedTuple):
 
 class TestcaseLogStruct(NamedTuple):
   testcase_id: str
+  testcase_group: str | int
 
 
-class GrouperLogStruct(NamedTuple):
-  testcase_1_id: str
-  testcase_1_group: str | int
-  testcase_2_id: str
-  testcase_2_group: str | int
+class GrouperStruct(NamedTuple):
+  # Represents the TestcaseLogStruct for each testcase being grouped.
+  symmetric_logs: list[dict]
 
 
 class LogContextType(enum.Enum):
@@ -761,8 +794,8 @@ class LogContextType(enum.Enum):
   CRON = 'cron'
   GROUPER = 'grouper'
 
-  def get_extras(self) -> NamedTuple:
-    """Get the structured log for a given context"""
+  def setup(self) -> None:
+    """Setup metadata needed for the context."""
     if self == LogContextType.COMMON:
       common_ctx = log_contexts.meta.get('common_ctx')
       if common_ctx is None:
@@ -772,6 +805,10 @@ class LogContextType(enum.Enum):
         common_ctx = get_common_log_context()
         log_contexts.add_metadata('common_ctx', common_ctx)
 
+  def get_extras(self) -> NamedTuple:
+    """Get the structured log fields for a given context."""
+    if self == LogContextType.COMMON:
+      common_ctx = log_contexts.meta.get('common_ctx', {})
       return CommonLogStruct(
           clusterfuzz_version=common_ctx.get('clusterfuzz_version', 'null'),
           clusterfuzz_config_version=common_ctx.get(
@@ -814,7 +851,8 @@ class LogContextType(enum.Enum):
     if self == LogContextType.TESTCASE:
       try:
         return TestcaseLogStruct(
-            testcase_id=log_contexts.meta.get('testcase_id', 'null'))
+            testcase_id=log_contexts.meta.get('testcase_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_group', 'null'))
       except:
         error(
             'Error retrieving context for testcase-based logs.',
@@ -834,11 +872,14 @@ class LogContextType(enum.Enum):
 
     if self == LogContextType.GROUPER:
       try:
-        return GrouperLogStruct(
-            testcase_1_id=log_contexts.meta.get('testcase_1_id', 'null'),
-            testcase_2_id=log_contexts.meta.get('testcase_2_id', 'null'),
-            testcase_1_group=log_contexts.meta.get('testcase_1_group', 'null'),
-            testcase_2_group=log_contexts.meta.get('testcase_2_group', 'null'))
+        first_testcase = TestcaseLogStruct(
+            testcase_id=log_contexts.meta.get('testcase_1_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_1_group', 'null'))
+        second_testcase = TestcaseLogStruct(
+            testcase_id=log_contexts.meta.get('testcase_2_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_2_group', 'null'))
+        symmetric_logs = [first_testcase._asdict(), second_testcase._asdict()]
+        return GrouperStruct(symmetric_logs=symmetric_logs)
       except:
         error(
             'Error retrieving context for grouper-based logs.',
@@ -965,6 +1006,8 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
       log_contexts.add_metadata('testcase', testcase)
       if testcase:
         log_contexts.add_metadata('testcase_id', get_testcase_id(testcase))
+        log_contexts.add_metadata('testcase_group',
+                                  testcase.group_id)  # type: ignore
         log_contexts.add_metadata('fuzzer_name',
                                   testcase.fuzzer_name)  # type: ignore
         log_contexts.add_metadata('job_type', testcase.job_type)  # type: ignore
@@ -984,6 +1027,7 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
     finally:
       log_contexts.delete_metadata('testcase')
       log_contexts.delete_metadata('testcase_id')
+      log_contexts.delete_metadata('testcase_group')
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
