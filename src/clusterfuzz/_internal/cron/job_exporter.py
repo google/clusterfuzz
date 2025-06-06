@@ -21,6 +21,7 @@ from google.protobuf import any_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -145,9 +146,69 @@ class EntityMigrator:
 
     self._export_entity_names(entity_names, entity_bucket_prefix)
 
-  def import_entities(self):
-    pass
+  def _import_data_bundle_contents_if_applicable(self, entity: ndb.Model):
+    if not isinstance(entity, data_types.DataBundle):
+      return
+    if not entity.bucket_name:
+      logs.info(
+          f'DataBundle {entity.name} has no related gcs bucket, skipping.')
+      return
+    source_location = f'{bucket_prefix}/contents'
+    target_location = data_types.get_data_bundle_bucket_name()
+    storage.create_bucket_if_needed(target_location)
+    self._rsync_client.rsync(entity.bucket_name, target_location)
+    return target_location
 
+  def _import_blobs(self, entity: ndb.Model, entity_name: str):
+    new_blob_ids = {}
+    for blobstore_key in self.blobstore_keys:
+      source_blob_location = f'{entity_location}/{blobstore_key}'
+      if not getattr(entity_to_import, blobstore_key, None):
+        logs.info(f'{blobstore_key} missing for {entity_name}, skipping blob import.')
+        continue
+      if not storage.get(source_blob_location):
+        raise Exception(f'Absent blob for {blobstore_key} in {entity_name}, it should be present.') 
+      new_blob_ids[blobstore_key] = blobs.write_blob(source_blob_location)
+    return new_blob_ids
+
+  def _override_job_env_string_if_needed(self, entity: ndb.Model):
+    return entity.environment_string
+
+  def _import_entity(self, entity_name: str, entity_location: str):
+    entity_to_import = self._deserialize_entity_from_gcs(f'{entity_location}/entity.proto')
+
+    # Blobs are deployment specific, must be migrated
+    new_blob_ids = self._import_blobs(entity_to_import, entity_name)
+    for blob_key, blob_id in new_blob_ids:
+      setattr(entity_to_import, blob_key, blob_id)
+
+    # Data Bundle contents must have their own namespaced bucket, in the new project
+    new_databundle_bucket = self._import_data_bundle_contents_if_applicable(entity_to_import)
+    if new_databundle_bucket:
+      setattr(entity_to_import, 'bucket_name', new_databundle_bucket)
+
+    # b/422759773
+    new_job_env_string = self._override_job_env_string_if_needed(entity_to_import)
+    old_env_string = getattr(entity, 'environment_string', None)
+    if new_job_env_string and old_env_string != new_job_env_string:
+      setattr(entity_to_import, 'environment_string', new_databundle_bucket)
+
+    # Do not assume that name is a primary key
+    preexisting_entity = self._target_cls.query(_target_cls.name == entity_name).get()
+    if preexisting_entity:
+      preexisting_entity.delete()
+
+    entity_to_import.put()
+
+  def import_entities(self):
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
+    entity_list_location = f'{entity_bucket_prefix}/entities'
+    if not storage.get(entity_list_location):
+      raise ValueError(f'Missing entity list in {entity_list_location}')
+    entities_to_sync = storage.read_data(entity_list_location).decode('utf-8')
+    for entity_name in entities_to_sync.split('\n'):
+      entity_location = f'{entity_bucket_prefix}/{entity_name}'
+      self._import_entity(entity_name, entity_location)
 
 def main():
   """Exports datastore entities and respective blobs."""
