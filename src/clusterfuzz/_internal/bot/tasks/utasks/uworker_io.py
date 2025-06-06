@@ -124,8 +124,14 @@ def download_and_deserialize_uworker_input(
     uworker_input_download_url: str) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
-  data = zlib.decompress(
-      storage.download_signed_url(uworker_input_download_url))
+  data = storage.download_signed_url(uworker_input_download_url)
+  try:
+    data = zlib.decompress(data)
+  except zlib.error:
+    # This is for backward compatiblity during the merge.
+    # TOOD(metzman): Remove backward compatibility efforts when every
+    # deployment of ClusterFuzz is running the latest code.
+    pass
   return deserialize_uworker_input(data)
 
 
