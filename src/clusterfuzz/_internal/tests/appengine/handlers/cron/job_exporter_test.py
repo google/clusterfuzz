@@ -328,6 +328,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
                                                   'jobtemplate',
                                                   job_exporter.StorageRSync(),
                                                   self.target_bucket)
+
+    entity_list_location = (f'gs://{self.target_bucket}/'
+                            f'jobtemplate/entities')
+    expected_persisted_entities = {'some-job-template'}
+
     template_proto_location = (f'gs://{self.target_bucket}/'
                                f'jobtemplate/{template.name}/'
                                f'entity.proto')
@@ -338,6 +343,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     deserialized_template_proto = entity_migrator._deserialize(
         serialized_template_proto)
     self.assertTrue(_job_templates_equal(template, deserialized_template_proto))
+
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(
+        _entity_list_contains_expected_entities(entity_list_location,
+                                                expected_persisted_entities))
 
   def test_data_bundles_are_correctly_exported(self):
     """Verifies the proto is uploaded and blobs are rsynced correctly."""
