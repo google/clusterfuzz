@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import tempfile
+from typing import Optional
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_types
@@ -537,6 +538,12 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   Returns:
     A string giving the GCS url.
   """
+  if backup_bucket_name is None:
+    return None
+  if fuzzer_name is None:
+    return None
+  if project_qualified_target_name is None:
+    return None
   backup_dir = gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
                                             project_qualified_target_name)
   backup_file = str(date) + os.extsep + BACKUP_ARCHIVE_FORMAT
@@ -587,8 +594,9 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
   return backup_succeeded
 
 
-def gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
-                                 project_qualified_target_name):
+def gcs_url_for_backup_directory(
+    backup_bucket_name, fuzzer_name,
+    project_qualified_target_name) -> Optional[str]:
   """Build GCS URL for corpus backup directory.
 
   Returns:
@@ -661,12 +669,6 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
   return len(fails) < MAX_SYNC_ERRORS
 
 
-def _last_updated(*args, **kwargs):
-  if environment.is_tworker():
-    return None
-  return storage.last_updated(*args, **kwargs)
-
-
 def get_proto_corpus(bucket_name,
                      bucket_path,
                      max_upload_urls,
@@ -677,16 +679,19 @@ def get_proto_corpus(bucket_name,
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   corpus = uworker_msg_pb2.Corpus(gcs_url=gcs_url)  # pylint: disable=no-member
 
-  backup = None
+  backup_exists = False
   if backup_url:
     # TODO(unassigned): Use any backup, not just latest.zip. You can list the
     # directory and pick the last element in the list that isn't public.zip.
-    backup = list(storage.get_blobs(backup_url, single_file=True))
+    # Also, come up with a way that we can get backup if it exists and otherwise
+    # find out immediately if it doesn't instead of retrying.
+    backup_exists = storage.exists(backup_url)
 
-  if backup:
+  if backup_exists:
     # Corpus backup can take up to 24 hours, get any corpus element before the
     # backup was made.
     corpus.backup_url = storage.get_signed_download_url(backup_url)
+    backup = list(storage.get_blobs(backup_url, single_file=True))
     start_time = backup[0]['updated'] - datetime.timedelta(days=1)
     blobs = storage.get_blobs(gcs_url)
     urls = (f'{storage.GS_PREFIX}/{bucket_name}/{blob["name"]}'
