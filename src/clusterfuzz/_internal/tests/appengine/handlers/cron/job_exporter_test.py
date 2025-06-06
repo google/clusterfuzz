@@ -99,6 +99,12 @@ def _blob_content_is_equal(blob_path, data):
   return data == fetched_data
 
 
+def _entity_list_contains_expected_entities(blob_path, expected_entities):
+  recovered_entities = set(
+      storage.read_data(blob_path).decode('utf-8').split('\n'))
+  return expected_entities == recovered_entities
+
+
 @test_utils.with_cloud_emulators('datastore')
 class TestEntitySerializationAndDeserializastion(unittest.TestCase):
   """Test the serialization and deserialization of entities."""
@@ -215,6 +221,9 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     another_fuzzer_blob_location = f'{another_fuzzer_gcs_prefix}/blobstore_key'
     another_fuzzer_testcase_location = f'{another_fuzzer_gcs_prefix}/sample_testcase'
 
+    entity_list_location = f'gs://{self.target_bucket}/fuzzer/entities'
+    expected_persisted_entities = {'some-fuzzer', 'another-fuzzer'}
+
     def get_gcs_key_mock_override(blob_key: str):
       bucket_prefix = f'gs://{self.blobs_bucket}'
       return_values = {
@@ -250,6 +259,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_blob_location))
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_testcase_location))
 
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(
+        _entity_list_contains_expected_entities(entity_list_location,
+                                                expected_persisted_entities))
+
   def test_jobs_are_correctly_exported(self):
     """Verifies job protos and custom binary blobs are uploaded. If no custom
         binary key is present, no blob is uploaded."""
@@ -265,6 +279,10 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
                                                   ['custom_binary_key'], 'job',
                                                   job_exporter.StorageRSync(),
                                                   self.target_bucket)
+
+    entity_list_location = f'gs://{self.target_bucket}/job/entities'
+    expected_persisted_entities = {'some-job', 'another-job'}
+
     job_blob_data = b'some-data'
     job_blob_id = 'some-blob'
     job_proto_location = f'gs://{self.target_bucket}/job/{job.name}/entity.proto'
@@ -296,6 +314,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
     self.assertFalse(_blob_is_present_in_gcs(another_job_blob_location))
 
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(
+        _entity_list_contains_expected_entities(entity_list_location,
+                                                expected_persisted_entities))
+
   def test_job_templates_are_correctly_exported(self):
     """Verifies job template proto is correctly uploaded."""
     template = _sample_job_template(
@@ -305,6 +328,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
                                                   'jobtemplate',
                                                   job_exporter.StorageRSync(),
                                                   self.target_bucket)
+
+    entity_list_location = (f'gs://{self.target_bucket}/'
+                            f'jobtemplate/entities')
+    expected_persisted_entities = {'some-job-template'}
+
     template_proto_location = (f'gs://{self.target_bucket}/'
                                f'jobtemplate/{template.name}/'
                                f'entity.proto')
@@ -315,6 +343,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     deserialized_template_proto = entity_migrator._deserialize(
         serialized_template_proto)
     self.assertTrue(_job_templates_equal(template, deserialized_template_proto))
+
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(
+        _entity_list_contains_expected_entities(entity_list_location,
+                                                expected_persisted_entities))
 
   def test_data_bundles_are_correctly_exported(self):
     """Verifies the proto is uploaded and blobs are rsynced correctly."""
@@ -333,6 +366,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     storage.write_data(blob_data, f'gs://{data_bundle.bucket_name}/blob')
 
     entity_migrator.export_entities()
+
+    entity_list_location = (f'gs://{self.target_bucket}/'
+                            f'databundle/entities')
+    expected_persisted_entities = {'some-data-bundle'}
+
     bundle_proto_location = (f'gs://{self.target_bucket}/'
                              f'databundle/{data_bundle.name}/'
                              f'entity.proto')
@@ -347,3 +385,8 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
     self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
     self.assertTrue(_blob_content_is_equal(bundle_contents_location, blob_data))
+
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(
+        _entity_list_contains_expected_entities(entity_list_location,
+                                                expected_persisted_entities))
