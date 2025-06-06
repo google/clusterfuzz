@@ -274,14 +274,19 @@ def process_command(task):
     return None
 
   return process_command_impl(task.command, task.argument, task.job,
-                              task.high_end, task.is_command_override)
+                              task.high_end, task.is_command_override,
+                              task.queue)
 
 
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
-def process_command_impl(task_name, task_argument, job_name, high_end,
-                         is_command_override):
+def process_command_impl(task_name,
+                         task_argument,
+                         job_name,
+                         high_end,
+                         is_command_override,
+                         queue=None):
   """Implementation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
@@ -380,10 +385,12 @@ def process_command_impl(task_name, task_argument, job_name, high_end,
             logs.info(f'Testcase {testcase.key.id()} platform '
                       f'({testcase_platform_id}) does not match with ours '
                       f'({current_platform_id}), exiting.')
+            logs.info(f'Adding testcase {testcase.key.id()} to {queue}.')
             tasks.add_task(
                 task_name,
                 task_argument,
                 job_name,
+                queue,
                 wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
             return None
 
