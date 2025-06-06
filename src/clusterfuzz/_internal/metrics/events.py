@@ -36,8 +36,7 @@ class Event:
   # Source location (optional).
   source: str | None = None
   # Timestamp when the event was created.
-  timestamp: datetime.datetime = field(
-      init=False, default=datetime.datetime.now())
+  timestamp: datetime.datetime = field(init=False)
 
   # Common metadata retrieved from running environment.
   clusterfuzz_version: str | None = field(init=False, default=None)
@@ -48,6 +47,7 @@ class Event:
 
   def __post_init__(self, **kwargs):
     del kwargs
+    self.timestamp = datetime.datetime.now()
     common_ctx = logs.get_common_log_context()
     for key, val in common_ctx.items():
       setattr(self, key, val)
