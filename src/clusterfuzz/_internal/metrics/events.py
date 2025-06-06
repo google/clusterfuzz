@@ -20,7 +20,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
-from typing import Any
 
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -111,14 +110,6 @@ class IEventRepository(ABC):
   """
 
   @abstractmethod
-  def serialize_event(self, event: Event) -> Any:
-    """Serialize an event into the underlying database entity."""
-
-  @abstractmethod
-  def deserialize_event(self, entity: Any) -> Event | None:
-    """Deserialize a database entity into an event."""
-
-  @abstractmethod
   def store_event(self, event: Event) -> str | int | None:
     """Save an event into the underlying database and return its ID."""
 
@@ -140,46 +131,35 @@ class NDBEventRepository(IEventRepository):
   _event_to_entity_map = {}
   _default_entity = data_types.TestcaseLifecycleEvent
 
-  def _to_entity(self, event: Event) -> data_types.Model:
-    """Converts the event object into the Datastore entity."""
-    entity_model = self._event_to_entity_map.get(event.event_type,
-                                                 self._default_entity)
-
-    event_entity = entity_model(event_type=event.event_type)
-    for key, val in asdict(event).items():
-      setattr(event_entity, key, val)
-    return event_entity
-
-  def _from_entity(self, entity: data_types.Model) -> Event:
-    """Converts a Datastore entity into an event object."""
-    if not hasattr(entity, 'event_type'):
-      raise TypeError('Datastore model should contain an event_type.')
-
-    event_type = entity.event_type  # type: ignore
-    event_class = _EVENT_TYPE_CLASSES.get(event_type, None)
-    if event_class is None:
-      event = Event(event_type=event_type)
-    else:
-      event = event_class()
-    for key, val in entity.to_dict().items():
-      if hasattr(event, key):
-        setattr(event, key, val)
-    return event
-
-  def serialize_event(self, event: Event) -> data_types.Model | None:
+  def _serialize_event(self, event: Event) -> data_types.Model | None:
     """Converts an event object into the Datastore entity."""
     try:
-      event_entity = self._to_entity(event)
+      entity_model = self._event_to_entity_map.get(event.event_type,
+                                                   self._default_entity)
+      event_entity = entity_model(event_type=event.event_type)
+      for key, val in asdict(event).items():
+        setattr(event_entity, key, val)
       return event_entity
     except:
       logs.error(
           f'Error serializing event of type {event.event_type} to Datastore.')
     return None
 
-  def deserialize_event(self, entity: data_types.Model) -> Event | None:
+  def _deserialize_event(self, entity: data_types.Model) -> Event | None:
     """Converts a Datastore entity into an event object, if possible."""
     try:
-      event = self._from_entity(entity)
+      if not hasattr(entity, 'event_type'):
+        raise TypeError('Datastore model should contain an event type.')
+
+      event_type = entity.event_type  # type: ignore
+      event_class = _EVENT_TYPE_CLASSES.get(event_type, None)
+      if event_class is None:
+        event = Event(event_type=event_type)
+      else:
+        event = event_class()
+      for key, val in entity.to_dict().items():
+        if hasattr(event, key):
+          setattr(event, key, val)
       return event
     except:
       logs.error('Error deserializing Datastore entity to event.')
@@ -187,7 +167,7 @@ class NDBEventRepository(IEventRepository):
 
   def store_event(self, event: Event) -> str | int | None:
     """Stores a Datastore entity and returns its ID."""
-    entity = self.serialize_event(event)
+    entity = self._serialize_event(event)
     if entity is None:
       return None
     try:
@@ -207,7 +187,7 @@ class NDBEventRepository(IEventRepository):
       logs.error(f'Event entity {event_id} not found.')
       return None
 
-    event = self.deserialize_event(event_entity)
+    event = self._deserialize_event(event_entity)
     return event
 
 
