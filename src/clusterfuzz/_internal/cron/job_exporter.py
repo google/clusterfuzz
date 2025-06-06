@@ -14,7 +14,6 @@
 """Exports Jobs, Fuzzer, DataBundles and their JobTemplates to GCS, 
     in order to mirror the workloads on testing environments."""
 
-import io
 import os
 
 from google.cloud import ndb
@@ -120,20 +119,20 @@ class EntityMigrator:
     target_location = f'{bucket_prefix}/contents'
     self._rsync_client.rsync(entity.bucket_name, target_location)
 
-  def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str, entity_name: str):
+  def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
+                     entity_name: str):
     """Exports entity as protobuf and its respective blobs to GCS."""
     # Entitites get their name from the 'name' field in datastore
-    bucket_prefix = (f'{entity_bucket_prefix}/{entity_name}')
+    bucket_prefix = f'{entity_bucket_prefix}/{entity_name}'
     entity_target_location = f'{bucket_prefix}/entity.proto'
     self._serialize_entity_to_gcs(entity, entity_target_location)
     self._export_blobs(entity, bucket_prefix)
     self._export_data_bundle_contents_if_applicable(entity, bucket_prefix)
 
   def _export_entity_names(self, entities: set[str], entity_bucket_prefix: str):
-    entity_list = ''
-    for entity in entities:
-      entity_list += f'{entity}\n'
-    storage.write_data(entity_list.encode('utf-8'), f'{entity_bucket_prefix}/entities')
+    entity_list = '\n'.join(entities)
+    storage.write_data(
+        entity_list.encode('utf-8'), f'{entity_bucket_prefix}/entities')
 
   def export_entities(self):
     entity_names = set()
@@ -143,7 +142,7 @@ class EntityMigrator:
       assert entity_name
       self._export_entity(entity, entity_bucket_prefix, entity_name)
       entity_names.add(entity_name)
-    
+
     self._export_entity_names(entity_names, entity_bucket_prefix)
 
   def import_entities(self):
