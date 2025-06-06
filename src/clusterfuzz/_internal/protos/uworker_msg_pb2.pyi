@@ -376,6 +376,7 @@ class Corpus(google.protobuf.message.Message):
     LAST_UPDATED_TIME_FIELD_NUMBER: builtins.int
     GCS_URL_FIELD_NUMBER: builtins.int
     UPLOAD_URLS_FIELD_NUMBER: builtins.int
+    BACKUP_URL_FIELD_NUMBER: builtins.int
     @property
     def corpus_urls(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]:
         """URLs for downloading and deleting corpus elements."""
@@ -384,6 +385,7 @@ class Corpus(google.protobuf.message.Message):
     gcs_url: builtins.str
     @property
     def upload_urls(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    backup_url: builtins.str
     def __init__(
         self,
         *,
@@ -391,9 +393,12 @@ class Corpus(google.protobuf.message.Message):
         last_updated_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         gcs_url: builtins.str | None = ...,
         upload_urls: collections.abc.Iterable[builtins.str] | None = ...,
+        backup_url: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "corpus_urls", b"corpus_urls", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time", "upload_urls", b"upload_urls"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_backup_url", b"_backup_url", "_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "backup_url", b"backup_url", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_backup_url", b"_backup_url", "_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "backup_url", b"backup_url", "corpus_urls", b"corpus_urls", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time", "upload_urls", b"upload_urls"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_backup_url", b"_backup_url"]) -> typing_extensions.Literal["backup_url"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_gcs_url", b"_gcs_url"]) -> typing_extensions.Literal["gcs_url"] | None: ...
     @typing.overload

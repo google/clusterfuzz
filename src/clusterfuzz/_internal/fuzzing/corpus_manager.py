@@ -13,12 +13,13 @@
 # limitations under the License.
 """Functions for corpus synchronization with GCS."""
 
+import datetime
 import itertools
 import os
 import re
 import shutil
-
-from google.protobuf import timestamp_pb2
+import tempfile
+from typing import Optional
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_types
@@ -26,6 +27,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
@@ -434,13 +436,19 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     logs.info('Uploading corpus.')
     results = self.upload_files(filepaths_to_upload)
     logs.info('Done uploading corpus.')
-    filenames_to_delete = list(filenames_to_delete_dict.values())
+    filenames_to_delete = [
+        delete_url for delete_url in set(filenames_to_delete_dict.values())
+        if delete_url
+    ]
 
     # Assert that we aren't making the very bad mistake of deleting the entire
     # corpus because we messed up our determination of which files were deleted
-    # by libFuzzer during merge/pruning.
+    # by libFuzzer during merge/pruning. We have to do this hacky <500 check
+    # because we have many different kinds of corpuses
+    # (e.g. quarantine, regression) but this check is for the main corpus.
     assert ((len(filenames_to_delete) != len(
-        self._filenames_to_delete_urls_mapping)) or not filenames_to_delete)
+        self._filenames_to_delete_urls_mapping)) or
+            len(filenames_to_delete) < 1_000)
 
     logs.info('Deleting files.')
     storage.delete_signed_urls(filenames_to_delete)
@@ -470,6 +478,20 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   def _sync_corpus_to_disk(self, corpus, directory):
     """Syncs a corpus from GCS to disk."""
     shell.create_directory(directory, create_intermediates=True)
+    if corpus.backup_url:
+      tmpdir = environment.get_value('BOT_TMPDIR')
+      with tempfile.NamedTemporaryFile(
+          dir=tmpdir, suffix='.zip') as temp_zipfile:
+        try:
+          storage.download_signed_url_to_file(corpus.backup_url,
+                                              temp_zipfile.name)
+          with archive.open(temp_zipfile.name) as reader:
+            reader.extract_all(directory)
+            for member in reader.list_members():
+              self._filenames_to_delete_urls_mapping[member.name] = None
+        except RuntimeError:
+          logs.warning('Couldn\'t download corpus backup')
+
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
     # Convert this to a dict so proto's map doesn't return a default value for
@@ -516,6 +538,12 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   Returns:
     A string giving the GCS url.
   """
+  if backup_bucket_name is None:
+    return None
+  if fuzzer_name is None:
+    return None
+  if project_qualified_target_name is None:
+    return None
   backup_dir = gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
                                             project_qualified_target_name)
   backup_file = str(date) + os.extsep + BACKUP_ARCHIVE_FORMAT
@@ -566,8 +594,9 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
   return backup_succeeded
 
 
-def gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
-                                 project_qualified_target_name):
+def gcs_url_for_backup_directory(
+    backup_bucket_name, fuzzer_name,
+    project_qualified_target_name) -> Optional[str]:
   """Build GCS URL for corpus backup directory.
 
   Returns:
@@ -640,42 +669,50 @@ def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
   return len(fails) < MAX_SYNC_ERRORS
 
 
-def _last_updated(*args, **kwargs):
-  if environment.is_tworker():
-    return None
-  return storage.last_updated(*args, **kwargs)
-
-
 def get_proto_corpus(bucket_name,
                      bucket_path,
                      max_upload_urls,
                      include_delete_urls=False,
-                     max_download_urls=None):
+                     max_download_urls=None,
+                     backup_url=None):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
-  # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
-  urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
-          for url in storage.list_blobs(gcs_url))
+  corpus = uworker_msg_pb2.Corpus(gcs_url=gcs_url)  # pylint: disable=no-member
 
-  # TODO(metzman): Stop limiting URLs when pruning works on oss-fuzz
-  # again.
+  backup_exists = False
+  if backup_url:
+    # TODO(unassigned): Use any backup, not just latest.zip. You can list the
+    # directory and pick the last element in the list that isn't public.zip.
+    # Also, come up with a way that we can get backup if it exists and otherwise
+    # find out immediately if it doesn't instead of retrying.
+    backup_exists = storage.exists(backup_url)
+
+  if backup_exists:
+    # Corpus backup can take up to 24 hours, get any corpus element before the
+    # backup was made.
+    corpus.backup_url = storage.get_signed_download_url(backup_url)
+    backup = list(storage.get_blobs(backup_url, single_file=True))
+    start_time = backup[0]['updated'] - datetime.timedelta(days=1)
+    blobs = storage.get_blobs(gcs_url)
+    urls = (f'{storage.GS_PREFIX}/{bucket_name}/{blob["name"]}'
+            for blob in blobs
+            if blob['updated'] > start_time)
+  else:
+    urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
+            for url in storage.list_blobs(gcs_url))
+
   if max_download_urls is not None:
     urls = itertools.islice(urls, max_download_urls)
-  corpus_urls = dict(
-      storage.sign_urls_for_existing_files(urls, include_delete_urls))
 
+  corpus_urls = storage.sign_urls_for_existing_files(urls, include_delete_urls)
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_upload_urls)
-  corpus = uworker_msg_pb2.Corpus(  # pylint: disable=no-member
-      corpus_urls=corpus_urls,
-      upload_urls=upload_urls,
-      gcs_url=gcs_url,
-  )
-  last_updated = _last_updated(_get_gcs_url(bucket_name, bucket_path))
-  if last_updated:
-    timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
-    timestamp.FromDatetime(last_updated)
-    corpus.last_updated_time.CopyFrom(timestamp)
+
+  # Iterate over imap_unordered results.
+  for upload_url in upload_urls:
+    corpus.upload_urls.append(upload_url)
+  for download_url, delete_url in corpus_urls:
+    corpus.corpus_urls[download_url] = delete_url
 
   return corpus
 
@@ -700,17 +737,30 @@ def get_fuzz_target_corpus(engine,
                            include_regressions=False,
                            include_delete_urls=False,
                            max_upload_urls=10000,
-                           max_download_urls=None):
+                           max_download_urls=None,
+                           use_backup=False):
   """Copies the corpus from gcs to disk. Can run on uworker."""
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()  # pylint: disable=no-member
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_target_name, quarantine)
+
+  if use_backup:
+    backup_bucket_name = environment.get_value('BACKUP_BUCKET')
+    backup_engine_name = environment.get_value('CORPUS_FUZZER_NAME_OVERRIDE',
+                                               engine)
+    gcs_url = gcs_url_for_backup_file(backup_bucket_name, backup_engine_name,
+                                      project_qualified_target_name,
+                                      LATEST_BACKUP_TIMESTAMP)
+  else:
+    gcs_url = None
   corpus = get_proto_corpus(
       bucket_name,
       bucket_path,
       include_delete_urls=include_delete_urls,
       max_upload_urls=max_upload_urls,
-      max_download_urls=max_download_urls)
+      max_download_urls=max_download_urls,
+      backup_url=gcs_url)
+
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
   assert not (include_regressions and quarantine)
@@ -753,14 +803,18 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       engine,
       project_qualified_name,
       include_regressions=True,
-      include_delete_urls=True)
-  max_upload_urls = len(corpus.proto_corpus.corpus.corpus_urls)
+      include_delete_urls=True,
+      max_upload_urls=3_000,
+      max_download_urls=200_000)
   # We will never need to upload more than the number of testcases in the
-  # corpus to the quarantine.
+  # corpus to the quarantine. But add a max of 500 to avoid spending
+  # too much time on crazy edge cases.
+  max_upload_urls = min(len(corpus.proto_corpus.corpus.corpus_urls), 500)
   quarantine_corpus = get_fuzz_target_corpus(
       engine,
       project_qualified_name,
       quarantine=True,
       include_delete_urls=True,
-      max_upload_urls=max_upload_urls)
+      max_upload_urls=max_upload_urls,
+      max_download_urls=1_000)
   return corpus, quarantine_corpus

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Schedule corpus pruning tasks."""
 
+import time
+
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -37,7 +39,11 @@ def main():
   """Schedule corpus pruning tasks."""
   for task_target, job_name, queue_name in get_tasks_to_schedule():
     logs.info(f'Adding corpus pruning task {task_target}.')
-    tasks.add_task('corpus_pruning', task_target, job_name, queue=queue_name)
+    # Do this to avoid starving fuzzing. Don't rely on ETA since the fuzz task
+    # scheduler looks at the queue.
+    time.sleep(.25)
+    tasks.add_task(
+        'corpus_pruning', task_target, job_name, queue=queue_name, wait_time=60)
 
   logs.info('Schedule corpus pruning task succeeded.')
   return True
