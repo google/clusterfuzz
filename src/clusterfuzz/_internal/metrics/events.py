@@ -20,7 +20,9 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
+from typing import Any
 
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -101,6 +103,19 @@ _EVENT_TYPE_CLASSES = {
 }
 
 
+class EventHandler(ABC):
+  """Base class that defines an event handler.
+  
+  Handlers represent any class responsible for executing an action when an event
+  occurs. These may be the repository to persist the events, the issue tracker
+  to send a notification in the related bug, and so on.
+  """
+
+  @abstractmethod
+  def emit(self, event: Event) -> Any:
+    """Emit event."""
+
+
 class IEventRepository(ABC):
   """Event repository abstract class (interface).
 
@@ -119,7 +134,7 @@ class IEventRepository(ABC):
     """Retrieve an event from the underlying database and return it."""
 
 
-class NDBEventRepository(IEventRepository):
+class NDBEventRepository(IEventRepository, EventHandler):
   """Implements the event repository for Datastore.
   
   Handles conversion between Event objects and Datastore entities. If a new
@@ -190,30 +205,65 @@ class NDBEventRepository(IEventRepository):
     event = self._deserialize_event(event_entity)
     return event
 
+  def emit(self, event: Event) -> Any:
+    """Emit an event by persisting it to Datastore."""
+    return self.store_event(event)
 
-_repository: IEventRepository | None = None
 
-
-def config_repository() -> None:
-  """Config the repository used to handle and store events."""
-  global _repository
-  # Any other repository implementations should be added here
-  # based on the project config.
-  _repository = NDBEventRepository()
+_handlers: list[EventHandler] | None = None
 
 
 def get_repository() -> IEventRepository | None:
-  """Return the repository interface to handle and store events."""
-  if not _repository:
-    config_repository()
-  return _repository
+  """Return the repository used to handle and persist events."""
+  # Any other repository implementations should define here the project config
+  # event storage name.
+  storage_cfg = local_config.ProjectConfig().get('events.storage')
+  repository = None
+  if storage_cfg == 'datastore':
+    repository = NDBEventRepository()
+  else:
+    logs.warning('Events storage in project config not found/available.')
+  return repository
 
 
-def emit(event: Event) -> str | int | None:
-  """Emit an event to be stored in the configured repository."""
+def config_handlers() -> None:
+  """Configure event handlers based on project config."""
+  global _handlers
+  _handlers = []
+
+  # Handlers config should be added here.
   repository = get_repository()
-  if repository is None:
-    return None
+  event_handlers = [
+      repository,
+  ]
 
-  event_id = repository.store_event(event)
-  return event_id
+  for handler in event_handlers:
+    if not isinstance(handler, EventHandler):
+      logs.error(
+          f'Event handler of type {type(handler)} should subclass EventHandler.'
+      )
+      continue
+    _handlers.append(handler)
+
+
+def get_handlers():
+  """Retrieve the list of configured event handlers."""
+  if _handlers is None:
+    config_handlers()
+  return _handlers
+
+
+def emit(event: Event) -> None:
+  """Emit an event using the configured handlers.
+
+  Actions taken with emit depend on the project configuration. Mainly, it
+  should persist the event in a storage and send notifications in the issue
+  tracker, if available.
+  """
+  handlers = get_handlers()
+  if handlers is None:
+    logs.error('Failed setting events module handlers.')
+    return
+
+  for handler in handlers:
+    handler.emit(event)
