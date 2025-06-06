@@ -366,6 +366,11 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     storage.write_data(blob_data, f'gs://{data_bundle.bucket_name}/blob')
 
     entity_migrator.export_entities()
+
+    entity_list_location = (f'gs://{self.target_bucket}/'
+                            f'databundle/entities')
+    expected_persisted_entities = {'some-data-bundle'}
+
     bundle_proto_location = (f'gs://{self.target_bucket}/'
                              f'databundle/{data_bundle.name}/'
                              f'entity.proto')
@@ -380,3 +385,8 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
     self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
     self.assertTrue(_blob_content_is_equal(bundle_contents_location, blob_data))
+
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(
+        _entity_list_contains_expected_entities(entity_list_location,
+                                                expected_persisted_entities))
