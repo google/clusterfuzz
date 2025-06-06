@@ -25,7 +25,6 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-
 def _sample_data_bundle(name='some_bundle',
                         bucket_name='some-data-bundle-bucket'):
   return data_types.DataBundle(
@@ -98,6 +97,11 @@ def _blob_content_is_equal(blob_path, data):
   fetched_data = storage.read_data(blob_path)
   return data == fetched_data
 
+def _entity_list_contains_expected_entities(blob_path, expected_entities):
+  recovered_entities = set(storage.read_data(blob_path).decode('utf-8').split('\n'))
+  # \n separator will produce an empty string in the set, remove it
+  recovered_entities = {entity for entity in recovered_entities if entity}
+  return expected_entities == recovered_entities
 
 @test_utils.with_cloud_emulators('datastore')
 class TestEntitySerializationAndDeserializastion(unittest.TestCase):
@@ -215,6 +219,9 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     another_fuzzer_blob_location = f'{another_fuzzer_gcs_prefix}/blobstore_key'
     another_fuzzer_testcase_location = f'{another_fuzzer_gcs_prefix}/sample_testcase'
 
+    entity_list_location = f'gs://{self.target_bucket}/fuzzer/entities'
+    expected_persisted_entities = {'some-fuzzer', 'another-fuzzer'}
+
     def get_gcs_key_mock_override(blob_key: str):
       bucket_prefix = f'gs://{self.blobs_bucket}'
       return_values = {
@@ -249,6 +256,9 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_blob_location))
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_testcase_location))
+
+    self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
+    self.assertTrue(_entity_list_contains_expected_entities(entity_list_location, expected_persisted_entities))
 
   def test_jobs_are_correctly_exported(self):
     """Verifies job protos and custom binary blobs are uploaded. If no custom
