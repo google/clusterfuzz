@@ -407,5 +407,6 @@ PRODUCTION_DEPLOYMENT = monitor.CounterMetric(
         monitor.BooleanField('deploy_zip'),
         monitor.BooleanField('deploy_app_engine'),
         monitor.BooleanField('deploy_kubernetes'),
+        monitor.BooleanField('deploy_terraform'),
         monitor.StringField('clusterfuzz_version')
     ])
