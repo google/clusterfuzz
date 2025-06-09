@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
+from enum import Enum
 from typing import Any
 
 from clusterfuzz._internal.config import local_config
@@ -27,6 +28,11 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+
+class EventTypes(Enum):
+  """Specific event types."""
+  TESTCASE_CREATION = 'testcase_creation'
 
 
 @dataclass(kw_only=True)
@@ -55,16 +61,16 @@ class Event:
 
 
 @dataclass(kw_only=True)
-class TestcaseEvent(Event):
+class BaseTestcaseEvent(Event):
   """Base class for testcase-related events."""
   # Testcase entity (only used in init to set the event data).
   testcase: InitVar[data_types.Testcase | None] = None
 
   # Testcase metadata (retrieved from the testcase entity, if available).
-  testcase_id: int | None = None
-  fuzzer: str | None = None
-  job: str | None = None
-  crash_revision: int | None = None
+  testcase_id: int | None = field(init=False, default=None)
+  fuzzer: str | None = field(init=False, default=None)
+  job: str | None = field(init=False, default=None)
+  crash_revision: int | None = field(init=False, default=None)
 
   def __post_init__(self, testcase=None, **kwargs):
     if testcase is not None:
@@ -76,7 +82,7 @@ class TestcaseEvent(Event):
 
 
 @dataclass(kw_only=True)
-class TaskEvent(Event):
+class BaseTaskEvent(Event):
   """Base class for task-related events."""
   # Task ID retrieved from environment var (if not directly set).
   task_id: str | None = None
@@ -88,18 +94,19 @@ class TaskEvent(Event):
 
 
 @dataclass(kw_only=True)
-class TestcaseCreationEvent(TestcaseEvent, TaskEvent):
+class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase creation event."""
-  event_type: str = field(default='testcase_creation', init=False)
+  event_type: str = field(
+      default=EventTypes.TESTCASE_CREATION.value, init=False)
   # Either manual upload, fuzz task or corpus pruning.
   origin: str | None = None
   # User email, if testcase manually uploaded.
   uploader: str | None = None
 
 
-# Mapping of specific event types to their classes.
+# Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
-    'testcase_creation': TestcaseCreationEvent,
+    EventTypes.TESTCASE_CREATION.value: TestcaseCreationEvent,
 }
 
 
