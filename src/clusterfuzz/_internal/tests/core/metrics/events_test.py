@@ -168,6 +168,14 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.operating_system, 'LINUX')
     self.assertEqual(event.os_version, platform.release())
 
+  def _assert_testcase_fields(self, event, testcase_id):
+    """Asserts for testcase-related event fields."""
+    self.assertEqual(event.testcase_id, testcase_id)
+    # Values based on `test_utils.create_generic_testcase`.
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_content_shell_drt')
+    self.assertEqual(event.crash_revision, 1)
+
   def test_serialize_generic_event(self):
     """Test serializing a generic event into a datastore entity."""
     event_type = 'generic_event'
@@ -202,6 +210,9 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.timestamp, event_tc_creation.timestamp)
     self._assert_common_event_fields(event_entity)
 
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self.assertEqual(event_entity.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.assertEqual(event_entity.origin, 'fuzz_task')
     self.assertIsNone(event_entity.uploader)
 
@@ -258,18 +269,27 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_store_event(self):
     """Test storing an event into datastore."""
     testcase = test_utils.create_generic_testcase()
-    source = 'events_test'
 
     event_tc_creation = events.TestcaseCreationEvent(
-        source=source, testcase=testcase, origin='fuzz_task')
+        source='events_test', testcase=testcase, origin='fuzz_task')
     event_type = event_tc_creation.event_type
+    timestamp = event_tc_creation.timestamp
     eid = self.repository.store_event(event_tc_creation)
     self.assertIsNotNone(eid)
 
+    # Assert correctness of the stored event entity.
     event_entity = data_handler.get_entity_by_type_and_id(
         data_types.TestcaseLifecycleEvent, eid)
     self.assertIsNotNone(event_entity)
     self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.source, 'events_test')
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self.assertEqual(event_entity.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event_entity.origin, 'fuzz_task')
+    self.assertIsNone(event_entity.uploader)
 
   def test_get_event(self):
     """Test retrieving an event from datastore."""
@@ -286,6 +306,9 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertIsNotNone(event)
     self.assertEqual(event.event_type, 'generic_event_test')
     self.assertIsInstance(event, events.Event)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
 
 
 @test_utils.with_cloud_emulators('datastore')
