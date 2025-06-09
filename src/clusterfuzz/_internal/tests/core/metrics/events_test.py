@@ -130,7 +130,7 @@ class EventsDataTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class DatastoreEventsTest(unittest.TestCase):
-  """Test event handling and emission with datastore repository."""
+  """Test event handling and persistence with datastore repository."""
 
   def setUp(self):
     helpers.patch(self, ['clusterfuzz._internal.base.utils.get_instance_name'])
@@ -286,3 +286,46 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertIsNotNone(event)
     self.assertEqual(event.event_type, 'generic_event_test')
     self.assertIsInstance(event, events.Event)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class EmitEventTest(unittest.TestCase):
+  """Test event emission and handler config."""
+
+  def setUp(self):
+    helpers.patch(self,
+                  ['clusterfuzz._internal.config.local_config.ProjectConfig'])
+    self.project_config = {}
+    self.mock.ProjectConfig.return_value = self.project_config
+
+  def tearDown(self):
+    self.project_config = {}
+
+  def test_get_datastore_repository(self):
+    """Test retrieving datastore event repository based on project config."""
+    self.project_config['events.storage'] = 'datastore'
+    repository = events.get_repository()
+    self.assertIsInstance(repository, events.NDBEventRepository)
+
+  def test_not_implemented_repository(self):
+    """Test not implemented event repository based on project config."""
+    self.project_config['events.storage'] = 'test'
+    repository = events.get_repository()
+    self.assertIsNone(repository)
+
+  def test_emit_datastore_event(self):
+    """Test emit event with datastore repository."""
+    self.project_config['events.storage'] = 'datastore'
+    testcase = test_utils.create_generic_testcase()
+    events.emit(
+        events.TestcaseCreationEvent(
+            source='events_test', testcase=testcase, origin='fuzz_task'))
+
+    # Assert that the event was stored in datastore.
+    all_events = data_types.TestcaseLifecycleEvent.query().fetch()
+    self.assertEqual(len(all_events), 1)
+    event = all_events[0]
+    self.assertEqual(event.event_type,
+                     events.EventTypes.TESTCASE_CREATION.value)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.origin, 'fuzz_task')
