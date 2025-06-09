@@ -15,6 +15,7 @@
     in order to mirror the workloads on testing environments."""
 
 import os
+import unittest
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
@@ -145,8 +146,65 @@ class EntityMigrator:
 
     self._export_entity_names(entity_names, entity_bucket_prefix)
 
+  def _import_blobs(self, entity: ndb.Model, entity_name: str,
+                    entity_location: str):
+    """Copies exported blobs to a new blob id, and updates the entity."""
+    new_blob_ids = {}
+    for blobstore_key in self.blobstore_keys:
+      source_blob_location = f'{entity_location}/{blobstore_key}'
+      if not getattr(entity, blobstore_key, None):
+        logs.info(
+            f'{blobstore_key} missing for {entity_name}, skipping blob import.')
+        continue
+      if not storage.get(source_blob_location):
+        raise ValueError(
+            f'Absent blob for {blobstore_key} in {entity_name}, it '
+            'should be present.'
+        )
+      new_blob_id = blobs.generate_new_blob_name()
+      target_blob_location = f'gs://{storage.blobs_bucket()}/{new_blob_id}'
+      if not storage.copy_blob(source_blob_location, target_blob_location):
+        raise ValueError(
+            f'Failed to import blob from {source_blob_location} '
+            'to {target_blob_location}.'
+        )
+      new_blob_ids[blobstore_key] = new_blob_id
+    return new_blob_ids
+
+  def _import_entity(self, entity_name: str, entity_location: str):
+    """Imports entity into datastore, blobs if present, and databundle."""
+    entity_to_import = self._deserialize_entity_from_gcs(
+        f'{entity_location}/entity.proto')
+
+    # Blobs are deployment specific, must be migrated
+    new_blob_ids = self._import_blobs(entity_to_import, entity_name,
+                                      entity_location)
+    for blob_key in new_blob_ids:
+      setattr(entity_to_import, blob_key, new_blob_ids[blob_key])
+
+    # Do not assume that name is a primary key
+    preexisting_entity = self._target_cls.query(
+        self._target_cls.name == entity_name).get()
+    if preexisting_entity:
+      preexisting_entity.delete()
+
+    entity_to_import.put()
+
   def import_entities(self):
-    pass
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
+    entity_list_location = f'{entity_bucket_prefix}/entities'
+    if not storage.get(entity_list_location):
+      raise ValueError(f'Missing entity list in {entity_list_location}')
+    entities_to_sync = storage.read_data(entity_list_location)
+    if not entities_to_sync:
+      raise ValueError(
+          f'No entities defined in {entity_list_location}, '
+          'cannot proceed with import.'
+      )
+    entities_to_sync = entities_to_sync.decode('utf-8')
+    for entity_name in entities_to_sync.split('\n'):
+      entity_location = f'{entity_bucket_prefix}/{entity_name}'
+      self._import_entity(entity_name, entity_location)
 
 
 def main():
