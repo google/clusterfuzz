@@ -249,7 +249,7 @@ def config_handlers() -> None:
       continue
     if not isinstance(handler, EventHandler):
       raise TypeError(
-          f'Event handler should inherit EventHandler class: {type(handler)}.')
+          f'Event handler should extend EventHandler class: {type(handler)}.')
     _handlers.append(handler)
 
 
