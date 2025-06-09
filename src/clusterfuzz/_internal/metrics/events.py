@@ -187,7 +187,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
       logs.error('Error deserializing Datastore entity to event.')
     return None
 
-  def store_event(self, event: Event) -> str | int | None:
+  def store_event(self, event: Event) -> int | None:
     """Stores a Datastore entity and returns its ID."""
     entity = self._serialize_event(event)
     if entity is None:
@@ -245,6 +245,8 @@ def config_handlers() -> None:
   ]
 
   for handler in event_handlers:
+    if handler is None:
+      continue
     if not isinstance(handler, EventHandler):
       logs.error(
           f'Event handler of type {type(handler)} should subclass EventHandler.'
