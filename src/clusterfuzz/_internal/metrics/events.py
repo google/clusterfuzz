@@ -271,7 +271,12 @@ def emit(event: Event) -> None:
   """
   handlers = get_handlers()
   if handlers is None:
-    logs.error('Failed setting events module handlers.')
+    logs.error(
+        f'Failed setting event handlers. Event {event} will not be processed.')
+    return
+
+  if not handlers:
+    logs.warning('No event handlers were registered for this project.')
     return
 
   for handler in handlers:
