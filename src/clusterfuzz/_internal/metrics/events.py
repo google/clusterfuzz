@@ -248,10 +248,8 @@ def config_handlers() -> None:
     if handler is None:
       continue
     if not isinstance(handler, EventHandler):
-      logs.error(
-          f'Event handler of type {type(handler)} should subclass EventHandler.'
-      )
-      continue
+      raise TypeError(
+          f'Event handler should inherit EventHandler class: {type(handler)}.')
     _handlers.append(handler)
 
 
