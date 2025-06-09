@@ -253,7 +253,7 @@ def config_handlers() -> None:
     _handlers.append(handler)
 
 
-def get_handlers():
+def get_handlers() -> list[EventHandler] | None:
   """Retrieve the list of configured event handlers."""
   if _handlers is None:
     config_handlers()
