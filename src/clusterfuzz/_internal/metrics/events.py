@@ -163,15 +163,15 @@ class NDBEventRepository(IEventRepository, EventHandler):
         setattr(event_entity, key, val)
       return event_entity
     except:
-      logs.error(
-          f'Error serializing event of type {event.event_type} to Datastore.')
+      logs.error(f'Error serializing event to Datastore: {event}.')
     return None
 
   def _deserialize_event(self, entity: data_types.Model) -> Event | None:
     """Converts a Datastore entity into an event object, if possible."""
     try:
       if not hasattr(entity, 'event_type'):
-        raise TypeError('Datastore model should contain an event type.')
+        raise TypeError(
+            f'Datastore entity should contain an event_type: {entity.key}.')
 
       event_type = entity.event_type  # type: ignore
       event_class = _EVENT_TYPE_CLASSES.get(event_type, None)
@@ -184,7 +184,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
           setattr(event, key, val)
       return event
     except:
-      logs.error('Error deserializing Datastore entity to event.')
+      logs.error(f'Error deserializing Datastore entity to event: {entity}.')
     return None
 
   def store_event(self, event: Event) -> int | None:
@@ -196,7 +196,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
       entity.put()
       return entity.key.id()
     except:
-      logs.error('Error storing Datastore event entity.')
+      logs.error(f'Error storing Datastore event entity: {entity}.')
     return None
 
   def get_event(self, event_id: str | int,
