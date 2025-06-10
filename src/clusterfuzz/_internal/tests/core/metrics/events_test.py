@@ -112,12 +112,14 @@ class EventsDataTest(unittest.TestCase):
         origin='manual_upload',
         uploader='test@gmail.com')
     self._assert_event_common_fields(event_creation_manual, event_type, source)
+    self._assert_testcase_fields(event_creation_manual, testcase)
     self.assertEqual(event_creation_manual.origin, 'manual_upload')
     self.assertEqual(event_creation_manual.uploader, 'test@gmail.com')
 
     event_creation_fuzz = events.TestcaseCreationEvent(
         source=source, testcase=testcase, origin='fuzz_task')
     self._assert_event_common_fields(event_creation_fuzz, event_type, source)
+    self._assert_testcase_fields(event_creation_fuzz, testcase)
     self.assertEqual(event_creation_fuzz.origin, 'fuzz_task')
     self.assertIsNone(event_creation_fuzz.uploader)
 
@@ -192,12 +194,11 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.timestamp, event_gen.timestamp)
     self._assert_common_event_fields(event_entity)
 
-  def test_serialize_testcase_specific_event(self):
-    """Test serializing a testcase specific event into a datastore entity."""
+  def test_serialize_testcase_creation_event(self):
+    """Test serializing a testcase creation event into a datastore entity."""
     testcase = test_utils.create_generic_testcase()
     source = 'events_test'
-    # Using testcase creation event for testing should be enough to test any
-    # event type as long as it is mapped in the events module.
+
     event_tc_creation = events.TestcaseCreationEvent(
         source=source, testcase=testcase, origin='fuzz_task')
     event_type = event_tc_creation.event_type
@@ -233,8 +234,8 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.timestamp, date_now)
     self._assert_common_event_fields(event)
 
-  def test_deserialize_testcase_event(self):
-    """Test deserializing a datastore event entity into an specific event."""
+  def test_deserialize_testcase_creation_event(self):
+    """Test deserializing a datastore event into a testcase creation event."""
     event_type = events.EventTypes.TESTCASE_CREATION.value
     date_now = datetime.datetime.now()
 
@@ -322,6 +323,8 @@ class EmitEventTest(unittest.TestCase):
     self.mock.ProjectConfig.return_value = self.project_config
 
   def tearDown(self):
+    # Reset handlers, since it is only configured in the first events emit.
+    events._handlers = None  # pylint: disable=protected-access
     self.project_config = {}
 
   def test_get_datastore_repository(self):
@@ -342,6 +345,8 @@ class EmitEventTest(unittest.TestCase):
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
 
     testcase = test_utils.create_generic_testcase()
+    # Using testcase creation event for testing should be enough to test any
+    # event type as long as it is mapped in the events module.
     events.emit(
         events.TestcaseCreationEvent(
             source='events_test', testcase=testcase, origin='fuzz_task'))
