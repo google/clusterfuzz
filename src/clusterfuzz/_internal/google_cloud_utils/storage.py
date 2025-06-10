@@ -1440,10 +1440,10 @@ def get_arbitrary_signed_upload_url(remote_directory):
 def parallel_map(func, argument_list):
   """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
   will OOM."""
-  max_size = 2
+  max_pool_size = 2
   timeout = 120
-  with concurrency.make_pool(max_pool_size=max_size) as pool:
-    calls = {pool.submit(func, argument) for argument in argument_list}
+  with concurrency.make_pool(max_pool_size=max_pool_size) as pool:
+    calls = [pool.submit(func, argument) for argument in argument_list]
     while calls:
       finished_calls, _ = futures.wait(
           calls, timeout=timeout, return_when=futures.FIRST_COMPLETED)
@@ -1452,9 +1452,9 @@ def parallel_map(func, argument_list):
         for call in calls:
           call.cancel()
         raise TimeoutError(f'Nothing completed within {timeout} seconds')
-      for call in finished_calls:
-        calls.remove(call)
-        yield call.result(timeout=timeout)
+      for finished_call in finished_calls:
+        calls.remove(finished_call)
+        yield finished_call.result(timeout=timeout)
 
 
 def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):

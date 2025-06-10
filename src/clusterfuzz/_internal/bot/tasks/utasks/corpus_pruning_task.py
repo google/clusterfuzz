@@ -131,26 +131,24 @@ async def _limit_corpus_sizes(corpus_urls):
     await asyncio.gather(
         *[_limit_corpus_size_async(corpus_url) for corpus_url in corpus_urls])
   except Exception as e:
-    # Catch any unexpected exceptions
-    logs.error(f"Error in _limit_corpus_size: {e}")
+    logs.error(f'Error in _limit_corpus_sizes: {e}')
 
 
 async def _limit_corpus_size_async(corpus_url):
-  """Limits corpus size using async listing and deleting blobs one by one."""
+  """Limits corpus size using async listing and deleting."""
+  logs.info(f'Limiting corpus size {corpus_url} asynchronously.')
   creds, _ = credentials.get_default()
   creds.refresh(google_auth_requests.Request())
   bucket, path = storage.get_bucket_name_and_path(corpus_url)
-  logs.info(f'Limiting corpus size {corpus_url}')
+
+  async def _delete_corpus_element(name, session):
+    await fast_http.delete_blob_async(bucket, name, session, creds.token)
 
   deleting = False
   corpus_size = 0
   num_deleted = 0
   delete_tasks = []
 
-  async def _delete_blob(name, session):
-    await fast_http.delete_blob_async(bucket, name, session, creds.token)
-
-  # Create the aiohttp session once to reuse it for all requests
   async with aiohttp.ClientSession() as session:
     start_time = time.time()
     idx = 0
@@ -161,31 +159,35 @@ async def _limit_corpus_size_async(corpus_url):
         break
       if not deleting:
         corpus_size += blob['size']
-        if (idx >= CORPUS_FILES_LIMIT_FOR_FAILURES or
-            corpus_size >= CORPUS_SIZE_LIMIT_FOR_FAILURES):
+        if idx >= CORPUS_FILES_LIMIT_FOR_FAILURES:
+          deleting = True
+        elif corpus_size >= CORPUS_SIZE_LIMIT_FOR_FAILURES:
           deleting = True
         continue
 
       assert deleting
-      if idx % 20_000 == 0:  # Arbitrary limit.
-        logs.info(f'Deleting url {blob["name"]}')
+      if idx % 20_000 == 0:
+        # TODO: Support debug as a log method.
+        logs.info(f'Deleting: {blob["name"]}.')
 
+      # We must refresh ocassionally.
       if idx % 100_000 == 0:
         creds.refresh(google_auth_requests.Request())
 
+      blob_name = blob['name']
       delete_tasks.append(
-          asyncio.create_task(_delete_blob(blob['name'], session)))
+          asyncio.create_task(_delete_corpus_element(blob_name, session)))
       num_deleted += 1
-      if len(delete_tasks
-            ) >= 1000:  # Arbitrary limit so we don't use too much RAM.
+      # Arbitrary limit so we don't use too much RAM.
+      if len(delete_tasks) >= 1_000:
         # If *any* tasks complete, we can schedule more.
         _, pending = await asyncio.wait(
             delete_tasks, return_when=asyncio.FIRST_COMPLETED)
         delete_tasks = list(pending)
 
     await asyncio.gather(*delete_tasks)
-  logs.info(f'Deleted {num_deleted} blobs.')
-  logs.info(f'Total time to delete blobs: {time.time() - start_time}')
+  logs.info(f'Deleted {num_deleted} corpus elements. '
+            f'Took {time.time() - start_time} seconds.')
 
 
 def _get_time_remaining(start_time):
