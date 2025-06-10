@@ -154,6 +154,12 @@ def _blob_content_is_equal(blob_path, data):
   return data == fetched_data
 
 
+def _entity_blob_was_correctly_imported(expected_content: any, blob_id: str):
+  gcs_path = blobs.get_gcs_path(blob_id)
+  return (_blob_is_present_in_gcs(gcs_path) and 
+          _blob_content_is_equal(gcs_path, expected_content))
+
+
 def _entity_list_contains_expected_entities(blob_path, expected_entities):
   recovered_entities = set(
       storage.read_data(blob_path).decode('utf-8').split('\n'))
@@ -509,15 +515,9 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
     self.assertEqual(data_bundle_name, imported_fuzzer.data_bundle_name)
     self.assertEqual(jobs, imported_fuzzer.jobs)
 
-    blobstore_key_new_id = imported_fuzzer.blobstore_key
-    blobstore_key_new_url = blobs.get_gcs_path(blobstore_key_new_id)
-    self.assertTrue(_blob_is_present_in_gcs(blobstore_key_new_url))
-    self.assertTrue(_blob_content_is_equal(blobstore_key_new_url, blobstore_key_payload))
+    self.assertTrue(_entity_blob_was_correctly_imported(blobstore_key_payload, imported_fuzzer.blobstore_key))
+    self.assertTrue(_entity_blob_was_correctly_imported(sample_testcase_payload, imported_fuzzer.sample_testcase))
 
-    sample_testcase_new_id = imported_fuzzer.sample_testcase
-    sample_testcase_new_url = blobs.get_gcs_path(sample_testcase_new_id)
-    self.assertTrue(_blob_is_present_in_gcs(sample_testcase_new_url))
-    self.assertTrue(_blob_content_is_equal(sample_testcase_new_url, sample_testcase_payload))
 
   def test_fuzzers_are_correctly_modified(self):
     fuzzer_name = 'some-fuzzer'
@@ -587,15 +587,9 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
     self.assertEqual(another_data_bundle_name, imported_fuzzer.data_bundle_name)
     self.assertEqual(other_jobs, imported_fuzzer.jobs)
 
-    blobstore_key_new_id = imported_fuzzer.blobstore_key
-    blobstore_key_new_url = blobs.get_gcs_path(blobstore_key_new_id)
-    self.assertTrue(_blob_is_present_in_gcs(blobstore_key_new_url))
-    self.assertTrue(_blob_content_is_equal(blobstore_key_new_url, other_blobstore_key_payload))
+    self.assertTrue(_entity_blob_was_correctly_exported(other_blobstore_key_payload, imported_fuzzer.blobstore_key))
+    self.assertTrue(_entity_blob_was_correctly_exported(other_sample_testcase_payload, imported_fuzzer.sample_testcase))
 
-    sample_testcase_new_id = imported_fuzzer.sample_testcase
-    sample_testcase_new_url = blobs.get_gcs_path(sample_testcase_new_id)
-    self.assertTrue(_blob_is_present_in_gcs(sample_testcase_new_url))
-    self.assertTrue(_blob_content_is_equal(sample_testcase_new_url, other_sample_testcase_payload))
 
   def test_fuzzers_are_correctly_deleted(self):
     fuzzer_name = 'some-fuzzer'
