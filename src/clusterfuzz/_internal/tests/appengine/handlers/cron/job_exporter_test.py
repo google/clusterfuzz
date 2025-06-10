@@ -422,28 +422,38 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
   def test_job_templates_are_correctly_exported(self):
     """Verifies job template proto is correctly uploaded."""
+    template = 'some-job-template'
+    environment_string = 'some-env-string'
     template = _sample_job_template(
-        name='some-job-template', environment_string='some-env-string')
-    template.put()
+        name=template,
+        environment_string=environment_string)
+
+    _register_entity_and_upload_blobs(
+      entity=template,
+      entity_kind='jobtemplate',
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      blobs_bucket = self.blobs_bucket,
+    )
+
     entity_migrator = job_exporter.EntityMigrator(data_types.JobTemplate, [],
                                                   'jobtemplate',
                                                   job_exporter.StorageRSync(),
                                                   self.target_bucket)
-
-    entity_list_location = (f'gs://{self.target_bucket}/'
-                            f'jobtemplate/entities')
-    expected_persisted_entities = {'some-job-template'}
+    entity_migrator.export_entities()
 
     template_proto_location = (f'gs://{self.target_bucket}/'
                                f'jobtemplate/{template.name}/'
                                f'entity.proto')
-    entity_migrator.export_entities()
+    expected_template_proto_content  = uworker_io.entity_to_protobuf(template).SerializeToString()    
 
     self.assertTrue(_blob_is_present_in_gcs(template_proto_location))
-    serialized_template_proto = storage.read_data(template_proto_location)
-    deserialized_template_proto = entity_migrator._deserialize(
-        serialized_template_proto)
-    self.assertTrue(_job_templates_equal(template, deserialized_template_proto))
+    self.assertTrue(_blob_content_is_equal(template_proto_location, expected_template_proto_content))
+
+    entity_list_location = (f'gs://{self.target_bucket}/'
+                            f'jobtemplate/entities')
+    expected_persisted_entities = {'some-job-template'}
 
     self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
     self.assertTrue(
