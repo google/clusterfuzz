@@ -121,6 +121,21 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_creation_fuzz.origin, 'fuzz_task')
     self.assertIsNone(event_creation_fuzz.uploader)
 
+  def test_testcase_rejection_event(self):
+    """Test testcase rejection event class."""
+    event_type = events.EventTypes.TESTCASE_REJECTION.value
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+
+    event_rejection = events.TestcaseRejectionEvent(
+        source=source,
+        testcase=testcase,
+        reason='triage spotted as a duplicate testcase')
+    self._assert_event_common_fields(event_rejection, event_type, source)
+    self._assert_testcase_fields(event_rejection, testcase)
+    self.assertEqual(event_rejection.reason,
+                     'triage spotted as a duplicate testcase')
+
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
     event_types = [e.value for e in events.EventTypes]
@@ -216,6 +231,18 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.origin, 'fuzz_task')
     self.assertIsNone(event_entity.uploader)
 
+  def test_serialize_testcase_rejection_event(self):
+    """Test serializing a testcase rejection event."""
+    testcase = test_utils.create_generic_testcase()
+    event = events.TestcaseRejectionEvent(
+        source='events_test',
+        testcase=testcase,
+        reason='analyze not reproducing')
+
+    entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+    self.assertIsNotNone(entity)
+    self.assertEqual(entity.reason, 'analyze not reproducing')
+
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
     event_entity = data_types.TestcaseLifecycleEvent(event_type='generic_event')
@@ -265,6 +292,28 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.crash_revision, 2)
     self.assertEqual(event.origin, 'manual_upload')
     self.assertEqual(event.uploader, 'test@gmail.com')
+
+  def test_deserialize_testcase_rejection_event(self):
+    """Test deserializing a testcase rejection event."""
+    event_type = events.EventTypes.TESTCASE_REJECTION.value
+    date_now = datetime.datetime.now()
+
+    event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    event_entity.timestamp = date_now
+    event_entity.source = 'events_test'
+    self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.testcase_id = 1
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.reason = 'analyze_flake_on_first_attempt'
+    event_entity.put()
+
+    event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
+    self.assertIsNotNone(event)
+    self.assertIsInstance(event, events.TestcaseRejectionEvent)
+    self.assertEqual(event.reason, 'analyze_flake_on_first_attempt')
 
   def test_store_event(self):
     """Test storing an event into datastore."""
@@ -362,3 +411,25 @@ class EmitEventTest(unittest.TestCase):
     self.assertEqual(event_entity.fuzzer, 'fuzzer1')
     self.assertEqual(event_entity.job, 'test_content_shell_drt')
     self.assertEqual(event_entity.crash_revision, 1)
+
+  def test_emit_datastore_rejection_event(self):
+    """Test emit rejection event with datastore repository."""
+    self.project_config['events.storage'] = 'datastore'
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+
+    testcase = test_utils.create_generic_testcase()
+    events.emit(
+        events.TestcaseRejectionEvent(
+            source='events_test',
+            testcase=testcase,
+            reason='triage spotted as a duplicate testcase'))
+
+    # Assert that the event was stored in datastore.
+    all_events = data_types.TestcaseLifecycleEvent.query().fetch()
+    self.assertEqual(len(all_events), 1)
+    event_entity = all_events[0]
+
+    self.assertEqual(event_entity.event_type,
+                     events.EventTypes.TESTCASE_REJECTION.value)
+    self.assertEqual(event_entity.reason,
+                     'triage spotted as a duplicate testcase')
