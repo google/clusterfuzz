@@ -29,13 +29,6 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-# region dbpy_attach
-import debugpy
-(debugpy.listen(5678), debugpy.wait_for_client()) if not debugpy.is_client_connected() else None
-# endregion
-
-
-
 def _sample_data_bundle(name='some_bundle',
                         bucket_name='some-data-bundle-bucket'):
   return data_types.DataBundle(
@@ -462,40 +455,48 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
   def test_data_bundles_are_correctly_exported(self):
     """Verifies the proto is uploaded and blobs are rsynced correctly."""
+    bundle_name = 'some-data-bundle'
+    bundle_bucket = 'some-data-bundle-bucket'
     data_bundle = _sample_data_bundle(
-        name='some-data-bundle',
-        bucket_name='some-data-bundle-bucket',
+        name=bundle_name,
+        bucket_name=bundle_bucket,
     )
-    data_bundle.put()
-    entity_migrator = job_exporter.EntityMigrator(data_types.DataBundle, [],
-                                                  'databundle',
-                                                  job_exporter.StorageRSync(),
-                                                  self.target_bucket)
-
+    _register_entity_and_upload_blobs(
+      entity=data_bundle,
+      entity_kind='databundle',
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      blobs_bucket = self.blobs_bucket,
+    )
     blob_data = b'some data'
     storage.create_bucket_if_needed(data_bundle.bucket_name)
     storage.write_data(blob_data, f'gs://{data_bundle.bucket_name}/blob')
 
+    entity_migrator = job_exporter.EntityMigrator(data_types.DataBundle, [],
+                                                  'databundle',
+                                                  job_exporter.StorageRSync(),
+                                                  self.target_bucket)
     entity_migrator.export_entities()
-
-    entity_list_location = (f'gs://{self.target_bucket}/'
-                            f'databundle/entities')
-    expected_persisted_entities = {'some-data-bundle'}
 
     bundle_proto_location = (f'gs://{self.target_bucket}/'
                              f'databundle/{data_bundle.name}/'
                              f'entity.proto')
+    expected_bundle_proto_content = uworker_io.entity_to_protobuf(data_bundle).SerializeToString()
+
+    self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
+    self.assertTrue(_blob_content_is_equal(bundle_proto_location, expected_bundle_proto_content))
+
     bundle_contents_location = (f'gs://{self.target_bucket}/'
                                 f'databundle/{data_bundle.name}/'
                                 f'contents/blob')
-    self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
-    serialized_bundle_proto = storage.read_data(bundle_proto_location)
-    deserialized_bundle_proto = entity_migrator._deserialize(
-        serialized_bundle_proto)
-    self.assertTrue(_data_bundles_equal(data_bundle, deserialized_bundle_proto))
 
     self.assertTrue(_blob_is_present_in_gcs(bundle_proto_location))
     self.assertTrue(_blob_content_is_equal(bundle_contents_location, blob_data))
+
+    entity_list_location = (f'gs://{self.target_bucket}/'
+                            f'databundle/entities')
+    expected_persisted_entities = {'some-data-bundle'}
 
     self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
     self.assertTrue(
