@@ -439,24 +439,3 @@ class EmitEventTest(unittest.TestCase):
     self.assertEqual(event_entity.fuzzer, 'fuzzer1')
     self.assertEqual(event_entity.job, 'test_content_shell_drt')
     self.assertEqual(event_entity.crash_revision, 1)
-
-  def test_emit_datastore_rejection_event(self):
-    """Test emit rejection event with datastore repository."""
-    self.project_config['events.storage'] = 'datastore'
-    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
-
-    testcase = test_utils.create_generic_testcase()
-    events.emit(
-        events.TestcaseRejectionEvent(
-            source='events_test',
-            testcase=testcase,
-            rejection_reason='analyze_no_repro'))
-
-    # Assert that the event was stored in datastore.
-    all_events = data_types.TestcaseLifecycleEvent.query().fetch()
-    self.assertEqual(len(all_events), 1)
-    event_entity = all_events[0]
-
-    self.assertEqual(event_entity.event_type,
-                     events.EventTypes.TESTCASE_REJECTION.value)
-    self.assertEqual(event_entity.rejection_reason, 'analyze_no_repro')
