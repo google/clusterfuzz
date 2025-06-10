@@ -29,6 +29,12 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
+# region dbpy_attach
+import debugpy
+(debugpy.listen(5678), debugpy.wait_for_client()) if not debugpy.is_client_connected() else None
+# endregion
+
+
 
 def _sample_data_bundle(name='some_bundle',
                         bucket_name='some-data-bundle-bucket'):
@@ -64,57 +70,6 @@ def _sample_job(name='some-job',
       platform=platform,
   )
 
-def _register_entity_and_upload_blobs(
-    entity: ndb.Model,
-    entity_kind: str,
-    blobstore_key_content: bytes | None,
-    sample_testcase_contents: bytes | None,
-    custom_binary_contents: bytes | None,
-    blobs_bucket: str):
-  assert getattr(entity, 'name')
-  entity.put()
-
-  if blobstore_key_content:
-    blobstore_key = getattr(entity, 'blobstore_key', None)
-    assert blobstore_key
-    storage.write_data(blobstore_key_content, f'gs://{blobs_bucket}/{blobstore_key}')
-  
-  if sample_testcase_contents:
-    sample_testcase_key = getattr(entity, 'sample_testcase', None)
-    assert sample_testcase_key
-    storage.write_data(sample_testcase_contents, f'gs://{blobs_bucket}/{sample_testcase_key}')
-
-  if custom_binary_contents:
-    custom_binary_key = getattr(entity, 'custom_binary', None)
-    assert custom_binary_key
-    storage.write_data(custom_binary_contents, f'gs://{blobs_bucket}/{custom_binary_key}')
-
-def _upload_entity_export_data(
-    entity: ndb.Model,
-    entity_kind: str,
-    blobstore_key_content: bytes | None,
-    sample_testcase_contents: bytes | None,
-    custom_binary_contents: bytes | None,
-    source_bucket: str):
-  assert getattr(entity, 'name')
-  entity_location = f'gs://{source_bucket}/{entity_kind}/{entity.name}'
-
-  serialized_entity = uworker_io.entity_to_protobuf(entity).SerializeToString()
-  assert storage.write_data(serialized_entity, f'{entity_location}/entity.proto')
-
-  if blobstore_key_content:
-    storage.write_data(blobstore_key_content, f'{entity_location}/blobstore_key')
-  
-  if sample_testcase_contents:
-    storage.write_data(sample_testcase_contents, f'{entity_location}/sample_testcase')
-
-  if custom_binary_contents:
-    storage.write_data(custom_binary_contents, f'{entity_location}/custom_binary')
-
-
-def _upload_entity_list(entities: List[str], entity_base_path: str):
-  entities_payload = '\n'.join(entities).encode('utf-8')
-  assert storage.write_data(entities_payload, f'{entity_base_path}/entities')
 
 def _jobs_equal(job, another_job):
   return (job.name == another_job.name and
@@ -143,6 +98,60 @@ def _fuzzers_equal(fuzzer, another_fuzzer):
           fuzzer.jobs == another_fuzzer.jobs and
           fuzzer.blobstore_key == another_fuzzer.blobstore_key and
           fuzzer.sample_testcase == another_fuzzer.sample_testcase)
+
+
+def _register_entity_and_upload_blobs(
+    entity: ndb.Model,
+    entity_kind: str,
+    blobstore_key_content: bytes | None,
+    sample_testcase_contents: bytes | None,
+    custom_binary_contents: bytes | None,
+    blobs_bucket: str):
+  assert getattr(entity, 'name')
+  entity.put()
+
+  if blobstore_key_content:
+    blobstore_key = getattr(entity, 'blobstore_key', None)
+    assert blobstore_key
+    storage.write_data(blobstore_key_content, f'gs://{blobs_bucket}/{blobstore_key}')
+  
+  if sample_testcase_contents:
+    sample_testcase_key = getattr(entity, 'sample_testcase', None)
+    assert sample_testcase_key
+    storage.write_data(sample_testcase_contents, f'gs://{blobs_bucket}/{sample_testcase_key}')
+
+  if custom_binary_contents:
+    custom_binary_key = getattr(entity, 'custom_binary', None)
+    assert custom_binary_key
+    storage.write_data(custom_binary_contents, f'gs://{blobs_bucket}/{custom_binary_key}')
+
+
+def _upload_entity_export_data(
+    entity: ndb.Model,
+    entity_kind: str,
+    blobstore_key_content: bytes | None,
+    sample_testcase_contents: bytes | None,
+    custom_binary_contents: bytes | None,
+    source_bucket: str):
+  assert getattr(entity, 'name')
+  entity_location = f'gs://{source_bucket}/{entity_kind}/{entity.name}'
+
+  serialized_entity = uworker_io.entity_to_protobuf(entity).SerializeToString()
+  assert storage.write_data(serialized_entity, f'{entity_location}/entity.proto')
+
+  if blobstore_key_content:
+    storage.write_data(blobstore_key_content, f'{entity_location}/blobstore_key')
+  
+  if sample_testcase_contents:
+    storage.write_data(sample_testcase_contents, f'{entity_location}/sample_testcase')
+
+  if custom_binary_contents:
+    storage.write_data(custom_binary_contents, f'{entity_location}/custom_binary')
+
+
+def _upload_entity_list(entities: List[str], entity_base_path: str):
+  entities_payload = '\n'.join(entities).encode('utf-8')
+  assert storage.write_data(entities_payload, f'{entity_base_path}/entities')
 
 
 def _blob_is_present_in_gcs(blob_path):
@@ -220,7 +229,6 @@ class TestEntitySerializationAndDeserializastion(unittest.TestCase):
     self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer))
 
 
-@unittest.skip('tmp')
 @test_utils.with_cloud_emulators('datastore')
 class TestEntitiesAreCorrectlyExported(unittest.TestCase):
   """Test the job exporter job with Fuzzer entitites."""
@@ -244,66 +252,71 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
   def test_fuzzers_are_correctly_exported(self):
     """Verifies fuzzer protos and blobs are uploaded. If no blobstore
         key is present, no blob is uploaded."""
+    fuzzer_name = 'some-fuzzer'
+    data_bundle_name = 'some-bundle'
+    jobs=['some-job']
     blobstore_key = 'blobstore-key'
     sample_testcase_key = 'some-blobstore-key'
-
+    blob_data = b'some-blob-data'
+    sample_testcase_blob_data = b'some-sample-testcase-data'
     fuzzer = _sample_fuzzer(
-        name='some-fuzzer',
-        data_bundle_name='some-bundle',
-        jobs=['some-job'],
+        name=fuzzer_name,
+        data_bundle_name=data_bundle_name,
+        jobs=jobs,
         blobstore_key=blobstore_key,
         sample_testcase=sample_testcase_key)
+    _register_entity_and_upload_blobs(
+      entity=fuzzer,
+      entity_kind='fuzzer',
+      blobstore_key_content=blob_data,
+      sample_testcase_contents=sample_testcase_blob_data,
+      custom_binary_contents=None,
+      blobs_bucket = self.blobs_bucket,
+    )
+
+    another_fuzzer_name = 'another-fuzzer'
+    another_data_bundle = 'another-bundle'
+    other_jobs = ['another-job']
     another_fuzzer = _sample_fuzzer(
-        name='another-fuzzer',
-        data_bundle_name='another-bundle',
-        jobs=['another-job'],
+        name=another_fuzzer_name,
+        data_bundle_name=another_data_bundle,
+        jobs=other_jobs,
         blobstore_key=None,
         sample_testcase=None)
-    fuzzer.put()
-    another_fuzzer.put()
+    _register_entity_and_upload_blobs(
+      entity=another_fuzzer,
+      entity_kind='fuzzer',
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      blobs_bucket = self.blobs_bucket,
+    )
+
     entity_migrator = job_exporter.EntityMigrator(
         data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer',
         job_exporter.StorageRSync(), self.target_bucket)
 
-    blob_id = 'some-blob-id'
-    sample_testcase_blob_id = 'some-testcase-blob-id'
-    blob_data = b'some-blob-data'
-    sample_testcase_blob_data = b'some-sample-testcase-data'
-    blobstore_key_location = f'gs://{self.blobs_bucket}/{blob_id}'
-    sample_testcase_location = f'gs://{self.blobs_bucket}/{sample_testcase_blob_id}'
-    storage.write_data(blob_data, blobstore_key_location)
-    storage.write_data(sample_testcase_blob_data, sample_testcase_location)
-
-    fuzzer_gcs_prefix = f'gs://{self.target_bucket}/fuzzer/{fuzzer.name}'
-    fuzzer_proto_location = f'{fuzzer_gcs_prefix}/entity.proto'
-    fuzzer_blob_location = f'{fuzzer_gcs_prefix}/blobstore_key'
-    fuzzer_testcase_location = f'{fuzzer_gcs_prefix}/sample_testcase'
-
-    another_fuzzer_gcs_prefix = f'gs://{self.target_bucket}/fuzzer/{another_fuzzer.name}'
-    another_fuzzer_proto_location = f'{another_fuzzer_gcs_prefix}/entity.proto'
-    another_fuzzer_blob_location = f'{another_fuzzer_gcs_prefix}/blobstore_key'
-    another_fuzzer_testcase_location = f'{another_fuzzer_gcs_prefix}/sample_testcase'
-
-    entity_list_location = f'gs://{self.target_bucket}/fuzzer/entities'
-    expected_persisted_entities = {'some-fuzzer', 'another-fuzzer'}
-
     def get_gcs_key_mock_override(blob_key: str):
       bucket_prefix = f'gs://{self.blobs_bucket}'
       return_values = {
-          blobstore_key: f'{bucket_prefix}/{blob_id}',
-          sample_testcase_key: f'{bucket_prefix}/{sample_testcase_blob_id}',
+          blobstore_key: f'{bucket_prefix}/{blobstore_key}',
+          sample_testcase_key: f'{bucket_prefix}/{sample_testcase_key}',
       }
       return return_values.get(blob_key, None)
 
     self.mock.get_gcs_path.side_effect = get_gcs_key_mock_override
+
     entity_migrator.export_entities()
 
-    self.assertTrue(_blob_is_present_in_gcs(fuzzer_proto_location))
-    serialized_fuzzer_proto = storage.read_data(fuzzer_proto_location)
-    deserialized_fuzzer_proto = entity_migrator._deserialize(
-        serialized_fuzzer_proto)
-    self.assertTrue(_fuzzers_equal(fuzzer, deserialized_fuzzer_proto))
+    entity_location = f'gs://{self.target_bucket}/fuzzer'
 
+    fuzzer_proto_location = f'{entity_location}/{fuzzer_name}/entity.proto'
+    fuzzer_blob_location = f'{entity_location}/{fuzzer_name}/blobstore_key'
+    fuzzer_testcase_location = f'{entity_location}/{fuzzer_name}/sample_testcase'
+    expected_fuzzer_proto = serialized_entity = uworker_io.entity_to_protobuf(fuzzer).SerializeToString()
+    
+    self.assertTrue(_blob_is_present_in_gcs(fuzzer_proto_location))
+    self.assertTrue(_blob_content_is_equal(fuzzer_proto_location, expected_fuzzer_proto))
     self.assertTrue(_blob_is_present_in_gcs(fuzzer_blob_location))
     self.assertTrue(_blob_content_is_equal(fuzzer_blob_location, blob_data))
     self.assertTrue(_blob_is_present_in_gcs(fuzzer_testcase_location))
@@ -311,16 +324,18 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
         _blob_content_is_equal(fuzzer_testcase_location,
                                sample_testcase_blob_data))
 
-    self.assertTrue(_blob_is_present_in_gcs(another_fuzzer_proto_location))
-    serialized_another_fuzzer_proto = storage.read_data(
-        another_fuzzer_proto_location)
-    deserialized_another_fuzzer_proto = entity_migrator._deserialize(
-        serialized_another_fuzzer_proto)
-    self.assertTrue(
-        _fuzzers_equal(another_fuzzer, deserialized_another_fuzzer_proto))
+    another_fuzzer_proto_location = f'{entity_location}/{another_fuzzer_name}/entity.proto'
+    expected_another_fuzzer_proto = uworker_io.entity_to_protobuf(another_fuzzer).SerializeToString()
+    another_fuzzer_blob_location = f'{entity_location}/{another_fuzzer_name}/blobstore_key'
+    another_fuzzer_testcase_location = f'{entity_location}/{another_fuzzer_name}/sample_testcase'
 
+    self.assertTrue(_blob_is_present_in_gcs(another_fuzzer_proto_location))
+    self.assertTrue(_blob_content_is_equal(another_fuzzer_proto_location, expected_another_fuzzer_proto))
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_blob_location))
     self.assertFalse(_blob_is_present_in_gcs(another_fuzzer_testcase_location))
+
+    expected_persisted_entities = {'some-fuzzer', 'another-fuzzer'}
+    entity_list_location = f'{entity_location}/entities'
 
     self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
     self.assertTrue(
@@ -587,8 +602,8 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
     self.assertEqual(another_data_bundle_name, imported_fuzzer.data_bundle_name)
     self.assertEqual(other_jobs, imported_fuzzer.jobs)
 
-    self.assertTrue(_entity_blob_was_correctly_exported(other_blobstore_key_payload, imported_fuzzer.blobstore_key))
-    self.assertTrue(_entity_blob_was_correctly_exported(other_sample_testcase_payload, imported_fuzzer.sample_testcase))
+    self.assertTrue(_entity_blob_was_correctly_imported(other_blobstore_key_payload, imported_fuzzer.blobstore_key))
+    self.assertTrue(_entity_blob_was_correctly_imported(other_sample_testcase_payload, imported_fuzzer.sample_testcase))
 
 
   def test_fuzzers_are_correctly_deleted(self):
