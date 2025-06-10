@@ -1661,7 +1661,7 @@ class TestcaseLifecycleEvent(Model):
 
   ### Testcase Rejection
   # Explanation for the testcase rejection.
-  reason = ndb.StringProperty()
+  rejection_reason = ndb.StringProperty()
 
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (

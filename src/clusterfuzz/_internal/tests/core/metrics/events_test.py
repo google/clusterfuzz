@@ -130,11 +130,11 @@ class EventsDataTest(unittest.TestCase):
     event_rejection = events.TestcaseRejectionEvent(
         source=source,
         testcase=testcase,
-        reason='triage spotted as a duplicate testcase')
+        rejection_reason='triage_duplicate_testcase')
     self._assert_event_common_fields(event_rejection, event_type, source)
     self._assert_testcase_fields(event_rejection, testcase)
-    self.assertEqual(event_rejection.reason,
-                     'triage spotted as a duplicate testcase')
+    self.assertEqual(event_rejection.rejection_reason,
+                     'triage_duplicate_testcase')
 
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
@@ -216,13 +216,14 @@ class DatastoreEventsTest(unittest.TestCase):
     event_tc_creation = events.TestcaseCreationEvent(
         source=source, testcase=testcase, origin='fuzz_task')
     event_type = event_tc_creation.event_type
+    timestamp = event_tc_creation.timestamp
 
     event_entity = self.repository._serialize_event(event_tc_creation)  # pylint: disable=protected-access
     self.assertIsNotNone(event_entity)
     self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
     self.assertEqual(event_entity.event_type, event_type)
     self.assertEqual(event_entity.source, source)
-    self.assertEqual(event_entity.timestamp, event_tc_creation.timestamp)
+    self.assertEqual(event_entity.timestamp, timestamp)
     self._assert_common_event_fields(event_entity)
 
     self._assert_testcase_fields(event_entity, testcase.key.id())
@@ -237,11 +238,25 @@ class DatastoreEventsTest(unittest.TestCase):
     event = events.TestcaseRejectionEvent(
         source='events_test',
         testcase=testcase,
-        reason='analyze not reproducing')
+        rejection_reason='analyze_flake_on_first_attempt')
+    event_type = event.event_type
+    timestamp = event.timestamp
 
-    entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
-    self.assertIsNotNone(entity)
-    self.assertEqual(entity.reason, 'analyze not reproducing')
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self.assertEqual(event_entity.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+
+    # TestcaseRejectionEvent specific assertions
+    self.assertEqual(event_entity.rejection_reason,
+                     'analyze_flake_on_first_attempt')
 
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
@@ -307,13 +322,26 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.fuzzer = 'fuzzer1'
     event_entity.job = 'test_job'
     event_entity.crash_revision = 2
-    event_entity.reason = 'analyze_flake_on_first_attempt'
+    event_entity.rejection_reason = 'analyze_flake_on_first_attempt'
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
     self.assertIsNotNone(event)
     self.assertIsInstance(event, events.TestcaseRejectionEvent)
-    self.assertEqual(event.reason, 'analyze_flake_on_first_attempt')
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # TestcaseRejectionEvent specific assertions
+    self.assertEqual(event.rejection_reason, 'analyze_flake_on_first_attempt')
 
   def test_store_event(self):
     """Test storing an event into datastore."""
@@ -422,7 +450,7 @@ class EmitEventTest(unittest.TestCase):
         events.TestcaseRejectionEvent(
             source='events_test',
             testcase=testcase,
-            reason='triage spotted as a duplicate testcase'))
+            rejection_reason='analyze_no_repro'))
 
     # Assert that the event was stored in datastore.
     all_events = data_types.TestcaseLifecycleEvent.query().fetch()
@@ -431,5 +459,4 @@ class EmitEventTest(unittest.TestCase):
 
     self.assertEqual(event_entity.event_type,
                      events.EventTypes.TESTCASE_REJECTION.value)
-    self.assertEqual(event_entity.reason,
-                     'triage spotted as a duplicate testcase')
+    self.assertEqual(event_entity.rejection_reason, 'analyze_no_repro')

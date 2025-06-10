@@ -110,7 +110,9 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase rejection event."""
   event_type: str = field(
       default=EventTypes.TESTCASE_REJECTION.value, init=False)
-  reason: str | None = None
+  # Explanation for the testcase rejection, e.g., analyze_flake_on_first_attempt
+  # or analyze_no_repro or triage_duplicate_testcase.
+  rejection_reason: str | None = None
 
 
 # Mapping of specific event types to their data classes.
