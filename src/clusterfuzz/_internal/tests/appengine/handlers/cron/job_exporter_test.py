@@ -121,7 +121,7 @@ def _register_entity_and_upload_blobs(
     storage.write_data(sample_testcase_contents, f'gs://{blobs_bucket}/{sample_testcase_key}')
 
   if custom_binary_contents:
-    custom_binary_key = getattr(entity, 'custom_binary', None)
+    custom_binary_key = getattr(entity, 'custom_binary_key', None)
     assert custom_binary_key
     storage.write_data(custom_binary_contents, f'gs://{blobs_bucket}/{custom_binary_key}')
 
@@ -345,52 +345,75 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
   def test_jobs_are_correctly_exported(self):
     """Verifies job protos and custom binary blobs are uploaded. If no custom
         binary key is present, no blob is uploaded."""
+    job_name = 'some-job'
+    custom_binary_key = 'some-key'
+    platform = 'some-platform'
+    job_blob_data = b'some-data'
+
     job = _sample_job(
-        name='some-job', custom_binary_key='some-key', platform='some-platform')
+        name='some-job',
+        custom_binary_key='some-key',
+        platform='some-platform')
+
+    _register_entity_and_upload_blobs(
+      entity=job,
+      entity_kind='job',
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=job_blob_data,
+      blobs_bucket = self.blobs_bucket,
+    )
+
+    another_job_name = 'another-job'
+    another_platform = 'another-platform'
     another_job = _sample_job(
-        name='another-job',
-        custom_binary_key='another-key',
-        platform='another-platform')
-    job.put()
-    another_job.put()
+        name=another_job_name,
+        custom_binary_key=None,
+        platform=another_platform)
+
+    _register_entity_and_upload_blobs(
+      entity=another_job,
+      entity_kind='job',
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      blobs_bucket = self.blobs_bucket,
+    )
+
     entity_migrator = job_exporter.EntityMigrator(data_types.Job,
                                                   ['custom_binary_key'], 'job',
                                                   job_exporter.StorageRSync(),
                                                   self.target_bucket)
 
-    entity_list_location = f'gs://{self.target_bucket}/job/entities'
-    expected_persisted_entities = {'some-job', 'another-job'}
+    source_blob_location = f'gs://{self.blobs_bucket}/{custom_binary_key}'
+    self.mock.get_gcs_path.return_value = source_blob_location
+    entity_migrator.export_entities()
 
-    job_blob_data = b'some-data'
-    job_blob_id = 'some-blob'
     job_proto_location = f'gs://{self.target_bucket}/job/{job.name}/entity.proto'
-    blob_location = f'gs://{self.blobs_bucket}/{job_blob_id}'
+    job_blob_location = (f'gs://{self.target_bucket}/'
+                                 f'job/{job.name}/'
+                                 f'custom_binary_key')
+    expected_job_proto_content  = uworker_io.entity_to_protobuf(job).SerializeToString()
+
+    self.assertTrue(_blob_is_present_in_gcs(job_proto_location))
+    self.assertTrue(_blob_content_is_equal(job_proto_location, expected_job_proto_content))
+    self.assertTrue(_blob_is_present_in_gcs(job_blob_location))
+    self.assertTrue(_blob_content_is_equal(job_blob_location, job_blob_data))
+
     another_job_proto_location = (f'gs://{self.target_bucket}/'
                                   f'job/{another_job.name}/'
                                   f'entity.proto')
     another_job_blob_location = (f'gs://{self.target_bucket}/'
                                  f'job/{another_job.name}/'
                                  f'blobstore_key')
-    storage.write_data(job_blob_data, blob_location)
-
-    self.mock.get_gcs_path.return_value = blob_location
-    entity_migrator.export_entities()
-
-    self.assertTrue(_blob_is_present_in_gcs(job_proto_location))
-    serialized_job_proto = storage.read_data(job_proto_location)
-    deserialized_job_proto = entity_migrator._deserialize(serialized_job_proto)
-    self.assertTrue(_jobs_equal(job, deserialized_job_proto))
-
-    self.assertTrue(_blob_is_present_in_gcs(blob_location))
-    self.assertTrue(_blob_content_is_equal(blob_location, job_blob_data))
+    expected_another_job_proto_content  = uworker_io.entity_to_protobuf(another_job).SerializeToString()
 
     self.assertTrue(_blob_is_present_in_gcs(another_job_proto_location))
-    serialized_another_job_proto = storage.read_data(another_job_proto_location)
-    deserialized_another_job_proto = entity_migrator._deserialize(
-        serialized_another_job_proto)
-    self.assertTrue(_jobs_equal(another_job, deserialized_another_job_proto))
-
+    self.assertTrue(_blob_content_is_equal(another_job_proto_location, expected_another_job_proto_content))
     self.assertFalse(_blob_is_present_in_gcs(another_job_blob_location))
+
+    entity_list_location = f'gs://{self.target_bucket}/job/entities'
+    expected_persisted_entities = {'some-job', 'another-job'}
 
     self.assertTrue(_blob_is_present_in_gcs(entity_list_location))
     self.assertTrue(
