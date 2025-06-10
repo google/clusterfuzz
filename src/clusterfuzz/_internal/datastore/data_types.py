@@ -1659,6 +1659,16 @@ class TestcaseLifecycleEvent(Model):
   # If testcase is manually uploaded, the user email.
   uploader = ndb.StringProperty()
 
+  ### Issue Filing.
+  # Name of the issue tracker (e.g., buganizer).
+  issue_tracker = ndb.StringProperty()
+
+  # ID from issue tracker bug (same as `bug_information` for Testcase).
+  issue_id = ndb.StringProperty()
+
+  # If the issue filing attempt was successful.
+  issue_created = ndb.BooleanProperty()
+
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)

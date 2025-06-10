@@ -33,6 +33,7 @@ from clusterfuzz._internal.system import environment
 class EventTypes(Enum):
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
+  ISSUE_FILLING = 'issue_filling'
 
 
 @dataclass(kw_only=True)
@@ -104,9 +105,22 @@ class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
   uploader: str | None = None
 
 
+@dataclass(kw_only=True)
+class IssueFillingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase creation event."""
+  event_type: str = field(
+      default=EventTypes.ISSUE_FILLING.value, init=False)
+  # Either buganizer or some_other_board.
+  issue_tracker: str | None = None
+  # The number of the issue on the issue tracker.
+  issue_id: str | None = None
+  # If the issue filing attempt was successful.
+  issue_created: bool | None = None
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION.value: TestcaseCreationEvent,
+    EventTypes.ISSUE_FILLING.value: IssueFillingEvent,
 }
 
 
