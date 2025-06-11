@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for analyze task."""
 
+import datetime
 import json
 import os
 import tempfile
@@ -21,8 +22,8 @@ import unittest
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz._internal.tests.test_libs import utask_helpers
@@ -256,14 +257,15 @@ class HandleNonCrashTest(unittest.TestCase):
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.datastore.data_handler.mark_invalid_uploaded_testcase',
         'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events.datetime',
     ])
+    self.mock.datetime.datetime.now.return_value = datetime.datetime(2025, 1, 1)
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_metadata = data_types.TestcaseUploadMetadata(
         testcase_id=self.testcase.key.id())
     self.testcase_metadata.put()
     uworker_input = uworker_msg_pb2.Input(
-        testcase_id=str(self.testcase.key.id())
-    )
+        testcase_id=str(self.testcase.key.id()))
     self.uworker_output = uworker_msg_pb2.Output(uworker_input=uworker_input)
 
   def test_handle_noncrash_first_attempt(self):
@@ -272,11 +274,11 @@ class HandleNonCrashTest(unittest.TestCase):
     analyze_task.handle_noncrash(self.uworker_output)
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
-          source='handle_noncrash',
+            source='handle_noncrash',
             testcase=self.testcase,
             rejection_reason='analyze_flake_on_first_attempt'))
     self.mock.add_task.assert_called_once_with('analyze',
-                                               self.testcase.key.id(), None)
+                                               str(self.testcase.key.id()), '')
 
   def test_handle_noncrash_second_attempt(self):
     """Test that a non-crashing testcase is marked invalid after the second attempt."""
@@ -284,7 +286,10 @@ class HandleNonCrashTest(unittest.TestCase):
     analyze_task.handle_noncrash(self.uworker_output)
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
-          source='handle_noncrash',
-            testcase=self.testcase, rejection_reason='analyze_no_repro'))
+            source='handle_noncrash',
+            testcase=self.testcase,
+            rejection_reason='analyze_no_repro'))
     self.mock.mark_invalid_uploaded_testcase.assert_called_once_with(
-        self.testcase, self.testcase_metadata, 'Unreproducible')
+        unittest.mock.ANY,  # Testcase object is modified inside the function.
+        self.testcase_metadata,
+        'Unreproducible')

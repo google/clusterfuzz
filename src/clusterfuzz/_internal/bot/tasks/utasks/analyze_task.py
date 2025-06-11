@@ -259,7 +259,7 @@ def handle_noncrash(output):
 
     events.emit(
         events.TestcaseRejectionEvent(
-          source='handle_noncrash',
+            source='handle_noncrash',
             testcase=testcase,
             rejection_reason='analyze_flake_on_first_attempt'))
 
@@ -270,7 +270,9 @@ def handle_noncrash(output):
       output.uworker_input.testcase_id)
   events.emit(
       events.TestcaseRejectionEvent(
-          source='handle_noncrash', testcase=testcase, rejection_reason='analyze_no_repro'))
+          source='handle_noncrash',
+          testcase=testcase,
+          rejection_reason='analyze_no_repro'))
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
 
