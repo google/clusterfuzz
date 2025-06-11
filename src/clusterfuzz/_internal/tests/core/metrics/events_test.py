@@ -40,7 +40,7 @@ class EventsDataTest(unittest.TestCase):
                                              '-cad6977-prod')
     self.mock.get_instance_name.return_value = 'linux-bot'
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
-    self.date_now = datetime.datetime.now()
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     return super().setUp()
 
@@ -258,7 +258,7 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
     event_entity = data_types.TestcaseLifecycleEvent(event_type='generic_event')
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
@@ -275,7 +275,7 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_deserialize_testcase_creation_event(self):
     """Test deserializing a datastore event into a testcase creation event."""
     event_type = events.EventTypes.TESTCASE_CREATION.value
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 
     event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
     event_entity.timestamp = date_now
@@ -308,7 +308,7 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_deserialize_testcase_rejection_event(self):
     """Test deserializing a testcase rejection event."""
     event_type = events.EventTypes.TESTCASE_REJECTION.value
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 
     event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
     event_entity.timestamp = date_now
@@ -369,7 +369,7 @@ class DatastoreEventsTest(unittest.TestCase):
     """Test retrieving an event from datastore."""
     event_entity = data_types.TestcaseLifecycleEvent(
         event_type='generic_event_test')
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
@@ -394,7 +394,7 @@ class EmitEventTest(unittest.TestCase):
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         'clusterfuzz._internal.metrics.events._get_datetime_now'
     ])
-    self.date_now = datetime.datetime.now()
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     self.project_config = {}
     self.mock.ProjectConfig.return_value = self.project_config
