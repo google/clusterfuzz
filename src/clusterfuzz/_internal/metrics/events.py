@@ -30,6 +30,11 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
+def _get_datetime_now():
+  """Returns the current datetime (useful for testing)."""
+  return datetime.datetime.now()
+
+
 class EventTypes(Enum):
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
@@ -55,7 +60,7 @@ class Event:
 
   def __post_init__(self, **kwargs):
     del kwargs
-    self.timestamp = datetime.datetime.now()
+    self.timestamp = _get_datetime_now()
     common_ctx = logs.get_common_log_context()
     for key, val in common_ctx.items():
       setattr(self, key, val)
