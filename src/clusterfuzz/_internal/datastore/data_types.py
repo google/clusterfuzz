@@ -1659,6 +1659,10 @@ class TestcaseLifecycleEvent(Model):
   # If testcase is manually uploaded, the user email.
   uploader = ndb.StringProperty()
 
+  ### Testcase Rejection
+  # Explanation for the testcase rejection.
+  rejection_reason = ndb.StringProperty()
+
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
