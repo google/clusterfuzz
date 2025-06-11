@@ -30,7 +30,6 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
-from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -267,10 +266,6 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
     # If the issue is still open, no need to file a duplicate bug.
     if issue.is_open:
-      events.emit(
-          events.TestcaseRejectionEvent(
-              testcase_id=testcase.key.id(),
-              reason='triage_duplicate_testcase'))
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to

@@ -53,7 +53,6 @@ from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
-from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
@@ -849,11 +848,6 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
           uworker_output=uworker_output,
           fully_qualified_fuzzer_name=fully_qualified_fuzzer_name)
     else:
-      if existing_testcase:
-        events.emit(
-            events.TestcaseRejectionEvent(
-                testcase_id=existing_testcase.key.id(),
-                reason='fuzz_task_duplicate_datastore_testcase'))
       _update_testcase_variant_if_needed(group, existing_testcase,
                                          fuzz_task_output.crash_revision,
                                          uworker_input.job_type)
