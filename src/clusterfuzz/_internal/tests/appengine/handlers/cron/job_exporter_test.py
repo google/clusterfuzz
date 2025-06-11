@@ -905,3 +905,38 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
     imported_template = templates[0]
     self.assertEqual(template_name, imported_template.name)
     self.assertEqual(expected_env_string, imported_template.environment_string)
+
+  def test_job_templates_are_correctly_deleted(self):
+    template_name = 'some-template'
+    env_string = 'some-env-string'
+    template = _sample_job_template(
+      name=template_name,
+      environment_string=env_string
+    )
+    _register_entity_and_upload_blobs(
+      entity=template,
+      entity_kind='jobtemplate',
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      blobs_bucket=self.blobs_bucket,
+      data_bundle_blob_contents=None,
+    )
+
+    templates = [template for template in data_types.JobTemplate.query()]
+    self.assertEqual(1, len(templates))
+
+    imported_template = templates[0]
+    self.assertEqual(template_name, imported_template.name)
+    self.assertEqual(env_string, imported_template.environment_string)
+
+    job_template_base_location = f'gs://{self.import_source_bucket}/jobtemplate'
+    _upload_entity_list([], job_template_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.JobTemplate, [], 'jobtemplate',
+      job_exporter.StorageRSync(), self.import_source_bucket)
+    entity_migrator.import_entities()
+
+    templates = [template for template in data_types.JobTemplate.query()]
+    self.assertEqual(0, len(templates))
