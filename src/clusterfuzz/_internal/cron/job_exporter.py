@@ -16,11 +16,13 @@
 
 import os
 import unittest
+import re
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -53,7 +55,7 @@ class GCloudCLIRSync(RSyncClient):
     self._runner = gsutil.GSUtilRunner()
 
   def rsync(self, source: str, target: str):
-    self._runner.rsync(f'gs://{source}', target)
+    self._runner.rsync(source, target)
 
 
 class StorageRSync(RSyncClient):
@@ -64,9 +66,15 @@ class StorageRSync(RSyncClient):
     pass
 
   def rsync(self, source: str, target: str):
-    for blob in storage.list_blobs(f'gs://{source}'):
+    for blob in storage.list_blobs(source):
+      # The filesyste implementation of storage.get_blobs returns the path
+      # starting from the bucket, not from the declared source location. This
+      # behavior does not happen for the gcloud CLI, so this works around the
+      # mistmatch.
+      pattern = r'databundle/.*/contents/'
+      blob = re.sub(pattern, '', blob)
       blob_target_path = f'{target}/{blob}'
-      storage.copy_blob(f'gs://{source}/{blob}', blob_target_path)
+      storage.copy_blob(f'{source}/{blob}', blob_target_path)
 
 
 class EntityMigrator:
@@ -118,7 +126,7 @@ class EntityMigrator:
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
       return
     target_location = f'{bucket_prefix}/contents'
-    self._rsync_client.rsync(entity.bucket_name, target_location)
+    self._rsync_client.rsync(f'gs://{entity.bucket_name}', target_location)
 
   def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
                      entity_name: str):
@@ -171,6 +179,12 @@ class EntityMigrator:
       new_blob_ids[blobstore_key] = new_blob_id
     return new_blob_ids
 
+  def _import_data_bundle_contents(self, source_location: str, bundle_name: str):
+    new_bundle_bucket = data_handler.get_data_bundle_bucket_name(bundle_name)
+    storage.create_bucket_if_needed(new_bundle_bucket)
+    self._rsync_client.rsync(source_location, f'gs://{new_bundle_bucket}')
+    return new_bundle_bucket
+
   def _import_entity(self, entity_name: str, entity_location: str):
     """Imports entity into datastore, blobs if present, and databundle."""
     entity_to_import = self._deserialize_entity_from_gcs(
@@ -181,6 +195,12 @@ class EntityMigrator:
                                       entity_location)
     for blob_key in new_blob_ids:
       setattr(entity_to_import, blob_key, new_blob_ids[blob_key])
+
+    # rsync data bundle contents into the new namespaced bucket, and update
+    # bucket reference
+    if isinstance(entity_to_import, data_types.DataBundle):
+      new_bundle_bucket = self._import_data_bundle_contents(f'{entity_location}/contents', entity_name)
+      setattr(entity_to_import, 'bucket_name', new_bundle_bucket)
 
     # Do not assume that name is a primary key
     preexisting_entity = self._target_cls.query(

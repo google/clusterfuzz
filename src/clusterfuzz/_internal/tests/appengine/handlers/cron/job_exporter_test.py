@@ -29,6 +29,12 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
+# region dbpy_attach
+import debugpy
+(debugpy.listen(5678), debugpy.wait_for_client()) if not debugpy.is_client_connected() else None
+# endregion
+
+
 def _sample_data_bundle(name='some_bundle',
                         bucket_name='some-data-bundle-bucket'):
   return data_types.DataBundle(
@@ -122,10 +128,12 @@ def _register_entity_and_upload_blobs(
 def _upload_entity_export_data(
     entity: ndb.Model,
     entity_kind: str,
-    blobstore_key_content: bytes | None,
-    sample_testcase_contents: bytes | None,
-    custom_binary_contents: bytes | None,
-    source_bucket: str):
+    source_bucket: str,
+    blobstore_key_content: bytes | None = None,
+    sample_testcase_contents: bytes | None = None,
+    custom_binary_contents: bytes | None = None,
+    data_bundle_blob_contents: bytes | None = None,
+    ):
   assert getattr(entity, 'name')
   entity_location = f'gs://{source_bucket}/{entity_kind}/{entity.name}'
 
@@ -140,6 +148,9 @@ def _upload_entity_export_data(
 
   if custom_binary_contents:
     storage.write_data(custom_binary_contents, f'{entity_location}/custom_binary')
+
+  if data_bundle_blob_contents:
+    storage.write_data(data_bundle_blob_contents, f'{entity_location}/contents/blob')
 
 
 def _upload_entity_list(entities: List[str], entity_base_path: str):
@@ -517,6 +528,9 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
     os.environ['EXPORT_BUCKET'] = self.import_source_bucket
     storage.create_bucket_if_needed(self.blobs_bucket)
     storage.create_bucket_if_needed(self.import_source_bucket)
+    helpers.patch(self, [
+        'clusterfuzz._internal.datastore.data_handler.get_data_bundle_bucket_name',
+    ])
 
   def tearDown(self):
     shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
@@ -682,3 +696,44 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
 
     fuzzers = [fuzzer for fuzzer in data_types.Fuzzer.query()]
     self.assertEqual(0, len(fuzzers))
+
+  def test_data_bundles_are_correctly_imported(self):
+    bundle_name = 'some-bundle'
+    bucket_name = 'old-bucket'
+    blob_data = b'some-data'
+    bundle = _sample_data_bundle(
+      name=bundle_name,
+      bucket_name=bucket_name,
+    )
+    _upload_entity_export_data(
+      entity=bundle,
+      entity_kind='databundle',
+      source_bucket=self.import_source_bucket,
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      data_bundle_blob_contents=blob_data,
+    )
+
+    data_bundle_base_location = f'gs://{self.import_source_bucket}/databundle'
+    _upload_entity_list([bundle_name], data_bundle_base_location)
+
+    new_data_bundle_bucket = 'new-bundle-bucket'
+    self.mock.get_data_bundle_bucket_name.return_value = new_data_bundle_bucket
+
+    entity_migrator = job_exporter.EntityMigrator(
+        data_types.DataBundle, [], 'databundle',
+        job_exporter.StorageRSync(), self.import_source_bucket)    
+    entity_migrator.import_entities()
+
+    data_bundles = [data_bundle for data_bundle in data_types.DataBundle.query()]
+    self.assertEqual(1, len(data_bundles))
+
+    imported_bundle = data_bundles[0]
+    self.assertEqual(bundle_name, imported_bundle.name)
+    self.assertEqual(new_data_bundle_bucket, imported_bundle.bucket_name)
+
+    bundle_blob_location = f'gs://{new_data_bundle_bucket}/blob'
+
+    self.assertTrue(_blob_is_present_in_gcs(bundle_blob_location))
+    self.assertTrue(_blob_content_is_equal(bundle_blob_location, blob_data))
