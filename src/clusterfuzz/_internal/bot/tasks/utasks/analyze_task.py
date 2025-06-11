@@ -33,6 +33,7 @@ from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -256,11 +257,19 @@ def handle_noncrash(output):
     testcase.status = 'Unreproducible, retrying'
     testcase.put()
 
+    events.emit(
+        events.TestcaseRejectionEvent(
+            testcase_id=testcase.key.id(),
+            reason='analyze_flake_on_first_attempt'))
+
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase_id=testcase.key.id(), reason='analyze_no_repro'))
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
 
