@@ -863,3 +863,45 @@ class TestEntitiesAreCorrectlyImported(unittest.TestCase):
 
     self.assertTrue(_blob_is_present_in_gcs(bundle_blob_location))
     self.assertTrue(_blob_content_is_equal(bundle_blob_location, new_blob_data))
+
+  def test_job_templates_are_correctly_imported(self):
+    template_name = 'some-template'
+    prod_corpus_bucket = 'PROD_CORPUS_BUCKET'
+    test_corpus_bucket = 'TEST_CORPUS_BUCKET'
+    prod_log_bucket = 'PROD_LOG_BUCKET'
+    test_log_bucket = 'TEST_LOG_BUCKET'
+    original_env_string = f'FUZZ_LOGS_BUCKET={prod_log_bucket};CORPUS_BUCKET={prod_corpus_bucket}'
+    expected_env_string = f'FUZZ_LOGS_BUCKET={test_log_bucket};CORPUS_BUCKET={test_corpus_bucket}'
+    substitutions = {
+      prod_log_bucket: test_log_bucket,
+      prod_corpus_bucket: test_corpus_bucket,
+    }
+    template = _sample_job_template(
+      name=template_name,
+      environment_string=original_env_string
+    )
+    _upload_entity_export_data(
+      entity=template,
+      entity_kind='jobtemplate',
+      source_bucket=self.import_source_bucket,
+      blobstore_key_content=None,
+      sample_testcase_contents=None,
+      custom_binary_contents=None,
+      data_bundle_blob_contents=None,
+    )
+
+    job_template_base_location = f'gs://{self.import_source_bucket}/jobtemplate'
+    _upload_entity_list([template_name], job_template_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(
+      data_types.JobTemplate, [], 'jobtemplate',
+      job_exporter.StorageRSync(), self.import_source_bucket,
+      env_string_substitutions=substitutions)
+    entity_migrator.import_entities()
+
+    templates = [template for template in data_types.JobTemplate.query()]
+    self.assertEqual(1, len(templates))
+
+    imported_template = templates[0]
+    self.assertEqual(template_name, imported_template.name)
+    self.assertEqual(expected_env_string, imported_template.environment_string)
