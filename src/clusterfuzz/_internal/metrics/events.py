@@ -33,6 +33,7 @@ from clusterfuzz._internal.system import environment
 class EventTypes(Enum):
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
+  TESTCASE_REJECTION = 'testcase_rejection'
 
 
 @dataclass(kw_only=True)
@@ -104,9 +105,20 @@ class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
   uploader: str | None = None
 
 
+@dataclass(kw_only=True)
+class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase rejection event."""
+  event_type: str = field(
+      default=EventTypes.TESTCASE_REJECTION.value, init=False)
+  # Explanation for the testcase rejection, e.g., analyze_flake_on_first_attempt
+  # or analyze_no_repro or triage_duplicate_testcase.
+  rejection_reason: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION.value: TestcaseCreationEvent,
+    EventTypes.TESTCASE_REJECTION.value: TestcaseRejectionEvent,
 }
 
 

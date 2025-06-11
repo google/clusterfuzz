@@ -480,3 +480,27 @@ class ProtoFuzzTargetCorpusRsyncTest(fake_filesystem_unittest.TestCase):
         corpus, ['/tmp/minimized/77de68daecd823babbb58edb1c8e14d7106e83bb'])
     self.mock.delete_signed_urls.assert_called_with(
         [self.DELETED_FILE_DELETION_URL])
+
+
+class GetProtoCorpusTest(unittest.TestCase):
+  """Tests for get_proto_corpus."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.sign_urls_for_existing_files',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+    ])
+    self.mock.get_arbitrary_signed_upload_urls.return_value = ['url']
+    self.mock.sign_urls_for_existing_files.return_value = [[
+        'url', 'deletion_url'
+    ]]
+
+  def test_no_backup(self):
+    """Tests that backup_url is not set when the backup does not exist."""
+    bucket_name = 'bucket'
+    bucket_path = 'corpus'
+    backup_url = 'backup.zip'
+
+    corpus = corpus_manager.get_proto_corpus(bucket_name, bucket_path,
+                                             backup_url, 5)
+    self.assertFalse(corpus.HasField('backup_url'))

@@ -13,7 +13,9 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+import base64
 import collections
+from concurrent import futures
 import copy
 import datetime
 import json
@@ -24,6 +26,7 @@ import time
 from typing import List
 from typing import Tuple
 import uuid
+from xml.etree import ElementTree as ET
 
 import google.auth.exceptions
 from googleapiclient.discovery import build
@@ -32,6 +35,7 @@ import requests
 import requests.exceptions
 
 from clusterfuzz._internal.base import concurrency
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -125,7 +129,11 @@ class StorageProvider:
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self,
+                 remote_path,
+                 recursive=True,
+                 names_only=False,
+                 single_file=False):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -231,11 +239,15 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self,
+                 remote_path,
+                 recursive=True,
+                 names_only=False,
+                 single_file=False):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
-    if path and not path.endswith('/'):
+    if path and not path.endswith('/') and not single_file:
       path += '/'
 
     client = _storage_client()
@@ -248,6 +260,8 @@ class GcsProvider(StorageProvider):
 
     if names_only:
       fields = 'items(name),nextPageToken'
+      if not recursive:
+        fields += ',prefixes'
     else:
       fields = None
 
@@ -263,7 +277,6 @@ class GcsProvider(StorageProvider):
             'name': blob.name,
             'updated': blob.updated,
             'size': blob.size,
-            'next_page_token': next_page_token,
         }
 
         yield properties
@@ -591,7 +604,11 @@ class FileSystemProvider(StorageProvider):
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self, remote_path, recursive=True, names_only=False):
+  def list_blobs(self,
+                 remote_path,
+                 recursive=True,
+                 names_only=False,
+                 single_file=False):
     """List the blobs under the remote path."""
     del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
@@ -1086,7 +1103,11 @@ def write_stream(stream, cloud_storage_file_path, metadata=None):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.get_blobs',
     exception_types=_TRANSIENT_ERRORS)
-def get_blobs(cloud_storage_path, recursive=True):
+def get_blobs(*args, **kwargs):
+  yield from _provider().list_blobs(*args, **kwargs)
+
+
+def get_blobs_no_retry(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
   yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
 
@@ -1098,7 +1119,8 @@ def get_blobs(cloud_storage_path, recursive=True):
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
+  for blob in _provider().list_blobs(
+      cloud_storage_path, recursive=recursive, names_only=True):
     yield blob['name']
 
 
@@ -1216,6 +1238,15 @@ def _integration_test_env_doesnt_support_signed_urls():
       'UNTRUSTED_RUNNER_TESTS')
 
 
+class ExpiredSignedUrlError(errors.Error):
+  """Expired Signed URL."""
+
+  def __init__(self, message, url=None, response_text=None):
+    super().__init__(message)
+    self.url = url
+    self.response_text = response_text
+
+
 # Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
     retries=1,
@@ -1226,11 +1257,21 @@ def _download_url(url):
   """Downloads |url| and returns the contents."""
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
-  request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
-  if not request.ok:
+  response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
+  if not response.ok:
+    try:
+      element_tree = ET.fromstring(response.text)
+      error = element_tree.find('Code').text
+      if error == 'ExpiredToken':
+        raise ExpiredSignedUrlError('Expired token for signed URL.', url,
+                                    response.text)
+    except ExpiredSignedUrlError:
+      raise
+    except:
+      pass
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
-                       (url, request.status_code, request.reason))
-  return request.content
+                       (url, response.status_code, response.text))
+  return response.content
 
 
 @retry.wrap(
@@ -1243,7 +1284,7 @@ def upload_signed_url(data_or_fileobj, url: str) -> bool:
 
 
 def download_signed_url(url):
-  """Returns contents of |url|. Writes to |local_path| if provided."""
+  """Returns contents of |url|."""
   return _provider().download_signed_url(url)
 
 
@@ -1254,7 +1295,6 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_file(url, filepath):
-  # print('filepath', filepath)
   contents = download_signed_url(url)
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
@@ -1385,13 +1425,11 @@ def _mappable_sign_urls_for_existing_file(url_and_include_delete_urls):
   return _sign_urls_for_existing_file(url, include_delete_urls)
 
 
-def sign_urls_for_existing_files(urls,
-                                 include_delete_urls) -> List[Tuple[str, str]]:
+def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.info('Signing URLs for existing files.')
   args = ((url, include_delete_urls) for url in urls)
-  result = maybe_parallel_map(_sign_urls_for_existing_file, args)
+  yield from parallel_map(_sign_urls_for_existing_file, args)
   logs.info('Done signing URLs for existing files.')
-  return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
@@ -1399,29 +1437,42 @@ def get_arbitrary_signed_upload_url(remote_directory):
       get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1))[0]
 
 
-def maybe_parallel_map(func, arguments):
+def parallel_map(func, argument_list):
   """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
   will OOM."""
-  if not environment.is_tworker():
-    # TODO(b/metzman): When the rearch is done, internal google CF won't have
-    # tworkers, but maybe should be using parallel.
-    return list(map(func, arguments))
+  max_pool_size = 2
+  timeout = 120
+  with concurrency.make_pool(max_pool_size=max_pool_size) as pool:
+    calls = [pool.submit(func, argument) for argument in argument_list]
+    while calls:
+      finished_calls, _ = futures.wait(
+          calls, timeout=timeout, return_when=futures.FIRST_COMPLETED)
+      if not finished_calls:
+        logs.error('No call completed.')
+        for call in calls:
+          call.cancel()
+        raise TimeoutError(f'Nothing completed within {timeout} seconds')
+      for finished_call in finished_calls:
+        calls.remove(finished_call)
+        yield finished_call.result(timeout=timeout)
 
-  max_size = 2
-  with concurrency.make_pool(cpu_bound=True, max_pool_size=max_size) as pool:
-    return list(pool.map(func, arguments))
 
-
-def get_arbitrary_signed_upload_urls(remote_directory: str,
-                                     num_uploads: int) -> List[str]:
+def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
   # We don't verify there are no collisions for uuid4s because it's extremely
   # unlikely, takes time, and it's basically benign if it happens (it
   # won't) since we will just clobber some other corpus uploads from
   # the same day.
+  if not num_uploads:
+    return
+
   unique_id = uuid.uuid4()
-  base_name = unique_id.hex
+  # Represent (just as safely) the uuid in 22 chars instead of 32,
+  # this saves space when we use tens of thousands of these, tens of
+  # thousands of times a day.
+  base_name = base64.urlsafe_b64encode(unique_id.bytes).decode('ascii').rstrip(
+      "=")  # We aren't decoding this.
   if not remote_directory.endswith('/'):
     remote_directory = remote_directory + '/'
   # The remote_directory ends with slash.
@@ -1429,6 +1480,5 @@ def get_arbitrary_signed_upload_urls(remote_directory: str,
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.info('Signing URLs for arbitrary uploads.')
-  result = maybe_parallel_map(get_signed_upload_url, urls)
+  yield from parallel_map(get_signed_upload_url, urls)
   logs.info('Done signing URLs for arbitrary uploads.')
-  return result

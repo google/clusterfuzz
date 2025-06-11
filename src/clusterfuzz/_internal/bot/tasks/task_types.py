@@ -152,7 +152,6 @@ class UTask(BaseUTask):
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,
                                        uworker_env)
     if not result:
-      logs.error('Nothing returned from preprocess.')
       return None
 
     download_url, _ = result
