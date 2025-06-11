@@ -15,7 +15,6 @@
 import datetime
 import os
 import platform
-import time
 import unittest
 
 from clusterfuzz._internal.datastore import data_handler
@@ -30,7 +29,10 @@ class EventsDataTest(unittest.TestCase):
   """Test event dataclasses."""
 
   def setUp(self):
-    helpers.patch(self, ['clusterfuzz._internal.base.utils.get_instance_name'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.get_instance_name',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
+    ])
     self.original_env = dict(os.environ)
     os.environ['OS_OVERRIDE'] = 'linux'
     # Override reading the manifest file for the source version.
@@ -38,6 +40,8 @@ class EventsDataTest(unittest.TestCase):
                                              '-cad6977-prod')
     self.mock.get_instance_name.return_value = 'linux-bot'
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+    self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     return super().setUp()
 
   def tearDown(self):
@@ -49,7 +53,7 @@ class EventsDataTest(unittest.TestCase):
     """Asserts for common event fields."""
     self.assertEqual(event.event_type, event_type)
     self.assertEqual(event.source, source)
-    self.assertIsInstance(event.timestamp, datetime.datetime)
+    self.assertEqual(event.timestamp, self.date_now)
 
     self.assertEqual(event.clusterfuzz_version, '40773ac0')
     self.assertEqual(event.clusterfuzz_config_version, 'cad6977')
@@ -71,14 +75,6 @@ class EventsDataTest(unittest.TestCase):
     source = 'events_test'
     event = events.Event(event_type=event_type, source=source)
     self._assert_event_common_fields(event, event_type, source)
-
-  def test_event_timestamp(self):
-    """Test event creation timestamp."""
-    event_type = 'generic_event'
-    early_event = events.Event(event_type=event_type)
-    time.sleep(1)
-    late_event = events.Event(event_type=event_type)
-    self.assertGreater(late_event.timestamp, early_event.timestamp)
 
   def test_testcase_event(self):
     """Test testcase event base class. """
@@ -262,7 +258,7 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
     event_entity = data_types.TestcaseLifecycleEvent(event_type='generic_event')
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
@@ -279,7 +275,7 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_deserialize_testcase_creation_event(self):
     """Test deserializing a datastore event into a testcase creation event."""
     event_type = events.EventTypes.TESTCASE_CREATION.value
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 
     event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
     event_entity.timestamp = date_now
@@ -312,7 +308,7 @@ class DatastoreEventsTest(unittest.TestCase):
   def test_deserialize_testcase_rejection_event(self):
     """Test deserializing a testcase rejection event."""
     event_type = events.EventTypes.TESTCASE_REJECTION.value
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 
     event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
     event_entity.timestamp = date_now
@@ -373,7 +369,7 @@ class DatastoreEventsTest(unittest.TestCase):
     """Test retrieving an event from datastore."""
     event_entity = data_types.TestcaseLifecycleEvent(
         event_type='generic_event_test')
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
@@ -394,8 +390,12 @@ class EmitEventTest(unittest.TestCase):
   """Test event emission and handler config."""
 
   def setUp(self):
-    helpers.patch(self,
-                  ['clusterfuzz._internal.config.local_config.ProjectConfig'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
+    ])
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+    self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     self.project_config = {}
     self.mock.ProjectConfig.return_value = self.project_config
 
@@ -436,6 +436,7 @@ class EmitEventTest(unittest.TestCase):
     self.assertEqual(event_entity.event_type,
                      events.EventTypes.TESTCASE_CREATION.value)
     self.assertIsNotNone(event_entity.timestamp)
+    self.assertEqual(event_entity.timestamp, self.date_now)
     self.assertEqual(event_entity.source, 'events_test')
     self.assertEqual(event_entity.origin, 'fuzz_task')
     self.assertEqual(event_entity.task_id,
