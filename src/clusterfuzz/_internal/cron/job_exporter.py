@@ -147,8 +147,27 @@ class EntityMigrator:
       entity_names.add(entity_name)
     self._export_entity_names(entity_names, entity_bucket_prefix)
 
+  def _import_entity(self, entity_location: str):
+    """Imports entity into datastore, blobs if present, and databundle."""
+    entity_to_import = self._deserialize_entity_from_gcs(
+        f'{entity_location}/entity.proto')
+    entity_to_import.put()
+
   def import_entities(self):
-    pass
+    """Iterates over all entitiy names declared in the last export, and imports
+      its contents."""
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
+    entity_list_location = f'{entity_bucket_prefix}/entities'
+    if not storage.get(entity_list_location):
+      raise ValueError(f'Missing entity list in {entity_list_location}')
+    entities_to_sync = storage.read_data(entity_list_location)
+    if not entities_to_sync:
+      entities_to_sync = []
+    else:
+      entities_to_sync = entities_to_sync.decode('utf-8').split('\n')
+    for entity_name in entities_to_sync:
+      entity_location = f'{entity_bucket_prefix}/{entity_name}'
+      self._import_entity(entity_location)
 
 
 def main():

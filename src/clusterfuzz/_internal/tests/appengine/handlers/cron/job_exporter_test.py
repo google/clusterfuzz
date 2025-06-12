@@ -17,8 +17,12 @@
 import os
 import shutil
 import tempfile
+from typing import List
 import unittest
 
+from google.cloud import ndb
+
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.cron import job_exporter
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -103,6 +107,25 @@ def _entity_list_contains_expected_entities(blob_path, expected_entities):
   recovered_entities = set(
       storage.read_data(blob_path).decode('utf-8').split('\n'))
   return expected_entities == recovered_entities
+
+
+def _upload_entity_export_data(
+    entity: ndb.Model,
+    entity_kind: str,
+    source_bucket: str,
+):
+  """Dumps an entity in its blobs into the expect exported folder structure."""
+  assert getattr(entity, 'name')
+  entity_location = f'gs://{source_bucket}/{entity_kind}/{entity.name}'
+
+  serialized_entity = uworker_io.entity_to_protobuf(entity).SerializeToString()
+  assert storage.write_data(serialized_entity,
+                            f'{entity_location}/entity.proto')
+
+
+def _upload_entity_list(entities: List[str], entity_base_path: str):
+  entities_payload = '\n'.join(entities).encode('utf-8')
+  assert storage.write_data(entities_payload, f'{entity_base_path}/entities')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -385,3 +408,65 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
     self.assertTrue(
         _entity_list_contains_expected_entities(entity_list_location,
                                                 expected_persisted_entities))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestFuzzersAreCorrectlyImported(unittest.TestCase):
+  """Test the job exporter job with Fuzzer entitites."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    self.blobs_bucket = 'BLOBS_BUCKET'
+    self.import_source_bucket = 'SOURCE_BUCKET'
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    os.environ['TEST_BLOBS_BUCKET'] = self.blobs_bucket
+    os.environ['EXPORT_BUCKET'] = self.import_source_bucket
+    storage.create_bucket_if_needed(self.blobs_bucket)
+    storage.create_bucket_if_needed(self.import_source_bucket)
+    helpers.patch(self, [
+        'clusterfuzz._internal.datastore.data_handler.get_data_bundle_bucket_name',
+    ])
+
+  def tearDown(self):
+    shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
+
+  def test_fuzzers_are_correctly_created_from_export_data(self):
+    """Verifies if a fuzzer is created in Datastore with the correct contents,
+      and if its blobs were correctly mirrored from the export data."""
+    fuzzer_name = 'some-fuzzer'
+    data_bundle_name = 'some-bundle'
+    jobs = ['some-job']
+    blobstore_key = 'some-blobstore-key'
+    sample_testcase = 'some-sample-testcase'
+
+    some_fuzzer = _sample_fuzzer(
+        data_bundle_name=data_bundle_name,
+        name=fuzzer_name,
+        jobs=jobs,
+        blobstore_key=blobstore_key,
+        sample_testcase=sample_testcase,
+    )
+    _upload_entity_export_data(
+        entity=some_fuzzer,
+        entity_kind='fuzzer',
+        source_bucket=self.import_source_bucket,
+    )
+
+    fuzzer_base_location = f'gs://{self.import_source_bucket}/fuzzer'
+    _upload_entity_list([fuzzer_name], fuzzer_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(
+        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer',
+        job_exporter.StorageRSync(), self.import_source_bucket)
+    entity_migrator.import_entities()
+
+    fuzzers = list(data_types.Fuzzer.query())
+    self.assertEqual(1, len(fuzzers))
+
+    imported_fuzzer = fuzzers[0]
+    self.assertEqual(fuzzer_name, imported_fuzzer.name)
+    self.assertEqual(data_bundle_name, imported_fuzzer.data_bundle_name)
+    self.assertEqual(jobs, imported_fuzzer.jobs)
+    self.assertEqual(blobstore_key, imported_fuzzer.blobstore_key)
+    self.assertEqual(sample_testcase, imported_fuzzer.sample_testcase)
