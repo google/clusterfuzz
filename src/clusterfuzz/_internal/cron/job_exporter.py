@@ -181,6 +181,13 @@ class EntityMigrator:
     for blob_key, blob_value in new_blob_ids.items():
       setattr(entity_to_import, blob_key, blob_value)
 
+    # Do not assume that name is a primary key, avoid having two
+    # different keys with the same name.
+    preexisting_entity = self._target_cls.query(
+        self._target_cls.name == entity_name).get()
+    if preexisting_entity:
+      preexisting_entity.key.delete()
+
     entity_to_import.put()
 
   def import_entities(self):

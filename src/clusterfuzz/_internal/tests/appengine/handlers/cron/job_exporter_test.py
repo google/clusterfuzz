@@ -562,3 +562,75 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
 
     fuzzers = list(data_types.Fuzzer.query())
     self.assertEqual(0, len(fuzzers))
+
+  def test_fuzzers_are_correctly_modified(self):
+    """Checks if a fuzzer is correctly updated with new datastore fields
+      and blob contents, in case a new version is exported."""
+    fuzzer_name = 'some-fuzzer'
+    data_bundle_name = 'some-bundle'
+    jobs = ['some-job']
+
+    some_fuzzer = _sample_fuzzer(
+        data_bundle_name=data_bundle_name,
+        name=fuzzer_name,
+        jobs=jobs,
+        blobstore_key=None,
+        sample_testcase=None,
+    )
+
+    another_data_bundle_name = 'some-bundle'
+    other_jobs = ['some-job']
+    other_blobstore_key = 'some-blobstore-key'
+    other_sample_testcase = 'some-sample-testcase'
+    updated_fuzzer = _sample_fuzzer(
+        data_bundle_name=another_data_bundle_name,
+        name=fuzzer_name,
+        jobs=other_jobs,
+        blobstore_key=other_blobstore_key,
+        sample_testcase=other_sample_testcase,
+    )
+    other_blobstore_key_payload = b'another-blobstore-data'
+    other_sample_testcase_payload = b'another-testcase-data'
+
+    _register_entity_and_upload_blobs(
+        entity=some_fuzzer,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        blobs_bucket=self.blobs_bucket,
+    )
+
+    _upload_entity_export_data(
+        entity=updated_fuzzer,
+        entity_kind='fuzzer',
+        blobstore_key_content=other_blobstore_key_payload,
+        sample_testcase_contents=other_sample_testcase_payload,
+        source_bucket=self.import_source_bucket,
+    )
+
+    previous_fuzzers = list(data_types.Fuzzer.query())
+    self.assertEqual(1, len(previous_fuzzers))
+    self.assertTrue(_fuzzers_equal(some_fuzzer, previous_fuzzers[0]))
+
+    fuzzer_base_location = f'gs://{self.import_source_bucket}/fuzzer'
+
+    _upload_entity_list([fuzzer_name], fuzzer_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(
+        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer',
+        job_exporter.StorageRSync(), self.import_source_bucket)
+    entity_migrator.import_entities()
+
+    fuzzers = list(data_types.Fuzzer.query())
+    self.assertEqual(1, len(fuzzers))
+
+    imported_fuzzer = fuzzers[0]
+    self.assertEqual(fuzzer_name, imported_fuzzer.name)
+    self.assertEqual(another_data_bundle_name, imported_fuzzer.data_bundle_name)
+    self.assertEqual(other_jobs, imported_fuzzer.jobs)
+
+    self.assertTrue(
+        _entity_blob_was_correctly_imported(other_blobstore_key_payload,
+                                            imported_fuzzer.blobstore_key))
+    self.assertTrue(
+        _entity_blob_was_correctly_imported(other_sample_testcase_payload,
+                                            imported_fuzzer.sample_testcase))
