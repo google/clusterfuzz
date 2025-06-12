@@ -1654,7 +1654,7 @@ class TestcaseLifecycleEvent(Model):
 
   ### Testcase Creation.
   # How testcase was created (manual upload, fuzz, corpus pruning).
-  origin = ndb.StringProperty()
+  creation_origin = ndb.StringProperty()
 
   # If testcase is manually uploaded, the user email.
   uploader = ndb.StringProperty()
