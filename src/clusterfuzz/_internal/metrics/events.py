@@ -41,6 +41,12 @@ class EventTypes(Enum):
   TESTCASE_REJECTION = 'testcase_rejection'
 
 
+class RejectionReason:
+  """Explanation for the testcase rejection values."""
+  ANALYZE_NO_REPRO = 'analyze_no_repro'
+  ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
+
+
 @dataclass(kw_only=True)
 class Event:
   """Base class for ClusterFuzz events."""
