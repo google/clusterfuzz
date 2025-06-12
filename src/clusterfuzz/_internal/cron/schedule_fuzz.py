@@ -206,7 +206,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
     # TODO(metzman): Handle high-end jobs correctly.
     num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
-    logs.info(f'Scheduling {num_instances} fuzz tasks.')
+    logs.info(f'Scheduling {num_instances} fuzz tasks for OSS-Fuzz.')
 
     choices = random.choices(
         fuzz_task_candidates, weights=weights, k=num_instances)
@@ -220,9 +220,56 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     return fuzz_tasks
 
 
+class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
+  """Fuzz task scheduler for Chrome."""
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.num_cpus = respect_project_max_cpus(self.num_cpus)
+
+  def get_fuzz_tasks(self) -> List[tasks.Task]:
+    """Returns fuzz tasks for chrome, weighted by job weight."""
+    logs.info('Getting jobs for Chrome.')
+    candidates_by_job = {}
+    # Only consider linux jobs for chrome fuzzing.
+    job_query = data_types.Job.query(data_types.Job.platform == 'LINUX')
+    for job in ndb_utils.get_all_from_query(job_query):
+      candidates_by_job[job.name] = FuzzTaskCandidate(
+          job=job.name, project=job.project)
+
+    fuzz_task_candidates = []
+    fuzzer_job_query = ndb_utils.get_all_from_query(
+        data_types.FuzzerJob.query())
+
+    for fuzzer_job in fuzzer_job_query:
+      if fuzzer_job.job not in candidates_by_job:
+        continue
+      fuzz_task_candidate = candidates_by_job[fuzzer_job.job].copy()
+      fuzz_task_candidate.fuzzer = fuzzer_job.fuzzer
+      fuzz_task_candidate.weight = fuzzer_job.actual_weight
+      fuzz_task_candidates.append(fuzz_task_candidate)
+
+    weights = [candidate.weight for candidate in fuzz_task_candidates]
+    num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
+    logs.info(f'Scheduling {num_instances} fuzz tasks for Chrome.')
+
+    if not fuzz_task_candidates:
+      return []
+
+    choices = random.choices(
+        fuzz_task_candidates, weights=weights, k=num_instances)
+    fuzz_tasks = [
+        tasks.Task('fuzz', candidate.fuzzer, candidate.job)
+        for candidate in choices
+    ]
+    return fuzz_tasks
+
+
 def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
-  assert utils.is_oss_fuzz()
-  scheduler = OssfuzzFuzzTaskScheduler(available_cpus)
+  if utils.is_oss_fuzz():
+    scheduler = OssfuzzFuzzTaskScheduler(available_cpus)
+  else:
+    scheduler = ChromeFuzzTaskScheduler(available_cpus)
   fuzz_tasks = scheduler.get_fuzz_tasks()
   return fuzz_tasks
 
@@ -290,6 +337,14 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
   available_cpus = min(available_cpus, 50_000 * len(regions))
 
   return available_cpus
+
+
+def respect_project_max_cpus(num_cpus):
+  conf = local_config.ProjectConfig()
+  max_cpus_per_schedule = conf.get('max_cpus_per_schedule')
+  if max_cpus_per_schedule is None:
+    return num_cpus
+  return min(max_cpus_per_schedule, num_cpus)
 
 
 def schedule_fuzz_tasks() -> bool:
