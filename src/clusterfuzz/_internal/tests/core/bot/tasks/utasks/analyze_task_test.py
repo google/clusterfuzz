@@ -276,7 +276,7 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
         events.TestcaseRejectionEvent(
             testcase=self.testcase,
             rejection_reason=events.RejectionReason.
-            ANALYZE_FLAKE_ON_FIRST_ATTEMPT.value))
+            ANALYZE_FLAKE_ON_FIRST_ATTEMPT))
 
   def test_event_emition_handle_noncrash_second_attempt(self):
     """Test that a non-crashing testcase is marked invalid after the second attempt."""
@@ -285,4 +285,4 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
             testcase=self.testcase,
-            rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO.value))
+            rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO))
