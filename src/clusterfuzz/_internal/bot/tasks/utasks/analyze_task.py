@@ -14,7 +14,6 @@
 """Analyze task for handling user uploads."""
 
 import json
-import os
 from typing import Dict
 from typing import Optional
 
@@ -261,8 +260,8 @@ def handle_noncrash(output):
     events.emit(
         events.TestcaseRejectionEvent(
             testcase=testcase,
-            task_id=os.getenv('CF_TASK_ID', 'null'),
-            rejection_reason=events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT.value))
+            rejection_reason=events.RejectionReason.
+            ANALYZE_FLAKE_ON_FIRST_ATTEMPT.value))
 
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
@@ -272,7 +271,6 @@ def handle_noncrash(output):
   events.emit(
       events.TestcaseRejectionEvent(
           testcase=testcase,
-          task_id=os.getenv('CF_TASK_ID', 'null'),
           rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO.value))
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')

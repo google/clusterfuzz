@@ -258,10 +258,8 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
         'clusterfuzz._internal.datastore.data_handler.mark_invalid_uploaded_testcase',
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
-        'os.getenv'
     ])
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
-    self.mock.getenv.return_value = '12345'
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_metadata = data_types.TestcaseUploadMetadata(
         testcase_id=self.testcase.key.id())
@@ -277,9 +275,8 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
             testcase=self.testcase,
-            task_id='12345',
-            rejection_reason=events.RejectionReason
-            .ANALYZE_FLAKE_ON_FIRST_ATTEMPT.value))
+            rejection_reason=events.RejectionReason.
+            ANALYZE_FLAKE_ON_FIRST_ATTEMPT.value))
 
   def test_event_emition_handle_noncrash_second_attempt(self):
     """Test that a non-crashing testcase is marked invalid after the second attempt."""
@@ -288,5 +285,4 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
             testcase=self.testcase,
-            task_id='12345',
             rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO.value))
