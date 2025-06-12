@@ -134,6 +134,30 @@ def _upload_entity_export_data(
                        f'{entity_location}/sample_testcase')
 
 
+def _register_entity_and_upload_blobs(
+    entity: ndb.Model,
+    blobs_bucket: str,
+    blobstore_key_content: bytes | None,
+    sample_testcase_contents: bytes | None,
+):
+  """Persists an entity to GCS, and its blobs into the project's
+    blob bucket."""
+  assert getattr(entity, 'name')
+  entity.put()
+
+  if blobstore_key_content:
+    blobstore_key = getattr(entity, 'blobstore_key', None)
+    assert blobstore_key
+    storage.write_data(blobstore_key_content,
+                       f'gs://{blobs_bucket}/{blobstore_key}')
+
+  if sample_testcase_contents:
+    sample_testcase_key = getattr(entity, 'sample_testcase', None)
+    assert sample_testcase_key
+    storage.write_data(sample_testcase_contents,
+                       f'gs://{blobs_bucket}/{sample_testcase_key}')
+
+
 def _upload_entity_list(entities: List[str], entity_base_path: str):
   entities_payload = '\n'.join(entities).encode('utf-8')
   assert storage.write_data(entities_payload, f'{entity_base_path}/entities')
@@ -496,3 +520,45 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
     self.assertTrue(
         _entity_blob_was_correctly_imported(sample_testcase_payload,
                                             imported_fuzzer.sample_testcase))
+
+  def test_fuzzers_are_correctly_deleted(self):
+    """Verifies if a preexisting fuzzer is deleted from DataStore, if it
+      is not in the export list anymore."""
+    fuzzer_name = 'some-fuzzer'
+    data_bundle_name = 'some-bundle'
+    jobs = ['some-job']
+    blobstore_key = 'some-blobstore-key'
+    sample_testcase = 'some-sample-testcase'
+    blobstore_key_payload = b'some-blobstore-data'
+    sample_testcase_payload = b'some-testcase-data'
+
+    some_fuzzer = _sample_fuzzer(
+        data_bundle_name=data_bundle_name,
+        name=fuzzer_name,
+        jobs=jobs,
+        blobstore_key=blobstore_key,
+        sample_testcase=sample_testcase,
+    )
+    _register_entity_and_upload_blobs(
+        entity=some_fuzzer,
+        blobstore_key_content=blobstore_key_payload,
+        sample_testcase_contents=sample_testcase_payload,
+        blobs_bucket=self.blobs_bucket,
+    )
+
+    previous_fuzzers = list(data_types.Fuzzer.query())
+    self.assertEqual(1, len(previous_fuzzers))
+    self.assertTrue(_fuzzers_equal(some_fuzzer, previous_fuzzers[0]))
+
+    fuzzer_base_location = f'gs://{self.import_source_bucket}/fuzzer'
+
+    # Zero entities declared to be exported
+    _upload_entity_list([], fuzzer_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(
+        data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer',
+        job_exporter.StorageRSync(), self.import_source_bucket)
+    entity_migrator.import_entities()
+
+    fuzzers = list(data_types.Fuzzer.query())
+    self.assertEqual(0, len(fuzzers))
