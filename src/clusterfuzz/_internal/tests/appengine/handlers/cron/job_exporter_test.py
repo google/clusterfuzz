@@ -25,6 +25,7 @@ from google.cloud import ndb
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.cron import job_exporter
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -113,6 +114,8 @@ def _upload_entity_export_data(
     entity: ndb.Model,
     entity_kind: str,
     source_bucket: str,
+    blobstore_key_content: bytes | None = None,
+    sample_testcase_contents: bytes | None = None,
 ):
   """Dumps an entity in its blobs into the expect exported folder structure."""
   assert getattr(entity, 'name')
@@ -122,10 +125,24 @@ def _upload_entity_export_data(
   assert storage.write_data(serialized_entity,
                             f'{entity_location}/entity.proto')
 
+  if blobstore_key_content:
+    storage.write_data(blobstore_key_content,
+                       f'{entity_location}/blobstore_key')
+
+  if sample_testcase_contents:
+    storage.write_data(sample_testcase_contents,
+                       f'{entity_location}/sample_testcase')
+
 
 def _upload_entity_list(entities: List[str], entity_base_path: str):
   entities_payload = '\n'.join(entities).encode('utf-8')
   assert storage.write_data(entities_payload, f'{entity_base_path}/entities')
+
+
+def _entity_blob_was_correctly_imported(expected_content: any, blob_id: str):
+  gcs_path = blobs.get_gcs_path(blob_id)
+  return (_blob_is_present_in_gcs(gcs_path) and
+          _blob_content_is_equal(gcs_path, expected_content))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -439,6 +456,8 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
     jobs = ['some-job']
     blobstore_key = 'some-blobstore-key'
     sample_testcase = 'some-sample-testcase'
+    blobstore_key_payload = b'some-blobstore-data'
+    sample_testcase_payload = b'some-testcase-data'
 
     some_fuzzer = _sample_fuzzer(
         data_bundle_name=data_bundle_name,
@@ -451,6 +470,8 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
         entity=some_fuzzer,
         entity_kind='fuzzer',
         source_bucket=self.import_source_bucket,
+        blobstore_key_content=blobstore_key_payload,
+        sample_testcase_contents=sample_testcase_payload,
     )
 
     fuzzer_base_location = f'gs://{self.import_source_bucket}/fuzzer'
@@ -468,5 +489,10 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
     self.assertEqual(fuzzer_name, imported_fuzzer.name)
     self.assertEqual(data_bundle_name, imported_fuzzer.data_bundle_name)
     self.assertEqual(jobs, imported_fuzzer.jobs)
-    self.assertEqual(blobstore_key, imported_fuzzer.blobstore_key)
-    self.assertEqual(sample_testcase, imported_fuzzer.sample_testcase)
+
+    self.assertTrue(
+        _entity_blob_was_correctly_imported(blobstore_key_payload,
+                                            imported_fuzzer.blobstore_key))
+    self.assertTrue(
+        _entity_blob_was_correctly_imported(sample_testcase_payload,
+                                            imported_fuzzer.sample_testcase))
