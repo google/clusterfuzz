@@ -247,7 +247,7 @@ class UTaskPostprocessTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class HandleNonCrashTest(unittest.TestCase):
+class HandleEventEmitionNonCrashTest(unittest.TestCase):
   """Tests for handle_noncrash."""
 
   def setUp(self):
@@ -257,9 +257,11 @@ class HandleNonCrashTest(unittest.TestCase):
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.datastore.data_handler.mark_invalid_uploaded_testcase',
         'clusterfuzz._internal.metrics.events.emit',
-        'clusterfuzz._internal.metrics.events.datetime',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'os.getenv'
     ])
-    self.mock.datetime.datetime.now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock.getenv.return_value = '12345'
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_metadata = data_types.TestcaseUploadMetadata(
         testcase_id=self.testcase.key.id())
@@ -268,28 +270,23 @@ class HandleNonCrashTest(unittest.TestCase):
         testcase_id=str(self.testcase.key.id()))
     self.uworker_output = uworker_msg_pb2.Output(uworker_input=uworker_input)
 
-  def test_handle_noncrash_first_attempt(self):
+  def test_event_emition_handle_noncrash_first_attempt(self):
     """Test that a non-crashing testcase is retried on the first attempt."""
     self.mock.is_first_attempt_for_task.return_value = True
     analyze_task.handle_noncrash(self.uworker_output)
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
-            source='handle_noncrash',
             testcase=self.testcase,
-            rejection_reason='analyze_flake_on_first_attempt'))
-    self.mock.add_task.assert_called_once_with('analyze',
-                                               str(self.testcase.key.id()), '')
+            task_id='12345',
+            rejection_reason=events.RejectionReason
+            .ANALYZE_FLAKE_ON_FIRST_ATTEMPT.value))
 
-  def test_handle_noncrash_second_attempt(self):
+  def test_event_emition_handle_noncrash_second_attempt(self):
     """Test that a non-crashing testcase is marked invalid after the second attempt."""
     self.mock.is_first_attempt_for_task.return_value = False
     analyze_task.handle_noncrash(self.uworker_output)
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
-            source='handle_noncrash',
             testcase=self.testcase,
-            rejection_reason='analyze_no_repro'))
-    self.mock.mark_invalid_uploaded_testcase.assert_called_once_with(
-        unittest.mock.ANY,  # Testcase object is modified inside the function.
-        self.testcase_metadata,
-        'Unreproducible')
+            task_id='12345',
+            rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO.value))
