@@ -776,3 +776,87 @@ class TestJobsAreCorrectlyImported(unittest.TestCase):
     post_import_jobs = list(data_types.Job.query())
 
     self.assertEqual(0, len(post_import_jobs))
+
+  def test_jobs_are_correctly_updated(self):
+    """Verifies if a preexisting job is updated with new fields, custom binary, and the env
+      string is correctly substituted."""
+    job_name = 'some-job'
+    platform = 'some-platform'
+    env_string = 'some-env-string'
+    custom_binary_key = None
+
+    job = _sample_job(
+        name=job_name,
+        custom_binary_key=custom_binary_key,
+        platform=platform,
+        environment_string=env_string)
+
+    _register_entity_and_upload_blobs(
+        entity=job,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        custom_binary_contents=None,
+        blobs_bucket=self.blobs_bucket,
+    )
+
+    jobs = list(data_types.Job.query())
+
+    self.assertEqual(1, len(jobs))
+    imported_job = jobs[0]
+
+    self.assertEqual(env_string, imported_job.environment_string)
+    self.assertEqual(job_name, imported_job.name)
+    self.assertEqual(platform, imported_job.platform)
+    self.assertEqual(custom_binary_key, imported_job.custom_binary_key)
+
+    another_custom_binary_data = b'some-other-data'
+    another_platform = 'another-platform'
+    env_string_before_import = 'some-unchanged-data'
+
+    updated_job = _sample_job(
+        name=job_name,
+        platform=another_platform,
+        environment_string=env_string_before_import,
+    )
+
+    _upload_entity_export_data(
+        entity=updated_job,
+        entity_kind='job',
+        source_bucket=self.import_source_bucket,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        custom_binary_contents=another_custom_binary_data,
+    )
+
+    env_string_after_import = 'some-changed-data'
+    substitutions = {
+        env_string_before_import: env_string_after_import,
+    }
+
+    job_base_location = f'gs://{self.import_source_bucket}/job'
+    _upload_entity_list(
+        [job_name],
+        job_base_location,
+    )
+
+    entity_migrator = job_exporter.EntityMigrator(
+        data_types.Job, ['custom_binary_key'],
+        'job',
+        job_exporter.StorageRSync(),
+        self.import_source_bucket,
+        env_string_substitutions=substitutions)
+    entity_migrator.import_entities()
+
+    post_import_jobs = list(data_types.Job.query())
+
+    imported_job = post_import_jobs[0]
+
+    self.assertEqual(1, len(post_import_jobs))
+
+    self.assertEqual(env_string_after_import, imported_job.environment_string)
+    self.assertEqual(job_name, imported_job.name)
+    self.assertEqual(another_platform, imported_job.platform)
+
+    self.assertTrue(
+        _entity_blob_was_correctly_imported(another_custom_binary_data,
+                                            imported_job.custom_binary_key))
