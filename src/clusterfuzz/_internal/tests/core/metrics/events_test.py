@@ -132,11 +132,11 @@ class EventsDataTest(unittest.TestCase):
     event_rejection = events.TestcaseRejectionEvent(
         source=source,
         testcase=testcase,
-        rejection_reason='triage_duplicate_testcase')
+        rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
     self._assert_event_common_fields(event_rejection, event_type, source)
     self._assert_testcase_fields(event_rejection, testcase)
     self.assertEqual(event_rejection.rejection_reason,
-                     'triage_duplicate_testcase')
+                     events.RejectionReason.ANALYZE_NO_REPRO)
 
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
@@ -245,7 +245,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event = events.TestcaseRejectionEvent(
         source='events_test',
         testcase=testcase,
-        rejection_reason='analyze_flake_on_first_attempt')
+        rejection_reason=events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
     event_type = event.event_type
     timestamp = event.timestamp
 
@@ -263,7 +263,7 @@ class DatastoreEventsTest(unittest.TestCase):
 
     # TestcaseRejectionEvent specific assertions
     self.assertEqual(event_entity.rejection_reason,
-                     'analyze_flake_on_first_attempt')
+                     events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
@@ -329,7 +329,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.fuzzer = 'fuzzer1'
     event_entity.job = 'test_job'
     event_entity.crash_revision = 2
-    event_entity.rejection_reason = 'analyze_flake_on_first_attempt'
+    event_entity.rejection_reason = events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
@@ -348,7 +348,8 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.crash_revision, 2)
 
     # TestcaseRejectionEvent specific assertions
-    self.assertEqual(event.rejection_reason, 'analyze_flake_on_first_attempt')
+    self.assertEqual(event.rejection_reason,
+                     events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_store_event(self):
     """Test storing an event into datastore."""
