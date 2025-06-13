@@ -165,11 +165,11 @@ def _register_entity_and_upload_blobs(
     storage.write_data(sample_testcase_contents,
                        f'gs://{blobs_bucket}/{sample_testcase_key}')
 
-
   if custom_binary_contents:
     custom_binary_key = getattr(entity, 'custom_binary_key', None)
     assert custom_binary_key
-    storage.write_data(custom_binary_contents, f'gs://{blobs_bucket}/{custom_binary_key}')
+    storage.write_data(custom_binary_contents,
+                       f'gs://{blobs_bucket}/{custom_binary_key}')
 
 
 def _upload_entity_list(entities: List[str], entity_base_path: str):
