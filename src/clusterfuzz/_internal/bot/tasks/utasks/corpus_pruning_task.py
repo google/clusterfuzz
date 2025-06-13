@@ -832,10 +832,8 @@ def _upload_corpus_crashes_zip(result: CorpusPruningResult,
 
 def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
-  # TODO(metzman): Fix this function after the holiday break.
-  # if not output.corpus_pruning_task_output.crashes:
-  return
-  # pylint: disable=unreachable
+  if not output.corpus_pruning_task_output.crashes:
+    return
   corpus_pruning_output = output.corpus_pruning_task_output
   crash_revision = corpus_pruning_output.crash_revision
   fuzz_target = data_handler.get_fuzz_target(output.uworker_input.fuzzer_name)
@@ -1076,11 +1074,10 @@ def _utask_main(uworker_input):
     result = do_corpus_pruning(context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
-    # TODO(metzman): Fix this issue.
-    # _upload_corpus_crashes_zip(
-    #     result,
-    #     uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
-    #     uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
+    _upload_corpus_crashes_zip(
+        result,
+        uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
+        uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
     uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
         corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(  # pylint: disable=no-member
             coverage_info=_extract_coverage_information(context, result),
