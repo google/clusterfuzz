@@ -722,3 +722,47 @@ class TestJobsAreCorrectlyImported(unittest.TestCase):
     self.assertTrue(
         _entity_blob_was_correctly_imported(job_blob_data,
                                             imported_job.custom_binary_key))
+
+  def test_jobs_are_correctly_deleted(self):
+    """Verifies that a job is deleted, if it is present in the environment
+      but absent in the entity export list."""
+    job_name = 'some-job'
+    platform = 'some-platform'
+    env_string = 'some-env-string'
+    custom_binary_key = None
+
+    job = _sample_job(
+        name=job_name,
+        custom_binary_key=custom_binary_key,
+        platform=platform,
+        environment_string=env_string)
+
+    _register_entity_and_upload_blobs(
+        entity=job,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        blobs_bucket=self.blobs_bucket,
+    )
+
+    jobs = list(data_types.Job.query())
+
+    self.assertEqual(1, len(jobs))
+    imported_job = jobs[0]
+
+    self.assertEqual(env_string, imported_job.environment_string)
+    self.assertEqual(job_name, imported_job.name)
+    self.assertEqual(platform, imported_job.platform)
+    self.assertEqual(custom_binary_key, imported_job.custom_binary_key)
+
+    job_base_location = f'gs://{self.import_source_bucket}/job'
+    _upload_entity_list([], job_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(data_types.Job,
+                                                  ['custom_binary_key'], 'job',
+                                                  job_exporter.StorageRSync(),
+                                                  self.import_source_bucket)
+    entity_migrator.import_entities()
+
+    post_import_jobs = list(data_types.Job.query())
+
+    self.assertEqual(0, len(post_import_jobs))
