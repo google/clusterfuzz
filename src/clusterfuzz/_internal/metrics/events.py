@@ -20,7 +20,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
-from enum import Enum
 from typing import Any
 
 from clusterfuzz._internal.config import local_config
@@ -35,10 +34,17 @@ def _get_datetime_now():
   return datetime.datetime.now()
 
 
-class EventTypes(Enum):
+class EventTypes:
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
+
+
+class TestcaseOrigin:
+  """Testcase creation origins."""
+  MANUAL_UPLOAD = 'manual_upload'
+  FUZZ_TASK = 'fuzz_task'
+  CORPUS_PRUNING = 'corpus_pruning'
 
 
 class RejectionReason:
@@ -108,10 +114,9 @@ class BaseTaskEvent(Event):
 @dataclass(kw_only=True)
 class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase creation event."""
-  event_type: str = field(
-      default=EventTypes.TESTCASE_CREATION.value, init=False)
+  event_type: str = field(default=EventTypes.TESTCASE_CREATION, init=False)
   # Either manual upload, fuzz task or corpus pruning.
-  origin: str | None = None
+  creation_origin: str | None = None
   # User email, if testcase manually uploaded.
   uploader: str | None = None
 
@@ -119,8 +124,7 @@ class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
 @dataclass(kw_only=True)
 class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase rejection event."""
-  event_type: str = field(
-      default=EventTypes.TESTCASE_REJECTION.value, init=False)
+  event_type: str = field(default=EventTypes.TESTCASE_REJECTION, init=False)
   # Explanation for the testcase rejection, e.g., analyze_flake_on_first_attempt
   # or analyze_no_repro or triage_duplicate_testcase.
   rejection_reason: str | None = None
@@ -128,8 +132,8 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
 
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
-    EventTypes.TESTCASE_CREATION.value: TestcaseCreationEvent,
-    EventTypes.TESTCASE_REJECTION.value: TestcaseRejectionEvent,
+    EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
+    EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
 }
 
 
