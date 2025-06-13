@@ -102,7 +102,6 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
 
     # The following are RPCs that execute larger tasks. Don't retry these.
     self.PruneCorpus = _wrap_call(self.PruneCorpus, num_retries=0)
-    self.ProcessTestcase = _wrap_call(self.ProcessTestcase, num_retries=0)
     self.EngineFuzz = _wrap_call(self.EngineFuzz, num_retries=0)
     self.EngineReproduce = _wrap_call(self.EngineReproduce, num_retries=0)
     # pylint: enable=invalid-name

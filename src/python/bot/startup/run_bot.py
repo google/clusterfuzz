@@ -194,9 +194,6 @@ def main():
     sys.exit(-1)
 
   fuzzers_init.run()
-
-  logs.info(f'PID is {os.getpid()}')
-
   if environment.is_trusted_host(ensure_connected=False):
     from clusterfuzz._internal.bot.untrusted_runner import host
     host.init()
@@ -226,6 +223,7 @@ def main():
         clean_exit or errors.error_in_list(error_stacktrace,
                                            errors.BOT_ERROR_TERMINATION_LIST))
     if should_terminate:
+      logs.info('Not retrying.')
       return
 
     logs.error(

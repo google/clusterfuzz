@@ -20,7 +20,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
-from enum import Enum
 from typing import Any
 
 from clusterfuzz._internal.config import local_config
@@ -30,10 +29,29 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-class EventTypes(Enum):
+def _get_datetime_now():
+  """Returns the current datetime (useful for testing)."""
+  return datetime.datetime.now()
+
+
+class EventTypes:
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
-  ISSUE_FILLING = 'issue_filling'
+  TESTCASE_REJECTION = 'testcase_rejection'
+  ISSUE_FILING = 'issue_filing'
+
+
+class TestcaseOrigin:
+  """Testcase creation origins."""
+  MANUAL_UPLOAD = 'manual_upload'
+  FUZZ_TASK = 'fuzz_task'
+  CORPUS_PRUNING = 'corpus_pruning'
+
+
+class RejectionReason:
+  """Explanation for the testcase rejection values."""
+  ANALYZE_NO_REPRO = 'analyze_no_repro'
+  ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
 
 
 @dataclass(kw_only=True)
@@ -55,7 +73,7 @@ class Event:
 
   def __post_init__(self, **kwargs):
     del kwargs
-    self.timestamp = datetime.datetime.now()
+    self.timestamp = _get_datetime_now()
     common_ctx = logs.get_common_log_context()
     for key, val in common_ctx.items():
       setattr(self, key, val)
@@ -97,19 +115,27 @@ class BaseTaskEvent(Event):
 @dataclass(kw_only=True)
 class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase creation event."""
-  event_type: str = field(
-      default=EventTypes.TESTCASE_CREATION.value, init=False)
+  event_type: str = field(default=EventTypes.TESTCASE_CREATION, init=False)
   # Either manual upload, fuzz task or corpus pruning.
-  origin: str | None = None
+  creation_origin: str | None = None
   # User email, if testcase manually uploaded.
   uploader: str | None = None
 
 
 @dataclass(kw_only=True)
-class IssueFillingEvent(BaseTestcaseEvent, BaseTaskEvent):
+class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase rejection event."""
+  event_type: str = field(default=EventTypes.TESTCASE_REJECTION, init=False)
+  # Explanation for the testcase rejection, e.g., analyze_flake_on_first_attempt
+  # or analyze_no_repro or triage_duplicate_testcase.
+  rejection_reason: str | None = None
+
+
+@dataclass(kw_only=True)
+class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase creation event."""
   event_type: str = field(
-      default=EventTypes.ISSUE_FILLING.value, init=False)
+      default=EventTypes.ISSUE_FILING.value, init=False)
   # Either buganizer or some_other_board.
   issue_tracker: str | None = None
   # The number of the issue on the issue tracker.
@@ -117,10 +143,12 @@ class IssueFillingEvent(BaseTestcaseEvent, BaseTaskEvent):
   # If the issue filing attempt was successful.
   issue_created: bool | None = None
 
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
-    EventTypes.TESTCASE_CREATION.value: TestcaseCreationEvent,
-    EventTypes.ISSUE_FILLING.value: IssueFillingEvent,
+    EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
+    EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
+    EventTypes.ISSUE_FILING: IssueFilingEvent,
 }
 
 

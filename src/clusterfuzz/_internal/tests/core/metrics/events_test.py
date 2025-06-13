@@ -15,7 +15,6 @@
 import datetime
 import os
 import platform
-import time
 import unittest
 
 from clusterfuzz._internal.datastore import data_handler
@@ -30,7 +29,10 @@ class EventsDataTest(unittest.TestCase):
   """Test event dataclasses."""
 
   def setUp(self):
-    helpers.patch(self, ['clusterfuzz._internal.base.utils.get_instance_name'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.get_instance_name',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
+    ])
     self.original_env = dict(os.environ)
     os.environ['OS_OVERRIDE'] = 'linux'
     # Override reading the manifest file for the source version.
@@ -38,6 +40,8 @@ class EventsDataTest(unittest.TestCase):
                                              '-cad6977-prod')
     self.mock.get_instance_name.return_value = 'linux-bot'
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+    self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     return super().setUp()
 
   def tearDown(self):
@@ -49,7 +53,7 @@ class EventsDataTest(unittest.TestCase):
     """Asserts for common event fields."""
     self.assertEqual(event.event_type, event_type)
     self.assertEqual(event.source, source)
-    self.assertIsInstance(event.timestamp, datetime.datetime)
+    self.assertEqual(event.timestamp, self.date_now)
 
     self.assertEqual(event.clusterfuzz_version, '40773ac0')
     self.assertEqual(event.clusterfuzz_config_version, 'cad6977')
@@ -71,14 +75,6 @@ class EventsDataTest(unittest.TestCase):
     source = 'events_test'
     event = events.Event(event_type=event_type, source=source)
     self._assert_event_common_fields(event, event_type, source)
-
-  def test_event_timestamp(self):
-    """Test event creation timestamp."""
-    event_type = 'generic_event'
-    early_event = events.Event(event_type=event_type)
-    time.sleep(1)
-    late_event = events.Event(event_type=event_type)
-    self.assertGreater(late_event.timestamp, early_event.timestamp)
 
   def test_testcase_event(self):
     """Test testcase event base class. """
@@ -102,46 +98,52 @@ class EventsDataTest(unittest.TestCase):
 
   def test_testcase_creation_events(self):
     """Test testcase creation event class."""
-    event_type = events.EventTypes.TESTCASE_CREATION.value
+    event_type = events.EventTypes.TESTCASE_CREATION
     source = 'events_test'
     testcase = test_utils.create_generic_testcase()
 
     event_creation_manual = events.TestcaseCreationEvent(
         source=source,
         testcase=testcase,
-        origin='manual_upload',
+        creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
         uploader='test@gmail.com')
     self._assert_event_common_fields(event_creation_manual, event_type, source)
-    self.assertEqual(event_creation_manual.origin, 'manual_upload')
+    self._assert_testcase_fields(event_creation_manual, testcase)
+    self.assertEqual(event_creation_manual.creation_origin,
+                     events.TestcaseOrigin.MANUAL_UPLOAD)
     self.assertEqual(event_creation_manual.uploader, 'test@gmail.com')
 
     event_creation_fuzz = events.TestcaseCreationEvent(
-        source=source, testcase=testcase, origin='fuzz_task')
+        source=source,
+        testcase=testcase,
+        creation_origin=events.TestcaseOrigin.FUZZ_TASK)
     self._assert_event_common_fields(event_creation_fuzz, event_type, source)
-    self.assertEqual(event_creation_fuzz.origin, 'fuzz_task')
+    self._assert_testcase_fields(event_creation_fuzz, testcase)
+    self.assertEqual(event_creation_fuzz.creation_origin,
+                     events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_creation_fuzz.uploader)
 
-  def test_issue_filling_event(self):
-    """Test issue filling event class."""
-    event_type = events.EventTypes.ISSUE_FILLING.value
+  def test_testcase_rejection_event(self):
+    """Test testcase rejection event class."""
+    event_type = events.EventTypes.TESTCASE_REJECTION
     source = 'events_test'
     testcase = test_utils.create_generic_testcase()
 
-    event_issue_filling = events.IssueFillingEvent(
+    event_rejection = events.TestcaseRejectionEvent(
         source=source,
         testcase=testcase,
-        issue_tracker='buganizer',
-        issue_id='bug_id',
-        issue_created=True)
-    self._assert_event_common_fields(event_issue_filling, event_type, source)
-    self._assert_testcase_fields(event_issue_filling, testcase)
-    self.assertEqual(event_issue_filling.issue_tracker, 'buganizer')
-    self.assertEqual(event_issue_filling.issue_id, 'bug_id')
-    self.assertTrue(event_issue_filling.issue_created)
+        rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
+    self._assert_event_common_fields(event_rejection, event_type, source)
+    self._assert_testcase_fields(event_rejection, testcase)
+    self.assertEqual(event_rejection.rejection_reason,
+                     events.RejectionReason.ANALYZE_NO_REPRO)
 
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
-    event_types = [e.value for e in events.EventTypes]
+    # Retrieve all event types defined by EventTypes class.
+    event_types = [
+        v for k, v in vars(events.EventTypes).items() if not k.startswith('__')
+    ]
     event_types_classes = list(events._EVENT_TYPE_CLASSES.keys())  # pylint: disable=protected-access
     self.assertCountEqual(event_types, event_types_classes)
 
@@ -210,50 +212,63 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.timestamp, event_gen.timestamp)
     self._assert_common_event_fields(event_entity)
 
-  def test_serialize_testcase_specific_event(self):
-    """Test serializing a testcase specific event into a datastore entity."""
+  def test_serialize_testcase_creation_event(self):
+    """Test serializing a testcase creation event into a datastore entity."""
     testcase = test_utils.create_generic_testcase()
     source = 'events_test'
-    # Using testcase creation event for testing should be enough to test any
-    # event type as long as it is mapped in the events module.
+
     event_tc_creation = events.TestcaseCreationEvent(
-        source=source, testcase=testcase, origin='fuzz_task')
+        source=source,
+        testcase=testcase,
+        creation_origin=events.TestcaseOrigin.FUZZ_TASK)
     event_type = event_tc_creation.event_type
+    timestamp = event_tc_creation.timestamp
 
     event_entity = self.repository._serialize_event(event_tc_creation)  # pylint: disable=protected-access
     self.assertIsNotNone(event_entity)
     self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
     self.assertEqual(event_entity.event_type, event_type)
     self.assertEqual(event_entity.source, source)
-    self.assertEqual(event_entity.timestamp, event_tc_creation.timestamp)
+    self.assertEqual(event_entity.timestamp, timestamp)
     self._assert_common_event_fields(event_entity)
 
     self._assert_testcase_fields(event_entity, testcase.key.id())
     self.assertEqual(event_entity.task_id,
                      'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
-    self.assertEqual(event_entity.origin, 'fuzz_task')
+    self.assertEqual(event_entity.creation_origin,
+                     events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_entity.uploader)
 
-  def test_serialize_issue_filling_event(self):
-    """Test serializing an issue filling event."""
+  def test_serialize_testcase_rejection_event(self):
+    """Test serializing a testcase rejection event."""
     testcase = test_utils.create_generic_testcase()
-    event = events.IssueFillingEvent(
+    event = events.TestcaseRejectionEvent(
         source='events_test',
         testcase=testcase,
-        issue_tracker='buganizer',
-        issue_id='1337',
-        issue_created=False)
+        rejection_reason=events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
+    event_type = event.event_type
+    timestamp = event.timestamp
 
-    entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
-    self.assertIsNotNone(entity)
-    self.assertEqual(entity.issue_tracker, 'buganizer')
-    self.assertEqual(entity.issue_id, '1337')
-    self.assertFalse(entity.issue_created)
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self.assertEqual(event_entity.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+
+    # TestcaseRejectionEvent specific assertions
+    self.assertEqual(event_entity.rejection_reason,
+                     events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
     event_entity = data_types.TestcaseLifecycleEvent(event_type='generic_event')
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
@@ -267,10 +282,10 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.timestamp, date_now)
     self._assert_common_event_fields(event)
 
-  def test_deserialize_testcase_event(self):
-    """Test deserializing a datastore event entity into an specific event."""
-    event_type = events.EventTypes.TESTCASE_CREATION.value
-    date_now = datetime.datetime.now()
+  def test_deserialize_testcase_creation_event(self):
+    """Test deserializing a datastore event into a testcase creation event."""
+    event_type = events.EventTypes.TESTCASE_CREATION
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 
     event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
     event_entity.timestamp = date_now
@@ -281,7 +296,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.fuzzer = 'fuzzer1'
     event_entity.job = 'test_job'
     event_entity.crash_revision = 2
-    event_entity.origin = 'manual_upload'
+    event_entity.creation_origin = events.TestcaseOrigin.MANUAL_UPLOAD
     event_entity.uploader = 'test@gmail.com'
     event_entity.put()
 
@@ -297,37 +312,53 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.fuzzer, 'fuzzer1')
     self.assertEqual(event.job, 'test_job')
     self.assertEqual(event.crash_revision, 2)
-    self.assertEqual(event.origin, 'manual_upload')
+    self.assertEqual(event.creation_origin, events.TestcaseOrigin.MANUAL_UPLOAD)
     self.assertEqual(event.uploader, 'test@gmail.com')
 
-  def test_deserialize_issue_filling_event(self):
-    """Test deserializing an issue filling event."""
-    event_type = events.EventTypes.ISSUE_FILLING.value
-    date_now = datetime.datetime.now()
+  def test_deserialize_testcase_rejection_event(self):
+    """Test deserializing a testcase rejection event."""
+    event_type = events.EventTypes.TESTCASE_REJECTION
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 
     event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     event_entity.testcase_id = 1
-    event_entity.issue_tracker = 'buganizer'
-    event_entity.issue_id = '9876'
-    event_entity.issue_created = True
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.rejection_reason = events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
     self.assertIsNotNone(event)
-    self.assertIsInstance(event, events.IssueFillingEvent)
-    self.assertEqual(event.issue_tracker, 'buganizer')
-    self.assertEqual(event.issue_id, '9876')
-    self.assertTrue(event.issue_created)
+    self.assertIsInstance(event, events.TestcaseRejectionEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # TestcaseRejectionEvent specific assertions
+    self.assertEqual(event.rejection_reason,
+                     events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_store_event(self):
     """Test storing an event into datastore."""
     testcase = test_utils.create_generic_testcase()
 
     event_tc_creation = events.TestcaseCreationEvent(
-        source='events_test', testcase=testcase, origin='fuzz_task')
+        source='events_test',
+        testcase=testcase,
+        creation_origin=events.TestcaseOrigin.FUZZ_TASK)
     event_type = event_tc_creation.event_type
     timestamp = event_tc_creation.timestamp
     eid = self.repository.store_event(event_tc_creation)
@@ -344,14 +375,15 @@ class DatastoreEventsTest(unittest.TestCase):
     self._assert_testcase_fields(event_entity, testcase.key.id())
     self.assertEqual(event_entity.task_id,
                      'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
-    self.assertEqual(event_entity.origin, 'fuzz_task')
+    self.assertEqual(event_entity.creation_origin,
+                     events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_entity.uploader)
 
   def test_get_event(self):
     """Test retrieving an event from datastore."""
     event_entity = data_types.TestcaseLifecycleEvent(
         event_type='generic_event_test')
-    date_now = datetime.datetime.now()
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     event_entity.timestamp = date_now
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
@@ -372,12 +404,18 @@ class EmitEventTest(unittest.TestCase):
   """Test event emission and handler config."""
 
   def setUp(self):
-    helpers.patch(self,
-                  ['clusterfuzz._internal.config.local_config.ProjectConfig'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
+    ])
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+    self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     self.project_config = {}
     self.mock.ProjectConfig.return_value = self.project_config
 
   def tearDown(self):
+    # Reset handlers, since it is only configured in the first events emit.
+    events._handlers = None  # pylint: disable=protected-access
     self.project_config = {}
 
   def test_get_datastore_repository(self):
@@ -398,9 +436,13 @@ class EmitEventTest(unittest.TestCase):
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
 
     testcase = test_utils.create_generic_testcase()
+    # Using testcase creation event for testing should be enough to test any
+    # event type as long as it is mapped in the events module.
     events.emit(
         events.TestcaseCreationEvent(
-            source='events_test', testcase=testcase, origin='fuzz_task'))
+            source='events_test',
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.FUZZ_TASK))
 
     # Assert that the event was stored in datastore.
     all_events = data_types.TestcaseLifecycleEvent.query().fetch()
@@ -408,10 +450,12 @@ class EmitEventTest(unittest.TestCase):
     event_entity = all_events[0]
 
     self.assertEqual(event_entity.event_type,
-                     events.EventTypes.TESTCASE_CREATION.value)
+                     events.EventTypes.TESTCASE_CREATION)
     self.assertIsNotNone(event_entity.timestamp)
+    self.assertEqual(event_entity.timestamp, self.date_now)
     self.assertEqual(event_entity.source, 'events_test')
-    self.assertEqual(event_entity.origin, 'fuzz_task')
+    self.assertEqual(event_entity.creation_origin,
+                     events.TestcaseOrigin.FUZZ_TASK)
     self.assertEqual(event_entity.task_id,
                      'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.assertEqual(event_entity.testcase_id, testcase.key.id())

@@ -1654,10 +1654,14 @@ class TestcaseLifecycleEvent(Model):
 
   ### Testcase Creation.
   # How testcase was created (manual upload, fuzz, corpus pruning).
-  origin = ndb.StringProperty()
+  creation_origin = ndb.StringProperty()
 
   # If testcase is manually uploaded, the user email.
   uploader = ndb.StringProperty()
+
+  ### Testcase Rejection
+  # Explanation for the testcase rejection.
+  rejection_reason = ndb.StringProperty()
 
   ### Issue Filing.
   # Name of the issue tracker (e.g., buganizer).
