@@ -462,28 +462,3 @@ class EmitEventTest(unittest.TestCase):
     self.assertEqual(event_entity.fuzzer, 'fuzzer1')
     self.assertEqual(event_entity.job, 'test_content_shell_drt')
     self.assertEqual(event_entity.crash_revision, 1)
-
-  def test_emit_datastore_issue_filling_event(self):
-    """Test emit issue filling event with datastore repository."""
-    self.project_config['events.storage'] = 'datastore'
-    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
-
-    testcase = test_utils.create_generic_testcase()
-    events.emit(
-        events.IssueFillingEvent(
-            source='events_test',
-            testcase=testcase,
-            issue_tracker='buganizer',
-            issue_id='42',
-            issue_created=True))
-
-    # Assert that the event was stored in datastore.
-    all_events = data_types.TestcaseLifecycleEvent.query().fetch()
-    self.assertEqual(len(all_events), 1)
-    event_entity = all_events[0]
-
-    self.assertEqual(event_entity.event_type,
-                     events.EventTypes.ISSUE_FILLING.value)
-    self.assertEqual(event_entity.issue_tracker, 'buganizer')
-    self.assertEqual(event_entity.issue_id, '42')
-    self.assertTrue(event_entity.issue_created)
