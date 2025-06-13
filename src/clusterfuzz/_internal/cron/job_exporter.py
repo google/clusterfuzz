@@ -142,14 +142,16 @@ class EntityMigrator:
     entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
     for entity in self._target_cls.query():
       entity_name = getattr(entity, 'name', None)
-      assert entity_name
+      if not entity_name:
+        raise ValueError('Expected entity name to be present, it is not.')
       self._export_entity(entity, entity_bucket_prefix, entity_name)
       entity_names.add(entity_name)
     self._export_entity_names(entity_names, entity_bucket_prefix)
 
   def _import_blobs(self, entity: ndb.Model, entity_name: str,
                     entity_location: str):
-    """Copies exported blobs to a new blob id, and updates the entity."""
+    """Copies exported blobs to a new blob id, and returns a map with
+        the new blob ids."""
     new_blob_ids = {}
     for blobstore_key in self.blobstore_keys:
       source_blob_location = f'{entity_location}/{blobstore_key}'
@@ -165,7 +167,7 @@ class EntityMigrator:
       target_blob_location = f'gs://{storage.blobs_bucket()}/{new_blob_id}'
       if not storage.copy_blob(source_blob_location, target_blob_location):
         raise ValueError(f'Failed to import blob from {source_blob_location} '
-                         'to {target_blob_location}.')
+                         f'to {target_blob_location}.')
       new_blob_ids[blobstore_key] = new_blob_id
     return new_blob_ids
 
