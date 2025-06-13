@@ -54,6 +54,10 @@ class RejectionReason:
   ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
 
 
+class IssueTracker:
+  BUGANIZER = 'buganizer'
+
+
 @dataclass(kw_only=True)
 class Event:
   """Base class for ClusterFuzz events."""
