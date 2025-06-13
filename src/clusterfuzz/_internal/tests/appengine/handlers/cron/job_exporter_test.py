@@ -146,6 +146,7 @@ def _register_entity_and_upload_blobs(
     blobs_bucket: str,
     blobstore_key_content: bytes | None,
     sample_testcase_contents: bytes | None,
+    custom_binary_contents: bytes | None,
 ):
   """Persists an entity to GCS, and its blobs into the project's
     blob bucket."""
@@ -163,6 +164,12 @@ def _register_entity_and_upload_blobs(
     assert sample_testcase_key
     storage.write_data(sample_testcase_contents,
                        f'gs://{blobs_bucket}/{sample_testcase_key}')
+
+
+  if custom_binary_contents:
+    custom_binary_key = getattr(entity, 'custom_binary_key', None)
+    assert custom_binary_key
+    storage.write_data(custom_binary_contents, f'gs://{blobs_bucket}/{custom_binary_key}')
 
 
 def _upload_entity_list(entities: List[str], entity_base_path: str):
@@ -551,6 +558,7 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
         blobstore_key_content=blobstore_key_payload,
         sample_testcase_contents=sample_testcase_payload,
         blobs_bucket=self.blobs_bucket,
+        custom_binary_contents=None,
     )
 
     previous_fuzzers = list(data_types.Fuzzer.query())
@@ -604,6 +612,7 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
         blobstore_key_content=None,
         sample_testcase_contents=None,
         blobs_bucket=self.blobs_bucket,
+        custom_binary_contents=None,
     )
 
     _upload_entity_export_data(
@@ -742,6 +751,7 @@ class TestJobsAreCorrectlyImported(unittest.TestCase):
         blobstore_key_content=None,
         sample_testcase_contents=None,
         blobs_bucket=self.blobs_bucket,
+        custom_binary_contents=None,
     )
 
     jobs = list(data_types.Job.query())
