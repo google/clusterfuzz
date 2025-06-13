@@ -15,11 +15,15 @@
     in order to mirror the workloads on testing environments."""
 
 import os
+import unittest
+import re
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -52,7 +56,7 @@ class GCloudCLIRSync(RSyncClient):
     self._runner = gsutil.GSUtilRunner()
 
   def rsync(self, source: str, target: str):
-    self._runner.rsync(f'gs://{source}', target)
+    self._runner.rsync(source, target)
 
 
 class StorageRSync(RSyncClient):
@@ -63,21 +67,29 @@ class StorageRSync(RSyncClient):
     pass
 
   def rsync(self, source: str, target: str):
-    for blob in storage.list_blobs(f'gs://{source}'):
+    for blob in storage.list_blobs(source):
+      # The filesyste implementation of storage.get_blobs returns the path
+      # starting from the bucket, not from the declared source location. This
+      # behavior does not happen for the gcloud CLI, so this works around the
+      # mistmatch.
+      pattern = r'databundle/.*/contents/'
+      blob = re.sub(pattern, '', blob)
       blob_target_path = f'{target}/{blob}'
-      storage.copy_blob(f'gs://{source}/{blob}', blob_target_path)
+      storage.copy_blob(f'{source}/{blob}', blob_target_path)
 
 
 class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
   def __init__(self, target_cls: ndb.Model, blobstore_keys: list[str],
-               entity_type: str, rsync_client: RSyncClient, export_bucket: str):
+               entity_type: str, rsync_client: RSyncClient, export_bucket: str,
+               env_string_substitutions: dict[str, str] = {}):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
     self._rsync_client = rsync_client
     self._export_bucket = export_bucket
+    self._env_string_substitutions = env_string_substitutions
 
   def _serialize(self, entity) -> bytes:
     return uworker_io.entity_to_protobuf(entity).SerializeToString()
@@ -117,27 +129,125 @@ class EntityMigrator:
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
       return
     target_location = f'{bucket_prefix}/contents'
-    self._rsync_client.rsync(entity.bucket_name, target_location)
+    self._rsync_client.rsync(f'gs://{entity.bucket_name}', target_location)
 
-  def _export_entity(self, entity: ndb.Model):
+  def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
+                     entity_name: str):
     """Exports entity as protobuf and its respective blobs to GCS."""
     # Entitites get their name from the 'name' field in datastore
-    entity_name = getattr(entity, 'name', None)
-    assert entity_name
-    bucket_prefix = (f'gs://{self._export_bucket}/'
-                     f'{self._entity_type}/'
-                     f'{entity_name}')
+    bucket_prefix = f'{entity_bucket_prefix}/{entity_name}'
     entity_target_location = f'{bucket_prefix}/entity.proto'
     self._serialize_entity_to_gcs(entity, entity_target_location)
     self._export_blobs(entity, bucket_prefix)
     self._export_data_bundle_contents_if_applicable(entity, bucket_prefix)
 
+  def _export_entity_names(self, entities: set[str], entity_bucket_prefix: str):
+    entity_list = '\n'.join(entities)
+    storage.write_data(
+        entity_list.encode('utf-8'), f'{entity_bucket_prefix}/entities')
+
   def export_entities(self):
+    entity_names = set()
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
     for entity in self._target_cls.query():
-      self._export_entity(entity)
+      entity_name = getattr(entity, 'name', None)
+      assert entity_name
+      self._export_entity(entity, entity_bucket_prefix, entity_name)
+      entity_names.add(entity_name)
+
+    self._export_entity_names(entity_names, entity_bucket_prefix)
+
+  def _import_blobs(self, entity: ndb.Model, entity_name: str,
+                    entity_location: str):
+    """Copies exported blobs to a new blob id, and updates the entity."""
+    new_blob_ids = {}
+    for blobstore_key in self.blobstore_keys:
+      source_blob_location = f'{entity_location}/{blobstore_key}'
+      if not getattr(entity, blobstore_key, None):
+        logs.info(
+            f'{blobstore_key} missing for {entity_name}, skipping blob import.')
+        continue
+      if not storage.get(source_blob_location):
+        raise ValueError(
+            f'Absent blob for {blobstore_key} in {entity_name}, it '
+            'should be present.'
+        )
+      new_blob_id = blobs.generate_new_blob_name()
+      target_blob_location = f'gs://{storage.blobs_bucket()}/{new_blob_id}'
+      if not storage.copy_blob(source_blob_location, target_blob_location):
+        raise ValueError(
+            f'Failed to import blob from {source_blob_location} '
+            'to {target_blob_location}.'
+        )
+      new_blob_ids[blobstore_key] = new_blob_id
+    return new_blob_ids
+
+  def _import_data_bundle_contents(self, source_location: str, bundle_name: str):
+    new_bundle_bucket = data_handler.get_data_bundle_bucket_name(bundle_name)
+    storage.create_bucket_if_needed(new_bundle_bucket)
+    self._rsync_client.rsync(source_location, f'gs://{new_bundle_bucket}')
+    return new_bundle_bucket
+
+  def _substitute_environment_string(self, env_string: str):
+    if not env_string:
+      return env_string
+    project_config = local_config.ProjectConfig()
+    substitutions = self._env_string_substitutions
+    for source_text in substitutions:
+      replacement = substitutions[source_text]
+      env_string = env_string.replace(source_text, replacement)
+    return env_string
+
+  def _import_entity(self, entity_name: str, entity_location: str):
+    """Imports entity into datastore, blobs if present, and databundle."""
+    entity_to_import = self._deserialize_entity_from_gcs(
+        f'{entity_location}/entity.proto')
+
+    # Blobs are deployment specific, must be migrated
+    new_blob_ids = self._import_blobs(entity_to_import, entity_name,
+                                      entity_location)
+    for blob_key in new_blob_ids:
+      setattr(entity_to_import, blob_key, new_blob_ids[blob_key])
+
+    # rsync data bundle contents into the new namespaced bucket, and update
+    # bucket reference
+    if isinstance(entity_to_import, data_types.DataBundle):
+      new_bundle_bucket = self._import_data_bundle_contents(f'{entity_location}/contents', entity_name)
+      setattr(entity_to_import, 'bucket_name', new_bundle_bucket)
+
+    # b/422759773 : intends to avoid testing environments from using production 
+    # corpus, logs, backup or quarantine buckets, since these are hardcoded
+    # into job env strings.
+    if (isinstance(entity_to_import, data_types.Job) or
+        isinstance(entity_to_import, data_types.JobTemplate)):
+      env_string = getattr(entity_to_import, 'environment_string', None)
+      new_env_string = self._substitute_environment_string(env_string)
+      setattr(entity_to_import, 'environment_string', new_env_string)
+
+    # Do not assume that name is a primary key
+    preexisting_entity = self._target_cls.query(
+        self._target_cls.name == entity_name).get()
+    if preexisting_entity:
+      preexisting_entity.key.delete()
+
+    entity_to_import.put()
 
   def import_entities(self):
-    pass
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
+    entity_list_location = f'{entity_bucket_prefix}/entities'
+    if not storage.get(entity_list_location):
+      raise ValueError(f'Missing entity list in {entity_list_location}')
+    entities_to_sync = storage.read_data(entity_list_location)
+    if not entities_to_sync:
+      entities_to_sync = []
+    else:
+      entities_to_sync = entities_to_sync.decode('utf-8').split('\n')
+    for entity in self._target_cls.query():
+      if entity.name not in entities_to_sync:
+        entity.key.delete()
+    for entity_name in entities_to_sync:
+      entity_location = f'{entity_bucket_prefix}/{entity_name}'
+      self._import_entity(entity_name, entity_location)
 
 
 def main():
@@ -148,10 +258,12 @@ def main():
   assert operation_mode in ['import', 'export']
 
   rsync_client = GCloudCLIRSync()
+  project_config = local_config.ProjectConfig()
+  env_string_substitutions = project_config.get('job_exporter.env_string_substitutions', {})
 
   for (entity, blobstore_keys, entity_name) in target_entities:
     migrator = EntityMigrator(entity, blobstore_keys, entity_name, rsync_client,
-                              export_bucket)
+                              export_bucket, env_string_substitutions)
     if operation_mode == 'export':
       migrator.export_entities()
     else:
