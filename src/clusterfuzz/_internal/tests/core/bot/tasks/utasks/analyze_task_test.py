@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for analyze task."""
 
-import datetime
 import json
 import os
 import tempfile
@@ -252,14 +251,19 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    self.mock_rejection_event = unittest.mock.Mock()
+
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.datastore.data_handler.mark_invalid_uploaded_testcase',
         'clusterfuzz._internal.metrics.events.emit',
-        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.metrics.events.TestcaseRejectionEvent',
     ])
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+
+    # When TestcaseRejectionEvent is created, call our helper to populate
+    # the mock object and then return it.
+    self.mock.TestcaseRejectionEvent.side_effect = self.init_rejection_event
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_metadata = data_types.TestcaseUploadMetadata(
         testcase_id=self.testcase.key.id())
@@ -268,21 +272,30 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
         testcase_id=str(self.testcase.key.id()))
     self.uworker_output = uworker_msg_pb2.Output(uworker_input=uworker_input)
 
+  def init_rejection_event(self, testcase, rejection_reason):
+    """A side effect to capture arguments passed to TestcaseRejectionEvent."""
+    self.mock_rejection_event.testcase_id = testcase.key.id()
+    self.mock_rejection_event.rejection_reason = rejection_reason
+    return self.mock_rejection_event
+
+  def _assert_rejection_event_emitted(self, expected_reason):
+    """Asserts that the correct rejection event was emitted once."""
+    self.mock.emit.assert_called_once_with(self.mock_rejection_event)
+    self.assertEqual(self.testcase.key.id(),
+                     self.mock_rejection_event.testcase_id)
+    self.assertEqual(expected_reason,
+                     self.mock_rejection_event.rejection_reason)
+
   def test_event_emition_handle_noncrash_first_attempt(self):
     """Test that a non-crashing testcase is retried on the first attempt."""
     self.mock.is_first_attempt_for_task.return_value = True
     analyze_task.handle_noncrash(self.uworker_output)
-    self.mock.emit.assert_called_once_with(
-        events.TestcaseRejectionEvent(
-            testcase=self.testcase,
-            rejection_reason=events.RejectionReason.
-            ANALYZE_FLAKE_ON_FIRST_ATTEMPT))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_event_emition_handle_noncrash_second_attempt(self):
     """Test that a non-crashing testcase is marked invalid after the second attempt."""
     self.mock.is_first_attempt_for_task.return_value = False
     analyze_task.handle_noncrash(self.uworker_output)
-    self.mock.emit.assert_called_once_with(
-        events.TestcaseRejectionEvent(
-            testcase=self.testcase,
-            rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.ANALYZE_NO_REPRO)
