@@ -119,25 +119,97 @@ class EntityMigrator:
     target_location = f'{bucket_prefix}/contents'
     self._rsync_client.rsync(entity.bucket_name, target_location)
 
-  def _export_entity(self, entity: ndb.Model):
+  def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
+                     entity_name: str):
     """Exports entity as protobuf and its respective blobs to GCS."""
     # Entitites get their name from the 'name' field in datastore
-    entity_name = getattr(entity, 'name', None)
-    assert entity_name
-    bucket_prefix = (f'gs://{self._export_bucket}/'
-                     f'{self._entity_type}/'
-                     f'{entity_name}')
+    bucket_prefix = f'{entity_bucket_prefix}/{entity_name}'
     entity_target_location = f'{bucket_prefix}/entity.proto'
     self._serialize_entity_to_gcs(entity, entity_target_location)
     self._export_blobs(entity, bucket_prefix)
     self._export_data_bundle_contents_if_applicable(entity, bucket_prefix)
 
+  def _export_entity_names(self, entities: set[str], entity_bucket_prefix: str):
+    """Writes entity name list to GCS."""
+    entity_list = '\n'.join(entities)
+    storage.write_data(
+        entity_list.encode('utf-8'), f'{entity_bucket_prefix}/entities')
+
   def export_entities(self):
+    """Exports individual entities of a certain type, and populates a list
+       the individual names of entities for future importing."""
+    entity_names = set()
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
     for entity in self._target_cls.query():
-      self._export_entity(entity)
+      entity_name = getattr(entity, 'name', None)
+      if not entity_name:
+        raise ValueError('Expected entity name to be present, it is not.')
+      self._export_entity(entity, entity_bucket_prefix, entity_name)
+      entity_names.add(entity_name)
+    self._export_entity_names(entity_names, entity_bucket_prefix)
+
+  def _import_blobs(self, entity: ndb.Model, entity_name: str,
+                    entity_location: str):
+    """Copies exported blobs to a new blob id, and returns a map with
+        the new blob ids."""
+    new_blob_ids = {}
+    for blobstore_key in self.blobstore_keys:
+      source_blob_location = f'{entity_location}/{blobstore_key}'
+      if not getattr(entity, blobstore_key, None):
+        logs.info(
+            f'{blobstore_key} missing for {entity_name}, skipping blob import.')
+        continue
+      if not storage.get(source_blob_location):
+        raise ValueError(
+            f'Absent blob for {blobstore_key} in {entity_name}, it '
+            'should be present.')
+      new_blob_id = blobs.generate_new_blob_name()
+      target_blob_location = f'gs://{storage.blobs_bucket()}/{new_blob_id}'
+      if not storage.copy_blob(source_blob_location, target_blob_location):
+        raise ValueError(f'Failed to import blob from {source_blob_location} '
+                         f'to {target_blob_location}.')
+      new_blob_ids[blobstore_key] = new_blob_id
+    return new_blob_ids
+
+  def _import_entity(self, entity_name: str, entity_location: str):
+    """Imports entity into datastore, blobs, databundle contents
+        and substitutes environment strings, if applicable."""
+    entity_to_import = self._deserialize_entity_from_gcs(
+        f'{entity_location}/entity.proto')
+
+    # Blobs are deployment specific, must be migrated
+    new_blob_ids = self._import_blobs(entity_to_import, entity_name,
+                                      entity_location)
+    for blob_key, blob_value in new_blob_ids.items():
+      setattr(entity_to_import, blob_key, blob_value)
+
+    # Do not assume that name is a primary key, avoid having two
+    # different keys with the same name.
+    preexisting_entity = self._target_cls.query(
+        self._target_cls.name == entity_name).get()
+    if preexisting_entity:
+      preexisting_entity.key.delete()
+
+    entity_to_import.put()
 
   def import_entities(self):
-    pass
+    """Iterates over all entitiy names declared in the last export, and imports
+      its contents."""
+    entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
+    entity_list_location = f'{entity_bucket_prefix}/entities'
+    if not storage.get(entity_list_location):
+      raise ValueError(f'Missing entity list in {entity_list_location}')
+    entities_to_sync = storage.read_data(entity_list_location)
+    if not entities_to_sync:
+      entities_to_sync = []
+    else:
+      entities_to_sync = entities_to_sync.decode('utf-8').split('\n')
+    for entity in self._target_cls.query():
+      if entity.name not in entities_to_sync:
+        entity.key.delete()
+    for entity_name in entities_to_sync:
+      entity_location = f'{entity_bucket_prefix}/{entity_name}'
+      self._import_entity(entity_name, entity_location)
 
 
 def main():
