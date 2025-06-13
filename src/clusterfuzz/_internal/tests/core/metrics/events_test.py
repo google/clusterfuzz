@@ -138,6 +138,24 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_rejection.rejection_reason,
                      events.RejectionReason.ANALYZE_NO_REPRO)
 
+  def test_issue_filing_event(self):
+    '''Test issue filing event class.'''
+    event_type = events.EventTypes.ISSUE_FILING
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+
+    event_filing = events.IssueFilingEvent(
+        source=source,
+        testcase=testcase,
+        issue_tracker=events.IssueTracker.BUGANIZER,
+        issue_id='12345',
+        issue_created=True)
+    self._assert_event_common_fields(event_filing, event_type, source)
+    self._assert_testcase_fields(event_filing, testcase)
+    self.assertEqual(event_filing.issue_tracker, events.IssueTracker.BUGANIZER)
+    self.assertEqual(event_filing.issue_id, '12345')
+    self.assertTrue(event_filing.issue_created)
+
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
     # Retrieve all event types defined by EventTypes class.
@@ -265,6 +283,35 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.rejection_reason,
                      events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
+  def test_serialize_issue_filing_event(self):
+    '''Test serializing an issue filing event.'''
+    testcase = test_utils.create_generic_testcase()
+    event = events.IssueFilingEvent(
+        source='events_test',
+        testcase=testcase,
+        issue_tracker=events.IssueTracker.BUGANIZER,
+        issue_id='67890',
+        issue_created=False)
+    event_type = event.event_type
+    timestamp = event.timestamp
+
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self.assertEqual(event_entity.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+
+    # IssueFilingEvent specific assertions
+    self.assertEqual(event_entity.issue_tracker, events.IssueTracker.BUGANIZER)
+    self.assertEqual(event_entity.issue_id, '67890')
+    self.assertFalse(event_entity.issue_created)
+
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
     event_entity = data_types.TestcaseLifecycleEvent(event_type='generic_event')
@@ -350,6 +397,45 @@ class DatastoreEventsTest(unittest.TestCase):
     # TestcaseRejectionEvent specific assertions
     self.assertEqual(event.rejection_reason,
                      events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
+
+  def test_deserialize_issue_filing_event(self):
+    '''Test deserializing an issue filing event.'''
+    event_type = events.EventTypes.ISSUE_FILING
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+
+    event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    event_entity.timestamp = date_now
+    event_entity.source = 'events_test'
+    self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.testcase_id = 1
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.issue_tracker = events.IssueTracker.BUGANIZER
+    event_entity.issue_id = '13579'
+    event_entity.issue_created = True
+    event_entity.put()
+
+    event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
+    self.assertIsNotNone(event)
+    self.assertIsInstance(event, events.IssueFilingEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # IssueFilingEvent specific assertions
+    self.assertEqual(event.issue_tracker, events.IssueTracker.BUGANIZER)
+    self.assertEqual(event.issue_id, '13579')
+    self.assertTrue(event.issue_created)
 
   def test_store_event(self):
     """Test storing an event into datastore."""

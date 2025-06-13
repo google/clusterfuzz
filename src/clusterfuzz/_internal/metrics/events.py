@@ -38,6 +38,7 @@ class EventTypes:
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
+  ISSUE_FILING = 'issue_filing'
 
 
 class TestcaseOrigin:
@@ -51,6 +52,10 @@ class RejectionReason:
   """Explanation for the testcase rejection values."""
   ANALYZE_NO_REPRO = 'analyze_no_repro'
   ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
+
+
+class IssueTracker:
+  BUGANIZER = 'buganizer'
 
 
 @dataclass(kw_only=True)
@@ -130,10 +135,23 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
   rejection_reason: str | None = None
 
 
+@dataclass(kw_only=True)
+class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase creation event."""
+  event_type: str = field(default=EventTypes.ISSUE_FILING, init=False)
+  # Either buganizer or some_other_board.
+  issue_tracker: str | None = None
+  # The number of the issue on the issue tracker.
+  issue_id: str | None = None
+  # If the issue filing attempt was successful.
+  issue_created: bool | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
+    EventTypes.ISSUE_FILING: IssueFilingEvent,
 }
 
 
