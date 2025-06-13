@@ -20,6 +20,7 @@ from google.cloud import ndb
 from google.protobuf import any_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -71,13 +72,20 @@ class StorageRSync(RSyncClient):
 class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
-  def __init__(self, target_cls: ndb.Model, blobstore_keys: list[str],
-               entity_type: str, rsync_client: RSyncClient, export_bucket: str):
+  def __init__(  # pylint: disable=dangerous-default-value
+      self,
+      target_cls: ndb.Model,
+      blobstore_keys: list[str],
+      entity_type: str,
+      rsync_client: RSyncClient,
+      export_bucket: str,
+      env_string_substitutions: dict[str, str] = {}):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
     self._rsync_client = rsync_client
     self._export_bucket = export_bucket
+    self._env_string_substitutions = env_string_substitutions
 
   def _serialize(self, entity) -> bytes:
     return uworker_io.entity_to_protobuf(entity).SerializeToString()
@@ -171,6 +179,15 @@ class EntityMigrator:
       new_blob_ids[blobstore_key] = new_blob_id
     return new_blob_ids
 
+  def _substitute_environment_string(self, env_string: str | None):
+    if not env_string:
+      return env_string
+    substitutions = self._env_string_substitutions
+    for source_text in substitutions:
+      replacement = substitutions[source_text]
+      env_string = env_string.replace(source_text, replacement)
+    return env_string
+
   def _import_entity(self, entity_name: str, entity_location: str):
     """Imports entity into datastore, blobs, databundle contents
         and substitutes environment strings, if applicable."""
@@ -182,6 +199,14 @@ class EntityMigrator:
                                       entity_location)
     for blob_key, blob_value in new_blob_ids.items():
       setattr(entity_to_import, blob_key, blob_value)
+
+    # b/422759773 : intends to avoid testing environments from using production
+    # corpus, logs, backup or quarantine buckets, since these are hardcoded
+    # into job env strings.
+    if isinstance(entity_to_import, data_types.Job):
+      env_string = getattr(entity_to_import, 'environment_string', None)
+      new_env_string = self._substitute_environment_string(env_string)
+      setattr(entity_to_import, 'environment_string', new_env_string)
 
     # Do not assume that name is a primary key, avoid having two
     # different keys with the same name.
@@ -221,9 +246,13 @@ def main():
 
   rsync_client = GCloudCLIRSync()
 
+  project_config = local_config.ProjectConfig()
+  env_string_substitutions = project_config.get(
+      'job_exporter.env_string_substitutions', {})
+
   for (entity, blobstore_keys, entity_name) in target_entities:
     migrator = EntityMigrator(entity, blobstore_keys, entity_name, rsync_client,
-                              export_bucket)
+                              export_bucket, env_string_substitutions)
     if operation_mode == 'export':
       migrator.export_entities()
     else:
