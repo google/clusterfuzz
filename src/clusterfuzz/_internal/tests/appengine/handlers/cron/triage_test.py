@@ -20,6 +20,7 @@ import unittest
 from clusterfuzz._internal.cron import triage
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -244,29 +245,50 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
   """Tests for _check_and_update_similar_bug."""
 
   def setUp(self):
+    self.mock_rejection_event = unittest.mock.Mock()
+
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events.TestcaseRejectionEvent',
     ])
+
+    # When TestcaseRejectionEvent is created, call our helper to populate
+    # the mock object and then return it.
+    self.mock.TestcaseRejectionEvent.side_effect = self.init_rejection_event
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
     self.issue_tracker = self.issue.issue_tracker
 
+  def init_rejection_event(self, testcase, rejection_reason):
+    self.mock_rejection_event.testcase_id = testcase.key.id()
+    self.mock_rejection_event.rejection_reason = rejection_reason
+    return self.mock_rejection_event
+
+  def _assert_rejection_event_emitted(self, expected_reason):
+    """Assert that a rejection event was emitted."""
+    self.mock.emit.assert_called_once_with(self.mock_rejection_event)
+    self.assertEqual(self.testcase.key.id(),
+                     self.mock_rejection_event.testcase_id)
+    self.assertEqual(expected_reason,
+                     self.mock_rejection_event.rejection_reason)
+
   def test_no_other_testcase(self):
     """Tests result is false when there is no other similar testcase."""
-    self.assertEqual(
-        False,
+    self.assertFalse(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self.mock.emit.assert_not_called()
 
   def test_similar_testcase_without_bug_information(self):
     """Tests result is false when there is a similar testcase but without an
     associated bug."""
     similar_testcase = test_utils.create_generic_testcase()  # pylint: disable=unused-variable
 
-    self.assertEqual(
-        False,
+    self.assertFalse(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self.mock.emit.assert_not_called()
 
   def test_similar_testcase_get_issue_failed(self):
     """Tests result is false when there is a similar testcase with an associated
@@ -275,9 +297,9 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase.bug_information = '2'  # Non-existent.
     similar_testcase.put()
 
-    self.assertEqual(
-        False,
+    self.assertFalse(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self.mock.emit.assert_not_called()
 
   def test_similar_testcase_is_reproducible_and_open(self):
     """Tests result is true when there is a similar testcase which is
@@ -290,9 +312,10 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase.bug_information = str(self.issue.id)
     similar_testcase.put()
 
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
 
   def test_similar_testcase_reproducible_and_closed_but_issue_open_1(self):
     """Tests result is true when there is a similar testcase which is
@@ -307,20 +330,24 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase.bug_information = str(self.issue.id)
     similar_testcase.put()
 
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
+
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(None, testcase.bug_information)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
+    self.mock.emit.reset_mock()
     similar_testcase.set_metadata(
         'closed_time',
         test_utils.CURRENT_TIME -
         datetime.timedelta(hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED + 1))
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
 
   def test_similar_testcase_reproducible_and_closed_but_issue_open_2(self):
     """Tests result is true when there is a similar testcase which is
@@ -341,9 +368,10 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase_2.bug_information = str(self.issue.id)
     similar_testcase_2.put()
 
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(None, testcase.bug_information)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -360,9 +388,10 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase.bug_information = str(self.issue.id)
     similar_testcase.put()
 
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
 
   def test_similar_testcase_with_issue_closed_with_ignore_label(self):
     """Tests result is true when there is a similar testcase with closed issue
@@ -378,14 +407,41 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase.bug_information = str(self.issue.id)
     similar_testcase.put()
 
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
 
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(
         'Skipping filing a bug since similar testcase (2) in issue (1) '
         'is blacklisted with ClusterFuzz-Ignore label.',
+        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+  def test_similar_unreproducible_testcase_already_filed(self):
+    """Tests result is true when a similar unreproducible bug has been
+    filed."""
+    self.testcase.one_time_crasher_flag = True
+    self.testcase.put()
+
+    self.issue.status = 'Fixed'
+    self.issue._monorail_issue.open = False
+    self.issue.save()
+
+    similar_testcase = test_utils.create_generic_testcase()
+    similar_testcase.one_time_crasher_flag = True
+    similar_testcase.bug_information = str(self.issue.id)
+    similar_testcase.put()
+
+    self.assertTrue(
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self._assert_rejection_event_emitted(
+        expected_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
+
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual(
+        'Skipping filing unreproducible bug since one was already filed '
+        f'({similar_testcase.key.id()}).',
         testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_similar_testcase_with_issue_recently_closed(self):
@@ -404,9 +460,9 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     similar_testcase.bug_information = str(self.issue.id)
     similar_testcase.put()
 
-    self.assertEqual(
-        True,
+    self.assertTrue(
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    self.mock.emit.assert_not_called()
 
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(

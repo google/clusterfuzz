@@ -30,6 +30,7 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -262,10 +263,20 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
     # might be caused by non-availability of latest builds. In that case,
     # don't file a new bug yet.
     if similar_testcase.open and not similar_testcase.one_time_crasher_flag:
+      events.emit(
+          events.TestcaseRejectionEvent(
+              testcase=testcase,
+              rejection_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
+      )
       return True
 
     # If the issue is still open, no need to file a duplicate bug.
     if issue.is_open:
+      events.emit(
+          events.TestcaseRejectionEvent(
+              testcase=testcase,
+              rejection_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
+      )
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to
@@ -281,6 +292,11 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
               testcase_id=similar_testcase.key.id(),
               issue_id=issue.id,
               ignore_label=ignore_label))
+      events.emit(
+          events.TestcaseRejectionEvent(
+              testcase=testcase,
+              rejection_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
+      )
       return True
 
     # If this testcase is not reproducible, and a previous similar
@@ -292,6 +308,11 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
           testcase,
           'Skipping filing unreproducible bug since one was already filed '
           f'({similar_testcase.key.id()}).')
+      events.emit(
+          events.TestcaseRejectionEvent(
+              testcase=testcase,
+              rejection_reason=events.RejectionReason.TRIAGE_DUPLICATE_TESTCASE)
+      )
       return True
 
     # If the issue is recently closed, wait certain time period to make sure

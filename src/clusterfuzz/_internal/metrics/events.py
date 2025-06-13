@@ -45,6 +45,7 @@ class RejectionReason:
   """Explanation for the testcase rejection values."""
   ANALYZE_NO_REPRO = 'analyze_no_repro'
   ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
+  TRIAGE_DUPLICATE_TESTCASE = 'triage_duplicate_testcase'
 
 
 @dataclass(kw_only=True)
