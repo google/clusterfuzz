@@ -39,7 +39,10 @@ class EventsDataTest(unittest.TestCase):
     os.environ['SOURCE_VERSION_OVERRIDE'] = ('20250402153042-utc-40773ac0-user'
                                              '-cad6977-prod')
     self.mock.get_instance_name.return_value = 'linux-bot'
+
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'fuzz'
+
     self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
     self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     return super().setUp()
@@ -69,6 +72,11 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event.job, 'test_content_shell_drt')
     self.assertEqual(event.crash_revision, 1)
 
+  def _assert_task_fields(self, event):
+    """Asserts task-related event fields."""
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'fuzz')
+
   def test_generic_event(self):
     """Test base event class."""
     event_type = 'generic_event'
@@ -94,6 +102,7 @@ class EventsDataTest(unittest.TestCase):
 
     event = events.BaseTaskEvent(event_type=event_type, source=source)
     self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'fuzz')
     self._assert_event_common_fields(event, event_type, source)
 
   def test_testcase_creation_events(self):
@@ -109,6 +118,7 @@ class EventsDataTest(unittest.TestCase):
         uploader='test@gmail.com')
     self._assert_event_common_fields(event_creation_manual, event_type, source)
     self._assert_testcase_fields(event_creation_manual, testcase)
+    self._assert_task_fields(event_creation_manual)
     self.assertEqual(event_creation_manual.creation_origin,
                      events.TestcaseOrigin.MANUAL_UPLOAD)
     self.assertEqual(event_creation_manual.uploader, 'test@gmail.com')
@@ -119,6 +129,7 @@ class EventsDataTest(unittest.TestCase):
         creation_origin=events.TestcaseOrigin.FUZZ_TASK)
     self._assert_event_common_fields(event_creation_fuzz, event_type, source)
     self._assert_testcase_fields(event_creation_fuzz, testcase)
+    self._assert_task_fields(event_creation_fuzz)
     self.assertEqual(event_creation_fuzz.creation_origin,
                      events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_creation_fuzz.uploader)
@@ -135,6 +146,7 @@ class EventsDataTest(unittest.TestCase):
         rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
     self._assert_event_common_fields(event_rejection, event_type, source)
     self._assert_testcase_fields(event_rejection, testcase)
+    self._assert_task_fields(event_rejection)
     self.assertEqual(event_rejection.rejection_reason,
                      events.RejectionReason.ANALYZE_NO_REPRO)
 
@@ -165,6 +177,8 @@ class DatastoreEventsTest(unittest.TestCase):
                                              '-cad6977-prod')
     self.mock.get_instance_name.return_value = 'linux-bot'
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'fuzz'
+
     return super().setUp()
 
   def tearDown(self):
@@ -195,6 +209,11 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.fuzzer, 'fuzzer1')
     self.assertEqual(event.job, 'test_content_shell_drt')
     self.assertEqual(event.crash_revision, 1)
+
+  def _assert_task_fields(self, event):
+    """Asserts task-related event fields."""
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'fuzz')
 
   def test_serialize_generic_event(self):
     """Test serializing a generic event into a datastore entity."""
@@ -233,8 +252,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self._assert_common_event_fields(event_entity)
 
     self._assert_testcase_fields(event_entity, testcase.key.id())
-    self.assertEqual(event_entity.task_id,
-                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self._assert_task_fields(event_entity)
     self.assertEqual(event_entity.creation_origin,
                      events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_entity.uploader)
@@ -258,8 +276,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.timestamp, timestamp)
     self._assert_common_event_fields(event_entity)
     self._assert_testcase_fields(event_entity, testcase.key.id())
-    self.assertEqual(event_entity.task_id,
-                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self._assert_task_fields(event_entity)
 
     # TestcaseRejectionEvent specific assertions
     self.assertEqual(event_entity.rejection_reason,
@@ -292,6 +309,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
     event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.task_name = 'fuzz'
     event_entity.testcase_id = 1
     event_entity.fuzzer = 'fuzzer1'
     event_entity.job = 'test_job'
@@ -308,6 +326,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.timestamp, date_now)
     self._assert_common_event_fields(event)
     self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'fuzz')
     self.assertEqual(event.testcase_id, 1)
     self.assertEqual(event.fuzzer, 'fuzzer1')
     self.assertEqual(event.job, 'test_job')
@@ -325,6 +344,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.source = 'events_test'
     self._set_common_event_fields(event_entity)
     event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.task_name = 'fuzz'
     event_entity.testcase_id = 1
     event_entity.fuzzer = 'fuzzer1'
     event_entity.job = 'test_job'
@@ -342,6 +362,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.timestamp, date_now)
     self._assert_common_event_fields(event)
     self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'fuzz')
     self.assertEqual(event.testcase_id, 1)
     self.assertEqual(event.fuzzer, 'fuzzer1')
     self.assertEqual(event.job, 'test_job')
@@ -373,8 +394,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.timestamp, timestamp)
     self._assert_common_event_fields(event_entity)
     self._assert_testcase_fields(event_entity, testcase.key.id())
-    self.assertEqual(event_entity.task_id,
-                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self._assert_task_fields(event_entity)
     self.assertEqual(event_entity.creation_origin,
                      events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_entity.uploader)
@@ -434,6 +454,7 @@ class EmitEventTest(unittest.TestCase):
     """Test emit event with datastore repository."""
     self.project_config['events.storage'] = 'datastore'
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'fuzz'
 
     testcase = test_utils.create_generic_testcase()
     # Using testcase creation event for testing should be enough to test any
@@ -458,6 +479,7 @@ class EmitEventTest(unittest.TestCase):
                      events.TestcaseOrigin.FUZZ_TASK)
     self.assertEqual(event_entity.task_id,
                      'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event_entity.task_name, 'fuzz')
     self.assertEqual(event_entity.testcase_id, testcase.key.id())
     self.assertEqual(event_entity.fuzzer, 'fuzzer1')
     self.assertEqual(event_entity.job, 'test_content_shell_drt')

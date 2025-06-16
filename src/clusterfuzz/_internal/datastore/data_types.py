@@ -1652,6 +1652,9 @@ class TestcaseLifecycleEvent(Model):
   # Task ID (artificial or corresponding to the utask execution).
   task_id = ndb.StringProperty()
 
+  # Task name.
+  task_name = ndb.StringProperty()
+
   ### Testcase Creation.
   # How testcase was created (manual upload, fuzz, corpus pruning).
   creation_origin = ndb.StringProperty()
