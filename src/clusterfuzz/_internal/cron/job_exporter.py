@@ -72,14 +72,13 @@ class StorageRSync(RSyncClient):
 class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
-  def __init__(
-      self,
-      target_cls: ndb.Model,
-      blobstore_keys: list[str],
-      entity_type: str,
-      rsync_client: RSyncClient,
-      export_bucket: str,
-      env_string_substitutions: dict[str, str] | None = None):
+  def __init__(self,
+               target_cls: ndb.Model,
+               blobstore_keys: list[str],
+               entity_type: str,
+               rsync_client: RSyncClient,
+               export_bucket: str,
+               env_string_substitutions: dict[str, str] | None = None):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type

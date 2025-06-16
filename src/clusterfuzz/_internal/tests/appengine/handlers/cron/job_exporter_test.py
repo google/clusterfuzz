@@ -44,9 +44,8 @@ def _data_bundles_equal(bundle, another_bundle):
           another_bundle.bucket_name)
 
 
-def _sample_job_template(
-    name: str = 'some-job',
-    environment_string: str ='some-env'):
+def _sample_job_template(name: str = 'some-job',
+                         environment_string: str = 'some-env'):
   return data_types.JobTemplate(
       name=name,
       environment_string=environment_string,
