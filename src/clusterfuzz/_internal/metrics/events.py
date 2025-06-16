@@ -22,9 +22,11 @@ from dataclasses import InitVar
 import datetime
 from typing import Any
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -248,7 +250,107 @@ class NDBEventRepository(IEventRepository, EventHandler):
     return self.store_event(event)
 
 
+class EventIssueNotification(EventHandler):
+  """Events handler for sending issue notifications.
+  
+  The `disabled_events` config is expected to be a dict following the format:
+    `{<event_type> : True | list[<task_names>]}`
+  If set to True, all occurrences of the event type are disabled.
+  """
+
+  def __init__(self, disabled_events: dict | None = None):
+    if disabled_events is None:
+      disabled_events = {}
+    self.disabled_events = disabled_events
+
+  def _event_comment(self, event: Event) -> str:
+    """Creates an issue comment based on the event data."""
+    comment = f'A ClusterFuzz event was emitted: {event.event_type}'
+
+    comment += '\n\nEvent data:'
+    for attr, value in asdict(event).items():
+      if value is None:
+        continue
+      comment += f'\n- {attr}: {value}'
+    return comment
+
+  def _check_disabled(self, event: Event) -> bool:
+    """Checks config for disabled notifications for an event and/or task."""
+    event_type = event.event_type
+    disabled_event = self.disabled_events.get(event_type)
+    if disabled_event:
+      if not isinstance(disabled_event, list):
+        # All occurrences of this event are disabled.
+        return True
+
+      # Relies on the task_name from the event data instead of the environment
+      # `CF_TASK_NAME`. This enables passing the information in the event, if
+      # this env var is not available or not well defined.
+      task_name = getattr(event, 'task_name', None)
+      if task_name in disabled_event:
+        return True
+
+    return False
+
+  def emit(self, event: Event) -> None:
+    """Sends event notification in the correspondent testcase issue.
+    
+    In order to send a bug notification, the event must contain the testcase
+    id information. For which an issue tracker must be available and a
+    correspondent issue must be already opened.
+    """
+    if self._check_disabled(event):
+      return
+
+    testcase_id = getattr(event, 'testcase_id', None)
+    if testcase_id is None:
+      return
+    try:
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+    except errors.InvalidTestcaseError:
+      logs.warning(f'Invalid testcase in event notification handling: {event}')
+      return
+
+    # Check if testcase has an associated issue.
+    if not testcase.bug_information:
+      return
+
+    try:
+      issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+    except ValueError:
+      logs.error('Issue tracker not available during event notification '
+                 f'handling: {event}.')
+      return
+    if not issue:
+      logs.error(f'Issue not found during event notification handling: {event}')
+      return
+
+    comment = self._event_comment(event)
+    issue.save(comment, notify=True)
+
+
 _handlers: list[EventHandler] | None = None
+
+
+def get_notifier() -> EventIssueNotification | None:
+  """Returns the event handler responsible for sending issue notifications.
+  
+  Also, retrieves the disabled events notifications config from project config.
+  """
+  if not local_config.ProjectConfig().get('events.notification.enabled'):
+    logs.info('Issue notification for events is disabled.')
+    return None
+
+  disabled_events_cfg = local_config.ProjectConfig().get(
+      'events.notification.disabled_events')
+  if not isinstance(disabled_events_cfg, dict):
+    disabled_events_cfg = None
+    logs.info('Issue notifications enabled for all events.')
+  else:
+    logs.info(f'Events issue notification config: {disabled_events_cfg}')
+
+  notifier = EventIssueNotification(disabled_events_cfg)
+  return notifier
 
 
 def get_repository() -> IEventRepository | None:
@@ -271,8 +373,10 @@ def config_handlers() -> None:
 
   # Handlers config should be added here.
   repository = get_repository()
+  notifier = get_notifier()
   event_handlers = [
       repository,
+      notifier,
   ]
 
   for handler in event_handlers:
