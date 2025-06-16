@@ -104,12 +104,15 @@ class BaseTaskEvent(Event):
   """Base class for task-related events."""
   # Task ID retrieved from environment var (if not directly set).
   task_id: str | None = None
+  # Task name retrieved from environment var (if not directly set).
+  task_name: str | None = None
 
   def __post_init__(self, **kwargs):
     if self.task_id is None:
       self.task_id = environment.get_value('CF_TASK_ID', None)
+    if self.task_name is None:
+      self.task_name = environment.get_value('CF_TASK_NAME', None)
     return super().__post_init__(**kwargs)
-
 
 @dataclass(kw_only=True)
 class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
