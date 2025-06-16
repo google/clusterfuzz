@@ -959,4 +959,64 @@ class TestJobTemplatesAreCorrectlyImported(unittest.TestCase):
 
     templates = list(data_types.JobTemplate.query())
     self.assertEqual(0, len(templates))
-  
+
+  def test_job_templates_are_correctly_updated(self):
+    """Tests if a Job Template is correctly updated once it changes in the
+      last export."""
+    template_name = 'some-template'
+    env_string = 'some-env-string'
+    template = _sample_job_template(
+        name=template_name, environment_string=env_string)
+    _register_entity_and_upload_blobs(
+        entity=template,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        custom_binary_contents=None,
+        blobs_bucket=self.blobs_bucket,
+    )
+
+    templates = list(data_types.JobTemplate.query())
+    self.assertEqual(1, len(templates))
+
+    imported_template = templates[0]
+    self.assertEqual(template_name, imported_template.name)
+    self.assertEqual(env_string, imported_template.environment_string)
+
+    env_string_before_import = 'some-data'
+    env_string_after_import = 'another-data'
+    substitutions = {
+        env_string_before_import: env_string_after_import,
+    }
+
+    updated_template = _sample_job_template(
+        name=template_name,
+        environment_string=env_string_before_import,
+    )
+
+    _upload_entity_export_data(
+        entity=updated_template,
+        entity_kind='jobtemplate',
+        source_bucket=self.import_source_bucket,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        custom_binary_contents=None,
+    )
+
+    job_template_base_location = f'gs://{self.import_source_bucket}/jobtemplate'
+    _upload_entity_list([template_name], job_template_base_location)
+
+    entity_migrator = job_exporter.EntityMigrator(
+        data_types.JobTemplate, [],
+        'jobtemplate',
+        job_exporter.StorageRSync(),
+        self.import_source_bucket,
+        env_string_substitutions=substitutions)
+    entity_migrator.import_entities()
+
+    templates = list(data_types.JobTemplate.query())
+    self.assertEqual(1, len(templates))
+
+    imported_template = templates[0]
+    self.assertEqual(template_name, imported_template.name)
+    self.assertEqual(env_string_after_import,
+                     imported_template.environment_string)
