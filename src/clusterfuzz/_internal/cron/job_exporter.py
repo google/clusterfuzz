@@ -72,20 +72,20 @@ class StorageRSync(RSyncClient):
 class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
-  def __init__(  # pylint: disable=dangerous-default-value
+  def __init__(
       self,
       target_cls: ndb.Model,
       blobstore_keys: list[str],
       entity_type: str,
       rsync_client: RSyncClient,
       export_bucket: str,
-      env_string_substitutions: dict[str, str] = {}):
+      env_string_substitutions: dict[str, str] | None = None):
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
     self._rsync_client = rsync_client
     self._export_bucket = export_bucket
-    self._env_string_substitutions = env_string_substitutions
+    self._env_string_substitutions = env_string_substitutions or {}
 
   def _serialize(self, entity) -> bytes:
     return uworker_io.entity_to_protobuf(entity).SerializeToString()
@@ -180,6 +180,8 @@ class EntityMigrator:
     return new_blob_ids
 
   def _substitute_environment_string(self, env_string: str | None):
+    """Performs raw text substitution in an environment
+      string, given a substitution dictionary."""
     if not env_string:
       return env_string
     substitutions = self._env_string_substitutions
@@ -200,9 +202,9 @@ class EntityMigrator:
     for blob_key, blob_value in new_blob_ids.items():
       setattr(entity_to_import, blob_key, blob_value)
 
-    # b/422759773 : intends to avoid testing environments from using production
+    # This avoids testing environments from using production
     # corpus, logs, backup or quarantine buckets, since these are hardcoded
-    # into job env strings.
+    # into job env strings. See b/422759773
     if isinstance(entity_to_import, data_types.Job):
       env_string = getattr(entity_to_import, 'environment_string', None)
       new_env_string = self._substitute_environment_string(env_string)
