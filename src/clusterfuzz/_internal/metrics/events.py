@@ -114,6 +114,7 @@ class BaseTaskEvent(Event):
       self.task_name = environment.get_value('CF_TASK_NAME', None)
     return super().__post_init__(**kwargs)
 
+
 @dataclass(kw_only=True)
 class TestcaseCreationEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Testcase creation event."""
