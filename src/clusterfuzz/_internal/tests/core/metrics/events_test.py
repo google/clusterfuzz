@@ -151,7 +151,7 @@ class EventsDataTest(unittest.TestCase):
                      events.RejectionReason.ANALYZE_NO_REPRO)
 
   def test_issue_filing_event(self):
-    '''Test issue filing event class.'''
+    """Test issue filing event class."""
     event_type = events.EventTypes.ISSUE_FILING
     source = 'events_test'
     testcase = test_utils.create_generic_testcase()
@@ -301,7 +301,7 @@ class DatastoreEventsTest(unittest.TestCase):
                      events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_serialize_issue_filing_event(self):
-    '''Test serializing an issue filing event.'''
+    """Test serializing an issue filing event."""
     testcase = test_utils.create_generic_testcase()
     event = events.IssueFilingEvent(
         source='events_test',
@@ -420,7 +420,7 @@ class DatastoreEventsTest(unittest.TestCase):
                      events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
   def test_deserialize_issue_filing_event(self):
-    '''Test deserializing an issue filing event.'''
+    """Test deserializing an issue filing event."""
     event_type = events.EventTypes.ISSUE_FILING
     date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
 

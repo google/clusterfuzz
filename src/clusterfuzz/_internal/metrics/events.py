@@ -137,7 +137,7 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
 
 @dataclass(kw_only=True)
 class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
-  """Testcase creation event."""
+  """Issue filing event."""
   event_type: str = field(default=EventTypes.ISSUE_FILING, init=False)
   # Either buganizer or some_other_board.
   issue_tracker: str | None = None
