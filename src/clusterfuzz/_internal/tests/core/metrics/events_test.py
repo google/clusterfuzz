@@ -164,6 +164,7 @@ class EventsDataTest(unittest.TestCase):
         issue_created=True)
     self._assert_event_common_fields(event_filing, event_type, source)
     self._assert_testcase_fields(event_filing, testcase)
+    self._assert_task_fields(event_filing)
     self.assertEqual(event_filing.issue_tracker, 'buganizer')
     self.assertEqual(event_filing.issue_id, '12345')
     self.assertTrue(event_filing.issue_created)
@@ -321,8 +322,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.timestamp, timestamp)
     self._assert_common_event_fields(event_entity)
     self._assert_testcase_fields(event_entity, testcase.key.id())
-    self.assertEqual(event_entity.task_id,
-                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self._assert_task_fields(event_entity)
 
     # IssueFilingEvent specific assertions
     self.assertEqual(event_entity.issue_tracker, 'buganizer')
@@ -368,6 +368,8 @@ class DatastoreEventsTest(unittest.TestCase):
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
     self.assertIsNotNone(event)
     self.assertIsInstance(event, events.TestcaseCreationEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
     self.assertEqual(event.event_type, event_type)
     self.assertEqual(event.source, 'events_test')
     self.assertEqual(event.timestamp, date_now)
@@ -378,6 +380,8 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.fuzzer, 'fuzzer1')
     self.assertEqual(event.job, 'test_job')
     self.assertEqual(event.crash_revision, 2)
+
+    # TestcaseCreationEvent specific assertions
     self.assertEqual(event.creation_origin, events.TestcaseOrigin.MANUAL_UPLOAD)
     self.assertEqual(event.uploader, 'test@gmail.com')
 
