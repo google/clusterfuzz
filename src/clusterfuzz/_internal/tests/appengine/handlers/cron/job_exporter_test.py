@@ -239,7 +239,7 @@ class TestEntitySerializationAndDeserializastion(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TestEntitiesAreCorrectlyExported(unittest.TestCase):
-  """Test the job exporter job with Fuzzer entitites."""
+  """Test the job exporter job with Fuzzer entities."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -468,7 +468,7 @@ class TestEntitiesAreCorrectlyExported(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TestFuzzersAreCorrectlyImported(unittest.TestCase):
-  """Test the job exporter job with Fuzzer entitites."""
+  """Test the job exporter job with Fuzzer entities."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -655,7 +655,7 @@ class TestFuzzersAreCorrectlyImported(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobsAreCorrectlyImported(unittest.TestCase):
-  """Test the job exporter job with Fuzzer entitites."""
+  """Test the job exporter job with Fuzzer entities."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -865,7 +865,7 @@ class TestJobsAreCorrectlyImported(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TestJobTemplatesAreCorrectlyImported(unittest.TestCase):
-  """Test the job exporter job with Fuzzer entitites."""
+  """Test the job exporter job with Fuzzer entities."""
 
   def setUp(self):
     helpers.patch_environ(self)
