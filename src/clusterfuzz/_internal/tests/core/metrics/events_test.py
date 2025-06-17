@@ -450,6 +450,36 @@ class EmitEventTest(unittest.TestCase):
     repository = events.get_repository()
     self.assertIsNone(repository)
 
+  def test_get_notifier(self):
+    """Test retrieving issue notification handler with all events enabled."""
+    self.project_config['events.notification.enabled'] = True
+    notifier = events.get_notifier()
+    self.assertIsInstance(notifier, events.EventIssueNotification)
+    self.assertFalse(notifier.disabled_events)
+
+  def test_get_notifier_disabled(self):
+    """Test retrieving disabled events issue notification handler."""
+    notifier = events.get_notifier()
+    self.assertIsNone(notifier)
+    # Either enabled is missing or set to False.
+    self.project_config['events.notification.enabled'] = False
+    notifier = events.get_notifier()
+    self.assertIsNone(notifier)
+
+  def test_get_notifier_disabled_config(self):
+    """Test setting issue notification handler with disabled events config."""
+    self.project_config['events.notification.enabled'] = True
+    self.project_config['events.notification.disabled_events'] = {
+        'testcase_creation': True,
+        'testcase_rejection': ['analyze']
+    }
+    notifier = events.get_notifier()
+    self.assertIsInstance(notifier, events.EventIssueNotification)
+    self.assertEqual(notifier.disabled_events, {
+        'testcase_creation': True,
+        'testcase_rejection': ['analyze']
+    })
+
   def test_emit_datastore_event(self):
     """Test emit event with datastore repository."""
     self.project_config['events.storage'] = 'datastore'
