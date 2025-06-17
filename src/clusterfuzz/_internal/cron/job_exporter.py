@@ -204,7 +204,7 @@ class EntityMigrator:
     # This avoids testing environments from using production
     # corpus, logs, backup or quarantine buckets, since these are hardcoded
     # into job env strings. See b/422759773
-    if isinstance(entity_to_import, data_types.Job):
+    if isinstance(entity_to_import, (data_types.Job, data_types.JobTemplate)):
       env_string = getattr(entity_to_import, 'environment_string', None)
       new_env_string = self._substitute_environment_string(env_string)
       setattr(entity_to_import, 'environment_string', new_env_string)
