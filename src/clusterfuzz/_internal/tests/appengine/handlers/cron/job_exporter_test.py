@@ -1143,3 +1143,73 @@ class TestDataBundlesAreCorrectlyImported(unittest.TestCase):
 
     remaining_data_bundles = list(data_types.DataBundle.query())
     self.assertEqual(0, len(remaining_data_bundles))
+
+  def test_data_bundles_are_correctly_modified(self):
+    """Tests if a Data Bundle and its blobs are correctly modified
+      once a newer version is exported."""
+    bundle_name = 'some-bundle'
+    bucket_name = 'some-bucket'
+    blob_data = b'some-data'
+    bundle = _sample_data_bundle(
+        name=bundle_name,
+        bucket_name=bucket_name,
+    )
+    _register_entity_and_upload_blobs(
+        entity=bundle,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        custom_binary_contents=None,
+        blobs_bucket=self.blobs_bucket,
+        data_bundle_blob_contents=blob_data,
+    )
+
+    data_bundles = list(data_types.DataBundle.query())
+    self.assertEqual(1, len(data_bundles))
+
+    imported_bundle = data_bundles[0]
+    self.assertEqual(bundle_name, imported_bundle.name)
+    self.assertEqual(bucket_name, imported_bundle.bucket_name)
+
+    bundle_blob_location = f'gs://{bucket_name}/blob'
+
+    self.assertTrue(_blob_is_present_in_gcs(bundle_blob_location))
+    self.assertTrue(_blob_content_is_equal(bundle_blob_location, blob_data))
+
+    another_bucket = 'some-other-bucket'
+    new_blob_data = b'new-data'
+    updated_bundle = _sample_data_bundle(
+        name=bundle_name,
+        bucket_name=another_bucket,
+    )
+    _upload_entity_export_data(
+        entity=updated_bundle,
+        entity_kind='databundle',
+        source_bucket=self.import_source_bucket,
+        blobstore_key_content=None,
+        sample_testcase_contents=None,
+        custom_binary_contents=None,
+        data_bundle_blob_contents=new_blob_data,
+    )
+
+    data_bundle_base_location = f'gs://{self.import_source_bucket}/databundle'
+    _upload_entity_list([bundle_name], data_bundle_base_location)
+
+    self.mock.get_data_bundle_bucket_name.return_value = another_bucket
+
+    entity_migrator = job_exporter.EntityMigrator(data_types.DataBundle, [],
+                                                  'databundle',
+                                                  job_exporter.StorageRSync(),
+                                                  self.import_source_bucket)
+    entity_migrator.import_entities()
+
+    data_bundles = list(data_types.DataBundle.query())
+    self.assertEqual(1, len(data_bundles))
+
+    imported_bundle = data_bundles[0]
+    self.assertEqual(bundle_name, imported_bundle.name)
+    self.assertEqual(another_bucket, imported_bundle.bucket_name)
+
+    bundle_blob_location = f'gs://{another_bucket}/blob'
+
+    self.assertTrue(_blob_is_present_in_gcs(bundle_blob_location))
+    self.assertTrue(_blob_content_is_equal(bundle_blob_location, new_blob_data))
