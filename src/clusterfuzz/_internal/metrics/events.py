@@ -275,7 +275,7 @@ class EventIssueNotification(EventHandler):
     return comment
 
   def _check_disabled(self, event: Event) -> bool:
-    """Checks config for disabled notifications for an event and/or task."""
+    """Checks config for disabled notifications for an event and task."""
     event_type = event.event_type
     disabled_event = self.disabled_events.get(event_type)
     if disabled_event:
