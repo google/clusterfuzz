@@ -420,6 +420,83 @@ class DatastoreEventsTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
+class EventsNotificationsTest(unittest.TestCase):
+  """Test issue notifications for events."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.get_instance_name',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
+    ])
+    self.original_env = dict(os.environ)
+    os.environ['OS_OVERRIDE'] = 'linux'
+    # Override reading the manifest file for the source version.
+    os.environ['SOURCE_VERSION_OVERRIDE'] = ('20250402153042-utc-40773ac0-user'
+                                             '-cad6977-prod')
+    self.mock.get_instance_name.return_value = 'linux-bot'
+
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'fuzz'
+
+    self.date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+    self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
+    return super().setUp()
+
+  def tearDown(self):
+    os.environ.clear()
+    os.environ.update(self.original_env)
+    return super().tearDown()
+
+  def test_check_disabled_without_config(self):
+    """Test events are enabled to notify if no disabled config is used."""
+    notifier = events.EventIssueNotification(disabled_events=None)
+    event1 = events.Event(event_type='generic_event', source='events_test')
+    event2 = events.Event(
+        event_type=events.EventTypes.TESTCASE_CREATION, source='events_test')
+    self.assertFalse(notifier._check_disabled(event1))  # pylint: disable=protected-access
+    self.assertFalse(notifier._check_disabled(event2))  # pylint: disable=protected-access
+
+  def test_check_disabled_config(self):
+    """Test disabling events from notifying using the disabled config."""
+    testcase = test_utils.create_generic_testcase()
+    disabled_events = {
+        events.EventTypes.TESTCASE_CREATION: True,
+        events.EventTypes.TESTCASE_REJECTION: ['analyze']
+    }
+    notifier = events.EventIssueNotification(disabled_events)
+
+    # Test enabled event type.
+    event = events.Event(event_type='generic_event', source='events_test')
+    self.assertFalse(notifier._check_disabled(event))  # pylint: disable=protected-access
+
+    # Test disabled event type for any task.
+    os.environ['CF_TASK_NAME'] = 'fuzz'
+    event_creation_fuzz = events.TestcaseCreationEvent(
+        testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK)
+    self.assertTrue(notifier._check_disabled(event_creation_fuzz))  # pylint: disable=protected-access
+
+    os.environ['CF_TASK_NAME'] = 'analyze'
+    event_creation_manual = events.TestcaseCreationEvent(
+        testcase=testcase,
+        creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+        uploader='@test')
+    self.assertTrue(notifier._check_disabled(event_creation_manual))  # pylint: disable=protected-access
+
+    # Test disabled event type for specific task.
+    os.environ['CF_TASK_NAME'] = 'triage'
+    event_rejection_triage = events.TestcaseRejectionEvent(
+        testcase=testcase,
+        rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
+    self.assertFalse(notifier._check_disabled(event_rejection_triage))  # pylint: disable=protected-access
+
+    os.environ['CF_TASK_NAME'] = 'analyze'
+    event_rejection_triage = events.TestcaseRejectionEvent(
+        testcase=testcase,
+        rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
+    self.assertTrue(notifier._check_disabled(event_rejection_triage))  # pylint: disable=protected-access
+
+
+@test_utils.with_cloud_emulators('datastore')
 class EmitEventTest(unittest.TestCase):
   """Test event emission and handler config."""
 
@@ -458,7 +535,7 @@ class EmitEventTest(unittest.TestCase):
     self.assertFalse(notifier.disabled_events)
 
   def test_get_notifier_disabled(self):
-    """Test retrieving disabled events issue notification handler."""
+    """Test retrieving disabled events notification handler."""
     notifier = events.get_notifier()
     self.assertIsNone(notifier)
     # Either enabled is missing or set to False.
@@ -466,7 +543,7 @@ class EmitEventTest(unittest.TestCase):
     notifier = events.get_notifier()
     self.assertIsNone(notifier)
 
-  def test_get_notifier_disabled_config(self):
+  def test_get_notifier_with_specific_config(self):
     """Test setting issue notification handler with disabled events config."""
     self.project_config['events.notification.enabled'] = True
     self.project_config['events.notification.disabled_events'] = {
