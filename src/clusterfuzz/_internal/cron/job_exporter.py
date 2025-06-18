@@ -15,12 +15,14 @@
     in order to mirror the workloads on testing environments."""
 
 import os
+import re
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -64,9 +66,33 @@ class StorageRSync(RSyncClient):
     pass
 
   def rsync(self, source: str, target: str):
-    for blob in storage.list_blobs(f'gs://{source}'):
-      blob_target_path = f'{target}/{blob}'
-      storage.copy_blob(f'gs://{source}/{blob}', blob_target_path)
+    """Lists all files under the source path, and uploads
+      them to the target path. Since list_blobs returns
+      fully qualified names, the source prefix is trimmed
+      to recover file names."""
+    pattern = r"^gs://([^/]+)(?:/.*)?$"
+    for blob in storage.list_blobs(source):
+      bucket_name_match = re.match(pattern, source)
+      assert bucket_name_match
+      # group(0) matches the full string
+      bucket_name = bucket_name_match.group(1)
+      assert bucket_name
+
+      prefix = source.replace(f'gs://{bucket_name}', '')
+      if prefix:
+        # Case when source is gs://some-bucket/path
+        # Prefix will be /path, and a blob will be
+        # path/blob. Invert the position of / in prefix,
+        # then remove
+        prefix = prefix[1:] + '/'
+        blob_file_name = blob.replace(prefix, '')
+      else:
+        # Case for when source is gs://some-bucket
+        # No op, the blob name will be the file name
+        blob_file_name = blob
+
+      blob_target_path = f'{target}/{blob_file_name}'
+      storage.copy_blob(f'{source}/{blob_file_name}', blob_target_path)
 
 
 class EntityMigrator:
@@ -124,7 +150,7 @@ class EntityMigrator:
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
       return
     target_location = f'{bucket_prefix}/contents'
-    self._rsync_client.rsync(entity.bucket_name, target_location)
+    self._rsync_client.rsync(f'gs://{entity.bucket_name}', target_location)
 
   def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
                      entity_name: str):
@@ -189,6 +215,13 @@ class EntityMigrator:
       env_string = env_string.replace(source_text, replacement)
     return env_string
 
+  def _import_data_bundle_contents(self, source_location: str,
+                                   bundle_name: str):
+    new_bundle_bucket = data_handler.get_data_bundle_bucket_name(bundle_name)
+    storage.create_bucket_if_needed(new_bundle_bucket)
+    self._rsync_client.rsync(source_location, f'gs://{new_bundle_bucket}')
+    return new_bundle_bucket
+
   def _import_entity(self, entity_name: str, entity_location: str):
     """Imports entity into datastore, blobs, databundle contents
         and substitutes environment strings, if applicable."""
@@ -208,6 +241,13 @@ class EntityMigrator:
       env_string = getattr(entity_to_import, 'environment_string', None)
       new_env_string = self._substitute_environment_string(env_string)
       setattr(entity_to_import, 'environment_string', new_env_string)
+
+    # The contents from the data bundle buckete must be moved to the target
+    # project
+    if isinstance(entity_to_import, data_types.DataBundle):
+      new_bundle_bucket = self._import_data_bundle_contents(
+          f'{entity_location}/contents', entity_name)
+      setattr(entity_to_import, 'bucket_name', new_bundle_bucket)
 
     # Do not assume that name is a primary key, avoid having two
     # different keys with the same name.
