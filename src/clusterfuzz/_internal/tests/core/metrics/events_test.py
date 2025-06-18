@@ -426,7 +426,8 @@ class EventsNotificationsTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.get_instance_name',
-        'clusterfuzz._internal.metrics.events._get_datetime_now'
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_for_testcase'
     ])
     self.original_env = dict(os.environ)
     os.environ['OS_OVERRIDE'] = 'linux'
@@ -494,6 +495,68 @@ class EventsNotificationsTest(unittest.TestCase):
         testcase=testcase,
         rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
     self.assertTrue(notifier._check_disabled(event_rejection_triage))  # pylint: disable=protected-access
+
+  def test_emit_fail_due_to_config(self):
+    """Test that emit returns early due to disabled events config."""
+    disabled_events = {events.EventTypes.TESTCASE_CREATION: True}
+    notifier = events.EventIssueNotification(disabled_events)
+
+    testcase = test_utils.create_generic_testcase()
+    # Add bug id to assert that it only fails to emit due to config.
+    testcase.bug_information = '1'
+    testcase.put()
+    event_creation_fuzz = events.TestcaseCreationEvent(
+        testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK)
+    self.assertIsNone(notifier.emit(event_creation_fuzz))
+    self.mock.get_issue_for_testcase.assert_not_called()
+
+  def test_emit_fail_missing_testcase_id(self):
+    """Test that emit returns early due to missing testcase in event data."""
+    notifier = events.EventIssueNotification()
+    generic_event = events.Event(event_type='event', source='events_test')
+    self.assertIsNone(notifier.emit(generic_event))
+
+    # Test for event type that is expected to have a testcase_id field.
+    event_testcase_missing = events.TestcaseCreationEvent(testcase=None)
+    self.assertIsNone(notifier.emit(event_testcase_missing))
+
+    event_testcase_error = events.TestcaseCreationEvent(testcase=None)
+    # Testcase ID present, but not uploaded to datastore.
+    event_testcase_error.testcase_id = 10
+    self.assertIsNone(notifier.emit(event_testcase_error))
+
+  def test_emit_fail_testcase_without_bug(self):
+    """Test that emit returns early due to testcase without assigned bug."""
+    notifier = events.EventIssueNotification()
+    testcase = test_utils.create_generic_testcase()
+    # Assert that there is no bug associated with the testcase.
+    self.assertIsNone(testcase.bug_information)
+
+    event = events.TestcaseCreationEvent(testcase=testcase)
+    self.assertIsNone(notifier.emit(event))
+    # Assert it does not reach the get issue method, since the return from it
+    # is expected to not be None and logged as error if so.
+    self.mock.get_issue_for_testcase.assert_not_called()
+
+  def test_emit_issue_notification(self):
+    """Test a successful emit execution."""
+    # Use a generic mock for issue, since we should only assert that
+    # `issue.save()` was called once with the correct args.
+    issue = unittest.mock.MagicMock()
+    issue.id = 1
+    self.mock.get_issue_for_testcase.return_value = issue
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.bug_information = '1'
+    testcase.put()
+
+    notifier = events.EventIssueNotification()
+    event = events.TestcaseCreationEvent(
+        testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK)
+    comment = notifier._event_comment(event)  # pylint: disable=protected-access
+    self.assertEqual(issue.id, notifier.emit(event))
+    self.mock.get_issue_for_testcase.assert_called_once_with(testcase=testcase)
+    issue.save.assert_called_once_with(new_comment=comment, notify=True)
 
 
 @test_utils.with_cloud_emulators('datastore')

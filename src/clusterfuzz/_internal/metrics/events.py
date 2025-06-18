@@ -292,7 +292,7 @@ class EventIssueNotification(EventHandler):
 
     return False
 
-  def emit(self, event: Event) -> None:
+  def emit(self, event: Event) -> Any:
     """Sends event notification in the correspondent testcase issue.
     
     In order to send a bug notification, the event must contain the testcase
@@ -300,33 +300,34 @@ class EventIssueNotification(EventHandler):
     correspondent issue must be already opened.
     """
     if self._check_disabled(event):
-      return
+      return None
 
     testcase_id = getattr(event, 'testcase_id', None)
     if testcase_id is None:
-      return
+      return None
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
       logs.warning(f'Invalid testcase in event notification handling: {event}')
-      return
+      return None
 
     # Check if testcase has an associated issue.
     if not testcase.bug_information:
-      return
+      return None
 
     try:
       issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     except ValueError:
       logs.error('Issue tracker not available during event notification '
                  f'handling: {event}.')
-      return
+      return None
     if not issue:
       logs.error(f'Issue not found during event notification handling: {event}')
-      return
+      return None
 
     comment = self._event_comment(event)
-    issue.save(comment, notify=True)
+    issue.save(new_comment=comment, notify=True)
+    return issue.id
 
 
 _handlers: list[EventHandler] | None = None
