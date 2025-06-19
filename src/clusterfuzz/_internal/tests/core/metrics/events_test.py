@@ -553,7 +553,7 @@ class EventsNotificationsTest(unittest.TestCase):
     notifier = events.EventIssueNotification()
     event = events.TestcaseCreationEvent(
         testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK)
-    comment = notifier._event_comment(event)  # pylint: disable=protected-access
+    comment = event.create_notification()
     self.assertEqual(issue.id, notifier.emit(event))
     self.mock.get_issue_for_testcase.assert_called_once_with(testcase=testcase)
     issue.save.assert_called_once_with(new_comment=comment, notify=True)

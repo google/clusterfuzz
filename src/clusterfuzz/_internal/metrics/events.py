@@ -79,6 +79,17 @@ class Event:
     for key, val in common_ctx.items():
       setattr(self, key, val)
 
+  def create_notification(self) -> str:
+    message = f'A ClusterFuzz event occurred: {self.event_type}'
+
+    message += '\n\nEvent data:'
+    for attr, value in asdict(self).items():
+      if value is None:
+        continue
+      message += f'\n- {attr}: {value}'
+
+    return message
+
 
 @dataclass(kw_only=True)
 class BaseTestcaseEvent(Event):
@@ -263,17 +274,6 @@ class EventIssueNotification(EventHandler):
       disabled_events = {}
     self.disabled_events = disabled_events
 
-  def _event_comment(self, event: Event) -> str:
-    """Creates an issue comment based on the event data."""
-    comment = f'A ClusterFuzz event was emitted: {event.event_type}'
-
-    comment += '\n\nEvent data:'
-    for attr, value in asdict(event).items():
-      if value is None:
-        continue
-      comment += f'\n- {attr}: {value}'
-    return comment
-
   def _check_disabled(self, event: Event) -> bool:
     """Checks config for disabled notifications for an event and task."""
     event_type = event.event_type
@@ -325,7 +325,7 @@ class EventIssueNotification(EventHandler):
       logs.error(f'Issue not found during event notification handling: {event}')
       return None
 
-    comment = self._event_comment(event)
+    comment = event.create_notification()
     issue.save(new_comment=comment, notify=True)
     return issue.id
 
