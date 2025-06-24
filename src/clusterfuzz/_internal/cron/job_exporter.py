@@ -55,7 +55,12 @@ class GCloudCLIRSync(RSyncClient):
     self._runner = gsutil.GSUtilRunner()
 
   def rsync(self, source: str, target: str):
-    self._runner.rsync(f'gs://{source}', target)
+    """Rsyncs a source to a target destination. Returns True if
+    successful, False if there was any failure. Considers successful
+     any gsutil execution with a 0 return code."""
+    rsync_process_output = self._runner.rsync(source, target)
+    return_code = rsync_process_output.return_code
+    return return_code == 0
 
 
 class StorageRSync(RSyncClient):
@@ -69,7 +74,8 @@ class StorageRSync(RSyncClient):
     """Lists all files under the source path, and uploads
       them to the target path. Since list_blobs returns
       fully qualified names, the source prefix is trimmed
-      to recover file names."""
+      to recover file names. Returns True on success, False
+      on failure."""
     pattern = r"^gs://([^/]+)(?:/.*)?$"
     for blob in storage.list_blobs(source):
       bucket_name_match = re.match(pattern, source)
@@ -92,7 +98,9 @@ class StorageRSync(RSyncClient):
         blob_file_name = blob
 
       blob_target_path = f'{target}/{blob_file_name}'
-      storage.copy_blob(f'{source}/{blob_file_name}', blob_target_path)
+      if not storage.copy_blob(f'{source}/{blob_file_name}', blob_target_path):
+        return False
+    return True
 
 
 class EntityMigrator:
@@ -149,8 +157,12 @@ class EntityMigrator:
       logs.info(
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
       return
+    source_location = f'gs://{entity.bucket_name}'
     target_location = f'{bucket_prefix}/contents'
-    self._rsync_client.rsync(f'gs://{entity.bucket_name}', target_location)
+    rsync_succeeded = self._rsync_client.rsync(source_location, target_location)
+    if not rsync_succeeded:
+      raise ValueError(
+          f'Failed to rsync {source_location} to {target_location}.')
 
   def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
                      entity_name: str):
