@@ -256,6 +256,16 @@ class EntityMigrator:
           f'to {target_location}.')
     return new_bundle_bucket
 
+  def _persist_entity(self, entity: ndb.Model):
+    """A raw deserialization and put() call will cause an exception, since the
+      project from which the entity was serialized will mistmatch the project to
+      which we are writing it to datastore. This forces creation of a new 
+      database key, circumventing the issue."""
+    entity_to_persist = self._target_cls()
+    for key, value in entity.to_dict().items():
+      setattr(entity_to_persist, key, value)
+    entity_to_persist.put()
+
   def _import_entity(self, entity_name: str, entity_location: str):
     """Imports entity into datastore, blobs, databundle contents
         and substitutes environment strings, if applicable."""
@@ -290,7 +300,7 @@ class EntityMigrator:
     if preexisting_entity:
       preexisting_entity.key.delete()
 
-    entity_to_import.put()
+    self._persist_entity(entity_to_import)
 
   def import_entities(self):
     """Iterates over all entitiy names declared in the last export, and imports
