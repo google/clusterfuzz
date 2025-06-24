@@ -55,7 +55,12 @@ class GCloudCLIRSync(RSyncClient):
     self._runner = gsutil.GSUtilRunner()
 
   def rsync(self, source: str, target: str):
-    self._runner.rsync(f'gs://{source}', target)
+    """Rsyncs a source to a target destination. Returns True if
+    successful, False if there was any failure. Considers successful
+     any gsutil execution with a 0 return code."""
+    rsync_process_output = self._runner.rsync(source, target)
+    return_code = rsync_process_output.return_code
+    return return_code == 0
 
 
 class StorageRSync(RSyncClient):
@@ -69,7 +74,8 @@ class StorageRSync(RSyncClient):
     """Lists all files under the source path, and uploads
       them to the target path. Since list_blobs returns
       fully qualified names, the source prefix is trimmed
-      to recover file names."""
+      to recover file names. Returns True on success, False
+      on failure."""
     pattern = r"^gs://([^/]+)(?:/.*)?$"
     for blob in storage.list_blobs(source):
       bucket_name_match = re.match(pattern, source)
@@ -92,7 +98,9 @@ class StorageRSync(RSyncClient):
         blob_file_name = blob
 
       blob_target_path = f'{target}/{blob_file_name}'
-      storage.copy_blob(f'{source}/{blob_file_name}', blob_target_path)
+      if not storage.copy_blob(f'{source}/{blob_file_name}', blob_target_path):
+        return False
+    return True
 
 
 class EntityMigrator:
@@ -135,6 +143,10 @@ class EntityMigrator:
       blob_id = getattr(entity, blobstore_key, None)
       if blob_id:
         blob_gcs_path = blobs.get_gcs_path(blob_id)
+        if not storage.get(blob_gcs_path):
+          logs.warning(f'{blobstore_key} with id {blob_id} not present '
+                       f'for {entity.name}, skipping.')
+          continue
         blob_destination_path = f'{bucket_prefix}/{blobstore_key}'
         storage.copy_blob(blob_gcs_path, blob_destination_path)
 
@@ -149,8 +161,16 @@ class EntityMigrator:
       logs.info(
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
       return
+    if not storage.get_bucket(entity.bucket_name):
+      logs.warning(f'Bucket {entity.bucket_name} missing for '
+                   f'data bundle {entity.name}, skipping.')
+      return
+    source_location = f'gs://{entity.bucket_name}'
     target_location = f'{bucket_prefix}/contents'
-    self._rsync_client.rsync(f'gs://{entity.bucket_name}', target_location)
+    rsync_succeeded = self._rsync_client.rsync(source_location, target_location)
+    if not rsync_succeeded:
+      raise ValueError(
+          f'Failed to rsync {source_location} to {target_location}.')
 
   def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
                      entity_name: str):
@@ -193,9 +213,10 @@ class EntityMigrator:
             f'{blobstore_key} missing for {entity_name}, skipping blob import.')
         continue
       if not storage.get(source_blob_location):
-        raise ValueError(
-            f'Absent blob for {blobstore_key} in {entity_name}, it '
-            'should be present.')
+        logs.warning(f'Absent blob for {blobstore_key} in {entity_name}, it '
+                     'was expected be present. Marked as None and skipping.')
+        new_blob_ids[blobstore_key] = None
+        continue
       new_blob_id = blobs.generate_new_blob_name()
       target_blob_location = f'gs://{storage.blobs_bucket()}/{new_blob_id}'
       if not storage.copy_blob(source_blob_location, target_blob_location):
@@ -217,10 +238,35 @@ class EntityMigrator:
 
   def _import_data_bundle_contents(self, source_location: str,
                                    bundle_name: str):
+    """Imports data bundle contents from the export bucket to the new 
+      data bundle bucket in the target project. Skips if the contents
+      are absent during export, and throws an exception if the rsync 
+      call failed."""
     new_bundle_bucket = data_handler.get_data_bundle_bucket_name(bundle_name)
     storage.create_bucket_if_needed(new_bundle_bucket)
-    self._rsync_client.rsync(source_location, f'gs://{new_bundle_bucket}')
+    # There is no helper method to figure out if a folder exists, resort to
+    # checking if there are blobs under the path.
+    if not list(storage.get_blobs(source_location)):
+      logs.warning(f'No source content for data bundle {bundle_name},'
+                   ' skipping content import.')
+      return new_bundle_bucket
+    target_location = f'gs://{new_bundle_bucket}'
+    rsync_result = self._rsync_client.rsync(source_location, target_location)
+    if not rsync_result:
+      raise ValueError(
+          f'Failed to rsync data bundle contents from {source_location} '
+          f'to {target_location}.')
     return new_bundle_bucket
+
+  def _persist_entity(self, entity: ndb.Model):
+    """A raw deserialization and put() call will cause an exception, since the
+      project from which the entity was serialized will mistmatch the project to
+      which we are writing it to datastore. This forces creation of a new 
+      database key, circumventing the issue."""
+    entity_to_persist = self._target_cls()
+    for key, value in entity.to_dict().items():
+      setattr(entity_to_persist, key, value)
+    entity_to_persist.put()
 
   def _import_entity(self, entity_name: str, entity_location: str):
     """Imports entity into datastore, blobs, databundle contents
@@ -251,12 +297,14 @@ class EntityMigrator:
 
     # Do not assume that name is a primary key, avoid having two
     # different keys with the same name.
-    preexisting_entity = self._target_cls.query(
-        self._target_cls.name == entity_name).get()
-    if preexisting_entity:
+    preexisting_entities = list(
+        self._target_cls.query(self._target_cls.name == entity_name))
+    logs.info(f'Found {len(preexisting_entities)} of type {self._entity_type}'
+              f' and name {entity_name}, deleting.')
+    for preexisting_entity in preexisting_entities:
       preexisting_entity.key.delete()
 
-    entity_to_import.put()
+    self._persist_entity(entity_to_import)
 
   def import_entities(self):
     """Iterates over all entitiy names declared in the last export, and imports

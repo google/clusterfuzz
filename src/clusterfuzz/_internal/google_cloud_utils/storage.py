@@ -940,6 +940,11 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
   return None
 
 
+def get_bucket(bucket_name: str):
+  provider = _provider()
+  return provider.get_bucket(bucket_name)
+
+
 def create_bucket_if_needed(bucket_name,
                             object_lifecycle=None,
                             cors=None,
