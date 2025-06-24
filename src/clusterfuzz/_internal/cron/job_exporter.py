@@ -244,7 +244,9 @@ class EntityMigrator:
       call failed."""
     new_bundle_bucket = data_handler.get_data_bundle_bucket_name(bundle_name)
     storage.create_bucket_if_needed(new_bundle_bucket)
-    if not storage.get(source_location):
+    # There is no helper method to figure out if a folder exists, resort to
+    # checking if there are blobs under the path.
+    if not list(storage.get_blobs(source_location)):
       logs.warning(f'No source content for data bundle {bundle_name},'
                    ' skipping content import.')
       return new_bundle_bucket
