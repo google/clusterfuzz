@@ -817,15 +817,21 @@ def _upload_corpus_crashes_zip(result: CorpusPruningResult,
                                corpus_crashes_upload_url):
   """Packs the corpus crashes in a zip file. The file is then uploaded
   using the signed upload url from the input."""
+  logs.info('_upload_corpus_crashes_zip started.')
   temp_dir = environment.get_value('BOT_TMPDIR')
   zip_filename = os.path.join(temp_dir, corpus_crashes_blob_name)
+  logs.info(f'_upload_corpus_crashes_zip {zip_filename=}.')
   with zipfile.ZipFile(zip_filename, 'w') as zip_file:
     for crash in result.crashes:
       unit_name = os.path.basename(crash.unit_path)
+      logs.info('_upload_corpus_crashes_zip writing crash unit_path '
+                f'{crash.unit_path}.')
       zip_file.write(crash.unit_path, unit_name, zipfile.ZIP_DEFLATED)
 
   with open(zip_filename, 'rb') as fp:
     data = fp.read()
+    logs.info('_upload_corpus_crashes_zip upload_signed_url '
+              f'{corpus_crashes_upload_url}.')
     storage.upload_signed_url(data, corpus_crashes_upload_url)
   os.remove(zip_filename)
 
@@ -854,7 +860,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       output.uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name)
   corpus_crashes_zip_local_path = os.path.join(
       temp_dir, f'{corpus_crashes_blob_name}.zip')
-  logs.info('_process_corpus_crashes is copying file from gcs')
+  logs.info('_process_corpus_crashes is copying file from gcs: '
+            f'{corpus_crashes_blob_name}')
   storage.copy_file_from(
       blobs.get_gcs_path(corpus_crashes_blob_name),
       corpus_crashes_zip_local_path)
@@ -886,7 +893,7 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       # instead of the local quarantine directory.
       absolute_testcase_path = os.path.join(
           environment.get_value('FUZZ_INPUTS'), 'testcase')
-      logs.info('_process_corpus_crashes {absolute_testcase_path=}.')
+      logs.info(f'_process_corpus_crashes {absolute_testcase_path=}.')
 
       # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on
       # the job when we start doing untrusted fuzzing.
@@ -914,8 +921,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
           timeout_multiplier=1.0,
           minimized_arguments=minimized_arguments,
           trusted=True)
-
-      logs.info('_process_corpus_crashes setting testcase metadata.')
+      logs.info(
+          '_process_corpus_crashes testcase stored. setting testcase metadata.')
       # Set fuzzer_binary_name in testcase metadata.
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.set_metadata('fuzzer_binary_name',
@@ -928,7 +935,7 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
         testcase.put()
 
       # Create additional tasks for testcase (starting with minimization).
-      logs.info('_process_corpus_crashes creating testcase.')
+      logs.info('_process_corpus_crashes creating tasks.')
       testcase = data_handler.get_testcase_by_id(testcase_id)
       task_creation.create_tasks(testcase)
 
