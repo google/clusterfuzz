@@ -555,7 +555,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*logger',
     r'.*logging::CheckError',
     r'.*logging::.*LogMessage',
-    r'.*logging::.*NoReturnError',
+    r'.*logging::.*NoreturnError',
     r'.*stdext::exception::what',
     r'.*v8::base::OS::Abort',
     r'.*Runtime_AbortCSADcheck',
