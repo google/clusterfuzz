@@ -23,7 +23,6 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.chrome import build_info
 from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_comparer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
@@ -1040,20 +1039,6 @@ def update_fuzz_blocker_label(policy, testcase, issue,
       'to be found.')
   if utils.is_oss_fuzz():
     update_message += OSS_FUZZ_INCORRECT_COMMENT
-  elif utils.is_chromium():
-    label_text = issue.issue_tracker.label_text(
-        data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
-    update_message += '\n\nMarking this bug as a blocker for next Beta release.'
-    update_message = _append_generic_incorrect_comment(
-        update_message, policy, issue, f' and remove the {label_text}.')
-    issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
-
-    # Update with the next beta for trunk, and remove existing milestone label.
-    beta_milestone_label = (
-        f'M-{build_info.get_release_milestone("head", testcase.platform)}')
-    if beta_milestone_label not in issue.labels:
-      issue.labels.remove_by_prefix('M-')
-      issue.labels.add(beta_milestone_label)
 
   logs.info(update_message)
   issue.labels.add(fuzz_blocker_label)
