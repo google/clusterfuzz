@@ -1190,9 +1190,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_top_crashes_no_match(self):
@@ -1210,9 +1207,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_top_crashes_with_testcase_closed(self):
@@ -1233,9 +1227,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_top_crashes_match_single_platform(self):
@@ -1250,21 +1241,13 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
             }]
         }
     }
-    self.issue.labels.add('M-62')
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                  self.issue.labels)
-    self.assertIn('M-63', self.issue.labels)
-    self.assertNotIn('M-62', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux platform and is likely '
         'preventing the fuzzer fuzzer1 from making much progress. '
-        'Fixing this will allow more bugs to be found.'
-        '\n\nMarking this bug as a blocker for next Beta release.'
-        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label and '
-        'remove the ReleaseBlock-Beta label.',
+        'Fixing this will allow more bugs to be found.',
         self.issue._monorail_issue.comment)
 
   def test_top_crashes_match_single_platform_oss_fuzz(self):
@@ -1285,9 +1268,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux platform and is likely '
         'preventing the fuzzer fuzz_target1 from making much progress. '
@@ -1323,16 +1303,10 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                  self.issue.labels)
-    self.assertIn('M-63', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux, mac and windows platforms '
         'and is likely preventing the fuzzer fuzzer1 from making much '
-        'progress. Fixing this will allow more bugs to be found.'
-        '\n\nMarking this bug as a blocker for next Beta release.'
-        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label and '
-        'remove the ReleaseBlock-Beta label.',
+        'progress. Fixing this will allow more bugs to be found.',
         self.issue._monorail_issue.comment)
 
   def test_top_crashes_match_and_label_removed(self):
@@ -1355,9 +1329,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
 
