@@ -143,6 +143,10 @@ class EntityMigrator:
       blob_id = getattr(entity, blobstore_key, None)
       if blob_id:
         blob_gcs_path = blobs.get_gcs_path(blob_id)
+        if not storage.get(blob_gcs_path):
+          logs.warning(f'{blobstore_key} with id {blob_id} not present '
+                       f'for {entity.name}, skipping.')
+          continue
         blob_destination_path = f'{bucket_prefix}/{blobstore_key}'
         storage.copy_blob(blob_gcs_path, blob_destination_path)
 
