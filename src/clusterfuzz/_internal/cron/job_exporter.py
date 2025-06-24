@@ -297,9 +297,11 @@ class EntityMigrator:
 
     # Do not assume that name is a primary key, avoid having two
     # different keys with the same name.
-    preexisting_entity = self._target_cls.query(
-        self._target_cls.name == entity_name).get()
-    if preexisting_entity:
+    preexisting_entities = list(
+        self._target_cls.query(self._target_cls.name == entity_name))
+    logs.info(f'Found {len(preexisting_entities)} of type {self._entity_type}'
+              f' and name {entity_name}, deleting.')
+    for preexisting_entity in preexisting_entities:
       preexisting_entity.key.delete()
 
     self._persist_entity(entity_to_import)
