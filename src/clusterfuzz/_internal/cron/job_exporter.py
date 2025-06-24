@@ -213,9 +213,10 @@ class EntityMigrator:
             f'{blobstore_key} missing for {entity_name}, skipping blob import.')
         continue
       if not storage.get(source_blob_location):
-        raise ValueError(
-            f'Absent blob for {blobstore_key} in {entity_name}, it '
-            'should be present.')
+        logs.warning(f'Absent blob for {blobstore_key} in {entity_name}, it '
+                     'was expected be present. Marked as None and skipping.')
+        new_blob_ids[blobstore_key] = None
+        continue
       new_blob_id = blobs.generate_new_blob_name()
       target_blob_location = f'gs://{storage.blobs_bucket()}/{new_blob_id}'
       if not storage.copy_blob(source_blob_location, target_blob_location):
