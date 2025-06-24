@@ -157,6 +157,10 @@ class EntityMigrator:
       logs.info(
           f'DataBundle {entity.name} has no related gcs bucket, skipping.')
       return
+    if not storage.get_bucket(entity.bucket_name):
+      logs.warning(f'Bucket {entity.bucket_name} missing for '
+                   f'data bundle {entity.name}, skipping.')
+      return
     source_location = f'gs://{entity.bucket_name}'
     target_location = f'{bucket_prefix}/contents'
     rsync_succeeded = self._rsync_client.rsync(source_location, target_location)
