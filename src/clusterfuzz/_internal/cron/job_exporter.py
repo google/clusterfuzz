@@ -238,9 +238,22 @@ class EntityMigrator:
 
   def _import_data_bundle_contents(self, source_location: str,
                                    bundle_name: str):
+    """Imports data bundle contents from the export bucket to the new 
+      data bundle bucket in the target project. Skips if the contents
+      are absent during export, and throws an exception if the rsync 
+      call failed."""
     new_bundle_bucket = data_handler.get_data_bundle_bucket_name(bundle_name)
     storage.create_bucket_if_needed(new_bundle_bucket)
-    self._rsync_client.rsync(source_location, f'gs://{new_bundle_bucket}')
+    if not storage.get(source_location):
+      logs.warning(f'No source content for data bundle {bundle_name},'
+                   ' skipping content import.')
+      return new_bundle_bucket
+    target_location = f'gs://{new_bundle_bucket}'
+    rsync_result = self._rsync_client.rsync(source_location, target_location)
+    if not rsync_result:
+      raise ValueError(
+          f'Failed to rsync data bundle contents from {source_location} '
+          f'to {target_location}.')
     return new_bundle_bucket
 
   def _import_entity(self, entity_name: str, entity_location: str):
