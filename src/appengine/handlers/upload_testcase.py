@@ -22,6 +22,8 @@ import os
 
 from flask import request
 from google.cloud import ndb
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
 
 from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import external_users
@@ -668,3 +670,11 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
   @handler.oauth
   def post(self, *args):
     return self.do_post()
+
+class CrashReplicationUploadHandler(base_handler.Handler):
+  """Handler that picks up the pubsub notification."""
+  @handler.pubsub_push
+  def post(self, message):
+    helpers.log(message, helpers.VIEW_OPERATION)
+    with monitor.wrap_with_monitoring():
+      monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment()
