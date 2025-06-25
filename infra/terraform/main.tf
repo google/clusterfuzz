@@ -132,3 +132,25 @@ resource "google_compute_router_nat" "nat_config" {
     filter = "ALL"
   }
 }
+
+resource "google_pubsub_topic" "crash_replication" {
+  name    = "crash-replication"
+  project = var.project_id
+}
+
+resource "google_pubsub_subscription" "crash_replication_push_to_appengine" {
+  ack_deadline_seconds = 120
+
+  name                       = "crash-replication-push-to-appengine"
+  project                    =  var.project_id
+
+  push_config {
+    oidc_token {
+      service_account_email = var.appengine_service_account
+    }
+
+    push_endpoint = var.testcase_replication_push_endpoint
+  }
+
+  topic = google_pubsub_topic.crash_replication.name
+}
