@@ -289,9 +289,11 @@ def pubsub_push(func):
       helpers.log(f'Failed first parse: {e}', helpers.VIEW_OPERATION)
       raise helpers.UnauthorizedError('Invalid ID token.') from e
 
-    if (not claim.get('email_verified') or
-        claim.get('email') != utils.service_account_email()):
-      helpers.log(f'Failed second parse: {claim.get('email_verified')} - {claim.get('email')} - expected {utils.service_account_email()}', helpers.VIEW_OPERATION)
+    claim_email_verified = claim.get('email_verified')
+    claim_email = claim.get('email')
+    if (not claim_email_verified or
+        claim_email != utils.service_account_email()):
+      helpers.log(f'Failed second parse: {claim_email_verified} - {claim_email} - expected {utils.service_account_email()}', helpers.VIEW_OPERATION)
       raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))
