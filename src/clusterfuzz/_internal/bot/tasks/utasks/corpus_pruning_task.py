@@ -49,6 +49,7 @@ from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
@@ -927,6 +928,10 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.set_metadata('fuzzer_binary_name',
                             corpus_pruning_output.fuzzer_binary_name)
+      events.emit(
+          events.TestcaseCreationEvent(
+              testcase=testcase,
+              creation_origin=events.TestcaseOrigin.CORPUS_PRUNING))
 
       if output.issue_metadata:
         for key, value in json.loads(output.issue_metadata).items():

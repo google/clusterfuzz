@@ -115,8 +115,6 @@ NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE = 7
 UNREPRODUCIBLE_TESTCASE_NO_BUG_DEADLINE = 7
 UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE = 14
 
-# Chromium specific issue state tracking labels.
-CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL = 'ReleaseBlock-Beta'
 # TODO(ochang): Find some way to remove these.
 CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL = 'Test-Predator-Auto-CC'
 CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL = 'Test-Predator-Auto-Components'
@@ -1652,9 +1650,12 @@ class TestcaseLifecycleEvent(Model):
   # Task ID (artificial or corresponding to the utask execution).
   task_id = ndb.StringProperty()
 
+  # Task name.
+  task_name = ndb.StringProperty()
+
   ### Testcase Creation.
   # How testcase was created (manual upload, fuzz, corpus pruning).
-  origin = ndb.StringProperty()
+  creation_origin = ndb.StringProperty()
 
   # If testcase is manually uploaded, the user email.
   uploader = ndb.StringProperty()
@@ -1662,6 +1663,16 @@ class TestcaseLifecycleEvent(Model):
   ### Testcase Rejection
   # Explanation for the testcase rejection.
   rejection_reason = ndb.StringProperty()
+
+  ### Issue Filing.
+  # Name of the issue tracker (e.g., buganizer).
+  issue_tracker = ndb.StringProperty()
+
+  # ID from issue tracker bug (same as `bug_information` for Testcase).
+  issue_id = ndb.StringProperty()
+
+  # If the issue filing attempt was successful.
+  issue_created = ndb.BooleanProperty()
 
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
