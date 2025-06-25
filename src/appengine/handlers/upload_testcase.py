@@ -675,6 +675,7 @@ class CrashReplicationUploadHandler(base_handler.Handler):
   """Handler that picks up the pubsub notification."""
   @handler.pubsub_push
   def post(self, message):
-    helpers.log(message, helpers.VIEW_OPERATION)
+    helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
     with monitor.wrap_with_monitoring():
       monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment()
+    return 'ok'
