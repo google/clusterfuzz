@@ -21,7 +21,6 @@ UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
     description='The number of BigQuery writes',
     field_spec=[])
 
-
 # Fuzz task metrics.
 BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
     'debug/big_query/write_count',
