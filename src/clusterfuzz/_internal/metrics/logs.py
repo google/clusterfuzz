@@ -336,7 +336,7 @@ def json_fields_filter(record):
 
   record.json_fields.update({
       'extras': {
-          k: truncate(v, STACKDRIVER_LOG_MESSAGE_LIMIT)
+          k: truncate(_handle_unserializable(v), STACKDRIVER_LOG_MESSAGE_LIMIT)
           for k, v in getattr(record, 'extras', {}).items()
       }
   })
@@ -353,6 +353,7 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
+  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
@@ -392,6 +393,7 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
+  logging.getLogger().addFilter(json_fields_filter)
   logging.getLogger().setLevel(logging.INFO)
 
 
