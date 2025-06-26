@@ -35,6 +35,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
@@ -305,6 +306,8 @@ class UploadHandlerCommon:
 
   def do_post(self):
     """Upload a testcase."""
+    # Set artifical task id env to be used by tracing.
+    environment.set_task_id_vars(task_name='upload_testcase')
     email = helpers.get_user_email()
     testcase_id = request.get('testcaseId')
     uploaded_file = self.get_upload()
@@ -608,8 +611,14 @@ class UploadHandlerCommon:
         additional_metadata=testcase_metadata,
         crash_data=crash_data)
 
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    events.emit(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader=email))
+
     if not quiet_flag:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
       issue = issue_tracker_utils.get_issue_for_testcase(testcase)
       if issue:
         report_url = data_handler.TESTCASE_REPORT_URL.format(

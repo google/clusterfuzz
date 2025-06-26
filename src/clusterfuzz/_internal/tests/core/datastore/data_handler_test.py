@@ -722,6 +722,13 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     )
     job.put()
 
+    job = data_types.Job()
+    job.name = 'job'
+    job.environment_string = (
+        'PROJECT_NAME = test_project\n'
+        'HELP_FORMAT = https://source.corp.google.com/file:google3//a/b/c')
+    job.put()
+
     fuzz_target = data_types.FuzzTarget(id='libFuzzer_test_project_test_fuzzer')
     fuzz_target.binary = 'test_fuzzer'
     fuzz_target.project = 'test_project'
@@ -851,6 +858,15 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     self.assertEqual(
         data_handler.get_formatted_reproduction_help(testcase),
         'base_fuzzer\nblah')
+
+  def test_url_replacement(self):
+    """Test url replacement."""
+    testcase = data_types.Testcase()
+    testcase.job_type = 'job'
+    testcase.fuzzer_name = 'fuzzer'
+    testcase.put()
+    self.assertEqual('https://source.corp.google.com/file:google3/a/b/c',
+                     data_handler.get_formatted_reproduction_help(testcase))
 
 
 @test_utils.with_cloud_emulators('datastore')

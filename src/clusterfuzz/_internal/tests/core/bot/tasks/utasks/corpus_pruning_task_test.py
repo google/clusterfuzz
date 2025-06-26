@@ -173,11 +173,14 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         'clusterfuzz._internal.base.utils.get_application_id',
         'clusterfuzz._internal.datastore.data_handler.update_task_status',
         'clusterfuzz._internal.datastore.data_handler.get_task_status',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
     self.maxDiff = None
     self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
 
   def test_preprocess_existing_task_running(self):
     """Preprocess test when another task is running."""
@@ -245,6 +248,11 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     # self.assertEqual('test_fuzzer',
     #                  testcases[0].get_metadata('fuzzer_binary_name'))
     # self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
+    # self.mock.emit.assert_called_once_with(
+    #     events.TestcaseCreationEvent(
+    #         testcase=testcases[0],
+    #         creation_origin=events.TestcaseOrigin.CORPUS_PRUNING,
+    #         uploader=None))
 
     today = datetime.datetime.utcnow().date()
     # get_coverage_information on test_fuzzer rather than libFuzzer_test_fuzzer
