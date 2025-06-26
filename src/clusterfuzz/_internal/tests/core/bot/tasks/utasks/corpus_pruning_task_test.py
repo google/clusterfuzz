@@ -34,6 +34,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -239,20 +240,19 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '6fa8c57336628a7d733f684dc9404fbd09020543',
     ], corpus)
 
-    # TODO(metzman): Re-enable this when we re-enable corpus crash reporting.
-    # testcases = list(data_types.Testcase.query())
-    # self.assertEqual(1, len(testcases))
-    # self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
-    # self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
-    # self.assertEqual(1337, testcases[0].crash_revision)
-    # self.assertEqual('test_fuzzer',
-    #                  testcases[0].get_metadata('fuzzer_binary_name'))
-    # self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
-    # self.mock.emit.assert_called_once_with(
-    #     events.TestcaseCreationEvent(
-    #         testcase=testcases[0],
-    #         creation_origin=events.TestcaseOrigin.CORPUS_PRUNING,
-    #         uploader=None))
+    testcases = list(data_types.Testcase.query())
+    self.assertEqual(1, len(testcases))
+    self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
+    self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
+    self.assertEqual(1337, testcases[0].crash_revision)
+    self.assertEqual('test_fuzzer',
+                     testcases[0].get_metadata('fuzzer_binary_name'))
+    self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcases[0],
+            creation_origin=events.TestcaseOrigin.CORPUS_PRUNING,
+            uploader=None))
 
     today = datetime.datetime.utcnow().date()
     # get_coverage_information on test_fuzzer rather than libFuzzer_test_fuzzer

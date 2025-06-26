@@ -818,25 +818,30 @@ def _upload_corpus_crashes_zip(result: CorpusPruningResult,
                                corpus_crashes_upload_url):
   """Packs the corpus crashes in a zip file. The file is then uploaded
   using the signed upload url from the input."""
+  logs.info('_upload_corpus_crashes_zip started.')
   temp_dir = environment.get_value('BOT_TMPDIR')
   zip_filename = os.path.join(temp_dir, corpus_crashes_blob_name)
+  logs.info(f'_upload_corpus_crashes_zip {zip_filename=}.')
   with zipfile.ZipFile(zip_filename, 'w') as zip_file:
     for crash in result.crashes:
       unit_name = os.path.basename(crash.unit_path)
+      logs.info('_upload_corpus_crashes_zip writing crash unit_path '
+                f'{crash.unit_path}.')
       zip_file.write(crash.unit_path, unit_name, zipfile.ZIP_DEFLATED)
 
   with open(zip_filename, 'rb') as fp:
     data = fp.read()
+    logs.info('_upload_corpus_crashes_zip upload_signed_url '
+              f'{corpus_crashes_upload_url}.')
     storage.upload_signed_url(data, corpus_crashes_upload_url)
   os.remove(zip_filename)
 
 
 def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
-  # TODO(metzman): Fix this function after the holiday break.
-  # if not output.corpus_pruning_task_output.crashes:
-  return
-  # pylint: disable=unreachable
+  if not output.corpus_pruning_task_output.crashes:
+    return
+  logs.info(f'_process_corpus_crashes started for {output}')
   corpus_pruning_output = output.corpus_pruning_task_output
   crash_revision = corpus_pruning_output.crash_revision
   fuzz_target = data_handler.get_fuzz_target(output.uworker_input.fuzzer_name)
@@ -847,6 +852,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
 
   comment = (f'Fuzzer {fuzz_target.project_qualified_name()} generated corpus'
              f' testcase crashed (r{crash_revision})')
+  logs.info(
+      f'_process_corpus_crashes will upload a testcase with comment {comment}')
 
   # Copy the crashes zip file from cloud storage into a temporary directory.
   temp_dir = environment.get_value('BOT_TMPDIR')
@@ -854,6 +861,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       output.uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name)
   corpus_crashes_zip_local_path = os.path.join(
       temp_dir, f'{corpus_crashes_blob_name}.zip')
+  logs.info('_process_corpus_crashes is copying file from gcs: '
+            f'{corpus_crashes_blob_name}')
   storage.copy_file_from(
       blobs.get_gcs_path(corpus_crashes_blob_name),
       corpus_crashes_zip_local_path)
@@ -866,23 +875,30 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
           crash.security_flag,
           fuzz_target=fuzz_target.project_qualified_name())
       if existing_testcase:
+        logs.info('_process_corpus_crashes figured out crash already exists.')
         continue
 
       unit_name = os.path.basename(crash.unit_path)
       crash_local_unit_path = os.path.join(temp_dir, unit_name)
       # Extract the crash unit_path into crash_local_unit_path
+      logs.info(
+          '_process_corpus_crashes is extracting the crash unit_path into '
+          'crash_local_unit_path.')
       zip_reader.extract(member=unit_name, path=temp_dir)
       # Upload/store testcase.
       with open(crash_local_unit_path, 'rb') as f:
+        logs.info('_process_corpus_crashes is writing to blob.')
         key = blobs.write_blob(f)
 
       # Set the absolute_path property of the Testcase to a file in FUZZ_INPUTS
       # instead of the local quarantine directory.
       absolute_testcase_path = os.path.join(
           environment.get_value('FUZZ_INPUTS'), 'testcase')
+      logs.info(f'_process_corpus_crashes {absolute_testcase_path=}.')
 
       # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on
       # the job when we start doing untrusted fuzzing.
+      logs.info('_process_corpus_crashes storing testcase.')
       testcase_id = data_handler.store_testcase(
           crash=crash,
           fuzzed_keys=key,
@@ -906,7 +922,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
           timeout_multiplier=1.0,
           minimized_arguments=minimized_arguments,
           trusted=True)
-
+      logs.info(
+          '_process_corpus_crashes testcase stored. setting testcase metadata.')
       # Set fuzzer_binary_name in testcase metadata.
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.set_metadata('fuzzer_binary_name',
@@ -919,10 +936,11 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       if output.issue_metadata:
         for key, value in json.loads(output.issue_metadata).items():
           testcase.set_metadata(key, value, update_testcase=False)
-
+        logs.info('_process_corpus_crashes updating testcase in datastore.')
         testcase.put()
 
       # Create additional tasks for testcase (starting with minimization).
+      logs.info('_process_corpus_crashes creating tasks.')
       testcase = data_handler.get_testcase_by_id(testcase_id)
       task_creation.create_tasks(testcase)
 
@@ -1081,11 +1099,10 @@ def _utask_main(uworker_input):
     result = do_corpus_pruning(context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
-    # TODO(metzman): Fix this issue.
-    # _upload_corpus_crashes_zip(
-    #     result,
-    #     uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
-    #     uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
+    _upload_corpus_crashes_zip(
+        result,
+        uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
+        uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
     uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
         corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(  # pylint: disable=no-member
             coverage_info=_extract_coverage_information(context, result),
