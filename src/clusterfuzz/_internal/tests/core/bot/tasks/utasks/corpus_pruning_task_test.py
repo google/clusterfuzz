@@ -34,6 +34,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
