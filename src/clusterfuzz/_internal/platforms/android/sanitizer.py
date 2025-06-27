@@ -31,6 +31,7 @@ except ImportError:
 ASAN_SCRIPT_TIMEOUT = 15 * 60
 SANITIZER_TOOL_TO_FILE_MAPPINGS = {
     'asan': 'asan.options',
+    'hwasan': 'hwasan.options'
 }
 
 
