@@ -345,10 +345,8 @@ def json_fields_filter(record):
 
   json_extras = {}
   for key, val in getattr(record, 'extras', {}).items():
-    if _is_json_serializable(val):
-      valid_value = val
-    else:
-      valid_value = _handle_unserializable(val)
+    valid_value = (
+        val if _is_json_serializable(val) else _handle_unserializable(val))
     json_extras[key] = truncate(valid_value, STACKDRIVER_LOG_MESSAGE_LIMIT)
 
   record.json_fields.update({'extras': json_extras})
