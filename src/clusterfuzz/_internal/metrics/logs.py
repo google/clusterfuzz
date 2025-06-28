@@ -14,6 +14,7 @@
 """Logging functions."""
 
 import contextlib
+import dataclasses
 import datetime
 import enum
 import functools
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
 # This reserves roughly up to 200 KB for message content, leaving sufficient
 # space for structured logging metadata within the 256 KB total limit.
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000
+NON_TRUNCATABLE_TYPES = (int, float, bool, type(None))
 LOCAL_LOG_MESSAGE_LIMIT = 100000
 LOCAL_LOG_LIMIT = 500000
 _logger = None
@@ -184,7 +186,24 @@ def get_logging_config_dict(name):
 
 def truncate(msg, limit):
   """We need to truncate the message in the middle if it gets too long."""
-  if not isinstance(msg, str) or len(msg) <= limit:
+  if isinstance(msg, NON_TRUNCATABLE_TYPES):
+    return msg
+
+  # Handle collections and objects by recursing
+  if dataclasses.is_dataclass(msg) and not isinstance(msg, type):
+    msg = dataclasses.asdict(msg)
+
+  if isinstance(msg, dict):
+    return {k: truncate(v, limit) for k, v in msg.items()}
+
+  if isinstance(msg, (list, tuple)):
+    return type(msg)(truncate(item, limit) for item in msg)
+
+  # Coerce all other types to a string
+  if not isinstance(msg, str):
+    msg = str(msg)
+
+  if len(msg) <= limit:
     return msg
 
   half = limit // 2
