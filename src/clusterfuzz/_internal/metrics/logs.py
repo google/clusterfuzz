@@ -443,8 +443,11 @@ def configure_cloud_logging():
         'worker_bot_name':
             os.getenv('WORKER_BOT_NAME', 'null'),
         'extra':
-            json.dumps(
-                getattr(record, 'extras', {}), default=_handle_unserializable),
+            truncate(
+                json.dumps(
+                    getattr(record, 'extras', {}),
+                    default=_handle_unserializable),
+                STACKDRIVER_LOG_MESSAGE_LIMIT),
         'location':
             json.dumps(
                 getattr(record, 'location', {'Error': True}),
