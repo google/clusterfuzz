@@ -238,10 +238,10 @@ class FormatRecordTest(unittest.TestCase):
           'simple_extras',
           {
               'a': 1
-          },
+          },  # input_extras
           {
               'a': 1
-          },
+          },  # expected_extras_json
       ),
       (
           'no_extras',
