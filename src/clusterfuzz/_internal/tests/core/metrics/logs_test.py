@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """logs test."""
+import dataclasses
 import datetime
 import inspect
 import json
@@ -23,9 +24,37 @@ import sys
 import unittest
 from unittest import mock
 
+from parameterized import parameterized
+
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+
+
+@dataclasses.dataclass
+class SimpleDataclass:
+  """A simple dataclass for testing `logs.truncate`."""
+  name: str
+  value: int
+  active: bool
+
+
+@dataclasses.dataclass
+class NestedDataclass:
+  """A nested dataclass for testing `logs.truncate`."""
+  id: int
+  data: SimpleDataclass
+  extra: list
+
+
+class CustomObject:
+  """A custom object to test coercion to string of `logs.truncate`."""
+
+  def __init__(self, content):
+    self.content = content
+
+  def __str__(self):
+    return f'CustomObject content: {self.content}'
 
 
 class GetSourceLocationTest(unittest.TestCase):
@@ -204,18 +233,70 @@ class FormatRecordTest(unittest.TestCase):
     record.getMessage.return_value = 'log message'
     return record
 
-  def test_format_record(self):
-    """Test format a LogRecord into JSON string."""
+  @parameterized.expand([
+      (
+          'simple_extras',
+          {
+              'a': 1
+          },
+          {
+              'a': 1
+          },
+      ),
+      (
+          'no_extras',
+          {},
+          None,
+      ),
+      (
+          'complex_extras',
+          {
+              'b': 'string',
+              'c': [1, 2],
+              'd': {
+                  'nested': True
+              }
+          },
+          {
+              'b': 'string',
+              'c': [1, 2],
+              'd': {
+                  'nested': True
+              }
+          },
+      ),
+      (
+          'truncated_extra',
+          {
+              'long': 'x' * 23
+          },
+          {
+              'long': 'x' * 10 + '\n...3 characters truncated...\n' + 'x' * 10
+          },
+      ),
+      ('dataclass_extra', {
+          'my_dataclass':
+              SimpleDataclass(name='a' * 25, value=123, active=False)
+      }, {
+          'my_dataclass': {
+              'active': False,
+              'name': 'a' * 10 + '\n...5 characters truncated...\n' + 'a' * 10,
+              'value': 123,
+          }
+      }),
+  ])
+  @mock.patch(
+      'clusterfuzz._internal.metrics.logs.STACKDRIVER_LOG_MESSAGE_LIMIT', 20)
+  def test_format_record(self, name, input_extras, expected_extras_json):
+    """Test formatting a LogRecord with different 'extras' payloads."""
     os.environ['FUZZ_TARGET'] = 'fuzz_target1'
     record = self.get_record()
-    record.extras = {'a': 1}
-    self.assertEqual({
+    record.extras = input_extras
+
+    expected_output = {
         'message': 'log message',
         'created': '1970-01-01T00:00:10Z',
         'docker_image': '',
-        'extras': {
-            'a': 1
-        },
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
@@ -228,8 +309,15 @@ class FormatRecordTest(unittest.TestCase):
             'line': 123,
             'method': 'func'
         }
-    }, json.loads(logs.JsonFormatter().format(record)))
+    }
 
+    if expected_extras_json is not None:
+      expected_output['extras'] = expected_extras_json
+
+    result_json_str = logs.JsonFormatter().format(record)
+    actual_output = json.loads(result_json_str)
+
+    self.assertEqual(expected_output, actual_output)
     self.mock.update_entry_with_exc.assert_called_once_with(
         mock.ANY, 'exc_info')
 
@@ -1038,16 +1126,221 @@ class EmitTest(unittest.TestCase):
 
 
 class TruncateTest(unittest.TestCase):
-  """Test truncate."""
+  """Extensive tests for the new, recursive logs.truncate function."""
 
-  def test_not_truncate(self):
-    """Test msg is not too long."""
-    self.assertEqual('abcd', logs.truncate('abcd', 4))
+  def test_no_truncation_if_unnecessary(self):
+    """Tests that no truncation occurs for a short string."""
+    self.assertEqual('hello world', logs.truncate('hello world', 20))
+    self.assertEqual('hello world', logs.truncate('hello world', 11))
 
-  def test_truncate(self):
-    """Test truncate because msh is too long."""
-    self.assertEqual('abc\n...5 characters truncated...\nijk',
-                     logs.truncate('abcdefghijk', 6))
+  def test_no_truncation_for_non_truncatable_types(self):
+    """Tests that specific primitive types are returned as-is."""
+    self.assertEqual(12345, logs.truncate(12345, 4))
+    self.assertIs(12345, logs.truncate(12345, 4))
+    self.assertEqual(123.45, logs.truncate(123.45, 5))
+    self.assertIs(123.45, logs.truncate(123.45, 5))
+    self.assertTrue(logs.truncate(True, 1))
+    self.assertIs(True, logs.truncate(True, 1))
+    self.assertIsNone(logs.truncate(None, 1))
+
+  def test_simple_string_truncation(self):
+    """Tests basic truncation of a long string with an even limit."""
+    long_string = 'abcdefghijklmnopqrstuvwxyz'
+    limit = 10
+    # half = 5, first 5 chars are 'abcde', last 5 are 'vwxyz'
+    expected = 'abcde\n...16 characters truncated...\nvwxyz'
+    self.assertEqual(expected, logs.truncate(long_string, limit))
+
+  def test_string_truncation_with_odd_limit(self):
+    """Tests truncation with an odd limit value."""
+    long_string = 'abcdefghijklmnopqrstuvwxyz'
+    limit = 11
+    # half = 5, first 5 chars are 'abcde', last 5 are 'vwxyz'
+    expected = 'abcde\n...15 characters truncated...\nvwxyz'
+    self.assertEqual(expected, logs.truncate(long_string, limit))
+
+  def test_object_coercion_and_truncation(self):
+    """Tests that custom objects are coerced to string and then truncated."""
+    long_content = 'x' * 50
+    obj = CustomObject(long_content)
+    obj_as_str = str(obj)  # "CustomObject content: xxxxxxxxx..."
+    self.assertGreater(len(obj_as_str), 60)
+
+    limit = 40
+    half = limit // 2
+    expected = (f'{obj_as_str[:half]}\n'
+                f'...{len(obj_as_str) - limit} characters truncated...\n'
+                f'{obj_as_str[-half:]}')
+    self.assertEqual(expected, logs.truncate(obj, limit))
+
+  def test_list_truncation(self):
+    """Tests recursive truncation within a list."""
+    long_string_1 = 'a' * 30
+    long_string_2 = 'b' * 30
+    short_string = 'c' * 5
+    limit = 20
+
+    input_list = [long_string_1, short_string, long_string_2, 123]
+
+    truncated_1 = logs.truncate(long_string_1, limit)
+    truncated_2 = logs.truncate(long_string_2, limit)
+    expected_list = [truncated_1, short_string, truncated_2, 123]
+
+    result = logs.truncate(input_list, limit)
+    self.assertIsInstance(result, list)
+    self.assertEqual(expected_list, result)
+
+  def test_tuple_truncation(self):
+    """Tests recursive truncation within a tuple, preserving type."""
+    long_string = 'a' * 30
+    short_string = 'c' * 5
+    limit = 20
+
+    input_tuple = (long_string, short_string, True, None)
+
+    truncated_long = logs.truncate(long_string, limit)
+    expected_tuple = (truncated_long, short_string, True, None)
+
+    result = logs.truncate(input_tuple, limit)
+    self.assertIsInstance(result, tuple)
+    self.assertEqual(expected_tuple, result)
+
+  def test_dict_truncation(self):
+    """Tests recursive truncation of dictionary values."""
+    long_string = 'a' * 40
+    short_string = 'b' * 5
+    limit = 10
+
+    input_dict = {
+        'long_key': long_string,
+        'short_key': short_string,
+        'numeric_key': 99,
+        'nested_list': ['keep', 'c' * 20],
+        'another_long_string_key': 'd' * 30,
+    }
+
+    truncated_long_1 = logs.truncate(long_string, limit)
+    truncated_nested = logs.truncate('c' * 20, limit)
+    truncated_long_2 = logs.truncate('d' * 30, limit)
+
+    expected_dict = {
+        'long_key': truncated_long_1,
+        'short_key': short_string,
+        'numeric_key': 99,
+        'nested_list': ['keep', truncated_nested],
+        'another_long_string_key': truncated_long_2,
+    }
+
+    result = logs.truncate(input_dict, limit)
+    self.assertIsInstance(result, dict)
+    self.assertEqual(expected_dict, result)
+
+  def test_dataclass_truncation(self):
+    """Tests truncation of fields within a simple dataclass."""
+    long_name = 'This is a very long dataclass name that must be truncated'
+    limit = 30
+    dc_instance = SimpleDataclass(name=long_name, value=100, active=True)
+
+    truncated_name = logs.truncate(long_name, limit)
+    # Dataclass is converted to dict for truncation.
+    expected_result = {'name': truncated_name, 'value': 100, 'active': True}
+
+    self.assertEqual(expected_result, logs.truncate(dc_instance, limit))
+
+  def test_nested_dataclass_truncation(self):
+    """Tests truncation within a complex, nested dataclass structure."""
+    long_string_in_list = 'z' * 50
+    limit = 20
+    nested_dc_instance = NestedDataclass(
+        id=123,
+        data=SimpleDataclass(
+            name='A very long name for the inner simple dataclass object',
+            value=200,
+            active=False),
+        extra=['short_item', long_string_in_list, 42])
+
+    # Manually calculate the expected recursive truncation.
+    expected_inner_name = logs.truncate(
+        'A very long name for the inner simple dataclass object', limit)
+    expected_list_item = logs.truncate(long_string_in_list, limit)
+
+    expected_result = {
+        'id': 123,
+        'data': {
+            'name': expected_inner_name,
+            'value': 200,
+            'active': False
+        },
+        'extra': ['short_item', expected_list_item, 42]
+    }
+
+    self.assertEqual(expected_result, logs.truncate(nested_dc_instance, limit))
+
+  def test_empty_collections(self):
+    """Tests that empty collections are handled correctly."""
+    self.assertEqual([], logs.truncate([], 10))
+    self.assertEqual((), logs.truncate((), 10))
+    self.assertEqual({}, logs.truncate({}, 10))
+
+  def test_edge_case_limit_zero(self):
+    """Tests behavior with a limit of 0."""
+    long_string = 'abcdef'
+    # half = 0 // 2 = 0
+    # msg[:0] is '', msg[-0:] is 'abcdef' (the whole string)
+    expected = '\n...6 characters truncated...\nabcdef'
+    self.assertEqual(expected, logs.truncate(long_string, 0))
+
+  def test_edge_case_limit_one(self):
+    """Tests behavior with a limit of 1."""
+    long_string = 'abcdef'
+    # half = 1 // 2 = 0
+    # msg[:0] is '', msg[-0:] is 'abcdef' (the whole string)
+    expected = '\n...5 characters truncated...\nabcdef'
+    self.assertEqual(expected, logs.truncate(long_string, 1))
+
+  def test_complex_nested_structure(self):
+    """Tests a complex mix of lists, dicts, and tuples."""
+    limit = 12
+    structure = [{
+        'id': 1,
+        'data': 'This is a long string that definitely needs to be cut.',
+        'tags': ('tag1', 'a much much much longer tag value'),
+        'metadata': {
+            'source': 'Source name is extremely long and will be cut',
+            'valid': True
+        }
+    }, 'Just a short string in the list', {
+        'id': 2,
+        'data': 'short data'
+    }]
+
+    expected_structure = [{
+        'id':
+            1,
+        'data':
+            logs.truncate(
+                'This is a long string that definitely needs to be cut.',
+                limit),
+        'tags': ('tag1',
+                 logs.truncate('a much much much longer tag value', limit)),
+        'metadata': {
+            'source':
+                logs.truncate('Source name is extremely long and will be cut',
+                              limit),
+            'valid':
+                True
+        }
+    },
+                          logs.truncate('Just a short string in the list',
+                                        limit), {
+                                            'id': 2,
+                                            'data': 'short data'
+                                        }]
+
+    result = logs.truncate(structure, limit)
+    self.assertEqual(expected_structure, result)
+    # Check that the nested tuple type was preserved.
+    self.assertIsInstance(result[0]['tags'], tuple)
 
 
 class ErrorTest(unittest.TestCase):
