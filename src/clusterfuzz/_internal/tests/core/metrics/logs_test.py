@@ -287,7 +287,7 @@ class FormatRecordTest(unittest.TestCase):
   ])
   @mock.patch(
       'clusterfuzz._internal.metrics.logs.STACKDRIVER_LOG_MESSAGE_LIMIT', 20)
-  def test_format_record(self, name, input_extras, expected_extras_json):
+  def test_format_record(self, _, input_extras, expected_extras_json):
     """Test formatting a LogRecord with different 'extras' payloads."""
     os.environ['FUZZ_TARGET'] = 'fuzz_target1'
     record = self.get_record()
