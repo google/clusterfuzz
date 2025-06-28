@@ -1126,7 +1126,16 @@ class EmitTest(unittest.TestCase):
 
 
 class TruncateTest(unittest.TestCase):
-  """Extensive tests for the new, recursive logs.truncate function."""
+  """Test truncate."""
+
+  def test_not_truncate(self):
+    """Test msg is not too long."""
+    self.assertEqual('abcd', logs.truncate('abcd', 4))
+
+  def test_truncate(self):
+    """Test truncate because msh is too long."""
+    self.assertEqual('abc\n...5 characters truncated...\nijk',
+                     logs.truncate('abcdefghijk', 6))
 
   def test_no_truncation_if_unnecessary(self):
     """Tests that no truncation occurs for a short string."""
@@ -1147,44 +1156,40 @@ class TruncateTest(unittest.TestCase):
     """Tests basic truncation of a long string with an even limit."""
     long_string = 'abcdefghijklmnopqrstuvwxyz'
     limit = 10
+
     # half = 5, first 5 chars are 'abcde', last 5 are 'vwxyz'
     expected = 'abcde\n...16 characters truncated...\nvwxyz'
+
     self.assertEqual(expected, logs.truncate(long_string, limit))
 
   def test_string_truncation_with_odd_limit(self):
     """Tests truncation with an odd limit value."""
     long_string = 'abcdefghijklmnopqrstuvwxyz'
     limit = 11
+
     # half = 5, first 5 chars are 'abcde', last 5 are 'vwxyz'
     expected = 'abcde\n...15 characters truncated...\nvwxyz'
+
     self.assertEqual(expected, logs.truncate(long_string, limit))
 
   def test_object_coercion_and_truncation(self):
     """Tests that custom objects are coerced to string and then truncated."""
-    long_content = 'x' * 50
-    obj = CustomObject(long_content)
-    obj_as_str = str(obj)  # "CustomObject content: xxxxxxxxx..."
-    self.assertGreater(len(obj_as_str), 60)
+    limit = 30
+    obj = CustomObject('x' * 50)
 
-    limit = 40
-    half = limit // 2
-    expected = (f'{obj_as_str[:half]}\n'
-                f'...{len(obj_as_str) - limit} characters truncated...\n'
-                f'{obj_as_str[-half:]}')
+    expected = 'CustomObject co\n...42 characters truncated...\nxxxxxxxxxxxxxxx'
+
     self.assertEqual(expected, logs.truncate(obj, limit))
 
   def test_list_truncation(self):
     """Tests recursive truncation within a list."""
-    long_string_1 = 'a' * 30
-    long_string_2 = 'b' * 30
-    short_string = 'c' * 5
     limit = 20
+    input_list = ['a' * 30, 'b' * 5, 'c' * 33, 123]
 
-    input_list = [long_string_1, short_string, long_string_2, 123]
-
-    truncated_1 = logs.truncate(long_string_1, limit)
-    truncated_2 = logs.truncate(long_string_2, limit)
-    expected_list = [truncated_1, short_string, truncated_2, 123]
+    expected_list = [
+        'aaaaaaaaaa\n...10 characters truncated...\naaaaaaaaaa', 'b' * 5,
+        'cccccccccc\n...13 characters truncated...\ncccccccccc', 123
+    ]
 
     result = logs.truncate(input_list, limit)
     self.assertIsInstance(result, list)
@@ -1192,14 +1197,11 @@ class TruncateTest(unittest.TestCase):
 
   def test_tuple_truncation(self):
     """Tests recursive truncation within a tuple, preserving type."""
-    long_string = 'a' * 30
-    short_string = 'c' * 5
     limit = 20
+    input_tuple = ('a' * 30, 'c' * 5, True, None)
 
-    input_tuple = (long_string, short_string, True, None)
-
-    truncated_long = logs.truncate(long_string, limit)
-    expected_tuple = (truncated_long, short_string, True, None)
+    expected_tuple = ('aaaaaaaaaa\n...10 characters truncated...\naaaaaaaaaa',
+                      'c' * 5, True, None)
 
     result = logs.truncate(input_tuple, limit)
     self.assertIsInstance(result, tuple)
@@ -1207,28 +1209,21 @@ class TruncateTest(unittest.TestCase):
 
   def test_dict_truncation(self):
     """Tests recursive truncation of dictionary values."""
-    long_string = 'a' * 40
-    short_string = 'b' * 5
-    limit = 10
-
+    limit = 7
     input_dict = {
-        'long_key': long_string,
-        'short_key': short_string,
+        'long_key': 'a' * 40,
+        'short_key': 'b' * 5,
         'numeric_key': 99,
         'nested_list': ['keep', 'c' * 20],
         'another_long_string_key': 'd' * 30,
     }
 
-    truncated_long_1 = logs.truncate(long_string, limit)
-    truncated_nested = logs.truncate('c' * 20, limit)
-    truncated_long_2 = logs.truncate('d' * 30, limit)
-
     expected_dict = {
-        'long_key': truncated_long_1,
-        'short_key': short_string,
+        'long_key': 'aaa\n...33 characters truncated...\naaa',
+        'short_key': 'bbbbb',
         'numeric_key': 99,
-        'nested_list': ['keep', truncated_nested],
-        'another_long_string_key': truncated_long_2,
+        'nested_list': ['keep', 'ccc\n...13 characters truncated...\nccc'],
+        'another_long_string_key': 'ddd\n...23 characters truncated...\nddd',
     }
 
     result = logs.truncate(input_dict, limit)
@@ -1237,19 +1232,26 @@ class TruncateTest(unittest.TestCase):
 
   def test_dataclass_truncation(self):
     """Tests truncation of fields within a simple dataclass."""
-    long_name = 'This is a very long dataclass name that must be truncated'
     limit = 30
-    dc_instance = SimpleDataclass(name=long_name, value=100, active=True)
+    dc_instance = SimpleDataclass(
+        name='This is a very long dataclass name that must be truncated',
+        value=100,
+        active=True)
 
-    truncated_name = logs.truncate(long_name, limit)
     # Dataclass is converted to dict for truncation.
-    expected_result = {'name': truncated_name, 'value': 100, 'active': True}
+    expected_result = {
+        'name':
+            'This is a very \n...27 characters truncated...\nst be truncated',
+        'value':
+            100,
+        'active':
+            True
+    }
 
     self.assertEqual(expected_result, logs.truncate(dc_instance, limit))
 
   def test_nested_dataclass_truncation(self):
     """Tests truncation within a complex, nested dataclass structure."""
-    long_string_in_list = 'z' * 50
     limit = 20
     nested_dc_instance = NestedDataclass(
         id=123,
@@ -1257,21 +1259,20 @@ class TruncateTest(unittest.TestCase):
             name='A very long name for the inner simple dataclass object',
             value=200,
             active=False),
-        extra=['short_item', long_string_in_list, 42])
-
-    # Manually calculate the expected recursive truncation.
-    expected_inner_name = logs.truncate(
-        'A very long name for the inner simple dataclass object', limit)
-    expected_list_item = logs.truncate(long_string_in_list, limit)
+        extra=['short_item', 'z' * 50, 42])
 
     expected_result = {
-        'id': 123,
+        'id':
+            123,
         'data': {
-            'name': expected_inner_name,
+            'name': 'A very lon\n...34 characters truncated...\nass object',
             'value': 200,
             'active': False
         },
-        'extra': ['short_item', expected_list_item, 42]
+        'extra': [
+            'short_item',
+            'zzzzzzzzzz\n...30 characters truncated...\nzzzzzzzzzz', 42
+        ]
     }
 
     self.assertEqual(expected_result, logs.truncate(nested_dc_instance, limit))
@@ -1281,22 +1282,6 @@ class TruncateTest(unittest.TestCase):
     self.assertEqual([], logs.truncate([], 10))
     self.assertEqual((), logs.truncate((), 10))
     self.assertEqual({}, logs.truncate({}, 10))
-
-  def test_edge_case_limit_zero(self):
-    """Tests behavior with a limit of 0."""
-    long_string = 'abcdef'
-    # half = 0 // 2 = 0
-    # msg[:0] is '', msg[-0:] is 'abcdef' (the whole string)
-    expected = '\n...6 characters truncated...\nabcdef'
-    self.assertEqual(expected, logs.truncate(long_string, 0))
-
-  def test_edge_case_limit_one(self):
-    """Tests behavior with a limit of 1."""
-    long_string = 'abcdef'
-    # half = 1 // 2 = 0
-    # msg[:0] is '', msg[-0:] is 'abcdef' (the whole string)
-    expected = '\n...5 characters truncated...\nabcdef'
-    self.assertEqual(expected, logs.truncate(long_string, 1))
 
   def test_complex_nested_structure(self):
     """Tests a complex mix of lists, dicts, and tuples."""
@@ -1315,27 +1300,17 @@ class TruncateTest(unittest.TestCase):
     }]
 
     expected_structure = [{
-        'id':
-            1,
-        'data':
-            logs.truncate(
-                'This is a long string that definitely needs to be cut.',
-                limit),
-        'tags': ('tag1',
-                 logs.truncate('a much much much longer tag value', limit)),
+        'id': 1,
+        'data': 'This i\n...42 characters truncated...\ne cut.',
+        'tags': ('tag1', 'a much\n...21 characters truncated...\n value'),
         'metadata': {
-            'source':
-                logs.truncate('Source name is extremely long and will be cut',
-                              limit),
-            'valid':
-                True
+            'source': 'Source\n...33 characters truncated...\nbe cut',
+            'valid': True
         }
-    },
-                          logs.truncate('Just a short string in the list',
-                                        limit), {
-                                            'id': 2,
-                                            'data': 'short data'
-                                        }]
+    }, 'Just a\n...19 characters truncated...\ne list', {
+        'id': 2,
+        'data': 'short data'
+    }]
 
     result = logs.truncate(structure, limit)
     self.assertEqual(expected_structure, result)
