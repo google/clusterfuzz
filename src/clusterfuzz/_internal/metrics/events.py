@@ -54,6 +54,7 @@ class RejectionReason:
   """Explanation for the testcase rejection values."""
   ANALYZE_NO_REPRO = 'analyze_no_repro'
   ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
+  FUZZ_DUPLICATE = 'fuzz_duplicate'
 
 
 @dataclass(kw_only=True)

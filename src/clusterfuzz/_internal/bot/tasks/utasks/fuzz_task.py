@@ -849,6 +849,10 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
           uworker_output=uworker_output,
           fully_qualified_fuzzer_name=fully_qualified_fuzzer_name)
     else:
+      events.emit(
+          events.TestcaseRejectionEvent(
+              testcase=existing_testcase,
+              rejection_reason=events.RejectionReason.FUZZ_DUPLICATE))
       _update_testcase_variant_if_needed(group, existing_testcase,
                                          fuzz_task_output.crash_revision,
                                          uworker_input.job_type)
