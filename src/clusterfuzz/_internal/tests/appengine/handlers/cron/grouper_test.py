@@ -18,6 +18,7 @@ import unittest
 
 from clusterfuzz._internal.cron import grouper
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -592,3 +593,58 @@ class GroupExceedMaxTestcasesTest(unittest.TestCase):
     expected_testcase_ids = [3, 4, 5] + list(range(
         9, 31)) + [unrelated_testcase.key.id()]
     self.assertEqual(expected_testcase_ids, testcase_ids)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GrouperRejectionEventsTest(unittest.TestCase):
+  """Tests for rejection event emissions in grouper."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.cron.cleanup.get_top_crashes_for_all_projects_and_platforms',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+    ])
+
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock.get_top_crashes_for_all_projects_and_platforms.return_value = {}
+
+    self.emitted_events = []
+    self.mock.emit.side_effect = self.emitted_events.append
+
+  def test_duplicate_rejection_event(self):
+    """Test that a duplicate testcase triggers a rejection event."""
+    testcase1 = test_utils.create_generic_testcase()
+    testcase2 = test_utils.create_generic_testcase()
+    testcase1.crash_type = 'Overflow'
+    testcase2.crash_type = 'Overflow'
+    testcase1.crash_state = 'state'
+    testcase2.crash_state = 'state'
+    testcase1.put()
+    testcase2.put()
+
+    grouper.group_testcases()
+
+    self.assertEqual(1, len(self.emitted_events))
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase2,
+            rejection_reason=events.RejectionReason.GROUPER_DUPLICATE))
+
+  def test_group_overflow_rejection_events(self):
+    """Test that removing testcases from large groups emits rejection events."""
+    for i in range(1, 31):
+      testcase = test_utils.create_generic_testcase()
+      testcase.crash_type = 'Heap-buffer-overflow'
+      testcase.crash_state = 'state' + str(i)
+      testcase.project_name = 'project'
+      testcase.one_time_crasher_flag = False
+      testcase.put()
+
+    grouper.group_testcases()
+
+    self.assertEqual(5, len(self.emitted_events))
+    for event in self.emitted_events:
+      self.assertEqual(event.rejection_reason,
+                       events.RejectionReason.GROUPER_OVERFLOW)
+    self.assertEqual(5, self.mock.emit.call_count)
