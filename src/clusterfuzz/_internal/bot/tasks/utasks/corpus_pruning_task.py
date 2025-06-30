@@ -876,6 +876,11 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
           fuzz_target=fuzz_target.project_qualified_name())
       if existing_testcase:
         logs.info('_process_corpus_crashes figured out crash already exists.')
+        events.emit(
+            events.TestcaseRejectionEvent(
+                testcase=existing_testcase,
+                rejection_reason=events.RejectionReason.CORPUS_PRUNING_DUPLICATE
+            ))
         continue
 
       unit_name = os.path.basename(crash.unit_path)

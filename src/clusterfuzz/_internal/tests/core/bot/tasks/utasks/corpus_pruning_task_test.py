@@ -296,6 +296,28 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
 
+  def test_rejection_event_duplicate(self):
+    """Test that a duplicate crash results in a rejection event."""
+    existing_testcase = test_utils.create_generic_testcase()
+
+    helpers.patch(self, [
+        'clusterfuzz._internal.datastore.data_handler.find_testcase',
+    ])
+    self.mock.find_testcase.return_value = existing_testcase
+
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+    output = corpus_pruning_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+    corpus_pruning_task.utask_postprocess(output)
+
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=existing_testcase,
+            rejection_reason=events.RejectionReason.CORPUS_PRUNING_DUPLICATE))
+
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
