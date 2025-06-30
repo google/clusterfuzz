@@ -261,6 +261,15 @@ def _handle_unserializable(unserializable: Any) -> str:
     return str(unserializable)
 
 
+def _is_json_serializable(obj: Any) -> bool:
+  """Check if an object is json serializable, using the default encoder."""
+  try:
+    json.dumps(obj)
+    return True
+  except TypeError:
+    return False
+
+
 def update_entry_with_exc(entry, exc_info):
   """Update the dict `entry` with exc_info."""
   if not exc_info:
@@ -334,12 +343,13 @@ def json_fields_filter(record):
   if not hasattr(record, 'json_fields'):
     record.json_fields = {}
 
-  record.json_fields.update({
-      'extras': {
-          k: truncate(v, STACKDRIVER_LOG_MESSAGE_LIMIT)
-          for k, v in getattr(record, 'extras', {}).items()
-      }
-  })
+  json_extras = {}
+  for key, val in getattr(record, 'extras', {}).items():
+    valid_value = (
+        val if _is_json_serializable(val) else _handle_unserializable(val))
+    json_extras[key] = truncate(valid_value, STACKDRIVER_LOG_MESSAGE_LIMIT)
+
+  record.json_fields.update({'extras': json_extras})
   return True
 
 
@@ -353,6 +363,7 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
+  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
@@ -392,6 +403,7 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
+  logging.getLogger().addFilter(json_fields_filter)
   logging.getLogger().setLevel(logging.INFO)
 
 
