@@ -1649,7 +1649,6 @@ class EmitTestcaseCreationEventTest(unittest.TestCase):
             uploader=None))
 
 
-
 @test_utils.with_cloud_emulators('datastore')
 class DuplicateTestcaseRejectionEventTest(unittest.TestCase):
   """Tests that duplicate crashes emit a rejection event."""
@@ -1673,6 +1672,7 @@ class DuplicateTestcaseRejectionEventTest(unittest.TestCase):
     self.mock.find_testcase.return_value = self.existing_testcase
 
   def test_duplicate_event_emitted(self):
+    """Test that a duplicated testcase event is emited."""
     crash = uworker_msg_pb2.FuzzTaskCrash(
         crash_type='type', crash_state='state', security_flag=True)
     group = uworker_msg_pb2.FuzzTaskCrashGroup(
