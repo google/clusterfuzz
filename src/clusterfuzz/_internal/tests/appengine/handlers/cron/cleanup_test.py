@@ -75,26 +75,14 @@ class CleanupTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.cron.cleanup.get_crash_occurrence_platforms',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
         'clusterfuzz._internal.metrics.events.emit',
-        'clusterfuzz._internal.metrics.events.TestcaseRejectionEvent',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
-    self.mock_rejection_event = unittest.mock.Mock()
-    self.mock.TestcaseRejectionEvent.side_effect = (
-        lambda testcase, rejection_reason: self._init_rejection_event(
-            testcase, rejection_reason))
+    self.mock._get_datetime_now.return_value = test_utils.CURRENT_TIME
+
     self.issue = appengine_test_utils.create_generic_issue()
     self.policy = issue_tracker_policy.get('test-project')
-
-  def _init_rejection_event(self, testcase, rejection_reason):
-    self.mock_rejection_event.testcase_id = testcase.key.id()
-    self.mock_rejection_event.rejection_reason = rejection_reason
-    return self.mock_rejection_event
-
-  def _assert_rejection_event_emitted(self, expected_reason):
-    self.mock.emit.assert_called_once_with(self.mock_rejection_event)
-    self.assertEqual(expected_reason,
-                     self.mock_rejection_event.rejection_reason)
 
   def test_mark_duplicate_testcase_as_closed_with_no_issue_1(self):
     """Ensure that a regular bug older than 7 days does not get closed."""
@@ -126,8 +114,10 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     cleanup.mark_duplicate_testcase_as_closed_with_no_issue(testcase=testcase)
     self.assertFalse(testcase.open)
-    self._assert_rejection_event_emitted(
-        events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE))
 
   def test_mark_duplicate_testcase_as_closed_with_no_issue_4(self):
     """Ensure that a duplicate bug 7 days old does not get closed."""
@@ -171,8 +161,11 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     cleanup.delete_unreproducible_testcase_with_no_issue(testcase=testcase)
     self.assertFalse(test_utils.entity_exists(testcase))
-    self._assert_rejection_event_emitted(
-        events.RejectionReason.CLEANUP_UNREPRODUCIBLE_NO_ISSUE)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_NO_ISSUE))
 
   def test_delete_unreproducible_testcase_with_no_issue_4(self):
     """Ensure that an unreproducible bug with crash in last 7 days does not get
@@ -510,8 +503,10 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_testcase_as_closed_if_job_is_invalid(
         testcase=testcase, jobs=jobs)
     self.assertFalse(testcase.open)
-    self._assert_rejection_event_emitted(
-        events.RejectionReason.CLEANUP_INVALID_JOB)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.CLEANUP_INVALID_JOB))
 
   def test_mark_unreproducible_testcase_as_fixed_if_issue_is_closed_1(self):
     """Ensure that a reproducible testcase with no associated issue is not
@@ -570,8 +565,10 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_as_fixed_if_issue_is_closed(
         testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
-    self._assert_rejection_event_emitted(
-        events.RejectionReason.CLEANUP_ISSUE_CLOSED)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_1(
       self):
@@ -709,8 +706,11 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
-    self._assert_rejection_event_emitted(
-        events.RejectionReason.CLEANUP_UNREPRODUCIBLE_WITH_ISSUE)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_10(
       self):
@@ -763,8 +763,11 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
-    self._assert_rejection_event_emitted(
-        events.RejectionReason.CLEANUP_UNREPRODUCIBLE_WITH_ISSUE)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
   def test_notify_closed_issue_if_testcase_is_open_1(self):
     """Test that we don't do anything if testcase is already closed."""
