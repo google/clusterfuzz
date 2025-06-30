@@ -32,6 +32,7 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.metrics import events
 
 from . import grouper
 
@@ -538,6 +539,12 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
   _create_filed_bug_metadata(testcase)
   issue_filer.notify_issue_update(testcase, 'new')
 
+  events.emit(
+      events.IssueFilingEvent(
+          testcase=testcase,
+          issue_tracker=issue_tracker.project,
+          issue_id=str(testcase.bug_information),
+          issue_created=True))
   logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
                                                      testcase_id))
 
