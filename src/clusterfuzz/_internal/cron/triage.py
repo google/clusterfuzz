@@ -30,9 +30,9 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.metrics import events
 
 from . import grouper
 

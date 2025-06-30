@@ -603,7 +603,7 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     issue_tracker.project = 'buganizer'
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
 
-    def file_issue(testcase, issue_tracker_obj, throttler):
+    def file_issue(testcase, issue_tracker_obj, throttler):  # pylint: disable=unused-argument
       testcase.bug_information = '99'
       return True
 
