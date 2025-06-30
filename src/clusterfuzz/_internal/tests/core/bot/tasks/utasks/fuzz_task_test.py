@@ -1649,6 +1649,45 @@ class EmitTestcaseCreationEventTest(unittest.TestCase):
             uploader=None))
 
 
+
+@test_utils.with_cloud_emulators('datastore')
+class DuplicateTestcaseRejectionEventTest(unittest.TestCase):
+  """Tests that duplicate crashes emit a rejection event."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._should_create_testcase',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._update_testcase_variant_if_needed',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.write_crashes_to_big_query',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.upload_job_run_stats',
+        'clusterfuzz._internal.datastore.data_handler.find_testcase',
+        'time.sleep',
+    ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock._should_create_testcase.return_value = False
+    self.mock.write_crashes_to_big_query.return_value = None
+    self.mock.upload_job_run_stats.return_value = None
+    self.existing_testcase = test_utils.create_generic_testcase()
+    self.mock.find_testcase.return_value = self.existing_testcase
+
+  def test_duplicate_event_emitted(self):
+    crash = uworker_msg_pb2.FuzzTaskCrash(
+        crash_type='type', crash_state='state', security_flag=True)
+    group = uworker_msg_pb2.FuzzTaskCrashGroup(
+        crashes=[crash], main_crash=crash, one_time_crasher_flag=False)
+    output = uworker_msg_pb2.Output(
+        fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
+            crash_revision='1', crash_groups=[group]))
+    uworker_input = _create_uworker_input()
+    fuzz_task.postprocess_process_crashes(uworker_input, output)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=self.existing_testcase,
+            rejection_reason=events.RejectionReason.FUZZ_DUPLICATE))
+
+
 def _store_generic_testcase(*args, **kwargs):  # pylint: disable=unused-argument
   """Store a generic testcase and return its id."""
   testcase = test_utils.create_generic_testcase()
