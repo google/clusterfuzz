@@ -606,7 +606,7 @@ class GrouperRejectionEventsTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
 
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
     self.mock.get_top_crashes_for_all_projects_and_platforms.return_value = {}
 
     self.emitted_events = []
