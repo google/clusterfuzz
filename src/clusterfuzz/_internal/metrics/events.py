@@ -54,6 +54,11 @@ class RejectionReason:
   """Explanation for the testcase rejection values."""
   ANALYZE_NO_REPRO = 'analyze_no_repro'
   ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
+  CLEANUP_UNREPRODUCIBLE_NO_ISSUE = 'cleanup_unreproducible_no_issue'
+  CLEANUP_DUPLICATE_NO_ISSUE = 'cleanup_duplicate_no_issue'
+  CLEANUP_UNREPRODUCIBLE_WITH_ISSUE = 'cleanup_unreproducible_with_issue'
+  CLEANUP_ISSUE_CLOSED = 'cleanup_issue_closed'
+  CLEANUP_INVALID_JOB = 'cleanup_invalid_job'
 
 
 @dataclass(kw_only=True)
