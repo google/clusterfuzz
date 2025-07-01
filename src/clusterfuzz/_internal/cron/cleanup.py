@@ -556,7 +556,8 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
   events.emit(
       events.TestcaseRejectionEvent(
           testcase=testcase,
-          rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(

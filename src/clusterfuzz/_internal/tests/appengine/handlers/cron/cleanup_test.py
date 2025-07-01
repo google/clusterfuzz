@@ -568,7 +568,8 @@ class CleanupTest(unittest.TestCase):
     self.mock.emit.assert_called_once_with(
         events.TestcaseRejectionEvent(
             testcase=testcase,
-            rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_1(
       self):
