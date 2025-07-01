@@ -184,8 +184,33 @@ def get_logging_config_dict(name):
   }
 
 
-def truncate(msg, limit):
-  """We need to truncate the message in the middle if it gets too long."""
+def truncate(
+    msg: Any,
+    limit: int,
+) -> Any:
+  """We need to truncate the message in the middle if it gets too long.
+
+  If the message is a string and exceeds the character `limit`, it is
+  truncated in the middle, with a notice indicating how many characters
+  were removed.
+
+  For dictionaries, lists, and tuples, the function recurses over their
+  values/items. For dataclasses, it first converts them to dictionaries
+  before recursing.
+
+  Certain types defined in `NON_TRUNCATABLE_TYPES` are returned as-is.
+  All other types are coerced to strings before truncation.
+
+  Args:
+    msg: The message or collection to truncate.
+    limit: The maximum character length for strings.
+
+  Returns:
+    The truncated message, which may be a string or a collection of
+    the same type as the input. While basic types like strings, lists, and
+    dictionaries retain their type, be aware that dataclasses are converted
+    to dictionaries, and other unhandled objects are converted to strings.
+  """
   if isinstance(msg, NON_TRUNCATABLE_TYPES):
     return msg
 
