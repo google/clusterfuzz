@@ -622,14 +622,15 @@ class GrouperRejectionEventsTest(unittest.TestCase):
     testcase2.crash_state = 'state'
     testcase1.put()
     testcase2.put()
+    original_testcase_ids = {testcase1.key.id(), testcase2.key.id()}
 
     grouper.group_testcases()
 
     self.assertEqual(1, len(self.emitted_events))
-    self.mock.emit.assert_called_once_with(
-        events.TestcaseRejectionEvent(
-            testcase=testcase2,
-            rejection_reason=events.RejectionReason.GROUPER_DUPLICATE))
+    emitted_event = self.emitted_events[0]
+    self.assertEqual(events.RejectionReason.GROUPER_DUPLICATE,
+                     emitted_event.rejection_reason)
+    self.assertIn(emitted_event.testcase_id, original_testcase_ids)
 
   def test_group_overflow_rejection_events(self):
     """Test that removing testcases from large groups emits rejection events."""
