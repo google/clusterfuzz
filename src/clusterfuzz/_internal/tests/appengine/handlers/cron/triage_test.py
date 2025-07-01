@@ -604,6 +604,7 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
 
   def test_event_emitted(self):
+    """Tests that the IssueFilingEvent is emitted on a filled testcase."""
 
     def file_issue(testcase, issue_tracker_obj, throttler):  # pylint: disable=unused-argument
       testcase.bug_information = '99'
