@@ -532,6 +532,11 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
     _emit_untriaged_testcase_age_metric(testcase, PENDING_FILING)
     _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
     logs.info(f'Issue filing failed for testcase id {testcase_id}')
+    events.emit(
+        events.IssueFilingEvent(
+            testcase=testcase,
+            issue_tracker=issue_tracker.project,
+            issue_created=False))
     return
 
   _set_testcase_stuck_state(testcase, False)

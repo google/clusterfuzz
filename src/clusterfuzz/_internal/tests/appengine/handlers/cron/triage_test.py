@@ -603,13 +603,12 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     issue_tracker.project = 'buganizer'
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
 
+  def test_event_emitted(self):
     def file_issue(testcase, issue_tracker_obj, throttler):  # pylint: disable=unused-argument
       testcase.bug_information = '99'
       return True
-
     self.mock._file_issue.side_effect = file_issue
 
-  def test_event_emitted(self):
     triage._triage_testcase(
         self.testcase,
         excluded_jobs=[],
@@ -622,3 +621,19 @@ class IssueFilingEventEmitTest(unittest.TestCase):
             issue_tracker='buganizer',
             issue_id='99',
             issue_created=True))
+
+  def test_event_emitted_on_failure(self):
+    """Tests that the IssueFilingEvent is emitted on a failed filing."""
+    self.mock._file_issue.return_value = False
+
+    triage._triage_testcase(
+        self.testcase,
+        excluded_jobs=[],
+        all_jobs=[self.testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock.emit.assert_called_once_with(
+        events.IssueFilingEvent(
+            testcase=self.testcase,
+            issue_tracker='buganizer',
+            issue_created=False))
