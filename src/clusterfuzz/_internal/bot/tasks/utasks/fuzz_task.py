@@ -52,7 +52,9 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
@@ -809,6 +811,54 @@ def postprocess_store_fuzzer_run_results(output):
   logs.info('Finished storing results from fuzzer run.')
 
 
+def _infer_fully_qualified_fuzzer_name(uworker_input: uworker_msg_pb2.Input):
+  fuzz_target = None
+  if uworker_input.fuzz_task_input.HasField('fuzz_target'):
+    fuzz_target = uworker_io.entity_from_protobuf(
+        uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
+
+    fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
+  else:
+    fully_qualified_fuzzer_name = uworker_input.fuzzer_name
+  return fully_qualified_fuzzer_name
+
+
+def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
+                                 uworker_output: uworker_msg_pb2.Output):
+  """Samples fuzz task testcases to reupload through the Upload Testcase
+    endpoint in AppEngine. Meant to enable analyze task coverage in
+    testing environments."""
+  fuzz_task_output = uworker_output.fuzz_task_output
+  job = uworker_input.job_type
+  fuzzer = _infer_fully_qualified_fuzzer_name(uworker_input)
+  project_config = local_config.ProjectConfig()
+  sample_rate = int(project_config.get('fuzz_task_sampling.sampling_rate', 0))
+  sampling_topic = project_config.get('fuzz_task_sampling.sampling_topic', None)
+  pubsub_client = pubsub.PubSubClient()
+  topic_name = pubsub.topic_name(utils.get_application_id(), sampling_topic)
+  messages = []
+  for group in fuzz_task_output.crash_groups:
+    leader_crash = group.crashes[0]
+    dice_roll = random.randint(0, 100)
+    if dice_roll >= sample_rate:
+      continue
+    sampling_message_data = {
+      'file_path': leader_crash.file_path,
+      'arguments': leader_crash.arguments,
+      'application_command_line': leader_crash.application_command_line,
+      'fuzzed_key': leader_crash.fuzzed_key,
+      'absolute_path': leader_crash.absolute_path,
+      'archive_filename': leader_crash.archive_filename,
+      'job': uworker_input.job_type,
+      'fuzzed_key': leader_crash.fuzzed_key,
+      'gestures': leader_crash.gestures,
+    }
+    logs.info(f'Sampling crash for reupload with the following contents: '
+              f'{sampling_message_data}')
+    messages.append(sampling_message_data)
+  pubsub_messages = [pubsub.Message(data) for data in messages]
+  pubsub_client.publish(sampling_topic, pubsub_messages)
+
 def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
                                 uworker_output: uworker_msg_pb2.Output):
   """Postprocess process_crashes"""
@@ -818,14 +868,8 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
   known_crash_count = 0
 
   fuzz_task_output = uworker_output.fuzz_task_output
-  fuzz_target = None
-  if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-    fuzz_target = uworker_io.entity_from_protobuf(
-        uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
-
-    fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
-  else:
-    fully_qualified_fuzzer_name = uworker_input.fuzzer_name
+  fully_qualified_fuzzer_name = _infer_fully_qualified_fuzzer_name(
+      uworker_input)
 
   for group in fuzz_task_output.crash_groups:
     # Getting existing_testcase after finding the main crash is important.
