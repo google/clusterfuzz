@@ -600,13 +600,15 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     self.testcase.set_metadata('ran_grouper', True)
 
     issue_tracker = mock.MagicMock()
-    issue_tracker.project = 'buganizer'
+    issue_tracker.project = 'oss-fuzz'
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
 
   def test_event_emitted(self):
+
     def file_issue(testcase, issue_tracker_obj, throttler):  # pylint: disable=unused-argument
       testcase.bug_information = '99'
       return True
+
     self.mock._file_issue.side_effect = file_issue
 
     triage._triage_testcase(
@@ -618,7 +620,7 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     self.mock.emit.assert_called_once_with(
         events.IssueFilingEvent(
             testcase=self.testcase,
-            issue_tracker='buganizer',
+            issue_tracker_project='oss-fuzz',
             issue_id='99',
             issue_created=True))
 
@@ -635,5 +637,5 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     self.mock.emit.assert_called_once_with(
         events.IssueFilingEvent(
             testcase=self.testcase,
-            issue_tracker='buganizer',
+            issue_tracker_project='oss-fuzz',
             issue_created=False))

@@ -152,8 +152,8 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
 class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Issue filing event."""
   event_type: str = field(default=EventTypes.ISSUE_FILING, init=False)
-  # Either buganizer or some_other_board.
-  issue_tracker: str | None = None
+  # Name of the project associate with the issue tracker.
+  issue_tracker_project: str | None = None
   # The number of the issue on the issue tracker.
   issue_id: str | None = None
   # If the issue filing attempt was successful.

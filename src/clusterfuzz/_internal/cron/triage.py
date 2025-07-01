@@ -535,7 +535,7 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
     events.emit(
         events.IssueFilingEvent(
             testcase=testcase,
-            issue_tracker=issue_tracker.project,
+            issue_tracker_project=issue_tracker.project,
             issue_created=False))
     return
 
@@ -547,7 +547,7 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
   events.emit(
       events.IssueFilingEvent(
           testcase=testcase,
-          issue_tracker=issue_tracker.project,
+          issue_tracker_project=issue_tracker.project,
           issue_id=str(testcase.bug_information),
           issue_created=True))
   logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
