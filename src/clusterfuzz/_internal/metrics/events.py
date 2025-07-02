@@ -41,6 +41,7 @@ class EventTypes:
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
   ISSUE_FILING = 'issue_filing'
+  TASK_EXECUTION = 'task_execution'
 
 
 class TestcaseOrigin:
@@ -54,6 +55,20 @@ class RejectionReason:
   """Explanation for the testcase rejection values."""
   ANALYZE_NO_REPRO = 'analyze_no_repro'
   ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
+
+
+class TaskStage:
+  """Task stage."""
+  PREPROCESS = 'preprocess'
+  MAIN = 'main'
+  POSTPROCESS = 'postprocess'
+  NA = 'n/a'
+
+
+class TaskStatus:
+  STARTED = 'started'
+  FINISHED = 'finished'
+  EXCEPTION = 'exception'
 
 
 @dataclass(kw_only=True)
@@ -160,11 +175,24 @@ class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   issue_created: bool | None = None
 
 
+@dataclass(kw_only=True)
+class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Task execution event."""
+  event_type: str = field(default=EventTypes.TASK_EXECUTION, init=False)
+  # Task stage (preprocess, main or postprocess).
+  task_stage: str | None = None
+  # Task status (e.g., started, finished, exception).
+  task_status: str | None = None
+  # UTask return code (defined in the uworker protobuf error types).
+  task_return_code: int | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
+    EventTypes.TASK_EXECUTION: TaskExecutionEvent,
 }
 
 
