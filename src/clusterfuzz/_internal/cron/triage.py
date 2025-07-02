@@ -30,6 +30,7 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -531,6 +532,11 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
     _emit_untriaged_testcase_age_metric(testcase, PENDING_FILING)
     _increment_untriaged_testcase_count(testcase.job_type, PENDING_FILING)
     logs.info(f'Issue filing failed for testcase id {testcase_id}')
+    events.emit(
+        events.IssueFilingEvent(
+            testcase=testcase,
+            issue_tracker_project=issue_tracker.project,
+            issue_created=False))
     return
 
   _set_testcase_stuck_state(testcase, False)
@@ -538,6 +544,12 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
   _create_filed_bug_metadata(testcase)
   issue_filer.notify_issue_update(testcase, 'new')
 
+  events.emit(
+      events.IssueFilingEvent(
+          testcase=testcase,
+          issue_tracker_project=issue_tracker.project,
+          issue_id=str(testcase.bug_information),
+          issue_created=True))
   logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
                                                      testcase_id))
 

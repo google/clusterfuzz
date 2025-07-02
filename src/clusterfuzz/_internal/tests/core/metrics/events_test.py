@@ -159,13 +159,13 @@ class EventsDataTest(unittest.TestCase):
     event_filing = events.IssueFilingEvent(
         source=source,
         testcase=testcase,
-        issue_tracker='buganizer',
+        issue_tracker_project='oss-fuzz',
         issue_id='12345',
         issue_created=True)
     self._assert_event_common_fields(event_filing, event_type, source)
     self._assert_testcase_fields(event_filing, testcase)
     self._assert_task_fields(event_filing)
-    self.assertEqual(event_filing.issue_tracker, 'buganizer')
+    self.assertEqual(event_filing.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event_filing.issue_id, '12345')
     self.assertTrue(event_filing.issue_created)
 
@@ -307,7 +307,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event = events.IssueFilingEvent(
         source='events_test',
         testcase=testcase,
-        issue_tracker='buganizer',
+        issue_tracker_project='oss-fuzz',
         issue_id='67890',
         issue_created=False)
     event_type = event.event_type
@@ -325,7 +325,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self._assert_task_fields(event_entity)
 
     # IssueFilingEvent specific assertions
-    self.assertEqual(event_entity.issue_tracker, 'buganizer')
+    self.assertEqual(event_entity.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event_entity.issue_id, '67890')
     self.assertFalse(event_entity.issue_created)
 
@@ -437,7 +437,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.fuzzer = 'fuzzer1'
     event_entity.job = 'test_job'
     event_entity.crash_revision = 2
-    event_entity.issue_tracker = 'buganizer'
+    event_entity.issue_tracker_project = 'oss-fuzz'
     event_entity.issue_id = '13579'
     event_entity.issue_created = True
     event_entity.put()
@@ -458,7 +458,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.crash_revision, 2)
 
     # IssueFilingEvent specific assertions
-    self.assertEqual(event.issue_tracker, 'buganizer')
+    self.assertEqual(event.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event.issue_id, '13579')
     self.assertTrue(event.issue_created)
 

@@ -1665,8 +1665,8 @@ class TestcaseLifecycleEvent(Model):
   rejection_reason = ndb.StringProperty()
 
   ### Issue Filing.
-  # Name of the issue tracker (e.g., buganizer).
-  issue_tracker = ndb.StringProperty()
+  # Name of the project associated with the issue tracker.
+  issue_tracker_project = ndb.StringProperty()
 
   # ID from issue tracker bug (same as `bug_information` for Testcase).
   issue_id = ndb.StringProperty()
