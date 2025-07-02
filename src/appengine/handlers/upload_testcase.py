@@ -397,7 +397,7 @@ class UploadHandlerCommon:
         job_type=job_type,
         fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)) and
         not _is_uploader_allowed(email)):
-      helpers.log(f'User {email} does not have access')
+      helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
     # Chrome is the only ClusterFuzz deployment where there are trusted bots
