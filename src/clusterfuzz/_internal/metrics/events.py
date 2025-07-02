@@ -58,7 +58,7 @@ class RejectionReason:
 
 
 class TaskStage:
-  """Task stage."""
+  """Task stage, usually applicable for untrusted tasks."""
   PREPROCESS = 'preprocess'
   MAIN = 'main'
   POSTPROCESS = 'postprocess'
@@ -66,6 +66,7 @@ class TaskStage:
 
 
 class TaskStatus:
+  """Task status."""
   STARTED = 'started'
   FINISHED = 'finished'
   EXCEPTION = 'exception'
