@@ -16,6 +16,7 @@
 from flask import request
 
 from clusterfuzz._internal.issue_management import issue_filer
+from clusterfuzz._internal.metrics import events
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
@@ -45,6 +46,14 @@ class Handler(base_handler.Handler):
         security_severity=severity,
         user_email=user_email,
         additional_ccs=additional_ccs)
+
+    event = events.IssueFilingEvent(
+        testcase=testcase,
+        issue_tracker_project=issue_tracker.project,
+        issue_id=str(issue_id) if issue_id else None,
+        issue_created=bool(issue_id))
+    print("NILVO", event.issue_id)
+    events.emit(event)
 
     if not issue_id:
       raise helpers.EarlyExitError('Unable to create new issue.', 500)
