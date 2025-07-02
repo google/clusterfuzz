@@ -324,7 +324,7 @@ class UploadHandlerCommon:
     issue_labels=None,
     stacktrace=None,
     multiple_testcases=None,
-    trusted_agreement_signed=None,
+    trusted_agreement_signed=False,
     testcase_id=None) -> str:
     """Holds the logic for actually performing a testcase upload."""
     if testcase_id and not uploaded_file:
@@ -740,10 +740,12 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
   def post(self, message):
     with monitor.wrap_with_monitoring():
       message_data = json.loads(message.data.decode())
-      job = message_data['job']
-      fuzzer = message_data['fuzzer']
-      fuzz_target = message_data['target_name']
-      original_task_id = message_data['original_task_id']
+      helpers.log(f'Message: {type(message)} {message}', helpers.VIEW_OPERATION)
+
+      job = message_data.get('job', None)
+      fuzzer = message_data.get('fuzzer', None)
+      fuzz_target = message_data.get('target_name', None)
+      original_task_id = message_data.get('original_task_id', None)
       helpers.log(f'Uploading testcase from fuzz task id {original_task_id}', helpers.VIEW_OPERATION)
       helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
       try:
@@ -752,11 +754,12 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
           job_type = job,
           fuzzer_name = fuzzer,
           target_name = fuzz_target,
-          additional_arguments=message_data['arguments'],
-          app_launch_command=message_data['application_command_line'],
-          gestures=message_data['gestures'],
-          http_flag=message_data['http_flag'],
+          additional_arguments=message_data.get('arguments', None),
+          app_launch_command=message_data.get('application_command_line', None),
+          gestures=message_data.get('gestures', None),
+          http_flag=message_data.get('http_flag', None),
           platform_id='Linux',
+          trusted_agreement_signed=True,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
           'fuzzer': fuzzer,
