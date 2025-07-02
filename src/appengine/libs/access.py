@@ -92,10 +92,12 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
     return UserAccess.Allowed
 
   user = auth.get_current_user()
+  helpers.log(f'Current user = {user}', helpers.VIEW_OPERATION)
   if not user:
     return UserAccess.Redirected
 
   email = user.email
+  helpers.log(f'Current user email = {user.email}', helpers.VIEW_OPERATION)
   if _is_blacklisted_user(email):
     return UserAccess.Denied
 
@@ -111,6 +113,7 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
 
   if not need_privileged_access and _is_domain_allowed(email):
     return UserAccess.Allowed
+  helpers.log(f'No code path was allowed for user  {user.email}', helpers.VIEW_OPERATION)
 
   return UserAccess.Denied
 

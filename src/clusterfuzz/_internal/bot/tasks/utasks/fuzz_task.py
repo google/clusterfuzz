@@ -839,10 +839,9 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
   pubsub_client = pubsub.PubSubClient()
   topic_name = pubsub.topic_name(utils.get_application_id(), sampling_topic)
 
-  fuzzer_name = uworker_input.fuzzer_name
-  fuzz_target_name = _infer_fully_qualified_fuzzer_name(uworker_input)
-  if fuzz_target_name == fuzzer_name:
-    fuzz_target_name = None
+  fuzz_target_name = testcase_manager.get_fuzz_target_from_input(uworker_input)
+  if fuzz_target_name:
+    fuzz_target_name = fuzz_target_name.binary
 
   messages = []
   for group in fuzz_task_output.crash_groups:
