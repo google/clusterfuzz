@@ -739,7 +739,7 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
   @handler.pubsub_push
   def post(self, message):
     with monitor.wrap_with_monitoring():
-      message_data = message.data.decode()
+      message_data = json.loads(message.data.decode())
       job = message_data['job']
       fuzzer = message_data['fuzzer']
       fuzz_target = message_data['target_name']
