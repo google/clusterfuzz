@@ -829,13 +829,21 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     endpoint in AppEngine. Meant to enable analyze task coverage in
     testing environments."""
   fuzz_task_output = uworker_output.fuzz_task_output
-  job = uworker_input.job_type
-  fuzzer = _infer_fully_qualified_fuzzer_name(uworker_input)
   project_config = local_config.ProjectConfig()
   sample_rate = int(project_config.get('fuzz_task_sampling.sampling_rate', 0))
+  if not sample_rate:
+    logs.info('Zero sample rate for fuzz task crash reuploads, skipping.')
   sampling_topic = project_config.get('fuzz_task_sampling.sampling_topic', None)
+  if not sampling_topic:
+    logs.info('No crash replication topic defined for fuzz sampling, skipping.')
   pubsub_client = pubsub.PubSubClient()
   topic_name = pubsub.topic_name(utils.get_application_id(), sampling_topic)
+
+  fuzzer_name = uworker_input.fuzzer_name
+  fuzz_target_name = _infer_fully_qualified_fuzzer_name(uworker_input)
+  if fuzz_target_name == fuzzer_name:
+    fuzz_target_name = None
+
   messages = []
   for group in fuzz_task_output.crash_groups:
     leader_crash = group.crashes[0]
@@ -843,21 +851,21 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     if dice_roll >= sample_rate:
       continue
     sampling_message_data = {
-      'file_path': leader_crash.file_path,
+      'fuzzed_key': leader_crash.fuzzed_key,
+      'job': uworker_input.job_type,
+      'fuzzer': uworker_input.fuzzer_name,
+      'target_name': fuzz_target_name,
       'arguments': leader_crash.arguments,
       'application_command_line': leader_crash.application_command_line,
-      'fuzzed_key': leader_crash.fuzzed_key,
-      'absolute_path': leader_crash.absolute_path,
-      'archive_filename': leader_crash.archive_filename,
-      'job': uworker_input.job_type,
-      'fuzzed_key': leader_crash.fuzzed_key,
       'gestures': leader_crash.gestures,
+      'http_flag': leader_crash.http_flag,
+      'original_task_id': os.environ['CF_TASK_ID'],
     }
     logs.info(f'Sampling crash for reupload with the following contents: '
               f'{sampling_message_data}')
     messages.append(sampling_message_data)
   pubsub_messages = [pubsub.Message(data) for data in messages]
-  pubsub_client.publish(sampling_topic, pubsub_messages)
+  pubsub_client.publish(topic_name, pubsub_messages)
 
 def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
                                 uworker_output: uworker_msg_pb2.Output):
