@@ -187,15 +187,16 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_task_exec_pre.task_stage,
                      events.TaskStage.PREPROCESS)
     self.assertEqual(event_task_exec_pre.task_status, events.TaskStatus.STARTED)
-    self.assertIsNone(event_task_exec_pre.task_return_code)
+    self.assertIsNone(event_task_exec_pre.task_outcome)
 
+    task_outcome = uworker_msg_pb2.ErrorType.Name(
+        uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH)
     event_task_exec_post_finish = events.TaskExecutionEvent(
         source=source,
         testcase=testcase,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.FINISHED,
-        task_return_code=uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH
-    )
+        task_outcome=task_outcome)
     self._assert_event_common_fields(event_task_exec_post_finish, event_type,
                                      source)
     self._assert_testcase_fields(event_task_exec_post_finish, testcase)
@@ -204,8 +205,7 @@ class EventsDataTest(unittest.TestCase):
                      events.TaskStage.POSTPROCESS)
     self.assertEqual(event_task_exec_post_finish.task_status,
                      events.TaskStatus.FINISHED)
-    self.assertEqual(event_task_exec_post_finish.task_return_code,
-                     uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH)
+    self.assertEqual(event_task_exec_post_finish.task_outcome, task_outcome)
 
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
@@ -374,12 +374,14 @@ class DatastoreEventsTest(unittest.TestCase):
     """Test serializing a task execution event into a datastore entity."""
     testcase = test_utils.create_generic_testcase()
     source = 'events_test'
+    task_outcome = uworker_msg_pb2.ErrorType.Name(
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH)
     event_task_exec = events.TaskExecutionEvent(
         source=source,
         testcase=testcase,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.FINISHED,
-        task_return_code=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH)
+        task_outcome=task_outcome)
     event_type = event_task_exec.event_type
     timestamp = event_task_exec.timestamp
 
@@ -398,8 +400,7 @@ class DatastoreEventsTest(unittest.TestCase):
     # TestcaseCreationEvent specific assertions.
     self.assertEqual(event_entity.task_stage, events.TaskStage.POSTPROCESS)
     self.assertEqual(event_entity.task_status, events.TaskStatus.FINISHED)
-    self.assertEqual(event_entity.task_return_code,
-                     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH)
+    self.assertEqual(event_entity.task_outcome, task_outcome)
 
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
@@ -551,7 +552,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.crash_revision = 2
     event_entity.task_stage = events.TaskStage.POSTPROCESS
     event_entity.task_status = events.TaskStatus.EXCEPTION
-    event_entity.task_return_code = uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR
+    event_entity.task_outcome = 'REGRESSION_BAD_BUILD_ERROR'
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
@@ -573,8 +574,7 @@ class DatastoreEventsTest(unittest.TestCase):
     # TaskExecutionEvent specific assertions
     self.assertEqual(event.task_stage, events.TaskStage.POSTPROCESS)
     self.assertEqual(event.task_status, events.TaskStatus.EXCEPTION)
-    self.assertEqual(event.task_return_code,
-                     uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR)
+    self.assertEqual(event.task_outcome, 'REGRESSION_BAD_BUILD_ERROR')
 
   def test_store_event(self):
     """Test storing an event into datastore."""

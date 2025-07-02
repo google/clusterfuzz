@@ -1681,8 +1681,8 @@ class TestcaseLifecycleEvent(Model):
   # Task status (e.g., started, finished, exception).
   task_status = ndb.StringProperty()
 
-  # UTask return code (defined in error types from uworker protobuf).
-  task_return_code = ndb.IntegerProperty()
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome = ndb.StringProperty()
 
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (

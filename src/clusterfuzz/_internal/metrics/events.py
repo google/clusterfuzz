@@ -184,8 +184,8 @@ class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
   task_stage: str | None = None
   # Task status (e.g., started, finished, exception).
   task_status: str | None = None
-  # UTask return code (defined in the uworker protobuf error types).
-  task_return_code: int | None = None
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome: str | None = None
 
 
 # Mapping of specific event types to their data classes.
