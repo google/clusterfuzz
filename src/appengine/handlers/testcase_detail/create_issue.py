@@ -47,13 +47,12 @@ class Handler(base_handler.Handler):
         user_email=user_email,
         additional_ccs=additional_ccs)
 
-    event = events.IssueFilingEvent(
-        testcase=testcase,
-        issue_tracker_project=issue_tracker.project,
-        issue_id=str(issue_id) if issue_id else None,
-        issue_created=bool(issue_id))
-    print("NILVO", event.issue_id)
-    events.emit(event)
+    events.emit(
+        events.IssueFilingEvent(
+            testcase=testcase,
+            issue_tracker_project=issue_tracker.project,
+            issue_id=str(issue_id) if issue_id else None,
+            issue_created=bool(issue_id)))
 
     if not issue_id:
       raise helpers.EarlyExitError('Unable to create new issue.', 500)
