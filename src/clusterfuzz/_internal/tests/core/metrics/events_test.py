@@ -172,40 +172,50 @@ class EventsDataTest(unittest.TestCase):
 
   def test_task_execution_event(self):
     """Test task execution events."""
+    job_type = 'job_test'
+    fuzzer_name = 'fuzzer_test'
+    testcase_id = 1
     event_type = events.EventTypes.TASK_EXECUTION
     source = 'events_test'
-    testcase = test_utils.create_generic_testcase()
 
     event_task_exec_pre = events.TaskExecutionEvent(
         source=source,
-        testcase=testcase,
+        testcase_id=testcase_id,
+        task_job=job_type,
+        task_fuzzer=fuzzer_name,
         task_stage=events.TaskStage.PREPROCESS,
         task_status=events.TaskStatus.STARTED)
     self._assert_event_common_fields(event_task_exec_pre, event_type, source)
-    self._assert_testcase_fields(event_task_exec_pre, testcase)
     self._assert_task_fields(event_task_exec_pre)
     self.assertEqual(event_task_exec_pre.task_stage,
                      events.TaskStage.PREPROCESS)
     self.assertEqual(event_task_exec_pre.task_status, events.TaskStatus.STARTED)
     self.assertIsNone(event_task_exec_pre.task_outcome)
+    self.assertEqual(event_task_exec_pre.task_job, job_type)
+    self.assertEqual(event_task_exec_pre.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_task_exec_pre.testcase_id, testcase_id)
 
     task_outcome = uworker_msg_pb2.ErrorType.Name(
         uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH)
     event_task_exec_post_finish = events.TaskExecutionEvent(
         source=source,
-        testcase=testcase,
+        testcase_id=testcase_id,
+        task_job=job_type,
+        task_fuzzer=fuzzer_name,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.FINISHED,
         task_outcome=task_outcome)
     self._assert_event_common_fields(event_task_exec_post_finish, event_type,
                                      source)
-    self._assert_testcase_fields(event_task_exec_post_finish, testcase)
     self._assert_task_fields(event_task_exec_post_finish)
     self.assertEqual(event_task_exec_post_finish.task_stage,
                      events.TaskStage.POSTPROCESS)
     self.assertEqual(event_task_exec_post_finish.task_status,
                      events.TaskStatus.FINISHED)
     self.assertEqual(event_task_exec_post_finish.task_outcome, task_outcome)
+    self.assertEqual(event_task_exec_post_finish.task_job, job_type)
+    self.assertEqual(event_task_exec_post_finish.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_task_exec_post_finish.testcase_id, testcase_id)
 
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
@@ -372,13 +382,17 @@ class DatastoreEventsTest(unittest.TestCase):
 
   def test_serialize_task_execution_event(self):
     """Test serializing a task execution event into a datastore entity."""
-    testcase = test_utils.create_generic_testcase()
     source = 'events_test'
+    job_type = 'job_test'
+    fuzzer_name = 'fuzzer_test'
+    testcase_id = 1
     task_outcome = uworker_msg_pb2.ErrorType.Name(
         uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH)
     event_task_exec = events.TaskExecutionEvent(
         source=source,
-        testcase=testcase,
+        testcase_id=testcase_id,
+        task_fuzzer=fuzzer_name,
+        task_job=job_type,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.FINISHED,
         task_outcome=task_outcome)
@@ -394,13 +408,15 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.source, source)
     self.assertEqual(event_entity.timestamp, timestamp)
     self._assert_common_event_fields(event_entity)
-    self._assert_testcase_fields(event_entity, testcase.key.id())
     self._assert_task_fields(event_entity)
 
-    # TestcaseCreationEvent specific assertions.
+    # TaskExecutionEvent specific assertions.
     self.assertEqual(event_entity.task_stage, events.TaskStage.POSTPROCESS)
     self.assertEqual(event_entity.task_status, events.TaskStatus.FINISHED)
     self.assertEqual(event_entity.task_outcome, task_outcome)
+    self.assertEqual(event_entity.testcase_id, testcase_id)
+    self.assertEqual(event_entity.task_job, job_type)
+    self.assertEqual(event_entity.task_fuzzer, fuzzer_name)
 
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
@@ -547,9 +563,8 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     event_entity.task_name = 'regression'
     event_entity.testcase_id = 1
-    event_entity.fuzzer = 'fuzzer1'
-    event_entity.job = 'test_job'
-    event_entity.crash_revision = 2
+    event_entity.task_fuzzer = 'fuzzer1'
+    event_entity.task_job = 'test_job'
     event_entity.task_stage = events.TaskStage.POSTPROCESS
     event_entity.task_status = events.TaskStatus.EXCEPTION
     event_entity.task_outcome = 'REGRESSION_BAD_BUILD_ERROR'
@@ -566,15 +581,14 @@ class DatastoreEventsTest(unittest.TestCase):
     self._assert_common_event_fields(event)
     self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.assertEqual(event.task_name, 'regression')
-    self.assertEqual(event.testcase_id, 1)
-    self.assertEqual(event.fuzzer, 'fuzzer1')
-    self.assertEqual(event.job, 'test_job')
-    self.assertEqual(event.crash_revision, 2)
 
     # TaskExecutionEvent specific assertions
     self.assertEqual(event.task_stage, events.TaskStage.POSTPROCESS)
     self.assertEqual(event.task_status, events.TaskStatus.EXCEPTION)
     self.assertEqual(event.task_outcome, 'REGRESSION_BAD_BUILD_ERROR')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.task_fuzzer, 'fuzzer1')
+    self.assertEqual(event.task_job, 'test_job')
 
   def test_store_event(self):
     """Test storing an event into datastore."""
