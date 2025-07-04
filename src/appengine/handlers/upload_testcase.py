@@ -754,7 +754,7 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
       uploaded_file_key = message_data['fuzzed_key']
       uploaded_file = blobs.get_blob_info(uploaded_file_key)
       helpers.log(f'Uploaded file key = {uploaded_file_key}', helpers.VIEW_OPERATION)
-      helpers.log(f'Uploaded file = {uploaded_file}')      
+      helpers.log(f'Uploaded file = {uploaded_file}', helpers.VIEW_OPERATION) 
       try:
         response = self._handle_upload(
           uploaded_file = uploaded_file,
