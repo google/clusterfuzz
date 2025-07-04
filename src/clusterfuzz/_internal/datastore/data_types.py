@@ -1674,6 +1674,22 @@ class TestcaseLifecycleEvent(Model):
   # If the issue filing attempt was successful.
   issue_created = ndb.BooleanProperty()
 
+  ### Task execution.
+  # Task stage, i.e., preprocess, main or postprocess.
+  task_stage = ndb.StringProperty()
+
+  # Task status (e.g., started, finished, exception).
+  task_status = ndb.StringProperty()
+
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome = ndb.StringProperty()
+
+  # Task-related job type.
+  task_job = ndb.StringProperty()
+
+  # Task-related fuzzer name.
+  task_fuzzer = ndb.StringProperty()
+
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)

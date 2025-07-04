@@ -41,6 +41,7 @@ class EventTypes:
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
   ISSUE_FILING = 'issue_filing'
+  TASK_EXECUTION = 'task_execution'
 
 
 class TestcaseOrigin:
@@ -61,6 +62,21 @@ class RejectionReason:
   CLEANUP_INVALID_JOB = 'cleanup_invalid_job'
   GROUPER_DUPLICATE = 'grouper_duplicate'
   GROUPER_OVERFLOW = 'grouper_overflow'
+
+
+class TaskStage:
+  """Task stage, usually applicable for untrusted tasks."""
+  PREPROCESS = 'preprocess'
+  MAIN = 'main'
+  POSTPROCESS = 'postprocess'
+  NA = 'n/a'
+
+
+class TaskStatus:
+  """Task status."""
+  STARTED = 'started'
+  FINISHED = 'finished'
+  EXCEPTION = 'exception'
 
 
 @dataclass(kw_only=True)
@@ -105,18 +121,21 @@ class BaseTestcaseEvent(Event):
   # Testcase entity (only used in init to set the event data).
   testcase: InitVar[data_types.Testcase | None] = None
 
+  # Testcase ID (either retrieved from testcase entity or directly set).
+  testcase_id: int | None = None
+
   # Testcase metadata (retrieved from the testcase entity, if available).
-  testcase_id: int | None = field(init=False, default=None)
   fuzzer: str | None = field(init=False, default=None)
   job: str | None = field(init=False, default=None)
   crash_revision: int | None = field(init=False, default=None)
 
   def __post_init__(self, testcase=None, **kwargs):
     if testcase is not None:
-      self.testcase_id = testcase.key.id()
-      self.fuzzer = testcase.fuzzer_name
-      self.job = testcase.job_type
-      self.crash_revision = testcase.crash_revision
+      if self.testcase_id is None:
+        self.testcase_id = testcase.key.id()
+      self.fuzzer = str(testcase.fuzzer_name)
+      self.job = str(testcase.job_type)
+      self.crash_revision = int(testcase.crash_revision)
     return super().__post_init__(**kwargs)
 
 
@@ -167,11 +186,29 @@ class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   issue_created: bool | None = None
 
 
+@dataclass(kw_only=True)
+class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Task execution event."""
+  event_type: str = field(default=EventTypes.TASK_EXECUTION, init=False)
+  # Task stage (preprocess, main or postprocess).
+  task_stage: str | None = None
+  # Task status (e.g., started, finished, exception).
+  task_status: str | None = None
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome: str | None = None
+
+  # Task-specific job type and fuzzer name - this is needed to disambiguate
+  # from testcase metadata.
+  task_job: str | None = None
+  task_fuzzer: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
+    EventTypes.TASK_EXECUTION: TaskExecutionEvent,
 }
 
 
