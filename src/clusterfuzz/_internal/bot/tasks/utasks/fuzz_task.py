@@ -1985,6 +1985,7 @@ class FuzzingSession:
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
+    postprocess_sample_testcases(uworker_input, uworker_output)
     if not environment.is_engine_fuzzer_job():
       return
 
