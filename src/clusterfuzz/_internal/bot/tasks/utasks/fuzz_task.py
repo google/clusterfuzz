@@ -865,7 +865,7 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     logs.info(f'Sampling crash for reupload with the following contents: '
               f'{sampling_message_data}')
     messages.append(sampling_message_data)
-  pubsub_messages = [pubsub.Message(data) for data in messages]
+  pubsub_messages = [pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages]
   pubsub_client.publish(topic_name, pubsub_messages)
 
 def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,

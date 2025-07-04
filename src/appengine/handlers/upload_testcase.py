@@ -742,7 +742,7 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
   @handler.pubsub_push
   def post(self, message):
     with monitor.wrap_with_monitoring():
-      message_data = json.loads(message.data.decode())
+      message_data = json.loads(message.data.decode('utf-8'))
       helpers.log(f'Message: {type(message)} {message}', helpers.VIEW_OPERATION)
 
       job = message_data.get('job', None)
