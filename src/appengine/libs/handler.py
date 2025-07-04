@@ -282,7 +282,7 @@ def pubsub_push(func):
     except google.auth.exceptions.GoogleAuthError as e:
       raise helpers.UnauthorizedError('Invalid ID token.') from e
 
-    if (not email or claim.get('email') != utils.service_account_email()):
+    if (not email or email!= utils.service_account_email()):
       raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))
