@@ -133,9 +133,9 @@ class BaseTestcaseEvent(Event):
     if testcase is not None:
       if self.testcase_id is None:
         self.testcase_id = testcase.key.id()
-      self.fuzzer = str(testcase.fuzzer_name)
-      self.job = str(testcase.job_type)
-      self.crash_revision = int(testcase.crash_revision)
+      self.fuzzer = testcase.fuzzer_name
+      self.job = testcase.job_type
+      self.crash_revision = testcase.crash_revision
     return super().__post_init__(**kwargs)
 
 
