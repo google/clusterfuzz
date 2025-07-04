@@ -30,7 +30,7 @@ from clusterfuzz._internal.system import environment
 from libs import request_cache
 
 User = collections.namedtuple('User', ['email'])
-
+BEARER_PREFIX = 'Bearer '
 
 class AuthError(Exception):
   """Auth error."""
