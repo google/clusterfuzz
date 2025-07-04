@@ -124,7 +124,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self._event_data = None
     # Error type from utask main handled in postprocess.
     self.post_utask_main_failure = None
-    # Whether proprocess returned the uworker input.
+    # Whether preprocess returned the uworker input.
     self.preprocess_returned: bool | None = None
 
   def set_task_details(
