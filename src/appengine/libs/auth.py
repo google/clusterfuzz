@@ -163,11 +163,12 @@ def get_current_user():
     return User(iap_email)
 
   try:
-    email = get_email_from_bearer_token(current_request)
-    if email:
-      return email
-  except helpers.UnauthorizedError:
-    pass
+    bearer_token_email = get_email_from_bearer_token(current_request)
+    if bearer_token_email:
+      logs.info(f'bearer token email = {bearer_token_email}')
+      return User(bearer_token_email)
+  except helpers.UnauthorizedError as e:
+    logs.info(f'Exception while trying to get email from auth token: {e}')
 
   cache_backing = request_cache.get_cache_backing()
   oauth_email = getattr(cache_backing, '_oauth_email', None)
