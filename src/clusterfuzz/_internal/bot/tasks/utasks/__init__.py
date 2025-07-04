@@ -398,9 +398,10 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
 
     # This emit is needed because we are not sending events from utask main.
     # Thus, this confirms that main finished and postprocess will start.
-    recorder.emit_task_events(events.TaskStatus.FINISHED,
-                              uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
-                                  uworker_output.error_type))
+    recorder.emit_task_events(
+        events.TaskStatus.FINISHED,
+        uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+            uworker_output.error_type))
 
     utask_module.utask_postprocess(uworker_output)
 
@@ -513,8 +514,9 @@ def tworker_postprocess(output_download_url) -> None:
 
     # This emit is needed because we are not sending events from utask main.
     # Thus, this confirms that main finished and postprocess will start.
-    recorder.emit_task_events(events.TaskStatus.FINISHED,
-                              uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
-                                  uworker_output.error_type))
+    recorder.emit_task_events(
+        events.TaskStatus.FINISHED,
+        uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+            uworker_output.error_type))
 
     utask_module.utask_postprocess(uworker_output)
