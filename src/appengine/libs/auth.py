@@ -131,6 +131,22 @@ def get_iap_email(current_request):
   return _validate_iap_jwt(jwt_assertion)
 
 
+def get_email_from_bearer_token(request):
+  bearer_token = request.headers.get('Authorization', '')
+  if not bearer_token.startswith(BEARER_PREFIX):
+    raise helpers.UnauthorizedError('Missing or invalid bearer token.')
+
+  token = bearer_token.split(' ')[1]
+  claim = id_token.verify_oauth2_token(token, google_requests.Request())
+  if (not claim.get('email_verified') or
+      claim.get('email') != utils.service_account_email()):
+    raise helpers.UnauthorizedError('Invalid ID token.')
+
+  if (not claim.get('email_verified')):
+    return None
+  return claim.get('email')
+
+
 def get_current_user():
   """Get the current logged in user, or None."""
   if environment.is_local_development():
@@ -145,6 +161,13 @@ def get_current_user():
   iap_email = get_iap_email(current_request)
   if iap_email:
     return User(iap_email)
+
+  try:
+    email = get_email_from_bearer_token(current_request)
+    if email:
+      return email
+  except helpers.UnauthorizedError:
+    pass
 
   cache_backing = request_cache.get_cache_backing()
   oauth_email = getattr(cache_backing, '_oauth_email', None)

@@ -278,17 +278,11 @@ def pubsub_push(func):
   def wrapper(self):
     """Wrapper."""
     try:
-      bearer_token = request.headers.get('Authorization', '')
-      if not bearer_token.startswith(BEARER_PREFIX):
-        raise helpers.UnauthorizedError('Missing or invalid bearer token.')
-
-      token = bearer_token.split(' ')[1]
-      claim = id_token.verify_oauth2_token(token, google_requests.Request())
+      email = auth.get_email_from_bearer_token(request)
     except google.auth.exceptions.GoogleAuthError as e:
       raise helpers.UnauthorizedError('Invalid ID token.') from e
 
-    if (not claim.get('email_verified') or
-        claim.get('email') != utils.service_account_email()):
+    if (not email or claim.get('email') != utils.service_account_email()):
       raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))
