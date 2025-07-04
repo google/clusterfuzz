@@ -17,6 +17,7 @@ import collections
 
 from firebase_admin import auth
 from google.cloud import ndb
+from google.oauth2 import id_token
 from googleapiclient.discovery import build
 import jwt
 import requests
@@ -216,10 +217,10 @@ def get_current_user():
   return User(email)
 
 
-def create_session_cookie(id_token, expires_in):
+def create_session_cookie(token, expires_in):
   """Create a new session cookie."""
   try:
-    return auth.create_session_cookie(id_token, expires_in=expires_in)
+    return auth.create_session_cookie(token, expires_in=expires_in)
   except auth.AuthError:
     raise AuthError('Failed to create session cookie.')
 
