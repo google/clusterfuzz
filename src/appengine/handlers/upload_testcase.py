@@ -751,9 +751,13 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
       original_task_id = message_data.get('original_task_id', None)
       helpers.log(f'Uploading testcase from fuzz task id {original_task_id}', helpers.VIEW_OPERATION)
       helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
+      uploaded_file_key = message_data['fuzzed_key']
+      uploaded_file = blobs.get_blob_info(uploaded_file_key)
+      helpers.log(f'Uploaded file key = {uploaded_file_key}', helpers.VIEW_OPERATION)
+      helpres.log(f'Uploaded file = {uploaded_file}')      
       try:
         response = self._handle_upload(
-          uploaded_file = message_data['fuzzed_key'],
+          uploaded_file = uploaded_file,
           job_type = job,
           fuzzer_name = fuzzer,
           target_name = fuzz_target,
