@@ -325,7 +325,8 @@ class UploadHandlerCommon:
     stacktrace=None,
     multiple_testcases=None,
     trusted_agreement_signed=False,
-    testcase_id=None) -> str:
+    testcase_id=None,
+    testcase_metadata=None) -> str:
     """Holds the logic for actually performing a testcase upload."""
     if testcase_id and not uploaded_file:
       testcase = helpers.get_testcase(testcase_id)
@@ -432,7 +433,6 @@ class UploadHandlerCommon:
       raise helpers.EarlyExitError(
           'Should not specify stacktrace for non-external jobs.', 400)
 
-    testcase_metadata = request.get('metadata', {})
     if testcase_metadata:
       try:
         testcase_metadata = json.loads(testcase_metadata)
@@ -660,6 +660,7 @@ class UploadHandlerCommon:
     stacktrace = request.get('stacktrace')
     trusted_agreement_signed = request.get(
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
+    testcase_metadata = request.get('metadata', {})
 
     return self._handle_upload(
       uploaded_file=uploaded_file,
@@ -682,7 +683,8 @@ class UploadHandlerCommon:
       issue_labels=issue_labels,
       gestures=gestures,
       stacktrace=stacktrace,
-      trusted_agreement_signed=trusted_agreement_signed
+      trusted_agreement_signed=trusted_agreement_signed,
+      testcase_metadata=testcase_metadata,
     )
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
