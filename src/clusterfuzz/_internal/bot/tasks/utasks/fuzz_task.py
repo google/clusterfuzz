@@ -856,7 +856,9 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
       'target_name': fuzz_target_name,
       'arguments': leader_crash.arguments,
       'application_command_line': leader_crash.application_command_line,
-      'gestures': leader_crash.gestures,
+      # gestures is evaluated with ast.literal_eval in appengine, so we need 
+      # the string form
+      'gestures': str(leader_crash.gestures),
       'http_flag': leader_crash.http_flag,
       'original_task_id': os.environ['CF_TASK_ID'],
     }
