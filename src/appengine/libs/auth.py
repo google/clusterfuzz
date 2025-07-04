@@ -30,6 +30,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from libs import request_cache
+from libs import helpers
 
 User = collections.namedtuple('User', ['email'])
 BEARER_PREFIX = 'Bearer '
