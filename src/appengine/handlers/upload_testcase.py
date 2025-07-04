@@ -759,7 +759,7 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
           target_name = fuzz_target,
           additional_arguments=message_data.get('arguments', None),
           app_launch_command=message_data.get('application_command_line', None),
-          gestures=message_data.get('gestures', None),
+          gestures=message_data.get('gestures', '[]'),
           http_flag=message_data.get('http_flag', None),
           platform_id='Linux',
           trusted_agreement_signed=True,
