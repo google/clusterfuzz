@@ -35,3 +35,20 @@ def is_remotely_executing_utasks() -> bool:
 
 class UworkerMsgParseError(RuntimeError):
   """Error for parsing UworkerMsgs."""
+
+
+TESTCASE_BASED_TASKS = {
+    'analyze',
+    'blame',
+    'impact',
+    'minimize',
+    'progression',
+    'regression',
+    'symbolize',
+    'variant',
+}
+
+FUZZER_BASED_TASKS = {
+    'corpus_pruning',
+    'fuzz',
+}
