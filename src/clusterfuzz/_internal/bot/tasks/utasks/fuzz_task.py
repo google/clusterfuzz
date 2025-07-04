@@ -843,6 +843,8 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
   if fuzz_target_name:
     fuzz_target_name = fuzz_target_name.binary
 
+  logs.info("Sampling crashes for replication.")
+
   messages = []
   for group in fuzz_task_output.crash_groups:
     leader_crash = group.crashes[0]
@@ -865,6 +867,11 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     logs.info(f'Sampling crash for reupload with the following contents: '
               f'{sampling_message_data}')
     messages.append(sampling_message_data)
+  if not messages:
+    # Publishing an empty list of messages raises an exception
+    logs.info('No crashes sampled.')
+    return
+
   pubsub_messages = [pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages]
   pubsub_client.publish(topic_name, pubsub_messages)
 
