@@ -16,6 +16,7 @@
 import collections
 
 from firebase_admin import auth
+from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
 from googleapiclient.discovery import build
