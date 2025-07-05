@@ -841,8 +841,8 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
 
   fuzz_target = _get_fuzz_target(uworker_input)
   fuzz_target_name = None
-  if fuzz target and fuzz_target.binary:
-    fuzz_target_name = fuzz_target_name.binary
+  if fuzz_target and fuzz_target.binary:
+    fuzz_target_name = fuzz_target.binary
 
   logs.info("Sampling crashes for replication.")
 
