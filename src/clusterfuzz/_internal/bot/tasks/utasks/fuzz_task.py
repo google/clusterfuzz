@@ -839,8 +839,9 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
   pubsub_client = pubsub.PubSubClient()
   topic_name = pubsub.topic_name(utils.get_application_id(), sampling_topic)
 
-  fuzz_target_name = testcase_manager.get_fuzz_target_from_input(uworker_input)
-  if fuzz_target_name:
+  fuzz_target = _get_fuzz_target(uworker_input)
+  fuzz_target_name = None
+  if fuzz_target.binary:
     fuzz_target_name = fuzz_target_name.binary
 
   logs.info("Sampling crashes for replication.")
@@ -2047,14 +2048,18 @@ def handle_fuzz_bad_build(uworker_output):
       uworker_output.fuzz_task_output.build_data)
 
 
-def utask_main(uworker_input):
-  """Runs the given fuzzer for one round."""
-  # Sets fuzzing logs context before running the fuzzer.
+def _get_fuzz_target(uworker_input):
   if uworker_input.fuzz_task_input.HasField('fuzz_target'):
     fuzz_target = uworker_io.entity_from_protobuf(
         uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
   else:
     fuzz_target = None
+  return fuzz_target
+
+def utask_main(uworker_input):
+  """Runs the given fuzzer for one round."""
+  # Sets fuzzing logs context before running the fuzzer.
+  fuzz_target = _get_fuzz_target(uworker_input)
   with logs.fuzzer_log_context(uworker_input.fuzzer_name,
                                uworker_input.job_type, fuzz_target):
     session = _make_session(uworker_input)
