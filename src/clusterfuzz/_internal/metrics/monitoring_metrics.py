@@ -19,7 +19,12 @@ from clusterfuzz._internal.metrics import monitor
 UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
     'debug/appengine/invocation_count',
     description='The number of BigQuery writes',
-    field_spec=[])
+    field_spec=[
+      monitor.BooleanField('success'),
+      monitor.StringField('fuzzer'),
+      monitor.StringField('job'),
+      monitor.StringField('fuzz_target'),
+    ])
 
 # Fuzz task metrics.
 BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
