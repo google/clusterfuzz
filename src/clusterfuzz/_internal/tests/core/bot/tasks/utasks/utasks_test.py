@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for uworker_io."""
 
+import datetime
 import os
 import time
 import unittest
@@ -21,14 +22,18 @@ from unittest import mock
 from google.protobuf import timestamp_pb2
 import parameterized
 
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+@test_utils.with_cloud_emulators('datastore')
 class TworkerPreprocessTest(unittest.TestCase):
   """Tests that tworker_preprocess works as intended."""
   OUTPUT_SIGNED_UPLOAD_URL = 'https://signed-upload-output'
@@ -44,16 +49,30 @@ class TworkerPreprocessTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks._get_execution_mode',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
     self.mock.get_uworker_output_urls.return_value = (
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
+    self.original_env = dict(os.environ)
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'mock_task'
+    os.environ['TWORKER'] = 'True'
+
+  def tearDown(self):
+    os.environ.clear()
+    os.environ.update(self.original_env)
+    task_utils.TESTCASE_BASED_TASKS.discard('mock')
 
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
   def test_tworker_preprocess(self, execution_mode: utasks.Mode):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock(__name__='mock_task')
+    task_utils.TESTCASE_BASED_TASKS.add('mock')
+
     self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
 
     uworker_input = uworker_msg_pb2.Input(job_type='something')
@@ -99,15 +118,48 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
+    # Asserts for task execution event.
+    task_event = events.TaskExecutionEvent(
+        testcase_id=self.TASK_ARGUMENT,
+        task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.STARTED,
+        task_outcome=None,
+        task_job=self.JOB_TYPE,
+        task_fuzzer=None)
+    self.mock.emit.assert_called_once_with(task_event)
+
   def test_return_none(self):
+    """Tests tworker_preprocess works as expected if utask returns none."""
     module = mock.MagicMock(__name__='mock_task')
     module.utask_preprocess.return_value = None
+    task_utils.TESTCASE_BASED_TASKS.add('mock')
+
     self.assertIsNone(
         utasks.tworker_preprocess(module, self.TASK_ARGUMENT, self.JOB_TYPE,
                                   self.UWORKER_ENV))
+    # Asserts for task execution event.
+    task_event = events.TaskExecutionEvent(
+        testcase_id=self.TASK_ARGUMENT,
+        task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.EXCEPTION,
+        task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
+        task_job=self.JOB_TYPE,
+        task_fuzzer=None)
+    self.mock.emit.assert_called_once_with(task_event)
+    self.mock.emit.reset_mock()
+
     self.assertIsNone(
         utasks.tworker_preprocess_no_io(module, self.TASK_ARGUMENT,
                                         self.JOB_TYPE, self.UWORKER_ENV))
+    # Asserts for task execution event.
+    task_event = events.TaskExecutionEvent(
+        testcase_id=self.TASK_ARGUMENT,
+        task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.EXCEPTION,
+        task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
+        task_job=self.JOB_TYPE,
+        task_fuzzer=None)
+    self.mock.emit.assert_called_once_with(task_event)
 
 
 class SetUworkerEnvTest(unittest.TestCase):
