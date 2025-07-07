@@ -34,7 +34,6 @@ DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'upload_testcase_data')
 
 
 @test_utils.with_cloud_emulators('datastore')
-@unittest.skip('oi')
 class FindFuzzTargetTest(unittest.TestCase):
   """Tests for find_fuzz_target."""
 
@@ -80,7 +79,6 @@ class FindFuzzTargetTest(unittest.TestCase):
 
 
 # pylint: disable=protected-access
-@unittest.skip('oi')
 @test_utils.with_cloud_emulators('datastore')
 class UploadOAuthTest(unittest.TestCase):
   """OAuth upload tests."""
@@ -670,6 +668,8 @@ class CrashReplicationTest(unittest.TestCase):
         'clusterfuzz._internal.base.utils.service_account_email',
         'clusterfuzz._internal.base.tasks.add_task', # Publish message becomes no op
         'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_info',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
         'libs.auth.get_email_from_bearer_token',
         'libs.helpers.get_user_email',
     ])
@@ -678,6 +678,7 @@ class CrashReplicationTest(unittest.TestCase):
     self.mock.get_user_email.return_value = self.service_account_email
     self.mock.get_blob_info.return_value.filename = 'input'
     self.mock.get_blob_info.return_value.key.return_value = 'blob_key'
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
 
     data_types.FuzzTarget(
         engine='libFuzzer', project='proj', binary=self.fuzz_target_binary).put()
@@ -696,6 +697,11 @@ class CrashReplicationTest(unittest.TestCase):
     self.app.add_url_rule(
         '/upload-testcase/crash-replication', view_func=upload_testcase.CrashReplicationUploadHandler.as_view(''))
 
+  def assert_dict_has_items(self, expected, actual):
+    """Assert that all items in `expected` are in `actual`."""
+    for key, value in expected.items():
+      self.assertEqual(value, actual[key], msg=f'For attribute {key}')
+
   def _make_message(self, data, attributes):
     """Make a message."""
     return json.dumps({
@@ -706,12 +712,8 @@ class CrashReplicationTest(unittest.TestCase):
     })
 
   def test_crash_replication_upload(self):
-    # Set artifical task id env to be used by tracing.
-    # region dbpy_attach
-    import debugpy
-    (debugpy.listen(5678), debugpy.wait_for_client()) if not debugpy.is_client_connected() else None
-    # endregion
-    
+    """Tests if a sampling message correct generates a testcase through the
+        crash-replication endpoint."""
     sampling_message_data = json.dumps({
       'fuzzed_key': 'some-fuzzed-key',
       'job': self.job_name,
@@ -731,3 +733,46 @@ class CrashReplicationTest(unittest.TestCase):
             data=self._make_message(sampling_message_data, {}),
             headers={'Authorization': 'Bearer fake'})
         print(result)
+
+    self.assertEqual('200 OK', result.status)
+    self.assertTrue(result.json.get('id', None))
+
+    created_testcase_id = int(result.json['id'])
+    testcase = data_handler.get_testcase_by_id(created_testcase_id)
+
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader=self.service_account_email))
+
+    self.assert_dict_has_items(
+        {
+            'absolute_path': 'input',
+            'additional_metadata': (
+                '{"app_launch_command": "some-cli-command", '
+                '"fuzzer_binary_name": "binary", '
+                '"uploaded_additional_args": "some-arg"}'
+            ),
+            'fuzzed_keys': 'blob_key',
+            'fuzzer_name': 'libFuzzer',
+            'gestures': [],
+            'job_type': 'libfuzzer_proj',
+            'overridden_fuzzer_name': 'libFuzzer_proj_binary',
+            'project_name': 'proj',
+            'uploader_email': self.service_account_email,
+        },
+        testcase._to_dict()
+    )
+
+    metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id ==
+        testcase.key.id()).get()
+    self.assertIsNotNone(metadata)
+    self.assert_dict_has_items({
+        'blobstore_key': 'blob_key',
+        'original_blobstore_key': 'blob_key',
+        'filename': 'input',
+        'testcase_id': created_testcase_id,
+        'uploader_email': self.service_account_email,
+    }, metadata.to_dict())
