@@ -191,7 +191,8 @@ class UworkerMainTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
-        'clusterfuzz._internal.system.environment.is_swarming_bot'
+        'clusterfuzz._internal.system.environment.is_swarming_bot',
+        'clusterfuzz._internal.metrics.events.emit',
     ])
     self.module = mock.MagicMock(__name__='tasks.analyze_task')
     self.mock.get_utask_module.return_value = self.module
@@ -253,6 +254,10 @@ class UworkerMainTest(unittest.TestCase):
     self.assertLess(e2e_durations.sum * 10**9,
                     end_time_ns - preprocess_start_time_ns)
     self.assertGreaterEqual(e2e_durations.sum, 42)
+
+    # Asserts that task events were not emitted from main (as these may cause
+    # a permission denied error if running in a untrusted worker).
+    self.mock.emit.assert_not_called()
 
 
 class GetUtaskModuleTest(unittest.TestCase):
