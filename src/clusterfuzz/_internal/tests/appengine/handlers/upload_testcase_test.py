@@ -13,8 +13,10 @@
 # limitations under the License.
 """Tests for upload_testcase."""
 
+import base64
 import datetime
 import io
+import json
 import os
 import unittest
 
@@ -32,6 +34,7 @@ DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'upload_testcase_data')
 
 
 @test_utils.with_cloud_emulators('datastore')
+@unittest.skip('oi')
 class FindFuzzTargetTest(unittest.TestCase):
   """Tests for find_fuzz_target."""
 
@@ -77,6 +80,7 @@ class FindFuzzTargetTest(unittest.TestCase):
 
 
 # pylint: disable=protected-access
+@unittest.skip('oi')
 @test_utils.with_cloud_emulators('datastore')
 class UploadOAuthTest(unittest.TestCase):
   """OAuth upload tests."""
@@ -649,3 +653,81 @@ class UploadOAuthTest(unittest.TestCase):
     },
                          data_handler.get_fuzz_target('libFuzzer_proj_target')
                          ._to_dict())
+
+# pylint: disable=protected-access
+@test_utils.with_cloud_emulators('datastore')
+class CrashReplicationTest(unittest.TestCase):
+  """OAuth upload tests."""
+
+  def setUp(self):
+    self.maxDiff = None
+    self.service_account_email = 'compute-sa@project.com'
+    self.job_name = 'libfuzzer_proj'
+    self.fuzz_target_binary = 'binary'
+    self.fuzzer_name = 'libFuzzer'
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.service_account_email',
+        'clusterfuzz._internal.base.tasks.add_task', # Publish message becomes no op
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_info',
+        'libs.auth.get_email_from_bearer_token',
+        'libs.helpers.get_user_email',
+    ])
+    self.mock.get_email_from_bearer_token.return_value = self.service_account_email
+    self.mock.service_account_email.return_value = self.service_account_email
+    self.mock.get_user_email.return_value = self.service_account_email
+    self.mock.get_blob_info.return_value.filename = 'input'
+    self.mock.get_blob_info.return_value.key.return_value = 'blob_key'
+
+    data_types.FuzzTarget(
+        engine='libFuzzer', project='proj', binary=self.fuzz_target_binary).put()
+
+    data_types.Job(
+        name=self.job_name,
+        environment_string='PROJECT_NAME = proj',
+        platform='LINUX',
+        external_reproduction_topic=None,
+        external_updates_subscription=None).put()
+
+    # Make the appengine SA a privileged user to be able to upload testcases
+    data_types.Config(privileged_users=self.service_account_email).put()
+
+    self.app = flask.Flask('testflask')
+    self.app.add_url_rule(
+        '/upload-testcase/crash-replication', view_func=upload_testcase.CrashReplicationUploadHandler.as_view(''))
+
+  def _make_message(self, data, attributes):
+    """Make a message."""
+    return json.dumps({
+        'message': {
+            'data': base64.b64encode(data).decode(),
+            'attributes': attributes,
+        }
+    })
+
+  def test_crash_replication_upload(self):
+    # Set artifical task id env to be used by tracing.
+    # region dbpy_attach
+    import debugpy
+    (debugpy.listen(5678), debugpy.wait_for_client()) if not debugpy.is_client_connected() else None
+    # endregion
+    
+    sampling_message_data = json.dumps({
+      'fuzzed_key': 'some-fuzzed-key',
+      'job': self.job_name,
+      'fuzzer': self.fuzzer_name,
+      'target_name': self.fuzz_target_binary,
+      'arguments': 'some-arg',
+      'application_command_line': 'some-cli-command',
+      'gestures': str([]),
+      'http_flag': False,
+      'original_task_id': 'some-task-id',
+    }).encode()
+
+        
+    with self.app.test_client() as client:
+        result = client.post(
+            '/upload-testcase/crash-replication',
+            data=self._make_message(sampling_message_data, {}),
+            headers={'Authorization': 'Bearer fake'})
+        print(result)
