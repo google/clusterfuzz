@@ -53,6 +53,7 @@ from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
@@ -948,6 +949,9 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       # oss-fuzz-on-demand change this.
       trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  events.emit(
+      events.TestcaseCreationEvent(
+          testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK))
 
   if group.context.fuzzer_metadata:
     for key, value in group.context.fuzzer_metadata.items():
@@ -2078,7 +2082,8 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             fuzz_target.project_qualified_name(),
             include_delete_urls=False,
             max_upload_urls=_get_max_corpus_uploads_per_task(),
-            max_download_urls=25000).serialize())
+            max_download_urls=25000,
+            use_backup=True).serialize())
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()

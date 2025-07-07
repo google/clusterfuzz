@@ -15,10 +15,8 @@
 import os
 import stat
 
-from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.afl import launcher
 from clusterfuzz._internal.bot.fuzzers.afl import stats
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz.fuzz import engine
 
 
@@ -95,10 +93,6 @@ class Engine(engine.Engine):
 
     # Bail out if AFL returns a nonzero status code.
     if fuzz_result.return_code:
-      target = engine_common.get_project_qualified_fuzzer_name(target_path)
-      logs.error(
-          f'afl: engine encountered an error (target={target})',
-          engine_output=fuzz_result.output)
       return engine.FuzzResult(fuzzing_logs, command, [], {}, time_executed)
 
     stats_getter = stats.StatsGetter(runner.afl_output.stats_path,

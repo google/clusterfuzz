@@ -16,10 +16,12 @@
 
 import datetime
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.cron import triage
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -561,3 +563,80 @@ class ThrottleBugTest(unittest.TestCase):
                      throttler._get_project_bugs_filing_max(testcase.job_type))
     self.assertEqual(None,
                      throttler._get_job_bugs_filing_max(testcase.job_type))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class IssueFilingEventEmitTest(unittest.TestCase):
+  """Tests emission of IssueFilingEvent when filing an issue."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.cron.triage._file_issue',
+        'clusterfuzz._internal.cron.triage._is_bug_filed',
+        'clusterfuzz._internal.cron.triage._is_crash_important',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'clusterfuzz._internal.datastore.data_handler.critical_tasks_completed',
+        'clusterfuzz._internal.cron.triage._check_and_update_similar_bug',
+        'clusterfuzz._internal.cron.triage._create_filed_bug_metadata',
+        'clusterfuzz._internal.cron.triage.issue_filer.notify_issue_update',
+        'clusterfuzz._internal.cron.triage._set_testcase_stuck_state',
+        'clusterfuzz._internal.cron.triage._emit_untriaged_testcase_age_metric',
+        'clusterfuzz._internal.cron.triage._increment_untriaged_testcase_count',
+    ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock._is_bug_filed.return_value = False
+    self.mock._is_crash_important.return_value = True
+    self.mock.critical_tasks_completed.return_value = True
+    self.mock._check_and_update_similar_bug.return_value = False
+    self.mock._create_filed_bug_metadata.return_value = None
+    self.mock.notify_issue_update.return_value = None
+    self.mock._set_testcase_stuck_state.return_value = None
+    self.mock._emit_untriaged_testcase_age_metric.return_value = None
+    self.mock._increment_untriaged_testcase_count.return_value = None
+
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase.set_metadata('ran_grouper', True)
+
+    issue_tracker = mock.MagicMock()
+    issue_tracker.project = 'oss-fuzz'
+    self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
+
+  def test_event_emitted(self):
+    """Tests that the IssueFilingEvent is emitted on a filled testcase."""
+
+    def file_issue(testcase, issue_tracker_obj, throttler):  # pylint: disable=unused-argument
+      testcase.bug_information = '99'
+      return True
+
+    self.mock._file_issue.side_effect = file_issue
+
+    triage._triage_testcase(
+        self.testcase,
+        excluded_jobs=[],
+        all_jobs=[self.testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock.emit.assert_called_once_with(
+        events.IssueFilingEvent(
+            testcase=self.testcase,
+            issue_tracker_project='oss-fuzz',
+            issue_id='99',
+            issue_created=True))
+
+  def test_event_emitted_on_failure(self):
+    """Tests that the IssueFilingEvent is emitted on a failed filing."""
+    self.mock._file_issue.return_value = False
+
+    triage._triage_testcase(
+        self.testcase,
+        excluded_jobs=[],
+        all_jobs=[self.testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock.emit.assert_called_once_with(
+        events.IssueFilingEvent(
+            testcase=self.testcase,
+            issue_tracker_project='oss-fuzz',
+            issue_created=False))

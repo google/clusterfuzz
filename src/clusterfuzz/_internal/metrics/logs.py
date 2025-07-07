@@ -14,6 +14,7 @@
 """Logging functions."""
 
 import contextlib
+import dataclasses
 import datetime
 import enum
 import functools
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
 # This reserves roughly up to 200 KB for message content, leaving sufficient
 # space for structured logging metadata within the 256 KB total limit.
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000
+NON_TRUNCATABLE_TYPES = (int, float, bool, type(None))
 LOCAL_LOG_MESSAGE_LIMIT = 100000
 LOCAL_LOG_LIMIT = 500000
 _logger = None
@@ -182,9 +184,52 @@ def get_logging_config_dict(name):
   }
 
 
-def truncate(msg, limit):
-  """We need to truncate the message in the middle if it gets too long."""
-  if not isinstance(msg, str) or len(msg) <= limit:
+def truncate(
+    msg: Any,
+    limit: int,
+) -> Any:
+  """We need to truncate the message in the middle if it gets too long.
+
+  If the message is a string and exceeds the character `limit`, it is truncated
+  in the middle, with a notice indicating how many characters were removed.
+
+  For dictionaries, lists, and tuples, the function recurses over their
+  values/items. For dataclasses, it first converts them to dictionaries before
+  recursing.
+
+  Certain types defined in `NON_TRUNCATABLE_TYPES` are returned as-is. All other
+  types are coerced to strings before truncation.
+
+  While basic types like strings, lists, and dictionaries retain their type, be
+  aware that dataclasses are converted to dictionaries, and other unhandled
+  objects are converted to strings. This function should only be used in the
+  logs module.
+
+  Args:
+    msg: The message or collection to truncate.
+    limit: The maximum character length for strings.
+
+  Returns:
+    The truncated message. 
+  """
+  if isinstance(msg, NON_TRUNCATABLE_TYPES):
+    return msg
+
+  # Handle collections and objects by recursing
+  if dataclasses.is_dataclass(msg) and not isinstance(msg, type):
+    msg = dataclasses.asdict(msg)
+
+  if isinstance(msg, dict):
+    return {k: truncate(v, limit) for k, v in msg.items()}
+
+  if isinstance(msg, (list, tuple)):
+    return type(msg)(truncate(item, limit) for item in msg)
+
+  # Coerce all other types to a string
+  if not isinstance(msg, str):
+    msg = str(msg)
+
+  if len(msg) <= limit:
     return msg
 
   half = limit // 2
@@ -261,6 +306,15 @@ def _handle_unserializable(unserializable: Any) -> str:
     return str(unserializable)
 
 
+def _is_json_serializable(obj: Any) -> bool:
+  """Check if an object is json serializable, using the default encoder."""
+  try:
+    json.dumps(obj)
+    return True
+  except TypeError:
+    return False
+
+
 def update_entry_with_exc(entry, exc_info):
   """Update the dict `entry` with exc_info."""
   if not exc_info:
@@ -334,12 +388,13 @@ def json_fields_filter(record):
   if not hasattr(record, 'json_fields'):
     record.json_fields = {}
 
-  record.json_fields.update({
-      'extras': {
-          k: truncate(v, STACKDRIVER_LOG_MESSAGE_LIMIT)
-          for k, v in getattr(record, 'extras', {}).items()
-      }
-  })
+  json_extras = {}
+  for key, val in getattr(record, 'extras', {}).items():
+    valid_value = (
+        val if _is_json_serializable(val) else _handle_unserializable(val))
+    json_extras[key] = truncate(valid_value, STACKDRIVER_LOG_MESSAGE_LIMIT)
+
+  record.json_fields.update({'extras': json_extras})
   return True
 
 
@@ -353,6 +408,7 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
+  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
@@ -392,6 +448,7 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
+  logging.getLogger().addFilter(json_fields_filter)
   logging.getLogger().setLevel(logging.INFO)
 
 
@@ -443,8 +500,11 @@ def configure_cloud_logging():
         'worker_bot_name':
             os.getenv('WORKER_BOT_NAME', 'null'),
         'extra':
-            json.dumps(
-                getattr(record, 'extras', {}), default=_handle_unserializable),
+            truncate(
+                json.dumps(
+                    getattr(record, 'extras', {}),
+                    default=_handle_unserializable),
+                STACKDRIVER_LOG_MESSAGE_LIMIT),
         'location':
             json.dumps(
                 getattr(record, 'location', {'Error': True}),

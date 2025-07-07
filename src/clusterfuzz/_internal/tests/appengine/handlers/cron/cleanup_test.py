@@ -20,6 +20,7 @@ import unittest
 from clusterfuzz._internal.cron import cleanup
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -74,8 +75,12 @@ class CleanupTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.cron.cleanup.get_crash_occurrence_platforms',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.metrics.events.emit',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
+    self.mock._get_datetime_now.return_value = test_utils.CURRENT_TIME
+
     self.issue = appengine_test_utils.create_generic_issue()
     self.policy = issue_tracker_policy.get('test-project')
 
@@ -109,6 +114,10 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     cleanup.mark_duplicate_testcase_as_closed_with_no_issue(testcase=testcase)
     self.assertFalse(testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE))
 
   def test_mark_duplicate_testcase_as_closed_with_no_issue_4(self):
     """Ensure that a duplicate bug 7 days old does not get closed."""
@@ -152,6 +161,11 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     cleanup.delete_unreproducible_testcase_with_no_issue(testcase=testcase)
     self.assertFalse(test_utils.entity_exists(testcase))
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_NO_ISSUE))
 
   def test_delete_unreproducible_testcase_with_no_issue_4(self):
     """Ensure that an unreproducible bug with crash in last 7 days does not get
@@ -489,6 +503,10 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_testcase_as_closed_if_job_is_invalid(
         testcase=testcase, jobs=jobs)
     self.assertFalse(testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.CLEANUP_INVALID_JOB))
 
   def test_mark_unreproducible_testcase_as_fixed_if_issue_is_closed_1(self):
     """Ensure that a reproducible testcase with no associated issue is not
@@ -547,6 +565,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_as_fixed_if_issue_is_closed(
         testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_1(
       self):
@@ -684,6 +707,11 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_10(
       self):
@@ -736,6 +764,11 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.
+            CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
   def test_notify_closed_issue_if_testcase_is_open_1(self):
     """Test that we don't do anything if testcase is already closed."""
@@ -1190,9 +1223,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_top_crashes_no_match(self):
@@ -1210,9 +1240,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_top_crashes_with_testcase_closed(self):
@@ -1233,9 +1260,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_top_crashes_match_single_platform(self):
@@ -1250,21 +1274,13 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
             }]
         }
     }
-    self.issue.labels.add('M-62')
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                  self.issue.labels)
-    self.assertIn('M-63', self.issue.labels)
-    self.assertNotIn('M-62', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux platform and is likely '
         'preventing the fuzzer fuzzer1 from making much progress. '
-        'Fixing this will allow more bugs to be found.'
-        '\n\nMarking this bug as a blocker for next Beta release.'
-        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label and '
-        'remove the ReleaseBlock-Beta label.',
+        'Fixing this will allow more bugs to be found.',
         self.issue._monorail_issue.comment)
 
   def test_top_crashes_match_single_platform_oss_fuzz(self):
@@ -1285,9 +1301,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux platform and is likely '
         'preventing the fuzzer fuzz_target1 from making much progress. '
@@ -1323,16 +1336,10 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                  self.issue.labels)
-    self.assertIn('M-63', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux, mac and windows platforms '
         'and is likely preventing the fuzzer fuzzer1 from making much '
-        'progress. Fixing this will allow more bugs to be found.'
-        '\n\nMarking this bug as a blocker for next Beta release.'
-        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label and '
-        'remove the ReleaseBlock-Beta label.',
+        'progress. Fixing this will allow more bugs to be found.',
         self.issue._monorail_issue.comment)
 
   def test_top_crashes_match_and_label_removed(self):
@@ -1355,9 +1362,6 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
-                     self.issue.labels)
-    self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
 
 

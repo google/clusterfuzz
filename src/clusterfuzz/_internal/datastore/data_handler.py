@@ -443,6 +443,8 @@ def format_issue_information(testcase, format_string):
   result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options_string)
   result = result.replace('%ARGS%', arguments)
   result = result.replace('%BAZEL_TEST_ARGS%', bazel_test_args)
+  result = result.replace('https://source.corp.google.com/file:google3//',
+                          'https://source.corp.google.com/file:google3/')
   return result
 
 

@@ -23,7 +23,6 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.chrome import build_info
 from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_comparer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
@@ -36,6 +35,7 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -395,6 +395,11 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
   testcase.key.delete()
   logs.info(
       f'Deleted unreproducible testcase {testcase.key.id()} with no issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_NO_ISSUE))
 
 
 def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
@@ -418,6 +423,10 @@ def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
   testcase.open = False
   testcase.put()
   logs.info(f'Closed duplicate testcase {testcase.key.id()} with no issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE))
 
 
 def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
@@ -544,6 +553,11 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
   testcase.put()
   logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
             'with issue closed.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
@@ -635,6 +649,11 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
 
   logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
             'and associated issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
 
 def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
@@ -729,6 +748,10 @@ def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
   testcase.fixed = 'NA'
   testcase.put()
   logs.info(f'Closed testcase {testcase.key.id()} with issue closed.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
 
 
 def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
@@ -745,6 +768,10 @@ def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
   testcase.fixed = 'NA'
   testcase.put()
   logs.info(f'Closed testcase {testcase.key.id()} with invalid job.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_INVALID_JOB))
 
 
 def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
@@ -1040,20 +1067,6 @@ def update_fuzz_blocker_label(policy, testcase, issue,
       'to be found.')
   if utils.is_oss_fuzz():
     update_message += OSS_FUZZ_INCORRECT_COMMENT
-  elif utils.is_chromium():
-    label_text = issue.issue_tracker.label_text(
-        data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
-    update_message += '\n\nMarking this bug as a blocker for next Beta release.'
-    update_message = _append_generic_incorrect_comment(
-        update_message, policy, issue, f' and remove the {label_text}.')
-    issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
-
-    # Update with the next beta for trunk, and remove existing milestone label.
-    beta_milestone_label = (
-        f'M-{build_info.get_release_milestone("head", testcase.platform)}')
-    if beta_milestone_label not in issue.labels:
-      issue.labels.remove_by_prefix('M-')
-      issue.labels.add(beta_milestone_label)
 
   logs.info(update_message)
   issue.labels.add(fuzz_blocker_label)

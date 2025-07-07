@@ -22,6 +22,7 @@ import flask
 
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import upload_testcase
@@ -91,7 +92,11 @@ class UploadOAuthTest(unittest.TestCase):
         'libs.helpers.get_user_email',
         'clusterfuzz._internal.base.utils.current_date_time',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
+
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
 
     self.mock.get_blob_info.return_value.filename = 'input'
     self.mock.get_blob_info.return_value.key.return_value = 'blob_key'
@@ -145,6 +150,13 @@ class UploadOAuthTest(unittest.TestCase):
     }, response.json)
 
     testcase = data_handler.get_testcase_by_id(2)
+
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader='uploader@email'))
+
     self.assert_dict_has_items({
         'absolute_path': 'input',
         'additional_metadata': '{"fuzzer_binary_name": "target"}',
@@ -246,6 +258,12 @@ class UploadOAuthTest(unittest.TestCase):
     }, response.json)
 
     testcase = data_handler.get_testcase_by_id(2)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader='uploader@email'))
+
     self.assert_dict_has_items({
         'absolute_path':
             'input',
@@ -408,6 +426,12 @@ class UploadOAuthTest(unittest.TestCase):
     }, response.json)
 
     testcase = data_handler.get_testcase_by_id(3)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader='uploader@email'))
+
     self.assert_dict_has_items({
         'absolute_path': 'input',
         'additional_metadata': '{"fuzzer_binary_name": "target"}',
@@ -519,6 +543,12 @@ class UploadOAuthTest(unittest.TestCase):
     }, response.json)
 
     testcase = data_handler.get_testcase_by_id(5)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader='uploader@email'))
+
     self.assert_dict_has_items({
         'absolute_path': 'input',
         'additional_metadata': '{"fuzzer_binary_name": "target"}',

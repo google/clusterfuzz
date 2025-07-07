@@ -37,9 +37,11 @@ from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -1590,6 +1592,67 @@ class PickFuzzTargetTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
     os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
     self.assertEqual(fuzz_task._pick_fuzz_target(), 'target')
+
+
+@test_utils.with_cloud_emulators('datastore')
+class EmitTestcaseCreationEventTest(unittest.TestCase):
+  """Test testcase creation event is emitted when created during fuzz task."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
+        'clusterfuzz._internal.datastore.data_handler.get_project_name',
+        'clusterfuzz._internal.datastore.data_handler.store_testcase'
+    ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock.get_project_name.return_value = 'project'
+
+    # Needed mocks for calling create_testcase in fuzz task postprocess.
+    context = mock.MagicMock(
+        timeout_multiplier=1,
+        test_timeout=99,
+        fuzzer_name='engine',
+        fuzz_target=None)
+    crash = mock.MagicMock(
+        crash_type='type',
+        crash_state='state',
+        security_flag=True,
+        file_path='file_path',
+        http_flag=True,
+        gestures='g1')
+    self.group = mock.MagicMock(
+        context=context,
+        main_crash=crash,
+        crashes=[crash],
+        one_time_crasher_flag=False,
+    )
+    self.uworker_input = _create_uworker_input()
+    self.uworker_output = uworker_msg_pb2.Output(
+        fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(crash_revision='1'))
+
+  def test_create_testcase_event_emit(self):
+    """Test that the create_testcase method emits the expected event."""
+    self.mock.store_testcase.side_effect = _store_generic_testcase
+    fuzz_task.create_testcase(
+        group=self.group,
+        uworker_input=self.uworker_input,
+        uworker_output=self.uworker_output,
+        fully_qualified_fuzzer_name='engine')
+
+    testcase = data_handler.get_testcase_by_id(1)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.FUZZ_TASK,
+            uploader=None))
+
+
+def _store_generic_testcase(*args, **kwargs):  # pylint: disable=unused-argument
+  """Store a generic testcase and return its id."""
+  testcase = test_utils.create_generic_testcase()
+  return testcase.key.id()
 
 
 def _create_uworker_input(job='job',

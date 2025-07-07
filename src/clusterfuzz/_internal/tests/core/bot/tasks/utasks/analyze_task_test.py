@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for analyze task."""
 
+import datetime
 import json
 import os
 import tempfile
@@ -21,6 +22,7 @@ import unittest
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -242,3 +244,45 @@ class UTaskPostprocessTest(unittest.TestCase):
     self.assertEqual(testcase.minimized_arguments, 'minimized_arguments')
     self.assertTrue(self.mock._add_default_issue_metadata.called)  # pylint: disable=protected-access
     self.assertTrue(self.mock.create_tasks.called)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class HandleEventEmitionNonCrashTest(unittest.TestCase):
+  """Tests for handle_noncrash."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+        'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
+        'clusterfuzz._internal.datastore.data_handler.mark_invalid_uploaded_testcase',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+    ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase_metadata = data_types.TestcaseUploadMetadata(
+        testcase_id=self.testcase.key.id())
+    self.testcase_metadata.put()
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(self.testcase.key.id()))
+    self.uworker_output = uworker_msg_pb2.Output(uworker_input=uworker_input)
+
+  def test_event_emition_handle_noncrash_first_attempt(self):
+    """Test that a non-crashing testcase is retried on the first attempt."""
+    self.mock.is_first_attempt_for_task.return_value = True
+    analyze_task.handle_noncrash(self.uworker_output)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=self.testcase,
+            rejection_reason=events.RejectionReason.
+            ANALYZE_FLAKE_ON_FIRST_ATTEMPT))
+
+  def test_event_emition_handle_noncrash_second_attempt(self):
+    """Test that a non-crashing testcase is marked invalid after the second attempt."""
+    self.mock.is_first_attempt_for_task.return_value = False
+    analyze_task.handle_noncrash(self.uworker_output)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=self.testcase,
+            rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO))

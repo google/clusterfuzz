@@ -54,3 +54,13 @@ variable "network_description" {
   default = ""
   description = "The network description"
 }
+
+variable "appengine_service_account" {
+  default = ""
+  description = "AppEngine service account for the clusterfuzz deployment"
+}
+
+variable "testcase_replication_push_endpoint" {
+  default = ""
+  description = "Endpoint to push testcase replication messages to"
+}

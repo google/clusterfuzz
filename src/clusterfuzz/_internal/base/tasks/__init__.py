@@ -15,6 +15,7 @@
 
 import contextlib
 import datetime
+import functools
 import json
 import random
 import threading
@@ -48,7 +49,9 @@ HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
 
-MAX_PUBSUB_MESSAGES_PER_REQ = 1000
+# The stated limit is 1000, but in reality meassages do not get delivered
+# around this limit. We should probably switch to the real client library.
+MAX_PUBSUB_MESSAGES_PER_REQ = 250
 
 # Various variables for task leasing and completion times (in seconds).
 TASK_COMPLETION_BUFFER = 90 * 60
@@ -84,17 +87,17 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAINS_QUEUE = 'utask_main'
+UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_QUEUE_PULL_SECONDS = 60
+UTASK_QUEUE_PULL_SECONDS = 150
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 150
+MAX_UTASKS = 3000
 
 
 class Error(Exception):
@@ -127,6 +130,8 @@ def default_queue_suffix():
 
 def regular_queue(prefix=JOBS_PREFIX):
   """Get the regular jobs queue."""
+  if full_utask_task_model():
+    return PREPROCESS_QUEUE
   return prefix + default_queue_suffix()
 
 
@@ -311,19 +316,27 @@ def get_preprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0], PREPROCESS_QUEUE)
+  task = get_task_from_message(
+      messages[0], PREPROCESS_QUEUE, task_cls=PubSubTTask)
   if task:
     logs.info('Pulled from preprocess queue.')
   return task
 
 
 def tworker_get_task():
+  """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
   # preprocessing. It's too expensive to pull twice (once from the postproces
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
+  if random.random() < .5:
+    # Pick either one with equal probability so we don't hurt the
+    # throughput of one compared to the other.
+    # TODO(metzman): We may want to combine these queues to save time reading
+    # from queues.
+    return get_postprocess_task()
   return get_preprocess_task()
 
 
@@ -463,7 +476,12 @@ class PubSubTask(Task):
 
   def attribute(self, key):
     """Return attribute value."""
-    return self._pubsub_message.attributes[key]
+    try:
+      return self._pubsub_message.attributes[key]
+    except KeyError:
+      logs.error((f'KeyError: Missing key {key} in message: '
+                  f'{self._pubsub_message.attributes}'))
+      raise
 
   def defer(self):
     """Defer a task until its ETA. Returns whether or not we deferred."""
@@ -509,12 +527,49 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
-def get_task_from_message(message, queue=None) -> Optional[PubSubTask]:
+class PubSubTTask(PubSubTask):
+  """TTask from pubsub."""
+  TTASK_TIMEOUT = 30 * 60
+
+  @contextlib.contextmanager
+  def lease(self, _event=None):  # pylint: disable=arguments-differ
+    """Maintain a lease for the task."""
+    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
+        self.command, get_task_lease_timeout())
+
+    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
+    track_task_start(self, task_lease_timeout)
+    if _event is None:
+      _event = threading.Event()
+    # We won't repeat fuzz task if we timeout, there's nothing
+    # important about any particular fuzz task.
+    if self.command != 'fuzz':
+      leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
+                                          task_lease_timeout)
+    else:
+      leaser_thread = _PubSubLeaserThread(
+          self._pubsub_message, _event, self.TTASK_TIMEOUT, ack_on_timeout=True)
+    leaser_thread.start()
+    try:
+      yield leaser_thread
+    finally:
+      _event.set()
+      leaser_thread.join()
+
+    # If we get here the task succeeded in running. Acknowledge the message.
+    self._pubsub_message.ack()
+    track_task_end()
+
+
+def get_task_from_message(message, queue=None, can_defer=True,
+                          task_cls=None) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
   try:
-    task = initialize_task(message)
+    task = initialize_task(message, task_cls=task_cls)
+    if task is None:
+      return None
   except KeyError:
     logs.error('Received an invalid task, discarding...')
     message.ack()
@@ -523,7 +578,7 @@ def get_task_from_message(message, queue=None) -> Optional[PubSubTask]:
   task = task.set_queue(queue)
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
-  if task.defer():
+  if can_defer and task.defer():
     return None
 
   return task
@@ -532,10 +587,10 @@ def get_task_from_message(message, queue=None) -> Optional[PubSubTask]:
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  pubsub_puller = PubSubPuller(UTASK_MAIN_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_utask_main_messages(messages, UTASK_MAINS_QUEUE)
+  return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
 
 
 def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
@@ -543,7 +598,8 @@ def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   bot."""
   tasks = []
   for message in messages:
-    task = get_task_from_message(message, queue)
+    # We shouldn't defer as that was done for the preprocess part of this ttask.
+    task = get_task_from_message(message, queue, can_defer=False)
     if task is None:
       continue
     tasks.append(task)
@@ -554,11 +610,15 @@ def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   return tasks
 
 
-def initialize_task(message) -> PubSubTask:
+def initialize_task(message, task_cls=None) -> PubSubTask:
   """Creates a task from |messages|."""
+  if task_cls is None:
+    task_cls = PubSubTask
 
-  if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return PubSubTask(message)
+  if message.attributes.get('eventType') not in {
+      'OBJECT_FINALIZE', 'OBJECT_DELETE'
+  }:
+    return task_cls(message)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
@@ -567,7 +627,13 @@ def initialize_task(message) -> PubSubTask:
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message)
+  task = PostprocessPubSubTask(output_url_argument, message)
+  if message.attributes.get('eventType') == 'OBJECT_DELETE':
+    # These may be from maintainer action to reduce the size of the buckets,
+    # just ignore these.
+    task.ack()
+    return None
+  return task
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -586,19 +652,27 @@ class PostprocessPubSubTask(PubSubTask):
                                is_command_override, high_end)
     self._pubsub_message = pubsub_message
 
+  def ack(self):
+    self._pubsub_message.ack()
+
 
 class _PubSubLeaserThread(threading.Thread):
   """Thread that continuously renews the lease for a message."""
 
   EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
 
-  def __init__(self, message, done_event, max_lease_seconds):
+  def __init__(self,
+               message,
+               done_event,
+               max_lease_seconds,
+               ack_on_timeout=False):
     super().__init__()
 
     self.daemon = True
     self._message = message
     self._done_event = done_event
     self._max_lease_seconds = max_lease_seconds
+    self._ack_on_timeout = ack_on_timeout
 
   def run(self):
     """Run the leaser thread."""
@@ -610,6 +684,9 @@ class _PubSubLeaserThread(threading.Thread):
         if time_left <= 0:
           logs.info('Lease reached maximum lease time of {} seconds, '
                     'stopping renewal.'.format(self._max_lease_seconds))
+          if self._ack_on_timeout:
+            logs.info('Acking on timeout')
+            self._message.ack()
           break
 
         extension_seconds = min(self.EXTENSION_TIME_SECONDS, time_left)
@@ -638,14 +715,13 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       command,
       input_url,
       job_type,
-      queue=UTASK_MAINS_QUEUE,
+      queue=UTASK_MAIN_QUEUE,
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 
 
 def bulk_add_tasks(tasks, queue=None, eta_now=False):
   """Adds |tasks| in bulk to |queue|."""
-
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
@@ -706,8 +782,15 @@ def get_task_completion_deadline():
   return start_time + task_lease_timeout - TASK_COMPLETION_BUFFER
 
 
+@functools.lru_cache
+def full_utask_task_model() -> bool:
+  return local_config.ProjectConfig().get('full_utask_model.enabled', False)
+
+
 def queue_for_platform(platform, is_high_end=False):
   """Return the queue for the platform."""
+  if full_utask_task_model():
+    return PREPROCESS_QUEUE
   prefix = HIGH_END_JOBS_PREFIX if is_high_end else JOBS_PREFIX
   return prefix + queue_suffix_for_platform(platform)
 
