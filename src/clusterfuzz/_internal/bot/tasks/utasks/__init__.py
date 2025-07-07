@@ -74,11 +74,16 @@ def _get_execution_mode(utask_module, job_type):
 class _MetricRecorder(contextlib.AbstractContextManager):
   """Records task execution metrics, even in case of error and exceptions.
 
+  Also responsible for emitting task execution events within the context.
+
   Members:
     start_time_ns (int): The time at which this recorder was constructed, in
       nanoseconds since the Unix epoch.
     utask_main_failure: this class stores the uworker_output.ErrorType 
       object returned by utask_main, and uses it to emmit a metric.
+    post_utask_main_failue: this also stores the uworker_output.ErrorType, but
+      during postprocess stage, where it will be handled.
+    preprocess_returned: Indicates if preprocess returned the uworker_input.
   """
 
   def __init__(self, subtask: _Subtask):
