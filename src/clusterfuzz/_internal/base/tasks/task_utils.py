@@ -15,6 +15,7 @@
 any other module in tasks to prevent circular imports and issues with
 appengine."""
 
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
@@ -52,3 +53,22 @@ FUZZER_BASED_TASKS = {
     'corpus_pruning',
     'fuzz',
 }
+
+
+def get_task_execution_event_data(
+    task_command: str,
+    task_argument: str | uworker_msg_pb2.Input | None,  # pylint: disable=no-member
+    job_type: str | None = None) -> dict:
+  """Returns a formatted dict with task execution event data."""
+  event_data = {'task_job': job_type}
+  if task_command in TESTCASE_BASED_TASKS:
+    event_data['testcase_id'] = (
+        task_argument.testcase_id
+        if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
+        else task_argument)
+  elif task_command in FUZZER_BASED_TASKS:
+    event_data['task_fuzzer'] = (
+        task_argument.fuzzer_name
+        if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
+        else task_argument)
+  return event_data

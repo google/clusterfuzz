@@ -71,23 +71,6 @@ def _get_execution_mode(utask_module, job_type):
   return Mode.BATCH
 
 
-def _get_task_execution_event_data(task_command, task_argument,
-                                   job_type=None) -> dict:
-  """Returns a formatted dict with task execution event data."""
-  event_data = {'task_job': job_type}
-  if task_command in task_utils.TESTCASE_BASED_TASKS:
-    event_data['testcase_id'] = (
-        task_argument.testcase_id
-        if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
-        else task_argument)
-  elif task_command in task_utils.FUZZER_BASED_TASKS:
-    event_data['task_fuzzer'] = (
-        task_argument.fuzzer_name
-        if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
-        else task_argument)
-  return event_data
-
-
 class _MetricRecorder(contextlib.AbstractContextManager):
   """Records task execution metrics, even in case of error and exceptions.
 
@@ -161,8 +144,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         'mode': execution_mode.value,
         'platform': platform,
     }
-    self._event_data = _get_task_execution_event_data(task_command,
-                                                      task_argument, job_type)
+    self._event_data = task_utils.get_task_execution_event_data(
+        task_command, task_argument, job_type)
 
     if preprocess_start_time is not None:
       # We already know the start time if the subtask is preprocess.
