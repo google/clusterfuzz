@@ -268,7 +268,7 @@ class GetUtaskModuleTest(unittest.TestCase):
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
 
-
+@test_utils.with_cloud_emulators('datastore')
 class TworkerPostprocessTest(unittest.TestCase):
   """Tests that tworker_postprocess works as intended."""
 
@@ -279,7 +279,19 @@ class TworkerPostprocessTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks._get_execution_mode',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+    self.original_env = dict(os.environ)
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'mock_task'
+    os.environ['TWORKER'] = 'True'
+
+  def tearDown(self):
+    os.environ.clear()
+    os.environ.update(self.original_env)
+    task_utils.FUZZER_BASED_TASKS.discard('mock')
 
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
   def test_success(self, execution_mode: utasks.Mode):
@@ -296,6 +308,7 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_msg_pb2.Input(
+            fuzzer_name='fuzzer_test',
             job_type='foo-job',
             preprocess_start_time=preprocess_start_timestamp),)
     self.mock.download_and_deserialize_uworker_output.return_value = (
@@ -303,6 +316,7 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     module = mock.MagicMock(__name__='mock_task')
     self.mock.get_utask_module.return_value = module
+    task_utils.FUZZER_BASED_TASKS.add('mock')
 
     utasks.tworker_postprocess(download_url)
     end_time_ns = time.time_ns()
@@ -330,3 +344,22 @@ class TworkerPostprocessTest(unittest.TestCase):
     self.assertLess(e2e_durations.sum * 10**9,
                     end_time_ns - preprocess_start_time_ns)
     self.assertGreaterEqual(e2e_durations.sum, 42)
+
+    # Asserts for task execution event.
+    self.assertEqual(self.mock.emit.call_count, 2)
+    task_finished_event = events.TaskExecutionEvent(
+        testcase_id=None,
+        task_fuzzer='fuzzer_test',
+        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.FINISHED,
+        task_outcome=uworker_msg_pb2.ErrorType.Name(0),
+        task_job='foo-job')
+    self.mock.emit.assert_any_call(task_finished_event)
+    task_post_event = events.TaskExecutionEvent(
+        testcase_id=None,
+        task_fuzzer='fuzzer_test',
+        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.POST_COMPLETED,
+        task_outcome=uworker_msg_pb2.ErrorType.Name(0),
+        task_job='foo-job')
+    self.mock.emit.assert_any_call(task_post_event)
