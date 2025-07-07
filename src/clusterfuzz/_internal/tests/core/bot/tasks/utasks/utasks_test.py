@@ -364,3 +364,51 @@ class TworkerPostprocessTest(unittest.TestCase):
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
     self.mock.emit.assert_any_call(task_post_event)
+
+  @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
+  def test_event_emit_during_exception(self, execution_mode: utasks.Mode):
+    """Test the task event emit when an unhandle exception occurs."""
+    self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
+    download_url = 'https://uworker_output_download_url'
+    preprocess_start_timestamp = timestamp_pb2.Timestamp()
+    preprocess_start_timestamp.FromNanoseconds(time.time_ns())
+
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            fuzzer_name='fuzzer_test',
+            job_type='foo-job',
+            preprocess_start_time=preprocess_start_timestamp),)
+    self.mock.download_and_deserialize_uworker_output.return_value = (
+        uworker_output)
+
+    module = mock.MagicMock(__name__='mock_task')
+    self.mock.get_utask_module.return_value = module
+    task_utils.FUZZER_BASED_TASKS.add('mock')
+
+    module.utask_postprocess.side_effect = ValueError
+    try:
+      utasks.tworker_postprocess(download_url)
+    except ValueError:
+      pass
+
+    self.mock.download_and_deserialize_uworker_output.assert_called_with(
+        download_url)
+    module.utask_postprocess.assert_called_with(uworker_output)
+    # Asserts for task execution event.
+    self.assertEqual(self.mock.emit.call_count, 2)
+    task_finished_event = events.TaskExecutionEvent(
+        testcase_id=None,
+        task_fuzzer='fuzzer_test',
+        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.FINISHED,
+        task_outcome=uworker_msg_pb2.ErrorType.Name(0),
+        task_job='foo-job')
+    self.mock.emit.assert_any_call(task_finished_event)
+    task_post_event = events.TaskExecutionEvent(
+        testcase_id=None,
+        task_fuzzer='fuzzer_test',
+        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_status=events.TaskStatus.EXCEPTION,
+        task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION,
+        task_job='foo-job')
+    self.mock.emit.assert_any_call(task_post_event)
