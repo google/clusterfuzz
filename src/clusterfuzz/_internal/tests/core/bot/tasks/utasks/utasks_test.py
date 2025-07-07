@@ -268,6 +268,7 @@ class GetUtaskModuleTest(unittest.TestCase):
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
 
+
 @test_utils.with_cloud_emulators('datastore')
 class TworkerPostprocessTest(unittest.TestCase):
   """Tests that tworker_postprocess works as intended."""
