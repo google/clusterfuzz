@@ -16,6 +16,7 @@
 import collections
 
 from firebase_admin import auth
+from google.auth.exceptions import MalformedError
 from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
@@ -142,7 +143,10 @@ def get_email_from_bearer_token(request):
     raise helpers.UnauthorizedError('Missing or invalid bearer token.')
 
   token = bearer_token.split(' ')[1]
-  claim = id_token.verify_oauth2_token(token, google_requests.Request())
+  try:
+    claim = id_token.verify_oauth2_token(token, google_requests.Request())
+  except MalformedError:
+    raise helpers.UnauthorizedError('Malformed bearer token')
   if (not claim.get('email_verified') or
       claim.get('email') != utils.service_account_email()):
     raise helpers.UnauthorizedError('Invalid ID token.')
