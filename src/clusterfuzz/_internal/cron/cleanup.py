@@ -35,6 +35,7 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -394,6 +395,11 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
   testcase.key.delete()
   logs.info(
       f'Deleted unreproducible testcase {testcase.key.id()} with no issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_NO_ISSUE))
 
 
 def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
@@ -417,6 +423,10 @@ def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
   testcase.open = False
   testcase.put()
   logs.info(f'Closed duplicate testcase {testcase.key.id()} with no issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE))
 
 
 def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
@@ -543,6 +553,11 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
   testcase.put()
   logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
             'with issue closed.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
@@ -634,6 +649,11 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
 
   logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
             'and associated issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
 
 def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
@@ -728,6 +748,10 @@ def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
   testcase.fixed = 'NA'
   testcase.put()
   logs.info(f'Closed testcase {testcase.key.id()} with issue closed.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
 
 
 def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
@@ -744,6 +768,10 @@ def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
   testcase.fixed = 'NA'
   testcase.put()
   logs.info(f'Closed testcase {testcase.key.id()} with invalid job.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_INVALID_JOB))
 
 
 def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):

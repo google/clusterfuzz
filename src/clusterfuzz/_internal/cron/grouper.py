@@ -22,6 +22,7 @@ from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 
 from . import cleanup
@@ -416,6 +417,10 @@ def _shrink_large_groups_if_needed(testcase_map):
             ('Deleting testcase {testcase_id} due to overflowing group '
              '{group_id}.').format(
                  testcase_id=testcase.id, group_id=testcase.group_id))
+        events.emit(
+            events.TestcaseRejectionEvent(
+                testcase=testcase_entity,
+                rejection_reason=events.RejectionReason.GROUPER_OVERFLOW))
         testcase_entity.key.delete()
 
 
@@ -426,6 +431,10 @@ def _get_testcase_attributes(testcase, testcase_map, cached_issue_map):
   if (not testcase.bug_information and not testcase.uploader_email and
       _has_testcase_with_same_params(testcase, testcase_map)):
     logs.info('Deleting duplicate testcase %d.' % testcase_id)
+    events.emit(
+        events.TestcaseRejectionEvent(
+            testcase=testcase,
+            rejection_reason=events.RejectionReason.GROUPER_DUPLICATE))
     testcase.key.delete()
     return
 
