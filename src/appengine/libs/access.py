@@ -113,7 +113,8 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
 
   if not need_privileged_access and _is_domain_allowed(email):
     return UserAccess.Allowed
-  helpers.log(f'No code path was allowed for user  {user.email}', helpers.VIEW_OPERATION)
+  helpers.log(f'No code path was allowed for user  {user.email}',
+              helpers.VIEW_OPERATION)
 
   return UserAccess.Denied
 

@@ -22,8 +22,6 @@ from flask import g
 from flask import make_response
 from flask import request
 import google.auth
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 import requests
 
 from clusterfuzz._internal.base import utils
@@ -282,7 +280,7 @@ def pubsub_push(func):
     except google.auth.exceptions.GoogleAuthError as e:
       raise helpers.UnauthorizedError('Invalid ID token.') from e
 
-    if (not email or email!= utils.service_account_email()):
+    if (not email or email != utils.service_account_email()):
       raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))

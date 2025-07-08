@@ -29,11 +29,12 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
-from libs import request_cache
 from libs import helpers
+from libs import request_cache
 
 User = collections.namedtuple('User', ['email'])
 BEARER_PREFIX = 'Bearer '
+
 
 class AuthError(Exception):
   """Auth error."""
@@ -135,6 +136,7 @@ def get_iap_email(current_request):
 
 
 def get_email_from_bearer_token(request):
+  """Gets the email corresponding to a bearer token in an http request."""
   bearer_token = request.headers.get('Authorization', '')
   if not bearer_token.startswith(BEARER_PREFIX):
     raise helpers.UnauthorizedError('Missing or invalid bearer token.')
@@ -145,7 +147,7 @@ def get_email_from_bearer_token(request):
       claim.get('email') != utils.service_account_email()):
     raise helpers.UnauthorizedError('Invalid ID token.')
 
-  if (not claim.get('email_verified')):
+  if not claim.get('email_verified'):
     return None
   return claim.get('email')
 

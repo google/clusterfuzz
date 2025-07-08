@@ -17,13 +17,13 @@ from clusterfuzz._internal.metrics import monitor
 
 # Fuzz task metrics.
 UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
-    'debug/appengine/invocation_count',
-    description='The number of BigQuery writes',
+    'task/fuzz/uploaded_testcase_count',
+    description='The number of uploaded testcases in GAE.',
     field_spec=[
-      monitor.BooleanField('success'),
-      monitor.StringField('fuzzer'),
-      monitor.StringField('job'),
-      monitor.StringField('fuzz_target'),
+        monitor.BooleanField('success'),
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('fuzz_target'),
     ])
 
 # Fuzz task metrics.
