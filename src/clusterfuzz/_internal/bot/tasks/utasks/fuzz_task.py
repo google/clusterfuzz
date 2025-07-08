@@ -823,21 +823,39 @@ def _infer_fully_qualified_fuzzer_name(uworker_input: uworker_msg_pb2.Input):
   return fully_qualified_fuzzer_name
 
 
+def _get_sample_rate():
+  project_config = local_config.ProjectConfig()
+  return int(project_config.get('fuzz_task_sampling.sampling_rate', 0))
+
+
+def _get_replication_topic():
+  project_config = local_config.ProjectConfig()
+  return project_config.get('fuzz_task_sampling.sampling_topic', None)
+
+
+def _publish_to_pubsub(messages, topic_name):
+  pubsub_client = pubsub.PubSubClient()
+  topic_name = pubsub.topic_name(utils.get_application_id(), topic_name)
+  pubsub_messages = [pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages]
+  pubsub_client.publish(topic_name, pubsub_messages)
+
+
 def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
                                  uworker_output: uworker_msg_pb2.Output):
   """Samples fuzz task testcases to reupload through the Upload Testcase
     endpoint in AppEngine. Meant to enable analyze task coverage in
     testing environments."""
   fuzz_task_output = uworker_output.fuzz_task_output
-  project_config = local_config.ProjectConfig()
-  sample_rate = int(project_config.get('fuzz_task_sampling.sampling_rate', 0))
-  if not sample_rate:
-    logs.info('Zero sample rate for fuzz task crash reuploads, skipping.')
-  sampling_topic = project_config.get('fuzz_task_sampling.sampling_topic', None)
+  
+  sampling_topic = _get_replication_topic()
   if not sampling_topic:
     logs.info('No crash replication topic defined for fuzz sampling, skipping.')
-  pubsub_client = pubsub.PubSubClient()
-  topic_name = pubsub.topic_name(utils.get_application_id(), sampling_topic)
+    return
+
+  sample_rate = _get_sample_rate()
+  if not sample_rate:
+    logs.info('Zero sampling rate, skipping.')
+    return    
 
   fuzz_target = _get_fuzz_target(uworker_input)
   fuzz_target_name = None
@@ -850,7 +868,7 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
   for group in fuzz_task_output.crash_groups:
     leader_crash = group.crashes[0]
     dice_roll = random.randint(0, 100)
-    if dice_roll >= sample_rate:
+    if dice_roll > sample_rate:
       continue
     sampling_message_data = {
       'fuzzed_key': leader_crash.fuzzed_key,
@@ -863,7 +881,7 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
       # the string form
       'gestures': str(leader_crash.gestures),
       'http_flag': leader_crash.http_flag,
-      'original_task_id': os.environ['CF_TASK_ID'],
+      'original_task_id': environment.get_value('CF_TASK_ID'),
     }
     logs.info(f'Sampling crash for reupload with the following contents: '
               f'{sampling_message_data}')
@@ -873,8 +891,7 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     logs.info('No crashes sampled.')
     return
 
-  pubsub_messages = [pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages]
-  pubsub_client.publish(topic_name, pubsub_messages)
+  _publish_to_pubsub(messages, sampling_topic)
 
 def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
                                 uworker_output: uworker_msg_pb2.Output):
