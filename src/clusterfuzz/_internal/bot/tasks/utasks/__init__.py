@@ -165,12 +165,13 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     """Helper to emit task execution events during the recorder context."""
     if not environment.is_tworker():
       # Events can't be sent from untrusted workers for now.
-      logs.warning(f'Attempted emit of task execution event from untrusted worker.')
+      logs.warning(
+          'Attempted emit of task execution event from untrusted worker.')
       return
 
     if self._event_data is None:
       # Missing `_event_data`, which is set during `set_task_details`.
-      logs.warning(f'Missing event data for emitting utask execution event.')
+      logs.warning('Missing event data for emitting utask execution event.')
       return
 
     event_task_exec = events.TaskExecutionEvent(

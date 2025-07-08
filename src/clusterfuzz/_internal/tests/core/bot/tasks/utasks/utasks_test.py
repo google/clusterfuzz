@@ -124,6 +124,9 @@ class TworkerPreprocessTest(unittest.TestCase):
         task_outcome=None,
         task_job=self.JOB_TYPE,
         task_fuzzer=None)
+    # Asserts task id/name fields were retrieved in base event.
+    self.assertEqual(task_event.task_name, 'mock_task')
+    self.assertEqual(task_event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.mock.emit.assert_called_once_with(task_event)
 
   def test_return_none(self):
@@ -143,6 +146,9 @@ class TworkerPreprocessTest(unittest.TestCase):
         task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
         task_job=self.JOB_TYPE,
         task_fuzzer=None)
+    # Asserts task id/name fields were retrieved in base event.
+    self.assertEqual(task_event.task_name, 'mock_task')
+    self.assertEqual(task_event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.mock.emit.assert_called_once_with(task_event)
     self.mock.emit.reset_mock()
 
@@ -157,6 +163,9 @@ class TworkerPreprocessTest(unittest.TestCase):
         task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
         task_job=self.JOB_TYPE,
         task_fuzzer=None)
+    # Asserts task id/name fields were retrieved in base event.
+    self.assertEqual(task_event.task_name, 'mock_task')
+    self.assertEqual(task_event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.mock.emit.assert_called_once_with(task_event)
 
 
@@ -350,7 +359,6 @@ class TworkerPostprocessTest(unittest.TestCase):
         task_status=events.TaskStatus.FINISHED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
-    self.mock.emit.assert_any_call(task_finished_event)
     task_post_event = events.TaskExecutionEvent(
         testcase_id=None,
         task_fuzzer='fuzzer_test',
@@ -358,6 +366,15 @@ class TworkerPostprocessTest(unittest.TestCase):
         task_status=events.TaskStatus.POST_COMPLETED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
+    # Asserts task id/name fields were retrieved in base event.
+    self.assertEqual(task_finished_event.task_name, 'mock_task')
+    self.assertEqual(task_finished_event.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(task_post_event.task_name, 'mock_task')
+    self.assertEqual(task_post_event.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+
+    self.mock.emit.assert_any_call(task_finished_event)
     self.mock.emit.assert_any_call(task_post_event)
 
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
@@ -398,7 +415,6 @@ class TworkerPostprocessTest(unittest.TestCase):
         task_status=events.TaskStatus.FINISHED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
-    self.mock.emit.assert_any_call(task_finished_event)
     task_post_event = events.TaskExecutionEvent(
         testcase_id=None,
         task_fuzzer='fuzzer_test',
@@ -406,4 +422,13 @@ class TworkerPostprocessTest(unittest.TestCase):
         task_status=events.TaskStatus.EXCEPTION,
         task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION,
         task_job='foo-job')
+    # Asserts task id/name fields were retrieved in base event.
+    self.assertEqual(task_finished_event.task_name, 'mock_task')
+    self.assertEqual(task_finished_event.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(task_post_event.task_name, 'mock_task')
+    self.assertEqual(task_post_event.task_id,
+                     'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+
+    self.mock.emit.assert_any_call(task_finished_event)
     self.mock.emit.assert_any_call(task_post_event)
