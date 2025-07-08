@@ -305,28 +305,28 @@ class UploadHandlerCommon:
     raise NotImplementedError
 
   def _handle_upload(self,
-    uploaded_file,
-    job_type,
-    fuzzer_name,
-    target_name,
-    additional_arguments,
-    app_launch_command,
-    gestures,
-    platform_id,
-    http_flag,
-    high_end_job=None,
-    bug_information=None,
-    crash_revision=None,
-    timeout=None,
-    retries=None,
-    bug_summary_update_flag=None,
-    quiet_flag=None,
-    issue_labels=None,
-    stacktrace=None,
-    multiple_testcases=None,
-    trusted_agreement_signed=False,
-    testcase_id=None,
-    testcase_metadata=None) -> str:
+                     uploaded_file,
+                     job_type,
+                     fuzzer_name,
+                     target_name,
+                     additional_arguments,
+                     app_launch_command,
+                     gestures,
+                     platform_id,
+                     http_flag,
+                     high_end_job=None,
+                     bug_information=None,
+                     crash_revision=None,
+                     timeout=None,
+                     retries=None,
+                     bug_summary_update_flag=None,
+                     quiet_flag=None,
+                     issue_labels=None,
+                     stacktrace=None,
+                     multiple_testcases=None,
+                     trusted_agreement_signed=False,
+                     testcase_id=None,
+                     testcase_metadata=None) -> str:
     """Holds the logic for actually performing a testcase upload."""
     if testcase_id and not uploaded_file:
       testcase = helpers.get_testcase(testcase_id)
@@ -375,7 +375,6 @@ class UploadHandlerCommon:
     if (target_name and
         not data_types.Fuzzer.VALID_NAME_REGEX.match(target_name)):
       raise helpers.EarlyExitError('Invalid target name.', 400)
-
 
     email = helpers.get_user_email()
     fully_qualified_fuzzer_name = ''
@@ -663,29 +662,30 @@ class UploadHandlerCommon:
     testcase_metadata = request.get('metadata', {})
 
     return self._handle_upload(
-      uploaded_file=uploaded_file,
-      testcase_id=testcase_id,
-      job_type=job_type,
-      fuzzer_name=fuzzer_name,
-      target_name=target_name,
-      multiple_testcases=multiple_testcases,
-      http_flag=http_flag,
-      high_end_job=high_end_job,
-      bug_information=bug_information,
-      crash_revision=crash_revision,
-      timeout=timeout,
-      retries=retries,
-      bug_summary_update_flag=bug_summary_update_flag,
-      quiet_flag=quiet_flag,
-      additional_arguments=additional_arguments,
-      app_launch_command=app_launch_command,
-      platform_id=platform_id,
-      issue_labels=issue_labels,
-      gestures=gestures,
-      stacktrace=stacktrace,
-      trusted_agreement_signed=trusted_agreement_signed,
-      testcase_metadata=testcase_metadata,
+        uploaded_file=uploaded_file,
+        testcase_id=testcase_id,
+        job_type=job_type,
+        fuzzer_name=fuzzer_name,
+        target_name=target_name,
+        multiple_testcases=multiple_testcases,
+        http_flag=http_flag,
+        high_end_job=high_end_job,
+        bug_information=bug_information,
+        crash_revision=crash_revision,
+        timeout=timeout,
+        retries=retries,
+        bug_summary_update_flag=bug_summary_update_flag,
+        quiet_flag=quiet_flag,
+        additional_arguments=additional_arguments,
+        app_launch_command=app_launch_command,
+        platform_id=platform_id,
+        issue_labels=issue_labels,
+        gestures=gestures,
+        stacktrace=stacktrace,
+        trusted_agreement_signed=trusted_agreement_signed,
+        testcase_metadata=testcase_metadata,
     )
+
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
   """Handler that uploads the testcase file."""
@@ -739,8 +739,12 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
 class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
   """Handler that picks up the pubsub notification."""
 
+  def get_upload(self):
+    pass
+
   @handler.pubsub_push
   def post(self, message):
+    """Uploads a crash sampled from fuzz task."""
     with monitor.wrap_with_monitoring():
       message_data = json.loads(message.data.decode('utf-8'))
       helpers.log(f'Message: {type(message)} {message}', helpers.VIEW_OPERATION)
@@ -749,38 +753,37 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
       fuzzer = message_data.get('fuzzer', None)
       fuzz_target = message_data.get('target_name', None)
       original_task_id = message_data.get('original_task_id', None)
-      helpers.log(f'Uploading testcase from fuzz task id {original_task_id}', helpers.VIEW_OPERATION)
+      helpers.log(f'Uploading testcase from fuzz task id {original_task_id}',
+                  helpers.VIEW_OPERATION)
       helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
       uploaded_file_key = message_data['fuzzed_key']
       uploaded_file = blobs.get_blob_info(uploaded_file_key)
-      helpers.log(f'Uploaded file key = {uploaded_file_key}', helpers.VIEW_OPERATION)
-      helpers.log(f'Uploaded file = {uploaded_file}', helpers.VIEW_OPERATION) 
       try:
         response = self._handle_upload(
-          uploaded_file = uploaded_file,
-          job_type = job,
-          fuzzer_name = fuzzer,
-          target_name = fuzz_target,
-          additional_arguments=message_data.get('arguments', None),
-          app_launch_command=message_data.get('application_command_line', None),
-          gestures=message_data.get('gestures', '[]'),
-          http_flag=message_data.get('http_flag', None),
-          platform_id='Linux',
-          trusted_agreement_signed=True,
+            uploaded_file=uploaded_file,
+            job_type=job,
+            fuzzer_name=fuzzer,
+            target_name=fuzz_target,
+            additional_arguments=message_data.get('arguments', None),
+            app_launch_command=message_data.get('application_command_line',
+                                                None),
+            gestures=message_data.get('gestures', '[]'),
+            http_flag=message_data.get('http_flag', None),
+            platform_id='Linux',
+            trusted_agreement_signed=True,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
-          'fuzzer': fuzzer,
-          'job': job,
-          'fuzz_target': fuzz_target,
-          'success': True,
+            'fuzzer': fuzzer,
+            'job': job,
+            'fuzz_target': fuzz_target,
+            'success': True,
         })
         return response
       except Exception as e:
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
-          'fuzzer': fuzzer,
-          'job': job,
-          'fuzz_target': fuzz_target,
-          'success': False,
+            'fuzzer': fuzzer,
+            'job': job,
+            'fuzz_target': fuzz_target,
+            'success': False,
         })
         raise e
-

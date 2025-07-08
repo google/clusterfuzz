@@ -652,6 +652,7 @@ class UploadOAuthTest(unittest.TestCase):
                          data_handler.get_fuzz_target('libFuzzer_proj_target')
                          ._to_dict())
 
+
 # pylint: disable=protected-access
 @test_utils.with_cloud_emulators('datastore')
 class CrashReplicationTest(unittest.TestCase):
@@ -664,15 +665,17 @@ class CrashReplicationTest(unittest.TestCase):
     self.fuzz_target_binary = 'binary'
     self.fuzzer_name = 'libFuzzer'
     test_helpers.patch_environ(self)
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.base.utils.service_account_email',
-        'clusterfuzz._internal.base.tasks.add_task', # Publish message becomes no op
-        'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_info',
-        'clusterfuzz._internal.metrics.events.emit',
-        'clusterfuzz._internal.metrics.events._get_datetime_now',
-        'libs.auth.get_email_from_bearer_token',
-        'libs.helpers.get_user_email',
-    ])
+    test_helpers.patch(
+        self,
+        [
+            'clusterfuzz._internal.base.utils.service_account_email',
+            'clusterfuzz._internal.base.tasks.add_task',  # Publish message becomes no op
+            'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_info',
+            'clusterfuzz._internal.metrics.events.emit',
+            'clusterfuzz._internal.metrics.events._get_datetime_now',
+            'libs.auth.get_email_from_bearer_token',
+            'libs.helpers.get_user_email',
+        ])
     self.mock.get_email_from_bearer_token.return_value = self.service_account_email
     self.mock.service_account_email.return_value = self.service_account_email
     self.mock.get_user_email.return_value = self.service_account_email
@@ -681,7 +684,8 @@ class CrashReplicationTest(unittest.TestCase):
     self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
 
     data_types.FuzzTarget(
-        engine='libFuzzer', project='proj', binary=self.fuzz_target_binary).put()
+        engine='libFuzzer', project='proj',
+        binary=self.fuzz_target_binary).put()
 
     data_types.Job(
         name=self.job_name,
@@ -695,7 +699,8 @@ class CrashReplicationTest(unittest.TestCase):
 
     self.app = flask.Flask('testflask')
     self.app.add_url_rule(
-        '/upload-testcase/crash-replication', view_func=upload_testcase.CrashReplicationUploadHandler.as_view(''))
+        '/upload-testcase/crash-replication',
+        view_func=upload_testcase.CrashReplicationUploadHandler.as_view(''))
 
   def assert_dict_has_items(self, expected, actual):
     """Assert that all items in `expected` are in `actual`."""
@@ -714,25 +719,25 @@ class CrashReplicationTest(unittest.TestCase):
   def test_crash_replication_upload(self):
     """Tests if a sampling message correct generates a testcase through the
         crash-replication endpoint."""
+
     sampling_message_data = json.dumps({
-      'fuzzed_key': 'some-fuzzed-key',
-      'job': self.job_name,
-      'fuzzer': self.fuzzer_name,
-      'target_name': self.fuzz_target_binary,
-      'arguments': 'some-arg',
-      'application_command_line': 'some-cli-command',
-      'gestures': str([]),
-      'http_flag': False,
-      'original_task_id': 'some-task-id',
+        'fuzzed_key': 'some-fuzzed-key',
+        'job': self.job_name,
+        'fuzzer': self.fuzzer_name,
+        'target_name': self.fuzz_target_binary,
+        'arguments': 'some-arg',
+        'application_command_line': 'some-cli-command',
+        'gestures': str([]),
+        'http_flag': False,
+        'original_task_id': 'some-task-id',
     }).encode()
 
-        
     with self.app.test_client() as client:
-        result = client.post(
-            '/upload-testcase/crash-replication',
-            data=self._make_message(sampling_message_data, {}),
-            headers={'Authorization': 'Bearer fake'})
-        print(result)
+      result = client.post(
+          '/upload-testcase/crash-replication',
+          data=self._make_message(sampling_message_data, {}),
+          headers={'Authorization': 'Bearer fake'})
+      print(result)
 
     self.assertEqual('200 OK', result.status)
     self.assertTrue(result.json.get('id', None))
@@ -746,24 +751,26 @@ class CrashReplicationTest(unittest.TestCase):
             creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
             uploader=self.service_account_email))
 
-    self.assert_dict_has_items(
-        {
-            'absolute_path': 'input',
-            'additional_metadata': (
-                '{"app_launch_command": "some-cli-command", '
-                '"fuzzer_binary_name": "binary", '
-                '"uploaded_additional_args": "some-arg"}'
-            ),
-            'fuzzed_keys': 'blob_key',
-            'fuzzer_name': 'libFuzzer',
-            'gestures': [],
-            'job_type': 'libfuzzer_proj',
-            'overridden_fuzzer_name': 'libFuzzer_proj_binary',
-            'project_name': 'proj',
-            'uploader_email': self.service_account_email,
-        },
-        testcase._to_dict()
-    )
+    self.assert_dict_has_items({
+        'absolute_path':
+            'input',
+        'additional_metadata': ('{"app_launch_command": "some-cli-command", '
+                                '"fuzzer_binary_name": "binary", '
+                                '"uploaded_additional_args": "some-arg"}'),
+        'fuzzed_keys':
+            'blob_key',
+        'fuzzer_name':
+            'libFuzzer',
+        'gestures': [],
+        'job_type':
+            'libfuzzer_proj',
+        'overridden_fuzzer_name':
+            'libFuzzer_proj_binary',
+        'project_name':
+            'proj',
+        'uploader_email':
+            self.service_account_email,
+    }, testcase._to_dict())
 
     metadata = data_types.TestcaseUploadMetadata.query(
         data_types.TestcaseUploadMetadata.testcase_id ==

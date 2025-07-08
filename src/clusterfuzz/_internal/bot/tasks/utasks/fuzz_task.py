@@ -42,6 +42,7 @@ from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import crash_result
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -54,7 +55,6 @@ from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
-from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
@@ -836,7 +836,9 @@ def _get_replication_topic():
 def _publish_to_pubsub(messages, topic_name):
   pubsub_client = pubsub.PubSubClient()
   topic_name = pubsub.topic_name(utils.get_application_id(), topic_name)
-  pubsub_messages = [pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages]
+  pubsub_messages = [
+      pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages
+  ]
   pubsub_client.publish(topic_name, pubsub_messages)
 
 
@@ -846,7 +848,7 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     endpoint in AppEngine. Meant to enable analyze task coverage in
     testing environments."""
   fuzz_task_output = uworker_output.fuzz_task_output
-  
+
   sampling_topic = _get_replication_topic()
   if not sampling_topic:
     logs.info('No crash replication topic defined for fuzz sampling, skipping.')
@@ -855,7 +857,7 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
   sample_rate = _get_sample_rate()
   if not sample_rate:
     logs.info('Zero sampling rate, skipping.')
-    return    
+    return
 
   fuzz_target = _get_fuzz_target(uworker_input)
   fuzz_target_name = None
@@ -871,27 +873,28 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
     if dice_roll > sample_rate:
       continue
     sampling_message_data = {
-      'fuzzed_key': leader_crash.fuzzed_key,
-      'job': uworker_input.job_type,
-      'fuzzer': uworker_input.fuzzer_name,
-      'target_name': fuzz_target_name,
-      'arguments': leader_crash.arguments,
-      'application_command_line': leader_crash.application_command_line,
-      # gestures is evaluated with ast.literal_eval in appengine, so we need 
-      # the string form
-      'gestures': str(leader_crash.gestures),
-      'http_flag': leader_crash.http_flag,
-      'original_task_id': environment.get_value('CF_TASK_ID'),
+        'fuzzed_key': leader_crash.fuzzed_key,
+        'job': uworker_input.job_type,
+        'fuzzer': uworker_input.fuzzer_name,
+        'target_name': fuzz_target_name,
+        'arguments': leader_crash.arguments,
+        'application_command_line': leader_crash.application_command_line,
+        # gestures is evaluated with ast.literal_eval in appengine, so we need
+        # the string form
+        'gestures': str(leader_crash.gestures),
+        'http_flag': leader_crash.http_flag,
+        'original_task_id': environment.get_value('CF_TASK_ID'),
     }
     logs.info(f'Sampling crash for reupload with the following contents: '
               f'{sampling_message_data}')
     messages.append(sampling_message_data)
   if not messages:
     # Publishing an empty list of messages raises an exception
-    logs.info('No crashes sampled.')
+    logs.info('No crashes sampled, skipping.')
     return
 
   _publish_to_pubsub(messages, sampling_topic)
+
 
 def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
                                 uworker_output: uworker_msg_pb2.Output):
@@ -2072,6 +2075,7 @@ def _get_fuzz_target(uworker_input):
   else:
     fuzz_target = None
   return fuzz_target
+
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
