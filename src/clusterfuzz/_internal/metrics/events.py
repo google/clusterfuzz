@@ -75,7 +75,7 @@ class TaskStage:
 class TaskStatus:
   """Task status."""
   STARTED = 'started'
-  MAIN_FINISHED = 'main_finished'
+  FINISHED = 'finished'
   POST_STARTED = 'postprocess_started'
   POST_COMPLETED = 'postprocess_completed'
   EXCEPTION = 'exception'
