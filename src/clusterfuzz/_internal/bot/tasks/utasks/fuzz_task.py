@@ -42,6 +42,7 @@ from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import crash_result
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -52,6 +53,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
@@ -809,6 +811,91 @@ def postprocess_store_fuzzer_run_results(output):
   logs.info('Finished storing results from fuzzer run.')
 
 
+def _infer_fully_qualified_fuzzer_name(uworker_input: uworker_msg_pb2.Input):
+  fuzz_target = None
+  if uworker_input.fuzz_task_input.HasField('fuzz_target'):
+    fuzz_target = uworker_io.entity_from_protobuf(
+        uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
+
+    fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
+  else:
+    fully_qualified_fuzzer_name = uworker_input.fuzzer_name
+  return fully_qualified_fuzzer_name
+
+
+def _get_sample_rate():
+  project_config = local_config.ProjectConfig()
+  return int(project_config.get('fuzz_task_sampling.sampling_rate', 0))
+
+
+def _get_replication_topic():
+  project_config = local_config.ProjectConfig()
+  return project_config.get('fuzz_task_sampling.sampling_topic', None)
+
+
+def _publish_to_pubsub(messages, topic_name):
+  pubsub_client = pubsub.PubSubClient()
+  topic_name = pubsub.topic_name(utils.get_application_id(), topic_name)
+  pubsub_messages = [
+      pubsub.Message(data=json.dumps(data).encode("utf-8")) for data in messages
+  ]
+  pubsub_client.publish(topic_name, pubsub_messages)
+
+
+def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
+                                 uworker_output: uworker_msg_pb2.Output):
+  """Samples fuzz task testcases to reupload through the Upload Testcase
+    endpoint in AppEngine. Meant to enable analyze task coverage in
+    testing environments."""
+  fuzz_task_output = uworker_output.fuzz_task_output
+
+  sampling_topic = _get_replication_topic()
+  if not sampling_topic:
+    logs.info('No crash replication topic defined for fuzz sampling, skipping.')
+    return
+
+  sample_rate = _get_sample_rate()
+  if not sample_rate:
+    logs.info('Zero sampling rate, skipping.')
+    return
+
+  fuzz_target = _get_fuzz_target(uworker_input)
+  fuzz_target_name = None
+  if fuzz_target and fuzz_target.binary:
+    fuzz_target_name = fuzz_target.binary
+
+  logs.info("Sampling crashes for replication.")
+
+  messages = []
+  for group in fuzz_task_output.crash_groups:
+    leader_crash = group.crashes[0]
+    dice_roll = random.randint(0, 100)
+    if dice_roll > sample_rate:
+      continue
+    sampling_message_data = {
+        'fuzzed_key': leader_crash.fuzzed_key,
+        'job': uworker_input.job_type,
+        'fuzzer': uworker_input.fuzzer_name,
+        'target_name': fuzz_target_name,
+        'arguments': leader_crash.arguments,
+        'application_command_line': leader_crash.application_command_line,
+        # gestures is evaluated with ast.literal_eval in appengine, so we need
+        # the string form
+        'gestures': str(leader_crash.gestures),
+        'http_flag': leader_crash.http_flag,
+        'original_task_id': environment.get_value('CF_TASK_ID'),
+    }
+    logs.info(f'Sampling crash for reupload with the following contents: '
+              f'{sampling_message_data}')
+    messages.append(sampling_message_data)
+  if not messages:
+    # Publishing an empty list of messages raises an exception
+    logs.info('No crashes sampled, skipping.')
+    return
+
+  _publish_to_pubsub(messages, sampling_topic)
+
+
 def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
                                 uworker_output: uworker_msg_pb2.Output):
   """Postprocess process_crashes"""
@@ -818,14 +905,8 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
   known_crash_count = 0
 
   fuzz_task_output = uworker_output.fuzz_task_output
-  fuzz_target = None
-  if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-    fuzz_target = uworker_io.entity_from_protobuf(
-        uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
-
-    fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
-  else:
-    fully_qualified_fuzzer_name = uworker_input.fuzzer_name
+  fully_qualified_fuzzer_name = _infer_fully_qualified_fuzzer_name(
+      uworker_input)
 
   for group in fuzz_task_output.crash_groups:
     # Getting existing_testcase after finding the main crash is important.
@@ -1934,6 +2015,7 @@ class FuzzingSession:
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
+    postprocess_sample_testcases(uworker_input, uworker_output)
     if not environment.is_engine_fuzzer_job():
       return
 
@@ -1986,14 +2068,19 @@ def handle_fuzz_bad_build(uworker_output):
       uworker_output.fuzz_task_output.build_data)
 
 
-def utask_main(uworker_input):
-  """Runs the given fuzzer for one round."""
-  # Sets fuzzing logs context before running the fuzzer.
+def _get_fuzz_target(uworker_input):
   if uworker_input.fuzz_task_input.HasField('fuzz_target'):
     fuzz_target = uworker_io.entity_from_protobuf(
         uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
   else:
     fuzz_target = None
+  return fuzz_target
+
+
+def utask_main(uworker_input):
+  """Runs the given fuzzer for one round."""
+  # Sets fuzzing logs context before running the fuzzer.
+  fuzz_target = _get_fuzz_target(uworker_input)
   with logs.fuzzer_log_context(uworker_input.fuzzer_name,
                                uworker_input.job_type, fuzz_target):
     session = _make_session(uworker_input)

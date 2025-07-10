@@ -16,7 +16,10 @@
 import collections
 
 from firebase_admin import auth
+from google.auth.exceptions import MalformedError
+from google.auth.transport import requests as google_requests
 from google.cloud import ndb
+from google.oauth2 import id_token
 from googleapiclient.discovery import build
 import jwt
 import requests
@@ -27,9 +30,11 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from libs import helpers
 from libs import request_cache
 
 User = collections.namedtuple('User', ['email'])
+BEARER_PREFIX = 'Bearer '
 
 
 class AuthError(Exception):
@@ -131,6 +136,26 @@ def get_iap_email(current_request):
   return _validate_iap_jwt(jwt_assertion)
 
 
+def get_email_from_bearer_token(request):
+  """Gets the email corresponding to a bearer token in an http request."""
+  bearer_token = request.headers.get('Authorization', '')
+  if not bearer_token.startswith(BEARER_PREFIX):
+    raise helpers.UnauthorizedError('Missing or invalid bearer token.')
+
+  token = bearer_token.split(' ')[1]
+  try:
+    claim = id_token.verify_oauth2_token(token, google_requests.Request())
+  except MalformedError:
+    raise helpers.UnauthorizedError('Malformed bearer token')
+  if (not claim.get('email_verified') or
+      claim.get('email') != utils.service_account_email()):
+    raise helpers.UnauthorizedError('Invalid ID token.')
+
+  if not claim.get('email_verified'):
+    return None
+  return claim.get('email')
+
+
 def get_current_user():
   """Get the current logged in user, or None."""
   if environment.is_local_development():
@@ -145,6 +170,14 @@ def get_current_user():
   iap_email = get_iap_email(current_request)
   if iap_email:
     return User(iap_email)
+
+  try:
+    bearer_token_email = get_email_from_bearer_token(current_request)
+    if bearer_token_email:
+      logs.info(f'bearer token email = {bearer_token_email}')
+      return User(bearer_token_email)
+  except helpers.UnauthorizedError as e:
+    logs.warning(f'Exception while trying to get email from auth token: {e}')
 
   cache_backing = request_cache.get_cache_backing()
   oauth_email = getattr(cache_backing, '_oauth_email', None)
@@ -192,10 +225,10 @@ def get_current_user():
   return User(email)
 
 
-def create_session_cookie(id_token, expires_in):
+def create_session_cookie(token, expires_in):
   """Create a new session cookie."""
   try:
-    return auth.create_session_cookie(id_token, expires_in=expires_in)
+    return auth.create_session_cookie(token, expires_in=expires_in)
   except auth.AuthError:
     raise AuthError('Failed to create session cookie.')
 
