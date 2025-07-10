@@ -203,7 +203,7 @@ class EventsDataTest(unittest.TestCase):
         task_job=job_type,
         task_fuzzer=fuzzer_name,
         task_stage=events.TaskStage.POSTPROCESS,
-        task_status=events.TaskStatus.FINISHED,
+        task_status=events.TaskStatus.POST_COMPLETED,
         task_outcome=task_outcome)
     self._assert_event_common_fields(event_task_exec_post_finish, event_type,
                                      source)
@@ -211,7 +211,7 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_task_exec_post_finish.task_stage,
                      events.TaskStage.POSTPROCESS)
     self.assertEqual(event_task_exec_post_finish.task_status,
-                     events.TaskStatus.FINISHED)
+                     events.TaskStatus.POST_COMPLETED)
     self.assertEqual(event_task_exec_post_finish.task_outcome, task_outcome)
     self.assertEqual(event_task_exec_post_finish.task_job, job_type)
     self.assertEqual(event_task_exec_post_finish.task_fuzzer, fuzzer_name)
@@ -394,7 +394,7 @@ class DatastoreEventsTest(unittest.TestCase):
         task_fuzzer=fuzzer_name,
         task_job=job_type,
         task_stage=events.TaskStage.POSTPROCESS,
-        task_status=events.TaskStatus.FINISHED,
+        task_status=events.TaskStatus.POST_COMPLETED,
         task_outcome=task_outcome)
     event_type = event_task_exec.event_type
     timestamp = event_task_exec.timestamp
@@ -412,7 +412,7 @@ class DatastoreEventsTest(unittest.TestCase):
 
     # TaskExecutionEvent specific assertions.
     self.assertEqual(event_entity.task_stage, events.TaskStage.POSTPROCESS)
-    self.assertEqual(event_entity.task_status, events.TaskStatus.FINISHED)
+    self.assertEqual(event_entity.task_status, events.TaskStatus.POST_COMPLETED)
     self.assertEqual(event_entity.task_outcome, task_outcome)
     self.assertEqual(event_entity.testcase_id, testcase_id)
     self.assertEqual(event_entity.task_job, job_type)
