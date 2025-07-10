@@ -177,7 +177,7 @@ def get_current_user():
       logs.info(f'bearer token email = {bearer_token_email}')
       return User(bearer_token_email)
   except helpers.UnauthorizedError as e:
-    logs.info(f'Exception while trying to get email from auth token: {e}')
+    logs.warning(f'Exception while trying to get email from auth token: {e}')
 
   cache_backing = request_cache.get_cache_backing()
   oauth_email = getattr(cache_backing, '_oauth_email', None)
