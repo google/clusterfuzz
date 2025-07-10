@@ -163,7 +163,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
   def emit_task_events(self, task_status: str,
                        task_outcome: str | None = None) -> None:
     """Helper to emit task execution events during the recorder context."""
-    if not environment.is_tworker():
+    if environment.is_uworker():
       # Events can't be sent from untrusted workers for now.
       logs.warning(
           'Attempted emit of task execution event from untrusted worker.')
@@ -189,9 +189,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
 
   def _emit_event_on_exit(self, exc_type):
     """Resolves sending task execution events after a utask stage."""
-    if not environment.is_tworker():
-      # TODO(vtcosta): Currently, events can't be sent from untrusted workers
-      # due to denied permissions. We should try some workarounds to enable it.
+    if self._subtask == _Subtask.UWORKER_MAIN:
+      # TODO(vtcosta): Currently, events can't be sent from uworkers main due
+      # to denied permissions. We should try some workarounds to enable it.
       return
 
     if exc_type is not None:
@@ -206,9 +206,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       if not self.preprocess_returned:
         self.emit_task_events(events.TaskStatus.EXCEPTION,
                               events.TaskOutcome.PREPROCESS_NO_RETURN)
-      else:
-        self.emit_task_events(events.TaskStatus.STARTED)
         return
+      self.emit_task_events(events.TaskStatus.STARTED)
+      return
 
     if self._subtask == _Subtask.POSTPROCESS:
       task_outcome = None
