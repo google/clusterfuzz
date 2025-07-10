@@ -354,7 +354,7 @@ class TworkerPostprocessTest(unittest.TestCase):
         testcase_id=None,
         task_fuzzer='fuzzer_test',
         task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
-        task_status=events.TaskStatus.FINISHED,
+        task_status=events.TaskStatus.POST_STARTED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
     task_post_event = events.TaskExecutionEvent(
@@ -410,7 +410,7 @@ class TworkerPostprocessTest(unittest.TestCase):
         testcase_id=None,
         task_fuzzer='fuzzer_test',
         task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
-        task_status=events.TaskStatus.FINISHED,
+        task_status=events.TaskStatus.POST_STARTED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
     task_post_event = events.TaskExecutionEvent(
