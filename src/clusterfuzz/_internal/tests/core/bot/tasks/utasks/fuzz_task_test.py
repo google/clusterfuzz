@@ -1669,3 +1669,82 @@ def _get_upload_urls():
 
 def _get_upload_urls_from_proto():
   return [uworker_msg_pb2.BlobUploadUrl(key='uuid')] * 1000
+
+
+@test_utils.with_cloud_emulators('datastore')
+class SampleCrashesForReuploadTest(unittest.TestCase):
+  """Test testcase creation event is emitted when created during fuzz task."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._get_sample_rate',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._get_replication_topic',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._publish_to_pubsub',
+        'clusterfuzz._internal.system.environment.get_value',
+    ])
+
+    # Needed mocks for simulating the resulting crashes of fuzz task.
+    self.job_type = 'some_job'
+    self.fuzzer_name = 'some_fuzzer'
+    self.binary_name = 'binary'
+    self.project = 'project'
+    self.engine = 'engine'
+    self.replication_topic = 'crash_replication'
+    self.sample_rate = 100
+    self.fuzz_task_id = 'some_task_id'
+    self.fuzzed_key = 'fuzzed_key'
+    self.arguments = 'some_args'
+    self.cli_command = 'cli_command'
+    self.http_flag = True
+    self.gestures = []
+
+    self.mock._get_sample_rate.return_value = self.sample_rate
+    self.mock._get_replication_topic.return_value = self.replication_topic
+    self.mock.get_value.return_value = self.fuzz_task_id
+
+    self.fuzz_target = data_types.FuzzTarget(
+        engine=self.engine, binary=self.binary_name, project=self.project)
+
+    crash = mock.MagicMock(
+        fuzzed_key=self.fuzzed_key,
+        arguments=self.arguments,
+        application_command_line=self.cli_command,
+        http_flag=self.http_flag,
+        gestures=self.gestures)
+
+    self.crash_group = mock.MagicMock(crashes=[crash],)
+
+  def test_crashes_are_sampled_to_crash_replication_topic(self):
+    """Test that the postprocess_sample_testcases method sends the
+      expected message to the crash replication topic."""
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    fuzz_task_input.fuzz_target.CopyFrom(
+        uworker_io.entity_to_protobuf(self.fuzz_target))
+    uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+        fuzz_task_input=fuzz_task_input,
+        job_type=self.job_type,
+        fuzzer_name=self.fuzzer_name,
+        uworker_env={},
+        setup_input=None,
+    )
+
+    fuzz_task_output = mock.MagicMock(crash_groups=[self.crash_group])
+    uworker_output = mock.MagicMock(fuzz_task_output=fuzz_task_output)
+
+    fuzz_task.postprocess_sample_testcases(uworker_input, uworker_output)
+
+    expected_messages = [{
+        'fuzzed_key': self.fuzzed_key,
+        'job': self.job_type,
+        'fuzzer': self.fuzzer_name,
+        'target_name': self.binary_name,
+        'arguments': self.arguments,
+        'application_command_line': self.cli_command,
+        'gestures': str(self.gestures),
+        'http_flag': self.http_flag,
+        'original_task_id': self.fuzz_task_id,
+    }]
+
+    self.mock._publish_to_pubsub.assert_called_once_with(
+        expected_messages, self.replication_topic)
