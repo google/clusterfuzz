@@ -40,7 +40,7 @@ class TworkerPreprocessTest(unittest.TestCase):
   OUTPUT_DOWNLOAD_GCS_URL = '/download-output'
   INPUT_SIGNED_DOWNLOAD_URL = 'https://signed-download-input'
   UWORKER_ENV = {'ENVVAR': 'VALUE'}
-  TASK_ARGUMENT = 'testcase-id'
+  TASK_ARGUMENT = '1'  # testcase_id
   JOB_TYPE = 'libfuzzer_asan'
 
   def setUp(self):
@@ -117,7 +117,7 @@ class TworkerPreprocessTest(unittest.TestCase):
 
     # Asserts for task execution event.
     task_event = events.TaskExecutionEvent(
-        testcase_id=self.TASK_ARGUMENT,
+        testcase_id=int(self.TASK_ARGUMENT),
         task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.STARTED,
         task_outcome=None,
@@ -139,7 +139,7 @@ class TworkerPreprocessTest(unittest.TestCase):
                                   self.UWORKER_ENV))
     # Asserts for task execution event.
     task_event = events.TaskExecutionEvent(
-        testcase_id=self.TASK_ARGUMENT,
+        testcase_id=int(self.TASK_ARGUMENT),
         task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.EXCEPTION,
         task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
@@ -156,7 +156,7 @@ class TworkerPreprocessTest(unittest.TestCase):
                                         self.JOB_TYPE, self.UWORKER_ENV))
     # Asserts for task execution event.
     task_event = events.TaskExecutionEvent(
-        testcase_id=self.TASK_ARGUMENT,
+        testcase_id=int(self.TASK_ARGUMENT),
         task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.EXCEPTION,
         task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,

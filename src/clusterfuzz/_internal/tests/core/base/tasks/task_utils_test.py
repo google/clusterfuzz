@@ -54,7 +54,7 @@ class GetTaskEventDataTest(unittest.TestCase):
     self.assertEqual(
         task_utils.get_task_execution_event_data(task_command, '1', 'job'), {
             'task_job': 'job',
-            'testcase_id': '1'
+            'testcase_id': 1
         })
 
     fuzzer_based = commands._COMMAND_MODULE_MAP.get('fuzz')
@@ -76,7 +76,7 @@ class GetTaskEventDataTest(unittest.TestCase):
         task_utils.get_task_execution_event_data(task_command, task_argument,
                                                  'job'), {
                                                      'task_job': 'job',
-                                                     'testcase_id': '1'
+                                                     'testcase_id': 1
                                                  })
 
     fuzzer_based = commands._COMMAND_MODULE_MAP.get('fuzz')

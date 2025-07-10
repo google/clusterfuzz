@@ -60,12 +60,15 @@ def get_task_execution_event_data(
     task_argument: str | uworker_msg_pb2.Input | None,  # pylint: disable=no-member
     job_type: str | None = None) -> dict:
   """Returns a formatted dict with task execution event data."""
-  event_data = {'task_job': job_type}
+  event_data = {}
+  event_data['task_job'] = job_type
   if task_command in TESTCASE_BASED_TASKS:
-    event_data['testcase_id'] = (
+    testcase_id = (
         task_argument.testcase_id
         if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
         else task_argument)
+    event_data['testcase_id'] = None if testcase_id is None else int(
+        testcase_id)
   elif task_command in FUZZER_BASED_TASKS:
     event_data['task_fuzzer'] = (
         task_argument.fuzzer_name
