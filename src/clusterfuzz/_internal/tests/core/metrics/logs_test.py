@@ -1207,6 +1207,79 @@ class TruncateTest(unittest.TestCase):
     self.assertIsInstance(result, tuple)
     self.assertEqual(expected_tuple, result)
 
+  def test_namedtuple_truncation(self):
+    """Tests namedtuple truncation worked properly"""
+    import collections
+    BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
+        'clusterfuzz_release',
+        'disk_size_gb',
+        'disk_type',
+        'docker_image',
+        'user_data',
+        'service_account_email',
+        'subnetwork',
+        'preemptible',
+        'project',
+        'machine_type',
+        'network',
+        'gce_region',
+        'priority',
+        'max_run_duration',
+        'retry',
+    ])
+    limit = 20
+    spec = BatchWorkloadSpec(
+        docker_image='a' * 100,
+        disk_size_gb=1,
+        disk_type='x',
+        user_data='foo',
+        service_account_email='bar',
+        preemptible=True,
+        machine_type='xpto',
+        gce_region='region',
+        network='brisanet',
+        subnetwork='brisa',
+        project='cf',
+        clusterfuzz_release='1.0',
+        priority='high',
+        max_run_duration=10,
+        retry=False,
+    )
+    result = logs.truncate(spec, limit)
+    expected = {
+        'clusterfuzz_release':
+            '1.0',
+        'disk_size_gb':
+            1,
+        'disk_type':
+            'x',
+        'docker_image':
+            'aaaaaaaaaa\n...80 characters truncated...\naaaaaaaaaa',
+        'user_data':
+            'foo',
+        'service_account_email':
+            'bar',
+        'subnetwork':
+            'brisa',
+        'preemptible':
+            True,
+        'project':
+            'cf',
+        'machine_type':
+            'xpto',
+        'network':
+            'brisanet',
+        'gce_region':
+            'region',
+        'priority':
+            'high',
+        'max_run_duration':
+            10,
+        'retry':
+            False
+    }
+    self.assertEqual(expected, result)
+
   def test_dict_truncation(self):
     """Tests recursive truncation of dictionary values."""
     limit = 7
