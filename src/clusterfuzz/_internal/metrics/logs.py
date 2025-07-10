@@ -219,6 +219,9 @@ def truncate(
   if dataclasses.is_dataclass(msg) and not isinstance(msg, type):
     msg = dataclasses.asdict(msg)
 
+  if isinstance(msg, tuple) and hasattr(msg, '_fields'):
+    msg = msg._asdict()  # type: ignore
+
   if isinstance(msg, dict):
     return {k: truncate(v, limit) for k, v in msg.items()}
 
