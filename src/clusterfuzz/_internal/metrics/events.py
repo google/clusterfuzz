@@ -75,7 +75,7 @@ class TaskStage:
 class TaskStatus:
   """Task status."""
   STARTED = 'started'
-  MAIN_FINISHED = 'main_finished'
+  FINISHED = 'finished'
   POST_STARTED = 'postprocess_started'
   POST_COMPLETED = 'postprocess_completed'
   EXCEPTION = 'exception'
@@ -85,7 +85,7 @@ class TaskOutcome:
   """Task outcomes/exceptions to complement the uworker error types."""
   # All caps to maintain style from error types proto.
   PREPROCESS_NO_RETURN = 'PREPROCESS_NO_RETURN'
-  UNHANDLED_EXCEPTION = 'UNHANDLE_EXCEPTION'
+  UNHANDLED_EXCEPTION = 'UNHANDLED_EXCEPTION'
 
 
 @dataclass(kw_only=True)
