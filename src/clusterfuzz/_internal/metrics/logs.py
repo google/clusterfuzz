@@ -215,7 +215,7 @@ def truncate(
   if isinstance(msg, NON_TRUNCATABLE_TYPES):
     return msg
 
-  truncate_exception_msg = ""
+  exc_msg = ""
 
   # Adding try catch to avoid crashing the actual flow
   try:
@@ -234,7 +234,7 @@ def truncate(
       return type(msg)(truncate(item, limit) for item in msg)
 
   except Exception as ex:
-    truncate_exception_msg = str(ex)
+    exc_msg = str(ex)
 
   # Coerce all other types to a string
   if not isinstance(msg, str):
@@ -244,15 +244,15 @@ def truncate(
     return msg
 
   half = limit // 2
-  truncated_msg = '\n'.join([
+  message = '\n'.join([
       msg[:half],
       '...%d characters truncated...' % (len(msg) - limit), msg[-half:]
   ])
 
-  if truncate_exception_msg:
-    return f'Exception during truncate: {truncate_exception_msg[:limit]}. Message: {truncated_msg}'
+  if exc_msg:
+    return f'Exception during truncate: {exc_msg[:limit]}. Message: {message}'
 
-  return truncated_msg
+  return message
 
 
 class JsonFormatter(logging.Formatter):
