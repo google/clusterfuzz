@@ -40,6 +40,7 @@ class EventTypes:
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
+  TESTCASE_FIXED = 'testcase_fixed'
   ISSUE_FILING = 'issue_filing'
   TASK_EXECUTION = 'task_execution'
 
@@ -184,6 +185,14 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
 
 
 @dataclass(kw_only=True)
+class TestcaseFixedEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase fixed event."""
+  event_type: str = field(default=EventTypes.TESTCASE_FIXED, init=False)
+  # Build revision in which the crash stopped reproducing.
+  fixed_revision: str | None = None
+
+
+@dataclass(kw_only=True)
 class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Issue filing event."""
   event_type: str = field(default=EventTypes.ISSUE_FILING, init=False)
@@ -216,6 +225,7 @@ class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
+    EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
 }

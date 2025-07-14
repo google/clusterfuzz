@@ -1664,6 +1664,10 @@ class TestcaseLifecycleEvent(Model):
   # Explanation for the testcase rejection.
   rejection_reason = ndb.StringProperty()
 
+  ### Testcase fixed.
+  # Build revision in which the crash stopped reproducing.
+  fixed_revision = ndb.StringProperty()
+
   ### Issue Filing.
   # Name of the project associated with the issue tracker.
   issue_tracker_project = ndb.StringProperty()
