@@ -151,6 +151,20 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_rejection.rejection_reason,
                      events.RejectionReason.ANALYZE_NO_REPRO)
 
+  def test_testcase_fixed_event(self):
+    """Test testcase fixed event class."""
+    event_type = events.EventTypes.TESTCASE_FIXED
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+
+    event_fixed = events.TestcaseFixedEvent(
+        source=source, testcase=testcase, fixed_revision='1:2')
+
+    self._assert_event_common_fields(event_fixed, event_type, source)
+    self._assert_testcase_fields(event_fixed, testcase)
+    self._assert_task_fields(event_fixed)
+    self.assertEqual(event_fixed.fixed_revision, '1:2')
+
   def test_issue_filing_event(self):
     """Test issue filing event class."""
     event_type = events.EventTypes.ISSUE_FILING
@@ -352,6 +366,28 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.rejection_reason,
                      events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
 
+  def test_serialize_testcase_fixed_event(self):
+    """Test serializing a testcase fixed event."""
+    testcase = test_utils.create_generic_testcase()
+    event = events.TestcaseFixedEvent(
+        source='events_test', testcase=testcase, fixed_revision='1:2')
+    event_type = event.event_type
+    timestamp = event.timestamp
+
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self._assert_task_fields(event_entity)
+
+    # TestcaseFixedEvent specific assertions
+    self.assertEqual(event_entity.fixed_revision, '1:2')
+
   def test_serialize_issue_filing_event(self):
     """Test serializing an issue filing event."""
     testcase = test_utils.create_generic_testcase()
@@ -511,6 +547,43 @@ class DatastoreEventsTest(unittest.TestCase):
     # TestcaseRejectionEvent specific assertions
     self.assertEqual(event.rejection_reason,
                      events.RejectionReason.ANALYZE_FLAKE_ON_FIRST_ATTEMPT)
+
+  def test_deserialize_testcase_fixed_event(self):
+    """Test deserializing a testcase fixed event."""
+    event_type = events.EventTypes.TESTCASE_FIXED
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+
+    event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    event_entity.timestamp = date_now
+    event_entity.source = 'events_test'
+    self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.task_name = 'progression'
+    event_entity.testcase_id = 1
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.fixed_revision = '3:4'
+    event_entity.put()
+
+    event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
+    self.assertIsNotNone(event)
+    self.assertIsInstance(event, events.TestcaseFixedEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions.
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'progression')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # TestcaseFixedEvent specific assertions.
+    self.assertEqual(event.fixed_revision, '3:4')
 
   def test_deserialize_issue_filing_event(self):
     """Test deserializing an issue filing event."""
