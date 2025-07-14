@@ -215,18 +215,26 @@ def truncate(
   if isinstance(msg, NON_TRUNCATABLE_TYPES):
     return msg
 
-  # Handle collections and objects by recursing
-  if dataclasses.is_dataclass(msg) and not isinstance(msg, type):
-    msg = dataclasses.asdict(msg)
+  exc_msg = ""
 
-  if isinstance(msg, tuple) and hasattr(msg, '_fields'):
-    msg = msg._asdict()  # type: ignore
+  # Adding try catch to avoid crashing the actual flow
+  try:
+    # Handle collections and objects by recursing
+    if dataclasses.is_dataclass(msg) and not isinstance(msg, type):
+      msg = dataclasses.asdict(msg)
 
-  if isinstance(msg, dict):
-    return {k: truncate(v, limit) for k, v in msg.items()}
+    # Check if it's a NamedTuple
+    if isinstance(msg, tuple) and hasattr(msg, '_fields'):
+      msg = msg._asdict()  # type: ignore
 
-  if isinstance(msg, (list, tuple)):
-    return type(msg)(truncate(item, limit) for item in msg)
+    if isinstance(msg, dict):
+      return {k: truncate(v, limit) for k, v in msg.items()}
+
+    if isinstance(msg, (list, tuple)):
+      return type(msg)(truncate(item, limit) for item in msg)
+
+  except Exception as ex:
+    exc_msg = str(ex)
 
   # Coerce all other types to a string
   if not isinstance(msg, str):
@@ -236,10 +244,15 @@ def truncate(
     return msg
 
   half = limit // 2
-  return '\n'.join([
+  message = '\n'.join([
       msg[:half],
       '...%d characters truncated...' % (len(msg) - limit), msg[-half:]
   ])
+
+  if exc_msg:
+    return f'Exception during truncate: {exc_msg[:limit]}. Message: {message}'
+
+  return message
 
 
 class JsonFormatter(logging.Formatter):
