@@ -14,8 +14,8 @@
 """Executes update task locally, so we can run it through a debugger."""
 
 from clusterfuzz._internal.cron import retry_stuck_tasks
-from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 
 def execute(args):  #pylint: disable=unused-argument

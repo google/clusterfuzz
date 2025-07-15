@@ -261,25 +261,17 @@ class JsonFormatter(logging.Formatter):
   def format(self, record: logging.LogRecord) -> str:
     """Format LogEntry into JSON string."""
     entry = {
-        'message':
-            truncate(record.getMessage(), STACKDRIVER_LOG_MESSAGE_LIMIT),
-        'created': (
-            datetime.datetime.utcfromtimestamp(record.created).isoformat() + 'Z'
-        ),
-        'severity':
-            record.levelname,
-        'bot_name':
-            os.getenv('BOT_NAME'),
-        'task_payload':
-            os.getenv('TASK_PAYLOAD'),
-        'name':
-            record.name,
-        'pid':
-            os.getpid(),
-        'release':
-            os.getenv('CLUSTERFUZZ_RELEASE', 'prod'),
-        'docker_image':
-            os.getenv('DOCKER_IMAGE', '')
+        'message': truncate(record.getMessage(), STACKDRIVER_LOG_MESSAGE_LIMIT),
+        'created':
+            (datetime.datetime.utcfromtimestamp(record.created).isoformat() +
+             'Z'),
+        'severity': record.levelname,
+        'bot_name': os.getenv('BOT_NAME'),
+        'task_payload': os.getenv('TASK_PAYLOAD'),
+        'name': record.name,
+        'pid': os.getpid(),
+        'release': os.getenv('CLUSTERFUZZ_RELEASE', 'prod'),
+        'docker_image': os.getenv('DOCKER_IMAGE', '')
     }
 
     initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
@@ -337,8 +329,8 @@ def update_entry_with_exc(entry, exc_info):
     return
 
   error_extras = getattr(exc_info[1], 'extras', {})
-  entry['task_payload'] = (
-      entry.get('task_payload') or error_extras.pop('task_payload', None))
+  entry['task_payload'] = (entry.get('task_payload') or
+                           error_extras.pop('task_payload', None))
   entry['extras'].update(error_extras)
   entry['serviceContext'] = {'service': 'bots'}
 
@@ -388,10 +380,9 @@ def uncaught_exception_handler(exception_type, exception_value,
   # arguments to call init properly.
   # Don't worry about emit() throwing an Exception, python will let us know
   # about that exception as well as the original one.
-  emit(
-      logging.ERROR,
-      'Uncaught exception',
-      exc_info=(exception_type, exception_value, exception_traceback))
+  emit(logging.ERROR,
+       'Uncaught exception',
+       exc_info=(exception_type, exception_value, exception_traceback))
 
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
@@ -406,8 +397,8 @@ def json_fields_filter(record):
 
   json_extras = {}
   for key, val in getattr(record, 'extras', {}).items():
-    valid_value = (
-        val if _is_json_serializable(val) else _handle_unserializable(val))
+    valid_value = (val if _is_json_serializable(val) else
+                   _handle_unserializable(val))
     json_extras[key] = truncate(valid_value, STACKDRIVER_LOG_MESSAGE_LIMIT)
 
   record.json_fields.update({'extras': json_extras})
@@ -498,8 +489,9 @@ def configure_cloud_logging():
           max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '10')),
           **kwargs)
 
-  handler = CloudLoggingHandler(
-      client=client, labels=labels, transport=FlushIntervalTransport)
+  handler = CloudLoggingHandler(client=client,
+                                labels=labels,
+                                transport=FlushIntervalTransport)
 
   def cloud_label_filter(record):
     # Update the labels with additional information.
@@ -517,14 +509,12 @@ def configure_cloud_logging():
             os.getenv('WORKER_BOT_NAME', 'null'),
         'extra':
             truncate(
-                json.dumps(
-                    getattr(record, 'extras', {}),
-                    default=_handle_unserializable),
+                json.dumps(getattr(record, 'extras', {}),
+                           default=_handle_unserializable),
                 STACKDRIVER_LOG_MESSAGE_LIMIT),
         'location':
-            json.dumps(
-                getattr(record, 'location', {'Error': True}),
-                default=_handle_unserializable),
+            json.dumps(getattr(record, 'location', {'Error': True}),
+                       default=_handle_unserializable),
     })
     return True
 
@@ -629,8 +619,8 @@ def _add_appengine_trace(extras):
   project_id = os.getenv('APPLICATION_ID')
   trace_id = trace_header.split('/')[0]
   extras['logging.googleapis.com/trace'] = (
-      'projects/{project_id}/traces/{trace_id}').format(
-          project_id=project_id, trace_id=trace_id)
+      'projects/{project_id}/traces/{trace_id}').format(project_id=project_id,
+                                                        trace_id=trace_id)
 
 
 def intercept_log_context(func):
@@ -700,9 +690,9 @@ def emit(level, message, exc_info=None, **extras):
       # as that will not include frames below this emit() call. We do [:-2] on
       # the stacktrace to exclude emit() and the logging function below it (e.g.
       # error).
-      message = (
-          message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
-              traceback.format_stack()[:-2]) + 'LogError: ' + message)
+      message = (message + '\n' + 'Traceback (most recent call last):\n' +
+                 ''.join(traceback.format_stack()[:-2]) + 'LogError: ' +
+                 message)
 
     _add_appengine_trace(all_extras)
 
@@ -723,18 +713,17 @@ def emit(level, message, exc_info=None, **extras):
     # first class attributes of LogEntry. It is very tricky to identify the
     # extra attributes. Therefore, we wrap extra fields under the attribute
     # 'extras'.
-    logger.log(
-        level,
-        message_truncated,
-        exc_info=exc_info,
-        extra={
-            'extras': all_extras_local,
-            'location': {
-                'path': path_name,
-                'line': line_number,
-                'method': method_name
-            }
-        })
+    logger.log(level,
+               message_truncated,
+               exc_info=exc_info,
+               extra={
+                   'extras': all_extras_local,
+                   'location': {
+                       'path': path_name,
+                       'line': line_number,
+                       'method': method_name
+                   }
+               })
 
 
 def info(message, **extras):
@@ -901,12 +890,11 @@ class LogContextType(enum.Enum):
         task_name = os.getenv('CF_TASK_NAME', 'null')
         task_argument = os.getenv('CF_TASK_ARGUMENT', 'null')
         task_job_name = os.getenv('CF_TASK_JOB_NAME', 'null')
-        return TaskLogStruct(
-            task_id=task_id,
-            task_name=task_name,
-            task_argument=task_argument,
-            stage=stage,
-            task_job_name=task_job_name)
+        return TaskLogStruct(task_id=task_id,
+                             task_name=task_name,
+                             task_argument=task_argument,
+                             stage=stage,
+                             task_job_name=task_job_name)
       except:
         # This flag is necessary to avoid
         # infinite loop in this context verification.
@@ -920,9 +908,8 @@ class LogContextType(enum.Enum):
             job=log_contexts.meta.get('job_type', 'null'),
             fuzz_target=log_contexts.meta.get('fuzz_target', 'null'))
       except:
-        error(
-            'Error retrieving context for fuzzer-based logs.',
-            ignore_context=True)
+        error('Error retrieving context for fuzzer-based logs.',
+              ignore_context=True)
         return GenericLogStruct()
 
     if self == LogContextType.TESTCASE:
@@ -931,20 +918,17 @@ class LogContextType(enum.Enum):
             testcase_id=log_contexts.meta.get('testcase_id', 'null'),
             testcase_group=log_contexts.meta.get('testcase_group', 'null'))
       except:
-        error(
-            'Error retrieving context for testcase-based logs.',
-            ignore_context=True)
+        error('Error retrieving context for testcase-based logs.',
+              ignore_context=True)
         return GenericLogStruct()
 
     if self == LogContextType.CRON:
       try:
-        return CronLogStruct(
-            task_name=os.getenv('CF_TASK_NAME', 'null'),
-            task_id=os.getenv('CF_TASK_ID', 'null'))
+        return CronLogStruct(task_name=os.getenv('CF_TASK_NAME', 'null'),
+                             task_id=os.getenv('CF_TASK_ID', 'null'))
       except:
-        error(
-            'Error retrieving context for cron-based logs.',
-            ignore_context=True)
+        error('Error retrieving context for cron-based logs.',
+              ignore_context=True)
         return GenericLogStruct()
 
     if self == LogContextType.GROUPER:
@@ -958,9 +942,8 @@ class LogContextType(enum.Enum):
         symmetric_logs = [first_testcase._asdict(), second_testcase._asdict()]
         return GrouperStruct(symmetric_logs=symmetric_logs)
       except:
-        error(
-            'Error retrieving context for grouper-based logs.',
-            ignore_context=True)
+        error('Error retrieving context for grouper-based logs.',
+              ignore_context=True)
         return GenericLogStruct()
 
     return GenericLogStruct()
