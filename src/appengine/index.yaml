@@ -599,8 +599,8 @@ indexes:
 
 - kind: Testcase
   properties:
-  - name: fixed
   - name: one_time_crasher_flag
   - name: open
   - name: status
+  - name: fixed
   - name: timestamp

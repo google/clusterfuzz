@@ -31,6 +31,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
 
@@ -86,10 +87,11 @@ def _get_stuck_testcase_candidates_query(
   intermediate state.
   """
   return data_types.Testcase.query(
-      data_types.Testcase.fixed == "NA",
-      not data_types.Testcase.one_time_crasher_flag,
-      data_types.Testcase.open,
-      data_types.Testcase.status != "Unreproducible",
+      data_types.Testcase.fixed != "NA",
+      ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
+      ndb_utils.is_true(data_types.Testcase.open),
+      ndb.OR(data_types.Testcase.status == 'Processed',
+             data_types.Testcase.status == 'Duplicate'),
       data_types.Testcase.timestamp < stuck_deadline,  # type: ignore[operator]
   )
 
