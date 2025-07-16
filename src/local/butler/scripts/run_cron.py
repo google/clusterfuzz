@@ -20,31 +20,11 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def _get_cron_script_details(
-    args: argparse.Namespace,) -> tuple[str | None, list[str]]:
-  """
-  Parses command-line arguments to get the script name and its own arguments.
-
-  Args:
-    args: The parsed arguments from argparse.
-
-  Returns:
-    A tuple containing the script name (or None) and a list of its arguments.
-  """
-  if not args.script_args:
-    logs.error('Please specify a cron job script to run.')
-    return None, []
-
-  script_name = args.script_args[0]
-  script_arguments = args.script_args[1:]
-  return script_name, script_arguments
-
-
-def _setup_environment(script_name: str) -> None:
+def _setup_environment():
   """
   Configures the environment for the cron job run.
   """
-  logs.configure(f'run_cron')
+  logs.configure('run_cron')
   environment.set_bot_environment()
 
 
@@ -103,13 +83,14 @@ def _prepare_cron_arguments(
   return script_name, final_script_args
 
 
-def execute(args: argparse.Namespace) -> None:
+def execute(args: argparse.Namespace):
   """
   Dynamically loads and executes a cron job script from the command line.
   """
+  _setup_environment()
+
   script_name, script_args = _prepare_cron_arguments(args)
   if not script_name:
     return
 
-  _setup_environment(script_name)
   _import_and_run_cron(script_name, script_args)
