@@ -23,6 +23,7 @@ before remediation, providing a clear and verbose summary of findings.
 """
 
 import datetime
+import os
 from typing import NamedTuple
 
 from google.cloud import ndb  # pylint: disable=no-name-in-module
@@ -34,12 +35,17 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
+RETRY_ATTEMPT_COUNT_KEY = 'retry_stuck_task_attempt_count'
+RETRY_LAST_ATTEMPT_TIME_KEY = 'retry_stuck_task_last_attempt_time'
+
 
 class ScriptConfig(NamedTuple):
   """Contains the configuration parameters for the cron job."""
 
   stuck_deadline: datetime.datetime
   cooldown_deadline: datetime.datetime
+  max_retry_attempts: int
+  restarts_per_run_limit: int
 
 
 def _get_stuck_deadline_hours() -> int:
@@ -50,7 +56,7 @@ def _get_stuck_deadline_hours() -> int:
   running for a long time. This is the main guard against restarting tasks that
   are just slow, not truly stuck.
   """
-  return 8
+  return int(os.getenv('STUCK_DEADLINE_HOURS', '8'))
 
 
 def _get_retry_cooldown_hours() -> int:
@@ -61,7 +67,26 @@ def _get_retry_cooldown_hours() -> int:
   times in quick succession, making the script idempotent regarding its own
   restarts.
   """
-  return 4
+  return int(os.getenv('RETRY_COOLDOWN_HOURS', '4'))
+
+
+def _get_max_retry_attempts() -> int:
+  """
+  Returns the maximum number of retry attempts for stuck testcases.
+
+  This is a safeguard to prevent infinite loops in case of persistent issues.
+  """
+  return int(os.getenv('MAX_RETRY_ATTEMPTS', '3'))
+
+
+def _get_restarts_per_run_limit() -> int:
+  """
+  Returns the maximum number of testcases to restart in a single cron run.
+
+  This acts as a safety throttle to prevent a single run from enqueuing
+  an unexpectedly large number of tasks, which could overload the system.
+  """
+  return int(os.getenv('RESTARTS_PER_RUN_LIMIT', '10'))
 
 
 def _get_script_config() -> ScriptConfig:
@@ -72,8 +97,12 @@ def _get_script_config() -> ScriptConfig:
       hours=_get_stuck_deadline_hours())
   cooldown_deadline = utils.utcnow() - datetime.timedelta(
       hours=_get_retry_cooldown_hours())
+  max_retry_attempts = _get_max_retry_attempts()
+  restarts_per_run_limit = _get_restarts_per_run_limit()
   return ScriptConfig(stuck_deadline=stuck_deadline,
-                      cooldown_deadline=cooldown_deadline)
+                      cooldown_deadline=cooldown_deadline,
+                      max_retry_attempts=max_retry_attempts,
+                      restarts_per_run_limit=restarts_per_run_limit)
 
 
 def _get_stuck_testcase_candidates_query(
@@ -133,14 +162,35 @@ def _is_in_cooldown(testcase: data_types.Testcase,
   """
   Checks if a restart was recently attempted for this testcase by this cron.
   """
-  last_attempt_time = testcase.get_metadata(
-      "retry_stuck_task_last_attempt_time")
+  last_attempt_time = testcase.get_metadata(RETRY_LAST_ATTEMPT_TIME_KEY)
   if last_attempt_time and last_attempt_time > cooldown_deadline:
     logs.info(
         f"Skipping testcase {_get_testcase_id(testcase)} "
         f"because a restart was already attempted at {last_attempt_time}.")
     return True
   return False
+
+
+def _has_reached_max_attempts(testcase: data_types.Testcase,
+                              max_attempts: int) -> bool:
+  """
+  Checks if a testcase has reached the maximum number of restart attempts.
+
+  This acts as a safeguard to prevent a testcase from being retried
+  indefinitely. It reads a custom metadata counter and compares it against
+  a defined limit. If the limit is met or exceeded, the testcase is
+  considered "permanently stuck" and should be escalated for manual review.
+
+  Args:
+    testcase: The Testcase entity to check.
+    max_attempts: The integer limit for retry attempts.
+
+  Returns:
+    True if the attempt count is greater than or equal to the maximum,
+    False otherwise.
+  """
+  attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY) or 0
+  return attempt_count >= max_attempts
 
 
 def _get_stuck_reason(testcase: data_types.Testcase) -> str:
@@ -162,8 +212,8 @@ def _get_stuck_reason(testcase: data_types.Testcase) -> str:
   return ", ".join(reasons)
 
 
-def _restart_analysis_for_testcases(
-    testcases_to_restart: list[data_types.Testcase],) -> int:
+def _restart_analysis_for_testcases(testcases_to_restart: list[
+    data_types.Testcase], restarts_per_run_limit: int) -> int:
   """
   Performs the remediation action for a final list of stuck testcases.
   """
@@ -172,7 +222,10 @@ def _restart_analysis_for_testcases(
     testcase_id = _get_testcase_id(testcase)
     stuck_reason = _get_stuck_reason(testcase)
 
+    attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY) or 0
+
     logs.warning(f'Retriggering "minimize" for stuck testcase {testcase_id}. '
+                 f'(Attempt #{attempt_count + 1}). '
                  f"Reason: Testcase {stuck_reason}. "
                  f"Details: [Job: {testcase.job_type}, "
                  f"Crash Type: {testcase.crash_type}, "
@@ -180,9 +233,15 @@ def _restart_analysis_for_testcases(
 
     task_creation.create_minimize_task_if_needed(testcase)
 
-    testcase.set_metadata("retry_stuck_task_last_attempt_time", utils.utcnow())
+    testcase.set_metadata(RETRY_ATTEMPT_COUNT_KEY, attempt_count + 1)
+    testcase.set_metadata(RETRY_LAST_ATTEMPT_TIME_KEY, utils.utcnow())
     testcase.put()
     restarted_count += 1
+
+    if restarted_count >= restarts_per_run_limit:
+      logs.info(f'Reached the limit of {restarts_per_run_limit} '
+                'restarts for this run. Exiting remediation loop.')
+      break
   return restarted_count
 
 
@@ -193,11 +252,14 @@ class CategorizedTestcases(NamedTuple):
   skipped_as_complete: list[data_types.Testcase]
   skipped_for_invalid_job: list[data_types.Testcase]
   skipped_for_cooldown: list[data_types.Testcase]
+  skipped_max_attempts: list[data_types.Testcase]
 
 
 def _filter_and_categorize_candidates(
     candidates: list[data_types.Testcase],
-    cooldown_deadline: datetime.datetime) -> CategorizedTestcases:
+    cooldown_deadline: datetime.datetime,
+    max_retry_attempts: int,
+) -> CategorizedTestcases:
   """
   Processes a list of candidates, filtering and categorizing them.
   """
@@ -206,6 +268,7 @@ def _filter_and_categorize_candidates(
       skipped_as_complete=[],
       skipped_for_invalid_job=[],
       skipped_for_cooldown=[],
+      skipped_max_attempts=[],
   )
 
   for testcase in candidates:
@@ -217,6 +280,9 @@ def _filter_and_categorize_candidates(
       continue
     if _is_in_cooldown(testcase, cooldown_deadline):
       categorized.skipped_for_cooldown.append(testcase)
+      continue
+    if _has_reached_max_attempts(testcase, max_retry_attempts):
+      categorized.skipped_max_attempts.append(testcase)
       continue
     categorized.to_restart.append(testcase)
   return categorized
@@ -233,9 +299,16 @@ def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
     Skipped (already complete): {len(results.skipped_as_complete)}
     Skipped (job no longer exists): {len(results.skipped_for_invalid_job)}
     Skipped (in cooldown period): {len(results.skipped_for_cooldown)}
+    Skipped (max attempts reached): {len(results.skipped_max_attempts)}
     -------------------------------------------------------------------
     Testcases to be restarted: {len(results.to_restart)}
     """)
+
+  for testcase in results.skipped_max_attempts:
+    attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY) or 0
+    logs.error(f'Testcase {_get_testcase_id(testcase)} is permanently stuck. '
+               f'It failed to recover after {attempt_count} attempts. '
+               'Please investigate manually.')
 
 
 @logs.cron_log_context()
@@ -251,12 +324,12 @@ def main():
   all_candidates = list(query)
 
   categorized_results = _filter_and_categorize_candidates(
-      all_candidates, config.cooldown_deadline)
+      all_candidates, config.cooldown_deadline, config.max_retry_attempts)
 
   _log_verbose_summary(len(all_candidates), categorized_results)
 
   restarted_count = _restart_analysis_for_testcases(
-      categorized_results.to_restart)
+      categorized_results.to_restart, config.restarts_per_run_limit)
 
   logs.info(
       f"Stuck testcase recovery cron finished. {len(all_candidates)} "
