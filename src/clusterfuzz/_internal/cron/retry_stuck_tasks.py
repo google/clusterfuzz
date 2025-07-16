@@ -111,9 +111,10 @@ def _get_script_config(parsed_args: argparse.Namespace) -> ScriptConfig:
   Returns:
     A final, immutable ScriptConfig object to be used by the script.
   """
-  stuck_deadline = utils.utcnow() - datetime.timedelta(
+  current_time = utils.utcnow()
+  stuck_deadline = current_time - datetime.timedelta(
       hours=parsed_args.stuck_deadline_hours)
-  cooldown_deadline = utils.utcnow() - datetime.timedelta(
+  cooldown_deadline = current_time - datetime.timedelta(
       hours=parsed_args.cooldown_hours)
 
   return ScriptConfig(stuck_deadline=stuck_deadline,
