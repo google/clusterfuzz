@@ -50,7 +50,7 @@ class ScriptConfig(NamedTuple):
   non_dry_run: bool
 
 
-def _parse_script_args(args: list[str]) -> argparse.Namespace:
+def parse_script_args(args: list[str]) -> argparse.Namespace:
   """
   Defines and parses command-line arguments for the script.
 
@@ -96,7 +96,7 @@ def _parse_script_args(args: list[str]) -> argparse.Namespace:
   return parser.parse_args(args)
 
 
-def _get_script_config(parsed_args: argparse.Namespace) -> ScriptConfig:
+def get_script_config(parsed_args: argparse.Namespace) -> ScriptConfig:
   """
   Creates the ScriptConfig object from parsed command-line arguments.
 
@@ -273,7 +273,7 @@ def _get_stuck_reason(testcase: data_types.Testcase) -> str:
   return ", ".join(reasons)
 
 
-def _restart_analysis_for_testcases(testcases_to_restart: list[
+def restart_analysis_for_testcases(testcases_to_restart: list[
     data_types.Testcase], config: ScriptConfig) -> int:
   """
   Performs the remediation action for a final list of stuck testcases.
@@ -298,7 +298,10 @@ def _restart_analysis_for_testcases(testcases_to_restart: list[
 
     attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY) or 0
 
-    logs.warning(f"Retriggering 'minimize' for stuck testcase {testcase_id}. "
+    log_prefix = ('[DRY RUN] Would retrigger'
+                  if not config.non_dry_run else 'Retriggering')
+
+    logs.warning(f"{log_prefix} 'minimize' for stuck testcase {testcase_id}. "
                  f"(Attempt #{attempt_count + 1}). "
                  f"Reason: Testcase {stuck_reason}. "
                  f"Details: [Job: {testcase.job_type}, "
@@ -331,10 +334,9 @@ class CategorizedTestcases(NamedTuple):
   skipped_max_attempts: list[data_types.Testcase]
 
 
-def _filter_and_categorize_candidates(
+def filter_and_categorize_candidates(
     candidates: list[data_types.Testcase],
-    cooldown_deadline: datetime.datetime,
-    max_retry_attempts: int,
+    config: ScriptConfig,
 ) -> CategorizedTestcases:
   """
   Processes a list of candidates, filtering and categorizing them.
@@ -366,10 +368,10 @@ def _filter_and_categorize_candidates(
     if not _is_job_valid(testcase):
       categorized.skipped_for_invalid_job.append(testcase)
       continue
-    if _is_in_cooldown(testcase, cooldown_deadline):
+    if _is_in_cooldown(testcase, config.cooldown_deadline):
       categorized.skipped_for_cooldown.append(testcase)
       continue
-    if _has_reached_max_attempts(testcase, max_retry_attempts):
+    if _has_reached_max_attempts(testcase, config.max_retry_attempts):
       categorized.skipped_max_attempts.append(testcase)
       continue
     categorized.to_restart.append(testcase)
@@ -416,9 +418,9 @@ def main(args: list[str]):
   4. Log a verbose summary of the findings.
   5. Act only on the final, validated list of testcases that need a restart.
   """
-  parsed_args = _parse_script_args(args)
+  parsed_args = parse_script_args(args)
 
-  config = _get_script_config(parsed_args)
+  config = get_script_config(parsed_args)
 
   logs.info("Stuck testcase recovery cron started.")
 
@@ -426,14 +428,13 @@ def main(args: list[str]):
 
   all_candidates = list(query)
 
-  categorized_results = _filter_and_categorize_candidates(
-      all_candidates, config.cooldown_deadline, config.max_retry_attempts)
+  categorized_results = filter_and_categorize_candidates(all_candidates, config)
 
   _log_verbose_summary(len(all_candidates), categorized_results)
 
-  restarted_count = _restart_analysis_for_testcases(
+  restarted_count = restart_analysis_for_testcases(
       categorized_results.to_restart, config)
 
-  logs.info(
-      f"Stuck testcase recovery cron finished. {len(all_candidates)} "
-      f"candidates analyzed, {restarted_count} stuck testcases were restarted.")
+  logs.info(f"Stuck testcase recovery cron finished. {len(all_candidates)} "
+            f"candidates analyzed, {restarted_count} "
+            "stuck testcases were restarted.")
