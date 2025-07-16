@@ -1390,6 +1390,28 @@ class TruncateTest(unittest.TestCase):
     # Check that the nested tuple type was preserved.
     self.assertIsInstance(result[0]['tags'], tuple)
 
+  def test_exception_during_dict_truncation(self):
+    """Tests the try-catch block when some object operation fails."""
+
+    class FailingDict(dict):
+      """A dict subclass designed to fail during item iteration."""
+
+      def items(self):
+        raise ValueError('Intentionally failing item access')
+
+      def __str__(self):
+        return (
+            'This is the string representation of a FailingDict object that is'
+            ' very long')
+
+    failing_dict = FailingDict({'key': 'value'})
+    limit = 25
+    result = logs.truncate(failing_dict, limit)
+
+    self.assertIn('Exception during truncate: Intentionally failing ite',
+                  result)  # Exception message is also limited.
+    self.assertIn('...50 characters truncated...', result)
+
 
 class ErrorTest(unittest.TestCase):
   """Tests error."""
