@@ -26,9 +26,8 @@ def execute(args):
   environment.set_bot_environment()
   logs.configure('run_bot')
 
-  task = 'progression'
+  high_end_topic = 'high-end-jobs-linux'
   high_end_testcases = []
-  default_queue = tasks.default_queue()
 
   # This query is the same used to schedule progression tasks.
   for status in ['Processed', 'Duplicate']:
@@ -38,10 +37,12 @@ def execute(args):
         data_types.Testcase.status == status):
       testcase_id = testcase.key.id()
       queue = tasks.queue_for_testcase(testcase)
-      if str(queue) == 'high-end-jobs-linux':
+      if str(queue) == high_end_topic:
         high_end_testcases.append(testcase_id)
-        print(f'TC: {testcase_id}, Q: {queue} -> Q: {default_queue}')
-        tasks.add_task(task, testcase_id, testcase.job_type, queue=None)
+        testcase.queue = None
+        new_queue = tasks.queue_for_testcase(testcase)
+        # testcase.put()
+        logs.info(f'Updated Testcase {testcase_id} queue. From: {queue} -> To: {new_queue}')
 
-  print(f'Created tasks for {len(high_end_testcases)} Testcases')
+  logs.info(f'Moved {len(high_end_testcases)} Testcases from topic {high_end_topic}: {high_end_testcases}')
   print('Finished!')
