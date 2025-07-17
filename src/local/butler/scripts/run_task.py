@@ -41,7 +41,7 @@ def execute(args):
         high_end_testcases.append(testcase_id)
         testcase.queue = None
         new_queue = tasks.queue_for_testcase(testcase)
-        # testcase.put()
+        testcase.put()
         logs.info(f'Updated Testcase {testcase_id} queue. From: {queue} -> To: {new_queue}')
 
   logs.info(f'Moved {len(high_end_testcases)} Testcases from topic {high_end_topic}: {high_end_testcases}')
