@@ -255,7 +255,10 @@ def _get_stuck_reason(testcase: data_types.Testcase) -> str:
   if not testcase.minimized_keys:
     reasons.append("is not minimized")
   if not testcase.regression:
-    reasons.append("has no regression range")
+    reasons.append(StuckReason.NO_REGRESSION_RANGE)
+    .
+    .
+    .
   if utils.is_chromium():
     if not testcase.is_impact_set_flag:
       reasons.append("has no impact set")
