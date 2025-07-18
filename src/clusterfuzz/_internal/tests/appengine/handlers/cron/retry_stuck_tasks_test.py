@@ -13,9 +13,8 @@
 # limitations under the License.
 """Tests for retry_stuck_tasks cron script."""
 
-# pylint: disable=protected-access
-
 import datetime
+import os
 import unittest
 from unittest import mock
 
@@ -81,10 +80,10 @@ class RetryStuckTasksTest(unittest.TestCase):
   def test_parse_arguments_with_defaults(self):
     """Tests that the argument parser correctly applies default values."""
     parsed_args = retry_stuck_tasks.parse_script_args([])
-    self.assertEqual(parsed_args.stuck_deadline_hours, 8)
-    self.assertEqual(parsed_args.cooldown_hours, 4)
+    self.assertEqual(parsed_args.stuck_deadline_hours, 24)
+    self.assertEqual(parsed_args.cooldown_hours, 12)
     self.assertEqual(parsed_args.max_retries, 3)
-    self.assertEqual(parsed_args.restarts_per_run_limit, 10)
+    self.assertEqual(parsed_args.restarts_per_run_limit, 5)
     self.assertFalse(parsed_args.non_dry_run)
 
   def test_parse_arguments_with_custom_values(self):
@@ -221,3 +220,38 @@ class RetryStuckTasksTest(unittest.TestCase):
     self.mock.logs.info.assert_called_with(
         'Reached the limit of 2 restarts for this run. '
         'Exiting remediation loop.')
+
+  def test_parse_arguments_hierarchy(self):
+    """
+    Tests the configuration hierarchy for argument parsing.
+
+    This test verifies the intended order of precedence for setting
+    configuration parameters:
+      1. A command-line flag (highest priority).
+      2. An environment variable (medium priority).
+      3. The hardcoded default value (lowest priority).
+
+    It uses mock.patch.dict to simulate different environment variable
+    states for each scenario.
+    """
+    with mock.patch.dict(os.environ, {}, clear=True):
+      parsed_args = retry_stuck_tasks.parse_script_args([])
+      self.assertEqual(parsed_args.max_retries, 3)
+      self.assertFalse(parsed_args.non_dry_run)
+
+    with mock.patch.dict(os.environ, {
+        'MAX_RETRY_ATTEMPTS': '7',
+        'NON_DRY_RUN': 'true'
+    }):
+      parsed_args = retry_stuck_tasks.parse_script_args([])
+      self.assertEqual(parsed_args.max_retries, 7)
+      self.assertTrue(parsed_args.non_dry_run)
+
+    with mock.patch.dict(os.environ, {
+        'MAX_RETRY_ATTEMPTS': '7',
+        'NON_DRY_RUN': 'false'
+    }):
+      parsed_args = retry_stuck_tasks.parse_script_args(
+          ['--max-retries=99', '--non-dry-run'])
+      self.assertEqual(parsed_args.max_retries, 99)
+      self.assertTrue(parsed_args.non_dry_run)

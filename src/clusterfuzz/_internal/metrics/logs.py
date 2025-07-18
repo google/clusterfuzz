@@ -1141,5 +1141,3 @@ def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
       log_contexts.delete_metadata('testcase_2_id')
       log_contexts.delete_metadata('testcase_1_group')
       log_contexts.delete_metadata('testcase_2_group')
-      log_contexts.delete_metadata('testcase_1_group')
-      log_contexts.delete_metadata('testcase_2_group')

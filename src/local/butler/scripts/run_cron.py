@@ -11,7 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Executes update task locally, so we can run it through a debugger."""
+"""Generic runner for executing cron jobs locally.
+
+This script serves as the entry point for running cron jobs via the `butler.py`
+command-line tool. It dynamically imports and executes the `main` function of
+a specified cron script from the `clusterfuzz._internal.cron` directory.
+
+The name of the target cron script and any arguments for it must be passed
+after the `--script_args` flag.
+
+Usage:
+  # Run the 'retry_stuck_tasks' cron job with its default parameters.
+  python butler.py run run_cron --script_args retry_stuck_tasks
+
+  # Run the 'retry_stuck_tasks' cron and pass custom arguments to it.
+  python butler.py run run_cron --script_args retry_stuck_tasks --max-retries=2
+
+  # Run in non-dry-run mode using the 'run' command's global flag.
+  python butler.py run --non-dry-run run_cron --script_args retry_stuck_tasks
+"""
 
 import argparse
 import importlib

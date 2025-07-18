@@ -23,6 +23,7 @@ before remediation, providing a clear and verbose summary of its findings.
 
 import argparse
 import datetime
+import os
 from typing import cast
 from typing import NamedTuple
 
@@ -68,27 +69,27 @@ def parse_script_args(args: list[str]) -> argparse.Namespace:
   parser.add_argument(
       "--stuck-deadline-hours",
       type=int,
-      default=8,
+      default=int(os.getenv('STUCK_DEADLINE_HOURS', '24')),
       help="The deadline in hours for considering a testcase as 'stuck'.")
   parser.add_argument(
       "--cooldown-hours",
       type=int,
-      default=4,
+      default=int(os.getenv('RETRY_COOLDOWN_HOURS', '12')),
       help="The cooldown period in hours before retrying the same testcase.")
   parser.add_argument(
       "--max-retries",
       type=int,
-      default=3,
+      default=int(os.getenv('MAX_RETRY_ATTEMPTS', '3')),
       help="The maximum number of retry attempts for a single testcase.")
   parser.add_argument(
       "--restarts-per-run-limit",
       type=int,
-      default=10,
+      default=int(os.getenv('RESTARTS_PER_RUN_LIMIT', '5')),
       help="A safety throttle for the max number of restarts per cron run.")
   parser.add_argument(
       "--non-dry-run",
       action="store_true",
-      default=False,
+      default=(os.getenv('NON_DRY_RUN', 'false').lower() == 'true'),
       help="If set, the script will perform write operations (create tasks, "
       "update metadata). Otherwise, it only logs what it would do.")
   return parser.parse_args(args)
