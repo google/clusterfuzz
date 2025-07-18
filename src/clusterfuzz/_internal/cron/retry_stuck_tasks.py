@@ -245,7 +245,7 @@ def _has_reached_max_attempts(testcase: data_types.Testcase,
   Returns:
     True if the attempt count is greater than or equal to the maximum.
   """
-  attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY, 0)
+  attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY) or 0
   return attempt_count >= max_attempts
 
 
@@ -409,7 +409,7 @@ def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
 
 
 @logs.cron_log_context()
-def main(args: list[str]):
+def main(args: list[str] | None = None):
   """Finds, filters, and restarts stuck testcases in a three-phase process.
 
   The workflow is designed for clarity, safety, and observability:
@@ -419,7 +419,7 @@ def main(args: list[str]):
   4. Log a verbose summary of the findings.
   5. Act only on the final, validated list of testcases that need a restart.
   """
-  parsed_args = parse_script_args(args)
+  parsed_args = parse_script_args(args or [])
 
   config = get_script_config(parsed_args)
 
