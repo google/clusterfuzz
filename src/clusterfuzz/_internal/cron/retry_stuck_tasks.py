@@ -245,7 +245,7 @@ def _has_reached_max_attempts(testcase: data_types.Testcase,
   Returns:
     True if the attempt count is greater than or equal to the maximum.
   """
-  attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY) or 0
+  attempt_count = testcase.get_metadata(RETRY_ATTEMPT_COUNT_KEY, 0)
   return attempt_count >= max_attempts
 
 
