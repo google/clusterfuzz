@@ -596,3 +596,11 @@ indexes:
     - name: task_argument
     - name: task_name
     - name: timestamp
+
+- kind: Testcase
+  properties:
+  - name: one_time_crasher_flag
+  - name: open
+  - name: status
+  - name: fixed
+  - name: timestamp
