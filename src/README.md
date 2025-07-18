@@ -2,7 +2,6 @@
 
 This directory contains the source of ClusterFuzz.
 
-
 ## Building and testing libClusterFuzz
 Run `./build.sh` to build the pip package.
 
