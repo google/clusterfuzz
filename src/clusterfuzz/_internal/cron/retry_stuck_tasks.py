@@ -23,6 +23,7 @@ before remediation, providing a clear and verbose summary of its findings.
 
 import argparse
 import datetime
+from enum import StrEnum
 import os
 from typing import cast
 from typing import NamedTuple
@@ -38,6 +39,16 @@ from clusterfuzz._internal.metrics import logs
 
 RETRY_ATTEMPT_COUNT_KEY = "retry_stuck_task_attempt_count"
 RETRY_LAST_ATTEMPT_TIME_KEY = "retry_stuck_task_last_attempt_time"
+
+
+class StuckReason(StrEnum):
+  """Enumerates the reasons why a testcase is considered stuck."""
+
+  IS_NOT_MINIMIZED = 'is not minimized'
+  NO_REGRESSION_RANGE = 'has no regression range'
+  NO_IMPACT_SET = 'has no impact set'
+  ANALYZE_PENDING = 'has analyze_pending=True'
+  UNKNOWN = 'an unknown reason (critical_tasks_completed is False)'
 
 
 class ScriptConfig(NamedTuple):
@@ -253,19 +264,16 @@ def _get_stuck_reason(testcase: data_types.Testcase) -> str:
   """
   reasons = []
   if not testcase.minimized_keys:
-    reasons.append("is not minimized")
+    reasons.append(StuckReason.IS_NOT_MINIMIZED)
   if not testcase.regression:
     reasons.append(StuckReason.NO_REGRESSION_RANGE)
-    .
-    .
-    .
   if utils.is_chromium():
     if not testcase.is_impact_set_flag:
-      reasons.append("has no impact set")
+      reasons.append(StuckReason.NO_IMPACT_SET)
     if testcase.analyze_pending:
-      reasons.append("has analyze_pending=True")
+      reasons.append(StuckReason.ANALYZE_PENDING)
   if not reasons:
-    return "an unknown reason (critical_tasks_completed is False)"
+    return StuckReason.UNKNOWN
   return ", ".join(reasons)
 
 
