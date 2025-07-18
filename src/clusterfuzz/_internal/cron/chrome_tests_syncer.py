@@ -42,6 +42,9 @@ MAX_TESTCASES = 25000
 TESTCASES_REPORT_INTERVAL = 2500
 STORED_TESTCASES_LIST = []
 
+NUMBER_OF_FUZZILLI_ARCHIVES = 9
+NUMBER_OF_FUZZILLI_DIFF_FUZZ_ARCHIVES = 5
+
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""
@@ -210,10 +213,18 @@ def create_fuzzilli_tests_directory(tests_directory):
   """Create Fuzzilli tests directory from the autozilli GCS archives."""
   logs.info('Syncing fuzzilli tests.')
   fuzzilli_tests_directory = os.path.join(tests_directory, 'fuzzilli')
-  remote_archive_tmpl = 'gs://autozilli/autozilli-%d.tgz'
 
   # Ensure we have an empty directory with no leftovers from a previous run.
   shell.remove_directory(fuzzilli_tests_directory, recreate=True)
+
+  for i in range(1, NUMBER_OF_FUZZILLI_ARCHIVES + 1):
+    process_fuzzilli_archive(fuzzilli_tests_directory, i)
+  for i in range(1, NUMBER_OF_FUZZILLI_DIFF_FUZZ_ARCHIVES + 1):
+    process_fuzzilli_archive(fuzzilli_tests_directory, f'diff-fuzz-{i}')
+
+
+def process_fuzzilli_archive(fuzzilli_tests_directory, archive_suffix):
+  """Download, extract and copy one archive from Fuzzilli."""
 
   def filter_members(member, path):
     # We only need JS files and the settings.json from the archive.
@@ -221,22 +232,21 @@ def create_fuzzilli_tests_directory(tests_directory):
       return None
     return tarfile.data_filter(member, path)
 
-  for i in range(1, 10):
-    # Download archives number 1-9.
-    remote_archive = remote_archive_tmpl % i
-    logs.info(f'Processing {remote_archive}')
-    local_archive = os.path.join(fuzzilli_tests_directory, 'tmp.tgz')
-    subprocess.check_call(['gsutil', 'cp', remote_archive, local_archive])
+  # Download archive.
+  remote_archive = f'gs://autozilli/autozilli-{archive_suffix}.tgz'
+  logs.info(f'Processing {remote_archive}')
+  local_archive = os.path.join(fuzzilli_tests_directory, 'tmp.tgz')
+  subprocess.check_call(['gsutil', 'cp', remote_archive, local_archive])
 
-    # Extract relevant files.
-    with tarfile.open(local_archive) as tar:
-      tar.extractall(path=fuzzilli_tests_directory, filter=filter_members)
+  # Extract relevant files.
+  with tarfile.open(local_archive) as tar:
+    tar.extractall(path=fuzzilli_tests_directory, filter=filter_members)
 
-    # Clean up.
-    os.rename(
-        os.path.join(fuzzilli_tests_directory, 'fuzzdir'),
-        os.path.join(fuzzilli_tests_directory, f'fuzzdir-{i}'))
-    shell.remove_file(local_archive)
+  # Clean up.
+  os.rename(
+      os.path.join(fuzzilli_tests_directory, 'fuzzdir'),
+      os.path.join(fuzzilli_tests_directory, f'fuzzdir-{archive_suffix}'))
+  shell.remove_file(local_archive)
 
 
 def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
