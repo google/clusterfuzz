@@ -687,6 +687,8 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
+  # Don't pass exc_info at all, as otherwise cloud logging will append
+  # "NoneType: None" to the message.
   if exc_info == (None, None, None):
     exc_info = None
 
