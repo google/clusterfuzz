@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Cron job to find and restart the analysis of stuck testcases.
+"""Cron job to find and restart the analysis of stuck testcases.
 
 This script identifies testcases that entered the analysis pipeline
 but stalled due to transient errors or other issues. It makes them
@@ -51,8 +50,7 @@ class ScriptConfig(NamedTuple):
 
 
 def parse_script_args(args: list[str]) -> argparse.Namespace:
-  """
-  Defines and parses command-line arguments for the script.
+  """Defines and parses command-line arguments for the script.
 
   This function centralizes all configuration parameters, providing defaults
   and help text for each. This makes the script flexible, self-documenting,
@@ -97,8 +95,7 @@ def parse_script_args(args: list[str]) -> argparse.Namespace:
 
 
 def get_script_config(parsed_args: argparse.Namespace) -> ScriptConfig:
-  """
-  Creates the ScriptConfig object from parsed command-line arguments.
+  """Creates the ScriptConfig object from parsed command-line arguments.
 
   This function translates the raw arguments (like hours) into the
   concrete values needed for the script's logic, such as calculated datetime
@@ -117,17 +114,17 @@ def get_script_config(parsed_args: argparse.Namespace) -> ScriptConfig:
   cooldown_deadline = current_time - datetime.timedelta(
       hours=parsed_args.cooldown_hours)
 
-  return ScriptConfig(stuck_deadline=stuck_deadline,
-                      cooldown_deadline=cooldown_deadline,
-                      max_retry_attempts=parsed_args.max_retries,
-                      restarts_per_run_limit=parsed_args.restarts_per_run_limit,
-                      non_dry_run=parsed_args.non_dry_run)
+  return ScriptConfig(
+      stuck_deadline=stuck_deadline,
+      cooldown_deadline=cooldown_deadline,
+      max_retry_attempts=parsed_args.max_retries,
+      restarts_per_run_limit=parsed_args.restarts_per_run_limit,
+      non_dry_run=parsed_args.non_dry_run)
 
 
-def _get_stuck_testcase_candidates_query(
-    stuck_deadline: datetime.datetime,) -> ndb.Query:
-  """
-  Builds the Datastore query for potentially stuck testcases.
+def _get_stuck_testcase_candidates_query(stuck_deadline: datetime.datetime,
+                                        ) -> ndb.Query:
+  """Builds the Datastore query for potentially stuck testcases.
 
   The query is carefully constructed to fetch only relevant candidates. It
   filters for testcases that are still open, valid, and have not been updated
@@ -153,8 +150,7 @@ def _get_stuck_testcase_candidates_query(
 
 
 def _get_testcase_id(testcase: data_types.Testcase) -> str:
-  """
-  Safely retrieves the string representation of the testcase's ID.
+  """Safely retrieves the string representation of the testcase's ID.
 
   This helper function assumes the testcase and its key are valid, as it's
   called on entities successfully fetched from Datastore. It uses
@@ -173,8 +169,7 @@ def _get_testcase_id(testcase: data_types.Testcase) -> str:
 
 
 def _is_job_valid(testcase: data_types.Testcase) -> bool:
-  """
-  Checks if the job associated with a testcase still exists.
+  """Checks if the job associated with a testcase still exists.
 
   This validation prevents the script from crashing when processing legacy
   testcases whose original jobs might have been deleted or renamed. It performs
@@ -200,8 +195,7 @@ def _is_job_valid(testcase: data_types.Testcase) -> bool:
 
 def _is_in_cooldown(testcase: data_types.Testcase,
                     cooldown_deadline: datetime.datetime) -> bool:
-  """
-  Checks if a restart was recently attempted for this testcase by this cron.
+  """Checks if a restart was recently attempted for this testcase by this cron.
 
   This check makes the script idempotent by reading a custom metadata
   timestamp. This prevents creating duplicate tasks if the cron runs more
@@ -225,8 +219,7 @@ def _is_in_cooldown(testcase: data_types.Testcase,
 
 def _has_reached_max_attempts(testcase: data_types.Testcase,
                               max_attempts: int) -> bool:
-  """
-  Checks if a testcase has reached the maximum number of restart attempts.
+  """Checks if a testcase has reached the maximum number of restart attempts.
 
   This acts as a safeguard to prevent a testcase from being retried
   indefinitely. It reads a custom metadata counter, handling missing values
@@ -245,8 +238,7 @@ def _has_reached_max_attempts(testcase: data_types.Testcase,
 
 
 def _get_stuck_reason(testcase: data_types.Testcase) -> str:
-  """
-  Analyzes a testcase to generate a human-readable reason for why it's stuck.
+  """Analyzes a testcase to generate a human-readable reason for why it's stuck.
 
   This function mirrors the logic of `data_handler.critical_tasks_completed`
   to identify which specific analysis steps (e.g., minimization, regression)
@@ -273,10 +265,10 @@ def _get_stuck_reason(testcase: data_types.Testcase) -> str:
   return ", ".join(reasons)
 
 
-def restart_analysis_for_testcases(testcases_to_restart: list[
-    data_types.Testcase], config: ScriptConfig) -> int:
-  """
-  Performs the remediation action for a final list of stuck testcases.
+def restart_analysis_for_testcases(
+    testcases_to_restart: list[data_types.Testcase],
+    config: ScriptConfig) -> int:
+  """Performs the remediation action for a final list of stuck testcases.
 
   This function iterates through the pre-filtered list and applies the fix
   to each testcase. For each one, it logs a detailed warning, enqueues a new
@@ -338,8 +330,7 @@ def filter_and_categorize_candidates(
     candidates: list[data_types.Testcase],
     config: ScriptConfig,
 ) -> CategorizedTestcases:
-  """
-  Processes a list of candidates, filtering and categorizing them.
+  """Processes a list of candidates, filtering and categorizing them.
 
   This is the main filtering pass. For each candidate, it applies a series of
   guard clauses in a specific order. If a testcase fails a check, it is added
@@ -379,8 +370,7 @@ def filter_and_categorize_candidates(
 
 
 def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
-  """
-  Prints a detailed, verbose summary of the filtering phase.
+  """Prints a detailed, verbose summary of the filtering phase.
 
   This function provides a clear, human-readable summary of the script's
   findings *before* any remediation actions are taken. It also explicitly logs
@@ -408,8 +398,7 @@ def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
 
 @logs.cron_log_context()
 def main(args: list[str]):
-  """
-  Finds, filters, and restarts stuck testcases in a three-phase process.
+  """Finds, filters, and restarts stuck testcases in a three-phase process.
 
   The workflow is designed for clarity, safety, and observability:
   1. Parse arguments and configure the run.
