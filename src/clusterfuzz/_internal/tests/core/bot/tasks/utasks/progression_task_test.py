@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for regression_task."""
 
+import datetime
 import json
 import os
 import unittest
@@ -25,6 +26,7 @@ from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -206,10 +208,14 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.progression_task._ERROR_HANDLER.handle',
         'clusterfuzz._internal.bot.tasks.utasks.progression_task.crash_on_latest',
+        'clusterfuzz._internal.bot.tasks.utasks.progression_task._write_to_bigquery',
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.base.bisection.request_bisection',
-        'clusterfuzz._internal.google_cloud_utils.blobs.delete_blob'
+        'clusterfuzz._internal.google_cloud_utils.blobs.delete_blob',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
     self.testcase = test_utils.create_generic_testcase()
     self.progression_task_input = uworker_msg_pb2.ProgressionTaskInput(
         blob_name='blob_name',
@@ -258,10 +264,14 @@ class UTaskPostprocessTest(unittest.TestCase):
     updated_testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(updated_testcase.fixed, 'Yes')
     self.assertFalse(updated_testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseFixedEvent(
+            testcase=updated_testcase, fixed_revision='custom_build:1'))
 
   def test_handle_non_custom_binary_postprocess(self):
     """Tests utask_postprocess behaviour for non_custom binaries in the absence of errors."""
-    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
+        min_revision=1, max_revision=2)
     uworker_output = uworker_msg_pb2.Output(
         uworker_input=self.uworker_input,
         progression_task_output=progression_task_output)
@@ -272,6 +282,12 @@ class UTaskPostprocessTest(unittest.TestCase):
     self.assertFalse(self.mock.crash_on_latest.called)
     self.assertFalse(self.mock.is_first_attempt_for_task.called)
     self.assertTrue(self.mock.request_bisection.called)
+    updated_testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual(updated_testcase.fixed, '1:2')
+    self.assertFalse(updated_testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseFixedEvent(
+            testcase=updated_testcase, fixed_revision='1:2'))
 
   def test_handle_non_custom_binary_postprocess_with_stacktrace_uploaded_via_url(
       self):
