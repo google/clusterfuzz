@@ -184,6 +184,26 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_filing.issue_id, '12345')
     self.assertTrue(event_filing.issue_created)
 
+  def test_issue_closing_event(self):
+    """Test issue closing event class."""
+    event_type = events.EventTypes.ISSUE_CLOSING
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+
+    event_closing = events.IssueClosingEvent(
+        source=source,
+        testcase=testcase,
+        issue_tracker_project='oss-fuzz',
+        issue_id='12345',
+        closing_reason=events.ClosingReason.TESTCASE_FIXED)
+    self._assert_event_common_fields(event_closing, event_type, source)
+    self._assert_testcase_fields(event_closing, testcase)
+    self._assert_task_fields(event_closing)
+    self.assertEqual(event_closing.issue_tracker_project, 'oss-fuzz')
+    self.assertEqual(event_closing.issue_id, '12345')
+    self.assertEqual(event_closing.closing_reason,
+                     events.ClosingReason.TESTCASE_FIXED)
+
   def test_task_execution_event(self):
     """Test task execution events."""
     job_type = 'job_test'
@@ -416,6 +436,35 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.issue_id, '67890')
     self.assertFalse(event_entity.issue_created)
 
+  def test_serialize_issue_closing_event(self):
+    """Test serializing an issue closing event."""
+    testcase = test_utils.create_generic_testcase()
+    event = events.IssueClosingEvent(
+        source='events_test',
+        testcase=testcase,
+        issue_tracker_project='oss-fuzz',
+        issue_id='67890',
+        closing_reason=events.ClosingReason.TESTCASE_FIXED)
+    event_type = event.event_type
+    timestamp = event.timestamp
+
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions.
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self._assert_task_fields(event_entity)
+
+    # IssueClosingEvent specific assertions.
+    self.assertEqual(event_entity.issue_tracker_project, 'oss-fuzz')
+    self.assertEqual(event_entity.issue_id, '67890')
+    self.assertEqual(event_entity.closing_reason,
+                     events.ClosingReason.TESTCASE_FIXED)
+
   def test_serialize_task_execution_event(self):
     """Test serializing a task execution event into a datastore entity."""
     source = 'events_test'
@@ -623,6 +672,45 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event.issue_id, '13579')
     self.assertTrue(event.issue_created)
+
+  def test_deserialize_issue_closing_event(self):
+    """Test deserializing an issue closing event."""
+    event_type = events.EventTypes.ISSUE_CLOSING
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+
+    event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    event_entity.timestamp = date_now
+    event_entity.source = 'events_test'
+    self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.testcase_id = 1
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.issue_tracker_project = 'oss-fuzz'
+    event_entity.issue_id = '13579'
+    event_entity.closing_reason = events.ClosingReason.TESTCASE_FIXED
+    event_entity.put()
+
+    event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
+    self.assertIsNotNone(event)
+    self.assertIsInstance(event, events.IssueClosingEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions.
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # IssueClosingEvent specific assertions.
+    self.assertEqual(event.issue_tracker_project, 'oss-fuzz')
+    self.assertEqual(event.issue_id, '13579')
+    self.assertEqual(event.closing_reason, events.ClosingReason.TESTCASE_FIXED)
 
   def test_deserialize_task_execution_event(self):
     """Test deserializing a datastore event into a task execution event."""
