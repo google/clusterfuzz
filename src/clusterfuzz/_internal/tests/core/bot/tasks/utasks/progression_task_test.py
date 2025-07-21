@@ -224,6 +224,14 @@ class UTaskPostprocessTest(unittest.TestCase):
         testcase_id=str(self.testcase.key.id()),
         progression_task_input=self.progression_task_input)
 
+  def _error_handling_if_needed(self, output):
+    """Workaround for un-mocking specific error handling when needed."""
+    if output.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
+      return progression_task.handle_progression_build_not_found(output)
+    if output.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
+      return progression_task.handle_progression_bad_state_min_max(output)
+    return None
+
   def test_error_handling_called_on_error(self):
     """Checks that an output with an error is handled properly."""
     uworker_output = uworker_msg_pb2.Output(
@@ -232,6 +240,38 @@ class UTaskPostprocessTest(unittest.TestCase):
     progression_task.utask_postprocess(uworker_output)
     self.mock.delete_blob.assert_called_with('blob_name')
     self.assertTrue(self.mock.handle.called)
+
+  def test_handling_build_not_found(self):
+    """Tests that an output with a build not found error is handled properly."""
+    self.mock.handle.side_effect = self._error_handling_if_needed
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
+    progression_task.utask_postprocess(uworker_output)
+    updated_testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual(updated_testcase.fixed, 'NA')
+    self.assertFalse(updated_testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=updated_testcase,
+            rejection_reason=events.RejectionReason.PROGRESSION_BUILD_NOT_FOUND)
+    )
+
+  def test_handling_bad_state_min_max(self):
+    """Tests handling an output with bad state for min-max revisions."""
+    self.mock.handle.side_effect = self._error_handling_if_needed
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
+    progression_task.utask_postprocess(uworker_output)
+    updated_testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual(updated_testcase.fixed, 'NA')
+    self.assertFalse(updated_testcase.open)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseRejectionEvent(
+            testcase=updated_testcase,
+            rejection_reason=events.RejectionReason.
+            PROGRESSION_BAD_STATE_MIN_MAX))
 
   def test_handle_crash_on_latest_revision(self):
     """Tests utask_postprocess behaviour when there is a crash on latest revision."""
