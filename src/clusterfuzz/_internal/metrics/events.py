@@ -93,6 +93,7 @@ class TaskOutcome:
 class ClosingReason:
   TESTCASE_FIXED = 'testcase_fixed'
   TESTCASE_UNREPRO = 'testcase_unreproducible'
+  TESTCASE_INVALID = 'testcase_invalid'
 
 
 @dataclass(kw_only=True)
