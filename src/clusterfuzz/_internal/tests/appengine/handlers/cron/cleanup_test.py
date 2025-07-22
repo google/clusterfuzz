@@ -73,6 +73,7 @@ class CleanupTest(unittest.TestCase):
   """Tests for various cleanup functions."""
 
   def setUp(self):
+    helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.cron.cleanup.get_crash_occurrence_platforms',
