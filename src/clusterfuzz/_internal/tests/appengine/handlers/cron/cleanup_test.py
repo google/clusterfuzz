@@ -86,14 +86,17 @@ class CleanupTest(unittest.TestCase):
     self.issue = appengine_test_utils.create_generic_issue()
     self.policy = issue_tracker_policy.get('test-project')
 
-  def _assert_issue_closing_event(self, testcase, reason: str):
+  def _assert_issue_closing_event(self, testcase, reason, once=True):
     """Helper to assert the issue closing event emit."""
-    self.mock.emit.assert_called_once_with(
-        events.IssueClosingEvent(
-            testcase=testcase,
-            issue_tracker_project='test-issue-tracker',
-            issue_id=str(self.issue.id),
-            closing_reason=reason))
+    event = events.IssueClosingEvent(
+        testcase=testcase,
+        issue_tracker_project='test-issue-tracker',
+        issue_id=str(self.issue.id),
+        closing_reason=reason)
+    if once:
+      self.mock.emit.assert_called_once_with(event)
+    else:
+      self.mock.emit.assert_any_call(event)
 
   def test_mark_duplicate_testcase_as_closed_with_no_issue_1(self):
     """Ensure that a regular bug older than 7 days does not get closed."""
@@ -617,6 +620,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
         policy=self.policy, testcase=testcase, issue=None)
     self.assertTrue(testcase.open)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_2(
       self):
@@ -629,6 +633,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
         policy=self.policy, testcase=testcase, issue=None)
     self.assertTrue(testcase.open)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_3(
       self):
@@ -642,6 +647,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_4(
       self):
@@ -656,6 +662,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_5(
       self):
@@ -675,6 +682,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_6(
       self):
@@ -693,6 +701,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_7(
       self):
@@ -710,6 +719,7 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_8(
       self):
@@ -727,6 +737,7 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_9(
       self):
@@ -742,6 +753,8 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
+    self._assert_issue_closing_event(
+        testcase, events.ClosingReason.TESTCASE_UNREPRO, once=False)
     self.mock.emit.assert_any_call(
         events.TestcaseRejectionEvent(
             testcase=testcase,
@@ -763,6 +776,7 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_11(
       self):
@@ -780,6 +794,7 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_12(
       self):
@@ -799,6 +814,8 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
+    self._assert_issue_closing_event(
+        testcase, events.ClosingReason.TESTCASE_UNREPRO, once=False)
     self.mock.emit.assert_any_call(
         events.TestcaseRejectionEvent(
             testcase=testcase,
