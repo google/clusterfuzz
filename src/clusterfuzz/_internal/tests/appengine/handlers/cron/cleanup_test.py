@@ -937,6 +937,8 @@ class CleanupTest(unittest.TestCase):
         'ClusterFuzz testcase 1 is closed as invalid, so closing issue.',
         self.issue._monorail_issue.comment)
     self.assertEqual('WontFix', self.issue.status)
+    self._assert_issue_closing_event(testcase,
+                                     events.ClosingReason.TESTCASE_INVALID)
 
   def test_mark_na_testcase_issues_as_wontfix_testcase_open(self):
     """Test that valid open testcases don't get their issues closed."""
@@ -949,6 +951,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_na_testcase_issues_as_wontfix(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_na_testcase_issues_as_wontfix_still_occurring(self):
     """Test that issue for fixed == 'NA' testcases are not closed if the crash
@@ -964,6 +967,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_na_testcase_issues_as_wontfix(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_na_testcase_issues_as_wontfix_similar_testcase(self):
     """Test that issue for fixed == 'NA' testcases are not closed if there is a
@@ -984,6 +988,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_na_testcase_issues_as_wontfix(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
   def test_mark_na_testcase_issues_as_wontfix_mistriaged(self):
     """Test that issue for fixed == 'NA' testcases are not closed if the issue
@@ -1003,6 +1008,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_na_testcase_issues_as_wontfix(
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual('Assigned', self.issue.status)
+    self.mock.emit.assert_not_called()
 
 
 @test_utils.with_cloud_emulators('datastore')
