@@ -1664,11 +1664,11 @@ class TestcaseLifecycleEvent(Model):
   # Explanation for the testcase rejection.
   rejection_reason = ndb.StringProperty()
 
-  ### Testcase fixed.
+  ### Testcase Fixed.
   # Build revision in which the crash stopped reproducing.
   fixed_revision = ndb.StringProperty()
 
-  ### Issue Filing.
+  ### Issue Filing/Closing.
   # Name of the project associated with the issue tracker.
   issue_tracker_project = ndb.StringProperty()
 
@@ -1677,6 +1677,9 @@ class TestcaseLifecycleEvent(Model):
 
   # If the issue filing attempt was successful.
   issue_created = ndb.BooleanProperty()
+
+  # Reason for closing the issue (e.g., testcase fixed).
+  closing_reason = ndb.StringProperty()
 
   ### Task execution.
   # Task stage, i.e., preprocess, main or postprocess.

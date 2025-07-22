@@ -43,6 +43,7 @@ class EventTypes:
   TESTCASE_FIXED = 'testcase_fixed'
   ISSUE_FILING = 'issue_filing'
   TASK_EXECUTION = 'task_execution'
+  ISSUE_CLOSING = 'issue_closing'
 
 
 class TestcaseOrigin:
@@ -87,6 +88,12 @@ class TaskOutcome:
   # All caps to maintain style from error types proto.
   PREPROCESS_NO_RETURN = 'PREPROCESS_NO_RETURN'
   UNHANDLED_EXCEPTION = 'UNHANDLED_EXCEPTION'
+
+
+class ClosingReason:
+  TESTCASE_FIXED = 'testcase_fixed'
+  TESTCASE_UNREPRO = 'testcase_unreproducible'
+  TESTCASE_INVALID = 'testcase_invalid'
 
 
 @dataclass(kw_only=True)
@@ -221,6 +228,18 @@ class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
   task_fuzzer: str | None = None
 
 
+@dataclass(kw_only=True)
+class IssueClosingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Issue closing event."""
+  event_type: str = field(default=EventTypes.ISSUE_CLOSING, init=False)
+  # Name of the project associate with the issue tracker.
+  issue_tracker_project: str | None = None
+  # The number of the issue on the issue tracker.
+  issue_id: str | None = None
+  # Reason for closing the issue (e.g., testcase fixed).
+  closing_reason: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
@@ -228,6 +247,7 @@ _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
+    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
 }
 
 
