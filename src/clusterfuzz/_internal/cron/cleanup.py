@@ -82,6 +82,17 @@ def _append_generic_incorrect_comment(comment, policy, issue, suffix):
       label_text=issue.issue_tracker.label_text(wrong_label)) + suffix
 
 
+def _emit_issue_closing_event(testcase, issue, closing_reason):
+  """Helper function to emit issue closing events."""
+  issue_tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
+  events.emit(
+      events.IssueClosingEvent(
+          testcase=testcase,
+          issue_tracker_project=issue_tracker_name,
+          issue_id=str(issue.id) if issue.id else None,
+          closing_reason=closing_reason))
+
+
 def job_platform_to_real_platform(job_platform):
   """Get real platform from job platform."""
   for platform in data_types.PLATFORMS:
@@ -517,13 +528,8 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
         'fuzzer_name': testcase.fuzzer_name,
         'status': 'success',
     })
-    issue_tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
-    events.emit(
-        events.IssueClosingEvent(
-            testcase=testcase,
-            issue_tracker_project=issue_tracker_name,
-            issue_id=str(issue.id) if issue.id else None,
-            closing_reason=events.ClosingReason.TESTCASE_FIXED))
+    _emit_issue_closing_event(testcase, issue,
+                              events.ClosingReason.TESTCASE_FIXED)
   except Exception as e:
     logs.error(
         f'Failed to mark issue {issue.id} as verified for '
@@ -661,13 +667,8 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
           testcase=testcase,
           rejection_reason=events.RejectionReason.
           CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
-  issue_tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
-  events.emit(
-      events.IssueClosingEvent(
-          testcase=testcase,
-          issue_tracker_project=issue_tracker_name,
-          issue_id=str(issue.id) if issue.id else None,
-          closing_reason=events.ClosingReason.TESTCASE_UNREPRO))
+  _emit_issue_closing_event(testcase, issue,
+                            events.ClosingReason.TESTCASE_UNREPRO)
 
 
 def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
@@ -713,13 +714,8 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
 
   logs.info(
       f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
-  issue_tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
-  events.emit(
-      events.IssueClosingEvent(
-          testcase=testcase,
-          issue_tracker_project=issue_tracker_name,
-          issue_id=str(issue.id) if issue.id else None,
-          closing_reason=events.ClosingReason.TESTCASE_INVALID))
+  _emit_issue_closing_event(testcase, issue,
+                            events.ClosingReason.TESTCASE_INVALID)
 
 
 def mark_testcase_as_triaged_if_needed(testcase, issue):
