@@ -204,6 +204,51 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_closing.closing_reason,
                      events.ClosingReason.TESTCASE_FIXED)
 
+  def test_testcase_grouping_event(self):
+    """Test testcase grouping event class."""
+    event_type = events.EventTypes.TESTCASE_GROUPING
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+    similar_testcase_id = 2
+
+    # Testcase is similar to another one.
+    event_grouping = events.TestcaseGroupingEvent(
+        source=source,
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=0,
+        similar_testcase_id=similar_testcase_id,
+        grouping_reason=events.GroupingReason.SIMILAR_CRASH)
+    self._assert_event_common_fields(event_grouping, event_type, source)
+    self._assert_testcase_fields(event_grouping, testcase)
+    self._assert_task_fields(event_grouping)
+    self.assertEqual(event_grouping.group_id, 10)
+    self.assertEqual(event_grouping.previous_group_id, 0)
+    self.assertEqual(event_grouping.similar_testcase_id, similar_testcase_id)
+    self.assertEqual(event_grouping.grouping_reason,
+                     events.GroupingReason.SIMILAR_CRASH)
+    self.assertEqual(event_grouping.group_merge_reason, None)
+
+    # Testcase's group is being merged.
+    event_grouping = events.TestcaseGroupingEvent(
+        source=source,
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=5,
+        similar_testcase_id=similar_testcase_id,
+        grouping_reason=events.GroupingReason.GROUP_MERGE,
+        group_merge_reason=events.GroupingReason.SAME_ISSUE)
+    self._assert_event_common_fields(event_grouping, event_type, source)
+    self._assert_testcase_fields(event_grouping, testcase)
+    self._assert_task_fields(event_grouping)
+    self.assertEqual(event_grouping.group_id, 10)
+    self.assertEqual(event_grouping.previous_group_id, 5)
+    self.assertEqual(event_grouping.similar_testcase_id, similar_testcase_id)
+    self.assertEqual(event_grouping.grouping_reason,
+                     events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event_grouping.group_merge_reason,
+                     events.GroupingReason.SAME_ISSUE)
+
   def test_task_execution_event(self):
     """Test task execution events."""
     job_type = 'job_test'

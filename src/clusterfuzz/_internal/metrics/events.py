@@ -98,6 +98,14 @@ class ClosingReason:
   TESTCASE_INVALID = 'testcase_invalid'
 
 
+class GroupingReason:
+  """Reason for grouping testcases."""
+  SIMILAR_CRASH = 'similar_crash'
+  SAME_ISSUE = 'same_issue'
+  IDENTICAL_VARIANT = 'identical_variant'
+  GROUP_MERGE = 'group_merge'
+
+
 @dataclass(kw_only=True)
 class Event:
   """Base class for ClusterFuzz events."""
@@ -250,8 +258,12 @@ class TestcaseGroupingEvent(BaseTestcaseEvent, BaseTaskEvent):
   group_id: int | None = None
   # Previous group ID, If testcase was in a previous group.
   previous_group_id: int | None = None
+  # Similar testcase that caused the grouping.
+  similar_testcase_id: int | None = None
   # Reason for grouping.
   grouping_reason: str | None = None
+  # If testcase's group is being merged, the reason that caused the grouping.
+  group_merge_reason: str | None = None
 
 
 # Mapping of specific event types to their data classes.
