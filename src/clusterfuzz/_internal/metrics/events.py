@@ -91,6 +91,7 @@ class TaskOutcome:
 
 
 class ClosingReason:
+  """Reason for closing an issue during cleanup."""
   TESTCASE_FIXED = 'testcase_fixed'
   TESTCASE_UNREPRO = 'testcase_unreproducible'
   TESTCASE_INVALID = 'testcase_invalid'
