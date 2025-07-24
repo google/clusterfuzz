@@ -64,6 +64,8 @@ class RejectionReason:
   CLEANUP_INVALID_JOB = 'cleanup_invalid_job'
   GROUPER_DUPLICATE = 'grouper_duplicate'
   GROUPER_OVERFLOW = 'grouper_overflow'
+  PROGRESSION_BUILD_NOT_FOUND = 'progression_build_not_found'
+  PROGRESSION_BAD_STATE_MIN_MAX = 'progression_bad_state_min_max'
 
 
 class TaskStage:

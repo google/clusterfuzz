@@ -37,6 +37,7 @@ from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
@@ -103,6 +104,10 @@ def handle_progression_build_not_found(uworker_output: uworker_msg_pb2.Output): 
   data_handler.clear_progression_pending(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.PROGRESSION_BUILD_NOT_FOUND))
 
 
 def handle_progression_revision_list_error(
@@ -170,7 +175,11 @@ def handle_progression_bad_state_min_max(
       testcase,
       uworker_output.progression_task_output.max_revision,
       message=message)
-
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.PROGRESSION_BAD_STATE_MIN_MAX)
+  )
   # Let the bisection service know about the NA status.
   bisection.request_bisection(testcase)
 
@@ -367,6 +376,9 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
   testcase.open = False
   data_handler.update_progression_completion_metadata(
       testcase, max_revision, message=f'fixed in range r{testcase.fixed}')
+  events.emit(
+      events.TestcaseFixedEvent(
+          testcase=testcase, fixed_revision=testcase.fixed))
   _write_to_bigquery(testcase, min_revision, max_revision)
   bisection.request_bisection(testcase)
 
@@ -760,6 +772,10 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
           testcase,
           task_output.crash_revision,
           message='fixed on latest custom build')
+      fixed_revision = f'custom_build:{task_output.crash_revision}'
+      events.emit(
+          events.TestcaseFixedEvent(
+              testcase=testcase, fixed_revision=fixed_revision))
       return
 
     testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
