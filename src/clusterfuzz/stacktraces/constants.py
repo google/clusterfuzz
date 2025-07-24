@@ -76,6 +76,8 @@ CENTIPEDE_TIMEOUT_REGEX = re.compile(r'(?:%s)' % '|'.join([
     r'========= Timeout of \d+ seconds exceeded; exiting',
     r'========= Per-input timeout exceeded:'
 ]))
+CENTIPEDE_STACK_LIMIT_REGEX = re.compile(
+    r'^========= Stack limit exceeded: \d+ > \d+ \(byte\); aborting$')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
     r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
@@ -584,6 +586,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*libc\+\+/',
     # Clusterfuzz file paths on Windows to ignore.
     r'c:/clusterfuzz/bot/build',
+    # Fuzztest internals.
+    r'.*third_party/fuzztest/',
 
     # Wrappers from honggfuzz/libhfuzz/memorycmp.c.
     r'.*/memorycmp\.c',
@@ -651,6 +655,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Stack-overflow',
     'Out-of-memory',
     'Timeout',
     'Unreachable code',
