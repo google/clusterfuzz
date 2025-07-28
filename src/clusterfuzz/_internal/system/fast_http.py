@@ -72,6 +72,7 @@ async def _error_tolerant_download_file(session: aiohttp.ClientSession,
                                         url: str, path: str) -> bool:
   """Downloads a file asynchronosly, returns False on failure."""
   try:
+    # TODO(metzman): Catch specific exceptions.
     await _async_download_file(session, url, path)
     return True
   except:
@@ -85,7 +86,8 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
   async with session.get(url, _HTTP_TIMEOUT_SECS) as response:
     response.raise_for_status()
     with open(path, 'wb') as file_handle:
-      async for chunk in response.content.content.iter_any():
+      # TODO(metzman): Write tests for this.
+      async for chunk in response.content.iter_any():
         # TODO(metzman): Consider using aiofiles for async writes.
         file_handle.write(chunk)
 
