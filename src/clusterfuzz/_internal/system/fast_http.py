@@ -132,8 +132,7 @@ async def list_blobs_async(bucket_name, path, auth_token):
     }
     headers = {'Authorization': f'Bearer {auth_token}'}
     while True:
-      async with session.get(
-          url, headers=headers, params=params) as response:
+      async with session.get(url, headers=headers, params=params) as response:
         if response.status == 200:
           data = await response.json()
           items = data.get('items', [])

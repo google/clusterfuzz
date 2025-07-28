@@ -23,24 +23,26 @@ import socket
 import tempfile
 import threading
 import unittest
-from unittest import mock
 
 import aiohttp
 
-from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.system import fast_http
+from clusterfuzz._internal.tests.test_libs import helpers
 
 
 class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
   """Doesn't log requests to stderr."""
 
-  def log_message(self, format, *args):
+  def log_message(self, fmt, *args):
+    del fmt
+    del args
     pass
+
 
 def find_free_port():
   """Finds and returns an available port number on the local machine."""
   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.bind(('', 0))
+    sock.bind(('127.0.0.1', 0))
     return sock.getsockname()[1]
 
 
@@ -69,7 +71,7 @@ class ErrorTolerantDownloadTest(unittest.TestCase):
     cls.port = find_free_port()
     handler_factory = functools.partial(
         QuietHTTPRequestHandler, directory=cls.tmp_dir)
-    cls.httpd = http.server.HTTPServer(('', cls.port), handler_factory)
+    cls.httpd = http.server.HTTPServer(('127.0.0.1', cls.port), handler_factory)
     cls.server_address = f'http://localhost:{cls.port}'
 
     cls.server_thread = threading.Thread(target=cls.httpd.serve_forever)
@@ -88,18 +90,21 @@ class ErrorTolerantDownloadTest(unittest.TestCase):
     shutil.rmtree(cls.tmp_dir)
 
   def test_download_success(self):
-   """Tests a successful file download."""
-   async def run_test():
-     url = f'{self.server_address}/{self.source_filename}'
-     destination_path = os.path.join(self.tmp_dir, 'downloaded_file.txt')
-     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
-       result = await fast_http._error_tolerant_download_file(session, url, destination_path)
+    """Tests a successful file download."""
 
-     self.assertTrue(os.path.exists(destination_path))
-     self.assertTrue(result)
-     self.mock.warning.assert_not_called()
+    async def run_test():
+      url = f'{self.server_address}/{self.source_filename}'
+      destination_path = os.path.join(self.tmp_dir, 'downloaded_file.txt')
+      async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(
+          total=60)) as session:
+        result = await fast_http._error_tolerant_download_file(
+            session, url, destination_path)
 
-   asyncio.run(run_test())
+      self.assertTrue(os.path.exists(destination_path))
+      self.assertTrue(result)
+      self.mock.warning.assert_not_called()
+
+    asyncio.run(run_test())
 
   def test_404(self):
     """ Tests a failed file download due to a 404 Not Found error.
@@ -109,7 +114,8 @@ class ErrorTolerantDownloadTest(unittest.TestCase):
       url = f'{self.server_address}/{missing_filename}'
       destination_path = os.path.join(self.tmp_dir, missing_filename)
       async with aiohttp.ClientSession() as session:
-        result = await fast_http._error_tolerant_download_file(session, url, destination_path)
+        result = await fast_http._error_tolerant_download_file(  # pylint: disable=protected-access
+            session, url, destination_path)
 
       self.assertFalse(result)
       self.assertFalse(os.path.exists(destination_path))
