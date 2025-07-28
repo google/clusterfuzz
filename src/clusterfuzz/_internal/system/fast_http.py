@@ -26,7 +26,7 @@ from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 
-_HTTP_TIMEOUT_SECS = aiohttp.ClientTimeout(total=300)
+_HTTP_TIMEOUT_SECONDS = aiohttp.ClientTimeout(total=300)
 
 
 def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
@@ -60,7 +60,7 @@ def _download_files(urls_and_paths: Sequence[Tuple[str, str]]) -> List[bool]:
 async def _async_download_files(urls: List[str],
                                 paths: List[str]) -> List[bool]:
   """Asynchronously downloads multiple files."""
-  async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECS) as session:
+  async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECONDS) as session:
     tasks = [
         asyncio.create_task(_error_tolerant_download_file(session, url, path))
         for url, path in zip(urls, paths)

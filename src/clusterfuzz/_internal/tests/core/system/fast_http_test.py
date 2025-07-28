@@ -33,10 +33,8 @@ from clusterfuzz._internal.tests.test_libs import helpers
 class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
   """Doesn't log requests to stderr."""
 
-  def log_message(self, fmt, *args):
-    del fmt
+  def log_message(self, *args):
     del args
-    pass
 
 
 def find_free_port():
