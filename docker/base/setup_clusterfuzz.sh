@@ -58,3 +58,4 @@ if [[ -z "$DISABLE_MOUNTS" ]]; then
 fi
 
 chown -R $USER:$USER $INSTALL_DIRECTORY
+chmod u+x $ROOT_DIR
