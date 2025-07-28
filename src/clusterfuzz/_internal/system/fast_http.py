@@ -26,7 +26,7 @@ from clusterfuzz._internal.base import concurrency
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 
-_HTTP_TIMEOUT_SECS = 300
+_HTTP_TIMEOUT_SECS = aiohttp.ClientTimeout(total=300)
 
 
 def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
@@ -60,7 +60,7 @@ def _download_files(urls_and_paths: Sequence[Tuple[str, str]]) -> List[bool]:
 async def _async_download_files(urls: List[str],
                                 paths: List[str]) -> List[bool]:
   """Asynchronously downloads multiple files."""
-  async with aiohttp.ClientSession() as session:
+  async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECS) as session:
     tasks = [
         asyncio.create_task(_error_tolerant_download_file(session, url, path))
         for url, path in zip(urls, paths)
@@ -83,7 +83,7 @@ async def _error_tolerant_download_file(session: aiohttp.ClientSession,
 async def _async_download_file(session: aiohttp.ClientSession, url: str,
                                path: str):
   """Asynchronously downloads |url| and writes it to |path|."""
-  async with session.get(url, _HTTP_TIMEOUT_SECS) as response:
+  async with session.get(url) as response:
     response.raise_for_status()
     with open(path, 'wb') as file_handle:
       # TODO(metzman): Write tests for this.
@@ -122,7 +122,7 @@ async def delete_blob_async(bucket_name: str, blob_name: str, session,
 async def list_blobs_async(bucket_name, path, auth_token):
   """Asynchronously lists blobs, yielding dicts containing their size, updated
   time and name."""
-  async with aiohttp.ClientSession() as session:
+  async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECONDS) as session:
     url = f'https://storage.googleapis.com/storage/v1/b/{bucket_name}/o'
     params = {
         'delimiter': '/',
@@ -133,8 +133,7 @@ async def list_blobs_async(bucket_name, path, auth_token):
     headers = {'Authorization': f'Bearer {auth_token}'}
     while True:
       async with session.get(
-          url, headers=headers, params=params,
-          timeout=_HTTP_TIMEOUT_SECS) as response:
+          url, headers=headers, params=params) as response:
         if response.status == 200:
           data = await response.json()
           items = data.get('items', [])
