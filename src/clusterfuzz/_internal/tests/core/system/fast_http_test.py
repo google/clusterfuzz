@@ -95,7 +95,7 @@ class ErrorTolerantDownloadTest(unittest.TestCase):
       destination_path = os.path.join(self.tmp_dir, 'downloaded_file.txt')
       async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(
           total=60)) as session:
-        result = await fast_http._error_tolerant_download_file(
+        result = await fast_http._error_tolerant_download_file(  # pylint: disable=protected-access
             session, url, destination_path)
 
       self.assertTrue(os.path.exists(destination_path))
@@ -107,6 +107,7 @@ class ErrorTolerantDownloadTest(unittest.TestCase):
   def test_404(self):
     """ Tests a failed file download due to a 404 Not Found error.
     """
+
     async def run_test():
       missing_filename = 'fake.txt'
       url = f'{self.server_address}/{missing_filename}'
