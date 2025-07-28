@@ -105,7 +105,7 @@ class ErrorTolerantDownloadTest(unittest.TestCase):
     asyncio.run(run_test())
 
   def test_404(self):
-    """ Tests a failed file download due to a 404 Not Found error.
+    """Tests a failed file download due to a 404 Not Found error.
     """
 
     async def run_test():
