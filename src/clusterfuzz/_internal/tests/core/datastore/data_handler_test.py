@@ -984,3 +984,20 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         self.job.name, None, None, None, None, None, None, None,
         timeout_multiplier, None, True)
     self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+  def test_critical_tasks_pending_chrome_regression_fail(self):
+    """
+        Tests that in Chrome, if regression is 'NA', impact doesn't block filing
+        (i.e., critical_tasks_completed returns True if other conditions are
+        met). We need to ensure this because impact cannot run without
+        regression. This was only intended to create a dependence from impact
+        on regression. It is not supposed to block issue filing.
+        """
+    testcase = data_types.Testcase()
+    testcase.minimized_keys = 'fake'
+    # Regression ran but failed.
+    testcase.regression = 'NA'
+    testcase.is_impact_set_flag = False
+    testcase.analyze_pending = False
+
+    self.assertTrue(data_handler.critical_tasks_completed(testcase))
