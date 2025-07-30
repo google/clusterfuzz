@@ -433,6 +433,8 @@ def _shrink_large_groups_if_needed(testcase_map):
                 testcase=testcase_entity,
                 rejection_reason=events.RejectionReason.GROUPER_OVERFLOW))
         # Mark testcase as closed instead of deleting it to avoid data loss.
+        # TODO(vtcosta): Add logic to re-run progression for these testcases
+        # when the group leader is closed. Delete them if they are also fixed.
         testcase_entity.fixed = 'NA'
         testcase_entity.open = False
         testcase_entity.put()
