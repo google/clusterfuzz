@@ -1219,11 +1219,14 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     data_types.Trial(app_name='app_1', probability=0.5, app_args='-y').put()
     data_types.Trial(app_name='app_1', probability=0.2, app_args='-z').put()
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
-    trial_args = trials.get_additional_args(trials.get_db_trials(os.environ['APP_NAME']))
+    trial_args = trials.get_additional_args(
+        trials.get_db_trials(os.environ['APP_NAME']))
     fuzz_task_input.trial_app_args.extend(trial_args)
 
     uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name='fantasy_fuzz', job_type='asan_test', fuzz_task_input=fuzz_task_input)
+        fuzzer_name='fantasy_fuzz',
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input)
 
     session = fuzz_task.FuzzingSession(uworker_input, 10)
     self.assertEqual(20, session.test_timeout)

@@ -74,7 +74,7 @@ def get_build_trials(app_name, app_dir):
       if config['app_name'] != app_name:
         continue
       trials[config['app_args']] = AppArgs(config['probability'],
-                                             config.get('contradicts', []))
+                                           config.get('contradicts', []))
   except Exception as e:
     logs.warning('Unable to parse config file: %s' % str(e))
 
@@ -93,6 +93,7 @@ class Trials:
 
     self.trials = get_db_trials(app_name)
     self.trials.update(get_build_trials(app_name, app_dir))
+
 
 def get_additional_args(trials, existing_args=None, shuffle=True):
   """Select additional args for the specified app at random."""
@@ -119,28 +120,3 @@ def get_additional_args(trials, existing_args=None, shuffle=True):
       contradicts.update(trials[app_args].contradicts)
 
   return trial_args
-
-
-class Trials:
-  """Helper class for selecting app-specific extra flags."""
-
-  def __init__(self, app_name=None, app_dir=None):
-    if app_name is None:
-      app_name = environment.get_value('APP_NAME')
-
-    if app_dir is None:
-      app_dir = environment.get_value('APP_DIR')
-
-    self.trials = get_db_trials(app_name)
-    self.trials.update(get_build_trials(app_name, app_dir))
-
-  def setup_additional_args_for_app(self, shuffle=True):
-    """Select additional args for the specified app at random."""
-    trial_app_args_list = get_additional_args(self.trials, shuffle=shuffle)
-    if not trial_app_args_list:
-      return
-
-    trial_app_args = ' '.join(trial_app_args_list)
-    app_args = environment.get_value('APP_ARGS', '')
-    environment.set_value('APP_ARGS', '%s %s' % (app_args, trial_app_args))
-    environment.set_value('TRIAL_APP_ARGS', trial_app_args)

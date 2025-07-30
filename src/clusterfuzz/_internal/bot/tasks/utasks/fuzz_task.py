@@ -39,7 +39,6 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -2076,12 +2075,11 @@ def _get_fuzz_target(uworker_input):
 def _setup_build_and_db_trials(db_trial_args):
   """Get trials from the build, combine with db trials, and set env vars."""
   # Get trials from the build.
-  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
   app_name = environment.get_value('APP_NAME')
   app_dir = environment.get_value('APP_DIR')
   build_trials = trials.get_build_trials(app_name, app_dir)
-  build_trial_args = trials.get_additional_args(build_trials,
-                                                existing_args=set(db_trial_args))
+  build_trial_args = trials.get_additional_args(
+      build_trials, existing_args=set(db_trial_args))
 
   # Combine trial args from DB and build, and set environment variables.
   trial_app_args = ' '.join(db_trial_args + build_trial_args)
