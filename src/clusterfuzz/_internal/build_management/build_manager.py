@@ -532,6 +532,10 @@ class Build(BaseBuild):
               allow_unpack_over_http and http_build_url and
               build_archive.unzip_over_http_compatible(http_build_url))
 
+          # For some HTTP unpacked builds, we can't unpack the entire build
+          # locally. Therefore, we don't want to use the normal method of
+          # listing fuzz targets as it assumes that the entire build is
+          # available on disk.
           if can_unpack_over_http:
             self._fuzz_targets = list(build.list_fuzz_targets_by_name())
           else:

@@ -765,6 +765,32 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
+  def test_setup_fuzz_over_http_by_name(self):
+    """Tests setup fuzzing with remote unzipping using name-based search."""
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = "True"
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+
+    mock_build = self.mock.open_uri.return_value.__enter__.return_value
+    mock_build.list_fuzz_targets.side_effect = Exception(
+        'Should not be called.')
+    mock_build.list_fuzz_targets_by_name.return_value = [
+        'target1', 'target2', 'target3'
+    ]
+
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
+    self.assertEqual(
+        1,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+    self.assertEqual(1, self.mock.unzip_over_http_compatible.call_count)
+    self.assertEqual(0, mock_build.list_fuzz_targets.call_count)
+    self.assertEqual(1, mock_build.list_fuzz_targets_by_name.call_count)
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
+
   def test_delete(self):
     """Test deleting this build."""
     os.environ['FUZZ_TARGET'] = 'fuzz_target'
