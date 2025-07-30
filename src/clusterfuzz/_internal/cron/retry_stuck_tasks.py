@@ -37,8 +37,8 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
-RETRY_ATTEMPT_COUNT_KEY = "retry_stuck_task_attempt_count"
-RETRY_LAST_ATTEMPT_TIME_KEY = "retry_stuck_task_last_attempt_time"
+RETRY_ATTEMPT_COUNT_KEY = 'retry_stuck_task_attempt_count'
+RETRY_LAST_ATTEMPT_TIME_KEY = 'retry_stuck_task_last_attempt_time'
 
 
 class StuckReason(StrEnum):
@@ -76,33 +76,33 @@ def parse_script_args(args: list[str]) -> argparse.Namespace:
     An argparse.Namespace object containing the parsed arguments.
   """
   parser = argparse.ArgumentParser(
-      description="Find and restart stuck testcases.")
+      description='Find and restart stuck testcases.')
   parser.add_argument(
-      "--stuck-deadline-hours",
+      '--stuck-deadline-hours',
       type=int,
       default=int(os.getenv('STUCK_DEADLINE_HOURS', '24')),
       help="The deadline in hours for considering a testcase as 'stuck'.")
   parser.add_argument(
-      "--cooldown-hours",
+      '--cooldown-hours',
       type=int,
       default=int(os.getenv('RETRY_COOLDOWN_HOURS', '12')),
-      help="The cooldown period in hours before retrying the same testcase.")
+      help='The cooldown period in hours before retrying the same testcase.')
   parser.add_argument(
-      "--max-retries",
+      '--max-retries',
       type=int,
       default=int(os.getenv('MAX_RETRY_ATTEMPTS', '3')),
-      help="The maximum number of retry attempts for a single testcase.")
+      help='The maximum number of retry attempts for a single testcase.')
   parser.add_argument(
-      "--restarts-per-run-limit",
+      '--restarts-per-run-limit',
       type=int,
       default=int(os.getenv('RESTARTS_PER_RUN_LIMIT', '5')),
-      help="A safety throttle for the max number of restarts per cron run.")
+      help='A safety throttle for the max number of restarts per cron run.')
   parser.add_argument(
-      "--non-dry-run",
-      action="store_true",
+      '--non-dry-run',
+      action='store_true',
       default=(os.getenv('NON_DRY_RUN', 'false').lower() == 'true'),
-      help="If set, the script will perform write operations (create tasks, "
-      "update metadata). Otherwise, it only logs what it would do.")
+      help=('If set, the script will perform write operations (create tasks, '
+            'update metadata). Otherwise, it only logs what it would do.'))
   return parser.parse_args(args)
 
 
@@ -153,12 +153,12 @@ def _get_stuck_testcase_candidates_query(stuck_deadline: datetime.datetime,
     An ndb.Query object for the candidate testcases.
   """
   return data_types.Testcase.query(
-      data_types.Testcase.fixed != "NA",
+      data_types.Testcase.fixed != 'NA',
       ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
       ndb_utils.is_true(data_types.Testcase.open),
-      ndb.OR(data_types.Testcase.status == "Processed",
-             data_types.Testcase.status == "Duplicate"),
-      ndb.FilterNode("timestamp", "<", stuck_deadline))
+      ndb.OR(data_types.Testcase.status == 'Processed',
+             data_types.Testcase.status == 'Duplicate'),
+      ndb.FilterNode('timestamp', '<', stuck_deadline))
 
 
 def _get_testcase_id(testcase: data_types.Testcase) -> str:
