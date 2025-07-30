@@ -1839,12 +1839,8 @@ class FuzzingSession:
       leak_blacklist.copy_global_to_local_blacklist(
           global_blacklisted_functions)
 
-    # Set up trials.
-    trial_app_args = self.uworker_input.fuzz_task_input.trial_app_args
-    if trial_app_args:
-      app_args = environment.get_value('APP_ARGS', '')
-      environment.set_value('APP_ARGS', f'{app_args} {trial_app_args}')
-      environment.set_value('TRIAL_APP_ARGS', trial_app_args)
+    # Get the trial args selected from the database in preprocess.
+    db_trial_args = self.uworker_input.fuzz_task_input.trial_app_args
 
     # Ensure that that the fuzzer still exists.
     logs.info('Setting up fuzzer and data bundles.')
@@ -1873,6 +1869,9 @@ class FuzzingSession:
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
+
+    # Setup trials from DB and build.
+    _setup_build_and_db_trials(db_trial_args)
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -2076,6 +2075,24 @@ def _get_fuzz_target(uworker_input):
   return fuzz_target
 
 
+def _setup_build_and_db_trials(db_trial_args):
+  """Get trials from the build, combine with db trials, and set env vars."""
+  # Get trials from the build.
+  app_name = environment.get_value('APP_NAME')
+  app_dir = environment.get_value('APP_DIR')
+  build_trials = trials.get_build_trials(app_name, app_dir)
+  build_trial_args = trials.get_additional_args(build_trials,
+                                                existing_args=db_trial_args)
+
+  # Combine trial args from DB and build, and set environment variables.
+  trial_app_args = ' '.join(
+      arg for arg in [db_trial_args, build_trial_args] if arg)
+  if trial_app_args:
+    app_args = environment.get_value('APP_ARGS', '')
+    environment.set_value('APP_ARGS', f'{app_args} {trial_app_args}')
+    environment.set_value('TRIAL_APP_ARGS', trial_app_args)
+
+
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   # Sets fuzzing logs context before running the fuzzer.
@@ -2171,27 +2188,12 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             max_download_urls=25000,
             use_backup=True).serialize())
 
-  # Select trial and set it in fuzz_task_input.
-  # This is tricky because we don't have the build here. We can only get
-  # trials from the datastore.
+  # Get trials from the database.
   app_name = data_handler.get_value_from_job_definition(job_type, 'APP_NAME')
-  if app_name:
-    # Temporarily set APP_NAME for Trials constructor.
-    original_app_name = environment.get_value('APP_NAME')
-    environment.set_value('APP_NAME', app_name)
-
-    logs.info('Selecting trials from datastore only. Build-specific trial '
-              'configs are not available in preprocess.')
-    trial_selector = trials.Trials()
-    trial_app_args = trial_selector.get_additional_args()
-    if trial_app_args:
-      fuzz_task_input.trial_app_args = trial_app_args
-
-    # Restore APP_NAME
-    if original_app_name is None:
-      environment.remove_key('APP_NAME')
-    else:
-      environment.set_value('APP_NAME', original_app_name)
+  db_trials = trials.get_db_trials(app_name)
+  trial_app_args = trials.get_additional_args(db_trials)
+  if trial_app_args:
+    fuzz_task_input.trial_app_args = trial_app_args
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
