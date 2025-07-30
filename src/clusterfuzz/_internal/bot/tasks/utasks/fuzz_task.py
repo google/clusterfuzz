@@ -1737,6 +1737,10 @@ class FuzzingSession:
       testcases_metadata[testcase_file_path]['gestures'] = (
           fuzz_task_knobs.pick_gestures(test_timeout))
 
+    # Get the trial args selected from the database in preprocess.
+    db_trial_args = self.uworker_input.fuzz_task_input.trial_app_args
+    # Setup trials from DB and build.
+    _setup_build_and_db_trials(list(db_trial_args))
     logs.info('Starting to process testcases.')
     logs.info(f'Redzone is {self.redzone} bytes.')
     logs.info(f'Timeout multiplier is {self.timeout_multiplier}.')
@@ -1839,9 +1843,6 @@ class FuzzingSession:
       leak_blacklist.copy_global_to_local_blacklist(
           global_blacklisted_functions)
 
-    # Get the trial args selected from the database in preprocess.
-    db_trial_args = self.uworker_input.fuzz_task_input.trial_app_args
-
     # Ensure that that the fuzzer still exists.
     logs.info('Setting up fuzzer and data bundles.')
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
@@ -1869,9 +1870,6 @@ class FuzzingSession:
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
-
-    # Setup trials from DB and build.
-    _setup_build_and_db_trials(db_trial_args)
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -2078,15 +2076,15 @@ def _get_fuzz_target(uworker_input):
 def _setup_build_and_db_trials(db_trial_args):
   """Get trials from the build, combine with db trials, and set env vars."""
   # Get trials from the build.
+  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
   app_name = environment.get_value('APP_NAME')
   app_dir = environment.get_value('APP_DIR')
   build_trials = trials.get_build_trials(app_name, app_dir)
   build_trial_args = trials.get_additional_args(build_trials,
-                                                existing_args=db_trial_args)
+                                                existing_args=set(db_trial_args))
 
   # Combine trial args from DB and build, and set environment variables.
-  trial_app_args_list = list(db_trial_args) + build_trial_args
-  trial_app_args = ' '.join(trial_app_args_list)
+  trial_app_args = ' '.join(db_trial_args + build_trial_args)
   if trial_app_args:
     app_args = environment.get_value('APP_ARGS', '')
     environment.set_value('APP_ARGS', f'{app_args} {trial_app_args}')
@@ -2193,7 +2191,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   db_trials = trials.get_db_trials(app_name)
   trial_app_args = trials.get_additional_args(db_trials)
   if trial_app_args:
-    fuzz_task_input.trial_app_args.extend(trial_app_args)
+    fuzz_task_input.trial_app_args = trial_app_args
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
