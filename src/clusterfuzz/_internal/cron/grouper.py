@@ -24,6 +24,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 
 from . import cleanup
 from . import group_leader
@@ -384,8 +385,29 @@ def _has_testcase_with_same_params(testcase, testcase_map):
   return False
 
 
+def _increment_group_overflow_metric(group_overflow, testcase):
+  """Increments the counter for group overflow metric."""
+  job = testcase.job_type
+  fuzzer = testcase.fuzzer_name
+  id_tuple = (job, fuzzer)
+  if id_tuple not in group_overflow:
+    group_overflow[id_tuple] = 0
+  group_overflow[id_tuple] += 1
+
+
+def _emit_group_overflow_metric(group_overflow):
+  """Emits the testcase group overflow count metric."""
+  for (job, fuzzer) in group_overflow:
+    monitoring_metrics.TESTCASE_GROUP_OVERFLOW_COUNT.set(
+        group_overflow[(job, fuzzer)], labels={
+            'job': job,
+            'fuzzer': fuzzer,
+        })
+
+
 def _shrink_large_groups_if_needed(testcase_map):
   """Shrinks groups that exceed a particular limit."""
+  group_overflow = {}
   if isinstance(GROUP_MAX_TESTCASE_LIMIT, int):
     group_max_testcase_limit = int(GROUP_MAX_TESTCASE_LIMIT)
   else:
@@ -412,7 +434,9 @@ def _shrink_large_groups_if_needed(testcase_map):
       group_id_with_testcases_map[testcase.group_id].append(testcase)
 
   for testcases_in_group in group_id_with_testcases_map.values():
-    if len(testcases_in_group) <= group_max_testcase_limit:
+    group_size = len(testcases_in_group)
+    monitoring_metrics.TESTCASE_GROUPS_SIZES.add(group_size)
+    if group_size <= group_max_testcase_limit:
       continue
 
     testcases_in_group = sorted(testcases_in_group, key=_key_func)
@@ -428,6 +452,7 @@ def _shrink_large_groups_if_needed(testcase_map):
         if testcase_entity.bug_information:
           continue
 
+        _increment_group_overflow_metric(group_overflow, testcase_entity)
         events.emit(
             events.TestcaseRejectionEvent(
                 testcase=testcase_entity,
@@ -445,6 +470,8 @@ def _shrink_large_groups_if_needed(testcase_map):
           testcase_entity.fixed = 'NA'
           testcase_entity.open = False
           testcase_entity.put()
+
+  _emit_group_overflow_metric(group_overflow)
 
 
 def _get_testcase_attributes(testcase, testcase_map, cached_issue_map):
