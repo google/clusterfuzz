@@ -32,8 +32,6 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
                         'one_time_crasher_flag', 'project_name',
                         'security_flag', 'timestamp', 'job_type', 'fuzzer_name')
 
-GROUP_MAX_TESTCASE_LIMIT = 25
-
 VARIANT_CRASHES_IGNORE = re.compile(
     r'^(Out-of-memory|Timeout|Missing-library|Data race|GPU failure)')
 
@@ -44,6 +42,13 @@ VARIANT_MIN_THRESHOLD = 5
 VARIANT_MAX_THRESHOLD = 10
 
 TOP_CRASHES_LIMIT = 10
+
+GROUP_MAX_TESTCASE_LIMIT = local_config.ProjectConfig().get(
+    'deduplication.group_max_limit', 25)
+CRASH_COMPARER_THRESHOLD = local_config.ProjectConfig().get(
+    'deduplication.crash_comparer_threshold')
+CRASH_COMPARER_SAME_FRAMES = local_config.ProjectConfig().get(
+    'deduplication.crash_comparer_same_frames')
 
 
 class TestcaseAttributes:
@@ -311,14 +316,16 @@ def _compare_testcases_crash_states(testcase_1, testcase_2) -> bool:
   else:
     # Rule: For functional bugs, compare for similar crash states.
     if not testcase_1.security_flag:
-      crash_comparer = CrashComparer(testcase_1.crash_type,
-                                     testcase_2.crash_type)
+      crash_comparer = CrashComparer(
+          testcase_1.crash_type, testcase_2.crash_type,
+          CRASH_COMPARER_THRESHOLD, CRASH_COMPARER_SAME_FRAMES)
       if not crash_comparer.is_similar():
         return False
 
     # Rule: Check for crash state similarity.
-    crash_comparer = CrashComparer(testcase_1.crash_state,
-                                   testcase_2.crash_state)
+    crash_comparer = CrashComparer(
+        testcase_1.crash_state, testcase_2.crash_state,
+        CRASH_COMPARER_THRESHOLD, CRASH_COMPARER_SAME_FRAMES)
     if not crash_comparer.is_similar():
       return False
 
@@ -377,6 +384,12 @@ def _has_testcase_with_same_params(testcase, testcase_map):
 
 def _shrink_large_groups_if_needed(testcase_map):
   """Shrinks groups that exceed a particular limit."""
+  if isinstance(GROUP_MAX_TESTCASE_LIMIT, int):
+    group_max_testcase_limit = int(GROUP_MAX_TESTCASE_LIMIT)
+  else:
+    logs.warning('Max group size is wrongly configured: '
+                 f'{GROUP_MAX_TESTCASE_LIMIT}. Defaulting to 25.')
+    group_max_testcase_limit = 25
 
   def _key_func(testcase):
     weight = 0
@@ -397,11 +410,11 @@ def _shrink_large_groups_if_needed(testcase_map):
       group_id_with_testcases_map[testcase.group_id].append(testcase)
 
   for testcases_in_group in group_id_with_testcases_map.values():
-    if len(testcases_in_group) <= GROUP_MAX_TESTCASE_LIMIT:
+    if len(testcases_in_group) <= group_max_testcase_limit:
       continue
 
     testcases_in_group = sorted(testcases_in_group, key=_key_func)
-    for testcase in testcases_in_group[:-GROUP_MAX_TESTCASE_LIMIT]:
+    for testcase in testcases_in_group[:-group_max_testcase_limit]:
       try:
         testcase_entity = data_handler.get_testcase_by_id(testcase.id)
       except errors.InvalidTestcaseError:
@@ -413,15 +426,16 @@ def _shrink_large_groups_if_needed(testcase_map):
         if testcase_entity.bug_information:
           continue
 
-        logs.warning(
-            ('Deleting testcase {testcase_id} due to overflowing group '
-             '{group_id}.').format(
-                 testcase_id=testcase.id, group_id=testcase.group_id))
+        logs.warning(f'Closing testcase {testcase.id} due to overflowing group '
+                     f'{testcase.group_id}.')
         events.emit(
             events.TestcaseRejectionEvent(
                 testcase=testcase_entity,
                 rejection_reason=events.RejectionReason.GROUPER_OVERFLOW))
-        testcase_entity.key.delete()
+        # Mark testcase as closed instead of deleting it to avoid data loss.
+        testcase_entity.fixed = 'NA'
+        testcase_entity.open = False
+        testcase_entity.put()
 
 
 def _get_testcase_attributes(testcase, testcase_map, cached_issue_map):
