@@ -98,6 +98,15 @@ def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
     return False
 
 
+def is_fuzz_target_local(file_path: str) -> bool:
+  """Lightweight version of is_fuzz_target that only checks the filename."""
+  filename, file_extension = os.path.splitext(os.path.basename(file_path))
+  if file_extension not in ALLOWED_FUZZ_TARGET_EXTENSIONS:
+    return False
+
+  return filename.endswith('fuzzer')
+
+
 def get_fuzz_targets_local(path):
   """Get list of fuzz targets paths (local)."""
   fuzz_target_paths = []

@@ -526,7 +526,17 @@ class Build(BaseBuild):
           # We will never unpack the full build so we need to get the targets
           # from the build archive.
           list_fuzz_target_start_time = time.time()
-          self._fuzz_targets = list(build.list_fuzz_targets())
+          allow_unpack_over_http = environment.get_value(
+              'ALLOW_UNPACK_OVER_HTTP', default_value=False)
+          can_unpack_over_http = (
+              allow_unpack_over_http and http_build_url and
+              build_archive.unzip_over_http_compatible(http_build_url))
+
+          if can_unpack_over_http:
+            self._fuzz_targets = list(build.list_fuzz_targets_by_name())
+          else:
+            self._fuzz_targets = list(build.list_fuzz_targets())
+
           _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
                                            'list_fuzz_targets',
                                            self._build_type)
