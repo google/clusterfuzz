@@ -100,7 +100,12 @@ def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
 
 def is_fuzz_target_name(file_path: str) -> bool:
   """Lightweight version of is_fuzz_target that only checks the filename."""
-  filename, file_extension = os.path.splitext(os.path.basename(file_path))
+  if '@' in file_path:
+    filename = os.path.basename(file_path)
+    file_extension = ''
+  else:
+    filename, file_extension = os.path.splitext(os.path.basename(file_path))
+
   if file_extension not in ALLOWED_FUZZ_TARGET_EXTENSIONS:
     return False
 
