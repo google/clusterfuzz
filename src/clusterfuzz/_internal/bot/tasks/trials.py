@@ -74,8 +74,8 @@ class Trials:
       logs.warning('Unable to parse config file: %s' % str(e))
       return
 
-  def setup_additional_args_for_app(self, shuffle=True):
-    """Select additional args for the specified app at random."""
+  def get_additional_args(self, shuffle=True):
+    """Select additional args for the specified app at random and return them."""
     trial_args = []
     contradicts = set()
 
@@ -95,10 +95,15 @@ class Trials:
           continue
         trial_args.append(app_args)
         contradicts.update(self.trials[app_args].contradicts)
-    if not trial_args:
+
+    return ' '.join(trial_args)
+
+  def setup_additional_args_for_app(self, shuffle=True):
+    """Select additional args for the specified app at random."""
+    trial_app_args = self.get_additional_args(shuffle)
+    if not trial_app_args:
       return
 
-    trial_app_args = ' '.join(trial_args)
     app_args = environment.get_value('APP_ARGS', '')
     environment.set_value('APP_ARGS', '%s %s' % (app_args, trial_app_args))
     environment.set_value('TRIAL_APP_ARGS', trial_app_args)

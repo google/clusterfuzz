@@ -39,7 +39,7 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
-from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -1737,7 +1737,6 @@ class FuzzingSession:
       testcases_metadata[testcase_file_path]['gestures'] = (
           fuzz_task_knobs.pick_gestures(test_timeout))
 
-
     logs.info('Starting to process testcases.')
     logs.info(f'Redzone is {self.redzone} bytes.')
     logs.info(f'Timeout multiplier is {self.timeout_multiplier}.')
@@ -1840,6 +1839,13 @@ class FuzzingSession:
       leak_blacklist.copy_global_to_local_blacklist(
           global_blacklisted_functions)
 
+    # Set up trials.
+    trial_app_args = self.uworker_input.fuzz_task_input.trial_app_args
+    if trial_app_args:
+      app_args = environment.get_value('APP_ARGS', '')
+      environment.set_value('APP_ARGS', f'{app_args} {trial_app_args}')
+      environment.set_value('TRIAL_APP_ARGS', trial_app_args)
+
     # Ensure that that the fuzzer still exists.
     logs.info('Setting up fuzzer and data bundles.')
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
@@ -1901,13 +1907,6 @@ class FuzzingSession:
     if build_data.is_bad_build:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
-
-    # For some binaries, we specify trials, which are sets of flags that we
-    # only apply some of the time. Adjust APP_ARGS for them if needed.
-    # TODO(machenbach): Move this back to the main loop and make it test-case
-    # specific in a way that get's persistet on crashes.
-    trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
@@ -2171,6 +2170,28 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             max_upload_urls=_get_max_corpus_uploads_per_task(),
             max_download_urls=25000,
             use_backup=True).serialize())
+
+  # Select trial and set it in fuzz_task_input.
+  # This is tricky because we don't have the build here. We can only get
+  # trials from the datastore.
+  app_name = data_handler.get_value_from_job_definition(job_type, 'APP_NAME')
+  if app_name:
+    # Temporarily set APP_NAME for Trials constructor.
+    original_app_name = environment.get_value('APP_NAME')
+    environment.set_value('APP_NAME', app_name)
+
+    logs.info('Selecting trials from datastore only. Build-specific trial '
+              'configs are not available in preprocess.')
+    trial_selector = trials.Trials()
+    trial_app_args = trial_selector.get_additional_args()
+    if trial_app_args:
+      fuzz_task_input.trial_app_args = trial_app_args
+
+    # Restore APP_NAME
+    if original_app_name is None:
+      environment.remove_key('APP_NAME')
+    else:
+      environment.set_value('APP_NAME', original_app_name)
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
