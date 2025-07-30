@@ -1677,10 +1677,11 @@ def do_libfuzzer_minimization(
 
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
-    cleansed_testcase_path, last_minimized_keys = do_libfuzzer_cleanse(
+    cleansed_testcase_path, cleansed_minimized_keys = do_libfuzzer_cleanse(
         fuzz_target, testcase, current_testcase_path,
         expected_state.crash_state, minimize_task_input)
     if cleansed_testcase_path:
+      last_minimized_keys = cleansed_minimized_keys
       current_testcase_path = cleansed_testcase_path
 
   # Finalize the test case if we were able to reproduce it.
@@ -1696,6 +1697,8 @@ def do_libfuzzer_minimization(
       memory_tool_options=memory_tool_options)
   if last_minimized_keys:
     minimize_task_output.minimized_keys = str(last_minimized_keys)
+  else:
+    logs.warning('Last minimized keys are none after LibFuzzer minimization.')
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)  # pylint: disable=no-member
 
 
