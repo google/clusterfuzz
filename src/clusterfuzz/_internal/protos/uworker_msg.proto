@@ -40,7 +40,7 @@ message SymbolizeTaskInput {
 // TODO: refactor other instances to use this structured message.
 message BlobUploadUrl {
   optional string key = 1;
-  optional string url = 2;
+  repeated string trial_app_args = 8;
 }
 
 message FuzzTaskInput {
@@ -52,7 +52,6 @@ message FuzzTaskInput {
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
   repeated BlobUploadUrl crash_upload_urls = 7;
-  optional string trial_app_args = 8;
 }
 
 message DataBundleCorpus {

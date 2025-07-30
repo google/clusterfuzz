@@ -118,7 +118,7 @@ def get_additional_args(trials, existing_args=None, shuffle=True):
       trial_args.append(app_args)
       contradicts.update(trials[app_args].contradicts)
 
-  return ' '.join(trial_args)
+  return trial_args
 
 
 class Trials:
@@ -136,10 +136,11 @@ class Trials:
 
   def setup_additional_args_for_app(self, shuffle=True):
     """Select additional args for the specified app at random."""
-    trial_app_args = get_additional_args(self.trials, shuffle=shuffle)
-    if not trial_app_args:
+    trial_app_args_list = get_additional_args(self.trials, shuffle=shuffle)
+    if not trial_app_args_list:
       return
 
+    trial_app_args = ' '.join(trial_app_args_list)
     app_args = environment.get_value('APP_ARGS', '')
     environment.set_value('APP_ARGS', '%s %s' % (app_args, trial_app_args))
     environment.set_value('TRIAL_APP_ARGS', trial_app_args)

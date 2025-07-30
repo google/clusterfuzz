@@ -2085,8 +2085,8 @@ def _setup_build_and_db_trials(db_trial_args):
                                                 existing_args=db_trial_args)
 
   # Combine trial args from DB and build, and set environment variables.
-  trial_app_args = ' '.join(
-      arg for arg in [db_trial_args, build_trial_args] if arg)
+  trial_app_args_list = list(db_trial_args) + build_trial_args
+  trial_app_args = ' '.join(trial_app_args_list)
   if trial_app_args:
     app_args = environment.get_value('APP_ARGS', '')
     environment.set_value('APP_ARGS', f'{app_args} {trial_app_args}')
@@ -2193,7 +2193,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   db_trials = trials.get_db_trials(app_name)
   trial_app_args = trials.get_additional_args(db_trials)
   if trial_app_args:
-    fuzz_task_input.trial_app_args = trial_app_args
+    fuzz_task_input.trial_app_args.extend(trial_app_args)
 
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
