@@ -222,61 +222,6 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     }]
     self.source_side_test(config_file_content, 0.1, 'app_4', '-x --c4', '--c4')
 
-
-@test_utils.with_cloud_emulators('datastore')
-class GetTrialsTest(fake_filesystem_unittest.TestCase):
-  """Tests for getting trials."""
-
-  def setUp(self):
-    environment.set_value('APP_DIR', '/src')
-    test_utils.set_up_pyfakefs(self)
-
-    data_types.Trial(app_name='app_1', probability=0.5, app_args='--a1').put()
-    data_types.Trial(
-        app_name='app_2',
-        probability=1.0,
-        app_args='--b1',
-        contradicts=['--b2']).put()
-
-    self.fs.create_file(
-        '/src/clusterfuzz_trials_config.json',
-        contents=json.dumps([{
-            'app_name': 'app_1',
-            'app_args': '--a2',
-            'probability': 1.0
-        }, {
-            'app_name': 'app_2',
-            'app_args': '--b2',
-            'probability': 1.0
-        }]))
-
-    test_helpers.patch(self, ['random.random'])
-
-  def test_get_db_trials(self):
-    """Test get_db_trials."""
-    result = trials.get_db_trials('app_1')
-    self.assertIn('--a1', result)
-    self.assertNotIn('--a2', result)
-
-  def test_get_build_trials(self):
-    """Test get_build_trials."""
-    result = trials.get_build_trials('app_1', '/src')
-    self.assertNotIn('--a1', result)
-    self.assertIn('--a2', result)
-
-  def test_get_additional_args(self):
-    """Test get_additional_args."""
-    self.mock.random.return_value = 0.4
-    db_trials = trials.get_db_trials('app_1')
-    self.assertEqual('--a1', trials.get_additional_args(db_trials))
-
-  def test_get_additional_args_with_contradiction(self):
-    """Test get_additional_args with contradiction."""
-    self.mock.random.return_value = 0.4
-    all_trials = trials.get_db_trials('app_2')
-    all_trials.update(trials.get_build_trials('app_2', '/src'))
-    self.assertEqual('--b1', trials.get_additional_args(all_trials))
-
   def test_trial_ignored_if_there_is_asymmetrical_contradiction(self):
     """Ensure that a flag is not added if it contradicts an already added flag."""
     config_file_content = [{

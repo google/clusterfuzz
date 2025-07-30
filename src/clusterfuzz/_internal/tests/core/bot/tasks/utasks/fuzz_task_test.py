@@ -33,7 +33,6 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
-from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
@@ -1219,10 +1218,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     data_types.Trial(app_name='app_1', probability=0.5, app_args='-y').put()
     data_types.Trial(app_name='app_1', probability=0.2, app_args='-z').put()
 
-    trial_app_args = trials.get_db_trials('app_1')
-    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(trial_app_args=trial_app_args)
     uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name='fantasy_fuzz', job_type='asan_test', fuzz_task_input=fuzz_task_input)
+        fuzzer_name='fantasy_fuzz', job_type='asan_test')
 
     session = fuzz_task.FuzzingSession(uworker_input, 10)
     self.assertEqual(20, session.test_timeout)
@@ -1751,33 +1748,3 @@ class SampleCrashesForReuploadTest(unittest.TestCase):
 
     self.mock._publish_to_pubsub.assert_called_once_with(
         expected_messages, self.replication_topic)
-
-
-class BuildAndDbTrialsTest(unittest.TestCase):
-  """Tests for _setup_build_and_db_trials."""
-
-  def setUp(self):
-    helpers.patch_environ(self)
-    helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.trials.get_build_trials',
-        'clusterfuzz._internal.bot.tasks.trials.get_additional_args',
-    ])
-
-  def test_setup_build_and_db_trials(self):
-    """Test _setup_build_and_db_trials."""
-    environment.set_value('APP_NAME', 'my_app')
-    environment.set_value('APP_DIR', '/app')
-    environment.set_value('APP_ARGS', '-a')
-
-    self.mock.get_build_trials.return_value = {'--build': None}
-    self.mock.get_additional_args.return_value = '--build'
-
-    fuzz_task._setup_build_and_db_trials('--db')
-
-    self.assertEqual(environment.get_value('APP_ARGS'), '-a --db --build')
-    self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--db --build')
-    self.mock.get_build_trials.assert_called_once_with('my_app', '/app')
-    self.mock.get_additional_args.assert_called_once_with({
-        '--build': None
-    },
-                                                           existing_args='--db')
