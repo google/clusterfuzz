@@ -1748,3 +1748,33 @@ class SampleCrashesForReuploadTest(unittest.TestCase):
 
     self.mock._publish_to_pubsub.assert_called_once_with(
         expected_messages, self.replication_topic)
+
+
+class BuildAndDbTrialsTest(unittest.TestCase):
+  """Tests for _setup_build_and_db_trials."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.trials.get_build_trials',
+        'clusterfuzz._internal.bot.tasks.trials.get_additional_args',
+    ])
+
+  def test_setup_build_and_db_trials(self):
+    """Test _setup_build_and_db_trials."""
+    environment.set_value('APP_NAME', 'my_app')
+    environment.set_value('APP_DIR', '/app')
+    environment.set_value('APP_ARGS', '-a')
+
+    self.mock.get_build_trials.return_value = {'--build': None}
+    self.mock.get_additional_args.return_value = '--build'
+
+    fuzz_task._setup_build_and_db_trials('--db')
+
+    self.assertEqual(environment.get_value('APP_ARGS'), '-a --db --build')
+    self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--db --build')
+    self.mock.get_build_trials.assert_called_once_with('my_app', '/app')
+    self.mock.get_additional_args.assert_called_once_with({
+        '--build': None
+    },
+                                                           existing_args='--db')
