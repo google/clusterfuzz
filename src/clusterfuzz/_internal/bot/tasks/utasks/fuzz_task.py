@@ -39,6 +39,7 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
+from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -1736,14 +1737,6 @@ class FuzzingSession:
       testcases_metadata[testcase_file_path]['gestures'] = (
           fuzz_task_knobs.pick_gestures(test_timeout))
 
-    # Prepare selecting trials in main loop below.
-    trial_selector = trials.Trials()
-
-    # TODO(machenbach): Move this back to the main loop and make it test-case
-    # specific in a way that get's persistet on crashes.
-    # For some binaries, we specify trials, which are sets of flags that we
-    # only apply some of the time. Adjust APP_ARGS for them if needed.
-    trial_selector.setup_additional_args_for_app()
 
     logs.info('Starting to process testcases.')
     logs.info(f'Redzone is {self.redzone} bytes.')
@@ -1908,6 +1901,13 @@ class FuzzingSession:
     if build_data.is_bad_build:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+
+    # For some binaries, we specify trials, which are sets of flags that we
+    # only apply some of the time. Adjust APP_ARGS for them if needed.
+    # TODO(machenbach): Move this back to the main loop and make it test-case
+    # specific in a way that get's persistet on crashes.
+    trial_selector = trials.Trials()
+    trial_selector.setup_additional_args_for_app()
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
