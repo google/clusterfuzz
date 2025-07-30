@@ -87,15 +87,6 @@ class BuildArchive(archive.ArchiveReader):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def list_fuzz_targets_by_name(self) -> List[str]:
-    """Lists fuzzing targets in the archive by only looking at their names.
-
-    Returns:
-        The list of fuzz targets.
-    """
-    raise NotImplementedError
-
-  @abc.abstractmethod
   def get_target_dependencies(
       self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
     """Gets the target dependencies. This returns all the necessary files in
@@ -205,19 +196,6 @@ class DefaultBuildArchive(BuildArchive):
 
     return list(self._fuzz_targets.keys())
 
-  def list_fuzz_targets_by_name(self) -> List[str]:
-    """Lists fuzzing targets in the archive by only looking at their names."""
-    # Import here as this path is not available in App Engine context.
-    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-
-    fuzz_targets = []
-    for archive_file in self.list_members():
-      if fuzzer_utils.is_fuzz_target_local(archive_file.name):
-        fuzz_target = fuzzer_utils.normalize_target_name(archive_file.name)
-        fuzz_targets.append(fuzz_target)
-
-    return fuzz_targets
-
   def unpacked_size(self, fuzz_target: Optional[str] = None) -> int:
     if not fuzz_target:
       return self.extracted_size()
@@ -315,6 +293,24 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
     res += self._match_files(matchers)
     return res
+
+
+class HttpBuildArchive(DefaultBuildArchive):
+  """Build archive that is read over HTTP."""
+
+  def list_fuzz_targets(self) -> List[str]:
+    """Lists fuzzing targets in the archive by only looking at their names."""
+    if self._fuzz_targets:
+      return list(self._fuzz_targets.keys())
+    # Import here as this path is not available in App Engine context.
+    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+
+    for archive_file in self.list_members():
+      if fuzzer_utils.is_fuzz_target_name(archive_file.name):
+        fuzz_target = fuzzer_utils.normalize_target_name(archive_file.name)
+        self._fuzz_targets[fuzz_target] = archive_file.name
+
+    return list(self._fuzz_targets.keys())
 
 
 def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
