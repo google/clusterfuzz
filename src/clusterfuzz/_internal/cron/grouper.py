@@ -43,6 +43,8 @@ VARIANT_MAX_THRESHOLD = 10
 
 TOP_CRASHES_LIMIT = 10
 
+DELETE_TESTCASES_FROM_GROUPING = local_config.ProjectConfig().get(
+    'deduplication.delete_testcases_from_grouping', True)
 GROUP_MAX_TESTCASE_LIMIT = local_config.ProjectConfig().get(
     'deduplication.group_max_limit', 25)
 CRASH_COMPARER_THRESHOLD = local_config.ProjectConfig().get(
@@ -426,18 +428,23 @@ def _shrink_large_groups_if_needed(testcase_map):
         if testcase_entity.bug_information:
           continue
 
-        logs.warning(f'Closing testcase {testcase.id} due to overflowing group '
-                     f'{testcase.group_id}.')
         events.emit(
             events.TestcaseRejectionEvent(
                 testcase=testcase_entity,
                 rejection_reason=events.RejectionReason.GROUPER_OVERFLOW))
-        # Mark testcase as closed instead of deleting it to avoid data loss.
-        # TODO(vtcosta): Add logic to re-run progression for these testcases
-        # when the group leader is closed. Delete them if they are also fixed.
-        testcase_entity.fixed = 'NA'
-        testcase_entity.open = False
-        testcase_entity.put()
+        if DELETE_TESTCASES_FROM_GROUPING:
+          logs.warning(f'Deleting testcase {testcase.id} due to overflowing '
+                       f'group {testcase.group_id}.')
+          testcase_entity.key.delete()
+        else:
+          # Mark testcase as closed instead of deleting it to avoid data loss.
+          logs.warning(f'Closing testcase {testcase.id} due to overflowing '
+                       f'group {testcase.group_id}.')
+          # TODO(vtcosta): Add logic to re-run progression for these testcases
+          # when the group leader is closed. Delete them if they are also fixed.
+          testcase_entity.fixed = 'NA'
+          testcase_entity.open = False
+          testcase_entity.put()
 
 
 def _get_testcase_attributes(testcase, testcase_map, cached_issue_map):
