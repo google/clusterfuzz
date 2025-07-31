@@ -939,6 +939,10 @@ class StackParser:
             new_type='Out-of-memory',
             reset=True)
 
+      # Stack overflow detected by Centipede.
+      self.update_state_on_match(
+          CENTIPEDE_STACK_LIMIT_REGEX, line, state, new_type='Stack-overflow')
+
       # V8 sandbox violations.
       self.update_state_on_match(
           V8_SANDBOX_VIOLATION_REGEX,
