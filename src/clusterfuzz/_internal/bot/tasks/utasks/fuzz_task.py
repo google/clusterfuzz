@@ -2144,9 +2144,35 @@ def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
 
 
 def _preprocess_get_fuzz_target(fuzzer_name, job_type):
+  """Get the fuzz target for the task."""
   fuzz_target_name = _pick_fuzz_target()
   if fuzz_target_name:
     return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
+
+  if not environment.is_engine_fuzzer_job():
+    return None
+
+  # If we are using unpack over HTTP, we must select a fuzz target to avoid
+  # unpacking the entire build, which can be very large and cause issues.
+  # This is only done if no fuzz target was selected from the datastore.
+  if not environment.get_value('ALLOW_UNPACK_OVER_HTTP'):
+    return None
+
+  targets = build_manager.list_fuzz_targets_from_build_archive()
+  if not targets:
+    logs.warning('Could not find any fuzz targets in build archive.')
+    return None
+
+  logs.info(f'Found {len(targets)} targets in build archive, recording them.')
+  data_handler.record_fuzz_targets(fuzzer_name, targets, job_type)
+
+  # Now that targets are recorded, we can get weights and pick one.
+  target_weights = fuzzer_selection.get_fuzz_target_weights()
+  fuzz_target_name = build_manager.pick_random_fuzz_target(target_weights)
+
+  if fuzz_target_name:
+    return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
+
   return None
 
 

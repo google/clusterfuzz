@@ -1547,6 +1547,40 @@ def pick_random_fuzz_target(target_weights):
   return _pick_random_fuzz_target_for_standard_build(target_weights)
 
 
+def list_fuzz_targets_from_build_archive(revision: Optional[int] = None):
+  """Lists fuzz targets from a build archive, without unpacking."""
+  bucket_path = get_bucket_path('RELEASE_BUILD_BUCKET_PATH')
+  if not bucket_path:
+    logs.warning('RELEASE_BUILD_BUCKET_PATH not defined, cannot list targets.')
+    return []
+
+  job_type = environment.get_value('JOB_NAME')
+  if not revision:
+    revision = _get_latest_revision([bucket_path])
+
+  if not revision:
+    logs.warning('Could not find latest revision.')
+    return []
+
+  build_url = _get_build_url(bucket_path, revision, job_type)
+  if not build_url:
+    return []
+
+  http_build_url = build_url.replace('gs://', 'https://storage.googleapis.com/')
+  if not build_archive.unzip_over_http_compatible(http_build_url):
+    logs.warning(
+        'Build archive is not compatible with remote unzipping, '
+        'cannot list targets without downloading.')
+    return []
+
+  try:
+    with build_archive.open_uri(http_build_url) as build:
+      return list(build.list_fuzz_targets())
+  except Exception as e:
+    logs.error(f'Failed to list targets from {http_build_url}: {e}')
+    return []
+
+
 def check_app_path(app_path='APP_PATH') -> bool:
   """Check if APP_PATH is properly set."""
   # If APP_NAME is not set (e.g. for grey box jobs), then we don't need
