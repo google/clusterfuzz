@@ -242,6 +242,17 @@ class RoundTripTest(unittest.TestCase):
                      uworker_input.testcase_id)
     self.assertEqual(downloaded_output.uworker_input.uworker_env, uworker_env)
 
+  @mock.patch('clusterfuzz._internal.metrics.logs.info')
+  def test_upload_output_logging(self, mock_log_info):
+    """Tests that uploading the uworker output logs the url."""
+    output = uworker_msg_pb2.Output()
+    upload_signed_url_name = ('clusterfuzz._internal.google_cloud_utils.'
+                              'storage.upload_signed_url')
+    with mock.patch(upload_signed_url_name, return_value=True):
+      uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
+    mock_log_info.assert_called_with(
+        f'Uploading uworker output to {self.FAKE_URL}')
+
   def test_output_error_serialization(self):
     """Tests that errors can be returned by the tasks."""
     test_timeout = 1337
