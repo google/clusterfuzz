@@ -631,3 +631,18 @@ def group_testcases():
       testcase.put()
       logs.info(
           'Updated testcase %d group to %d.' % (testcase_id, updated_group_id))
+
+
+@logs.cron_log_context()
+def main():
+  """Group testcases (this will be used to run grouper as a standalone cron in
+  dev/staging environments)."""
+  try:
+    logs.info('Grouping testcases.')
+    group_testcases()
+    logs.info('Grouping done.')
+  except:
+    logs.error('Error occurred while grouping test cases.')
+    return False
+
+  return True
