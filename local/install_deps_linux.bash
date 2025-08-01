@@ -24,19 +24,7 @@ while [ "$1" != "" ]; do
   shift
 done
 
-if [ -z "$PYTHON" ]; then
-  if which python3.11 > /dev/null; then
-    export PYTHON='python3.11'
-  elif which python3.10 > /dev/null; then
-    export PYTHON='python3.10'
-  elif which python3.9 > /dev/null; then
-    export PYTHON='python3.9'
-  elif which python3.8 > /dev/null; then
-    export PYTHON='python3.8'
-  else
-    export PYTHON='python3'
-  fi
-fi
+export PYTHON='python3.11'
 
 if ! which "$PYTHON" > /dev/null; then
   echo "python $PYTHON not found"
@@ -54,7 +42,7 @@ fi
 # Check if the distro is supported.
 distro_codename=$(lsb_release --codename --short)
 distro_id=$(lsb_release --id --short)
-supported_codenames="(xenial|artful|bionic|cosmic|focal)"
+supported_codenames="(xenial|artful|bionic|cosmic|focal|noble)"
 supported_ids="(Debian)"
 if [[ ! $distro_codename =~ $supported_codenames &&
       ! $distro_id =~ $supported_ids ]]; then
@@ -64,6 +52,7 @@ if [[ ! $distro_codename =~ $supported_codenames &&
     "\tUbuntu 18.04 LTS (bionic)\n" \
     "\tUbuntu 18.10 LTS (cosmic)\n" \
     "\tUbuntu 20.04 LTS (focal)\n" \
+    "\tUbuntu 24.04 LTS (noble)\n" \
     "\tDebian 8 (jessie) or later" >&2
   exit 1
 fi
@@ -75,12 +64,14 @@ if ! uname -m | egrep -q "i686|x86_64"; then
 fi
 
 # Install packages that we depend on.
+sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install -y \
     blackbox \
     curl \
     libpython3-all-dev \
     pipenv \
+    python3.11 \
     python3-pip \
     unzip \
     xvfb
