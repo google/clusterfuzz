@@ -250,6 +250,7 @@ class FuzzTaskInput(google.protobuf.message.Message):
     CORPUS_FIELD_NUMBER: builtins.int
     GLOBAL_BLACKLISTED_FUNCTIONS_FIELD_NUMBER: builtins.int
     CRASH_UPLOAD_URLS_FIELD_NUMBER: builtins.int
+    TRIALS_FIELD_NUMBER: builtins.int
     sample_testcase_upload_key: builtins.str
     sample_testcase_upload_url: builtins.str
     script_log_upload_url: builtins.str
@@ -262,6 +263,8 @@ class FuzzTaskInput(google.protobuf.message.Message):
     def global_blacklisted_functions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
     def crash_upload_urls(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BlobUploadUrl]: ...
+    @property
+    def trials(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[google.protobuf.any_pb2.Any]: ...
     def __init__(
         self,
         *,
@@ -272,9 +275,10 @@ class FuzzTaskInput(google.protobuf.message.Message):
         corpus: global___FuzzTargetCorpus | None = ...,
         global_blacklisted_functions: collections.abc.Iterable[builtins.str] | None = ...,
         crash_upload_urls: collections.abc.Iterable[global___BlobUploadUrl] | None = ...,
+        trials: collections.abc.Iterable[google.protobuf.any_pb2.Any] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_fuzz_target", b"_fuzz_target", "_sample_testcase_upload_key", b"_sample_testcase_upload_key", "_sample_testcase_upload_url", b"_sample_testcase_upload_url", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "fuzz_target", b"fuzz_target", "sample_testcase_upload_key", b"sample_testcase_upload_key", "sample_testcase_upload_url", b"sample_testcase_upload_url", "script_log_upload_url", b"script_log_upload_url"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_fuzz_target", b"_fuzz_target", "_sample_testcase_upload_key", b"_sample_testcase_upload_key", "_sample_testcase_upload_url", b"_sample_testcase_upload_url", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "crash_upload_urls", b"crash_upload_urls", "fuzz_target", b"fuzz_target", "global_blacklisted_functions", b"global_blacklisted_functions", "sample_testcase_upload_key", b"sample_testcase_upload_key", "sample_testcase_upload_url", b"sample_testcase_upload_url", "script_log_upload_url", b"script_log_upload_url"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_fuzz_target", b"_fuzz_target", "_sample_testcase_upload_key", b"_sample_testcase_upload_key", "_sample_testcase_upload_url", b"_sample_testcase_upload_url", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "crash_upload_urls", b"crash_upload_urls", "fuzz_target", b"fuzz_target", "global_blacklisted_functions", b"global_blacklisted_functions", "sample_testcase_upload_key", b"sample_testcase_upload_key", "sample_testcase_upload_url", b"sample_testcase_upload_url", "script_log_upload_url", b"script_log_upload_url", "trials", b"trials"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_corpus", b"_corpus"]) -> typing_extensions.Literal["corpus"] | None: ...
     @typing.overload
