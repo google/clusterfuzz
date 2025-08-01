@@ -1740,10 +1740,7 @@ class FuzzingSession:
     db_trials = self.uworker_input.fuzz_task_input.trials
     # Setup trials from DB and build.
     # Prepare selecting trials in main loop below.
-    trial_selector = trials.Trials([
-        uworker_io.entity_from_protobuf(trial, data_types.Trial)
-        for trial in db_trials
-    ])
+    trial_selector = trials.Trials(db_trials)
 
     # TODO(machenbach): Move this back to the main loop and make it test-case
     # specific in a way that get's persistet on crashes.
@@ -2178,8 +2175,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             max_download_urls=25000,
             use_backup=True).serialize())
 
-  # TODO(metzman): Ensure we actually setup APP_NAME.
-  fuzz_task_input.extend(trials.preprocess_get_db_trials())
+  fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
     url.key = blobs.generate_new_blob_name()

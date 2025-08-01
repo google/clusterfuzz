@@ -18,6 +18,7 @@ import os
 import random
 from typing import List
 
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -33,11 +34,12 @@ class AppArgs:
     self.contradicts = contradicts or []
 
 
-def preprocess_get_db_trials() -> List[data_types.Trial]:
+def preprocess_get_db_trials():
   app_name = get_app_name()
   if not app_name:
     return []
-  return list(data_types.Trial.query(data_types.Trial.app_name == app_name))
+  trial_query = data_types.Trial.query(data_types.Trial.app_name == app_name)
+  return [uworker_io.entity_to_protobuf(trial) for trial in trial_query]
 
 
 def get_app_name():
@@ -60,7 +62,10 @@ class Trials:
 
   def __init__(self, db_trials):
     self.trials = {}
-    self._db_trials = db_trials
+    self._db_trials = [
+        uworker_io.entity_from_protobuf(trial, data_types.Trial)
+        for trial in db_trials
+    ]
 
     app_name = get_app_name()
     if not app_name:
