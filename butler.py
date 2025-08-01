@@ -304,7 +304,10 @@ def main():
   parser_deploy.add_argument(
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
-      '--targets', nargs='*', default=['appengine', 'terraform', 'zips'])
+      '--targets',
+      nargs='*',
+      default=['appengine', 'terraform', 'zips'],
+      choices=['appengine', 'terraform', 'zips', 'test_deployment'])
   parser_deploy.add_argument(
       '--release',
       '-r',
