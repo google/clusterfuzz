@@ -1222,7 +1222,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
     fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
     uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name='fantasy_fuzz', job_type='asan_test', fuzz_task_input=fuzz_task_input)
+        fuzzer_name='fantasy_fuzz',
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input)
 
     session = fuzz_task.FuzzingSession(uworker_input, 10)
     self.assertEqual(20, session.test_timeout)
