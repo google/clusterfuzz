@@ -515,14 +515,14 @@ def execute(args):
     if is_diff_origin_master() or is_diff_origin_master(
         environment.get_config_directory()):
       if args.force:
-        print('You are not on origin/master for clusterfuzz'
+        print('You are not on origin/master for clusterfuzz '
               'or clusterfuzz-config. --force is used. Continue.')
         for _ in range(3):
           print('.')
           time.sleep(1)
         print()
       else:
-        print('You are not on origin/master for clusterfuzz'
+        print('You are not on origin/master for clusterfuzz '
               'or clusterfuzz-config. Please fix or use --force.')
         sys.exit(1)
 
