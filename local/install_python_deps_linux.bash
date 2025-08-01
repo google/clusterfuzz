@@ -16,14 +16,14 @@
 
 # Setup pipenv and install python dependencies.
 echo If this fails, you may need to build older Python from source
-if python3.11 -m pipenv --venv > /dev/null 2>&1; then
+if $PYTHON -m pipenv --venv > /dev/null 2>&1; then
   # Remove existing pipenv virtual environment.
-  python3.11 -m pipenv --rm
+  $PYTHON -m pipenv --rm
 fi
 
-python3.11 -m pipenv --python python3.11
-python3.11 -m pipenv sync --dev
-source "$(python3.11 -m pipenv --venv)/bin/activate"
+$PYTHON -m pipenv --python $PYTHON
+$PYTHON -m pipenv sync --dev
+source "$(${PYTHON} -m pipenv --venv)/bin/activate"
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
