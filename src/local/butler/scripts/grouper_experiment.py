@@ -588,9 +588,13 @@ def load_testcases(local_dir: str):
               getattr(testcase, attribute_name))
 
     # Store original issue mappings in the testcase attributes.
-    if testcase.bug_information and not experiment_config.reset_issues:
+    if testcase.bug_information:
       issue_id = int(testcase.bug_information)
       project_name = testcase.project_name
+
+      if not experiment_config.use_issue_tracker:
+        testcase_attributes.issue_id = issue_id
+        continue
 
       if (project_name in cached_issue_map and
           issue_id in cached_issue_map[project_name]):
@@ -766,6 +770,7 @@ def _parse_grouper_args(args):
   parser.add_argument('--group_max', type=int, default=25)
   parser.add_argument('--crash_threshold', type=float, default=0.8)
   parser.add_argument('--same_frames', type=int, default=2)
+  parser.add_argument('--use_issue_tracker', action='store_true')
 
   args = ['--'+arg for arg in args]
   return parser.parse_args(args)
@@ -784,6 +789,7 @@ class ExperimentConfig():
   crash_comparer_threshold: float
   same_frame_threshold: int
   config_dir: str
+  use_issue_tracker: bool
 
 
 def set_experiment_config(parsed_args, config_dir):
@@ -800,6 +806,7 @@ def set_experiment_config(parsed_args, config_dir):
       group_max_size=parsed_args.group_max,
       crash_comparer_threshold=parsed_args.crash_threshold,
       same_frame_threshold=parsed_args.same_frames,
+      use_issue_tracker=parsed_args.use_issue_tracker,
       config_dir=config_dir)
   return experiment_config
 
