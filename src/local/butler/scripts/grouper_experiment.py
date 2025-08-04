@@ -516,8 +516,9 @@ def get_loaded_testcases(local_dir: str):
     return None, None, None
   print(f'Retrieving testcases from {testcases_snapshot}')
 
-  attr_filepath = os.path.join(testcases_snapshot, f'{TESTCASES_ATTR_FILE}.pkl')
-  tcs_duplicated_filepath = os.path.join(testcases_snapshot,
+  attr_filepath = os.path.join(local_dir, testcases_snapshot,
+                               f'{TESTCASES_ATTR_FILE}.pkl')
+  tcs_duplicated_filepath = os.path.join(local_dir, testcases_snapshot,
                                          f'{TESTCASES_DUP_DELETED_FILE}.pkl')
   testcases_duplicated = set()
   testcase_map = None
