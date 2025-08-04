@@ -634,6 +634,8 @@ def load_testcases(local_dir: str):
   # No longer needed. Free up some memory.
   cached_issue_map.clear()
 
+  print(f'Loaded {len(testcase_map)} unique testcases and '
+        f'{len(testcases_duplicated)} were duplicated.')
   # Store Testcases attributes locally.
   now = datetime.datetime.strftime(datetime.datetime.now(), '%d_%m_%Y')
   testcases_dir = os.path.join(local_dir, f'{TESTCASES_DIR_PREFIX}_{now}')
