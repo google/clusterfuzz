@@ -680,7 +680,7 @@ def group_testcases(local_dir: str):
   if experiment_config.reset_groups or experiment_config.reset_issues:
     for testcase in testcase_map.values():
       testcase.group_id = 0 if experiment_config.reset_groups else testcase.group_id
-      testcase.bug_information = '' if experiment_config.reset_issues else testcase.bug_information
+      testcase.issue_id = None if experiment_config.reset_issues else testcase.issue_id
 
   else:
     # Currently, there isn't an easy way to get which/why TCs were grouped. So,
