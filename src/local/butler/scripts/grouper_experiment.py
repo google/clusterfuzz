@@ -24,11 +24,18 @@ were grouped; and some global variables were added to configure the experiment.
 It is expected that this become stale if the grouper code is modified a lot.
 """
 
+import argparse
 import collections
+import datetime
 import os
 import pickle
 import random
 import re
+import uuid
+import json
+import networkx as nx
+from dataclasses import asdict
+from dataclasses import dataclass
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
@@ -37,6 +44,7 @@ from clusterfuzz._internal.cron import cleanup
 from clusterfuzz._internal.cron import group_leader
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -59,12 +67,12 @@ VARIANT_MAX_THRESHOLD = 10
 
 TOP_CRASHES_LIMIT = 10
 
-# Experiment Configs:
-MAX_TCS_TO_PICKLE = -1
-RESET_GROUPS = True
-VARIANT_BASED = False
+# Folder/file names.
+TESTCASES_DIR_PREFIX = 'testcases_snapshot'
+TESTCASES_ATTR_FILE = 'testcases_attributes'
+TESTCASES_DUP_DELETED_FILE = 'testcases_duplicated'
+
 REVISION_RANGE_FIX = False
-SAMPLE_TCS_TO_GROUP = -1
 
 
 def noop(self, *args, **kwargs):  #pylint: disable=unused-argument
@@ -91,28 +99,19 @@ class GroupAttributes:
     self.id = group_id
     self.leader_id = None
     self.group_issue_id = None
-    self.testcases = {}
+    self.testcases = nx.Graph()
 
   def __len__(self):
-    return len(self.testcases)
-
-  def add_testcase(self, tc: int) -> None:
-    if tc in self.testcases:
-      return
-    self.testcases[tc] = {}
+    return self.testcases.number_of_nodes()
 
   def add_connection(self, tc1: int, tc2: int, reason: str) -> None:
-    self.add_testcase(tc1)
-    self.add_testcase(tc2)
-    self.testcases[tc1][tc2] = reason
-    self.testcases[tc2][tc1] = reason
+    self.testcases.add_edge(tc1, tc2, reason=reason)
 
   def remove_testcase(self, tc: int) -> None:
-    if tc not in self.testcases:
-      return
-    for similar_tc in self.testcases[tc].keys():
-      del self.testcases[similar_tc][tc]
-    del self.testcases[tc]
+    self.testcases.remove_node(tc)
+
+  def merge_group(self, group: nx.Graph):
+    self.testcases = nx.compose(self.testcases, group)
 
 
 def add_testcases_to_group_map(group_map: dict[int, GroupAttributes],
@@ -132,6 +131,12 @@ def remove_testcase_from_group(group_map: dict[int, GroupAttributes],
   if group_id not in group_map:
     return
   group_map[group_id].remove_testcase(tc_id)
+
+
+def merge_testcases_groups(group_map: dict[int, GroupAttributes],
+                           group_to_move: int, group_to_reuse: int):
+  """Merge group_to_move into group_to_reuse."""
+  group_map[group_to_reuse].merge_group(group_map[group_to_move].testcases)
 
 
 def combine_testcases_into_group(
@@ -176,18 +181,20 @@ def combine_testcases_into_group(
   # together and reuse one of their group ids.
   group_id_to_reuse = testcase_1.group_id
   group_id_to_move = testcase_2.group_id
-  moved_testcase_ids = []
+  testcase_2.group_id = group_id_to_reuse
   add_testcases_to_group_map(group_map, group_id_to_reuse, testcase_1.id,
                              testcase_2.id, reason)
+  merge_testcases_groups(group_map, group_id_to_move, group_id_to_reuse)
+
+  moved_testcase_ids = []
   for testcase in testcase_map.values():
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
       moved_testcase_ids.append(str(testcase.id))
-      for tc_sim, r in group_map[group_id_to_move].testcases[
-          testcase.id].items():
-        add_testcases_to_group_map(group_map, group_id_to_reuse, testcase.id,
-                                   tc_sim, r)
-  del group_map[group_id_to_move]
+  if group_id_to_reuse != group_id_to_move:
+    del group_map[group_id_to_move]
+    logs.info(f'Deleted group: {group_id_to_move}')
+
   logs.info(f'Merged group {group_id_to_move} into {group_id_to_reuse}: ' +
             'moved testcases: ' + ', '.join(moved_testcase_ids))
 
@@ -281,10 +288,12 @@ def _group_testcases_based_on_variants(testcase_map, group_map):
       grouping_candidates[current_project].append((testcase_1_id,
                                                    testcase_2_id))
 
+  # DISABLE IT FOR THE GROUPER EXPERIMENTS AS IT TRIES TO ACCESS BIG QUERY.
   # Top crashes are usually startup crashes, so don't group them.
-  top_crashes_by_project_and_platform = (
-      cleanup.get_top_crashes_for_all_projects_and_platforms(
-          limit=TOP_CRASHES_LIMIT))
+  # top_crashes_by_project_and_platform = None
+  # top_crashes_by_project_and_platform = (
+  #     cleanup.get_top_crashes_for_all_projects_and_platforms(
+  #         limit=TOP_CRASHES_LIMIT))
 
   # Phase 2: check for the anomalous candidates
   # i.e. candiates matched with many testcases.
@@ -318,11 +327,12 @@ def _group_testcases_based_on_variants(testcase_map, group_map):
       testcase_1 = testcase_map[testcase_1_id]
       testcase_2 = testcase_map[testcase_2_id]
 
-      if (matches_top_crash(testcase_1, top_crashes_by_project_and_platform) or
-          matches_top_crash(testcase_2, top_crashes_by_project_and_platform)):
-        logs.info(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
-                  'is a top crash, skipping.')
-        continue
+      # DISABLE IT FOR THE GROUPER EXPERIMENTS AS IT TRIES TO ACCESS BIG QUERY.
+      # if (matches_top_crash(testcase_1, top_crashes_by_project_and_platform) or
+      #     matches_top_crash(testcase_2, top_crashes_by_project_and_platform)):
+      #   logs.info(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
+      #             'is a top crash, skipping.')
+      #   continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
                                    'identical variant', group_map)
@@ -395,13 +405,17 @@ def _group_testcases_with_similar_states(testcase_map, group_map,
         # Rule: For functional bugs, compare for similar crash types.
         if not testcase_1.security_flag:
           crash_comparer = CrashComparer(testcase_1.crash_type,
-                                         testcase_2.crash_type)
+                                         testcase_2.crash_type,
+                                         experiment_config.crash_comparer_threshold,
+                                         experiment_config.same_frame_threshold)
           if not crash_comparer.is_similar():
             continue
 
         # Rule: Check for crash state similarity.
         crash_comparer = CrashComparer(testcase_1.crash_state,
-                                       testcase_2.crash_state)
+                                       testcase_2.crash_state,
+                                       experiment_config.crash_comparer_threshold,
+                                       experiment_config.same_frame_threshold)
         if not crash_comparer.is_similar():
           continue
 
@@ -450,6 +464,7 @@ def _shrink_large_groups_if_needed(testcase_map, group_map, tcs_deleted):
       weight |= 2**2
     return weight
 
+  group_max_size = experiment_config.group_max_size
   group_id_with_testcases_map = {}
   for testcase in testcase_map.values():
     if not testcase.group_id:
@@ -461,11 +476,11 @@ def _shrink_large_groups_if_needed(testcase_map, group_map, tcs_deleted):
       group_id_with_testcases_map[testcase.group_id].append(testcase)
 
   for testcases_in_group in group_id_with_testcases_map.values():
-    if len(testcases_in_group) <= GROUP_MAX_TESTCASE_LIMIT:
+    if len(testcases_in_group) <= group_max_size:
       continue
 
     testcases_in_group = sorted(testcases_in_group, key=_key_func)
-    for testcase in testcases_in_group[:-GROUP_MAX_TESTCASE_LIMIT]:
+    for testcase in testcases_in_group[:-group_max_size]:
       if testcase.issue_id:
         continue
 
@@ -485,33 +500,65 @@ def sample_testcases(testcase_map, sample_size=100):
 
 
 def get_loaded_testcases(local_dir: str):
-  """Get local stored testcases attributes."""
-  attr_filepath = os.path.join(local_dir, 'testcases_attributes.pkl')
-  tcs_duplicated_filepath = os.path.join(local_dir, 'testcases_duplicated.pkl')
-  tcs_duplicated = set()
+  """Get local stored testcases attributes and list of deleted dup testcases."""
+  # get latest testcases snapshot.
+  latest_date = None
+  testcases_snapshot = None
+  for snapshot_dir in os.listdir(local_dir):
+    if not snapshot_dir.startswith(TESTCASES_DIR_PREFIX):
+      continue
+    date_str = snapshot_dir.removeprefix(f'{TESTCASES_DIR_PREFIX}_')
+    date_file = datetime.datetime.strptime(date_str, '%d_%m_%Y')
+    if latest_date is None or date_file > latest_date:
+      latest_date = date_file
+      testcases_snapshot = snapshot_dir
+  if not testcases_snapshot:
+    return None, None, None
+  print(f'Retrieving testcases from {testcases_snapshot}')
+
+  attr_filepath = os.path.join(testcases_snapshot, f'{TESTCASES_ATTR_FILE}.pkl')
+  tcs_duplicated_filepath = os.path.join(testcases_snapshot,
+                                         f'{TESTCASES_DUP_DELETED_FILE}.pkl')
+  testcases_duplicated = set()
+  testcase_map = None
 
   if os.path.exists(tcs_duplicated_filepath):
     with open(tcs_duplicated_filepath, 'rb') as f:
-      tcs_duplicated = pickle.load(f)
+      testcases_duplicated = pickle.load(f)
 
-  if not os.path.exists(attr_filepath):
-    logs.error(f'Loaded Testcases map not found - {attr_filepath}')
-    return None, tcs_duplicated
+  if os.path.exists(attr_filepath):
+    with open(attr_filepath, 'rb') as f:
+      testcase_map = pickle.load(f)
 
-  with open(attr_filepath, 'rb') as f:
-    testcase_map = pickle.load(f)
+  return testcases_snapshot, testcase_map, testcases_duplicated
 
-  return testcase_map, tcs_duplicated
+
+def _get_group_testcases(group_id):
+  """Returns the testcases from a group id."""
+  keys = ndb_utils.get_all_from_query(
+      data_types.Testcase.query(data_types.Testcase.group_id == group_id),
+      keys_only=True)
+  for key in keys:
+    yield key.id()
 
 
 def load_testcases(local_dir: str):
   """Load and store testcases attributes used for grouping."""
   testcase_map = {}
   cached_issue_map = {}
-  tcs_duplicated = set()
+  testcases_duplicated = set()
 
-  for testcase_id in data_handler.get_open_testcase_id_iterator():
-    if MAX_TCS_TO_PICKLE > 0 and len(testcase_map) == MAX_TCS_TO_PICKLE:
+  if experiment_config.only_group_id:
+    group_id = experiment_config.only_group_id
+    logs.info(f'Using only testcases from original group id: {group_id}')
+    testcase_it = _get_group_testcases(group_id)
+  else:
+    logs.info(f'Using all open testcases.')
+    testcase_it = data_handler.get_open_testcase_id_iterator()
+
+  for testcase_id in testcase_it:
+    if (experiment_config.max_tcs_to_pickle > 0
+        and len(testcase_map) == experiment_config.max_tcs_to_pickle):
       break
 
     try:
@@ -524,7 +571,7 @@ def load_testcases(local_dir: str):
     if (not testcase.bug_information and not testcase.uploader_email and
         _has_testcase_with_same_params(testcase, testcase_map)):
       logs.info('Deleting duplicate testcase %d.' % testcase_id)
-      tcs_duplicated.add(testcase_id)
+      testcases_duplicated.add(testcase_id)
       continue
 
     # Wait for minimization to finish as this might change crash params such
@@ -540,7 +587,7 @@ def load_testcases(local_dir: str):
               getattr(testcase, attribute_name))
 
     # Store original issue mappings in the testcase attributes.
-    if testcase.bug_information:
+    if testcase.bug_information and not experiment_config.reset_issues:
       issue_id = int(testcase.bug_information)
       project_name = testcase.project_name
 
@@ -588,24 +635,30 @@ def load_testcases(local_dir: str):
   cached_issue_map.clear()
 
   # Store Testcases attributes locally.
-  if not os.path.exists(local_dir):
-    os.mkdir(local_dir)
+  now = datetime.datetime.strftime(datetime.datetime.now(), '%d_%m_%Y')
+  testcases_dir = os.path.join(local_dir, f'{TESTCASES_DIR_PREFIX}_{now}')
+  print(f'Storing testcases data at: {testcases_dir}')
+  if not os.path.exists(testcases_dir):
+    os.mkdir(testcases_dir)
 
-  attr_filepath = os.path.join(local_dir, 'testcases_attributes.pkl')
-  with open(attr_filepath, 'wb') as f:
+  with open(os.path.join(testcases_dir, f'{TESTCASES_ATTR_FILE}.pkl'), 'wb') as f:
     pickle.dump(testcase_map, f)
 
-  tcs_duplicated_filepath = os.path.join(local_dir, 'testcases_duplicated.pkl')
-  with open(tcs_duplicated_filepath, 'wb') as f:
-    pickle.dump(tcs_duplicated, f)
+  with open(os.path.join(testcases_dir, f'{TESTCASES_DUP_DELETED_FILE}.pkl'), 'wb') as f:
+    pickle.dump(testcases_duplicated, f)
+
+  with open(os.path.join(testcases_dir, 'config.txt'), 'w') as f:
+    exp_cfg = json.dumps(asdict(experiment_config), indent=2)
+    f.write(exp_cfg)
+    f.write('\n')
 
 
 def group_testcases(local_dir: str):
   """Group testcases based on rules like same bug numbers, similar crash
   states, etc."""
 
-  testcase_map, _ = get_loaded_testcases(local_dir)
-  if testcase_map is None:
+  testcases_snapshot, testcase_map, _ = get_loaded_testcases(local_dir)
+  if testcases_snapshot is None or testcase_map is None:
     logs.error('Missing loaded testcases attributes.')
     return
 
@@ -613,13 +666,14 @@ def group_testcases(local_dir: str):
   tcs_revision_range = set()
   tcs_deleted = set()
 
-  if SAMPLE_TCS_TO_GROUP > 0:
+  if experiment_config.sample_to_group > 0:
     testcase_map = sample_testcases(
-        testcase_map, sample_size=SAMPLE_TCS_TO_GROUP)
+        testcase_map, sample_size=experiment_config.sample_to_group)
 
-  if RESET_GROUPS:
+  if experiment_config.reset_groups or experiment_config.reset_issues:
     for testcase in testcase_map.values():
-      testcase.group_id = 0
+      testcase.group_id = 0 if experiment_config.reset_groups else testcase.group_id
+      testcase.bug_information = '' if experiment_config.reset_issues else testcase.bug_information
 
   else:
     # Currently, there isn't an easy way to get which/why TCs were grouped. So,
@@ -636,22 +690,22 @@ def group_testcases(local_dir: str):
   _group_testcases_with_similar_states(testcase_map, group_map,
                                        tcs_revision_range)
   _group_testcases_with_same_issues(testcase_map, group_map)
-  if VARIANT_BASED:
+  if experiment_config.use_variant:
     _group_testcases_based_on_variants(testcase_map, group_map)
   _shrink_large_groups_if_needed(testcase_map, group_map, tcs_deleted)
   group_leader.choose(testcase_map, group_map)
 
   for gid, group in group_map.items():
     # If this group id is used by only one testcase, then remove it.
-    if len(group.testcases) == 1:
-      testcase_id = next(iter(group.testcases.keys()))
+    if len(group) == 1:
+      testcase_id = list(group.testcases.nodes)[0]
       testcase_map[testcase_id].group_id = 0
       testcase_map[testcase_id].is_leader = True
       del group[gid]
       continue
     # Update group issue id to be lowest issue id in the entire group.
     group_bug_information = 0
-    for tc_id in group.testcases.keys():
+    for tc_id in group.testcases.nodes:
       issue_id = testcase_map[tc_id].issue_id
       if issue_id is None:
         continue
@@ -665,18 +719,17 @@ def group_testcases(local_dir: str):
   for tc_id, tc_attr in testcase_map.items():
     tc_to_group_map[tc_id] = tc_attr.group_id
 
-  grouper_foldername = 'groups'
-  if REVISION_RANGE_FIX:
-    grouper_foldername += '_revision'
-  if VARIANT_BASED:
-    grouper_foldername += '_variant'
+  snapshot_date = testcases_snapshot.removeprefix(f'{TESTCASES_DIR_PREFIX}_')
+  experiment_id = str(uuid.uuid4())[:8]
+  experiment_name = experiment_config.experiment_name or 'common'
+  grouper_foldername = f'experiment_snapshot-{snapshot_date}_{experiment_name}_{experiment_id}'
+  print(f'Saving grouping experiment info at: "{grouper_foldername}"')
 
   grouper_dir = os.path.join(local_dir, grouper_foldername)
   if not os.path.exists(grouper_dir):
     os.mkdir(grouper_dir)
-  logs.info(f'Saving groups info in "{grouper_foldername}"')
 
-  group_map_filepath = os.path.join(grouper_dir, 'group_map.pkl')
+  group_map_filepath = os.path.join(grouper_dir, 'groups_map.pkl')
   with open(group_map_filepath, 'wb') as f:
     pickle.dump(group_map, f)
 
@@ -696,35 +749,96 @@ def group_testcases(local_dir: str):
       pickle.dump(tcs_revision_range, f)
 
 
+def _parse_grouper_args(args):
+  """Parse grouper arguments."""
+  parser = argparse.ArgumentParser(description='Grouper experiment.')
+  parser.add_argument('--step', nargs='*', default=['load', 'group'], choices=['load', 'group'])
+  parser.add_argument('--exp_name', type=str, default=None)
+  parser.add_argument('--use_group', type=int, default=0)
+  parser.add_argument('--max_tcs', type=int, default=-1)
+  parser.add_argument('--sample_to_group', type=int, default=-1)
+  parser.add_argument('--reset_groups', action='store_true')
+  parser.add_argument('--reset_issues', action='store_true')
+  parser.add_argument('--use_variant', action='store_true')
+  parser.add_argument('--group_max', type=int, default=25)
+  parser.add_argument('--crash_threshold', type=float, default=0.8)
+  parser.add_argument('--same_frames', type=int, default=2)
+
+  args = ['--'+arg for arg in args]
+  return parser.parse_args(args)
+
+@dataclass
+class ExperimentConfig():
+  step: list[str]
+  experiment_name: str
+  only_group_id: int
+  max_tcs_to_pickle: int
+  sample_to_group: int
+  reset_groups: bool
+  reset_issues: bool
+  use_variant: bool
+  group_max_size: int
+  crash_comparer_threshold: float
+  same_frame_threshold: int
+  config_dir: str
+
+
+def set_experiment_config(parsed_args, config_dir):
+  """Set config."""
+  experiment_config = ExperimentConfig(
+      step=parsed_args.step,
+      experiment_name=parsed_args.exp_name,
+      only_group_id= parsed_args.use_group,
+      max_tcs_to_pickle=parsed_args.max_tcs,
+      sample_to_group=parsed_args.sample_to_group,
+      reset_groups=parsed_args.reset_groups,
+      reset_issues=parsed_args.reset_issues,
+      use_variant=parsed_args.use_variant,
+      group_max_size=parsed_args.group_max,
+      crash_comparer_threshold=parsed_args.crash_threshold,
+      same_frame_threshold=parsed_args.same_frames,
+      config_dir=config_dir)
+  return experiment_config
+
+
 def execute(args):
   """Load testcases and/or run grouper locally."""
+  parsed_args = _parse_grouper_args(args.script_args)
+
+  global experiment_config
+  experiment_config = set_experiment_config(parsed_args, args.config_dir)
+  print()
+  print(f'#### Experiment Config #####')
+  print(json.dumps(asdict(experiment_config), indent=2))
+  print(f'############################\n')
+
   # Since this is intended to run locally, force log to console.
   environment.set_bot_environment()
   os.environ['LOG_TO_CONSOLE'] = 'True'
+  os.environ['LOG_TO_GCP'] = ''
+  os.environ['LOCAL_DEVELOPMENT'] = 'True'
   logs.configure('run_bot')
 
   # No-op to update/delete functions - just for safety
   data_types.Testcase.put = noop
   data_types.Testcase.key.delete = noop
 
-  local_dir = os.path.join(os.getenv('PATH_TO_LOCAL_DATA', '.'), 'grouper_data')
+  local_dir = os.path.join(os.getenv('PATH_TO_LOCAL_DATA', '.'))
   print(
       f'Storing data at: {local_dir} - Set $PATH_TO_LOCAL_DATA to change dir.')
-  steps = args.script_args
-  arg_flag = False
+  if not os.path.exists(local_dir):
+    os.mkdir(local_dir)
 
-  if steps and 'load' in steps:
-    arg_flag = True
+  if 'load' in experiment_config.step:
     try:
       logs.info('Loading testcases attributes.')
       load_testcases(local_dir)
-      logs.info(f'Loading done. Testcases saved at {local_dir}')
+      logs.info(f'Loading done.')
     except Exception as e:
       logs.error(f'Error occurred while loading test cases - {e}.')
       return
 
-  if steps and 'group' in steps:
-    arg_flag = True
+  if 'group' in experiment_config.step:
     try:
       logs.info('Grouping testcases.')
       group_testcases(local_dir)
@@ -733,7 +847,11 @@ def execute(args):
       logs.error(f'Error occurred while grouping test cases - {e}.')
       return
 
-  if not arg_flag:
-    print('Grouper step missing or not available.')
-    print('Usage: grouper_experiment --script_args {load, group}')
-    return
+# How to run:
+# DEBUG_TASK=True LOG_TO_CONSOLE=True LOG_TO_GCP=""
+# PATH_TO_LOCAL_DATA="/usr/local/google/home/vtcosta/Data/grouper_experiment"
+# python butler.py run grouper_experiment --script_args step=group exp_name=test
+# use_variant crash_threshold=0.9
+# --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+#
+# SA (for issue tracker): cluster-fuzz@appspot.gserviceaccount.com
