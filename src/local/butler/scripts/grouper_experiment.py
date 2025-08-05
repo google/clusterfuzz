@@ -71,6 +71,9 @@ TOP_CRASHES_LIMIT = 10
 TESTCASES_DIR_PREFIX = 'testcases_snapshot'
 TESTCASES_ATTR_FILE = 'testcases_attributes'
 TESTCASES_DUP_DELETED_FILE = 'testcases_duplicated'
+GROUPS_MAP_FILE = 'groups_map'
+TESTCASES_DELETED_GROUP_FILE = 'testcases_deleted_grouping'
+TESTCASES_TO_GROUP_FILE = 'testcase_to_group_map'
 
 REVISION_RANGE_FIX = False
 
@@ -736,16 +739,16 @@ def group_testcases(local_dir: str):
   if not os.path.exists(grouper_dir):
     os.mkdir(grouper_dir)
 
-  group_map_filepath = os.path.join(grouper_dir, 'groups_map.pkl')
+  group_map_filepath = os.path.join(grouper_dir, f'{GROUPS_MAP_FILE}.pkl')
   with open(group_map_filepath, 'wb') as f:
     pickle.dump(group_map, f)
 
   tcs_deleted_filepath = os.path.join(grouper_dir,
-                                      'testcases_deleted_grouping.pkl')
+                                      f'{TESTCASES_DELETED_GROUP_FILE}.pkl')
   with open(tcs_deleted_filepath, 'wb') as f:
     pickle.dump(tcs_deleted, f)
 
-  tc_to_group_filepath = os.path.join(grouper_dir, 'testcase_to_group_map.pkl')
+  tc_to_group_filepath = os.path.join(grouper_dir, f'{TESTCASES_TO_GROUP_FILE}.pkl')
   with open(tc_to_group_filepath, 'wb') as f:
     pickle.dump(tc_to_group_map, f)
 
