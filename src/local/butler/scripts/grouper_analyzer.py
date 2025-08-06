@@ -125,7 +125,7 @@ def get_groups_experiments_data(local_dir: str, snapshot_date: str | None = None
     print()
     group_experiments[group_dir] = {}
     for file in files_to_read:
-      filepath = os.path.join(local_dir, group_dir, file)
+      filepath = os.path.join(local_dir, group_dir, file + '.pkl')
       if not os.path.exists(filepath):
         print(f'File not found : {filepath}')
         continue
