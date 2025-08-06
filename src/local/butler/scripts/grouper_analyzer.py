@@ -100,6 +100,19 @@ from clusterfuzz._internal.system import environment
 #   print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(gps_map)}): {len(gps_map) + ungrouped}')
 
 
+def get_group_size_stats(group_map):
+  sizes = []
+  for group in group_map.values():
+    sizes.append(len(group.testcases))
+
+  mean = round(statistics.mean(sizes), 2)
+  median = round(statistics.median(sizes), 2)
+  quantiles = [round(q, 2) for q in statistics.quantiles(sizes, n=4)]
+
+  stats_str = f'Mean: {mean}, Median: {median}, Quantiles (4): {quantiles}'
+  return stats_str
+
+
 
 def get_testcase_data(local_dir: str, snapshot='latest'):
   return get_loaded_testcases(local_dir)
@@ -142,13 +155,9 @@ def get_experiment_stats(exp_name: str, group_exp: dict):
 
   print(f'\n\n## Analysis results - {exp_name}:\n')
   print(f'### Total TCs analyzed: {len(testscases_to_group_map)}.')
-  print()
   print(f'### Groups: {len(groups_map)}.')
-  print()
-  # print(f'### Groups sizes stats: {get_group_size_stats(gps_map)}')
-  # print()
+  print(f'### Groups sizes stats: {get_group_size_stats(groups_map)}')
   print(f'### TCs deleted due to group overflow: {len(testcases_overflow)}.')
-  print()
 
   grouped = 0
   ungrouped = 0
@@ -176,7 +185,7 @@ def execute(args):
   if not os.path.exists(local_dir):
     print(f'Local dir not found.')
     return
-  
+
   group_experiments = get_groups_experiments_data(local_dir)
   for exp_name, group_exp in group_experiments.items():
     get_experiment_stats(exp_name, group_exp)
