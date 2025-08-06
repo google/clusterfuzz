@@ -107,6 +107,10 @@ class GroupAttributes:
   def __len__(self):
     return self.testcases.number_of_nodes()
 
+  def add_testcase(self, tc: int) -> None:
+    # Useful to start off grouper with the previous state.
+    self.testcases.add_node(tc)
+
   def add_connection(self, tc1: int, tc2: int, reason: str) -> None:
     self.testcases.add_edge(tc1, tc2, reason=reason)
 
@@ -685,7 +689,7 @@ def group_testcases(local_dir: str):
       testcase.group_id = 0 if experiment_config.reset_groups else testcase.group_id
       testcase.issue_id = None if experiment_config.reset_issues else testcase.issue_id
 
-  else:
+  if not experiment_config.reset_groups:
     # Currently, there isn't an easy way to get which/why TCs were grouped. So,
     # if groups are not reset, we only create them and add the TCs without
     # connections, which results in the group graph not being fully connected.
@@ -695,7 +699,7 @@ def group_testcases(local_dir: str):
         continue
       if group_id not in group_map:
         group_map[group_id] = GroupAttributes(group_id)
-      group_map[group_id].add_testcase(testcase.id)
+      group_map[group_id].testcases.add_testcase(testcase.id)
 
   _group_testcases_with_similar_states(testcase_map, group_map,
                                        tcs_revision_range)
