@@ -113,8 +113,9 @@ def get_group_size_stats(group_map):
   mean = round(statistics.mean(sizes), 2)
   median = round(statistics.median(sizes), 2)
   quantiles = [round(q, 2) for q in statistics.quantiles(sizes, n=4)]
+  max_size = max(sizes)
 
-  stats_str = f'Mean: {mean}, Median: {median}, Quantiles (4): {quantiles}'
+  stats_str = f'Mean: {mean}, Median: {median}, Quantiles (4): {quantiles}, Max: {max_size}'
   return stats_str
 
 
