@@ -699,7 +699,7 @@ def group_testcases(local_dir: str):
         continue
       if group_id not in group_map:
         group_map[group_id] = GroupAttributes(group_id)
-      group_map[group_id].testcases.add_testcase(testcase.id)
+      group_map[group_id].add_testcase(testcase.id)
 
   _group_testcases_with_similar_states(testcase_map, group_map,
                                        tcs_revision_range)
