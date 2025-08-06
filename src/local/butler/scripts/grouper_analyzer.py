@@ -157,6 +157,8 @@ def get_default_stats(local_dir: str, snapshot_date: str | None = None):
   print(f'\nGetting default grouper stats from: {testcases_snapshot}')
   groups_map = {}
   ungrouped = 0
+  max_group = 0
+  max_size = 0
   for testcase_attr in testcase_map.values():
     group_id = testcase_attr.group_id
     if not group_id:
@@ -165,11 +167,15 @@ def get_default_stats(local_dir: str, snapshot_date: str | None = None):
     if group_id not in groups_map:
       groups_map[group_id] = 0
     groups_map[group_id] += 1
+    if groups_map[group_id] >= max_size:
+      max_group = group_id
+      max_size = groups_map[group_id]
 
-  print(f'\n## Current results:\n')
+  print(f'\n## Current state:\n')
   print(f'### Total TCs: {len(testcase_map)}')
   print(f'### Groups: {len(groups_map)}')
   print(f'### Groups sizes stats: {get_group_size_stats(groups_map)}')
+  print(f'### Max group {max_group}: Size={max_size}')
   print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
 
 
@@ -194,6 +200,7 @@ def get_experiment_stats(exp_name: str, group_exp: dict):
 
   print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
 
+
 def execute(args):
   """Analyze results from grouper experiments."""
 
@@ -215,4 +222,3 @@ def execute(args):
   group_experiments = get_groups_experiments_data(local_dir)
   for exp_name, group_exp in group_experiments.items():
     get_experiment_stats(exp_name, group_exp)
-  return
