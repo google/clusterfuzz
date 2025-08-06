@@ -135,6 +135,30 @@ def get_groups_experiments_data(local_dir: str, snapshot_date: str | None = None
 
   return group_experiments
 
+def get_experiment_stats(exp_name: str, group_exp: dict):
+  groups_map = group_exp[GROUPS_MAP_FILE]
+  testcases_overflow = group_exp[TESTCASES_DELETED_GROUP_FILE]
+  testscases_to_group_map = group_exp[TESTCASES_TO_GROUP_FILE]
+
+  print(f'\n\n## Analysis results - {exp_name}:\n')
+  print(f'### Total TCs analyzed: {len(testscases_to_group_map)}.')
+  print()
+  print(f'### Groups: {len(groups_map)}.')
+  print()
+  # print(f'### Groups sizes stats: {get_group_size_stats(gps_map)}')
+  # print()
+  print(f'### TCs deleted due to group overflow: {len(testcases_overflow)}.')
+  print()
+
+  grouped = 0
+  ungrouped = 0
+  for grp_id in testscases_to_group_map.values():
+    if grp_id == 0:
+      ungrouped += 1
+    else:
+      grouped += 1
+
+  print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
 
 def execute(args):
   """Analyze results from grouper experiments."""
@@ -154,4 +178,6 @@ def execute(args):
     return
   
   group_experiments = get_groups_experiments_data(local_dir)
+  for exp_name, group_exp in group_experiments.items():
+    get_experiment_stats(exp_name, group_exp)
   return
