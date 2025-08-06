@@ -9,6 +9,8 @@ import statistics
 from .grouper_experiment import GROUPS_MAP_FILE
 from .grouper_experiment import TESTCASES_DELETED_GROUP_FILE
 from .grouper_experiment import TESTCASES_TO_GROUP_FILE
+from .grouper_experiment import TESTCASES_DIR_PREFIX
+from .grouper_experiment import TESTCASES_ATTR_FILE
 from .grouper_experiment import get_loaded_testcases
 
 from clusterfuzz._internal.base import errors
@@ -103,7 +105,10 @@ from clusterfuzz._internal.system import environment
 def get_group_size_stats(group_map):
   sizes = []
   for group in group_map.values():
-    sizes.append(len(group.testcases))
+    if isinstance(group, int):
+      sizes.append(group)
+    else:
+      sizes.append(len(group.testcases))
 
   mean = round(statistics.mean(sizes), 2)
   median = round(statistics.median(sizes), 2)
@@ -111,11 +116,6 @@ def get_group_size_stats(group_map):
 
   stats_str = f'Mean: {mean}, Median: {median}, Quantiles (4): {quantiles}'
   return stats_str
-
-
-
-def get_testcase_data(local_dir: str, snapshot='latest'):
-  return get_loaded_testcases(local_dir)
 
 
 def get_groups_experiments_data(local_dir: str, snapshot_date: str | None = None):
@@ -147,6 +147,30 @@ def get_groups_experiments_data(local_dir: str, snapshot_date: str | None = None
         group_experiments[group_dir][file] = pickle.load(f)
 
   return group_experiments
+
+def get_default_stats(local_dir: str, snapshot_date: str | None = None):
+  testcases_snapshot, testcase_map, _ = get_loaded_testcases(local_dir)
+  if testcase_map is None:
+    print('Failed getting testcases map.')
+    return
+  print(f'\nGetting default grouper stats from: {testcases_snapshot}')
+  groups_map = {}
+  ungrouped = 0
+  for testcase_attr in testcase_map.values():
+    group_id = testcase_attr.group_id
+    if not group_id:
+      ungrouped += 1
+      continue
+    if group_id not in groups_map:
+      groups_map[group_id] = 0
+    groups_map[group_id] += 1
+
+  print(f'\n## Current results:\n')
+  print(f'### Total TCs: {len(testcase_map)}')
+  print(f'### Groups: {len(groups_map)}')
+  print(f'### Groups sizes stats: {get_group_size_stats(groups_map)}')
+  print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
+
 
 def get_experiment_stats(exp_name: str, group_exp: dict):
   groups_map = group_exp[GROUPS_MAP_FILE]
@@ -186,6 +210,7 @@ def execute(args):
     print(f'Local dir not found.')
     return
 
+  get_default_stats(local_dir)
   group_experiments = get_groups_experiments_data(local_dir)
   for exp_name, group_exp in group_experiments.items():
     get_experiment_stats(exp_name, group_exp)
