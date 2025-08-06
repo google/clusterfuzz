@@ -300,9 +300,13 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
     region_target, region_usage = get_cpu_usage(creds, project, region)
     target += region_target
     usage += region_usage
+
+  # Deal with Chrome clusterfuzz having its pubsub in a different project.
+  pubsub_project = utils.get_application_id()
   waiting_tasks = (
-      count_unacked(creds, project, 'preprocess') + count_unacked(
-          creds, project, 'utask_main'))
+      count_unacked(creds, pubsub_project, 'preprocess') + count_unacked(
+          creds, pubsub_project, 'utask_main'))
+
 
   if usage + waiting_tasks * CPUS_PER_FUZZ_JOB > .95 * target:
     # Only worry about queueing build up if we are above 95% utilization.
