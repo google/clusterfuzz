@@ -687,12 +687,12 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
-  # Don't pass exc_info at all, as otherwise cloud logging will append
-  # "NoneType: None" to the message.
-  if exc_info == (None, None, None):
-    exc_info = None
-
   if _is_running_on_app_engine():
+    if exc_info == (None, None, None):
+      # Don't pass exc_info at all, as otherwise cloud logging will append
+      # "NoneType: None" to the message.
+      exc_info = None
+
     if level >= logging.ERROR:
       # App Engine only reports errors if there is an exception stacktrace, so
       # we generate one. We don't create an exception here and then format it,
