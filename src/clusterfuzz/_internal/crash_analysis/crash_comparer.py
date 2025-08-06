@@ -74,10 +74,16 @@ class CrashComparer:
   COMPARE_THRESHOLD = 0.8
   SAME_FRAMES_THRESHOLD = 2
 
-  def __init__(self, crash_state_1, crash_state_2, compare_threshold=None):
+  def __init__(self,
+               crash_state_1,
+               crash_state_2,
+               compare_threshold=None,
+               same_frames_threshold=None):
     self.crash_state_1 = crash_state_1
     self.crash_state_2 = crash_state_2
     self.compare_threshold = compare_threshold or self.COMPARE_THRESHOLD
+    self.same_frames_threshold = (
+        same_frames_threshold or self.SAME_FRAMES_THRESHOLD)
 
   def is_similar(self):
     """Return a bool for whether the two crash results are similar."""
@@ -100,7 +106,7 @@ class CrashComparer:
     crash_state_lines_2 = self.crash_state_2.splitlines()
 
     if (longest_common_subsequence(crash_state_lines_1, crash_state_lines_2) >=
-        self.SAME_FRAMES_THRESHOLD):
+        self.same_frames_threshold):
       return True
 
     lines_compared = 0
