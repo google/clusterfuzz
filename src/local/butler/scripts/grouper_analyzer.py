@@ -112,10 +112,11 @@ def get_group_size_stats(group_map):
 
   mean = round(statistics.mean(sizes), 2)
   median = round(statistics.median(sizes), 2)
-  quantiles = [round(q, 2) for q in statistics.quantiles(sizes, n=4)]
+  quants = [round(q, 2) for q in statistics.quantiles(sizes, n=100)]
+  percentiles = [quants[10], quants[25], quants[75], quants[90]]
   max_size = max(sizes)
 
-  stats_str = f'Mean: {mean}, Median: {median}, Quantiles (4): {quantiles}, Max: {max_size}'
+  stats_str = f'Mean: {mean}, Median: {median}, Percentiles (10%, 25%, 75%, 90%): {percentiles}, Max: {max_size}'
   return stats_str
 
 
@@ -126,17 +127,17 @@ def get_groups_experiments_data(local_dir: str, snapshot_date: str | None = None
   for group_dir in os.listdir(local_dir):
     match_dir = pattern.match(group_dir)
     if not match_dir:
-      print(f'Not matched: {group_dir}')
+      print(f'\nNot matched: {group_dir}')
       continue
 
     if snapshot_date and snapshot_date != match_dir.group(1):
       continue
-    print()
-    print(f'Found: {match_dir.group(0)}')
-    print(f'Snapshot date: {match_dir.group(1)}')
-    print(f'Experiment name: {match_dir.group(2)}')
-    print(f'Experiment hash: {match_dir.group(3)}')
-    print()
+    # print()
+    # print(f'Found: {match_dir.group(0)}')
+    # print(f'Snapshot date: {match_dir.group(1)}')
+    # print(f'Experiment name: {match_dir.group(2)}')
+    # print(f'Experiment hash: {match_dir.group(3)}')
+    # print()
     group_experiments[group_dir] = {}
     for file in files_to_read:
       filepath = os.path.join(local_dir, group_dir, file + '.pkl')
@@ -171,24 +172,18 @@ def get_default_stats(local_dir: str, snapshot_date: str | None = None):
       max_group = group_id
       max_size = groups_map[group_id]
 
-  print(f'\n## Current state:\n')
-  print(f'### Total TCs: {len(testcase_map)}')
-  print(f'### Groups: {len(groups_map)}')
-  print(f'### Groups sizes stats: {get_group_size_stats(groups_map)}')
-  print(f'### Max group {max_group}: Size={max_size}')
-  print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
+  print(f'\n* Current state:\n')
+  print(f'  * Total TCs: {len(testcase_map)}')
+  print(f'  * Groups: {len(groups_map)}')
+  print(f'  * Groups sizes stats: {get_group_size_stats(groups_map)}')
+  print(f'  * Max group {max_group}: Size={max_size}')
+  print(f'  * Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
 
 
 def get_experiment_stats(exp_name: str, group_exp: dict):
   groups_map = group_exp[GROUPS_MAP_FILE]
   testcases_overflow = group_exp[TESTCASES_DELETED_GROUP_FILE]
   testscases_to_group_map = group_exp[TESTCASES_TO_GROUP_FILE]
-
-  print(f'\n\n## Analysis results - {exp_name}:\n')
-  print(f'### Total TCs analyzed: {len(testscases_to_group_map)}.')
-  print(f'### Groups: {len(groups_map)}.')
-  print(f'### Groups sizes stats: {get_group_size_stats(groups_map)}')
-  print(f'### TCs deleted due to group overflow: {len(testcases_overflow)}.')
 
   grouped = 0
   ungrouped = 0
@@ -198,7 +193,13 @@ def get_experiment_stats(exp_name: str, group_exp: dict):
     else:
       grouped += 1
 
-  print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
+  total_tcs_analyzed = ungrouped + grouped + len(testcases_overflow)
+  print(f'\n\n* Analysis results - {exp_name}:\n')
+  print(f'  * Total TCs analyzed: {total_tcs_analyzed}.')
+  print(f'  * Groups: {len(groups_map)}.')
+  print(f'  * Groups sizes stats: {get_group_size_stats(groups_map)}')
+  print(f'  * TCs deleted due to group overflow: {len(testcases_overflow)}.')
+  print(f'  * Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
 
 
 def execute(args):
