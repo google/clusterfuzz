@@ -752,6 +752,11 @@ def group_testcases(local_dir: str):
   with open(tc_to_group_filepath, 'wb') as f:
     pickle.dump(tc_to_group_map, f)
 
+  with open(os.path.join(grouper_dir, 'config.txt'), 'w') as f:
+    exp_cfg = json.dumps(asdict(experiment_config), indent=2)
+    f.write(exp_cfg)
+    f.write('\n')
+
   if REVISION_RANGE_FIX:
     revision_range_filepath = os.path.join(grouper_dir,
                                            'testcases_revision_range.pkl')
