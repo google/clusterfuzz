@@ -110,7 +110,9 @@ def get_cpu_usage(creds, project: str, region: str) -> int:
   # We need this because us-central1 and us-east4 have different numbers of
   # cores alloted to us in their quota. Treat them the same to simplify things.
   limit = quota['limit']
-  limit = min(limit, 100_000)
+  project_config = local_config.ProjectConfig()
+  # On OSS-Fuzz there is a limit to the number of CPUs we can use.
+  limit = min(limit, project_config.get('schedule_fuzz.cpu_limit', limit))
   return limit, quota['usage']
 
 
