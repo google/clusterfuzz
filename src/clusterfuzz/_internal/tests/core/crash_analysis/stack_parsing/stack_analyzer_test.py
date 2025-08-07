@@ -2584,6 +2584,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_stack_limit_exceeded(self):
+    """Test a centipede stack overflow."""
+
+    data = self._read_test_data('centipede_stack_limit_exceeded.txt')
+    data = centipede.trim_logs(data)
+    expected_type = 'Stack-overflow'
+    expected_state = ('v8::internal::wasm::grow_stack\n'
+                      'Builtins_WasmHandleStackOverflow\n'
+                      '/mnt/scratch0/clusterfuzz/bot/builds/'
+                      'v8-asan_linux-release_5d13784cfc85e430de954\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_centipede_timeout(self):
     """Test a centipede timeout stacktrace (with reporting enabled)."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
@@ -3554,7 +3572,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test googletest stacktrace."""
     data = self._read_test_data('googletest.txt')
     expected_type = 'Abrt'
-    expected_state = 'v8::internal::SingleString\nExecuteInputsFromShmem\n'
+    expected_state = 'v8::internal::SingleString\n'
     expected_address = '0x0539000a18ab'
     expected_stacktrace = data
     expected_security_flag = False

@@ -18,6 +18,7 @@ import os
 import random
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -32,25 +33,44 @@ class AppArgs:
     self.contradicts = contradicts or []
 
 
+def preprocess_get_db_trials():
+  app_name = get_app_name()
+  if not app_name:
+    return []
+  trial_query = data_types.Trial.query(data_types.Trial.app_name == app_name)
+  return [uworker_io.entity_to_protobuf(trial) for trial in trial_query]
+
+
+def get_app_name():
+  """Gets a normalized APP_NAME"""
+  app_name = environment.get_value('APP_NAME')
+  if not app_name:
+    return None
+  # Convert the app_name to lowercase. Case may vary by platform.
+  app_name = app_name.lower()
+
+  # Hack: strip file extensions that may be appended on various platforms.
+  extensions_to_strip = ['.exe', '.apk']
+  for extension in extensions_to_strip:
+    app_name = utils.strip_from_right(app_name, extension)
+  return app_name
+
+
 class Trials:
   """Helper class for selecting app-specific extra flags."""
 
-  def __init__(self):
+  def __init__(self, db_trials):
     self.trials = {}
+    self._db_trials = [
+        uworker_io.entity_from_protobuf(trial, data_types.Trial)
+        for trial in db_trials
+    ]
 
-    app_name = environment.get_value('APP_NAME')
+    app_name = get_app_name()
     if not app_name:
       return
 
-    # Convert the app_name to lowercase. Case may vary by platform.
-    app_name = app_name.lower()
-
-    # Hack: strip file extensions that may be appended on various platforms.
-    extensions_to_strip = ['.exe', '.apk']
-    for extension in extensions_to_strip:
-      app_name = utils.strip_from_right(app_name, extension)
-
-    for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
+    for trial in self._db_trials:
       self.trials[trial.app_args] = AppArgs(trial.probability,
                                             trial.contradicts)
 
