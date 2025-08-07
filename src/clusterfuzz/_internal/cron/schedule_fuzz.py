@@ -307,7 +307,6 @@ def get_available_cpus(project: str, regions: List[str]) -> int:
       count_unacked(creds, pubsub_project, 'preprocess') + count_unacked(
           creds, pubsub_project, 'utask_main'))
 
-
   if usage + waiting_tasks * CPUS_PER_FUZZ_JOB > .95 * target:
     # Only worry about queueing build up if we are above 95% utilization.
     count_args = ((project, region) for region in regions)
