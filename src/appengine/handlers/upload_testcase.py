@@ -475,10 +475,6 @@ class UploadHandlerCommon:
         raise helpers.EarlyExitError(
             'You are not privileged to set testcase metadata.', 400)
 
-      if additional_arguments:
-        raise helpers.EarlyExitError(
-            'You are not privileged to add command-line arguments.', 400)
-
       if gestures:
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary gestures.', 400)
