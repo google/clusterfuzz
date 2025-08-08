@@ -709,7 +709,8 @@ def group_testcases(local_dir: str):
   _shrink_large_groups_if_needed(testcase_map, group_map, tcs_deleted)
   group_leader.choose(testcase_map, group_map)
 
-  for gid, group in group_map.items():
+  for gid in list(group_map):
+    group = group_map[gid]
     # If this group id is used by only one testcase, then remove it.
     if len(group) == 1:
       testcase_id = list(group.testcases.nodes)[0]
