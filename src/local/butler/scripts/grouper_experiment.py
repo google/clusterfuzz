@@ -715,7 +715,7 @@ def group_testcases(local_dir: str):
       testcase_id = list(group.testcases.nodes)[0]
       testcase_map[testcase_id].group_id = 0
       testcase_map[testcase_id].is_leader = True
-      del group[gid]
+      del group_map[gid]
       continue
     # Update group issue id to be lowest issue id in the entire group.
     group_bug_information = 0
