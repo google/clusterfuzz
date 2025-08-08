@@ -710,17 +710,16 @@ class _PubSubLeaserThread(threading.Thread):
 def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
-  if not job:
-    raise Error(f'Job {job_type} not found.')
+  # The platform of the job is loaded into the environment when this is called.
+  platform = environment.get_value('PLATFORM')
 
-  # If the job is a linux job, we want to use the generic utask_main queue.
-  # Otherwise, we should use the job's dedicated queue so that it runs on a bot
-  # with the correct platform.
-  if job.platform.upper() == 'LINUX':
+  if platform.upper() == 'LINUX':
     queue = UTASK_MAIN_QUEUE
   else:
-    queue = queue_for_job(job_type, force_true_queue=True)
+    thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
+    is_high_end = thread_multiplier and thread_multiplier > 1
+    queue = queue_for_platform(
+        platform, is_high_end=is_high_end, force_true_queue=True)
 
   initial_command = environment.get_value('TASK_PAYLOAD')
   add_task(

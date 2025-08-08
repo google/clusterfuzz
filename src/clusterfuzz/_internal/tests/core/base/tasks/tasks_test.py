@@ -302,25 +302,26 @@ class AddUTaskMainTest(unittest.TestCase):
   """Tests for add_utask_main."""
 
   def setUp(self):
-    self.mock_job = mock.MagicMock()
-    self.mock_job_query = mock.patch(
-        'clusterfuzz._internal.datastore.data_types.Job.query',
-        return_value=mock.MagicMock(get=lambda: self.mock_job))
     self.mock_add_task = mock.patch(
         'clusterfuzz._internal.base.tasks.add_task').start()
     self.mock_environment = mock.patch(
-        'clusterfuzz._internal.system.environment.get_value',
-        return_value='initial_command').start()
-    self.mock_job_query.start()
+        'clusterfuzz._internal.system.environment.get_value').start()
+    self.mock_queue_for_platform = mock.patch(
+        'clusterfuzz._internal.base.tasks.queue_for_platform',
+        return_value='jobs-windows').start()
 
   def tearDown(self):
-    self.mock_job_query.stop()
     self.mock_add_task.stop()
     self.mock_environment.stop()
+    self.mock_queue_for_platform.stop()
 
   def test_add_utask_main_linux(self):
     """Test that linux jobs are added to the utask_main queue."""
-    self.mock_job.platform = 'LINUX'
+    self.mock_environment.side_effect = \
+        lambda key, default=None: {
+            'PLATFORM': 'LINUX',
+            'TASK_PAYLOAD': 'initial_command'
+        }.get(key, default)
     tasks.add_utask_main('command', 'input_url', 'job_type')
     self.mock_add_task.assert_called_with(
         'command',
@@ -332,7 +333,12 @@ class AddUTaskMainTest(unittest.TestCase):
 
   def test_add_utask_main_non_linux(self):
     """Test that non-linux jobs are added to their specific queue."""
-    self.mock_job.platform = 'WINDOWS'
+    self.mock_environment.side_effect = \
+        lambda key, default=None: {
+            'PLATFORM': 'WINDOWS',
+            'TASK_PAYLOAD': 'initial_command',
+            'THREAD_MULTIPLIER': 1
+        }.get(key, default)
     tasks.add_utask_main('command', 'input_url', 'job_type')
     self.mock_add_task.assert_called_with(
         'command',
@@ -341,6 +347,28 @@ class AddUTaskMainTest(unittest.TestCase):
         queue='jobs-windows',
         wait_time=None,
         extra_info={'initial_command': 'initial_command'})
+    self.mock_queue_for_platform.assert_called_with(
+        'WINDOWS', is_high_end=False, force_true_queue=True)
+
+  def test_add_utask_main_non_linux_high_end(self):
+    """Test that non-linux high-end jobs are added to their specific queue."""
+    self.mock_environment.side_effect = \
+        lambda key, default=None: {
+            'PLATFORM': 'WINDOWS',
+            'TASK_PAYLOAD': 'initial_command',
+            'THREAD_MULTIPLIER': 2
+        }.get(key, default)
+    self.mock_queue_for_platform.return_value = 'high-end-jobs-windows'
+    tasks.add_utask_main('command', 'input_url', 'job_type')
+    self.mock_add_task.assert_called_with(
+        'command',
+        'input_url',
+        'job_type',
+        queue='high-end-jobs-windows',
+        wait_time=None,
+        extra_info={'initial_command': 'initial_command'})
+    self.mock_queue_for_platform.assert_called_with(
+        'WINDOWS', is_high_end=True, force_true_queue=True)
 
 
 class QueueForJobTest(unittest.TestCase):
