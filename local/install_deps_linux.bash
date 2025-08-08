@@ -81,6 +81,7 @@ sudo apt-get install -y \
     curl \
     libpython3-all-dev \
     pipenv \
+    python3-dev \
     python3-pip \
     unzip \
     xvfb
