@@ -19,25 +19,25 @@ fi
 echo -e "\nStarted grouper experiments!"
 
 echo -e "\nDefault"
-python butler.py run grouper_experiment --script_args step=group exp_name=default use_variant sample_to_group=1 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=default use_variant --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
 echo
 
 echo -e "\nDisable Variant"
-python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant sample_to_group=1 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
 echo
 
 echo -e "\nDisable variant + crash comparer thr = 0.9"
-python butler.py run grouper_experiment --script_args step=group exp_name=crash_thr_90 crash_threshold=0.9 sample_to_group=1 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=crash_thr_90 crash_threshold=0.9 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
 echo
 
 echo -e "\nDisable variant + crash comparer thr = 0.9 + same frames = 3"
-python butler.py run grouper_experiment --script_args step=group exp_name=crash_thr_90_and_same_frames_3 crash_threshold=0.9 same_frames=3 sample_to_group=1 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=crash_thr_90_and_same_frames_3 crash_threshold=0.9 same_frames=3 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
 echo
 
 echo -e "\nDisable variant + crash comparer thr = 0.85 + same frames = 3"
-python butler.py run grouper_experiment --script_args step=group exp_name==crash_thr_85_and_same_frames_3 crash_threshold=0.85 same_frames=3 sample_to_group=1 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name==crash_thr_85_and_same_frames_3 crash_threshold=0.85 same_frames=3 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
 echo
 
 echo -e "\nEnable variant + crash comparer thr = 0.9 + same frames = 3"
-python butler.py run grouper_experiment --script_args step=group exp_name=crash_thr_90_and_same_frames_3_with_variant crash_threshold=0.9 same_frames=3 use_variant sample_to_group=1 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=crash_thr_90_and_same_frames_3_with_variant crash_threshold=0.9 same_frames=3 use_variant --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
 echo
