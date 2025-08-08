@@ -1,7 +1,3 @@
-# if ! which "$PYTHON" > /dev/null; then
-#   echo "python $PYTHON not found"
-#   exit 1
-# fi
 export PATH_TO_LOCAL_DATA="/home/vtcosta_google_com/grouper_data_without_reset"
 export DEBUG_TASK=True
 
