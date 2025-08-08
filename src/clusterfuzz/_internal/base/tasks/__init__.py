@@ -710,12 +710,23 @@ class _PubSubLeaserThread(threading.Thread):
 def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
+  # The platform of the job is loaded into the environment when this is called.
+  platform = environment.get_value('PLATFORM')
+
+  if platform.upper() == 'LINUX':
+    queue = UTASK_MAIN_QUEUE
+  else:
+    thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
+    is_high_end = thread_multiplier and thread_multiplier > 1
+    queue = queue_for_platform(
+        platform, is_high_end=is_high_end, force_true_queue=True)
+
   initial_command = environment.get_value('TASK_PAYLOAD')
   add_task(
       command,
       input_url,
       job_type,
-      queue=UTASK_MAIN_QUEUE,
+      queue=queue,
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 
@@ -787,9 +798,9 @@ def full_utask_task_model() -> bool:
   return local_config.ProjectConfig().get('full_utask_model.enabled', False)
 
 
-def queue_for_platform(platform, is_high_end=False):
+def queue_for_platform(platform, is_high_end=False, force_true_queue=False):
   """Return the queue for the platform."""
-  if full_utask_task_model():
+  if full_utask_task_model() and not force_true_queue:
     return PREPROCESS_QUEUE
   prefix = HIGH_END_JOBS_PREFIX if is_high_end else JOBS_PREFIX
   return prefix + queue_suffix_for_platform(platform)
@@ -802,13 +813,13 @@ def queue_for_testcase(testcase):
   return queue_for_job(testcase.job_type, is_high_end=is_high_end)
 
 
-def queue_for_job(job_name, is_high_end=False):
+def queue_for_job(job_name, is_high_end=False, force_true_queue=False):
   """Queue for job."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job:
     raise Error('Job {} not found.'.format(job_name))
 
-  return queue_for_platform(job.platform, is_high_end)
+  return queue_for_platform(job.platform, is_high_end, force_true_queue)
 
 
 def redo_testcase(testcase, tasks, user_email):
