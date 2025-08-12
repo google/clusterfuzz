@@ -4,6 +4,10 @@ import pickle
 import random
 import re
 import networkx as nx
+# from matplotlib_venn import venn3, venn2
+# # from matplotlib_venn.layout.venn2 import DefaultLayoutAlgorithm
+# from matplotlib_venn.layout.venn3 import DefaultLayoutAlgorithm
+import matplotlib.pyplot as plt
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
@@ -19,9 +23,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 
 
-def execute(args):
-  """Load testcases and/or run grouper locally."""
-
+def groups_fixed_states():
   local_dir = os.getenv('PATH_TO_LOCAL_DATA', '.')
   storage_dir = os.path.join(local_dir, 'groups_with_diff_fixed_states') 
   if not os.path.exists(storage_dir):
@@ -35,6 +37,9 @@ def execute(args):
   groups_with_not_fixed_testcases = set()
   not_fixed_file = os.path.join(storage_dir, 'groups_with_not_fixed.pkl')
 
+  groups_fixed_revision_range = collections.defaultdict(set)
+  groups_fixed_range_file = os.path.join(storage_dir, 'groups_fixed_range.pkl')
+
   if not os.path.exists(fixed_file):
     grouped_testcases = data_types.Testcase.query(data_types.Testcase.group_id != 0)
     count = 0
@@ -45,6 +50,7 @@ def execute(args):
         groups_with_na_testcases.add(testcase.group_id)
       else:
         groups_with_fixed_testcases.add(testcase.group_id)
+        groups_fixed_revision_range[testcase.group_id].add(testcase.fixed)
       count += 1
       if count % 100 == 0:
         print(f'{count} testcases analyzed.')
@@ -57,6 +63,10 @@ def execute(args):
 
     with open(not_fixed_file, 'wb') as f:
       pickle.dump(groups_with_not_fixed_testcases, f)
+
+    with open(groups_fixed_range_file, 'wb') as f:
+      pickle.dump(groups_fixed_revision_range, f)
+
   else:
     print(f'Loading from existing files.')
     with open(fixed_file, 'rb') as f:
@@ -67,6 +77,19 @@ def execute(args):
 
     with open(not_fixed_file, 'rb') as f:
       groups_with_not_fixed_testcases = pickle.load(f)
+
+    with open(groups_fixed_range_file, 'rb') as f:
+      groups_fixed_revision_range = pickle.load(f)
+
+
+  # venn2((groups_with_not_fixed_testcases.difference(groups_with_na_testcases), groups_with_fixed_testcases.difference(groups_with_na_testcases)), ('Not fixed', 'Fixed'), layout_algorithm=DefaultLayoutAlgorithm(fixed_subset_sizes=(1,1,1,1,1,1,1)))
+  # plt.savefig('groups_fixed_venn_2.png')
+
+  # venn3((groups_with_not_fixed_testcases, groups_with_na_testcases, groups_with_fixed_testcases), ('Not fixed', 'NA', 'Fixed'), layout_algorithm=DefaultLayoutAlgorithm(fixed_subset_sizes=(1,1,1,1,1,1,1)))
+  # plt.savefig('groups_fixed_venn_3.png')
+
+  num_of_groups = len(groups_with_fixed_testcases.union(groups_with_na_testcases).union(groups_with_not_fixed_testcases))
+  print(f'# Total groups: {num_of_groups}')
 
   only_fixed = groups_with_fixed_testcases.difference(groups_with_na_testcases).difference(groups_with_not_fixed_testcases)
   only_na = groups_with_na_testcases.difference(groups_with_fixed_testcases).difference(groups_with_not_fixed_testcases)
@@ -82,3 +105,11 @@ def execute(args):
   print(f'# Groups with fixed and not fixed: {len(fixed_and_not_fixed)}')
   print(f'# Groups with fixed and NA: {len(fixed_and_na)}')
   print(f'# Groups with not fixed and NA: {len(not_fixed_and_na)}')
+
+
+def execute(args):
+  """Load testcases and/or run grouper locally."""
+  groups_fixed_states()
+
+### ADD ANALYSIS FOR FIXED IN THE SAME FIXED REVISION RANGE
+### ADD analysis for the top jobs causing issues
