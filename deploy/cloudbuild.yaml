@@ -1,0 +1,76 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+- name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # First, clone the repository
+    git config --global credential.helper gcloud.sh
+    git clone https://clusterfuzz-config-472119376969-git.us-central1.sourcemanager.dev/clusterfuzz-testing/clusterfuzz-config.git /workspace/clusterfuzz-config
+    
+    # Move into the repository directory
+    cd /workspace/clusterfuzz-config
+    
+    # Conditionally run 'git reset'
+    if [ -n "${_CLUSTERFUZZ_CONFIG_REVISION}" ]; then
+      echo "✅ _CLUSTERFUZZ_CONFIG_REVISION is set. Resetting to commit: ${_CLUSTERFUZZ_CONFIG_REVISION}"
+      git reset --hard "${_CLUSTERFUZZ_CONFIG_REVISION}"
+    else
+      echo "☑️ _CLUSTERFUZZ_CONFIG_REVISION is not set. Using the latest commit."
+    fi
+- name: gcr.io/clusterfuzz-images/base:091c6c2-202409251610
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # Conditionally run 'git reset' if the revision is provided
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      echo "✅ _CLUSTERFUZZ_REVISION is set. Resetting to commit: ${_CLUSTERFUZZ_REVISION}"
+      git reset --hard "${_CLUSTERFUZZ_REVISION}"
+    else
+      echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
+    fi
+    
+    # Install required deps for performing butler deploy
+    bash ./local/install_deps.bash
+    
+    # Get into the venv
+    source "$$(python3.11 -m pipenv --venv)/bin/activate"
+
+    # Check if the _PROJECT substitution was provided.
+    if [ -z "${_PROJECT}" ]; then
+      echo "❌ Error: The _PROJECT substitution variable must be provided."
+      exit 1
+    fi
+
+    # Construct the full path using the substitution variable.
+    configpath="/workspace/clusterfuzz-config/configs/${_PROJECT}"
+
+    # Verify that the configuration directory actually exists.
+    if [ ! -d "$configpath" ]; then
+      echo "❌ Error: Configuration directory not found at $configpath"
+      exit 1
+    fi
+
+    echo "✅ Running deploy for project config: $configpath"
+    python3.11 butler.py deploy -c $configpath --prod --targets=zips --force
+
+timeout: 1200s
+options:
+  machineType: E2_HIGHCPU_32
+  diskSizeGb: 500
+  logging: CLOUD_LOGGING_ONLY
