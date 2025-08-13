@@ -1373,9 +1373,12 @@ def filter_addresses_and_numbers(stack_frame):
   # Cases that we are avoiding:
   # - source.cc:1234
   # - libsomething-1.0.so (to avoid things like NUMBERso in replacements)
-  number_expression = r'(^|[^:0-9.])[0-9.]{4,}($|[^A-Za-z0-9.])'
-  number_replacement = r'\1NUMBER\2'
-  return re.sub(number_expression, number_replacement, result)
+  number_expression = r'''(?<![:0-9.])         # not preceeded by any of these
+                          (?:[0-9.]{4,}        # either >= 4 digits
+                             |(?<=[@#])[0-9]+) # or preceeded by @ or #
+                          (?![A-Za-z0-9.])     # not followed by any of these
+                          '''
+  return re.sub(number_expression, 'NUMBER', result, flags=re.X)
 
 
 def should_ignore_line_for_crash_processing(line, state):

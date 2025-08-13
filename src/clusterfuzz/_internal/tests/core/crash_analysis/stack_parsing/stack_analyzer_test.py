@@ -1281,6 +1281,25 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_maglev_type_error(self):
+    """Test a type error in maglev, including a node number and input ID
+    which should be converted to `NUMBER` to avoid flooding us with identical
+    issues."""
+    data = self._read_test_data('v8_maglev_type_error.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = (
+        'Type representation error: node #NUMBER : Float64Add (input @NUMBER = Int32Multi\n'
+        'v8::internal::maglev::CheckValueInputIs\n'
+        'v8::internal::maglev::ProcessResult v8::internal::maglev::MaglevGraphVerifier::P\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
