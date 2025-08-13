@@ -47,7 +47,7 @@ echo -e "\nStarted grouper experiments!"
 # echo
 
 
-python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_group_size_35 group_max_size=35 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
-python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_group_size_40 group_max_size=40 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
-python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_increase_thrs_and_group_size_35 crash_threshold=0.90 same_frames=3 group_max_size=35 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
-python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_increase_thrs_and_group_size_40 crash_threshold=0.90 same_frames=3 group_max_size=40 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_group_size_35 group_max=35 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_group_size_40 group_max=40 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_increase_thrs_and_group_size_35 crash_threshold=0.90 same_frames=3 group_max=35 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+python butler.py run grouper_experiment --script_args step=group exp_name=disable_variant_and_increase_thrs_and_group_size_40 crash_threshold=0.90 same_frames=3 group_max=40 --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
