@@ -111,8 +111,8 @@ class GroupAttributes:
     # Useful to start off grouper with the previous state.
     self.testcases.add_node(tc)
 
-  def add_connection(self, tc1: int, tc2: int, reason: str) -> None:
-    self.testcases.add_edge(tc1, tc2, reason=reason)
+  def add_connection(self, tc1: int, tc2: int, reason: str, sim: float) -> None:
+    self.testcases.add_edge(tc1, tc2, reason=reason, similarity=float(sim))
 
   def remove_testcase(self, tc: int) -> None:
     self.testcases.remove_node(tc)
@@ -123,11 +123,11 @@ class GroupAttributes:
 
 def add_testcases_to_group_map(group_map: dict[int, GroupAttributes],
                                group_id: int, tc1: int, tc2: int,
-                               reason: str) -> None:
+                               reason: str, sim: float) -> None:
   """Add a new testcase grouping to an existing/new group in the map."""
   if group_id not in group_map:
     group_map[group_id] = GroupAttributes(group_id)
-  group_map[group_id].add_connection(tc1, tc2, reason)
+  group_map[group_id].add_connection(tc1, tc2, reason, sim)
 
 
 def remove_testcase_from_group(group_map: dict[int, GroupAttributes],
@@ -149,6 +149,7 @@ def merge_testcases_groups(group_map: dict[int, GroupAttributes],
 def combine_testcases_into_group(
     testcase_1: TestcaseAttributes, testcase_2: TestcaseAttributes,
     testcase_map: dict[int, TestcaseAttributes], reason: str,
+    sim: float,
     group_map: dict[int, GroupAttributes]) -> None:
   """Combine two testcases into a group."""
   logs.info(
@@ -168,7 +169,7 @@ def combine_testcases_into_group(
     testcase_1.group_id = new_group_id
     testcase_2.group_id = new_group_id
     add_testcases_to_group_map(group_map, new_group_id, testcase_1.id,
-                               testcase_2.id, reason)
+                               testcase_2.id, reason, sim)
     return
 
   # If one of the testcase has a group id, then assign the other to reuse that
@@ -176,12 +177,12 @@ def combine_testcases_into_group(
   if testcase_1.group_id and not testcase_2.group_id:
     testcase_2.group_id = testcase_1.group_id
     add_testcases_to_group_map(group_map, testcase_1.group_id, testcase_1.id,
-                               testcase_2.id, reason)
+                               testcase_2.id, reason, sim)
     return
   if testcase_2.group_id and not testcase_1.group_id:
     testcase_1.group_id = testcase_2.group_id
     add_testcases_to_group_map(group_map, testcase_2.group_id, testcase_1.id,
-                               testcase_2.id, reason)
+                               testcase_2.id, reason, sim)
     return
 
   # If both the testcase have their own groups, then just merge the two groups
@@ -190,7 +191,7 @@ def combine_testcases_into_group(
   group_id_to_move = testcase_2.group_id
   testcase_2.group_id = group_id_to_reuse
   add_testcases_to_group_map(group_map, group_id_to_reuse, testcase_1.id,
-                             testcase_2.id, reason)
+                             testcase_2.id, reason, sim)
   merge_testcases_groups(group_map, group_id_to_move, group_id_to_reuse)
 
   moved_testcase_ids = []
@@ -342,7 +343,7 @@ def _group_testcases_based_on_variants(testcase_map, group_map):
       #   continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                   'identical variant', group_map)
+                                   'identical variant', 1, group_map)
 
 
 def _group_testcases_with_same_issues(testcase_map, group_map):
@@ -372,7 +373,7 @@ def _group_testcases_with_same_issues(testcase_map, group_map):
         continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                   'same issue', group_map)
+                                   'same issue', 1, group_map)
 
 
 def _group_testcases_with_similar_states(testcase_map, group_map,
@@ -381,6 +382,7 @@ def _group_testcases_with_similar_states(testcase_map, group_map,
   logs.info('Grouping based on similar states.')
   for testcase_1_id, testcase_1 in testcase_map.items():
     for testcase_2_id, testcase_2 in testcase_map.items():
+      sim_value = -1
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
@@ -415,7 +417,8 @@ def _group_testcases_with_similar_states(testcase_map, group_map,
                                          testcase_2.crash_type,
                                          experiment_config.crash_comparer_threshold,
                                          experiment_config.same_frame_threshold)
-          if not crash_comparer.is_similar():
+          is_sim, sim_value = crash_comparer.is_similar(get_similarity=True)
+          if not is_sim:
             continue
 
         # Rule: Check for crash state similarity.
@@ -423,7 +426,8 @@ def _group_testcases_with_similar_states(testcase_map, group_map,
                                        testcase_2.crash_state,
                                        experiment_config.crash_comparer_threshold,
                                        experiment_config.same_frame_threshold)
-        if not crash_comparer.is_similar():
+        is_sim, sim_value = crash_comparer.is_similar(get_similarity=True)
+        if not is_sim:
           continue
 
       # Rule: Check both testcases regressed to the same revision range
@@ -437,7 +441,7 @@ def _group_testcases_with_similar_states(testcase_map, group_map,
           continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                   'similar crashes', group_map)
+                                   'similar crashes', sim_value, group_map)
 
 
 def _has_testcase_with_same_params(testcase, testcase_map):
@@ -701,32 +705,33 @@ def group_testcases(local_dir: str):
         group_map[group_id] = GroupAttributes(group_id)
       group_map[group_id].add_testcase(testcase.id)
 
-  _group_testcases_with_similar_states(testcase_map, group_map,
-                                       tcs_revision_range)
-  _group_testcases_with_same_issues(testcase_map, group_map)
-  if experiment_config.use_variant:
-    _group_testcases_based_on_variants(testcase_map, group_map)
-  _shrink_large_groups_if_needed(testcase_map, group_map, tcs_deleted)
-  group_leader.choose(testcase_map, group_map)
+  for it in range(experiment_config.iterations):
+    _group_testcases_with_similar_states(testcase_map, group_map,
+                                        tcs_revision_range)
+    _group_testcases_with_same_issues(testcase_map, group_map)
+    if experiment_config.use_variant:
+      _group_testcases_based_on_variants(testcase_map, group_map)
+    _shrink_large_groups_if_needed(testcase_map, group_map, tcs_deleted)
+    group_leader.choose(testcase_map, group_map)
 
-  for gid in list(group_map):
-    group = group_map[gid]
-    # If this group id is used by only one testcase, then remove it.
-    if len(group) == 1:
-      testcase_id = list(group.testcases.nodes)[0]
-      testcase_map[testcase_id].group_id = 0
-      testcase_map[testcase_id].is_leader = True
-      del group_map[gid]
-      continue
-    # Update group issue id to be lowest issue id in the entire group.
-    group_bug_information = 0
-    for tc_id in group.testcases.nodes:
-      issue_id = testcase_map[tc_id].issue_id
-      if issue_id is None:
+    for gid in list(group_map):
+      group = group_map[gid]
+      # If this group id is used by only one testcase, then remove it.
+      if len(group) == 1:
+        testcase_id = list(group.testcases.nodes)[0]
+        testcase_map[testcase_id].group_id = 0
+        testcase_map[testcase_id].is_leader = True
+        del group_map[gid]
         continue
-      if not group_bug_information or group_bug_information > issue_id:
-        group_bug_information = issue_id
-    group.group_issue_id = group_bug_information
+      # Update group issue id to be lowest issue id in the entire group.
+      group_bug_information = 0
+      for tc_id in group.testcases.nodes:
+        issue_id = testcase_map[tc_id].issue_id
+        if issue_id is None:
+          continue
+        if not group_bug_information or group_bug_information > issue_id:
+          group_bug_information = issue_id
+      group.group_issue_id = group_bug_information
 
   # Add a map for querying {testcase id -> group id} to avoid overwriting the
   # testcase_map.
@@ -775,6 +780,7 @@ def _parse_grouper_args(args):
   parser.add_argument('--step', nargs='*', default=['load', 'group'], choices=['load', 'group'])
   parser.add_argument('--exp_name', type=str, default=None)
   parser.add_argument('--use_group', type=int, default=0)
+  parser.add_argument('--iterations', type=int, default=1)
   parser.add_argument('--max_tcs', type=int, default=-1)
   parser.add_argument('--sample_to_group', type=int, default=-1)
   parser.add_argument('--reset_groups', action='store_true')
@@ -793,6 +799,7 @@ class ExperimentConfig():
   step: list[str]
   experiment_name: str
   only_group_id: int
+  iterations: int
   max_tcs_to_pickle: int
   sample_to_group: int
   reset_groups: bool
@@ -811,6 +818,7 @@ def set_experiment_config(parsed_args, config_dir):
       step=parsed_args.step,
       experiment_name=parsed_args.exp_name,
       only_group_id= parsed_args.use_group,
+      iterations=parsed_args.iterations,
       max_tcs_to_pickle=parsed_args.max_tcs,
       sample_to_group=parsed_args.sample_to_group,
       reset_groups=parsed_args.reset_groups,

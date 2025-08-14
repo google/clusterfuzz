@@ -52,7 +52,7 @@ def _similarity_ratio(string_1, string_2):
       1.0 * length_sum)
 
 
-def longest_common_subsequence(first_frames, second_frames):
+def longest_common_subsequence(first_frames, second_frames, verbose=False):
   """Count number of frames which are the same (taking into account order)."""
   first_len = len(first_frames)
   second_len = len(second_frames)
@@ -66,6 +66,8 @@ def longest_common_subsequence(first_frames, second_frames):
       else:
         solution[i][j] = max(solution[i - 1][j], solution[i][j - 1])
 
+  if verbose:
+    print(f'LCS: {solution}')
   return solution[first_len][second_len]
 
 
@@ -84,30 +86,38 @@ class CrashComparer:
     self.compare_threshold = compare_threshold or self.COMPARE_THRESHOLD
     self.same_frames_threshold = (
         same_frames_threshold or self.SAME_FRAMES_THRESHOLD)
+    self.compare_by_frame = False
 
-  def is_similar(self):
+
+  def _return_with_sim(self, is_sim, sim_value, get_sim):
+    if get_sim:
+      return is_sim, sim_value
+    return is_sim
+
+
+  def is_similar(self, get_similarity=False, verbose=False):
     """Return a bool for whether the two crash results are similar."""
     # If one of the crash state is empty, it can't match anything.
     if not self.crash_state_1 or not self.crash_state_2:
-      return False
+      return self._return_with_sim(False, 0, get_similarity)
 
     # Optimization: Do a == check first before others.
     if self.crash_state_1 == self.crash_state_2:
-      return True
+      return self._return_with_sim(True, 1, get_similarity)
 
     # If there is a fuzzer hash string in state, then rely on exact comparison.
     # Since we failed the check above, our hashes don't match.
     if 'FuzzerHash=' in self.crash_state_1:
-      return False
+      return self._return_with_sim(False, 0, get_similarity)
 
     # TODO(aarya): Improve this algorithm and leverage other parts of
     # stacktrace.
     crash_state_lines_1 = self.crash_state_1.splitlines()
     crash_state_lines_2 = self.crash_state_2.splitlines()
 
-    if (longest_common_subsequence(crash_state_lines_1, crash_state_lines_2) >=
-        self.same_frames_threshold):
-      return True
+    lcs = longest_common_subsequence(crash_state_lines_1, crash_state_lines_2, verbose)
+    if (lcs >= self.same_frames_threshold):
+      return self._return_with_sim(True, lcs, get_similarity)
 
     lines_compared = 0
     similarity_ratio_sum = 0.0
@@ -119,6 +129,9 @@ class CrashComparer:
                                            crash_state_lines_2[i])
       lines_compared += 1
       similarity_ratio_sum += similarity_ratio
+      if verbose:
+        print(f'# Line {lines_compared}, Sim: {similarity_ratio}')
 
     similarity_ratio_average = similarity_ratio_sum / lines_compared
-    return similarity_ratio_average > self.compare_threshold
+    result = similarity_ratio_average > self.compare_threshold
+    return self._return_with_sim(result, similarity_ratio_average, get_similarity)
