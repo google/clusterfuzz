@@ -25,10 +25,10 @@ steps:
     # Move into the repository directory
     cd /workspace/clusterfuzz-config
     
-    # Conditionally run 'git reset'
+    # Conditionally run 'git checkout'
     if [ -n "${_CLUSTERFUZZ_CONFIG_REVISION}" ]; then
-      echo "✅ _CLUSTERFUZZ_CONFIG_REVISION is set. Resetting to commit: ${_CLUSTERFUZZ_CONFIG_REVISION}"
-      git reset --hard "${_CLUSTERFUZZ_CONFIG_REVISION}"
+      echo "✅ _CLUSTERFUZZ_CONFIG_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_CONFIG_REVISION}"
+      git checkout "${_CLUSTERFUZZ_CONFIG_REVISION}"
     else
       echo "☑️ _CLUSTERFUZZ_CONFIG_REVISION is not set. Using the latest commit."
     fi
@@ -37,10 +37,10 @@ steps:
   args:
   - -c
   - |
-    # Conditionally run 'git reset' if the revision is provided
+    # Conditionally run 'git checkout' if the revision is provided
     if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
-      echo "✅ _CLUSTERFUZZ_REVISION is set. Resetting to commit: ${_CLUSTERFUZZ_REVISION}"
-      git reset --hard "${_CLUSTERFUZZ_REVISION}"
+      echo "✅ _CLUSTERFUZZ_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_REVISION}"
+      git checkout "${_CLUSTERFUZZ_REVISION}"
     else
       echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
     fi
