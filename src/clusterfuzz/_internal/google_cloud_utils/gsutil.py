@@ -51,6 +51,25 @@ def _get_gsutil_path():
   return gsutil_absolute_path
 
 
+def _get_gcloud_path():
+  """Get path to gcloud executable."""
+  gcloud_executable = 'gcloud'
+  if environment.platform() == 'WINDOWS':
+    gcloud_executable += '.cmd'
+
+  # TODO: b/436307629 - Rename GSUTIL_PATH env var to GCLOUD_PATH.
+  gcloud_directory = environment.get_value('GCLOUD_PATH')
+  if not gcloud_directory:
+    gcloud_absolute_path = shutil.which(gcloud_executable)
+    if gcloud_absolute_path:
+      return gcloud_absolute_path
+
+    logs.error('Cannot locate gcloud in PATH, set GCLOUD_PATH to directory '
+               'containing gcloud binary.')
+    return None
+
+  return os.path.join(gcloud_directory, gcloud_executable)
+
 def _multiprocessing_args():
   """Get multiprocessing args for gsutil."""
   if utils.cpu_count() == 1:
@@ -84,6 +103,7 @@ def _filter_path(path, write=False):
   return local_path
 
 
+# TODO: b/436307629 - Migrate gsutil commands to gcloud.
 class GSUtilRunner:
   """GSUtil runner."""
 
@@ -93,6 +113,7 @@ class GSUtilRunner:
 
     self.gsutil_runner = process_runner(
         _get_gsutil_path(), default_args=default_gsutil_args)
+    self.gcloud_runner = process_runner(_get_gcloud_path())
 
   def run_gsutil(self, arguments, quiet=False, **kwargs):
     """Run GSUtil."""
@@ -106,6 +127,17 @@ class GSUtilRunner:
       env.pop('PYTHONPATH')
 
     return self.gsutil_runner.run_and_wait(arguments, env=env, **kwargs)
+
+  def run_gcloud(self, arguments, quiet=False, **kwargs):
+    """Run gcloud."""
+    if quiet:
+      arguments = ['--quiet'] + arguments
+
+    env = os.environ.copy()
+    if 'PYTHONPATH' in env:
+      env.pop('PYTHONPATH')
+
+    return self.gcloud_runner.run_and_wait(arguments, env=env, **kwargs)
 
   def rsync(self,
             source,
@@ -124,19 +156,19 @@ class GSUtilRunner:
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    # Use 'gsutil -m rsync -r' to download files from GCS bucket.
-    sync_corpus_command = ['rsync', '-r']
+    # Use 'gcloud storage rsync' to download files from GCS bucket.
+    sync_corpus_command = ['storage', 'rsync', '--recursive']
     if delete:
-      sync_corpus_command.append('-d')
+      sync_corpus_command.append('--delete-unmatched-destination-objects')
     if exclusion_pattern:
-      sync_corpus_command.extend(['-x', exclusion_pattern])
+      sync_corpus_command.extend(['--exclude', exclusion_pattern])
 
     sync_corpus_command.extend([
         _filter_path(source, write=True),
         _filter_path(destination, write=True),
     ])
 
-    return self.run_gsutil(sync_corpus_command, timeout=timeout, quiet=True)
+    return self.run_gcloud(sync_corpus_command, timeout=timeout, quiet=True)
 
   def download_file(self, gcs_url, file_path, timeout=None):
     """Download a file from GCS."""

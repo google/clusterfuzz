@@ -20,7 +20,7 @@ import subprocess
 import sys
 import time
 
-GSUTIL_CMD = 'gsutil'
+GCLOUD_STORAGE_CMD = ['gcloud', 'storage']
 RETRY_COUNT = 5
 SLEEP_WAIT = 60
 
@@ -53,11 +53,11 @@ def _run_command(command):
 def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
   """Copy corpus from a source bucket to target bucket, keeping their project
   names into account."""
-  # Ensure that gsutil is installed.
-  subprocess.check_call([GSUTIL_CMD, '-v'])
+  # Ensure that gcloud is installed.
+  subprocess.check_call(['gcloud', '--version'])
 
-  source_urls_fetch_command = [
-      GSUTIL_CMD, 'ls', 'gs://{bucket}/*/'.format(bucket=source_bucket)
+  source_urls_fetch_command = GCLOUD_STORAGE_CMD + [
+      'ls', f'gs://{source_bucket}/*/'
   ]
   source_urls = _run_command(source_urls_fetch_command).splitlines()
   filtered_source_urls = [
@@ -79,8 +79,13 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
                                 'gs://%s' % target_bucket)
     target_url = '%s/%s' % (url_part, fuzz_target)
 
-    _run_command(
-        [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url])
+    _run_command(GCLOUD_STORAGE_CMD + [
+        'rsync',
+        '--recursive',
+        '--delete-unmatched-destination-objects',
+        source_url,
+        target_url,
+    ])
 
   print('Copy corpus finished successfully.')
 
