@@ -284,6 +284,12 @@ class IEventRepository(ABC):
                 event_type: str | None = None) -> Event | None:
     """Retrieve an event from the underlying database and return it."""
 
+  @abstractmethod
+  def get_events_with_equality_filters(self, filters: dict[str, Any] | None = None,
+                                       order_by: list[str] | None = None,
+                                       limit: int | None = None) -> list[Event]:
+    """Queries the Event database with equality filters, ordering, and a limit."""
+
 
 class NDBEventRepository(IEventRepository, EventHandler):
   """Implements the event repository for Datastore.
@@ -359,6 +365,40 @@ class NDBEventRepository(IEventRepository, EventHandler):
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""
     return self.store_event(event)
+  
+  def get_events_with_equality_filters(
+      self,
+      filters: dict[str, Any] | None = None,
+      order_by: list[str] | None = None,
+      limit: int | None = None) -> list[Event]:
+    """Queries the Event database with equality filters, ordering, and a limit."""
+    entity_kind = self._default_entity
+    query = entity_kind.query()
+
+    if filters:
+      for field, value in filters.items():
+        prop = getattr(entity_kind, field, None)
+        if prop is None:
+          logs.warning(f'Filters have a non-existent property: {field}')
+          continue
+        query = query.filter(prop == value)
+
+    if order_by:
+      for order_field in order_by:
+        desc = order_field.startswith('-')
+        prop_name = order_field.lstrip('-')
+        prop = getattr(entity_kind, prop_name, None)
+        if prop is None:
+          logs.warning(f'Order by have a non-existent property: {prop_name}')
+          continue
+
+        query = query.order(-prop) if desc else query.order(prop)
+
+    results = query.fetch(limit=limit)
+    return [
+        event for entity in results
+        if (event := self._deserialize_event(entity)) is not None
+    ]
 
 
 class EventIssueNotification(EventHandler):
@@ -517,3 +557,16 @@ def emit(event: Event) -> None:
 
   for handler in handlers:
     handler.emit(event)
+
+def get_events(filters: dict[str, Any] | None = None,
+               order_by: list[str] | None = None,
+               limit: int | None = None) -> list[Event] | None:
+  """Returns testcase events."""
+  repository = get_repository()
+  if repository is None:
+    return None
+
+  events = repository.get_events_with_equality_filters(
+      filters=filters, order_by=order_by, limit=limit)
+  
+  return events

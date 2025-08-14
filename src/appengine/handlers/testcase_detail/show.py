@@ -32,6 +32,7 @@ from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
@@ -347,6 +348,68 @@ def _format_reproduction_help(reproduction_help):
     return ''
 
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
+
+def _get_task_events_info(testcase_id: int) -> dict:
+  """Get task events info."""
+  task_events_info = {}
+  filters = {
+        'testcase_id': testcase_id,
+        'event_type': events.EventTypes.TASK_EXECUTION,
+    }
+
+  #TODO andrenribeiro: check where task names are defined
+  for task_name in ['analyze', 'minimize', 'impact',
+                    'regression', 'progression']:
+    filters['task_name'] = task_name
+    task_events_info[task_name] = {}
+    order_by = ['-timestamp']
+    limit = 1
+    task_events = events.get_events(filters=filters, order_by=order_by, limit=limit)
+    if task_events:
+      last_task_event = task_events[0]
+      task_events_info[task_name]['task_stage'] = last_task_event.task_stage
+      task_events_info[task_name]['task_status'] = last_task_event.task_status
+      task_events_info[task_name]['task_outcome'] = last_task_event.task_outcome
+      task_events_info[task_name]['timestamp'] = last_task_event.timestamp.strftime(
+          '%Y-%m-%d %H:%M:%S.%f UTC')
+  
+  return task_events_info
+
+def _get_non_task_events_info(testcase_id: int) -> dict:
+  """Get non task events info."""
+  non_task_events_info = {}
+  filters = {
+      'testcase_id': testcase_id,
+  }
+
+  #TODO andrenribeiro: check where task names are defined
+  for event_type in [events.EventTypes.TESTCASE_REJECTION,
+                     events.EventTypes.TESTCASE_CREATION,
+                     events.EventTypes.TESTCASE_FIXED,
+                     events.EventTypes.ISSUE_CLOSING,
+                     ]:
+    filters['event_type'] = event_type
+    non_task_events_info[event_type] = {}
+    order_by = ['-timestamp']
+    limit = 1
+    task_events = events.get_events(filters=filters, order_by=order_by, limit=limit)
+    if task_events:
+      last_task_event = task_events[0]
+      non_task_events_info[event_type]['timestamp'] = (last_task_event.timestamp.strftime(
+          '%Y-%m-%d %H:%M:%S.%f UTC'))
+  
+  return non_task_events_info
+
+def get_testcase_status_machine_info(testcase_id) -> dict:
+  """Get testcase status machine info."""
+  task_board = _get_task_events_info(testcase_id)
+  non_task_board = _get_non_task_events_info(testcase_id)
+
+  status_boards = {
+      'task_board': task_board,
+      'non_task_board': non_task_board,
+  }
+  return status_boards
 
 
 def get_testcase_detail(testcase):
