@@ -58,7 +58,7 @@ def _get_gcloud_path():
     gcloud_executable += '.cmd'
 
   # TODO: b/436307629 - Rename GSUTIL_PATH env var to GCLOUD_PATH.
-  gcloud_directory = environment.get_value('GCLOUD_PATH')
+  gcloud_directory = environment.get_value('GSUTIL_PATH')
   if not gcloud_directory:
     gcloud_absolute_path = shutil.which(gcloud_executable)
     if gcloud_absolute_path:
@@ -69,6 +69,7 @@ def _get_gcloud_path():
     return None
 
   return os.path.join(gcloud_directory, gcloud_executable)
+
 
 def _multiprocessing_args():
   """Get multiprocessing args for gsutil."""
