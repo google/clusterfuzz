@@ -285,9 +285,9 @@ class IEventRepository(ABC):
     """Retrieve an event from the underlying database and return it."""
 
   @abstractmethod
-  def get_events_with_equality_filters(self, filters: dict[str, Any] | None = None,
-                                       order_by: list[str] | None = None,
-                                       limit: int | None = None) -> list[Event]:
+  def get_events(self, filters: dict[str, Any] | None = None,
+                 order_by: list[str] | None = None,
+                 limit: int | None = None) -> list[Event]:
     """Queries the Event database with equality filters, ordering, and a limit."""
 
 
@@ -366,35 +366,22 @@ class NDBEventRepository(IEventRepository, EventHandler):
     """Emit an event by persisting it to Datastore."""
     return self.store_event(event)
   
-  def get_events_with_equality_filters(
+  def get_events(
       self,
       filters: dict[str, Any] | None = None,
       order_by: list[str] | None = None,
       limit: int | None = None) -> list[Event]:
-    """Queries the Event database with equality filters, ordering, and a limit."""
+    """Queries the Events with equality filters, ordering, and a limit."""
     entity_kind = self._default_entity
-    query = entity_kind.query()
+    results = data_handler.get_entities(
+      entity_kind=entity_kind,
+      filters=filters,
+      order_by=order_by,
+      limit=limit
+    )
+    if results is None:
+      return []
 
-    if filters:
-      for field, value in filters.items():
-        prop = getattr(entity_kind, field, None)
-        if prop is None:
-          logs.warning(f'Filters have a non-existent property: {field}')
-          continue
-        query = query.filter(prop == value)
-
-    if order_by:
-      for order_field in order_by:
-        desc = order_field.startswith('-')
-        prop_name = order_field.lstrip('-')
-        prop = getattr(entity_kind, prop_name, None)
-        if prop is None:
-          logs.warning(f'Order by have a non-existent property: {prop_name}')
-          continue
-
-        query = query.order(-prop) if desc else query.order(prop)
-
-    results = query.fetch(limit=limit)
     return [
         event for entity in results
         if (event := self._deserialize_event(entity)) is not None
@@ -566,7 +553,7 @@ def get_events(filters: dict[str, Any] | None = None,
   if repository is None:
     return None
 
-  events = repository.get_events_with_equality_filters(
+  events = repository.get_events(
       filters=filters, order_by=order_by, limit=limit)
   
   return events
