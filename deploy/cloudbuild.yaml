@@ -40,6 +40,9 @@ steps:
     # Conditionally run 'git checkout' if the revision is provided
     if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
       echo "✅ _CLUSTERFUZZ_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_REVISION}"
+      apt install git -y
+      git clone https://github.com/google/clusterfuzz.git
+      cd clusterfuzz
       git checkout "${_CLUSTERFUZZ_REVISION}"
     else
       echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
