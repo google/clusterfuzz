@@ -285,7 +285,8 @@ class IEventRepository(ABC):
     """Retrieve an event from the underlying database and return it."""
 
   @abstractmethod
-  def get_events(self, filters: dict[str, Any] | None = None,
+  def get_events(self,
+                 filters: dict[str, Any] | None = None,
                  order_by: list[str] | None = None,
                  limit: int | None = None) -> list[Event]:
     """Queries the Event database with equality filters, ordering, and a limit."""
@@ -365,20 +366,18 @@ class NDBEventRepository(IEventRepository, EventHandler):
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""
     return self.store_event(event)
-  
-  def get_events(
-      self,
-      filters: dict[str, Any] | None = None,
-      order_by: list[str] | None = None,
-      limit: int | None = None) -> list[Event]:
+
+  def get_events(self,
+                 filters: dict[str, Any] | None = None,
+                 order_by: list[str] | None = None,
+                 limit: int | None = None) -> list[Event]:
     """Queries the Events with equality filters, ordering, and a limit."""
     entity_kind = self._default_entity
     results = data_handler.get_entities(
-      entity_kind=entity_kind,
-      filters=filters,
-      order_by=order_by,
-      limit=limit
-    )
+        entity_kind=entity_kind,
+        filters=filters,
+        order_by=order_by,
+        limit=limit)
     if results is None:
       return []
 
@@ -545,6 +544,7 @@ def emit(event: Event) -> None:
   for handler in handlers:
     handler.emit(event)
 
+
 def get_events(filters: dict[str, Any] | None = None,
                order_by: list[str] | None = None,
                limit: int | None = None) -> list[Event] | None:
@@ -555,5 +555,5 @@ def get_events(filters: dict[str, Any] | None = None,
 
   events = repository.get_events(
       filters=filters, order_by=order_by, limit=limit)
-  
+
   return events

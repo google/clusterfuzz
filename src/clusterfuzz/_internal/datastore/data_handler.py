@@ -1575,32 +1575,32 @@ def get_entity_by_type_and_id(entity_type, entity_id):
 #TODO andrenribeiro: Check if @retry.wrap is needed
 #TODO andrenribeiro: Choose a better name for this function
 def get_entities(
-      entity_kind, #TODO andrenribeiro: What should the type hint be?
-      filters: dict[str, Any] | None = None,
-      order_by: list[str] | None = None,
-      limit: int | None = None) -> list | None:
-    """Queries the entity kind with equality filters, ordering, and a limit."""
-    query = entity_kind.query()
+    entity_kind,  #TODO andrenribeiro: What should the type hint be?
+    filters: dict[str, Any] | None = None,
+    order_by: list[str] | None = None,
+    limit: int | None = None) -> list | None:
+  """Queries the entity kind with equality filters, ordering, and a limit."""
+  query = entity_kind.query()
 
-    if filters:
-      for field, value in filters.items():
-        prop = getattr(entity_kind, field, None)
-        if prop is None:
-          logs.warning(f'Filters have a non-existent property: {field}')
-          continue
-        query = query.filter(prop == value)
+  if filters:
+    for field, value in filters.items():
+      prop = getattr(entity_kind, field, None)
+      if prop is None:
+        logs.warning(f'Filters have a non-existent property: {field}')
+        continue
+      query = query.filter(prop == value)
 
-    if order_by:
-      for order_field in order_by:
-        desc = order_field.startswith('-')
-        prop_name = order_field.lstrip('-')
-        prop = getattr(entity_kind, prop_name, None)
-        if prop is None:
-          logs.warning(f'Order by have a non-existent property: {prop_name}')
-          continue
-        query = query.order(-prop) if desc else query.order(prop)
+  if order_by:
+    for order_field in order_by:
+      desc = order_field.startswith('-')
+      prop_name = order_field.lstrip('-')
+      prop = getattr(entity_kind, prop_name, None)
+      if prop is None:
+        logs.warning(f'Order by have a non-existent property: {prop_name}')
+        continue
+      query = query.order(-prop) if desc else query.order(prop)
 
-    return query.fetch(limit=limit)
+  return query.fetch(limit=limit)
 
 
 # ------------------------------------------------------------------------------

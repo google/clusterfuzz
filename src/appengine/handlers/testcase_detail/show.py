@@ -349,31 +349,36 @@ def _format_reproduction_help(reproduction_help):
 
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
+
 def _get_task_events_info(testcase_id: int) -> dict:
   """Get task events info."""
   task_events_info = {}
   filters = {
-        'testcase_id': testcase_id,
-        'event_type': events.EventTypes.TASK_EXECUTION,
-    }
+      'testcase_id': testcase_id,
+      'event_type': events.EventTypes.TASK_EXECUTION,
+  }
 
   #TODO andrenribeiro: check where task names are defined
-  for task_name in ['analyze', 'minimize', 'impact',
-                    'regression', 'progression']:
+  for task_name in [
+      'analyze', 'minimize', 'impact', 'regression', 'progression'
+  ]:
     filters['task_name'] = task_name
     task_events_info[task_name] = {}
     order_by = ['-timestamp']
     limit = 1
-    task_events = events.get_events(filters=filters, order_by=order_by, limit=limit)
+    task_events = events.get_events(
+        filters=filters, order_by=order_by, limit=limit)
     if task_events:
       last_task_event = task_events[0]
       task_events_info[task_name]['task_stage'] = last_task_event.task_stage
       task_events_info[task_name]['task_status'] = last_task_event.task_status
       task_events_info[task_name]['task_outcome'] = last_task_event.task_outcome
-      task_events_info[task_name]['timestamp'] = last_task_event.timestamp.strftime(
-          '%Y-%m-%d %H:%M:%S.%f UTC')
-  
+      task_events_info[task_name][
+          'timestamp'] = last_task_event.timestamp.strftime(
+              '%Y-%m-%d %H:%M:%S.%f UTC')
+
   return task_events_info
+
 
 def _get_non_task_events_info(testcase_id: int) -> dict:
   """Get non task events info."""
@@ -383,22 +388,25 @@ def _get_non_task_events_info(testcase_id: int) -> dict:
   }
 
   #TODO andrenribeiro: check where task names are defined
-  for event_type in [events.EventTypes.TESTCASE_REJECTION,
-                     events.EventTypes.TESTCASE_CREATION,
-                     events.EventTypes.TESTCASE_FIXED,
-                     events.EventTypes.ISSUE_CLOSING,
-                     ]:
+  for event_type in [
+      events.EventTypes.TESTCASE_REJECTION,
+      events.EventTypes.TESTCASE_CREATION,
+      events.EventTypes.TESTCASE_FIXED,
+      events.EventTypes.ISSUE_CLOSING,
+  ]:
     filters['event_type'] = event_type
     non_task_events_info[event_type] = {}
     order_by = ['-timestamp']
     limit = 1
-    task_events = events.get_events(filters=filters, order_by=order_by, limit=limit)
+    task_events = events.get_events(
+        filters=filters, order_by=order_by, limit=limit)
     if task_events:
       last_task_event = task_events[0]
-      non_task_events_info[event_type]['timestamp'] = (last_task_event.timestamp.strftime(
-          '%Y-%m-%d %H:%M:%S.%f UTC'))
-  
+      non_task_events_info[event_type]['timestamp'] = (
+          last_task_event.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC'))
+
   return non_task_events_info
+
 
 def get_testcase_status_machine_info(testcase_id) -> dict:
   """Get testcase status machine info."""
