@@ -1586,6 +1586,7 @@ def get_entities(
     for field, value in filters.items():
       prop = getattr(entity_kind, field, None)
       if prop is None:
+        #TODO andrenribeiro: Check the right way to log
         logs.warning(f'Filters have a non-existent property: {field}')
         continue
       query = query.filter(prop == value)
