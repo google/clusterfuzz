@@ -5,6 +5,7 @@ import random
 import re
 import networkx as nx
 import statistics
+import matplotlib.pyplot as plt
 
 from .grouper_experiment import GROUPS_MAP_FILE
 from .grouper_experiment import TESTCASES_DELETED_GROUP_FILE
@@ -101,8 +102,16 @@ from clusterfuzz._internal.system import environment
 
 #   print(f'### Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(gps_map)}): {len(gps_map) + ungrouped}')
 
+potential_deleted_tcs = {}
+potential_bugs_filed = {}
+
 
 def get_group_size_stats(group_map):
+  if len(group_map) == 1:
+    group = list(group_map.values())[0]
+    group_size = group if isinstance(group, int) else len(group.testcases)
+    return f'One group of size {group_size}'
+
   sizes = []
   for group in group_map.values():
     if isinstance(group, int):
@@ -172,12 +181,16 @@ def get_default_stats(local_dir: str, snapshot_date: str | None = None):
       max_group = group_id
       max_size = groups_map[group_id]
 
+  bugs_filed = len(groups_map) + ungrouped
   print(f'\n* Current state:\n')
   print(f'  * Total TCs: {len(testcase_map)}')
   print(f'  * Groups: {len(groups_map)}')
   print(f'  * Groups sizes stats: {get_group_size_stats(groups_map)}')
   print(f'  * Max group {max_group}: Size={max_size}')
-  print(f'  * Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
+  print(f'  * Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {bugs_filed}')
+  potential_deleted_tcs[testcases_snapshot] = 0
+  potential_bugs_filed[testcases_snapshot] = bugs_filed
+  return testcases_snapshot
 
 
 def get_experiment_stats(exp_name: str, group_exp: dict):
@@ -194,13 +207,56 @@ def get_experiment_stats(exp_name: str, group_exp: dict):
       grouped += 1
 
   total_tcs_analyzed = ungrouped + grouped + len(testcases_overflow)
+  bugs_filed = len(groups_map) + ungrouped
   print(f'\n\n* Analysis results - {exp_name}:\n')
   print(f'  * Total TCs analyzed: {total_tcs_analyzed}.')
   print(f'  * Groups: {len(groups_map)}.')
   print(f'  * Groups sizes stats: {get_group_size_stats(groups_map)}')
   print(f'  * TCs deleted due to group overflow: {len(testcases_overflow)}.')
-  print(f'  * Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {len(groups_map) + ungrouped}')
+  print(f'  * Potential bugs filed, i.e., ungrouped ({ungrouped}) + groups ({len(groups_map)}): {bugs_filed}')
 
+  potential_deleted_tcs[exp_name] = len(testcases_overflow)
+  potential_bugs_filed[exp_name] = bugs_filed
+
+
+def gen_ordered_bar_plot(data, map_exp_name, descending, filename, title='Title', xlabel='Items', ylabel='Values'):
+  pattern = re.compile(r'^experiment_snapshot-(\d{2}_\d{2}_\d{4})_(.+?)_([0-9a-f]{8})$')
+  sorted_items = sorted(data.items(), key=lambda item: item[1], reverse=descending)
+  prev_labels, values = zip(*sorted_items)
+  labels = []
+  for lb in prev_labels:
+    match_name = pattern.match(lb)
+    if match_name:
+      labels.append(map_exp_name[match_name.group(2)])
+    elif 'testcases_snapshot' in lb:
+      labels.append('before_grouping')
+    else:
+      labels.append(lb)
+
+  # plt.style.use('seaborn-v0_8-whitegrid')
+  _, ax = plt.subplots(figsize=(10, 6))
+  ax.grid(True)
+
+  # Create bars
+  bars = ax.bar(labels, values)#, color='skyblue')
+  if min(values) >= 1000:
+    ax.set_ylim(bottom=1000)
+
+  for bar in bars:
+      yval = bar.get_height()
+      ax.text(bar.get_x() + bar.get_width() / 2.0, yval, f'{int(yval)}', va='bottom', ha='center')
+
+  # Add titles and labels
+  ax.set_title(title, fontsize=10, fontweight='bold')
+  ax.set_xlabel(xlabel, fontsize=10)
+  ax.set_ylabel(ylabel, fontsize=10)
+
+  # Rotate x-axis labels for better readability if they are long
+  plt.xticks(rotation=45, ha='right')
+
+  # Ensure everything fits without overlapping
+  plt.tight_layout()
+  plt.savefig(f'{filename}.png')
 
 def execute(args):
   """Analyze results from grouper experiments."""
@@ -219,7 +275,43 @@ def execute(args):
     print(f'Local dir not found.')
     return
 
-  get_default_stats(local_dir)
+  snapshot_name = get_default_stats(local_dir)
+  snapshot_date = snapshot_name.removeprefix('testcases_snapshot_')
   group_experiments = get_groups_experiments_data(local_dir)
   for exp_name, group_exp in group_experiments.items():
     get_experiment_stats(exp_name, group_exp)
+
+
+  # map_exp_name = {
+  #     'default' : 'default (with variant)',
+  #     'disable_variant' : 'default disable variant',
+  #     'disable_variant_and_same_frames_3' : 'same_frames_LCS=3',
+  #     'disable_variant_and_crash_thr_85' : 'crash_thr=0.85',
+  #     'disable_variant_and_crash_thr_90' : 'crash_thr=0.90',
+  #     'disable_variant_and_group_size_40' : 'group_size_lim=40',
+  #     'disable_variant_and_group_size_35' : 'group_size_lim=35',
+  #     'disable_variant_and_crash_thr_85_and_same_frames_3' : 'crash_thr=0.85 and same_frames_LCS=3',
+  #     'disable_variant_and_crash_thr_90_and_same_frames_3' : 'crash_thr=0.90 and same_frames_LCS=3',
+  #     'enable_variant_and_crash_thr_90_and_same_frames_3' : 'crash_thr=0.90 and same_frames_LCS=3 and enable variant',
+  #     'disable_variant_and_increase_thrs_and_group_size_35' : 'crash_thr=0.90 and same_frames_LCS=3 and group_size_lim=35',
+  #     'disable_variant_and_increase_thrs_and_group_size_40' : 'crash_thr=0.90 and same_frames_LCS=3 and group_size_lim=40',
+  # }
+  # gen_ordered_bar_plot(data=potential_bugs_filed,
+  #                      map_exp_name=map_exp_name,
+  #                      descending=False,
+  #                      filename=f'potential_bugs_{snapshot_date}',
+  #                      title=f'Potential bugs filed (ungrouped + grouped) - {snapshot_date}',
+  #                      xlabel='Experiments',
+  #                      ylabel='Bugs')
+
+  # gen_ordered_bar_plot(data=potential_deleted_tcs,
+  #                      map_exp_name=map_exp_name,
+  #                      descending=True,
+  #                      filename=f'potential_deleted_{snapshot_date}',
+  #                      title=f'Testcases deleted due to overflow - {snapshot_date}',
+  #                      xlabel='Experiments',
+  #                      ylabel='Testcases')
+
+
+# DEBUG_TASK=TRUE PATH_TO_LOCAL_DATA=/usr/local/google/home/vtcosta/Data/grouper_data_latest python butler.py run grouper_analyzer --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run
+# DEBUG_TASK=TRUE PATH_TO_LOCAL_DATA=/usr/local/google/home/vtcosta/Data/grouper_specific_4885551400288256 python butler.py run grouper_analyzer --config-dir=$HOME/Projects/clusterfuzz-config/configs/internal --non-dry-run

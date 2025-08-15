@@ -4,9 +4,9 @@ import pickle
 import random
 import re
 import networkx as nx
-# from matplotlib_venn import venn3, venn2
-# # from matplotlib_venn.layout.venn2 import DefaultLayoutAlgorithm
-# from matplotlib_venn.layout.venn3 import DefaultLayoutAlgorithm
+from matplotlib_venn import venn3, venn2
+# from matplotlib_venn.layout.venn2 import DefaultLayoutAlgorithm
+from matplotlib_venn.layout.venn3 import DefaultLayoutAlgorithm
 import matplotlib.pyplot as plt
 
 from clusterfuzz._internal.base import errors
@@ -37,7 +37,7 @@ def groups_fixed_states():
   groups_with_not_fixed_testcases = set()
   not_fixed_file = os.path.join(storage_dir, 'groups_with_not_fixed.pkl')
 
-  groups_fixed_revision_range = collections.defaultdict(set)
+  groups_fixed_revision_range = collections.defaultdict(list)
   groups_fixed_range_file = os.path.join(storage_dir, 'groups_fixed_range.pkl')
 
   if not os.path.exists(fixed_file):
@@ -50,7 +50,7 @@ def groups_fixed_states():
         groups_with_na_testcases.add(testcase.group_id)
       else:
         groups_with_fixed_testcases.add(testcase.group_id)
-        groups_fixed_revision_range[testcase.group_id].add(testcase.fixed)
+        groups_fixed_revision_range[testcase.group_id].append(testcase.fixed)
       count += 1
       if count % 100 == 0:
         print(f'{count} testcases analyzed.')
@@ -66,6 +66,8 @@ def groups_fixed_states():
 
     with open(groups_fixed_range_file, 'wb') as f:
       pickle.dump(groups_fixed_revision_range, f)
+
+    return
 
   else:
     print(f'Loading from existing files.')
@@ -105,6 +107,27 @@ def groups_fixed_states():
   print(f'# Groups with fixed and not fixed: {len(fixed_and_not_fixed)}')
   print(f'# Groups with fixed and NA: {len(fixed_and_na)}')
   print(f'# Groups with not fixed and NA: {len(not_fixed_and_na)}')
+
+  # print(list(groups_fixed_revision_range.items())[0])
+  revisions_per_group = []
+  count_1 = 0
+  # Look only for groups with fixed testcases
+  for group_id, group_revs in groups_fixed_revision_range.items():
+    if group_id not in only_fixed:
+      continue
+    if 'Yes' in group_revs:
+      continue
+    if len(group_revs) == 1:
+      if count_1 % 500:
+        print(group_id)
+      count_1 += 1
+    revisions_per_group.append(len(group_revs))
+
+  print(f'# Groups with only fixed in the same revision: {count_1}')
+  # plt.figure(figsize=(12, 10))
+  # plt.hist(revisions_per_group, bins=50)
+  # plt.tight_layout()
+  # plt.savefig('revision_range_dist.png')
 
 
 def execute(args):
