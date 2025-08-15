@@ -40,9 +40,10 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.gsutil_runner_obj.rsync('gs://source_bucket/source_path',
                                  'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            '--delete-unmatched-destination-objects',
+            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
         ],
         timeout=18000,
         env=mock.ANY)
@@ -55,8 +56,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.gsutil_runner_obj.rsync('gs://source_bucket/source_path',
                                  'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d',
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            '--delete-unmatched-destination-objects',
             '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
@@ -71,9 +73,10 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         'gs://target_bucket/target_path',
         timeout=1337)
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            '--delete-unmatched-destination-objects',
+            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
         ],
         timeout=1337,
         env=mock.ANY)
@@ -88,8 +91,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         'gs://target_bucket/target_path',
         timeout=1337)
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d',
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            '--delete-unmatched-destination-objects',
             '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
@@ -104,9 +108,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         'gs://target_bucket/target_path',
         delete=False)
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
         ],
         timeout=18000,
         env=mock.ANY)
@@ -121,8 +125,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         'gs://target_bucket/target_path',
         delete=False)
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '/local/source_bucket/objects/source_path',
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
         timeout=18000,
@@ -137,9 +142,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         timeout=1337,
         delete=False)
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
         ],
         timeout=1337,
         env=mock.ANY)
@@ -155,8 +160,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         timeout=1337,
         delete=False)
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '/local/source_bucket/objects/source_path',
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive',
+            '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
         timeout=1337,
@@ -172,9 +178,10 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         delete=False,
         exclusion_pattern='"*.txt$"')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-x', '"*.txt$"',
-            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive', '--exclude',
+            '"*.txt$"', 'gs://source_bucket/source_path',
+            'gs://target_bucket/target_path'
         ],
         timeout=1337,
         env=mock.ANY)
@@ -191,9 +198,9 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         delete=False,
         exclusion_pattern='"*.txt$"')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-x', '"*.txt$"',
-            '/local/source_bucket/objects/source_path',
+        self.gsutil_runner_obj.gcloud_runner, [
+            '--quiet', 'storage', 'rsync', '--recursive', '--exclude',
+            '"*.txt$"', '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
         timeout=1337,
