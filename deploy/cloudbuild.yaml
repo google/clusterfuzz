@@ -32,20 +32,30 @@ steps:
     else
       echo "☑️ _CLUSTERFUZZ_CONFIG_REVISION is not set. Using the latest commit."
     fi
-- name: gcr.io/clusterfuzz-images/base:091c6c2-202409251610
+
+- name: gcr.io/cloud-builders/git
   entrypoint: bash
   args:
   - -c
   - |
-    # Conditionally run 'git checkout' if the revision is provided
+    # Conditionally clone the upstream clusterfuzz and 'git checkout' if the revision is provided
     if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
       echo "✅ _CLUSTERFUZZ_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_REVISION}"
-      apt install git -y
       git clone https://github.com/google/clusterfuzz.git
       cd clusterfuzz
       git checkout "${_CLUSTERFUZZ_REVISION}"
     else
       echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
+    fi
+
+- name: gcr.io/clusterfuzz-images/base:091c6c2-202409251610
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # Conditionally run go into the cloned clusterfuzz
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      cd clusterfuzz
     fi
     
     # Install required deps for performing butler deploy
