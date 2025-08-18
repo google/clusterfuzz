@@ -353,7 +353,7 @@ def _format_reproduction_help(reproduction_help):
 def _get_task_events_info(testcase_id: int) -> dict:
   """Get task events info."""
   task_events_info = {}
-  filters = {
+  equality_filters = {
       'testcase_id': testcase_id,
       'event_type': events.EventTypes.TASK_EXECUTION,
   }
@@ -362,12 +362,12 @@ def _get_task_events_info(testcase_id: int) -> dict:
   for task_name in [
       'analyze', 'minimize', 'impact', 'regression', 'progression'
   ]:
-    filters['task_name'] = task_name
+    equality_filters['task_name'] = task_name
     task_events_info[task_name] = {}
     order_by = ['-timestamp']
     limit = 1
     task_events = events.get_events(
-        filters=filters, order_by=order_by, limit=limit)
+        equality_filters=equality_filters, order_by=order_by, limit=limit)
     if task_events:
       last_task_event = task_events[0]
       task_events_info[task_name]['task_stage'] = last_task_event.task_stage
@@ -384,7 +384,7 @@ def _get_task_events_info(testcase_id: int) -> dict:
 def _get_non_task_events_info(testcase_id: int) -> dict:
   """Get non task events info."""
   non_task_events_info = {}
-  filters = {
+  equality_filters = {
       'testcase_id': testcase_id,
   }
 
@@ -394,12 +394,12 @@ def _get_non_task_events_info(testcase_id: int) -> dict:
       events.EventTypes.TESTCASE_FIXED,
       events.EventTypes.ISSUE_CLOSING,
   ]:
-    filters['event_type'] = event_type
+    equality_filters['event_type'] = event_type
     non_task_events_info[event_type] = {}
     order_by = ['-timestamp']
     limit = 1
     task_events = events.get_events(
-        filters=filters, order_by=order_by, limit=limit)
+        equality_filters=equality_filters, order_by=order_by, limit=limit)
     if task_events:
       last_task_event = task_events[0]
       non_task_events_info[event_type]['timestamp'] = (

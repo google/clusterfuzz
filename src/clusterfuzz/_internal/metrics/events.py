@@ -286,7 +286,7 @@ class IEventRepository(ABC):
 
   @abstractmethod
   def get_events(self,
-                 filters: dict[str, Any] | None = None,
+                 equality_filters: dict[str, Any] | None = None,
                  order_by: list[str] | None = None,
                  limit: int | None = None) -> list[Event]:
     """Queries the Event database with equality filters, ordering, and a limit."""
@@ -368,14 +368,14 @@ class NDBEventRepository(IEventRepository, EventHandler):
     return self.store_event(event)
 
   def get_events(self,
-                 filters: dict[str, Any] | None = None,
+                 equality_filters: dict[str, Any] | None = None,
                  order_by: list[str] | None = None,
                  limit: int | None = None) -> list[Event]:
     """Queries the Events with equality filters, ordering, and a limit."""
     entity_kind = self._default_entity
     results = data_handler.get_entities(
         entity_kind=entity_kind,
-        filters=filters,
+        equality_filters=equality_filters,
         order_by=order_by,
         limit=limit)
     if results is None:
@@ -545,7 +545,7 @@ def emit(event: Event) -> None:
     handler.emit(event)
 
 
-def get_events(filters: dict[str, Any] | None = None,
+def get_events(equality_filters: dict[str, Any] | None = None,
                order_by: list[str] | None = None,
                limit: int | None = None) -> list[Event] | None:
   """Returns testcase events."""
@@ -554,6 +554,6 @@ def get_events(filters: dict[str, Any] | None = None,
     return None
 
   events = repository.get_events(
-      filters=filters, order_by=order_by, limit=limit)
+      equality_filters=equality_filters, order_by=order_by, limit=limit)
 
   return events
