@@ -19,7 +19,7 @@ import os
 import re
 import shlex
 import time
-from typing import Any, Type
+from typing import Any
 
 from google.cloud import ndb
 
@@ -1572,37 +1572,35 @@ def get_entity_by_type_and_id(entity_type, entity_id):
 
   return entity_type.get_by_id(int(entity_id))
 
+
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='datastore.data_handler.get_entities')
-def get_entities(
-    entity_kind: data_types.Model,
-    equality_filters: dict[str, Any] | None = None,
-    order_by: list[str] | None = None,
-    limit: int | None = None) -> list[data_types.Model] | None:
+def get_entities(entity_kind: data_types.Model,
+                 equality_filters: dict[str, Any] | None = None,
+                 order_by: list[str] | None = None,
+                 limit: int | None = None) -> list[data_types.Model] | None:
   """Queries the entity kind with equality filters, ordering, and a limit."""
   query = entity_kind.query()
 
   if equality_filters:
     for property_name, value in equality_filters.items():
-      property = getattr(entity_kind, property_name, None)
-      if property is None:
-        #TODO andrenribeiro: Check the right way to log
-        logs.warning('Filters have a non-existent property: %s' % property_name)
+      if (prop := getattr(entity_kind, property_name, None)) is None:
+        logs.warning(
+            'Query filters contain a non-existent property: %s' % property_name)
         continue
-      query = query.filter(property == value)
+      query = query.filter(prop == value)
 
   if order_by:
     for order_field in order_by:
       desc = order_field.startswith('-')
       property_name = order_field[1:] if desc else order_field
-      property = getattr(entity_kind, property_name, None)
-      #TODO andrenribeiro: Maybe change this to use :=
-      if property is None:
-        logs.warning(f'Order by have a non-existent property: {property_name}')
+      if (prop := getattr(entity_kind, property_name, None)) is None:
+        logs.warning('Query order argument contains a non-existent property: %s'
+                     % property_name)
         continue
-      query = query.order(-property) if desc else query.order(property)
+      query = query.order(-prop) if desc else query.order(prop)
 
   return query.fetch(limit=limit)
 
