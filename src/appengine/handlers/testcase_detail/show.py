@@ -380,6 +380,7 @@ def _get_task_events_info(testcase_id: int) -> dict:
   return task_events_info
 
 
+#TODO andrenribeiro: merge this function with _get_task_events_info()
 def _get_non_task_events_info(testcase_id: int) -> dict:
   """Get non task events info."""
   non_task_events_info = {}
@@ -387,7 +388,6 @@ def _get_non_task_events_info(testcase_id: int) -> dict:
       'testcase_id': testcase_id,
   }
 
-  #TODO andrenribeiro: check where task names are defined
   for event_type in [
       events.EventTypes.TESTCASE_REJECTION,
       events.EventTypes.TESTCASE_CREATION,
