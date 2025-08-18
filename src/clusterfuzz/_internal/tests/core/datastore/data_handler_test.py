@@ -1040,17 +1040,17 @@ class GetEntitiesTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
 
-    self.entity1 = self.GetEntitiesTestModel(name='a', value=1,
-                                             timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
+    self.entity1 = self.GetEntitiesTestModel(
+        name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
     self.entity1.put()
-    self.entity2 = self.GetEntitiesTestModel(name='b', value=2,
-                                             timestamp=datetime.datetime(2023, 1, 1, 0, 0, 2))
+    self.entity2 = self.GetEntitiesTestModel(
+        name='b', value=2, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 2))
     self.entity2.put()
-    self.entity3 = self.GetEntitiesTestModel(name='c', value=1,
-                                             timestamp=datetime.datetime(2023, 1, 1, 0, 0, 3))
+    self.entity3 = self.GetEntitiesTestModel(
+        name='c', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 3))
     self.entity3.put()
-    self.entity4 = self.GetEntitiesTestModel(name='d', value=3,
-                                             timestamp=datetime.datetime(2023, 1, 1, 0, 0, 4))
+    self.entity4 = self.GetEntitiesTestModel(
+        name='d', value=3, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 4))
     self.entity4.put()
 
   def test_get_all(self):
@@ -1065,10 +1065,10 @@ class GetEntitiesTest(unittest.TestCase):
     self.assertEqual(2, len(result))
     self.assertEqual(['a', 'b'], [e.name for e in result])
 
-  def test_with_filters(self):
-    """Test with filters."""
+  def test_with_equality_filters(self):
+    """Test with equality filters."""
     result = data_handler.get_entities(
-        self.GetEntitiesTestModel, filters={'value': 1})
+        self.GetEntitiesTestModel, equality_filters={'value': 1})
     self.assertEqual(2, len(result))
     self.assertCountEqual(['a', 'c'], [e.name for e in result])
 
@@ -1084,17 +1084,19 @@ class GetEntitiesTest(unittest.TestCase):
         self.GetEntitiesTestModel, order_by=['-name'])
     self.assertEqual(['d', 'c', 'b', 'a'], [e.name for e in result])
 
-  def test_with_filters_and_order(self):
-    """Test with filters and ordering."""
+  def test_with_equality_filters_and_order(self):
+    """Test with equality filters and ordering."""
     result = data_handler.get_entities(
-        self.GetEntitiesTestModel, filters={'value': 1}, order_by=['-name'])
+        self.GetEntitiesTestModel,
+        equality_filters={'value': 1},
+        order_by=['-name'])
     self.assertEqual(2, len(result))
     self.assertEqual(['c', 'a'], [e.name for e in result])
 
   def test_non_existent_filter_property(self):
     """Test filtering on a property that does not exist."""
     result = data_handler.get_entities(
-        self.GetEntitiesTestModel, filters={'non_existent': 1})
+        self.GetEntitiesTestModel, equality_filters={'non_existent': 1})
     self.assertEqual(4, len(result))
 
   def test_non_existent_order_property(self):
