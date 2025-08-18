@@ -145,7 +145,7 @@ def get_email_from_bearer_token(request):
   token = bearer_token.split(' ')[1]
   try:
     claim = id_token.verify_oauth2_token(token, google_requests.Request())
-  except MalformedError:
+  except ValueError:
     raise helpers.UnauthorizedError('Malformed bearer token')
   if (not claim.get('email_verified') or
       claim.get('email') != utils.service_account_email()):
