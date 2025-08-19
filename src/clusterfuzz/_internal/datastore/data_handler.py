@@ -1580,7 +1580,7 @@ def get_entity_by_type_and_id(entity_type, entity_id):
 def get_entities(entity_kind: data_types.Model,
                  equality_filters: dict[str, Any] | None = None,
                  order_by: list[str] | None = None,
-                 limit: int | None = None) -> list[data_types.Model] | None:
+                 limit: int | None = None) -> list[data_types.Model]:
   """Queries the entity kind with equality filters, ordering, and a limit."""
   query = entity_kind.query()
 

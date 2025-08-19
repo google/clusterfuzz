@@ -378,8 +378,6 @@ class NDBEventRepository(IEventRepository, EventHandler):
         equality_filters=equality_filters,
         order_by=order_by,
         limit=limit)
-    if results is None:
-      return []
 
     return [
         event for entity in results
