@@ -823,21 +823,20 @@ class DatastoreEventsTest(unittest.TestCase):
     self._set_common_event_fields(event_entity)
     event_entity.put()
 
-    filters = {'event_type': 'generic_event_test',
-               'source': 'events_test'}
+    filters = {'event_type': 'generic_event_test', 'source': 'events_test'}
     order_by = ['-timestamp', 'operating_system']
     limit = 2
 
     result_events = self.repository.get_events(filters, order_by, limit)
-    self.assertNotEquals(result_events, [])
-    self.assertEquals(len(result_events), 2)
+    self.assertNotEqual(result_events, [])
+    self.assertEqual(len(result_events), 2)
     last_event = result_events[0]
     self.assertIsInstance(last_event, events.Event)
     self.assertEqual(last_event.source, 'events_test')
     self.assertEqual(last_event.timestamp, last_date)
     for event in result_events:
       self._assert_common_event_fields(event)
-  
+
   def test_get_non_existent_events(self):
     """Test retrieving an event from datastore."""
     event_entity = data_types.TestcaseLifecycleEvent(
@@ -848,11 +847,10 @@ class DatastoreEventsTest(unittest.TestCase):
     self._set_common_event_fields(event_entity)
     event_entity.put()
 
-    filters = {'event_type': 'non_existent_type',
-               'source': 'events_test'}
+    filters = {'event_type': 'non_existent_type', 'source': 'events_test'}
 
     result_events = self.repository.get_events(filters)
-    self.assertEquals(result_events, [])
+    self.assertEqual(result_events, [])
 
 
 @test_utils.with_cloud_emulators('datastore')
