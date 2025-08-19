@@ -82,6 +82,17 @@ steps:
     echo "✅ Running deploy for project config: $configpath"
     python3.11 butler.py deploy -c $configpath --prod --targets zips appengine --force
 
+- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      cd clusterfuzz
+    fi
+    CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
+    gcloud compute project-info add-metadata --metadata=clusterfuzz-revision="$${CURRENT_CLUSTERFUZZ_REVISION}" --project "${PROJECT_ID}"
+
 timeout: 1200s
 options:
   machineType: E2_HIGHCPU_32
