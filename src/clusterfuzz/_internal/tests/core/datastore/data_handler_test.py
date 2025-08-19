@@ -1039,19 +1039,21 @@ class GetEntitiesTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
-
-    self.entity1 = self.GetEntitiesTestModel(
-        name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
-    self.entity1.put()
-    self.entity2 = self.GetEntitiesTestModel(
-        name='b', value=2, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 2))
-    self.entity2.put()
-    self.entity3 = self.GetEntitiesTestModel(
-        name='c', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 3))
-    self.entity3.put()
-    self.entity4 = self.GetEntitiesTestModel(
-        name='d', value=3, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 4))
-    self.entity4.put()
+    entities = [
+        self.GetEntitiesTestModel(
+            name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0,
+                                                           1)),
+        self.GetEntitiesTestModel(
+            name='b', value=2, timestamp=datetime.datetime(2023, 1, 1, 0, 0,
+                                                           2)),
+        self.GetEntitiesTestModel(
+            name='c', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0,
+                                                           3)),
+        self.GetEntitiesTestModel(
+            name='d', value=3, timestamp=datetime.datetime(2023, 1, 1, 0, 0,
+                                                           4)),
+    ]
+    ndb.put_multi(entities)
 
   def test_get_all(self):
     """Test getting all entities."""
@@ -1075,8 +1077,8 @@ class GetEntitiesTest(unittest.TestCase):
   def test_with_order_by_asc(self):
     """Test with ordering (ascending)."""
     result = data_handler.get_entities(
-        self.GetEntitiesTestModel, order_by=['name'])
-    self.assertEqual(['a', 'b', 'c', 'd'], [e.name for e in result])
+        self.GetEntitiesTestModel, order_by=['value', 'name'])
+    self.assertEqual(['a', 'c', 'b', 'd'], [e.name for e in result])
 
   def test_with_order_by_desc(self):
     """Test with ordering (descending)."""
@@ -1104,3 +1106,9 @@ class GetEntitiesTest(unittest.TestCase):
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, order_by=['non_existent'])
     self.assertEqual(4, len(result))
+
+  def test_no_entites_found(self):
+    """Test no entities found."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 5})
+    self.assertEqual([], result)
