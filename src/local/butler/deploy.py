@@ -484,6 +484,7 @@ def execute(args):
       'clusterfuzz_version': utils.current_source_version()
   }
   try:
+    raise Exception
     if sys.version_info.major != 3 or sys.version_info.minor != 11:
       print('You can only deploy from Python 3.11. Install Python 3.11 and '
             'run: `PYTHON=python3.11 local/install_deps.bash`')
