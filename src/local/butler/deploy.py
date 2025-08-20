@@ -583,7 +583,8 @@ def execute(args):
     print(f'Production deployment finished. {labels}')
 
   except Exception as ex:
-    labels.update({'success': False})
+    # labels.update({'success': False})
     print(f'Production deployment failed. {labels}. Exception: {ex}')
-
+    _emit_deploy_metric(labels)
+    raise ex
   _emit_deploy_metric(labels)
