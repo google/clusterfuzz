@@ -381,11 +381,6 @@ def _staging_deployment_helper():
   print('Staging deployment finished.')
 
 
-# We need to import the wrap_with_monitoring through monitoring_metrics
-# monitor's import because we need to point to the same module instance
-# for assuring the same metric store we increment the metric will have
-# the metrics flushed by the monitoring thread.
-@monitoring_metrics.monitor.wrap_with_monitoring()
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
@@ -412,17 +407,6 @@ def _prod_deployment_helper(config_dir,
     _update_alerts(project)
     _update_bigquery(project)
 
-  labels: dict[str, Any] = {
-      'deploy_zip': bool(package_zip_paths),
-      'deploy_app_engine': deploy_appengine,
-      'deploy_kubernetes': False,
-      'deploy_terraform': deploy_terraform,
-      'success': True,
-      'release': release,
-      'clusterfuzz_version': utils.current_source_version()
-  }
-
-  try:
     # Appengine depends on Redis, which is managed by Terraform
     # Therefore, we need to deploy Terraform first
     if deploy_terraform:
@@ -439,13 +423,6 @@ def _prod_deployment_helper(config_dir,
     if deploy_appengine:
       common.execute(
           f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
-
-    print(f'Production deployment finished. {labels}')
-    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-  except Exception as ex:
-    labels.update({'success': False})
-    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-    raise ex
 
 
 def _deploy_terraform(config_dir):
@@ -478,115 +455,134 @@ def _enforce_safe_day_to_deploy():
                        'rule. Do not break it!')
 
 
+def _emit_deploy_metric(labels):
+  # This workaround is needed to set the env vars APPLICATION_ID and BOT_NAME
+  # for local environment, and it's needed for loading the monitoring module
+  config = local_config.ProjectConfig().get('env')
+  environment.set_value("APPLICATION_ID", config["APPLICATION_ID"])
+  environment.set_value("BOT_NAME", os.uname().nodename)
+
+  with monitoring_metrics.monitor.wrap_with_monitoring():
+    monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
+
+
 def execute(args):
-  """Deploy Clusterfuzz to Appengine."""
-  if sys.version_info.major != 3 or sys.version_info.minor != 11:
-    print('You can only deploy from Python 3.11. Install Python 3.11 and '
-          'run: `PYTHON=python3.11 local/install_deps.bash`')
-    sys.exit(1)
+  """Deploy Clusterfuzz."""
 
-  os.environ['ROOT_DIR'] = '.'
-
-  if not os.path.exists(args.config_dir):
-    print('Please provide a valid configuration directory.')
-    sys.exit(1)
-
-  os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
-
-  if not common.has_file_in_path('gcloud'):
-    print('Please install gcloud.')
-    sys.exit(1)
-
-  is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
-  if not is_ci and common.is_git_dirty():
-    print('Your branch is dirty. Please fix before deploying.')
-    sys.exit(1)
-
-  if not common.has_file_in_path('gsutil'):
-    print('gsutil not found in PATH.')
-    sys.exit(1)
-
-  _enforce_safe_day_to_deploy()
-
-  # Build templates before deployment.
-  appengine.build_templates()
-
-  if not is_ci and not args.staging:
-    if is_diff_origin_master() or is_diff_origin_master(
-        environment.get_config_directory()):
-      if args.force:
-        print('You are not on origin/master for clusterfuzz '
-              'or clusterfuzz-config. --force is used. Continue.')
-        for _ in range(3):
-          print('.')
-          time.sleep(1)
-        print()
-      else:
-        print('You are not on origin/master for clusterfuzz '
-              'or clusterfuzz-config. Please fix or use --force.')
-        sys.exit(1)
-
-  if args.staging:
-    revision = common.compute_staging_revision()
-    platforms = ['linux']  # No other platforms required.
-  elif args.prod:
-    revision = common.compute_prod_revision()
-    platforms = list(constants.PLATFORMS.keys())
-  else:
-    print('Please specify either --prod or --staging. For production '
-          'deployments, you probably want to use deploy.sh from your '
-          'configs directory instead.')
-    sys.exit(1)
-
-  deploy_zips = 'zips' in args.targets
-  deploy_appengine = 'appengine' in args.targets
-  deploy_terraform = 'terraform' in args.targets
   test_deployment = 'test_deployment' in args.targets
+  deploy_zips = 'zips' in args.targets or test_deployment
+  deploy_appengine = 'appengine' in args.targets and not test_deployment
+  deploy_terraform = 'terraform' in args.targets and not test_deployment
 
-  if test_deployment:
-    deploy_appengine = False
-    deploy_terraform = False
-    deploy_zips = True
+  labels: dict[str, Any] = {
+      'deploy_zip': deploy_zips,
+      'deploy_app_engine': deploy_appengine,
+      'deploy_kubernetes': False,
+      'deploy_terraform': deploy_terraform,
+      'success': True,
+      'release': args.release,
+      'clusterfuzz_version': utils.current_source_version()
+  }
+  try:
+    if sys.version_info.major != 3 or sys.version_info.minor != 11:
+      print('You can only deploy from Python 3.11. Install Python 3.11 and '
+            'run: `PYTHON=python3.11 local/install_deps.bash`')
+      sys.exit(1)
 
-  package_zip_paths = []
-  if deploy_zips:
-    for platform_name in platforms:
-      package_zip_paths += package.package(
-          revision, platform_name=platform_name, release=args.release)
-  else:
-    # package.package calls these, so only set these up if we're not packaging,
-    # since they can be fairly slow.
-    appengine.symlink_dirs()
-    common.install_dependencies('linux')
-    with open(constants.PACKAGE_TARGET_MANIFEST_PATH, 'w') as f:
-      f.write('%s\n' % revision)
+    os.environ['ROOT_DIR'] = '.'
 
-  too_large_file_path = find_file_exceeding_limit('src/appengine',
-                                                  APPENGINE_FILESIZE_LIMIT)
-  if too_large_file_path:
-    print(("%s is larger than %d bytes. It wouldn't be deployed to appengine."
-           ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
-    sys.exit(1)
+    if not os.path.exists(args.config_dir):
+      print('Please provide a valid configuration directory.')
+      sys.exit(1)
 
-  if args.staging:
-    _staging_deployment_helper()
-  else:
-    # This workaround is needed to set the env vars APPLICATION_ID and BOT_NAME
-    # for local environment, and it's needed for loading the monitoring module
-    config = local_config.ProjectConfig().get('env')
-    environment.set_value("APPLICATION_ID", config["APPLICATION_ID"])
-    environment.set_value("BOT_NAME", os.uname().nodename)
-    _prod_deployment_helper(
-        args.config_dir,
-        package_zip_paths,
-        deploy_appengine,
-        deploy_terraform,
-        test_deployment=test_deployment,
-        release=args.release)
+    os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
 
-  with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
-    print('Source updated to %s' % f.read())
+    if not common.has_file_in_path('gcloud'):
+      print('Please install gcloud.')
+      sys.exit(1)
 
-  if platforms[-1] != common.get_platform():
-    # Make sure the installed dependencies are for the current platform.
-    common.install_dependencies()
+    is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
+    if not is_ci and common.is_git_dirty():
+      print('Your branch is dirty. Please fix before deploying.')
+      sys.exit(1)
+
+    if not common.has_file_in_path('gsutil'):
+      print('gsutil not found in PATH.')
+      sys.exit(1)
+
+    _enforce_safe_day_to_deploy()
+
+    # Build templates before deployment.
+    appengine.build_templates()
+
+    if not is_ci and not args.staging:
+      if is_diff_origin_master() or is_diff_origin_master(
+          environment.get_config_directory()):
+        if args.force:
+          print('You are not on origin/master for clusterfuzz '
+                'or clusterfuzz-config. --force is used. Continue.')
+          for _ in range(3):
+            print('.')
+            time.sleep(1)
+          print()
+        else:
+          print('You are not on origin/master for clusterfuzz '
+                'or clusterfuzz-config. Please fix or use --force.')
+          sys.exit(1)
+
+    if args.staging:
+      revision = common.compute_staging_revision()
+      platforms = ['linux']  # No other platforms required.
+    elif args.prod:
+      revision = common.compute_prod_revision()
+      platforms = list(constants.PLATFORMS.keys())
+    else:
+      print('Please specify either --prod or --staging. For production '
+            'deployments, you probably want to use deploy.sh from your '
+            'configs directory instead.')
+      sys.exit(1)
+
+    package_zip_paths = []
+    if deploy_zips:
+      for platform_name in platforms:
+        package_zip_paths += package.package(
+            revision, platform_name=platform_name, release=args.release)
+    else:
+      # package.package calls these, so only set these up if we're not packaging,
+      # since they can be fairly slow.
+      appengine.symlink_dirs()
+      common.install_dependencies('linux')
+      with open(constants.PACKAGE_TARGET_MANIFEST_PATH, 'w') as f:
+        f.write('%s\n' % revision)
+
+    too_large_file_path = find_file_exceeding_limit('src/appengine',
+                                                    APPENGINE_FILESIZE_LIMIT)
+    if too_large_file_path:
+      print(("%s is larger than %d bytes. It wouldn't be deployed to appengine."
+             ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
+      sys.exit(1)
+
+    if args.staging:
+      _staging_deployment_helper()
+    else:
+      _prod_deployment_helper(
+          args.config_dir,
+          package_zip_paths,
+          deploy_appengine,
+          deploy_terraform,
+          test_deployment=test_deployment,
+          release=args.release)
+
+    with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
+      print('Source updated to %s' % f.read())
+
+    if platforms[-1] != common.get_platform():
+      # Make sure the installed dependencies are for the current platform.
+      common.install_dependencies()
+    print(f'Production deployment finished. {labels}')
+
+  except Exception as ex:
+    labels.update({'success': False})
+    print(f'Production deployment failed. {labels}. Exception: {ex}')
+
+  _emit_deploy_metric(labels)
