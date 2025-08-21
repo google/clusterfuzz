@@ -55,7 +55,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
 
     self.mock.random.return_value = probability
     environment.set_value('APP_NAME', app_name)
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), app_args)
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), trial_app_args)
@@ -64,7 +65,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure that no additional flags are added if a binary has no trials."""
     self.mock.random.return_value = 0.0
     environment.set_value('APP_NAME', 'app_0')
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x')
     self.assertIsNone(environment.get_value('TRIAL_APP_ARGS'))
@@ -73,7 +75,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure that the expected flags are added if a trial is selected."""
     self.mock.random.return_value = 0.3
     environment.set_value('APP_NAME', 'app_1')
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --a1')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--a1')
@@ -82,7 +85,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure no additional flags if a trial was not selected."""
     self.mock.random.return_value = 0.5
     environment.set_value('APP_NAME', 'app_2')
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x')
     self.assertIsNone(environment.get_value('TRIAL_APP_ARGS'))
@@ -91,7 +95,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure that we can suggest the second trial in a batch of multiple."""
     self.mock.random.return_value = 0.1
     environment.set_value('APP_NAME', 'app_3')
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --c1 --c2 --c3')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--c1 --c2 --c3')
@@ -100,7 +105,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure that flags are added when the app name ends in ".exe"."""
     self.mock.random.return_value = 0.3
     environment.set_value('APP_NAME', 'app_1.exe')
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --a1')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--a1')
@@ -109,7 +115,8 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure that flags are added for the Android APK format."""
     self.mock.random.return_value = 0.3
     environment.set_value('APP_NAME', 'App_1.apk')
-    trial_selector = trials.Trials()
+    db_trials = trials.preprocess_get_db_trials()
+    trial_selector = trials.Trials(db_trials)
     trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --a1')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--a1')

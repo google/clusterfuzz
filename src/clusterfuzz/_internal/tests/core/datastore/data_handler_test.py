@@ -74,6 +74,7 @@ class DataHandlerTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.default_project_name',
+        'clusterfuzz._internal.base.utils.is_chromium',
         'clusterfuzz._internal.config.db_config.get',
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         ('get_storage_provider',
@@ -489,6 +490,30 @@ class DataHandlerTest(unittest.TestCase):
     self.project_config['bucket_domain_suffix'] = 'custom.suffix.com'
     self.assertEqual('test-corpus.custom.suffix.com',
                      data_handler.get_data_bundle_bucket_name('test'))
+
+  def test_critical_tasks_pending_chrome_regression_fail(self):
+    """Tests that in Chrome, if regression is 'NA', impact doesn't block filing
+    (i.e., critical_tasks_completed returns True if other conditions are
+    met). We need to ensure this because impact cannot run without
+    regression. This was only intended to create a dependence from impact
+    on regression. It is not supposed to block issue filing."""
+    self.mock.is_chromium.return_value = True
+    testcase = data_types.Testcase()
+    testcase.minimized_keys = 'fake'
+    # Regression ran but failed.
+    testcase.regression = 'NA'
+    testcase.is_impact_set_flag = False
+    testcase.analyze_pending = False
+
+    self.assertTrue(data_handler.critical_tasks_completed(testcase))
+
+    # Now ensure the original behavior, where testcases that did not regression
+    # or ran it successfully wait for impact to file an issue.
+    testcase.regression = None
+    self.assertFalse(data_handler.critical_tasks_completed(testcase))
+
+    testcase.regression = 'nots NA'
+    self.assertFalse(data_handler.critical_tasks_completed(testcase))
 
 
 class FilterStackTraceTest(fake_filesystem_unittest.TestCase):

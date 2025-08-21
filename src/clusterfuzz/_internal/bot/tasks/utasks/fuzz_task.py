@@ -424,12 +424,14 @@ class _TrackFuzzTime:
             'fuzzer': self.fuzzer_name,
             'timeout': self.timeout,
             'platform': environment.platform(),
+            'is_batch': environment.is_uworker(),
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'job': self.job_type,
             'timeout': self.timeout,
             'platform': environment.platform(),
+            'is_batch': environment.is_uworker()
         })
 
 
@@ -1736,8 +1738,11 @@ class FuzzingSession:
       testcases_metadata[testcase_file_path]['gestures'] = (
           fuzz_task_knobs.pick_gestures(test_timeout))
 
+    # Get the trial args selected from the database in preprocess.
+    db_trials = self.uworker_input.fuzz_task_input.trials
+    # Setup trials from DB and build.
     # Prepare selecting trials in main loop below.
-    trial_selector = trials.Trials()
+    trial_selector = trials.Trials(db_trials)
 
     # TODO(machenbach): Move this back to the main loop and make it test-case
     # specific in a way that get's persistet on crashes.
@@ -2172,6 +2177,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             max_download_urls=25000,
             use_backup=True).serialize())
 
+  fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
     url.key = blobs.generate_new_blob_name()
