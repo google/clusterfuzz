@@ -57,8 +57,7 @@ def _get_gcloud_path():
   if environment.platform() == 'WINDOWS':
     gcloud_executable += '.cmd'
 
-  # TODO: b/436307629 - Rename GSUTIL_PATH env var to GCLOUD_PATH.
-  gcloud_directory = environment.get_value('GSUTIL_PATH')
+  gcloud_directory = environment.get_value('GCLOUD_PATH')
   if not gcloud_directory:
     gcloud_absolute_path = shutil.which(gcloud_executable)
     if gcloud_absolute_path:
@@ -79,6 +78,11 @@ def _multiprocessing_args():
     return ['-o', 'GSUtil:parallel_thread_count=16']
 
   return []
+
+
+def _use_gcloud_storage():
+  """Returns whether to use gcloud storage instead of gsutil."""
+  return environment.get_value('USE_GCLOUD_STORAGE') == 'true'
 
 
 def _filter_path(path, write=False):
@@ -171,24 +175,39 @@ class GSUtilRunner:
 
     return self.run_gcloud(sync_corpus_command, timeout=timeout, quiet=True)
 
-  def download_file(self, gcs_url, file_path, timeout=None):
-    """Download a file from GCS."""
+  def _download_file_gsutil(self, gcs_url, file_path, timeout=None):
+    """Download a file from GCS using gsutil."""
     command = ['cp', _filter_path(gcs_url), file_path]
     result = self.run_gsutil(command, timeout=timeout)
     if result.return_code:
-      logs.error('GSUtilRunner.download_file failed:\nCommand: %s\n'
+      logs.error('GSUtilRunner.download_file (gsutil) failed:\nCommand: %s\n'
                  'Url: %s\n'
                  'Output %s' % (result.command, gcs_url, result.output))
-
     return result.return_code == 0
 
-  def upload_file(self,
-                  file_path,
-                  gcs_url,
-                  timeout=None,
-                  gzip=False,
-                  metadata=None):
-    """Upload a single file to a given GCS url."""
+  def _download_file_gcloud(self, gcs_url, file_path, timeout=None):
+    """Download a file from GCS using gcloud."""
+    command = ['storage', 'cp', _filter_path(gcs_url), file_path]
+    result = self.run_gcloud(command, timeout=timeout)
+    if result.return_code:
+      logs.error('GSUtilRunner.download_file (gcloud) failed:\nCommand: %s\n'
+                 'Url: %s\n'
+                 'Output %s' % (result.command, gcs_url, result.output))
+    return result.return_code == 0
+
+  def download_file(self, gcs_url, file_path, timeout=None):
+    """Download a file from GCS."""
+    if _use_gcloud_storage():
+      return self._download_file_gcloud(gcs_url, file_path, timeout)
+    return self._download_file_gsutil(gcs_url, file_path, timeout)
+
+  def _upload_file_gsutil(self,
+                          file_path,
+                          gcs_url,
+                          timeout=None,
+                          gzip=False,
+                          metadata=None):
+    """Upload a single file to a given GCS url using gsutil."""
     if not file_path or not gcs_url:
       return False
 
@@ -204,42 +223,145 @@ class GSUtilRunner:
     command.extend([file_path, _filter_path(gcs_url, write=True)])
     result = self.run_gsutil(command, timeout=timeout)
 
-    # Check result of command execution, log output if command failed.
     if result.return_code:
-      logs.error('GSUtilRunner.upload_file failed:\nCommand: %s\n'
+      logs.error('GSUtilRunner.upload_file (gsutil) failed:\nCommand: %s\n'
                  'Filename: %s\n'
                  'Output: %s' % (result.command, file_path, result.output))
 
     return result.return_code == 0
 
-  def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
-    """Upload files to the given GCS url.
+  def _upload_file_gcloud(self,
+                          file_path,
+                          gcs_url,
+                          timeout=None,
+                          gzip=False,
+                          metadata=None):
+    """Upload a single file to a given GCS url using gcloud."""
+    if not file_path or not gcs_url:
+      return False
 
-    Args:
-      file_paths: A sequence of file paths to upload.
-      gcs_url: GCS URL to upload files to.
-      timeout: Timeout for gsutil.
+    dest_gcs_url = _filter_path(gcs_url, write=True)
+    command = ['storage', 'cp']
+    if gzip:
+      command.append('--gzip-local-all')
 
-    Returns:
-      A bool indicating whether or not the command succeeded.
-    """
+    command.extend([file_path, dest_gcs_url])
+    result = self.run_gcloud(command, timeout=timeout)
+
+    if result.return_code:
+      logs.error('GSUtilRunner.upload_file (gcloud upload) failed:\n'
+                 'Command: %s\nFilename: %s\nOutput: %s' %
+                 (result.command, file_path, result.output))
+      return False
+
+    if not metadata:
+      return True
+
+    command = ['storage', 'objects', 'update']
+    update_metadata_args = []
+    remove_metadata_args = []
+    custom_metadata_args = []
+
+    for key, value in metadata.items():
+      key_lower = key.lower()
+      if key_lower == 'cache-control':
+        update_metadata_args.extend(['--cache-control', value])
+      elif key_lower == 'content-disposition':
+        update_metadata_args.extend(['--content-disposition', value])
+      elif key_lower == 'content-encoding':
+        update_metadata_args.extend(['--content-encoding', value])
+      elif key_lower == 'content-language':
+        update_metadata_args.extend(['--content-language', value])
+      elif key_lower == 'content-type':
+        update_metadata_args.extend(['--content-type', value])
+      elif key_lower.startswith('x-goog-meta-'):
+        custom_metadata_key = key_lower[len('x-goog-meta-'):]
+        if value is None:
+          remove_metadata_args.append(custom_metadata_key)
+        else:
+          custom_metadata_args.append(f'{custom_metadata_key}={value}')
+
+    if update_metadata_args:
+      command.extend(update_metadata_args)
+    if remove_metadata_args:
+      command.append('--remove-custom-metadata')
+      command.append(','.join(remove_metadata_args))
+    if custom_metadata_args:
+      command.append('--update-custom-metadata')
+      command.append(','.join(custom_metadata_args))
+
+    if len(command) == 3:  # No metadata args were added.
+      return True
+
+    command.append(dest_gcs_url)
+    result = self.run_gcloud(command, timeout=timeout)
+
+    if result.return_code:
+      logs.error('GSUtilRunner.upload_file (gcloud metadata) failed:\n'
+                 'Command: %s\nFilename: %s\nOutput: %s' %
+                 (result.command, file_path, result.output))
+      return False
+
+    return True
+
+  def upload_file(self,
+                  file_path,
+                  gcs_url,
+                  timeout=None,
+                  gzip=False,
+                  metadata=None):
+    """Upload a single file to a given GCS url."""
+    if _use_gcloud_storage():
+      return self._upload_file_gcloud(file_path, gcs_url, timeout, gzip,
+                                      metadata)
+    return self._upload_file_gsutil(file_path, gcs_url, timeout, gzip,
+                                    metadata)
+
+  def _upload_files_to_url_gsutil(self, file_paths, gcs_url, timeout=None):
+    """Upload files to the given GCS url using gsutil."""
     if not file_paths or not gcs_url:
       return False
 
-    # Use 'gsutil -m cp -I' to upload given files.
     sync_corpus_command = ['cp', '-I', _filter_path(gcs_url, write=True)]
     filenames_buffer = '\n'.join(file_paths)
-
     result = self.run_gsutil(
         sync_corpus_command,
         input_data=filenames_buffer.encode('utf-8'),
         timeout=timeout)
 
-    # Check result of command execution, log output if command failed.
     if result.return_code:
       logs.error(
-          'GSUtilRunner.upload_files_to_url failed:\nCommand: %s\n'
+          'GSUtilRunner.upload_files_to_url (gsutil) failed:\nCommand: %s\n'
           'Filenames:%s\n'
           'Output: %s' % (result.command, filenames_buffer, result.output))
 
     return result.return_code == 0
+
+  def _upload_files_to_url_gcloud(self, file_paths, gcs_url, timeout=None):
+    """Upload files to the given GCS url using gcloud."""
+    if not file_paths or not gcs_url:
+      return False
+
+    sync_corpus_command = [
+        'storage', 'cp', '-I',
+        _filter_path(gcs_url, write=True)
+    ]
+    filenames_buffer = '\n'.join(file_paths)
+    result = self.run_gcloud(
+        sync_corpus_command,
+        input_data=filenames_buffer.encode('utf-8'),
+        timeout=timeout)
+
+    if result.return_code:
+      logs.error(
+          'GSUtilRunner.upload_files_to_url (gcloud) failed:\nCommand: %s\n'
+          'Filenames:%s\n'
+          'Output: %s' % (result.command, filenames_buffer, result.output))
+
+    return result.return_code == 0
+
+  def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
+    """Upload files to the given GCS url."""
+    if _use_gcloud_storage():
+      return self._upload_files_to_url_gcloud(file_paths, gcs_url, timeout)
+    return self._upload_files_to_url_gsutil(file_paths, gcs_url, timeout)
