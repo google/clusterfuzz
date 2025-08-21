@@ -1038,7 +1038,6 @@ class GetEntitiesTest(unittest.TestCase):
     timestamp = ndb.DateTimeProperty()
 
   def setUp(self):
-    helpers.patch_environ(self)
     self.entity1 = self.GetEntitiesTestModel(
         name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
     self.entity1.put()
