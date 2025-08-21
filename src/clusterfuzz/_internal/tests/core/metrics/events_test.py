@@ -16,6 +16,7 @@ import datetime
 import os
 import platform
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -797,61 +798,50 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.timestamp, date_now)
     self._assert_common_event_fields(event)
 
-  def test_get_existent_events(self):
-    """Test retrieving an event from datastore."""
-    event_entity = data_types.TestcaseLifecycleEvent(
-        event_type='generic_event_test')
-    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
-    event_entity.timestamp = date_now
-    event_entity.source = 'events_test'
-    self._set_common_event_fields(event_entity)
-    event_entity.put()
+  def _get_events_patch(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.datastore.data_handler.get_entities',
+        'clusterfuzz._internal.metrics.events.NDBEventRepository._deserialize_event'
+    ])
 
-    event_entity = data_types.TestcaseLifecycleEvent(
-        event_type='generic_event_test')
-    date_now = datetime.datetime(2025, 1, 1, 10, 30, 16)
-    event_entity.timestamp = date_now
-    event_entity.source = 'events_test'
-    self._set_common_event_fields(event_entity)
-    event_entity.put()
+  def test_get_events(self):
+    """."""
+    self._get_events_patch()
 
-    event_entity = data_types.TestcaseLifecycleEvent(
-        event_type='generic_event_test')
-    last_date = datetime.datetime(2025, 1, 1, 10, 30, 17)
-    event_entity.timestamp = last_date
-    event_entity.source = 'events_test'
-    self._set_common_event_fields(event_entity)
-    event_entity.put()
+    entity = data_types.TestcaseLifecycleEvent(event_type='generic_event_test')
+    event = events.Event(event_type='generic_event_test')
+    def deserialize_mock(self_argument, arg):
+      if arg == entity:
+        return event
+      return None
 
-    filters = {'event_type': 'generic_event_test', 'source': 'events_test'}
-    order_by = ['-timestamp', 'operating_system']
-    limit = 2
+    entities = [entity]
+    self.mock.get_entities.return_value = entities
+    self.mock._deserialize_event.side_effect = deserialize_mock
 
-    result_events = self.repository.get_events(filters, order_by, limit)
-    self.assertNotEqual(result_events, [])
-    self.assertEqual(len(result_events), 2)
-    last_event = result_events[0]
-    self.assertIsInstance(last_event, events.Event)
-    self.assertEqual(last_event.source, 'events_test')
-    self.assertEqual(last_event.timestamp, last_date)
-    for event in result_events:
-      self._assert_common_event_fields(event)
+    equality_filters = {'event_type': 'generic_event_test'}
+    order_by = ['-timestamp']
+    limit = 1
+    result = self.repository.get_events(
+        equality_filters=equality_filters, order_by=order_by, limit=limit)
+    expected_events = [event]
 
-  def test_get_non_existent_events(self):
-    """Test retrieving an event from datastore."""
-    event_entity = data_types.TestcaseLifecycleEvent(
-        event_type='generic_event_test')
-    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
-    event_entity.timestamp = date_now
-    event_entity.source = 'events_test'
-    self._set_common_event_fields(event_entity)
-    event_entity.put()
+    self.assertEqual(result, expected_events)
+    self.mock.get_entities.assert_called_once_with(
+        data_types.TestcaseLifecycleEvent, equality_filters=equality_filters,
+        order_by=order_by, limit=limit)
+    self.mock._deserialize_event.assert_called_once_with(mock.ANY, entity)
 
-    filters = {'event_type': 'non_existent_type', 'source': 'events_test'}
+  def test_get_events_empty(self):
+    """."""
+    self._get_events_patch()
 
-    result_events = self.repository.get_events(filters)
+    self.mock.get_entities.return_value = []
+    result_events = self.repository.get_events()
     self.assertEqual(result_events, [])
-
+    self.mock.get_entities.assert_called_once_with(
+      data_types.TestcaseLifecycleEvent, None, None, None)
+    self.mock._deserialize_event.assert_not_called()
 
 @test_utils.with_cloud_emulators('datastore')
 class EventsNotificationsTest(unittest.TestCase):
@@ -1088,3 +1078,45 @@ class EmitEventTest(unittest.TestCase):
     self.assertEqual(event_entity.fuzzer, 'fuzzer1')
     self.assertEqual(event_entity.job, 'test_content_shell_drt')
     self.assertEqual(event_entity.crash_revision, 1)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetEventsTest(unittest.TestCase):
+  """."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.get_repository',
+        'clusterfuzz._internal.metrics.events.NDBEventRepository.get_events'
+    ])
+
+  def test_get_events(self):
+    """."""
+    self.mock.get_repository.return_value = events.NDBEventRepository()
+    expected_events = [events.Event(event_type='generic_event_test')]
+    self.mock.get_events.return_value = expected_events
+    equality_filters = {'event_type': 'generic_event_test'}
+    order_by = ['-timestamp']
+    limit = 1
+    result = events.get_events(
+        equality_filters=equality_filters, order_by=order_by, limit=limit)
+
+    self.assertEqual(result, expected_events)
+    self.mock.get_events.assert_called_once_with(
+        mock.ANY, equality_filters=equality_filters, order_by=order_by,
+        limit=limit)
+
+  def test_get_events_empty(self):
+    """."""
+    self.mock.get_repository.return_value = events.NDBEventRepository()
+    expected_events = []
+    self.mock.get_events.return_value = expected_events
+    result = events.get_events()
+    self.assertEqual(result, expected_events)
+
+  def test_get_events_with_no_repository(self):
+    """."""
+    self.mock.get_repository.return_value = None
+    result = events.get_events()
+    self.assertIsNone(result)

@@ -363,10 +363,6 @@ class NDBEventRepository(IEventRepository, EventHandler):
     event = self._deserialize_event(event_entity)
     return event
 
-  def emit(self, event: Event) -> Any:
-    """Emit an event by persisting it to Datastore."""
-    return self.store_event(event)
-
   def get_events(self,
                  equality_filters: dict[str, Any] | None = None,
                  order_by: list[str] | None = None,
@@ -383,6 +379,10 @@ class NDBEventRepository(IEventRepository, EventHandler):
         event for entity in results
         if (event := self._deserialize_event(entity)) is not None
     ]
+
+  def emit(self, event: Event) -> Any:
+    """Emit an event by persisting it to Datastore."""
+    return self.store_event(event)
 
 
 class EventIssueNotification(EventHandler):
