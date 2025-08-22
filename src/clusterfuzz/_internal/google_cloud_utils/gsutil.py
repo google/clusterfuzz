@@ -19,7 +19,8 @@ import shutil
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment, new_process
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import new_process
 
 # Default timeout for a GSUtil sync.
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
