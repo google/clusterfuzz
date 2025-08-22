@@ -26,6 +26,26 @@ from clusterfuzz._internal.system import new_process
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 
+def _use_gcloud_storage():
+  """Returns whether to use gcloud storage instead of gsutil."""
+  return bool(environment.get_value('USE_GCLOUD_STORAGE'))
+
+
+def _get_gcloud_path():
+  """Get path to gcloud executable."""
+  gcloud_executable = 'gcloud'
+  if environment.platform() == 'WINDOWS':
+    gcloud_executable += '.cmd'
+
+  # Try searching the binary in path.
+  gcloud_absolute_path = shutil.which(gcloud_executable)
+  if gcloud_absolute_path:
+    return gcloud_absolute_path
+
+  logs.error('Cannot locate gcloud in PATH.')
+  return None
+
+
 def _get_gsutil_path():
   """Get path to gsutil executable.
 
@@ -85,27 +105,36 @@ def _filter_path(path, write=False):
 
 
 class GSUtilRunner:
-  """GSUtil runner."""
+  """GSUtil/gcloud storage runner."""
 
   def __init__(self, process_runner=new_process.ProcessRunner):
-    default_gsutil_args = ['-m']
-    default_gsutil_args.extend(_multiprocessing_args())
+    self.use_gcloud_storage = _use_gcloud_storage()
+    if self.use_gcloud_storage:
+      executable_path = _get_gcloud_path()
+      # gcloud storage has parallel processing by default. No need for -m.
+      default_args = ['storage']
+    else:
+      executable_path = _get_gsutil_path()
+      default_args = ['-m']
+      default_args.extend(_multiprocessing_args())
 
-    self.gsutil_runner = process_runner(
-        _get_gsutil_path(), default_args=default_gsutil_args)
+    self.runner = process_runner(executable_path, default_args=default_args)
 
   def run_gsutil(self, arguments, quiet=False, **kwargs):
-    """Run GSUtil."""
-    if quiet:
+    """Run GSUtil or gcloud storage."""
+    # gcloud storage does not have a -q flag, it is a global gcloud flag
+    # --quiet, but that suppresses all output, which is not what we want.
+    # gsutil's -q suppresses the "Copying..." summary, which is desired.
+    if not self.use_gcloud_storage and quiet:
       arguments = ['-q'] + arguments
 
     env = os.environ.copy()
-    if 'PYTHONPATH' in env:
+    if not self.use_gcloud_storage and 'PYTHONPATH' in env:
       # GSUtil may be on Python 3, and our PYTHONPATH breaks it because we're on
       # Python 2.
       env.pop('PYTHONPATH')
 
-    return self.gsutil_runner.run_and_wait(arguments, env=env, **kwargs)
+    return self.runner.run_and_wait(arguments, env=env, **kwargs)
 
   def rsync(self,
             source,
@@ -113,30 +142,27 @@ class GSUtilRunner:
             timeout=FILES_SYNC_TIMEOUT,
             delete=True,
             exclusion_pattern=None):
-    """Download corpus files from a GCS url.
+    """Rsync with gsutil or gcloud storage."""
+    if self.use_gcloud_storage:
+      command = ['rsync']
+      # gcloud storage rsync is recursive by default.
+      if delete:
+        command.append('--delete-unmatched-destination-objects')
+      if exclusion_pattern:
+        command.extend(['--exclude', exclusion_pattern])
+    else:
+      command = ['rsync', '-r']
+      if delete:
+        command.append('-d')
+      if exclusion_pattern:
+        command.extend(['-x', exclusion_pattern])
 
-    Args:
-      source: Source to sync from.
-      destination: Destination to sync to.
-      timeout: Timeout for GSUtil.
-      delete: Whether or not to delete files on disk that don't exist locally.
-
-    Returns:
-      A bool indicating whether or not the command succeeded.
-    """
-    # Use 'gsutil -m rsync -r' to download files from GCS bucket.
-    sync_corpus_command = ['rsync', '-r']
-    if delete:
-      sync_corpus_command.append('-d')
-    if exclusion_pattern:
-      sync_corpus_command.extend(['-x', exclusion_pattern])
-
-    sync_corpus_command.extend([
+    command.extend([
         _filter_path(source, write=True),
         _filter_path(destination, write=True),
     ])
 
-    return self.run_gsutil(sync_corpus_command, timeout=timeout, quiet=True)
+    return self.run_gsutil(command, timeout=timeout, quiet=True)
 
   def download_file(self, gcs_url, file_path, timeout=None):
     """Download a file from GCS."""
@@ -159,14 +185,29 @@ class GSUtilRunner:
     if not file_path or not gcs_url:
       return False
 
-    command = []
-    if metadata:
-      for key, value in metadata.items():
-        command.extend(['-h', key + ':' + value])
+    if self.use_gcloud_storage:
+      command = []
+      if metadata:
+        # gcloud equivalents for metadata are different.
+        # e.g. gsutil -h "Content-Type:text/html" is
+        # gcloud storage objects update --content-type="text/html"
+        # This is not a simple flag mapping, so we don't support it yet.
+        # The caller (bot/fuzzers/utils.py) does not use this, so it's safe.
+        pass
 
-    command.append('cp')
-    if gzip:
-      command.append('-Z')
+      command.append('cp')
+      if gzip:
+        # gsutil -Z is equivalent to gcloud's --gzip-in-flight-all
+        command.append('--gzip-in-flight-all')
+    else:
+      command = []
+      if metadata:
+        for key, value in metadata.items():
+          command.extend(['-h', key + ':' + value])
+
+      command.append('cp')
+      if gzip:
+        command.append('-Z')
 
     command.extend([file_path, _filter_path(gcs_url, write=True)])
     result = self.run_gsutil(command, timeout=timeout)
@@ -180,25 +221,19 @@ class GSUtilRunner:
     return result.return_code == 0
 
   def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
-    """Upload files to the given GCS url.
-
-    Args:
-      file_paths: A sequence of file paths to upload.
-      gcs_url: GCS URL to upload files to.
-      timeout: Timeout for gsutil.
-
-    Returns:
-      A bool indicating whether or not the command succeeded.
-    """
+    """Upload files to the given GCS url."""
     if not file_paths or not gcs_url:
       return False
 
-    # Use 'gsutil -m cp -I' to upload given files.
-    sync_corpus_command = ['cp', '-I', _filter_path(gcs_url, write=True)]
+    if self.use_gcloud_storage:
+      command = ['cp', '--read-paths-from-stdin', _filter_path(gcs_url, write=True)]
+    else:
+      command = ['cp', '-I', _filter_path(gcs_url, write=True)]
+
     filenames_buffer = '\n'.join(file_paths)
 
     result = self.run_gsutil(
-        sync_corpus_command,
+        command,
         input_data=filenames_buffer.encode('utf-8'),
         timeout=timeout)
 

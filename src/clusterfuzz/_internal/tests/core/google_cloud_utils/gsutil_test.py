@@ -16,6 +16,7 @@
 import os
 from unittest import mock
 
+from parameterized import parameterized
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -33,323 +34,249 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     ])
 
     test_utils.set_up_pyfakefs(self)
-    self.gsutil_runner_obj = gsutil.GSUtilRunner()
 
-  def test_rsync_remote_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_rsync(self, use_gcloud_storage):
     """Test rsync."""
-    self.gsutil_runner_obj.rsync('gs://source_bucket/source_path',
-                                 'gs://target_bucket/target_path')
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.rsync('gs://source_bucket/source_path',
+                            'gs://target_bucket/target_path')
+    if use_gcloud_storage:
+      expected_args = [
+          'rsync', '--delete-unmatched-destination-objects',
+          'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
+      ]
+    else:
+      expected_args = [
+          '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
+          'gs://target_bucket/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
-        ],
+        gsutil_runner_obj.runner,
+        expected_args,
         timeout=18000,
         env=mock.ANY)
 
-  def test_rsync_local_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_rsync_local_gcs(self, use_gcloud_storage):
     """Test rsync."""
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     self.fs.create_dir('/local/source_bucket')
     self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.rsync('gs://source_bucket/source_path',
-                                 'gs://target_bucket/target_path')
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.rsync('gs://source_bucket/source_path',
+                            'gs://target_bucket/target_path')
+    if use_gcloud_storage:
+      expected_args = [
+          'rsync', '--delete-unmatched-destination-objects',
+          '/local/source_bucket/objects/source_path',
+          '/local/target_bucket/objects/target_path'
+      ]
+    else:
+      expected_args = [
+          '-q', 'rsync', '-r', '-d',
+          '/local/source_bucket/objects/source_path',
+          '/local/target_bucket/objects/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d',
-            '/local/source_bucket/objects/source_path',
-            '/local/target_bucket/objects/target_path'
-        ],
-        timeout=18000,
-        env=mock.ANY)
+        gsutil_runner_obj.runner, expected_args, timeout=18000, env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
-  def test_rsync_remote_gcs_2(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_rsync_with_timeout(self, use_gcloud_storage):
     """Test rsync."""
-    self.gsutil_runner_obj.rsync(
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
         timeout=1337)
+    if use_gcloud_storage:
+      expected_args = [
+          'rsync', '--delete-unmatched-destination-objects',
+          'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
+      ]
+    else:
+      expected_args = [
+          '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
+          'gs://target_bucket/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
+        gsutil_runner_obj.runner, expected_args, timeout=1337, env=mock.ANY)
 
-  def test_rsync_local_gcs_2(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_rsync_no_delete(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.create_dir('/local/source_bucket')
-    self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.rsync(
-        'gs://source_bucket/source_path',
-        'gs://target_bucket/target_path',
-        timeout=1337)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-d',
-            '/local/source_bucket/objects/source_path',
-            '/local/target_bucket/objects/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
-    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
-
-  def test_rsync_remote_gcs_3(self):
-    """Test rsync."""
-    self.gsutil_runner_obj.rsync(
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
         delete=False)
+    if use_gcloud_storage:
+      expected_args = [
+          'rsync', 'gs://source_bucket/source_path',
+          'gs://target_bucket/target_path'
+      ]
+    else:
+      expected_args = [
+          '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
+          'gs://target_bucket/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
-        ],
+        gsutil_runner_obj.runner,
+        expected_args,
         timeout=18000,
         env=mock.ANY)
 
-  def test_rsync_local_gcs_3(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_rsync_with_exclusion(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.create_dir('/local/source_bucket')
-    self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.rsync(
-        'gs://source_bucket/source_path',
-        'gs://target_bucket/target_path',
-        delete=False)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '/local/source_bucket/objects/source_path',
-            '/local/target_bucket/objects/target_path'
-        ],
-        timeout=18000,
-        env=mock.ANY)
-    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
-
-  def test_rsync_remote_gcs_4(self):
-    """Test rsync."""
-    self.gsutil_runner_obj.rsync(
-        'gs://source_bucket/source_path',
-        'gs://target_bucket/target_path',
-        timeout=1337,
-        delete=False)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
-            'gs://target_bucket/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
-
-  def test_rsync_local_gcs_4(self):
-    """Test rsync."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.create_dir('/local/source_bucket')
-    self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.rsync(
-        'gs://source_bucket/source_path',
-        'gs://target_bucket/target_path',
-        timeout=1337,
-        delete=False)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '/local/source_bucket/objects/source_path',
-            '/local/target_bucket/objects/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
-    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
-
-  def test_rsync_remote_gcs_5(self):
-    """Test rsync."""
-    self.gsutil_runner_obj.rsync(
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
         timeout=1337,
         delete=False,
         exclusion_pattern='"*.txt$"')
+    if use_gcloud_storage:
+      expected_args = [
+          'rsync', '--exclude', '"*.txt$"', 'gs://source_bucket/source_path',
+          'gs://target_bucket/target_path'
+      ]
+    else:
+      expected_args = [
+          '-q', 'rsync', '-r', '-x', '"*.txt$"',
+          'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-x', '"*.txt$"',
-            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
+        gsutil_runner_obj.runner, expected_args, timeout=1337, env=mock.ANY)
 
-  def test_rsync_local_gcs_5(self):
-    """Test rsync."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.create_dir('/local/source_bucket')
-    self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.rsync(
-        'gs://source_bucket/source_path',
-        'gs://target_bucket/target_path',
-        timeout=1337,
-        delete=False,
-        exclusion_pattern='"*.txt$"')
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-q', 'rsync', '-r', '-x', '"*.txt$"',
-            '/local/source_bucket/objects/source_path',
-            '/local/target_bucket/objects/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
-    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
-
-  def test_download_file_remote_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_download_file(self, use_gcloud_storage):
     """Test download_file."""
-    self.gsutil_runner_obj.download_file('gs://source_bucket/source_path',
-                                         '/target_path')
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.download_file('gs://source_bucket/source_path',
+                                    '/target_path')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
+        gsutil_runner_obj.runner,
         ['cp', 'gs://source_bucket/source_path', '/target_path'],
         timeout=None,
         env=mock.ANY)
 
-  def test_download_file_local_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_download_file_local_gcs(self, use_gcloud_storage):
     """Test download_file."""
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.gsutil_runner_obj.download_file('gs://source_bucket/source_path',
-                                         '/target_path')
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.download_file('gs://source_bucket/source_path',
+                                    '/target_path')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
+        gsutil_runner_obj.runner,
         ['cp', '/local/source_bucket/objects/source_path', '/target_path'],
         timeout=None,
         env=mock.ANY)
 
-  def test_download_file_remote_gcs_2(self):
-    """Test download_file."""
-    self.gsutil_runner_obj.download_file(
-        'gs://source_bucket/source_path', '/target_path', timeout=1337)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
-        ['cp', 'gs://source_bucket/source_path', '/target_path'],
-        timeout=1337,
-        env=mock.ANY)
-
-  def test_download_file_local_gcs_2(self):
-    """Test download_file."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.gsutil_runner_obj.download_file(
-        'gs://source_bucket/source_path', '/target_path', timeout=1337)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
-        ['cp', '/local/source_bucket/objects/source_path', '/target_path'],
-        timeout=1337,
-        env=mock.ANY)
-
-  def test_upload_file_remote_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_upload_file(self, use_gcloud_storage):
     """Test upload_file."""
-    self.gsutil_runner_obj.upload_file('/source_path',
-                                       'gs://target_bucket/target_path')
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.upload_file('/source_path',
+                                  'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
+        gsutil_runner_obj.runner,
         ['cp', '/source_path', 'gs://target_bucket/target_path'],
         timeout=None,
         env=mock.ANY)
 
-  def test_upload_file_local_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_upload_file_local_gcs(self, use_gcloud_storage):
     """Test upload_file."""
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.upload_file('/source_path',
-                                       'gs://target_bucket/target_path')
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.upload_file('/source_path',
+                                  'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
+        gsutil_runner_obj.runner,
         ['cp', '/source_path', '/local/target_bucket/objects/target_path'],
         timeout=None,
         env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
-  def test_upload_file_remote_gcs_2(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_upload_file_with_options(self, use_gcloud_storage):
     """Test upload_file."""
-    self.gsutil_runner_obj.upload_file(
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.upload_file(
         '/source_path',
         'gs://target_bucket/target_path',
         timeout=1337,
         gzip=True,
         metadata={'a': 'b'})
+    if use_gcloud_storage:
+      expected_args = [
+          'cp', '--gzip-in-flight-all', '/source_path',
+          'gs://target_bucket/target_path'
+      ]
+    else:
+      expected_args = [
+          '-h', 'a:b', 'cp', '-Z', '/source_path',
+          'gs://target_bucket/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-h', 'a:b', 'cp', '-Z', '/source_path',
-            'gs://target_bucket/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
+        gsutil_runner_obj.runner, expected_args, timeout=1337, env=mock.ANY)
 
-  def test_upload_file_local_gcs_2(self):
-    """Test upload_file."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.upload_file(
-        '/source_path',
-        'gs://target_bucket/target_path',
-        timeout=1337,
-        gzip=True,
-        metadata={'a': 'b'})
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner, [
-            '-h', 'a:b', 'cp', '-Z', '/source_path',
-            '/local/target_bucket/objects/target_path'
-        ],
-        timeout=1337,
-        env=mock.ANY)
-    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
-
-  def test_upload_files_to_url_remote_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_upload_files_to_url(self, use_gcloud_storage):
     """Test upload_files_to_url."""
-    self.gsutil_runner_obj.upload_files_to_url(
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.upload_files_to_url(
         ['/source_path1', '/source_path2'], 'gs://target_bucket/target_path')
+    if use_gcloud_storage:
+      expected_args = [
+          'cp', '--read-paths-from-stdin', 'gs://target_bucket/target_path'
+      ]
+    else:
+      expected_args = ['cp', '-I', 'gs://target_bucket/target_path']
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
-        ['cp', '-I', 'gs://target_bucket/target_path'],
+        gsutil_runner_obj.runner,
+        expected_args,
         input_data=b'/source_path1\n/source_path2',
         timeout=None,
         env=mock.ANY)
 
-  def test_upload_files_local_gcs_1(self):
+  @parameterized.expand([(True,), (False,)])
+  def test_upload_files_to_url_local_gcs(self, use_gcloud_storage):
     """Test upload_files_to_url."""
+    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.upload_files_to_url(
+    gsutil_runner_obj = gsutil.GSUtilRunner()
+    gsutil_runner_obj.upload_files_to_url(
         ['/source_path1', '/source_path2'], 'gs://target_bucket/target_path')
+    if use_gcloud_storage:
+      expected_args = [
+          'cp', '--read-paths-from-stdin',
+          '/local/target_bucket/objects/target_path'
+      ]
+    else:
+      expected_args = [
+          'cp', '-I', '/local/target_bucket/objects/target_path'
+      ]
     self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
-        ['cp', '-I', '/local/target_bucket/objects/target_path'],
+        gsutil_runner_obj.runner,
+        expected_args,
         input_data=b'/source_path1\n/source_path2',
         timeout=None,
-        env=mock.ANY)
-    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
-
-  def test_upload_files_remote_gcs_2(self):
-    """Test upload_files_to_url."""
-    self.gsutil_runner_obj.upload_files_to_url(
-        ['/source_path1', '/source_path2'],
-        'gs://target_bucket/target_path',
-        timeout=1337)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
-        ['cp', '-I', 'gs://target_bucket/target_path'],
-        input_data=b'/source_path1\n/source_path2',
-        timeout=1337,
-        env=mock.ANY)
-
-  def test_upload_files_to_url_local_gcs_2(self):
-    """Test upload_files_to_url."""
-    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.create_dir('/local/target_bucket')
-    self.gsutil_runner_obj.upload_files_to_url(
-        ['/source_path1', '/source_path2'],
-        'gs://target_bucket/target_path',
-        timeout=1337)
-    self.mock.run_and_wait.assert_called_with(
-        self.gsutil_runner_obj.gsutil_runner,
-        ['cp', '-I', '/local/target_bucket/objects/target_path'],
-        input_data=b'/source_path1\n/source_path2',
-        timeout=1337,
         env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
