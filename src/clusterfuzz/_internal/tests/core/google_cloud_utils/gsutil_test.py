@@ -24,6 +24,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+
 class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   """GSUtilRunner tests."""
 
