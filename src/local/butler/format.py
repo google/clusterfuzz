@@ -14,6 +14,7 @@
 """Format changed code in current branch."""
 
 import os
+import subprocess
 
 from local.butler import common
 
@@ -30,8 +31,13 @@ ISORT_CMD = ('isort --dont-order-by-type --force-single-line-imports '
 
 def execute(_):
   """Format changed code."""
-  _, output = common.execute('git diff --name-only FETCH_HEAD')
+  if os.path.exists('.git/FETCH_HEAD'):
+    diff_command = 'git diff --name-only FETCH_HEAD'
+  else:
+    # If not, fall back to diffing against HEAD.
+    diff_command = 'git diff --name-only HEAD'
 
+  _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
   ]
