@@ -427,6 +427,7 @@ def _prod_deployment_helper(config_dir,
   }
 
   try:
+    raise Exception
     # Appengine depends on Redis, which is managed by Terraform
     # Therefore, we need to deploy Terraform first
     if deploy_terraform:
