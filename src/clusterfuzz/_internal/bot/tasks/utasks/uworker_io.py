@@ -156,6 +156,7 @@ def serialize_and_upload_uworker_output(
     uworker_output: uworker_msg_pb2.Output,  # pylint: disable=no-member
     upload_url: str):
   """Serializes |uworker_output| and uploads it to |upload_url."""
+  logs.info(f'Uploading uworker output to {upload_url}')
   serialized_uworker_output = zlib.compress(uworker_output.SerializeToString())
   storage.upload_signed_url(serialized_uworker_output, upload_url)
 
