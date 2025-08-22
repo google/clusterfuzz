@@ -586,6 +586,9 @@ def execute(args):
     labels.update({'success': False})
     print(f'Exception: {ex}')
 
+  import time
+  
+  time.sleep(10)
   _emit_deploy_metric(labels)
 
   # It makes a workaround on raise an exception if the deployment fails.
