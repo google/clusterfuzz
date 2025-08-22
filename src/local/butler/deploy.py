@@ -447,10 +447,10 @@ def _prod_deployment_helper(config_dir,
 
     print(f'Production deployment finished. {labels}')
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-  except:
+  except Exception as ex:
     labels.update({'success': False})
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-    raise DeploymentError
+    raise DeploymentError from ex
 
 
 def _deploy_terraform(config_dir):
