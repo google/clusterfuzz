@@ -314,8 +314,7 @@ class GSUtilRunner:
     if _use_gcloud_storage():
       return self._upload_file_gcloud(file_path, gcs_url, timeout, gzip,
                                       metadata)
-    return self._upload_file_gsutil(file_path, gcs_url, timeout, gzip,
-                                    metadata)
+    return self._upload_file_gsutil(file_path, gcs_url, timeout, gzip, metadata)
 
   def _upload_files_to_url_gsutil(self, file_paths, gcs_url, timeout=None):
     """Upload files to the given GCS url using gsutil."""

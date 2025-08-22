@@ -19,7 +19,6 @@ import re
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -75,6 +74,13 @@ MEMORY_TOOLS_LABELS = [
 ]
 
 STACKFRAME_LINE_REGEX = re.compile(r'\s*#\d+\s+0x[0-9A-Fa-f]+\s*')
+CHROMIUM_MIRACLEPTR_REGEX = re.compile(r'.*MiraclePtr Status:.+')
+
+MIRACLEPTR_STATUS = {
+    'PROTECTED': 'MiraclePtr-Protected',
+    'MANUAL ANALYSIS REQUIRED': 'MiraclePtr-ManualAnalysisRequired',
+    'NOT PROTECTED': 'MiraclePtr-NotProtected'
+}
 
 
 def platform_substitution(label, testcase, _):
@@ -311,6 +317,20 @@ def notify_issue_update(testcase, status):
     oss_fuzz_github.close_issue(testcase)
 
 
+def check_miracleptr_status(testcase):
+  """Look for MiraclePtr status string and return the appropriate label."""
+  stacktrace = data_handler.get_stacktrace(testcase)
+  for line in stacktrace.split('\n'):
+    if CHROMIUM_MIRACLEPTR_REGEX.match(line):
+      status = line.split(':')[-1].strip()
+      try:
+        return MIRACLEPTR_STATUS[status]
+      except:
+        logs.error(f'Unknown MiraclePtr status: {line}')
+        break
+  return None
+
+
 def file_issue(testcase,
                issue_tracker,
                security_severity=None,
@@ -350,8 +370,7 @@ def file_issue(testcase,
       update_issue_impact_labels(testcase, issue, policy)
 
     # Check for MiraclePtr in stacktrace.
-    stacktrace = data_handler.get_stacktrace(testcase)
-    miracle_label = crash_analyzer.check_miracleptr_status(stacktrace)
+    miracle_label = check_miracleptr_status(testcase)
     if miracle_label:
       issue.labels.add(policy.substitution_mapping(miracle_label))
 
