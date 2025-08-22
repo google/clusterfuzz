@@ -65,17 +65,21 @@ echo "Specifying the proper Boto configuration file."
 # Otherwise, gsutil will error out due to multiple types of configured
 # credentials. For more information about this, see
 # https://cloud.google.com/storage/docs/gsutil/commands/config#configuration-file-selection-procedure
-BOTO_CONFIG_PATH=$($GSUTIL_PATH/gsutil -D 2>&1 | grep "config_file_list" | egrep -o "/[^']+gserviceaccount\.com/\.boto")
-
-if [ -f $BOTO_CONFIG_PATH ]; then
-  export BOTO_CONFIG="$BOTO_CONFIG_PATH"
+if [ "$USE_GCLOUD_STORAGE" = "1" ]; then
+  echo "Downloading ClusterFuzz source code using gcloud."
+  $GSUTIL_PATH/gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
 else
-  echo "WARNING: failed to identify the Boto configuration file and specify BOTO_CONFIG env."
-fi
+  BOTO_CONFIG_PATH=$($GSUTIL_PATH/gsutil -D 2>&1 | grep "config_file_list" | egrep -o "/[^']+gserviceaccount\.com/\.boto")
 
-echo "Downloading ClusterFuzz source code."
-rm -rf clusterfuzz
-$GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
+  if [ -f $BOTO_CONFIG_PATH ]; then
+    export BOTO_CONFIG="$BOTO_CONFIG_PATH"
+  else
+    echo "WARNING: failed to identify the Boto configuration file and specify BOTO_CONFIG env."
+  fi
+
+  echo "Downloading ClusterFuzz source code using gsutil."
+  $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
+fi
 unzip -q clusterfuzz-source.zip
 
 echo "Installing ClusterFuzz package dependencies using pipenv."

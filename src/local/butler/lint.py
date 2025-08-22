@@ -176,12 +176,10 @@ def execute(args):
   os.environ['PYTHONPATH'] = ':'.join(
       [third_party_path, module_parent_path, pythonpath])
 
-  if 'GOOGLE_CLOUDBUILD' in os.environ:
-    # Explicitly compare against master if we're running on the CI
-    _, output = common.execute('git diff --name-only master FETCH_HEAD')
-  else:
-    _, output = common.execute('git diff --name-only FETCH_HEAD')
+  # Always compare against origin/master to match CI behavior.
+  diff_command = 'git diff --name-only origin/master'
 
+  _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
   ]

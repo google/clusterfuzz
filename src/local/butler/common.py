@@ -48,6 +48,7 @@ class Gcloud:
     self.project_id = project_id
 
   def run(self, *args):
+    """Run a gcloud command."""
     arguments = ['gcloud', '--project=' + self.project_id]
     arguments.extend(args)
     return _run_and_handle_exception(arguments, GcloudError)
@@ -57,18 +58,32 @@ class Gsutil:
   """gsutil runner."""
 
   def run(self, *args):
-    arguments = ['gsutil']
-    arguments.extend(args)
+    """Run a gsutil command."""
+    if environment.get_value('USE_GCLOUD_STORAGE'):
+      arguments = ['gcloud', 'storage']
+      if args[0] == 'mb':
+        # gsutil mb -p <project> gs://<bucket>
+        # gcloud storage buckets create gs://<bucket> --project <project>
+        arguments.extend(['buckets', 'create', args[3], '--project', args[2]])
+      elif args[0] == 'cors' and args[1] == 'set':
+        # gsutil cors set <file> gs://<bucket>
+        # gcloud storage buckets update gs://<bucket> --cors-file <file>
+        arguments.extend(['buckets', 'update', args[3], '--cors-file', args[2]])
+      else:
+        arguments.extend(args)
+    else:
+      arguments = ['gsutil']
+      arguments.extend(args)
     return _run_and_handle_exception(arguments, GsutilError)
 
 
 def _run_and_handle_exception(arguments, exception_class):
   """Run a command and handle its error output."""
-  print('Running:', ' '.join(shlex.quote(arg) for arg in arguments))
-  try:
-    return subprocess.check_output(arguments)
-  except subprocess.CalledProcessError as e:
-    raise exception_class(e.output)
+  command = ' '.join(shlex.quote(arg) for arg in arguments)
+  return_code, output = execute(command, exit_on_error=False)
+  if return_code != 0:
+    raise exception_class(output)
+  return output
 
 
 def _utcnow():
