@@ -14,7 +14,6 @@
 """Format changed code in current branch."""
 
 import os
-import subprocess
 
 from local.butler import common
 
