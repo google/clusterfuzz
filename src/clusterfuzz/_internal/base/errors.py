@@ -66,7 +66,7 @@ class BadStateError(Error):
   """We are in an unexpected state that we cannot recover from."""
 
   def __init__(self, message=None):
-    super().__init__('Entered a bad state.' or message)
+    super().__init__(message or 'Entered a bad state.')
 
 
 class BuildNotFoundError(Error):
