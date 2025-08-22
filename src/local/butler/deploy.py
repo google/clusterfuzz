@@ -381,6 +381,10 @@ def _staging_deployment_helper():
   print('Staging deployment finished.')
 
 
+class DeploymentError(Exception):
+  """Deployment Error"""
+
+
 # We need to import the wrap_with_monitoring through monitoring_metrics
 # monitor's import because we need to point to the same module instance
 # for assuring the same metric store we increment the metric will have
@@ -442,10 +446,10 @@ def _prod_deployment_helper(config_dir,
 
     print(f'Production deployment finished. {labels}')
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-  except Exception as ex:
+  except:
     labels.update({'success': False})
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-    raise ex
+    raise DeploymentError
 
 
 def _deploy_terraform(config_dir):
