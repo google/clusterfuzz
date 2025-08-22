@@ -284,6 +284,14 @@ class IEventRepository(ABC):
                 event_type: str | None = None) -> Event | None:
     """Retrieve an event from the underlying database and return it."""
 
+  @abstractmethod
+  def get_events(self,
+                 equality_filters: dict[str, Any] | None = None,
+                 order_by: list[str] | None = None,
+                 limit: int | None = None) -> list[Event]:
+    """Retrieve a list of events from the underlying database. The events should
+    match the specified equality filters, ordering, and limit."""
+
 
 class NDBEventRepository(IEventRepository, EventHandler):
   """Implements the event repository for Datastore.
@@ -355,6 +363,24 @@ class NDBEventRepository(IEventRepository, EventHandler):
 
     event = self._deserialize_event(event_entity)
     return event
+
+  def get_events(self,
+                 equality_filters: dict[str, Any] | None = None,
+                 order_by: list[str] | None = None,
+                 limit: int | None = None) -> list[Event]:
+    """Retrieve events from datastore matching the given equality filters,
+    ordering, and limit."""
+    entity_kind = self._default_entity
+    results = data_handler.get_entities(
+        entity_kind=entity_kind,
+        equality_filters=equality_filters,
+        order_by=order_by,
+        limit=limit)
+
+    return [
+        event for entity in results
+        if (event := self._deserialize_event(entity)) is not None
+    ]
 
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""
@@ -517,3 +543,18 @@ def emit(event: Event) -> None:
 
   for handler in handlers:
     handler.emit(event)
+
+
+def get_events(equality_filters: dict[str, Any] | None = None,
+               order_by: list[str] | None = None,
+               limit: int | None = None) -> list[Event] | None:
+  """Retrieve events matching the given equality filters, ordering, and limit.
+  """
+  repository = get_repository()
+  if repository is None:
+    return None
+
+  events = repository.get_events(
+      equality_filters=equality_filters, order_by=order_by, limit=limit)
+
+  return events
