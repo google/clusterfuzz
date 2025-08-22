@@ -1025,3 +1025,91 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         self.job.name, None, None, None, None, None, None, None,
         timeout_multiplier, None, True)
     self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetEntitiesTest(unittest.TestCase):
+  """Tests for get_entities."""
+
+  class GetEntitiesTestModel(data_types.Model):
+    """Model for get_entities tests."""
+    name = ndb.StringProperty()
+    value = ndb.IntegerProperty()
+    timestamp = ndb.DateTimeProperty()
+
+  def setUp(self):
+    self.entity1 = self.GetEntitiesTestModel(
+        name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
+    self.entity1.put()
+    self.entity2 = self.GetEntitiesTestModel(
+        name='b', value=2, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 2))
+    self.entity2.put()
+    self.entity3 = self.GetEntitiesTestModel(
+        name='c', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 3))
+    self.entity3.put()
+    self.entity4 = self.GetEntitiesTestModel(
+        name='d', value=3, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 4))
+    self.entity4.put()
+
+  def test_get_all(self):
+    """Test getting all entities."""
+    result = data_handler.get_entities(self.GetEntitiesTestModel)
+    self.assertEqual(4, len(result))
+
+  def test_with_limit(self):
+    """Test with a limit."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, limit=2, order_by=['timestamp'])
+    self.assertEqual(2, len(result))
+    expected_entities = [self.entity1, self.entity2]
+    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+
+  def test_with_equality_filters(self):
+    """Test with equality filters."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 1})
+    self.assertEqual(2, len(result))
+    expected_entities = [self.entity1, self.entity3]
+    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+
+  def test_with_order_by_asc(self):
+    """Test with ordering (ascending)."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=['value', 'name'])
+    expected_entities = [self.entity1, self.entity3, self.entity2, self.entity4]
+    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+
+  def test_with_order_by_desc(self):
+    """Test with ordering (descending)."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=['-name'])
+    expected_entities = [self.entity4, self.entity3, self.entity2, self.entity1]
+    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+
+  def test_with_equality_filters_and_order(self):
+    """Test with equality filters and ordering."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel,
+        equality_filters={'value': 1},
+        order_by=['-name'])
+    self.assertEqual(2, len(result))
+    expected_entities = [self.entity3, self.entity1]
+    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+
+  def test_non_existent_filter_property(self):
+    """Test filtering on a property that does not exist."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'non_existent': 1})
+    self.assertEqual(4, len(result))
+
+  def test_non_existent_order_property(self):
+    """Test ordering by a property that does not exist."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=['non_existent'])
+    self.assertEqual(4, len(result))
+
+  def test_no_entites_found(self):
+    """Test no entities found."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 5})
+    self.assertEqual([], result)
