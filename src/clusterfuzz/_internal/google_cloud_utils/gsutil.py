@@ -26,12 +26,12 @@ from clusterfuzz._internal.system import new_process
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 
-def _use_gcloud_storage():
+def use_gcloud_storage():
   """Returns whether to use gcloud storage instead of gsutil."""
   return bool(environment.get_value('USE_GCLOUD_STORAGE'))
 
 
-def _get_gcloud_path():
+def get_gcloud_path():
   """Get path to gcloud executable."""
   gcloud_executable = 'gcloud'
   if environment.platform() == 'WINDOWS':
@@ -46,7 +46,7 @@ def _get_gcloud_path():
   return None
 
 
-def _get_gsutil_path():
+def get_gsutil_path():
   """Get path to gsutil executable.
 
   Returns:
@@ -108,13 +108,13 @@ class GSUtilRunner:
   """GSUtil/gcloud storage runner."""
 
   def __init__(self, process_runner=new_process.ProcessRunner):
-    self.use_gcloud_storage = _use_gcloud_storage()
+    self.use_gcloud_storage = use_gcloud_storage()
     if self.use_gcloud_storage:
-      executable_path = _get_gcloud_path()
+      executable_path = get_gcloud_path()
       # gcloud storage has parallel processing by default. No need for -m.
       default_args = ['storage']
     else:
-      executable_path = _get_gsutil_path()
+      executable_path = get_gsutil_path()
       default_args = ['-m']
       default_args.extend(_multiprocessing_args())
 
@@ -186,39 +186,63 @@ class GSUtilRunner:
       return False
 
     if self.use_gcloud_storage:
-      command = []
-      if metadata:
-        # gcloud equivalents for metadata are different.
-        # e.g. gsutil -h "Content-Type:text/html" is
-        # gcloud storage objects update --content-type="text/html"
-        # This is not a simple flag mapping, so we don't support it yet.
-        # The caller (bot/fuzzers/utils.py) does not use this, so it's safe.
-        pass
-
-      command.append('cp')
+      # For gcloud, setting metadata is a separate step after uploading.
+      cp_command = ['cp']
       if gzip:
-        # gsutil -Z is equivalent to gcloud's --gzip-in-flight-all
-        command.append('--gzip-in-flight-all')
-    else:
-      command = []
-      if metadata:
-        for key, value in metadata.items():
-          command.extend(['-h', key + ':' + value])
+        cp_command.append('--gzip-in-flight-all')
 
-      command.append('cp')
-      if gzip:
-        command.append('-Z')
+      cp_command.extend([file_path, _filter_path(gcs_url, write=True)])
+      result = self.run_gsutil(cp_command, timeout=timeout)
+
+      if result.return_code != 0:
+        logs.error('GSUtilRunner.upload_file (cp step) failed:\nCommand: %s\n'
+                   'Filename: %s\n'
+                   'Output: %s' % (result.command, file_path, result.output))
+        return False
+
+      if metadata:
+        update_command = [
+            'objects', 'update',
+            _filter_path(gcs_url, write=True)
+        ]
+        # The metadata dict is assumed to contain only custom metadata keys,
+        # not standard headers like 'Content-Type'.
+        metadata_args = [f'{k}={v}' for k, v in metadata.items()]
+        update_command.extend(
+            ['--update-custom-metadata', ','.join(metadata_args)])
+
+        result = self.run_gsutil(update_command, timeout=timeout)
+        if result.return_code != 0:
+          logs.error(
+              'GSUtilRunner.upload_file (update metadata step) failed:\nCommand: %s\n'
+              'Filename: %s\n'
+              'Output: %s' % (result.command, file_path, result.output))
+          return False
+
+      return True
+
+    # gsutil can set metadata during cp.
+    command = []
+    if metadata:
+      for key, value in metadata.items():
+        # gsutil uses headers for metadata. For custom metadata, the
+        # convention is 'x-goog-meta-'. The caller is responsible for this.
+        command.extend(['-h', f'{key}:{value}'])
+
+    command.append('cp')
+    if gzip:
+      command.append('-Z')
 
     command.extend([file_path, _filter_path(gcs_url, write=True)])
     result = self.run_gsutil(command, timeout=timeout)
 
-    # Check result of command execution, log output if command failed.
     if result.return_code:
       logs.error('GSUtilRunner.upload_file failed:\nCommand: %s\n'
                  'Filename: %s\n'
                  'Output: %s' % (result.command, file_path, result.output))
+      return False
 
-    return result.return_code == 0
+    return True
 
   def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
     """Upload files to the given GCS url."""

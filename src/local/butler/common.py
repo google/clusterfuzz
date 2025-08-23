@@ -57,7 +57,10 @@ class Gsutil:
   """gsutil runner."""
 
   def run(self, *args):
-    arguments = ['gsutil']
+    if environment.get_value('USE_GCLOUD_STORAGE'):
+      arguments = ['gcloud', 'storage']
+    else:
+      arguments = ['gsutil']
     arguments.extend(args)
     return _run_and_handle_exception(arguments, GsutilError)
 
