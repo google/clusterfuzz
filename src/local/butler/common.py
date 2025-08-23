@@ -59,9 +59,19 @@ class Gsutil:
   def run(self, *args):
     if environment.get_value('USE_GCLOUD_STORAGE'):
       arguments = ['gcloud', 'storage']
+      if args[0] == 'mb':
+        # gsutil mb -p <project> gs://<bucket>
+        # gcloud storage buckets create gs://<bucket> --project <project>
+        arguments.extend(['buckets', 'create', args[3], '--project', args[2]])
+      elif args[0] == 'cors' and args[1] == 'set':
+        # gsutil cors set <file> gs://<bucket>
+        # gcloud storage buckets update gs://<bucket> --cors-file <file>
+        arguments.extend(['buckets', 'update', args[3], '--cors-file', args[2]])
+      else:
+        arguments.extend(args)
     else:
       arguments = ['gsutil']
-    arguments.extend(args)
+      arguments.extend(args)
     return _run_and_handle_exception(arguments, GsutilError)
 
 
