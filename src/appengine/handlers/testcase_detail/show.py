@@ -350,30 +350,26 @@ def _format_reproduction_help(reproduction_help):
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
 
-def _get_events_info(testcase_id: int, specific_equality_filter_key: str,
+def _get_last_events_info(specific_equality_filter_key: str,
                      specific_equality_filter_values: list,
-                     fields_to_extract: list,
-                     common_equality_filters: dict = {}) -> dict:
+                     common_equality_filters: dict,
+                     fields_to_extract: list) -> dict:
   """Get events info."""
   events_info = {}
-  base_equality_filters = {
-      'testcase_id': testcase_id,
-  }
-  base_equality_filters.update(common_equality_filters)
+  order_by = ['-timestamp']
+  limit = 1
 
   for value in specific_equality_filter_values:
-    equality_filters = base_equality_filters.copy()
+    equality_filters = common_equality_filters.copy()
     equality_filters[specific_equality_filter_key] = value
     events_info[value] = {}
-    order_by = ['-timestamp']
-    limit = 1
-    task_events = events.get_events(
+    last_event_list = events.get_events(
         equality_filters=equality_filters, order_by=order_by, limit=limit)
-    if task_events:
-      last_task_event = task_events[0]
+    if last_event_list:
+      last_event = last_event_list[0]
       for field in fields_to_extract:
-        if hasattr(last_task_event, field):
-          attr_value = getattr(last_task_event, field)
+        if hasattr(last_event, field):
+          attr_value = getattr(last_event, field)
           if field == 'timestamp' and attr_value:
             attr_value = attr_value.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
           events_info[value][field] = attr_value
@@ -387,11 +383,13 @@ def get_testcase_status_machine_info(testcase_id: int) -> dict:
   TASK_NAMES = [
       'analyze', 'minimize', 'impact', 'regression', 'progression'
   ]
-  task_events_info = _get_events_info(
-      testcase_id=testcase_id,
+  task_events_info = _get_last_events_info(
       specific_equality_filter_key='task_name',
       specific_equality_filter_values=TASK_NAMES,
-      common_equality_filters={'event_type': events.EventTypes.TASK_EXECUTION},
+      common_equality_filters={
+        'testcase_id': testcase_id,
+        'event_type': events.EventTypes.TASK_EXECUTION
+      },
       fields_to_extract=[
           'task_stage', 'task_status', 'task_outcome', 'timestamp'
       ])
@@ -402,10 +400,12 @@ def get_testcase_status_machine_info(testcase_id: int) -> dict:
       events.EventTypes.TESTCASE_FIXED,
       events.EventTypes.ISSUE_CLOSING,
   ]
-  non_task_events_info = _get_events_info(
-      testcase_id=testcase_id,
+  non_task_events_info = _get_last_events_info(
       specific_equality_filter_key='event_type',
       specific_equality_filter_values=NON_TASK_EVENT_TYPES,
+      common_equality_filters={
+        'testcase_id': testcase_id,
+      },
       fields_to_extract=['timestamp'])
 
   testcase_status_machine_info = {
