@@ -623,6 +623,8 @@ def get_testcase_detail(testcase):
           _parse_suspected_cls(metadata.get('predator_result')),
       'testcase':
           testcase,
+      'testcase_status_machine_info':
+          get_testcase_status_machine_info(testcase.key.id()),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':

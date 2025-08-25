@@ -1,0 +1,129 @@
+<!--
+  Copyright 2025 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../common/if-else/if-else.html">
+
+<dom-module id="testcase-status-machine">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .section .title > div {
+        display: inline-block;
+      }
+
+      :host table.variant {
+        width: 100%;
+      }
+
+      :host table.variant tr.title td {
+        text-align: left;
+        font-size: 14px;
+        padding: 4px 6px;
+        background-color: #373b50;
+        color: #fff;
+        border-left: 1px dotted #ccc;
+        border-top: 1px dotted #ccc;
+      }
+
+      :host table.variant tr.title td {
+        text-transform: uppercase;
+      }
+
+      :host table.variant tr.title td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.variant tr.body td {
+        padding: 4px 6px;
+        font-size: 14px;
+        vertical-align: top;
+        border-left: 1px dotted #777;
+        border-bottom: 1px dotted #777;
+      }
+
+      :host table.variant tr.body td:first-child {
+        border-left: 0px;
+      }
+
+      :host .title {
+        position: relative;
+      }
+    </style>
+    <div class="section">
+      <div class="title">
+        <div title="The last event for each task in the testcase lifecycle.">
+          Testcase Status Machine
+        </div>
+      </div>
+      <template is="dom-if" if="[[nonEmpty(taskEvents)]]">
+        <table cellpadding="0" cellspacing="0" class="variant">
+          <tr class="title">
+            <td>Task Name</td>
+            <td>Stage</td>
+            <td>Status</td>
+            <td>Outcome</td>
+            <td>Time</td>
+          </tr>
+          <template is="dom-repeat" items="[[taskEvents]]" as="taskEvent">
+            <tr class="body">
+              <td>[[taskEvent.task_name]]</td>
+              <td>[[taskEvent.task_stage]]</td>
+              <td>[[taskEvent.task_status]]</td>
+              <td>[[taskEvent.task_outcome]]</td>
+              <td>[[taskEvent.timestamp]]</td>
+            </tr>
+          </template>
+        </table>
+      </template>
+      <template is="dom-if" if="[[!nonEmpty(taskEvents)]]">
+        <div class="body padding">
+          No task events found.
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'testcase-status-machine',
+      properties: {
+        info: Object,
+        taskEvents: {
+          type: Array,
+          computed: 'computeTaskEvents(info.testcase_status_machine_info.task_events_info)'
+        },
+      },
+      computeTaskEvents(taskEventsInfo) {
+        if (!taskEventsInfo) {
+          return [];
+        }
+        return Object.keys(taskEventsInfo).map(function(key) {
+          var event = taskEventsInfo[key];
+          event.task_name = key;
+          return event;
+        });
+      },
+      nonEmpty(items) {
+        return items && items.length > 0;
+      },
+    });
+  </script>
+</dom-module>
+
