@@ -684,8 +684,11 @@ def group_testcases():
 
 @logs.cron_log_context()
 def main():
-  """Group testcases (this will be used to run grouper as a standalone cron in
-  dev/staging environments)."""
+  """Group testcases.
+  
+  This will be useful to run grouper as a standalone cron in dev/staging
+  environments.
+  """
   try:
     logs.info('Grouping testcases.')
     group_testcases()
