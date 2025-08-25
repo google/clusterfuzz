@@ -65,19 +65,21 @@ def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
       Whether there is a path traversal attempt
   """
   output_dir = os.path.realpath(output_dir)
-  absolute_file_path = os.path.join(output_dir, os.path.normpath(filename))
-  real_file_path = os.path.realpath(absolute_file_path)
-
-  if real_file_path == output_dir:
-    # Workaround for https://bugs.python.org/issue28488.
-    # Ignore directories named '.'.
-    return False
-
-  if real_file_path != absolute_file_path:
-    logs.error('Directory traversal attempted while unpacking archive %s '
-               '(file path=%s, actual file path=%s). Aborting.' %
-               (archive_name, absolute_file_path, real_file_path))
+  if os.path.isabs(filename):
+    logs.error(
+        'Directory traversal attempted while unpacking archive %s '
+        '(absolute file path=%s). Aborting.' % (archive_name, filename))
     return True
+
+  real_file_path = os.path.realpath(os.path.join(output_dir, filename))
+  if (not real_file_path.startswith(output_dir + os.sep) and
+      real_file_path != output_dir):
+    logs.error(
+        'Directory traversal attempted while unpacking archive %s '
+        '(file path=%s, real file path=%s). Aborting.' %
+        (archive_name, os.path.join(output_dir, filename), real_file_path))
+    return True
+
   return False
 
 
