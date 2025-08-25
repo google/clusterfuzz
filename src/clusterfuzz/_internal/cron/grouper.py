@@ -317,7 +317,7 @@ def _group_testcases_based_on_variants(testcase_map):
           continue
 
         combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                     'identical variant')
+                                     events.GroupingReason.IDENTICAL_VARIANT)
 
 
 def _group_testcases_with_same_issues(testcase_map):
@@ -348,7 +348,7 @@ def _group_testcases_with_same_issues(testcase_map):
           continue
 
         combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                     'same issue')
+                                     events.GroupingReason.SAME_ISSUE)
 
 
 def _compare_testcases_crash_states(testcase_1, testcase_2) -> bool:
@@ -409,7 +409,7 @@ def _group_testcases_with_similar_states(testcase_map):
           continue
 
         combine_testcases_into_group(testcase_1, testcase_2, testcase_map,
-                                     'similar crashes')
+                                     events.GroupingReason.SIMILAR_CRASH)
 
 
 def _has_testcase_with_same_params(testcase, testcase_map):
