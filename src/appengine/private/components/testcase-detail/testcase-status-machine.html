@@ -41,9 +41,6 @@
         color: #fff;
         border-left: 1px dotted #ccc;
         border-top: 1px dotted #ccc;
-      }
-
-      :host table.variant tr.title td {
         text-transform: uppercase;
       }
 
@@ -83,7 +80,7 @@
         </div>
       </div>
       <div class="body padding">
-        <div class="subtitle" title="The last event for each task in the testcase lifecycle.">Task Events</div>
+        <div class="title" title="The last event for each task in the testcase lifecycle.">Task Events</div>
         <template is="dom-if" if="[[nonEmpty(taskEvents)]]">
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
@@ -110,7 +107,7 @@
           </div>
         </template>
 
-        <div class="subtitle" title="Other important events in the testcase lifecycle.">Other Events</div>
+        <div class="title" title="Other important events in the testcase lifecycle.">Other Events</div>
         <template is="dom-if" if="[[nonEmpty(nonTaskEvents)]]">
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
