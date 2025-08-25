@@ -19,11 +19,10 @@ import os
 import unittest
 from unittest import mock
 
-from pyfakefs import fake_filesystem_unittest
 import yaml
+from pyfakefs import fake_filesystem_unittest
 
-from clusterfuzz._internal.tests.test_libs import helpers
-from clusterfuzz._internal.tests.test_libs import test_utils
+from clusterfuzz._internal.tests.test_libs import helpers, test_utils
 from local.butler import deploy
 
 
@@ -88,7 +87,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
       return (1, b'failure')
 
     if 'app describe' in command:
-      return (0, b'us-central')
+      return (0, b'us-central1')
 
     if 'describe redis-instance' in command:
       return (0, b'redis-ip')
@@ -157,6 +156,20 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
     self.mock.execute.assert_has_calls([
         mock.call(
+            'terraform -chdir=/config_dir/terraform init'),
+        mock.call(
+            'terraform -chdir=/config_dir/terraform apply '
+            '-target=module.clusterfuzz -auto-approve'),
+        mock.call(
+            'rm -rf /config_dir/terraform/.terraform*'),
+        mock.call(
+            'gcloud app describe --project=test-clusterfuzz '
+            '--format="value(locationId)"'),
+        mock.call(
+            'gcloud redis instances describe redis-instance '
+            '--project=test-clusterfuzz --region=us-central1 '
+            '--format="value(host)"'),
+        mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
             '--project=test-clusterfuzz  '
             'src/appengine/index.yaml '
@@ -174,21 +187,26 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call(
             'gcloud app versions delete --quiet --project=test-clusterfuzz '
             '--service=cron-service v1'),
-        mock.call('gsutil cp /windows.zip gs://test-deployment-bucket/'
-                  'windows.zip'),
-        mock.call('gsutil cp /mac.zip gs://test-deployment-bucket/'
-                  'mac.zip'),
-        mock.call('gsutil cp /linux.zip gs://test-deployment-bucket/'
-                  'linux.zip'),
-        mock.call('gsutil cp src/appengine/resources/'
-                  'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' + self.manifest_target),
-        mock.call('gsutil cp src/appengine/resources/'
-                  'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' +
-                  self.additional_manifest_target),
-        mock.call('python butler.py run setup --config-dir /config_dir '
-                  '--non-dry-run'),
+        mock.call(
+            'gsutil cp /windows.zip gs://test-deployment-bucket/windows.zip',
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp /mac.zip gs://test-deployment-bucket/mac.zip',
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp /linux.zip gs://test-deployment-bucket/linux.zip',
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            'gs://test-deployment-bucket/' + self.manifest_target,
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            'gs://test-deployment-bucket/' + self.additional_manifest_target,
+            exit_on_error=False),
+        mock.call(
+            'python butler.py run setup --config-dir /config_dir --non-dry-run'
+        ),
     ])
     self._check_env_variables([
         'src/appengine/app.yaml',
@@ -235,6 +253,20 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
     self.mock.execute.assert_has_calls([
         mock.call(
+            'terraform -chdir=/config_dir/terraform init'),
+        mock.call(
+            'terraform -chdir=/config_dir/terraform apply '
+            '-target=module.clusterfuzz -auto-approve'),
+        mock.call(
+            'rm -rf /config_dir/terraform/.terraform*'),
+        mock.call(
+            'gcloud app describe --project=test-clusterfuzz '
+            '--format="value(locationId)"'),
+        mock.call(
+            'gcloud redis instances describe redis-instance '
+            '--project=test-clusterfuzz --region=us-central1 '
+            '--format="value(host)"'),
+        mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
             '--project=test-clusterfuzz  '
             'src/appengine/index.yaml '
@@ -260,21 +292,26 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call(
             'gcloud app versions delete --quiet --project=test-clusterfuzz '
             '--service=cron-service v1'),
-        mock.call('gsutil cp /windows.zip gs://test-deployment-bucket/'
-                  'windows.zip'),
-        mock.call('gsutil cp /mac.zip gs://test-deployment-bucket/'
-                  'mac.zip'),
-        mock.call('gsutil cp /linux.zip gs://test-deployment-bucket/'
-                  'linux.zip'),
-        mock.call('gsutil cp src/appengine/resources/'
-                  'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' + self.manifest_target),
-        mock.call('gsutil cp src/appengine/resources/'
-                  'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' +
-                  self.additional_manifest_target),
-        mock.call('python butler.py run setup --config-dir /config_dir '
-                  '--non-dry-run'),
+        mock.call(
+            'gsutil cp /windows.zip gs://test-deployment-bucket/windows.zip',
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp /mac.zip gs://test-deployment-bucket/mac.zip',
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp /linux.zip gs://test-deployment-bucket/linux.zip',
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            'gs://test-deployment-bucket/' + self.manifest_target,
+            exit_on_error=False),
+        mock.call(
+            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            'gs://test-deployment-bucket/' + self.additional_manifest_target,
+            exit_on_error=False),
+        mock.call(
+            'python butler.py run setup --config-dir /config_dir --non-dry-run'
+        ),
     ])
     self._check_env_variables([
         'src/appengine/app.yaml',
