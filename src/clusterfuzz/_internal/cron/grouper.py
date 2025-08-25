@@ -73,6 +73,30 @@ class TestcaseAttributes:
     return getattr(self, key, default)
 
 
+def _emit_grouping_event(moved_testcase: int,
+                         new_group_id: int,
+                         prev_group_id: int,
+                         similar_testcase: int,
+                         reason: str,
+                         group_merge: bool = False):
+  """Helper for emitting a testcase grouping event."""
+  # If this is due to a group merge, we have to use the grouping reason as the
+  # reason for the merge itself.
+  group_merge_reason = None
+  if group_merge:
+    group_merge_reason = reason
+    reason = events.GroupingReason.GROUP_MERGE
+
+  events.emit(
+      events.TestcaseGroupingEvent(
+          testcase_id=moved_testcase,
+          group_id=new_group_id,
+          previous_group_id=prev_group_id,
+          similar_testcase_id=similar_testcase,
+          grouping_reason=reason,
+          group_merge_reason=group_merge_reason))
+
+
 def combine_testcases_into_group(
     testcase_1: TestcaseAttributes, testcase_2: TestcaseAttributes,
     testcase_map: dict[int, TestcaseAttributes], reason: str) -> None:
@@ -93,26 +117,49 @@ def combine_testcases_into_group(
     new_group_id = _get_new_group_id()
     testcase_1.group_id = new_group_id
     testcase_2.group_id = new_group_id
+    # Both testcases are moved, so emit an event for each.
+    _emit_grouping_event(testcase_1.id, new_group_id, 0, testcase_2.id, reason)
+    _emit_grouping_event(testcase_2.id, new_group_id, 0, testcase_1.id, reason)
     return
 
   # If one of the testcase has a group id, then assign the other to reuse that
   # group id.
   if testcase_1.group_id and not testcase_2.group_id:
     testcase_2.group_id = testcase_1.group_id
+    # Only emit event for moved testcase_2.
+    _emit_grouping_event(testcase_2.id, testcase_1.group_id, 0, testcase_1.id,
+                         reason)
     return
+
   if testcase_2.group_id and not testcase_1.group_id:
     testcase_1.group_id = testcase_2.group_id
+    # Only emit event for moved testcase_1.
+    _emit_grouping_event(testcase_1.id, testcase_2.group_id, 0, testcase_2.id,
+                         reason)
     return
 
   # If both the testcase have their own groups, then just merge the two groups
   # together and reuse one of their group ids.
   group_id_to_reuse = testcase_1.group_id
   group_id_to_move = testcase_2.group_id
+  # Emit event for testcase from group to be moved.
+  _emit_grouping_event(testcase_2.id, testcase_1.group_id, testcase_2.group_id,
+                       testcase_1.id, reason)
+
   moved_testcase_ids = []
   for testcase in testcase_map.values():
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
       moved_testcase_ids.append(str(testcase.id))
+      if testcase.id != testcase_2.id:
+        # Emit event for each testcase moved due to the group merge.
+        _emit_grouping_event(
+            testcase.id,
+            group_id_to_reuse,
+            group_id_to_move,
+            testcase_2.id,
+            reason,
+            group_merge=True)
 
   logs.info(f'Merged group {group_id_to_move} into {group_id_to_reuse}: ' +
             'moved testcases: ' + ', '.join(moved_testcase_ids))
