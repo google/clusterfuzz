@@ -76,7 +76,7 @@ class TestcaseAttributes:
 def _emit_grouping_event(moved_testcase: int,
                          new_group_id: int,
                          prev_group_id: int,
-                         similar_testcase: int,
+                         similar_testcase: int | None,
                          reason: str,
                          group_merge: bool = False):
   """Helper for emitting a testcase grouping event."""
@@ -650,6 +650,8 @@ def group_testcases():
         data_handler.delete_group(updated_group_id, update_testcases=False)
         logs.info(
             f'Deleted group {updated_group_id} used by only one testcase.')
+        _emit_grouping_event(testcase_id, 0, updated_group_id, None,
+                             events.GroupingReason.UNGROUPED)
         updated_group_id = 0
         updated_group_bug_information = 0
         updated_is_leader = True
