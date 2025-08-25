@@ -66,9 +66,8 @@ def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
   """
   output_dir = os.path.realpath(output_dir)
   if os.path.isabs(filename):
-    logs.error(
-        'Directory traversal attempted while unpacking archive %s '
-        '(absolute file path=%s). Aborting.' % (archive_name, filename))
+    logs.error('Directory traversal attempted while unpacking archive %s '
+               '(absolute file path=%s). Aborting.' % (archive_name, filename))
     return True
 
   real_file_path = os.path.realpath(os.path.join(output_dir, filename))
