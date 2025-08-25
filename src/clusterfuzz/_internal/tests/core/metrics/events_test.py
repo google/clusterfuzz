@@ -1076,10 +1076,10 @@ class EmitEventTest(unittest.TestCase):
     self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     self.project_config = {}
     self.mock.ProjectConfig.return_value = self.project_config
-
-  def tearDown(self):
     # Reset handlers, since it is only configured in the first events emit.
     events._handlers = None  # pylint: disable=protected-access
+
+  def tearDown(self):
     self.project_config = {}
 
   def test_get_datastore_repository(self):
