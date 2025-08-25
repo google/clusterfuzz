@@ -51,6 +51,10 @@ SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 Version = namedtuple('Version', ['id', 'deploy_time', 'traffic_split'])
 
 
+class DeploymentError(Exception):
+  """Deployment Error"""
+
+
 def now(tz=None):
   """Used for mocks."""
   return datetime.datetime.now(tz)
@@ -445,7 +449,7 @@ def _prod_deployment_helper(config_dir,
   except Exception as ex:
     labels.update({'success': False})
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-    raise ex
+    raise DeploymentError from ex
 
 
 def _deploy_terraform(config_dir):
