@@ -89,6 +89,19 @@ def entities_equal(entity_1, entity_2, check_key=True):
   return entity_1.to_dict() == entity_2.to_dict()
 
 
+def entities_list_equal(entities_1: list[data_types.Model],
+                        entities_2: list[data_types.Model],
+                        check_key: bool = True) -> bool:
+  """Return a bool on whether every pair of entities are the same."""
+  if len(entities_1) != len(entities_2):
+    return False
+
+  for entity_1, entity_2 in zip(entities_1, entities_2):
+    if not entities_equal(entity_1, entity_2, check_key):
+      return False
+  return True
+
+
 def entity_exists(entity):
   """Return a bool on where the entity exists in datastore."""
   return entity.get_by_id(entity.key.id())
