@@ -20,6 +20,9 @@ provider "google" {
 
 resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
   provider = google.monitoring
+  lifecycle {
+    ignore_changes = true
+  }
   dashboard_json = <<JSON
 {
   "displayName": "Clusterfuzz Relability Metrics",
