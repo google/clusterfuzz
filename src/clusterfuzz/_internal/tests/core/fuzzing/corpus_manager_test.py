@@ -64,17 +64,12 @@ class GcsCorpusTest(unittest.TestCase):
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
 
-    self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-o', 'GSUtil:parallel_thread_count=16',
-        '-q', 'rsync', '-r', '-d', 'gs://bucket/', '/dir'
-    ])
-
     self.mock.cpu_count.return_value = 2
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', 'gs://bucket/',
-        '/dir'
+        '/gsutil_path/gcloud', '--quiet', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', 'gs://bucket/', '/dir'
     ])
 
   def test_rsync_from_disk(self):
@@ -83,17 +78,12 @@ class GcsCorpusTest(unittest.TestCase):
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_from_disk('/dir'))
 
-    self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-o', 'GSUtil:parallel_thread_count=16',
-        '-q', 'rsync', '-r', '-d', '/dir', 'gs://bucket/'
-    ])
-
     self.mock.cpu_count.return_value = 2
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_from_disk('/dir'))
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
-        'gs://bucket/'
+        '/gsutil_path/gcloud', '--quiet', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', '/dir', 'gs://bucket/'
     ])
 
   def test_upload_files(self):
@@ -124,7 +114,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
-        'clusterfuzz._internal.google_cloud_utils.gsutil.GSUtilRunner.run_gsutil',
+        'clusterfuzz._internal.google_cloud_utils.gsutil.GSUtilRunner.run_gcloud',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.exists',
@@ -139,7 +129,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
         b'CommandException: 10 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
-    self.mock.run_gsutil.return_value = new_process.ProcessResult(
+    self.mock.run_gcloud.return_value = new_process.ProcessResult(
         command=['/fake'],
         return_code=1,
         output=output,
@@ -150,7 +140,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
 
-    self.mock.run_gsutil.return_value = new_process.ProcessResult(
+    self.mock.run_gcloud.return_value = new_process.ProcessResult(
         command=['/fake'],
         return_code=1,
         output=output,
@@ -168,7 +158,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
         b'CommandException: 200 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
-    self.mock.run_gsutil.return_value = new_process.ProcessResult(
+    self.mock.run_gcloud.return_value = new_process.ProcessResult(
         command=['/fake'],
         return_code=1,
         output=output,
@@ -179,7 +169,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
 
-    self.mock.run_gsutil.return_value = new_process.ProcessResult(
+    self.mock.run_gcloud.return_value = new_process.ProcessResult(
         command=['/fake'],
         return_code=1,
         output=output,
@@ -195,7 +185,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
         b'blah\n'
         b'CommandException: 11 files/objects could not be copied/removed.\n')
 
-    self.mock.run_gsutil.return_value = new_process.ProcessResult(
+    self.mock.run_gcloud.return_value = new_process.ProcessResult(
         command=['/fake'],
         return_code=1,
         output=output,
@@ -227,6 +217,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.system.shell._get_random_filename',
         'subprocess.Popen',
+        'clusterfuzz._internal.google_cloud_utils.gsutil._get_gcloud_path',
     ])
 
     self.mock.Popen.return_value.poll.return_value = 0
@@ -235,6 +226,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     self.mock.exists.return_value = True
     self.mock.write_stream.return_value = True
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
+    self.mock._get_gcloud_path.return_value = '/gsutil_path/gcloud'
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/dir')
     self.fs.create_file('/dir/a')
@@ -247,12 +239,12 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil',
-        '-m',
-        '-q',
+        '/gsutil_path/gcloud',
+        '--quiet',
+        'storage',
         'rsync',
-        '-r',
-        '-d',
+        '--recursive',
+        '--delete-unmatched-destination-objects',
         'gs://bucket/libFuzzer/fuzzer/',
         '/dir',
     ])
@@ -265,34 +257,32 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     commands = [call_arg[0][0] for call_arg in self.mock.Popen.call_args_list]
 
-    self.assertEqual(commands, [
-        [
-            '/gsutil_path/gsutil',
-            '-m',
-            '-q',
-            'rsync',
-            '-r',
-            '-d',
-            'gs://bucket/libFuzzer/fuzzer/',
-            '/dir',
-        ],
-        [
-            '/gsutil_path/gsutil',
-            '-m',
-            '-q',
-            'rsync',
-            '-r',
-            'gs://bucket/libFuzzer/fuzzer_regressions/',
-            '/dir/regressions',
-        ],
-    ])
+    self.assertEqual(commands, [[
+        '/gsutil_path/gcloud',
+        '--quiet',
+        'storage',
+        'rsync',
+        '--recursive',
+        '--delete-unmatched-destination-objects',
+        'gs://bucket/libFuzzer/fuzzer/',
+        '/dir',
+    ], [
+        '/gsutil_path/gcloud',
+        '--quiet',
+        'storage',
+        'rsync',
+        '--recursive',
+        'gs://bucket/libFuzzer/fuzzer_regressions/',
+        '/dir/regressions',
+    ]])
 
   def test_rsync_from_disk(self):
     """Test rsync_from_disk."""
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.rsync_from_disk('/dir'))
     self.assertEqual(self.mock.Popen.call_args_list[0][0][0], [
-        '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
+        '/gsutil_path/gcloud', '--quiet', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', '/dir',
         'gs://bucket/libFuzzer/fuzzer/'
     ])
 
