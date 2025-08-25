@@ -70,7 +70,7 @@
     <div class="section">
       <div class="title">
         <div title="The last event for each task in the testcase lifecycle.">
-          Testcase Status Machine
+          Task Events
         </div>
       </div>
       <template is="dom-if" if="[[nonEmpty(taskEvents)]]">
@@ -99,6 +99,32 @@
         </div>
       </template>
     </div>
+    <div class="section">
+      <div class="title">
+        <div title="Other important events in the testcase lifecycle.">
+          Other Events
+        </div>
+      </div>
+      <template is="dom-if" if="[[nonEmpty(nonTaskEvents)]]">
+        <table cellpadding="0" cellspacing="0" class="variant">
+          <tr class="title">
+            <td>Event Type</td>
+            <td>Time</td>
+          </tr>
+          <template is="dom-repeat" items="[[nonTaskEvents]]" as="event">
+            <tr class="body">
+              <td>[[event.event_type]]</td>
+              <td>[[event.timestamp]]</td>
+            </tr>
+          </template>
+        </table>
+      </template>
+      <template is="dom-if" if="[[!nonEmpty(nonTaskEvents)]]">
+        <div class="body padding">
+          No other events found.
+        </div>
+      </template>
+    </div>
   </template>
   <script>
     Polymer({
@@ -107,16 +133,20 @@
         info: Object,
         taskEvents: {
           type: Array,
-          computed: 'computeTaskEvents(info.testcase_status_machine_info.task_events_info)'
+          computed: 'computeEvents(info.testcase_status_machine_info.task_events_info, "task_name")'
+        },
+        nonTaskEvents: {
+          type: Array,
+          computed: 'computeEvents(info.testcase_status_machine_info.non_task_events_info, "event_type")'
         },
       },
-      computeTaskEvents(taskEventsInfo) {
-        if (!taskEventsInfo) {
+      computeEvents(eventsInfo, nameKey) {
+        if (!eventsInfo) {
           return [];
         }
-        return Object.keys(taskEventsInfo).map(function(key) {
-          var event = taskEventsInfo[key];
-          event.task_name = key;
+        return Object.keys(eventsInfo).map(function(key) {
+          var event = eventsInfo[key];
+          event[nameKey] = key;
           return event;
         });
       },
@@ -126,4 +156,3 @@
     });
   </script>
 </dom-module>
-

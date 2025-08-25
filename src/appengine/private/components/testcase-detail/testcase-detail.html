@@ -591,6 +591,9 @@
             <div class="body padding">See <a href="[[info.reproduction_help_url]]">[[info.reproduction_help_url]]</a> for instructions to reproduce this bug locally.</div>
           </div>
         </template>
+
+        <testcase-status-machine info="[[info]]"></testcase-status-machine>
+
         <template is="dom-if" if="[[info.formatted_reproduction_help]]">
           <div class="section">
             <div class="title">Reproduce bug</div>
@@ -638,8 +641,6 @@
         </template>
 
         <testcase-variants testcase-id="[[info.testcase.id]]"></testcase-variants>
-
-        <testcase-status-machine info="[[info]]"></testcase-status-machine>
 
         <template is="dom-if" if="[[info.metadata.gn_args]]">
           <div class="section">
