@@ -51,6 +51,10 @@ SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 Version = namedtuple('Version', ['id', 'deploy_time', 'traffic_split'])
 
 
+class DeploymentError(Exception):
+  """Deployment Error"""
+
+
 def now(tz=None):
   """Used for mocks."""
   return datetime.datetime.now(tz)
@@ -379,10 +383,6 @@ def _staging_deployment_helper():
 
   _deploy_app_staging(project, yaml_paths)
   print('Staging deployment finished.')
-
-
-class DeploymentError(Exception):
-  """Deployment Error"""
 
 
 # We need to import the wrap_with_monitoring through monitoring_metrics
