@@ -21,7 +21,9 @@ provider "google" {
 resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
   provider = google.monitoring
   lifecycle {
-    ignore_changes = true
+    ignore_changes = [
+      dashboard_json,
+    ]
   }
   dashboard_json = <<JSON
 {
