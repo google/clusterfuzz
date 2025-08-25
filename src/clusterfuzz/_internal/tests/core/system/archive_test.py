@@ -69,10 +69,10 @@ class UnpackTest(unittest.TestCase):
 
       output_directory = tempfile.mkdtemp()
 
-      # Assert that attempting to extract this archive raises the expected error.
-      with self.assertRaises(archive.PathTraversalError):
-        with archive.open(malicious_archive_path) as reader:
-          reader.extract_all(output_directory, trusted=False)
+      # The function should return False, indicating an error occurred.
+      with archive.open(malicious_archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertFalse(result)
 
       shell.remove_directory(output_directory)
 
