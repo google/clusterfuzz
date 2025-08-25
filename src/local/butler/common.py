@@ -77,11 +77,11 @@ class Gsutil:
 
 def _run_and_handle_exception(arguments, exception_class):
   """Run a command and handle its error output."""
-  print('Running:', ' '.join(shlex.quote(arg) for arg in arguments))
-  try:
-    return subprocess.check_output(arguments)
-  except subprocess.CalledProcessError as e:
-    raise exception_class(e.output)
+  command = ' '.join(shlex.quote(arg) for arg in arguments)
+  return_code, output = execute(command, exit_on_error=False)
+  if return_code != 0:
+    raise exception_class(output)
+  return output
 
 
 def _utcnow():
