@@ -39,8 +39,10 @@ class GrouperTest(unittest.TestCase):
 
     helpers.patch(self, [
         'clusterfuzz._internal.cron.cleanup.get_top_crashes_for_all_projects_and_platforms',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
-
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
     self.mock.get_top_crashes_for_all_projects_and_platforms.return_value = {
         'blah': {},
         'project1': {
@@ -77,6 +79,7 @@ class GrouperTest(unittest.TestCase):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
+    self.mock.emit.assert_not_called()
 
   def test_same_crash_same_security(self):
     """Test that crashes with same crash states and same security flags get
@@ -139,6 +142,7 @@ class GrouperTest(unittest.TestCase):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
+    self.mock.emit.assert_not_called()
 
   def test_group_of_one(self):
     """Test that a group id with just one testcase gets removed."""
@@ -151,6 +155,15 @@ class GrouperTest(unittest.TestCase):
     testcase = data_handler.get_testcase_by_id(self.testcases[0].key.id())
     self.assertEqual(testcase.group_id, 0)
     self.assertTrue(testcase.is_leader)
+
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseGroupingEvent(
+            testcase_id=testcase.key.id(),
+            group_id=0,
+            previous_group_id=1,
+            similar_testcase_id=None,
+            grouping_reason=events.GroupingReason.UNGROUPED,
+            group_merge_reason=None))
 
   def test_same_unique_crash_type_with_same_state(self):
     """Test that the crashes with same unique crash type and same state get
@@ -196,6 +209,7 @@ class GrouperTest(unittest.TestCase):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
+    self.mock.emit.assert_not_called()
 
   def test_different_unique_crash_type_with_same_state(self):
     """Test that the crashes with different unique crash type but same state
@@ -316,6 +330,7 @@ class GrouperTest(unittest.TestCase):
     for testcase in self.testcases:
       self.assertEqual(testcase.group_id, 0)
       self.assertTrue(testcase.is_leader)
+    self.mock.emit.assert_not_called()
 
   def test_same_job_type_for_variant_analysis(self):
     """Tests that testcases with the same job_type don't get grouped together"""
@@ -403,6 +418,23 @@ class GrouperTest(unittest.TestCase):
     for i in range(2, 6):
       self.assertEqual(self.testcases[i].group_id, 0)
       self.assertTrue(self.testcases[i].is_leader)
+
+    self.mock.emit.assert_any_call(
+        events.TestcaseGroupingEvent(
+            testcase_id=self.testcases[0].key.id(),
+            group_id=self.testcases[0].group_id,
+            previous_group_id=0,
+            similar_testcase_id=self.testcases[1].key.id(),
+            grouping_reason=events.GroupingReason.IDENTICAL_VARIANT,
+            group_merge_reason=None))
+    self.mock.emit.assert_any_call(
+        events.TestcaseGroupingEvent(
+            testcase_id=self.testcases[1].key.id(),
+            group_id=self.testcases[1].group_id,
+            previous_group_id=0,
+            similar_testcase_id=self.testcases[0].key.id(),
+            grouping_reason=events.GroupingReason.IDENTICAL_VARIANT,
+            group_merge_reason=None))
 
   def test_similar_but_anomalous_variants_for_variant_analysis(self):
     """Tests that testcases with similar variants but anomalous do not
