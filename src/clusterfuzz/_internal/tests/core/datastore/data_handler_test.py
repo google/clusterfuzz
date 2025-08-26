@@ -1073,18 +1073,15 @@ class GetEntitiesTest(unittest.TestCase):
     expected_entities = [self.entity1, self.entity3]
     self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
 
-  def test_with_order_by_asc(self):
-    """Test with ordering (ascending)."""
+  @parameterized.parameterized.expand([
+      (['value', 'name'], ['entity1', 'entity3', 'entity2', 'entity4']),
+      (['-name'], ['entity4', 'entity3', 'entity2', 'entity1']),
+  ])
+  def test_with_order_by(self, order_by, expected_order_keys):
+    """Test with ordering."""
     result = data_handler.get_entities(
-        self.GetEntitiesTestModel, order_by=['value', 'name'])
-    expected_entities = [self.entity1, self.entity3, self.entity2, self.entity4]
-    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
-
-  def test_with_order_by_desc(self):
-    """Test with ordering (descending)."""
-    result = data_handler.get_entities(
-        self.GetEntitiesTestModel, order_by=['-name'])
-    expected_entities = [self.entity4, self.entity3, self.entity2, self.entity1]
+        self.GetEntitiesTestModel, order_by=order_by)
+    expected_entities = [getattr(self, key) for key in expected_order_keys]
     self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
 
   def test_with_equality_filters_and_order(self):
