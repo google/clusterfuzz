@@ -176,9 +176,17 @@ def execute(args):
   os.environ['PYTHONPATH'] = ':'.join(
       [third_party_path, module_parent_path, pythonpath])
 
-  # Always compare against origin/master to match CI behavior.
-  diff_command = 'git diff --name-only origin/master'
+  # Get the merge base between the current branch and master.
+  merge_base_command = 'git merge-base origin/master HEAD'
+  returncode, output = common.execute(merge_base_command, exit_on_error=False)
+  if returncode != 0:
+    # Fallback to master if merge-base fails. This can happen in brand new
+    # repos.
+    base_commit = 'origin/master'
+  else:
+    base_commit = output.decode('utf-8').strip()
 
+  diff_command = f'git diff --name-only {base_commit}'
   _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
