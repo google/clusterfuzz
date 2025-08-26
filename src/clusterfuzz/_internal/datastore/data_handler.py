@@ -19,7 +19,9 @@ import os
 import re
 import shlex
 import time
-from typing import Any
+from typing import Mapping
+from typing import Sequence
+from typing import TypeAlias
 
 from google.cloud import ndb
 
@@ -86,6 +88,8 @@ FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
     '******************************************************************' %
     (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
      data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
+
+FilterValue: TypeAlias = str | int | float | bool | datetime.datetime
 
 FuzzerDisplay = collections.namedtuple(
     'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
@@ -1578,8 +1582,8 @@ def get_entity_by_type_and_id(entity_type, entity_id):
     delay=DEFAULT_FAIL_WAIT,
     function='datastore.data_handler.get_entities')
 def get_entities(entity_kind: data_types.Model,
-                 equality_filters: dict[str, Any] | None = None,
-                 order_by: list[str] | None = None,
+                 equality_filters: Mapping[str, FilterValue] | None = None,
+                 order_by: Sequence[str] | None = None,
                  limit: int | None = None) -> list[data_types.Model]:
   """Queries the entity kind with equality filters, ordering, and a limit."""
   query = entity_kind.query()

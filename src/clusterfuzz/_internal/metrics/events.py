@@ -21,11 +21,14 @@ from dataclasses import field
 from dataclasses import InitVar
 import datetime
 from typing import Any
+from typing import Mapping
+from typing import Sequence
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore.data_handler import FilterValue
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -312,8 +315,8 @@ class IEventRepository(ABC):
 
   @abstractmethod
   def get_events(self,
-                 equality_filters: dict[str, Any] | None = None,
-                 order_by: list[str] | None = None,
+                 equality_filters: Mapping[str, FilterValue] | None = None,
+                 order_by: Sequence[str] | None = None,
                  limit: int | None = None) -> list[Event]:
     """Retrieve a list of events from the underlying database. The events should
     match the specified equality filters, ordering, and limit."""
@@ -391,8 +394,8 @@ class NDBEventRepository(IEventRepository, EventHandler):
     return event
 
   def get_events(self,
-                 equality_filters: dict[str, Any] | None = None,
-                 order_by: list[str] | None = None,
+                 equality_filters: Mapping[str, FilterValue] | None = None,
+                 order_by: Sequence[str] | None = None,
                  limit: int | None = None) -> list[Event]:
     """Retrieve events from datastore matching the given equality filters,
     ordering, and limit."""
@@ -571,8 +574,8 @@ def emit(event: Event) -> None:
     handler.emit(event)
 
 
-def get_events(equality_filters: dict[str, Any] | None = None,
-               order_by: list[str] | None = None,
+def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
+               order_by: Sequence[str] | None = None,
                limit: int | None = None) -> list[Event] | None:
   """Retrieve events matching the given equality filters, ordering, and limit.
   """

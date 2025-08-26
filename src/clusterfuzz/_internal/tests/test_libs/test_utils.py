@@ -22,6 +22,7 @@ import socket
 import subprocess
 import tempfile
 import threading
+from typing import Sequence
 import unittest
 
 import requests
@@ -89,8 +90,8 @@ def entities_equal(entity_1, entity_2, check_key=True):
   return entity_1.to_dict() == entity_2.to_dict()
 
 
-def entities_list_equal(entities_1: list[data_types.Model],
-                        entities_2: list[data_types.Model],
+def entities_list_equal(entities_1: Sequence[data_types.Model],
+                        entities_2: Sequence[data_types.Model],
                         check_key: bool = True) -> bool:
   """Return a bool on whether every pair of entities are the same."""
   if len(entities_1) != len(entities_2):
