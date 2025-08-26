@@ -821,6 +821,6 @@ class GrouperRejectionEventsTest(unittest.TestCase):
     for event in self.emitted_events:
       if event.event_type == events.EventTypes.TESTCASE_REJECTION:
         self.assertEqual(event.rejection_reason,
-                        events.RejectionReason.GROUPER_OVERFLOW)
+                         events.RejectionReason.GROUPER_OVERFLOW)
         count_rejection_events += 1
     self.assertEqual(5, count_rejection_events)
