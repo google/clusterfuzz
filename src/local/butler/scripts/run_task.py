@@ -25,6 +25,7 @@ def execute(args):
   environment.set_bot_environment()
   logs.configure('run_bot')
 
+  delete_groups = set()
   for testcase_id in data_handler.get_open_testcase_id_iterator():
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -34,6 +35,8 @@ def execute(args):
 
     if not testcase.group_id:
       continue
+
+    delete_groups.add(testcase.group_id)
 
     # Reset group information. Follows the same behavior as in grouper when
     # a testcase is ungrouped due to its group only containing itself.
@@ -45,5 +48,10 @@ def execute(args):
     testcase.set_metadata('ran_grouper', False, update_testcase=False)
 
     testcase.put()
+    logs.info(
+        f'Ungrouped testcase {testcase.key.id()} during script to reset groups.'
+    )
 
-    logs.info(f'Ungrouped testcase {testcase.key.id()} during one-off script.')
+  for group_id in delete_groups:
+    data_handler.delete_group(group_id, update_testcases=False)
+    logs.info(f'Deleted group {group_id} during script to reset groups.')
