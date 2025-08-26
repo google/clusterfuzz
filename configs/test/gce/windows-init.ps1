@@ -270,6 +270,7 @@ rm "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\sym" -Recurse -Force
 $deploymentBucket = $webClient.DownloadString('http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket')
 
 # Download ClusterFuzz source.
+Write-Host "Downloading ClusterFuzz source code."
 rm c:\clusterfuzz -Recurse -Force
 $fileName = "$tmp\clusterfuzz.zip"
 if ($env:USE_GCLOUD_STORAGE -eq "1") {
