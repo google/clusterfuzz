@@ -214,7 +214,8 @@ class GSUtilRunner:
         result = self.run_gsutil(update_command, timeout=timeout)
         if result.return_code != 0:
           logs.error(
-              'GSUtilRunner.upload_file (update metadata step) failed:\nCommand: %s\n'
+              'GSUtilRunner.upload_file (update metadata step) failed:\n'
+              'Command: %s\n'
               'Filename: %s\n'
               'Output: %s' % (result.command, file_path, result.output))
           return False
@@ -250,16 +251,17 @@ class GSUtilRunner:
       return False
 
     if self.use_gcloud_storage:
-      command = ['cp', '--read-paths-from-stdin', _filter_path(gcs_url, write=True)]
+      command = [
+          'cp', '--read-paths-from-stdin',
+          _filter_path(gcs_url, write=True)
+      ]
     else:
       command = ['cp', '-I', _filter_path(gcs_url, write=True)]
 
     filenames_buffer = '\n'.join(file_paths)
 
     result = self.run_gsutil(
-        command,
-        input_data=filenames_buffer.encode('utf-8'),
-        timeout=timeout)
+        command, input_data=filenames_buffer.encode('utf-8'), timeout=timeout)
 
     # Check result of command execution, log output if command failed.
     if result.return_code:

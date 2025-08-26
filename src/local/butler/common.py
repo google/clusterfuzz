@@ -85,7 +85,9 @@ def _run_and_handle_exception(arguments, exception_class):
 
 
 def _utcnow():
-  """We need this method for mocking."""
+  """
+  Returns the current UTC time. This method is needed for mocking.
+  """
   return datetime.datetime.utcnow()
 
 

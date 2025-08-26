@@ -232,12 +232,12 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   """Deploy zip to GCS."""
   gsutil = common.Gsutil()
   if test_deployment:
-    gsutil.run('cp', zip_path,
-             f'gs://{bucket_name}/test-deployment/{os.path.basename(zip_path)}'
-            )
+    gsutil.run(
+        'cp', zip_path,
+        f'gs://{bucket_name}/test-deployment/{os.path.basename(zip_path)}')
   else:
     gsutil.run('cp', zip_path,
-             f'gs://{bucket_name}/{os.path.basename(zip_path)}')
+               f'gs://{bucket_name}/{os.path.basename(zip_path)}')
 
 
 def _deploy_manifest(bucket_name,
@@ -253,7 +253,7 @@ def _deploy_manifest(bucket_name,
                f'{remote_manifest_path}')
   else:
     gsutil.run('cp', manifest_path,
-             f'gs://{bucket_name}/{remote_manifest_path}')
+               f'gs://{bucket_name}/{remote_manifest_path}')
 
 
 def _update_deployment_manager(project, name, config_path):
