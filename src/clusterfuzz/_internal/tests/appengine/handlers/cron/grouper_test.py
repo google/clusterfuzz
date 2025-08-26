@@ -690,6 +690,7 @@ class GrouperTest(unittest.TestCase):
     self.assertEqual(self.testcases[2].group_id, common_group_id)
     self.assertEqual(self.testcases[3].group_id, common_group_id)
 
+    # Avoid possibly flaky test by ensuring which group was kept during merge.
     if common_group_id == 1:
       self.mock.emit.assert_any_call(
           events.TestcaseGroupingEvent(
