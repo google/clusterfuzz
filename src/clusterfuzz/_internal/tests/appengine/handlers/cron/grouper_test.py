@@ -814,8 +814,12 @@ class GrouperRejectionEventsTest(unittest.TestCase):
 
     grouper.group_testcases()
 
-    self.assertEqual(5, len(self.emitted_events))
+    # Expected: 30 grouping events + 5 rejection events
+    self.assertEqual(35, len(self.emitted_events))
+    count_rejection_events = 0
     for event in self.emitted_events:
-      self.assertEqual(event.rejection_reason,
-                       events.RejectionReason.GROUPER_OVERFLOW)
-    self.assertEqual(5, self.mock.emit.call_count)
+      if event.event_type == events.EventTypes.TESTCASE_REJECTION:
+        self.assertEqual(event.rejection_reason,
+                        events.RejectionReason.GROUPER_OVERFLOW)
+        count_rejection_events += 1
+    self.assertEqual(5, count_rejection_events)
