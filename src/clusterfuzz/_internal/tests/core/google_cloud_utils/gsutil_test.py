@@ -79,8 +79,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
       ]
     else:
       expected_args = [
-          '-q', 'rsync', '-r', '-d',
-          '/local/source_bucket/objects/source_path',
+          '-q', 'rsync', '-r', '-d', '/local/source_bucket/objects/source_path',
           '/local/target_bucket/objects/target_path'
       ]
     self.mock_run_and_wait.assert_called_with(
@@ -237,16 +236,14 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     metadata = {'key1': 'value1', 'key2': 'value2'}
     self.assertTrue(
         gsutil_runner_obj.upload_file(
-            '/source_path',
-            'gs://target_bucket/target_path',
+            '/source_path', 'gs://target_bucket/target_path',
             metadata=metadata))
 
     if use_gcloud_storage:
       self.assertEqual(2, self.mock_run_and_wait.call_count)
       cp_call_args = self.mock_run_and_wait.call_args_list[0].args[0]
-      self.assertEqual(
-          ['cp', '/source_path', 'gs://target_bucket/target_path'],
-          cp_call_args)
+      self.assertEqual(['cp', '/source_path', 'gs://target_bucket/target_path'],
+                       cp_call_args)
 
       update_call_args = self.mock_run_and_wait.call_args_list[1].args[0]
       self.assertEqual('objects', update_call_args[0])
@@ -339,8 +336,10 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
 
     if use_gcloud_storage:
       self.mock_run_and_wait.assert_any_call(
-          ['cp', '--gzip-in-flight-all', '/source_path',
-           'gs://target_bucket/target_path'],
+          [
+              'cp', '--gzip-in-flight-all', '/source_path',
+              'gs://target_bucket/target_path'
+          ],
           timeout=1337,
           env=mock.ANY)
     else:
@@ -393,9 +392,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
           '/local/target_bucket/objects/target_path'
       ]
     else:
-      expected_args = [
-          'cp', '-I', '/local/target_bucket/objects/target_path'
-      ]
+      expected_args = ['cp', '-I', '/local/target_bucket/objects/target_path']
     self.mock_run_and_wait.assert_called_with(
         expected_args,
         input_data=b'/source_path1\n/source_path2',

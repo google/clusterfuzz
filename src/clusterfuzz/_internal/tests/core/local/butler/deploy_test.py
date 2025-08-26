@@ -19,10 +19,11 @@ import os
 import unittest
 from unittest import mock
 
-import yaml
 from pyfakefs import fake_filesystem_unittest
+import yaml
 
-from clusterfuzz._internal.tests.test_libs import helpers, test_utils
+from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 from local.butler import deploy
 
 
@@ -163,20 +164,15 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     ])
 
     self.mock.execute.assert_has_calls([
-        mock.call(
-            'terraform -chdir=/config_dir/terraform init'),
-        mock.call(
-            'terraform -chdir=/config_dir/terraform apply '
-            '-target=module.clusterfuzz -auto-approve'),
-        mock.call(
-            'rm -rf /config_dir/terraform/.terraform*'),
-        mock.call(
-            'gcloud app describe --project=test-clusterfuzz '
-            '--format="value(locationId)"'),
-        mock.call(
-            'gcloud redis instances describe redis-instance '
-            '--project=test-clusterfuzz --region=us-central1 '
-            '--format="value(host)"'),
+        mock.call('terraform -chdir=/config_dir/terraform init'),
+        mock.call('terraform -chdir=/config_dir/terraform apply '
+                  '-target=module.clusterfuzz -auto-approve'),
+        mock.call('rm -rf /config_dir/terraform/.terraform*'),
+        mock.call('gcloud app describe --project=test-clusterfuzz '
+                  '--format="value(locationId)"'),
+        mock.call('gcloud redis instances describe redis-instance '
+                  '--project=test-clusterfuzz --region=us-central1 '
+                  '--format="value(host)"'),
         mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
             '--project=test-clusterfuzz  '
@@ -268,20 +264,15 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     ])
 
     self.mock.execute.assert_has_calls([
-        mock.call(
-            'terraform -chdir=/config_dir/terraform init'),
-        mock.call(
-            'terraform -chdir=/config_dir/terraform apply '
-            '-target=module.clusterfuzz -auto-approve'),
-        mock.call(
-            'rm -rf /config_dir/terraform/.terraform*'),
-        mock.call(
-            'gcloud app describe --project=test-clusterfuzz '
-            '--format="value(locationId)"'),
-        mock.call(
-            'gcloud redis instances describe redis-instance '
-            '--project=test-clusterfuzz --region=us-central1 '
-            '--format="value(host)"'),
+        mock.call('terraform -chdir=/config_dir/terraform init'),
+        mock.call('terraform -chdir=/config_dir/terraform apply '
+                  '-target=module.clusterfuzz -auto-approve'),
+        mock.call('rm -rf /config_dir/terraform/.terraform*'),
+        mock.call('gcloud app describe --project=test-clusterfuzz '
+                  '--format="value(locationId)"'),
+        mock.call('gcloud redis instances describe redis-instance '
+                  '--project=test-clusterfuzz --region=us-central1 '
+                  '--format="value(host)"'),
         mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
             '--project=test-clusterfuzz  '

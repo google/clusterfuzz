@@ -208,8 +208,9 @@ class GSUtilRunner:
         # The metadata dict is assumed to contain only custom metadata keys,
         # not standard headers like 'Content-Type'.
         metadata_args = [f'{k}={v}' for k, v in metadata.items()]
-        update_command.extend(
-            ['--update-custom-metadata', ','.join(metadata_args)])
+        update_command.append('--update-custom-metadata')
+        # pylint: disable=line-too-long
+        update_command.append(','.join(metadata_args))
 
         result = self.run_gsutil(update_command, timeout=timeout)
         if result.return_code != 0:
@@ -227,6 +228,7 @@ class GSUtilRunner:
       for key, value in metadata.items():
         # gsutil uses headers for metadata. For custom metadata, the
         # convention is 'x-goog-meta-'. The caller is responsible for this.
+        # pylint: disable=line-too-long
         command.extend(['-h', f'{key}:{value}'])
 
     command.append('cp')
@@ -250,16 +252,17 @@ class GSUtilRunner:
       return False
 
     if self.use_gcloud_storage:
-      command = ['cp', '--read-paths-from-stdin', _filter_path(gcs_url, write=True)]
+      command = [
+          'cp', '--read-paths-from-stdin',
+          _filter_path(gcs_url, write=True)
+      ]
     else:
       command = ['cp', '-I', _filter_path(gcs_url, write=True)]
 
     filenames_buffer = '\n'.join(file_paths)
 
     result = self.run_gsutil(
-        command,
-        input_data=filenames_buffer.encode('utf-8'),
-        timeout=timeout)
+        command, input_data=filenames_buffer.encode('utf-8'), timeout=timeout)
 
     # Check result of command execution, log output if command failed.
     if result.return_code:

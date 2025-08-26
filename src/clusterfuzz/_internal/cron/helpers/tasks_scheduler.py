@@ -17,7 +17,6 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.metrics import logs
 
 

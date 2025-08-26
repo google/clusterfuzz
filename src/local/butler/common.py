@@ -48,6 +48,7 @@ class Gcloud:
     self.project_id = project_id
 
   def run(self, *args):
+    """Run a gcloud command."""
     arguments = ['gcloud', '--project=' + self.project_id]
     arguments.extend(args)
     return _run_and_handle_exception(arguments, GcloudError)
@@ -57,6 +58,7 @@ class Gsutil:
   """gsutil runner."""
 
   def run(self, *args):
+    """Run a gsutil command."""
     if environment.get_value('USE_GCLOUD_STORAGE'):
       arguments = ['gcloud', 'storage']
       if args[0] == 'mb':

@@ -237,7 +237,7 @@ def process_fuzzilli_archive(fuzzilli_tests_directory, archive_suffix):
   remote_archive = f'gs://autozilli/autozilli-{archive_suffix}.tgz'
   logs.info(f'Processing {remote_archive}')
   local_archive = os.path.join(fuzzilli_tests_directory, 'tmp.tgz')
-  gsutil.GSUtilRunner().cp(remote_archive, local_archive)
+  gsutil.GSUtilRunner().download_file(remote_archive, local_archive)
 
   # Extract relevant files.
   with tarfile.open(local_archive) as tar:
@@ -330,7 +330,7 @@ def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
           '*.svn*',
       ],
       cwd=tests_directory)
-  gsutil.GSUtilRunner().cp(tests_archive_local, tests_archive_remote)
+  gsutil.GSUtilRunner().upload_file(tests_archive_local, tests_archive_remote)
 
   logs.info('Sync complete.')
   monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
