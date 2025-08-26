@@ -66,6 +66,16 @@ KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
 
 STACKTRACE_MAX_LENGTH = 500000
 
+EVENTS_TASK_NAMES = [
+    'analyze', 'minimize', 'impact', 'regression', 'progression'
+]
+NON_TASK_EVENT_TYPES = [
+    events.EventTypes.TESTCASE_REJECTION,
+    events.EventTypes.TESTCASE_CREATION,
+    events.EventTypes.TESTCASE_FIXED,
+    events.EventTypes.ISSUE_CLOSING,
+]
+
 
 def _truncate_stacktrace(stacktrace):
   """Truncate stacktrace if necessary."""
@@ -350,10 +360,9 @@ def _format_reproduction_help(reproduction_help):
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
 
-def _get_last_events_info(specific_equality_filter_key: str,
-                     specific_equality_filter_values: list,
-                     common_equality_filters: dict,
-                     fields_to_extract: list) -> dict:
+def _get_last_events_info(
+    specific_equality_filter_key: str, specific_equality_filter_values: list,
+    common_equality_filters: dict, fields_to_extract: list) -> dict:
   """Get events info."""
   events_info = {}
   order_by = ['-timestamp']
@@ -379,32 +388,22 @@ def _get_last_events_info(specific_equality_filter_key: str,
 
 def get_testcase_status_machine_info(testcase_id: int) -> dict:
   """Get testcase status machine info."""
-  #TODO(andrenribeiro): Check where task names are defined
-  TASK_NAMES = [
-      'analyze', 'minimize', 'impact', 'regression', 'progression'
-  ]
   task_events_info = _get_last_events_info(
       specific_equality_filter_key='task_name',
-      specific_equality_filter_values=TASK_NAMES,
+      specific_equality_filter_values=EVENTS_TASK_NAMES,
       common_equality_filters={
-        'testcase_id': testcase_id,
-        'event_type': events.EventTypes.TASK_EXECUTION
+          'testcase_id': testcase_id,
+          'event_type': events.EventTypes.TASK_EXECUTION
       },
       fields_to_extract=[
           'task_stage', 'task_status', 'task_outcome', 'timestamp'
       ])
-  
-  NON_TASK_EVENT_TYPES = [
-      events.EventTypes.TESTCASE_REJECTION,
-      events.EventTypes.TESTCASE_CREATION,
-      events.EventTypes.TESTCASE_FIXED,
-      events.EventTypes.ISSUE_CLOSING,
-  ]
+
   non_task_events_info = _get_last_events_info(
       specific_equality_filter_key='event_type',
       specific_equality_filter_values=NON_TASK_EVENT_TYPES,
       common_equality_filters={
-        'testcase_id': testcase_id,
+          'testcase_id': testcase_id,
       },
       fields_to_extract=['timestamp'])
 

@@ -752,9 +752,8 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
     """Set up test data."""
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.config.local_config.ProjectConfig'
-    ])
+    test_helpers.patch(
+        self, ['clusterfuzz._internal.config.local_config.ProjectConfig'])
     self.mock.ProjectConfig.return_value = {'events.storage': 'datastore'}
 
     data_types.TestcaseLifecycleEvent(
