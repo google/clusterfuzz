@@ -742,3 +742,94 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
             fields_to_extract=['timestamp'])
     ]
     self.mock._get_last_events_info.assert_has_calls(calls, any_order=True)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
+  """Integration tests for get_testcase_status_machine_info."""
+
+  def setUp(self):
+    """Set up test data."""
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase_id = self.testcase.key.id()
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.ProjectConfig'
+    ])
+    self.mock.ProjectConfig.return_value = {'events.storage': 'datastore'}
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='analyze',
+        task_stage='main',
+        task_status='finished',
+        task_outcome='reproducible',
+        timestamp=datetime.datetime(2023, 1, 1, 10, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='analyze',
+        task_stage='postprocess',
+        task_status='completed',
+        task_outcome='reproducible_with_new_crash_type',
+        timestamp=datetime.datetime(2023, 1, 1, 11, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='minimize',
+        task_stage='main',
+        task_status='started',
+        task_outcome=None,
+        timestamp=datetime.datetime(2023, 1, 1, 12, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TESTCASE_CREATION,
+        timestamp=datetime.datetime(2023, 1, 1, 9, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TESTCASE_FIXED,
+        timestamp=datetime.datetime(2023, 1, 2, 0, 0, 0)).put()
+
+  def test_get_testcase_status_machine_info_integration(self):
+    """Integration test for get_testcase_status_machine_info."""
+    result = show.get_testcase_status_machine_info(self.testcase_id)
+
+    expected_task_events = {
+        'analyze': {
+            'task_stage': 'postprocess',
+            'task_status': 'completed',
+            'task_outcome': 'reproducible_with_new_crash_type',
+            'timestamp': '2023-01-01 11:00:00.000000 UTC'
+        },
+        'minimize': {
+            'task_stage': 'main',
+            'task_status': 'started',
+            'task_outcome': None,
+            'timestamp': '2023-01-01 12:00:00.000000 UTC'
+        },
+        'impact': {},
+        'regression': {},
+        'progression': {},
+    }
+
+    expected_non_task_events = {
+        events.EventTypes.TESTCASE_CREATION: {
+            'timestamp': '2023-01-01 09:00:00.000000 UTC'
+        },
+        events.EventTypes.TESTCASE_FIXED: {
+            'timestamp': '2023-01-02 00:00:00.000000 UTC'
+        },
+        events.EventTypes.TESTCASE_REJECTION: {},
+        events.EventTypes.ISSUE_CLOSING: {},
+    }
+
+    expected_result = {
+        'task_events_info': expected_task_events,
+        'non_task_events_info': expected_non_task_events,
+    }
+
+    self.assertEqual(result, expected_result)
