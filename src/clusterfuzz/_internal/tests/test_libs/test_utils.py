@@ -97,10 +97,9 @@ def entities_list_equal(entities_1: Sequence[data_types.Model],
   if len(entities_1) != len(entities_2):
     return False
 
-  for entity_1, entity_2 in zip(entities_1, entities_2):
-    if not entities_equal(entity_1, entity_2, check_key):
-      return False
-  return True
+  return all(
+      entities_equal(entity_1, entity_2, check_key)
+      for entity_1, entity_2 in zip(entities_1, entities_2))
 
 
 def entity_exists(entity):
