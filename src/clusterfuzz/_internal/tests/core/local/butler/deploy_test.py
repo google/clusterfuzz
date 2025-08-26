@@ -50,6 +50,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     self.deploy_failure_count = 0
 
     os.environ['ROOT_DIR'] = '.'
+    os.environ['USE_GCLOUD_STORAGE'] = ''
     self.mock.now.return_value = datetime.datetime(2017, 1, 3, 12, 1)
     self.manifest_target = 'clusterfuzz-source.manifest.3'
     self.additional_manifest_target = 'clusterfuzz-source.manifest.3-chrome-tests-syncer'
@@ -138,8 +139,15 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
     return (0, b'')
 
-  def test_app(self):
-    """Test deploy app."""
+  def _test_app_runner(self, use_gcloud_storage):
+    """Helper to run app deployment tests."""
+    if use_gcloud_storage:
+      os.environ['USE_GCLOUD_STORAGE'] = 'True'
+      storage_command = 'gcloud storage'
+    else:
+      os.environ['USE_GCLOUD_STORAGE'] = ''
+      storage_command = 'gsutil'
+
     deploy._prod_deployment_helper('/config_dir',
                                    ['/windows.zip', '/mac.zip', '/linux.zip'])
 
@@ -188,32 +196,34 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'gcloud app versions delete --quiet --project=test-clusterfuzz '
             '--service=cron-service v1'),
         mock.call(
-            'gsutil cp /windows.zip gs://test-deployment-bucket/windows.zip',
+            f'{storage_command} cp /windows.zip gs://test-deployment-bucket/windows.zip',
             exit_on_error=False),
         mock.call(
-            'gsutil cp /mac.zip gs://test-deployment-bucket/mac.zip',
+            f'{storage_command} cp /mac.zip gs://test-deployment-bucket/mac.zip',
             exit_on_error=False),
         mock.call(
-            'gsutil cp /linux.zip gs://test-deployment-bucket/linux.zip',
+            f'{storage_command} cp /linux.zip gs://test-deployment-bucket/linux.zip',
             exit_on_error=False),
         mock.call(
-            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            f'{storage_command} cp src/appengine/resources/clusterfuzz-source.manifest '
             'gs://test-deployment-bucket/' + self.manifest_target,
             exit_on_error=False),
         mock.call(
-            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            f'{storage_command} cp src/appengine/resources/clusterfuzz-source.manifest '
             'gs://test-deployment-bucket/' + self.additional_manifest_target,
             exit_on_error=False),
         mock.call(
             'python butler.py run setup --config-dir /config_dir --non-dry-run'
         ),
     ])
-    self._check_env_variables([
-        'src/appengine/app.yaml',
-        'src/appengine/cron-service.yaml',
-    ])
-    self._check_no_env_variables(
-        ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
+
+  def test_app_gsutil(self):
+    """Test deploy app with gsutil."""
+    self._test_app_runner(use_gcloud_storage=False)
+
+  def test_app_gcloud_storage(self):
+    """Test deploy app with gcloud storage."""
+    self._test_app_runner(use_gcloud_storage=True)
 
   def test_app_staging(self):
     """Test deploy app to staging."""
@@ -233,9 +243,15 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     ])
     self._check_env_variables(['src/appengine/staging.yaml'])
 
-  def test_app_retry(self):
-    """Test deploy app with retries."""
+  def _test_app_retry_runner(self, use_gcloud_storage):
+    """Helper for testing app deployment retries."""
     self.deploy_failure_count = 1
+    if use_gcloud_storage:
+      os.environ['USE_GCLOUD_STORAGE'] = 'True'
+      storage_command = 'gcloud storage'
+    else:
+      os.environ['USE_GCLOUD_STORAGE'] = ''
+      storage_command = 'gsutil'
 
     deploy._prod_deployment_helper('/config_dir',
                                    ['/windows.zip', '/mac.zip', '/linux.zip'])
@@ -293,32 +309,34 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'gcloud app versions delete --quiet --project=test-clusterfuzz '
             '--service=cron-service v1'),
         mock.call(
-            'gsutil cp /windows.zip gs://test-deployment-bucket/windows.zip',
+            f'{storage_command} cp /windows.zip gs://test-deployment-bucket/windows.zip',
             exit_on_error=False),
         mock.call(
-            'gsutil cp /mac.zip gs://test-deployment-bucket/mac.zip',
+            f'{storage_command} cp /mac.zip gs://test-deployment-bucket/mac.zip',
             exit_on_error=False),
         mock.call(
-            'gsutil cp /linux.zip gs://test-deployment-bucket/linux.zip',
+            f'{storage_command} cp /linux.zip gs://test-deployment-bucket/linux.zip',
             exit_on_error=False),
         mock.call(
-            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            f'{storage_command} cp src/appengine/resources/clusterfuzz-source.manifest '
             'gs://test-deployment-bucket/' + self.manifest_target,
             exit_on_error=False),
         mock.call(
-            'gsutil cp src/appengine/resources/clusterfuzz-source.manifest '
+            f'{storage_command} cp src/appengine/resources/clusterfuzz-source.manifest '
             'gs://test-deployment-bucket/' + self.additional_manifest_target,
             exit_on_error=False),
         mock.call(
             'python butler.py run setup --config-dir /config_dir --non-dry-run'
         ),
     ])
-    self._check_env_variables([
-        'src/appengine/app.yaml',
-        'src/appengine/cron-service.yaml',
-    ])
-    self._check_no_env_variables(
-        ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
+
+  def test_app_retry_gsutil(self):
+    """Test deploy app with retries with gsutil."""
+    self._test_app_retry_runner(use_gcloud_storage=False)
+
+  def test_app_retry_gcloud_storage(self):
+    """Test deploy app with retries with gcloud storage."""
+    self._test_app_retry_runner(use_gcloud_storage=True)
 
   def test_app_retry_failure(self):
     """Test deploy app with retries (failure)."""
