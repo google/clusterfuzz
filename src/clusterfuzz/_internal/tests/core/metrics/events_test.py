@@ -204,6 +204,51 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_closing.closing_reason,
                      events.ClosingReason.TESTCASE_FIXED)
 
+  def test_testcase_grouping_event(self):
+    """Test testcase grouping event class."""
+    event_type = events.EventTypes.TESTCASE_GROUPING
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+    similar_testcase_id = 2
+
+    # Testcase is similar to another one.
+    event_grouping = events.TestcaseGroupingEvent(
+        source=source,
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=0,
+        similar_testcase_id=similar_testcase_id,
+        grouping_reason=events.GroupingReason.SIMILAR_CRASH)
+    self._assert_event_common_fields(event_grouping, event_type, source)
+    self._assert_testcase_fields(event_grouping, testcase)
+    self._assert_task_fields(event_grouping)
+    self.assertEqual(event_grouping.group_id, 10)
+    self.assertEqual(event_grouping.previous_group_id, 0)
+    self.assertEqual(event_grouping.similar_testcase_id, similar_testcase_id)
+    self.assertEqual(event_grouping.grouping_reason,
+                     events.GroupingReason.SIMILAR_CRASH)
+    self.assertEqual(event_grouping.group_merge_reason, None)
+
+    # Testcase's group is being merged.
+    event_grouping = events.TestcaseGroupingEvent(
+        source=source,
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=5,
+        similar_testcase_id=similar_testcase_id,
+        grouping_reason=events.GroupingReason.GROUP_MERGE,
+        group_merge_reason=events.GroupingReason.SAME_ISSUE)
+    self._assert_event_common_fields(event_grouping, event_type, source)
+    self._assert_testcase_fields(event_grouping, testcase)
+    self._assert_task_fields(event_grouping)
+    self.assertEqual(event_grouping.group_id, 10)
+    self.assertEqual(event_grouping.previous_group_id, 5)
+    self.assertEqual(event_grouping.similar_testcase_id, similar_testcase_id)
+    self.assertEqual(event_grouping.grouping_reason,
+                     events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event_grouping.group_merge_reason,
+                     events.GroupingReason.SAME_ISSUE)
+
   def test_task_execution_event(self):
     """Test task execution events."""
     job_type = 'job_test'
@@ -465,6 +510,40 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.closing_reason,
                      events.ClosingReason.TESTCASE_FIXED)
 
+  def test_serialize_testcase_grouping_event(self):
+    """Test serializing a testcase grouping event."""
+    testcase = test_utils.create_generic_testcase()
+    event = events.TestcaseGroupingEvent(
+        source='events_test',
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=5,
+        similar_testcase_id=2,
+        grouping_reason=events.GroupingReason.GROUP_MERGE,
+        group_merge_reason=events.GroupingReason.IDENTICAL_VARIANT)
+    event_type = event.event_type
+    timestamp = event.timestamp
+
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self._assert_task_fields(event_entity)
+
+    # TestcaseGroupingEvent specific assertions
+    self.assertEqual(event_entity.group_id, 10)
+    self.assertEqual(event_entity.previous_group_id, 5)
+    self.assertEqual(event_entity.similar_testcase_id, 2)
+    self.assertEqual(event_entity.grouping_reason,
+                     events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event_entity.group_merge_reason,
+                     events.GroupingReason.IDENTICAL_VARIANT)
+
   def test_serialize_task_execution_event(self):
     """Test serializing a task execution event into a datastore entity."""
     source = 'events_test'
@@ -712,6 +791,52 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.issue_id, '13579')
     self.assertEqual(event.closing_reason, events.ClosingReason.TESTCASE_FIXED)
 
+  def test_deserialize_testcase_grouping_event(self):
+    """Test deserializing a testcase grouping event."""
+    event_type = events.EventTypes.TESTCASE_GROUPING
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+
+    event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    event_entity.timestamp = date_now
+    event_entity.source = 'events_test'
+    self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.task_name = 'triage'
+    event_entity.testcase_id = 1
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.group_id = 10
+    event_entity.previous_group_id = 5
+    event_entity.similar_testcase_id = 2
+    event_entity.grouping_reason = events.GroupingReason.GROUP_MERGE
+    event_entity.group_merge_reason = events.GroupingReason.SIMILAR_CRASH
+    event_entity.put()
+
+    event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
+    self.assertIsNotNone(event)
+    self.assertIsInstance(event, events.TestcaseGroupingEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions.
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'triage')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # TestcaseGroupingEvent specific assertions
+    self.assertEqual(event.group_id, 10)
+    self.assertEqual(event.previous_group_id, 5)
+    self.assertEqual(event.similar_testcase_id, 2)
+    self.assertEqual(event.grouping_reason, events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event.group_merge_reason,
+                     events.GroupingReason.SIMILAR_CRASH)
+
   def test_deserialize_task_execution_event(self):
     """Test deserializing a datastore event into a task execution event."""
     event_type = events.EventTypes.TASK_EXECUTION
@@ -951,10 +1076,10 @@ class EmitEventTest(unittest.TestCase):
     self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     self.project_config = {}
     self.mock.ProjectConfig.return_value = self.project_config
-
-  def tearDown(self):
     # Reset handlers, since it is only configured in the first events emit.
     events._handlers = None  # pylint: disable=protected-access
+
+  def tearDown(self):
     self.project_config = {}
 
   def test_get_datastore_repository(self):
