@@ -17,8 +17,10 @@ import collections
 import datetime
 import os
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import show
@@ -607,3 +609,136 @@ class GetTestcaseTest(unittest.TestCase):
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetLastEventsInfoTest(unittest.TestCase):
+  """Test _get_last_events_info."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.get_events',
+    ])
+
+  def test_get_last_events_info(self):
+    """Test that events are retrieved and formatted correctly."""
+    event1 = data_types.TestcaseLifecycleEvent(
+        timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
+        task_stage='stage1',
+        task_status='status1',
+        task_outcome='outcome1')
+    event2 = data_types.TestcaseLifecycleEvent(
+        timestamp=datetime.datetime(2023, 1, 2, 0, 0, 0),
+        task_stage='stage2',
+        task_status='status2',
+        task_outcome='outcome2')
+
+    def mock_get_events(equality_filters, **kwargs):
+      del kwargs
+      if equality_filters.get('task_name') == 'task1':
+        return [event1]
+      if equality_filters.get('task_name') == 'task2':
+        return [event2]
+      return []
+
+    self.mock.get_events.side_effect = mock_get_events
+
+    result = show._get_last_events_info(
+        specific_equality_filter_key='task_name',
+        specific_equality_filter_values=['task1', 'task2', 'task3'],
+        common_equality_filters={'testcase_id': 1},
+        fields_to_extract=[
+            'timestamp', 'task_stage', 'task_status', 'task_outcome'
+        ])
+
+    expected = {
+        'task1': {
+            'timestamp': '2023-01-01 00:00:00.000000 UTC',
+            'task_stage': 'stage1',
+            'task_status': 'status1',
+            'task_outcome': 'outcome1'
+        },
+        'task2': {
+            'timestamp': '2023-01-02 00:00:00.000000 UTC',
+            'task_stage': 'stage2',
+            'task_status': 'status2',
+            'task_outcome': 'outcome2'
+        },
+        'task3': {}
+    }
+    self.assertEqual(result, expected)
+
+  def test_get_last_events_info_no_events(self):
+    """Test that an empty dict is returned when no events are found."""
+    self.mock.get_events.return_value = []
+    result = show._get_last_events_info(
+        specific_equality_filter_key='task_name',
+        specific_equality_filter_values=['task1'],
+        common_equality_filters={'testcase_id': 1},
+        fields_to_extract=['timestamp'])
+    self.assertEqual(result, {'task1': {}})
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
+  """Test get_testcase_status_machine_info."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'handlers.testcase_detail.show._get_last_events_info',
+    ])
+
+  def test_get_testcase_status_machine_info(self):
+    """Test that the function calls _get_last_events_info with the correct
+    parameters and returns the expected dictionary."""
+    task_events_info = {'analyze': {'status': 'finished'}}
+    non_task_events_info = {
+        'testcase_creation': {
+            'timestamp': '2023-01-01 00:00:00.000000 UTC'
+        }
+    }
+
+    def mock_get_last_events_info(specific_equality_filter_key, **kwargs):
+      del kwargs
+      if specific_equality_filter_key == 'task_name':
+        return task_events_info
+      if specific_equality_filter_key == 'event_type':
+        return non_task_events_info
+      return {}
+
+    self.mock._get_last_events_info.side_effect = mock_get_last_events_info
+
+    testcase_id = 123
+    result = show.get_testcase_status_machine_info(testcase_id)
+
+    expected = {
+        'task_events_info': task_events_info,
+        'non_task_events_info': non_task_events_info,
+    }
+    self.assertEqual(result, expected)
+
+    calls = [
+        mock.call(
+            specific_equality_filter_key='task_name',
+            specific_equality_filter_values=[
+                'analyze', 'minimize', 'impact', 'regression', 'progression'
+            ],
+            common_equality_filters={
+                'testcase_id': testcase_id,
+                'event_type': events.EventTypes.TASK_EXECUTION
+            },
+            fields_to_extract=[
+                'task_stage', 'task_status', 'task_outcome', 'timestamp'
+            ]),
+        mock.call(
+            specific_equality_filter_key='event_type',
+            specific_equality_filter_values=[
+                events.EventTypes.TESTCASE_REJECTION,
+                events.EventTypes.TESTCASE_CREATION,
+                events.EventTypes.TESTCASE_FIXED,
+                events.EventTypes.ISSUE_CLOSING,
+            ],
+            common_equality_filters={'testcase_id': testcase_id},
+            fields_to_extract=['timestamp'])
+    ]
+    self.mock._get_last_events_info.assert_has_calls(calls, any_order=True)
