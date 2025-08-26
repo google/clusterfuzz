@@ -1592,7 +1592,7 @@ def get_entities(entity_kind: data_types.Model,
     for property_name, value in equality_filters.items():
       if (prop := getattr(entity_kind, property_name, None)) is None:
         logs.warning(
-            'Query filters contain a non-existent property: %s' % property_name)
+            f'Query filters contain a non-existent property: {property_name}')
         continue
       query = query.filter(prop == value)
 
@@ -1601,8 +1601,8 @@ def get_entities(entity_kind: data_types.Model,
       desc = order_field.startswith('-')
       property_name = order_field[1:] if desc else order_field
       if (prop := getattr(entity_kind, property_name, None)) is None:
-        logs.warning('Query order argument contains a non-existent property: %s'
-                     % property_name)
+        logs.warning(f'Query order argument contains a non-existent property: '
+                     f'{property_name}')
         continue
       query = query.order(-prop) if desc else query.order(prop)
 
