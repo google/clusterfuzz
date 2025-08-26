@@ -30,9 +30,8 @@ CLUSTERFUZZ_FILE=clusterfuzz_package.zip
 # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
 if [[ -z "$LOCAL_SRC" ]]; then
   # Set up ClusterFuzz
-  if [[ -d clusterfuzz ]]; then
-    rm -rf clusterfuzz
-  fi
+  echo "Downloading ClusterFuzz source code."
+  rm -rf clusterfuzz
 
   # DEPLOYMENT_ZIP might be test-deployment/linux-3.zip, so we do not extract DEPLOYMENT_ZIP directly
   if [ "$USE_GCLOUD_STORAGE" = "1" ]; then

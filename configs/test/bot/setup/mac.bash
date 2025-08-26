@@ -65,6 +65,8 @@ echo "Specifying the proper Boto configuration file."
 # Otherwise, gsutil will error out due to multiple types of configured
 # credentials. For more information about this, see
 # https://cloud.google.com/storage/docs/gsutil/commands/config#configuration-file-selection-procedure
+echo "Downloading ClusterFuzz source code."
+rm -rf clusterfuzz
 if [ "$USE_GCLOUD_STORAGE" = "1" ]; then
   echo "Downloading ClusterFuzz source code using gcloud."
   $GSUTIL_PATH/gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip

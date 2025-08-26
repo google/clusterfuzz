@@ -69,6 +69,8 @@ class Gsutil:
         # gsutil cors set <file> gs://<bucket>
         # gcloud storage buckets update gs://<bucket> --cors-file <file>
         arguments.extend(['buckets', 'update', args[3], '--cors-file', args[2]])
+      elif args[0] == 'cp':
+        arguments.extend(args)
       else:
         arguments.extend(args)
     else:
