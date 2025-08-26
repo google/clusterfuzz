@@ -1108,7 +1108,7 @@ class GetEntitiesTest(unittest.TestCase):
         self.GetEntitiesTestModel, order_by=['non_existent'])
     self.assertEqual(4, len(result))
 
-  def test_no_entites_found(self):
+  def test_no_entities_found(self):
     """Test no entities found."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, equality_filters={'value': 5})
