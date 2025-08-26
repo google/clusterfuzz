@@ -1054,7 +1054,8 @@ class GetEntitiesTest(unittest.TestCase):
   def test_get_all(self):
     """Test getting all entities."""
     result = data_handler.get_entities(self.GetEntitiesTestModel)
-    self.assertEqual(4, len(result))
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
 
   def test_with_limit(self):
     """Test with a limit."""
