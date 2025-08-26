@@ -1577,6 +1577,40 @@ def get_entity_by_type_and_id(entity_type, entity_id):
   return entity_type.get_by_id(int(entity_id))
 
 
+def _apply_filters(query: ndb.Query, entity_kind: data_types.Model,
+                   equality_filters: Mapping[str, FilterValue] | None):
+  """Applies equality filters to a query."""
+  if not equality_filters:
+    return query
+
+  for property_name, value in equality_filters.items():
+    if (prop := getattr(entity_kind, property_name, None)) is None:
+      logs.warning(
+          f'Query filters contain a non-existent property: {property_name}')
+      continue
+    query = query.filter(prop == value)
+
+  return query
+
+
+def _apply_order(query: ndb.Query, entity_kind: data_types.Model,
+                 order_by: Sequence[str] | None):
+  """Applies ordering to a query."""
+  if not order_by:
+    return query
+
+  for order_field in order_by:
+    desc = order_field.startswith('-')
+    property_name = order_field[1:] if desc else order_field
+    if (prop := getattr(entity_kind, property_name, None)) is None:
+      logs.warning(f'Query order argument contains a non-existent property: '
+                   f'{property_name}')
+      continue
+    query = query.order(-prop) if desc else query.order(prop)
+
+  return query
+
+
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
@@ -1587,25 +1621,8 @@ def get_entities(entity_kind: data_types.Model,
                  limit: int | None = None) -> list[data_types.Model]:
   """Queries the entity kind with equality filters, ordering, and a limit."""
   query = entity_kind.query()
-
-  if equality_filters:
-    for property_name, value in equality_filters.items():
-      if (prop := getattr(entity_kind, property_name, None)) is None:
-        logs.warning(
-            f'Query filters contain a non-existent property: {property_name}')
-        continue
-      query = query.filter(prop == value)
-
-  if order_by:
-    for order_field in order_by:
-      desc = order_field.startswith('-')
-      property_name = order_field[1:] if desc else order_field
-      if (prop := getattr(entity_kind, property_name, None)) is None:
-        logs.warning(f'Query order argument contains a non-existent property: '
-                     f'{property_name}')
-        continue
-      query = query.order(-prop) if desc else query.order(prop)
-
+  query = _apply_filters(query, entity_kind, equality_filters)
+  query = _apply_order(query, entity_kind, order_by)
   return query.fetch(limit=limit)
 
 
