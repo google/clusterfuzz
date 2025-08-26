@@ -318,8 +318,10 @@ class IEventRepository(ABC):
                  equality_filters: Mapping[str, FilterValue] | None = None,
                  order_by: Sequence[str] | None = None,
                  limit: int | None = None) -> list[Event]:
-    """Retrieve a list of events from the underlying database. The events should
-    match the specified equality filters, ordering, and limit."""
+    """Retrieve a list of events from the underlying database.
+    
+    The events match the specified equality filters, ordering, and limit.
+    """
 
 
 class NDBEventRepository(IEventRepository, EventHandler):
@@ -397,8 +399,10 @@ class NDBEventRepository(IEventRepository, EventHandler):
                  equality_filters: Mapping[str, FilterValue] | None = None,
                  order_by: Sequence[str] | None = None,
                  limit: int | None = None) -> list[Event]:
-    """Retrieve events from datastore matching the given equality filters,
-    ordering, and limit."""
+    """Retrieve events from datastore.
+
+    The events match the given equality filters, ordering, and limit.
+    """
     entity_kind = self._default_entity
     results = data_handler.get_entities(
         entity_kind=entity_kind,
@@ -577,8 +581,7 @@ def emit(event: Event) -> None:
 def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
                order_by: Sequence[str] | None = None,
                limit: int | None = None) -> list[Event] | None:
-  """Retrieve events matching the given equality filters, ordering, and limit.
-  """
+  """Retrieve events matching the equality filters, ordering, and limit."""
   repository = get_repository()
   if repository is None:
     return None
