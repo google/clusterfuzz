@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """archive tests."""
+import io
 import os
+import tarfile
 import tempfile
 import unittest
 
@@ -50,6 +52,29 @@ class UnpackTest(unittest.TestCase):
       self.assertCountEqual(
           [f.name for f in reader.list_members()],
           ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
+
+  def test_unpack_absolute_path_traversal(self):
+    """Test that unpacking an archive with an absolute path fails."""
+    # Create a temporary TAR archive file on disk.
+    with tempfile.NamedTemporaryFile(suffix='.tar') as tmp_tar_file:
+      malicious_archive_path = tmp_tar_file.name
+
+      # Create a malicious archive with an absolute path payload.
+      with tarfile.open(malicious_archive_path, 'w') as tar:
+        file_data = b'malicious content'
+        # Creating a TarInfo object with an absolute path.
+        tarinfo = tarfile.TarInfo(name='/tmp/pwned')
+        tarinfo.size = len(file_data)
+        tar.addfile(tarinfo, io.BytesIO(file_data))
+
+      output_directory = tempfile.mkdtemp()
+
+      # The function should return False, indicating an error occurred.
+      with archive.open(malicious_archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertFalse(result)
+
+      shell.remove_directory(output_directory)
 
 
 class ArchiveReaderTest(unittest.TestCase):
