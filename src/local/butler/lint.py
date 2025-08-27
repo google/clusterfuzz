@@ -176,17 +176,16 @@ def execute(args):
   os.environ['PYTHONPATH'] = ':'.join(
       [third_party_path, module_parent_path, pythonpath])
 
-  # Get the merge base between the current branch and master.
-  merge_base_command = 'git merge-base origin/master HEAD'
-  returncode, output = common.execute(merge_base_command, exit_on_error=False)
-  if returncode != 0:
-    # Fallback to master if merge-base fails. This can happen in brand new
-    # repos.
-    base_commit = 'origin/master'
+  if 'GOOGLE_CLOUDBUILD' in os.environ:
+    # Explicitly compare against master if we're running on the CI
+    diff_command = 'git diff --name-only master FETCH_HEAD'
   else:
-    base_commit = output.decode('utf-8').strip()
+    if os.path.exists('.git/FETCH_HEAD'):
+      diff_command = 'git diff --name-only FETCH_HEAD'
+    else:
+      # If not, fall back to diffing against HEAD.
+      diff_command = 'git diff --name-only HEAD'
 
-  diff_command = f'git diff --name-only {base_commit}'
   _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
