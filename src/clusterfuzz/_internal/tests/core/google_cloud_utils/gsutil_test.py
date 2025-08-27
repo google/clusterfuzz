@@ -40,7 +40,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_rsync(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -56,13 +56,14 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
           '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
           'gs://target_bucket/target_path'
       ]
+
     self.mock_run_and_wait.assert_called_with(
         expected_args, timeout=18000, env=mock.ANY)
 
   @parameterized.expand([(True,), (False,)])
   def test_rsync_local_gcs(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     self.fs.create_dir('/local/source_bucket')
     self.fs.create_dir('/local/target_bucket')
@@ -89,7 +90,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_rsync_with_timeout(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -113,7 +114,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_rsync_no_delete(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -137,7 +138,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_rsync_with_exclusion(self, use_gcloud_storage):
     """Test rsync."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -163,7 +164,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_download_file(self, use_gcloud_storage):
     """Test download_file."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -178,7 +179,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_download_file_local_gcs(self, use_gcloud_storage):
     """Test download_file."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
@@ -194,7 +195,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_file(self, use_gcloud_storage):
     """Test upload_file."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -209,7 +210,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_file_local_gcs(self, use_gcloud_storage):
     """Test upload_file."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     self.fs.create_dir('/local/target_bucket')
     gsutil_runner_obj = gsutil.GSUtilRunner()
@@ -227,7 +228,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_file_with_metadata(self, use_gcloud_storage):
     """Test upload_file with metadata."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
 
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
@@ -267,7 +268,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_rsync_failure(self, use_gcloud_storage):
     """Test rsync failure."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     mock_result = new_process.ProcessResult(return_code=1, output='Fake error')
     self.mock_run_and_wait.return_value = mock_result
@@ -278,7 +279,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_download_file_failure(self, use_gcloud_storage):
     """Test download_file failure."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=1, output='Fake error')
@@ -289,7 +290,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_file_failure(self, use_gcloud_storage):
     """Test upload_file failure."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=1, output='Fake error')
@@ -300,7 +301,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_files_to_url_failure(self, use_gcloud_storage):
     """Test upload_files_to_url failure."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=1, output='Fake error')
@@ -312,7 +313,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_files_to_url_empty(self, use_gcloud_storage):
     """Test upload_files_to_url with empty file list."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.assertFalse(
         gsutil_runner_obj.upload_files_to_url([],
@@ -322,7 +323,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_file_with_options(self, use_gcloud_storage):
     """Test upload_file."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -353,7 +354,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_files_to_url(self, use_gcloud_storage):
     """Test upload_files_to_url."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     gsutil_runner_obj = gsutil.GSUtilRunner()
     self.mock_run_and_wait.return_value = new_process.ProcessResult(
         return_code=0)
@@ -376,7 +377,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   @parameterized.expand([(True,), (False,)])
   def test_upload_files_to_url_local_gcs(self, use_gcloud_storage):
     """Test upload_files_to_url."""
-    os.environ['USE_GCLOUD_STORAGE'] = '1' if use_gcloud_storage else '0'
+    os.environ['USE_GCLOUD_STORAGE_CP'] = '1' if use_gcloud_storage else '0'
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
     self.fs.create_dir('/local/target_bucket')
     gsutil_runner_obj = gsutil.GSUtilRunner()

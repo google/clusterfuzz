@@ -34,7 +34,7 @@ if [[ -z "$LOCAL_SRC" ]]; then
   rm -rf clusterfuzz
 
   # DEPLOYMENT_ZIP might be test-deployment/linux-3.zip, so we do not extract DEPLOYMENT_ZIP directly
-  if [ "$USE_GCLOUD_STORAGE" = "1" ]; then
+  if [ "$USE_GCLOUD_STORAGE_CP" = "1" ]; then
     gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
   else
     gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE

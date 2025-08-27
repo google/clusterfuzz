@@ -30,8 +30,15 @@ with the same content, copy the first experimental bucket over to the others to
 make sure that contents of the buckets will be exactly the same."""
 
 
-def _run_command(command):
+def _run_command(command, gsutil_command_name=None):
   """Runs a command and prints it."""
+  if gsutil_command_name and environment.get_value(
+      f'USE_GCLOUD_STORAGE_{gsutil_command_name.upper()}'):
+    command[0] = 'gcloud'
+    command.insert(1, 'storage')
+    if gsutil_command_name == 'ls':
+      command[2] = 'ls'
+
   print(
       'Running command [{time}]:'.format(
           time=datetime.datetime.now().strftime('%H:%M:%S')),
@@ -59,7 +66,7 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
   source_urls_fetch_command = [
       GSUTIL_CMD, 'ls', 'gs://{bucket}/*/'.format(bucket=source_bucket)
   ]
-  source_urls = _run_command(source_urls_fetch_command).splitlines()
+  source_urls = _run_command(source_urls_fetch_command, 'ls').splitlines()
   filtered_source_urls = [
       s.rstrip('/') for s in source_urls if s.strip() and not s.endswith(':')
   ]
@@ -80,7 +87,7 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
     target_url = '%s/%s' % (url_part, fuzz_target)
 
     _run_command(
-        [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url])
+        [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url], 'rsync')
 
   print('Copy corpus finished successfully.')
 

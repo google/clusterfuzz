@@ -143,10 +143,10 @@ class DeployTest(fake_filesystem_unittest.TestCase):
   def _test_app_runner(self, use_gcloud_storage):
     """Helper to run app deployment tests."""
     if use_gcloud_storage:
-      os.environ['USE_GCLOUD_STORAGE'] = 'True'
+      os.environ['USE_GCLOUD_STORAGE_CP'] = 'True'
       storage_command = 'gcloud storage'
     else:
-      os.environ['USE_GCLOUD_STORAGE'] = ''
+      os.environ['USE_GCLOUD_STORAGE_CP'] = ''
       storage_command = 'gsutil'
 
     deploy._prod_deployment_helper('/config_dir',
@@ -243,10 +243,10 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     """Helper for testing app deployment retries."""
     self.deploy_failure_count = 1
     if use_gcloud_storage:
-      os.environ['USE_GCLOUD_STORAGE'] = 'True'
+      os.environ['USE_GCLOUD_STORAGE_CP'] = 'True'
       storage_command = 'gcloud storage'
     else:
-      os.environ['USE_GCLOUD_STORAGE'] = ''
+      os.environ['USE_GCLOUD_STORAGE_CP'] = ''
       storage_command = 'gsutil'
 
     deploy._prod_deployment_helper('/config_dir',

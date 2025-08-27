@@ -26,9 +26,10 @@ from clusterfuzz._internal.system import new_process
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 
-def use_gcloud_storage():
-  """Returns whether to use gcloud storage instead of gsutil."""
-  return bool(environment.get_value('USE_GCLOUD_STORAGE'))
+def use_gcloud_for_command(command):
+  """Returns whether to use gcloud storage for the given command."""
+  return bool(
+      environment.get_value(f'USE_GCLOUD_STORAGE_{command.upper()}'))
 
 
 def get_gcloud_path():
@@ -108,33 +109,47 @@ class GSUtilRunner:
   """GSUtil/gcloud storage runner."""
 
   def __init__(self, process_runner=new_process.ProcessRunner):
-    self.use_gcloud_storage = use_gcloud_storage()
-    if self.use_gcloud_storage:
+    self._process_runner = process_runner
+
+  def _get_runner_and_args(self, use_gcloud_storage, quiet=False):
+    """Get the process runner and default arguments."""
+    if use_gcloud_storage:
       executable_path = get_gcloud_path()
-      # gcloud storage has parallel processing by default. No need for -m.
       default_args = ['storage']
+      runner = self._process_runner(
+          executable_path=executable_path, default_args=default_args)
+      additional_args = []
     else:
       executable_path = get_gsutil_path()
       default_args = ['-m']
       default_args.extend(_multiprocessing_args())
+      runner = self._process_runner(
+          executable_path=executable_path, default_args=default_args)
 
-    self.runner = process_runner(executable_path, default_args=default_args)
+      # gcloud storage does not have a -q flag, it is a global gcloud flag
+      # --quiet, but that suppresses all output, which is not what we want.
+      # gsutil's -q suppresses the "Copying..." summary, which is desired.
+      additional_args = ['-q'] if quiet else []
 
-  def run_gsutil(self, arguments, quiet=False, **kwargs):
+    return runner, additional_args
+
+  def run_gsutil(self,
+                 arguments,
+                 use_gcloud_storage,
+                 quiet=False,
+                 **kwargs):
     """Run GSUtil or gcloud storage."""
-    # gcloud storage does not have a -q flag, it is a global gcloud flag
-    # --quiet, but that suppresses all output, which is not what we want.
-    # gsutil's -q suppresses the "Copying..." summary, which is desired.
-    if not self.use_gcloud_storage and quiet:
-      arguments = ['-q'] + arguments
+    runner, additional_args = self._get_runner_and_args(
+        use_gcloud_storage, quiet)
+    arguments = additional_args + arguments
 
     env = os.environ.copy()
-    if not self.use_gcloud_storage and 'PYTHONPATH' in env:
+    if not use_gcloud_storage and 'PYTHONPATH' in env:
       # GSUtil may be on Python 3, and our PYTHONPATH breaks it because we're on
       # Python 2.
       env.pop('PYTHONPATH')
 
-    return self.runner.run_and_wait(arguments, env=env, **kwargs)
+    return runner.run_and_wait(arguments, env=env, **kwargs)
 
   def rsync(self,
             source,
@@ -143,7 +158,8 @@ class GSUtilRunner:
             delete=True,
             exclusion_pattern=None):
     """Rsync with gsutil or gcloud storage."""
-    if self.use_gcloud_storage:
+    use_gcloud = use_gcloud_for_command('rsync')
+    if use_gcloud:
       command = ['rsync']
       # gcloud storage rsync is recursive by default.
       if delete:
@@ -162,12 +178,15 @@ class GSUtilRunner:
         _filter_path(destination, write=True),
     ])
 
-    return self.run_gsutil(command, timeout=timeout, quiet=True)
+    return self.run_gsutil(
+        command, use_gcloud, timeout=timeout, quiet=True)
 
   def download_file(self, gcs_url, file_path, timeout=None):
     """Download a file from GCS."""
+    use_gcloud = use_gcloud_for_command('cp')
     command = ['cp', _filter_path(gcs_url), file_path]
-    result = self.run_gsutil(command, timeout=timeout)
+    result = self.run_gsutil(
+        command, use_gcloud, timeout=timeout)
     if result.return_code:
       logs.error('GSUtilRunner.download_file failed:\nCommand: %s\n'
                  'Url: %s\n'
@@ -185,14 +204,16 @@ class GSUtilRunner:
     if not file_path or not gcs_url:
       return False
 
-    if self.use_gcloud_storage:
+    use_gcloud = use_gcloud_for_command('cp')
+    if use_gcloud:
       # For gcloud, setting metadata is a separate step after uploading.
       cp_command = ['cp']
       if gzip:
         cp_command.append('--gzip-in-flight-all')
 
       cp_command.extend([file_path, _filter_path(gcs_url, write=True)])
-      result = self.run_gsutil(cp_command, timeout=timeout)
+      result = self.run_gsutil(
+          cp_command, use_gcloud, timeout=timeout)
 
       if result.return_code != 0:
         logs.error('GSUtilRunner.upload_file (cp step) failed:\nCommand: %s\n'
@@ -212,7 +233,8 @@ class GSUtilRunner:
         # pylint: disable=line-too-long
         update_command.append(','.join(metadata_args))
 
-        result = self.run_gsutil(update_command, timeout=timeout)
+        result = self.run_gsutil(
+            update_command, use_gcloud, timeout=timeout)
         if result.return_code != 0:
           logs.error(
               'GSUtilRunner.upload_file (update metadata step) failed:\nCommand: %s\n'
@@ -236,7 +258,8 @@ class GSUtilRunner:
       command.append('-Z')
 
     command.extend([file_path, _filter_path(gcs_url, write=True)])
-    result = self.run_gsutil(command, timeout=timeout)
+    result = self.run_gsutil(
+        command, use_gcloud, timeout=timeout)
 
     if result.return_code:
       logs.error('GSUtilRunner.upload_file failed:\nCommand: %s\n'
@@ -251,7 +274,8 @@ class GSUtilRunner:
     if not file_paths or not gcs_url:
       return False
 
-    if self.use_gcloud_storage:
+    use_gcloud = use_gcloud_for_command('cp')
+    if use_gcloud:
       command = [
           'cp', '--read-paths-from-stdin',
           _filter_path(gcs_url, write=True)
@@ -262,7 +286,10 @@ class GSUtilRunner:
     filenames_buffer = '\n'.join(file_paths)
 
     result = self.run_gsutil(
-        command, input_data=filenames_buffer.encode('utf-8'), timeout=timeout)
+        command,
+        use_gcloud,
+        input_data=filenames_buffer.encode('utf-8'),
+        timeout=timeout)
 
     # Check result of command execution, log output if command failed.
     if result.return_code:

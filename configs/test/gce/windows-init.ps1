@@ -273,7 +273,7 @@ $deploymentBucket = $webClient.DownloadString('http://metadata.google.internal/c
 Write-Host "Downloading ClusterFuzz source code."
 rm c:\clusterfuzz -Recurse -Force
 $fileName = "$tmp\clusterfuzz.zip"
-if ($env:USE_GCLOUD_STORAGE -eq "1") {
+if ($env:USE_GCLOUD_STORAGE_CP -eq "1") {
   gcloud storage cp gs://$deploymentBucket/windows-3.zip $fileName
 } else {
   gsutil cp gs://$deploymentBucket/windows-3.zip $fileName

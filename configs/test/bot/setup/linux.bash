@@ -71,7 +71,7 @@ $GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION
 
 echo "Downloading ClusterFuzz source code."
 rm -rf clusterfuzz
-if [ "$USE_GCLOUD_STORAGE" = "1" ]; then
+if [ "$USE_GCLOUD_STORAGE_CP" = "1" ]; then
   echo "Downloading ClusterFuzz source code using gcloud."
   $GSUTIL_PATH/gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
 else
