@@ -19,9 +19,7 @@ import os
 import re
 import shlex
 import time
-from typing import Mapping
-from typing import Sequence
-from typing import TypeAlias
+from typing import Mapping, Sequence,TypeAlias
 
 from google.cloud import ndb
 

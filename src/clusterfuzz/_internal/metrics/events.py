@@ -20,9 +20,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
-from typing import Any
-from typing import Mapping
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
