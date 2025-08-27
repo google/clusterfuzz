@@ -51,6 +51,10 @@ SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 Version = namedtuple('Version', ['id', 'deploy_time', 'traffic_split'])
 
 
+class DeploymentError(Exception):
+  """Deployment Error"""
+
+
 def now(tz=None):
   """Used for mocks."""
   return datetime.datetime.now(tz)
@@ -230,12 +234,14 @@ def find_file_exceeding_limit(path, limit):
 
 def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   """Deploy zip to GCS."""
+  gsutil = common.Gsutil()
   if test_deployment:
-    common.execute(f'gsutil cp {zip_path} gs://{bucket_name}/test-deployment/'
-                   f'{os.path.basename(zip_path)}')
+    gsutil.run(
+        'cp', zip_path,
+        f'gs://{bucket_name}/test-deployment/{os.path.basename(zip_path)}')
   else:
-    common.execute('gsutil cp %s gs://%s/%s' % (zip_path, bucket_name,
-                                                os.path.basename(zip_path)))
+    gsutil.run('cp', zip_path,
+               f'gs://{bucket_name}/{os.path.basename(zip_path)}')
 
 
 def _deploy_manifest(bucket_name,
@@ -243,16 +249,15 @@ def _deploy_manifest(bucket_name,
                      test_deployment=False,
                      release='prod'):
   """Deploy source manifest to GCS."""
+  gsutil = common.Gsutil()
   remote_manifest_path = utils.get_remote_manifest_filename(release)
 
   if test_deployment:
-    common.execute(f'gsutil cp {manifest_path} '
-                   f'gs://{bucket_name}/test-deployment/'
-                   f'{remote_manifest_path}')
+    gsutil.run('cp', manifest_path, f'gs://{bucket_name}/test-deployment/'
+               f'{remote_manifest_path}')
   else:
-    common.execute(f'gsutil cp {manifest_path} '
-                   f'gs://{bucket_name}/'
-                   f'{remote_manifest_path}')
+    gsutil.run('cp', manifest_path,
+               f'gs://{bucket_name}/{remote_manifest_path}')
 
 
 def _update_deployment_manager(project, name, config_path):
@@ -445,7 +450,7 @@ def _prod_deployment_helper(config_dir,
   except Exception as ex:
     labels.update({'success': False})
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-    raise ex
+    raise DeploymentError from ex
 
 
 def _deploy_terraform(config_dir):
@@ -502,9 +507,14 @@ def execute(args):
     print('Your branch is dirty. Please fix before deploying.')
     sys.exit(1)
 
-  if not common.has_file_in_path('gsutil'):
-    print('gsutil not found in PATH.')
-    sys.exit(1)
+  if environment.get_value('USE_GCLOUD_STORAGE'):
+    if not common.has_file_in_path('gcloud'):
+      print('gcloud not found in PATH.')
+      sys.exit(1)
+  else:
+    if not common.has_file_in_path('gsutil'):
+      print('gsutil not found in PATH.')
+      sys.exit(1)
 
   _enforce_safe_day_to_deploy()
 

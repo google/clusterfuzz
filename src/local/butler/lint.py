@@ -178,10 +178,16 @@ def execute(args):
 
   if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
-    _, output = common.execute('git diff --name-only master FETCH_HEAD')
+    diff_command = 'git diff --name-only master FETCH_HEAD'
   else:
-    _, output = common.execute('git diff --name-only FETCH_HEAD')
+    if 'GITHUB_ACTIONS' in os.environ:
+      # In GitHub actions, we want to compare against the base branch.
+      diff_command = 'git diff --name-only FETCH_HEAD'
+    else:
+      # If not, fall back to diffing against HEAD.
+      diff_command = 'git diff --name-only HEAD'
 
+  _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
   ]

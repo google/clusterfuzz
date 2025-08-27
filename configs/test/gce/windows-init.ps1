@@ -270,9 +270,14 @@ rm "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\sym" -Recurse -Force
 $deploymentBucket = $webClient.DownloadString('http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket')
 
 # Download ClusterFuzz source.
+Write-Host "Downloading ClusterFuzz source code."
 rm c:\clusterfuzz -Recurse -Force
 $fileName = "$tmp\clusterfuzz.zip"
-gsutil cp gs://$deploymentBucket/windows-3.zip $fileName
+if ($env:USE_GCLOUD_STORAGE_CP -eq "1") {
+  gcloud storage cp gs://$deploymentBucket/windows-3.zip $fileName
+} else {
+  gsutil cp gs://$deploymentBucket/windows-3.zip $fileName
+}
 unzip $fileName
 
 # Resize partition to max available size.

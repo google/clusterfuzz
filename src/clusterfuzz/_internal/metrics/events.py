@@ -44,6 +44,7 @@ class EventTypes:
   ISSUE_FILING = 'issue_filing'
   TASK_EXECUTION = 'task_execution'
   ISSUE_CLOSING = 'issue_closing'
+  TESTCASE_GROUPING = 'testcase_grouping'
 
 
 class TestcaseOrigin:
@@ -97,6 +98,15 @@ class ClosingReason:
   TESTCASE_FIXED = 'testcase_fixed'
   TESTCASE_UNREPRO = 'testcase_unreproducible'
   TESTCASE_INVALID = 'testcase_invalid'
+
+
+class GroupingReason:
+  """Reason for grouping testcases."""
+  SIMILAR_CRASH = 'similar_crash'
+  SAME_ISSUE = 'same_issue'
+  IDENTICAL_VARIANT = 'identical_variant'
+  GROUP_MERGE = 'group_merge'
+  UNGROUPED = 'ungrouped'
 
 
 @dataclass(kw_only=True)
@@ -243,6 +253,22 @@ class IssueClosingEvent(BaseTestcaseEvent, BaseTaskEvent):
   closing_reason: str | None = None
 
 
+@dataclass(kw_only=True)
+class TestcaseGroupingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase grouping event."""
+  event_type: str = field(default=EventTypes.TESTCASE_GROUPING, init=False)
+  # Group ID that the testcase is currently being moved to.
+  group_id: int | None = None
+  # Previous group ID, If testcase was in a previous group.
+  previous_group_id: int | None = None
+  # Similar testcase that caused the grouping.
+  similar_testcase_id: int | None = None
+  # Reason for grouping.
+  grouping_reason: str | None = None
+  # If testcase's group is being merged, the reason that caused the grouping.
+  group_merge_reason: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
@@ -251,6 +277,7 @@ _EVENT_TYPE_CLASSES = {
     EventTypes.ISSUE_FILING: IssueFilingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
     EventTypes.ISSUE_CLOSING: IssueClosingEvent,
+    EventTypes.TESTCASE_GROUPING: TestcaseGroupingEvent,
 }
 
 
