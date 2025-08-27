@@ -931,7 +931,7 @@ class DatastoreEventsTest(unittest.TestCase):
     ])
 
   def test_get_events(self):
-    """Test get_events."""
+    """Verify that get_events correctly orchestrate the events retrieval."""
     self._get_events_patch()
 
     entity = data_types.TestcaseLifecycleEvent(event_type='generic_event_test')
@@ -963,7 +963,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.mock._deserialize_event.assert_called_once_with(mock.ANY, entity)  # pylint: disable=protected-access
 
   def test_get_events_empty(self):
-    """Test get_events with no events."""
+    """Verify that get_events returns an empty list when no entities are found."""
     self._get_events_patch()
 
     self.mock.get_entities.return_value = []
@@ -1213,7 +1213,7 @@ class EmitEventTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class GetEventsTest(unittest.TestCase):
-  """Tests for get_events."""
+  """Test retrieving events."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -1223,7 +1223,7 @@ class GetEventsTest(unittest.TestCase):
     ])
 
   def test_get_events(self):
-    """Test get_events."""
+    """Verify that get_events correctly calls the repository with filters."""
     self.mock.get_repository.return_value = events.NDBEventRepository()
     expected_events = [events.Event(event_type='generic_event_test')]
     self.mock.get_events.return_value = expected_events
@@ -1241,7 +1241,7 @@ class GetEventsTest(unittest.TestCase):
         limit=limit)
 
   def test_get_events_empty(self):
-    """Test get_events with no events."""
+    """Verify that get_events returns an empty list when no events are found."""
     self.mock.get_repository.return_value = events.NDBEventRepository()
     expected_events = []
     self.mock.get_events.return_value = expected_events
@@ -1250,7 +1250,7 @@ class GetEventsTest(unittest.TestCase):
     self.mock.get_events.assert_called_once_with(mock.ANY, None, None, None)
 
   def test_get_events_with_no_repository(self):
-    """Test get_events with no repository configured."""
+    """Verify that get_events returns None when no repository is configured."""
     self.mock.get_repository.return_value = None
     result = events.get_events()
     self.assertIsNone(result)

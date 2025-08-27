@@ -1029,10 +1029,10 @@ class TestTrustedVsUntrusted(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class GetEntitiesTest(unittest.TestCase):
-  """Tests for get_entities."""
+  """Test retrieving entities from datastore."""
 
   class GetEntitiesTestModel(data_types.Model):
-    """Model for get_entities tests."""
+    """Generic model for get_entities tests."""
     name = ndb.StringProperty()
     value = ndb.IntegerProperty()
     timestamp = ndb.DateTimeProperty()
@@ -1052,13 +1052,13 @@ class GetEntitiesTest(unittest.TestCase):
     self.entity4.put()
 
   def test_get_all(self):
-    """Test getting all entities."""
+    """Verify that all entities are returned when no filters are applied."""
     result = data_handler.get_entities(self.GetEntitiesTestModel)
     expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
     self.assertCountEqual(expected_entities, result)
 
   def test_with_limit(self):
-    """Test with a limit."""
+    """Verify that the number of returned entities respects the limit."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, limit=2, order_by=['timestamp'])
     self.assertEqual(2, len(result))
@@ -1066,7 +1066,7 @@ class GetEntitiesTest(unittest.TestCase):
     self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
 
   def test_with_equality_filters(self):
-    """Test with equality filters."""
+    """Verify that only entities matching the equality filters are returned."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, equality_filters={'value': 1})
     self.assertEqual(2, len(result))
@@ -1078,14 +1078,14 @@ class GetEntitiesTest(unittest.TestCase):
       (['-name'], ['entity4', 'entity3', 'entity2', 'entity1']),
   ])
   def test_with_order_by(self, order_by, expected_order_keys):
-    """Test with ordering."""
+    """Verify that entities are returned in the specified order."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, order_by=order_by)
     expected_entities = [getattr(self, key) for key in expected_order_keys]
     self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
 
   def test_with_equality_filters_and_order(self):
-    """Test with equality filters and ordering."""
+    """Verify that filtering and ordering can be combined."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel,
         equality_filters={'value': 1},
@@ -1095,19 +1095,21 @@ class GetEntitiesTest(unittest.TestCase):
     self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
 
   def test_non_existent_filter_property(self):
-    """Test filtering on a property that does not exist."""
+    """Verify that filtering on a non-existent property returns all entities."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, equality_filters={'non_existent': 1})
-    self.assertEqual(4, len(result))
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
 
   def test_non_existent_order_property(self):
-    """Test ordering by a property that does not exist."""
+    """Verify that ordering by a non-existent property returns all entities."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, order_by=['non_existent'])
-    self.assertEqual(4, len(result))
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
 
   def test_no_entities_found(self):
-    """Test no entities found."""
+    """Verify that an empty list is returned when no entities match."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, equality_filters={'value': 5})
     self.assertEqual([], result)
