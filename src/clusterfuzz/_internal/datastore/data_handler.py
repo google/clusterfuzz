@@ -19,6 +19,10 @@ import os
 import re
 import shlex
 import time
+from typing import Generator
+from typing import Mapping
+from typing import Sequence
+from typing import TypeAlias
 
 from google.cloud import ndb
 
@@ -85,6 +89,8 @@ FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
     '******************************************************************' %
     (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
      data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
+
+FilterValue: TypeAlias = str | int | float | bool | datetime.datetime
 
 FuzzerDisplay = collections.namedtuple(
     'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
@@ -1570,6 +1576,68 @@ def get_entity_by_type_and_id(entity_type, entity_id):
     return None
 
   return entity_type.get_by_id(int(entity_id))
+
+
+def _apply_filters(query: ndb.Query, entity_kind: data_types.Model,
+                   equality_filters: Mapping[str, FilterValue] | None):
+  """Applies equality filters to a query."""
+  if not equality_filters:
+    return query
+
+  for property_name, value in equality_filters.items():
+    if (prop := getattr(entity_kind, property_name, None)) is None:
+      logs.warning(
+          f'Query filters contain a non-existent property: {property_name}')
+      continue
+    query = query.filter(prop == value)
+
+  return query
+
+
+def _apply_order(query: ndb.Query, entity_kind: data_types.Model,
+                 order_by: Sequence[str] | None):
+  """Applies ordering to a query."""
+  if not order_by:
+    return query
+
+  for order_field in order_by:
+    desc = order_field.startswith('-')
+    property_name = order_field[1:] if desc else order_field
+    if (prop := getattr(entity_kind, property_name, None)) is None:
+      logs.warning(f'Query order argument contains a non-existent property: '
+                   f'{property_name}')
+      continue
+    query = query.order(-prop) if desc else query.order(prop)
+
+  return query
+
+
+def get_entities_query(
+    entity_kind: data_types.Model,
+    equality_filters: Mapping[str, FilterValue] | None = None,
+    order_by: Sequence[str] | None = None) -> ndb.Query:
+  """Returns a query for the entity kind with equality filters and ordering."""
+  query = entity_kind.query()
+  query = _apply_filters(query, entity_kind, equality_filters)
+  query = _apply_order(query, entity_kind, order_by)
+  return query
+
+
+def get_entities_ids(entity_kind: data_types.Model,
+                     equality_filters: Mapping[str, FilterValue] | None = None,
+                     order_by: Sequence[str] | None = None) -> Generator:
+  """Yields IDs of entities matching optional filters and ordering."""
+  query = get_entities_query(entity_kind, equality_filters, order_by)
+  yield from (
+      key.id() for key in ndb_utils.get_all_from_query(query, keys_only=True))
+
+
+def get_entities(entity_kind: data_types.Model,
+                 equality_filters: Mapping[str, FilterValue] | None = None,
+                 order_by: Sequence[str] | None = None) -> Generator:
+  """Yields entities matching optional filters and ordering."""
+  query = get_entities_query(entity_kind, equality_filters, order_by)
+  yield from ndb_utils.get_all_from_query(query)
 
 
 # ------------------------------------------------------------------------------
