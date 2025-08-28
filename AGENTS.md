@@ -65,6 +65,14 @@ python butler.py py_unittest -t core -m
 
 The `-m` flag runs the tests in parallel, which is recommended.
 
+### Running a single test file
+
+To run a single test file, you can use the `-p` or `--pattern` flag. For example, to run the tests in `deploy_test.py`, you can use the following command:
+
+```bash
+python butler.py py_unittest -t core -p deploy_test.py
+```
+
 ## Linting
 
 To check the code for style and linting issues, run the following command:
