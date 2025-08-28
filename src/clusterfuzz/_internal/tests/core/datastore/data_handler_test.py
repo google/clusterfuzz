@@ -16,6 +16,7 @@
 import datetime
 import json
 import os
+from typing import Generator
 import unittest
 from unittest import mock
 
@@ -1057,21 +1058,24 @@ class GetEntitiesTest(unittest.TestCase):
     expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
     self.assertCountEqual(expected_entities, result)
 
-  def test_with_limit(self):
-    """Verify that the number of returned entities respects the limit."""
-    result = data_handler.get_entities(
-        self.GetEntitiesTestModel, limit=2, order_by=['timestamp'])
-    self.assertEqual(2, len(result))
-    expected_entities = [self.entity1, self.entity2]
-    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+  def test_keys_only(self):
+    """Verify that get_entities_ids returns only the ids."""
+    result = data_handler.get_entities_ids(
+        self.GetEntitiesTestModel, order_by=['timestamp'])
+    expected_entities = [
+        self.entity1.key.id(),
+        self.entity2.key.id(),
+        self.entity3.key.id(),
+        self.entity4.key.id()
+    ]
+    self.assertCountEqual(result, expected_entities)
 
   def test_with_equality_filters(self):
     """Verify that only entities matching the equality filters are returned."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, equality_filters={'value': 1})
-    self.assertEqual(2, len(result))
     expected_entities = [self.entity1, self.entity3]
-    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+    self.assertCountEqual(result, expected_entities)
 
   @parameterized.parameterized.expand([
       (['value', 'name'], ['entity1', 'entity3', 'entity2', 'entity4']),
@@ -1082,7 +1086,7 @@ class GetEntitiesTest(unittest.TestCase):
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, order_by=order_by)
     expected_entities = [getattr(self, key) for key in expected_order_keys]
-    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+    self.assertSequenceEqual(list(result), expected_entities)
 
   def test_with_equality_filters_and_order(self):
     """Verify that filtering and ordering can be combined."""
@@ -1090,9 +1094,8 @@ class GetEntitiesTest(unittest.TestCase):
         self.GetEntitiesTestModel,
         equality_filters={'value': 1},
         order_by=['-name'])
-    self.assertEqual(2, len(result))
     expected_entities = [self.entity3, self.entity1]
-    self.assertTrue(test_utils.entities_list_equal(result, expected_entities))
+    self.assertSequenceEqual(list(result), expected_entities)
 
   def test_non_existent_filter_property(self):
     """Verify that filtering on a non-existent property returns all entities."""
@@ -1109,7 +1112,8 @@ class GetEntitiesTest(unittest.TestCase):
     self.assertCountEqual(expected_entities, result)
 
   def test_no_entities_found(self):
-    """Verify that an empty list is returned when no entities match."""
+    """Verify that an empty generator is returned when no entities match."""
     result = data_handler.get_entities(
         self.GetEntitiesTestModel, equality_filters={'value': 5})
-    self.assertEqual([], result)
+    self.assertIsInstance(result, Generator)
+    self.assertCountEqual(result, [])

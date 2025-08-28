@@ -20,7 +20,10 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any
+from typing import Generator
+from typing import Mapping
+from typing import Sequence
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
@@ -312,11 +315,11 @@ class IEventRepository(ABC):
     """Retrieve an event from the underlying database and return it."""
 
   @abstractmethod
-  def get_events(self,
-                 equality_filters: Mapping[str, FilterValue] | None = None,
-                 order_by: Sequence[str] | None = None,
-                 limit: int | None = None) -> list[Event]:
-    """Retrieve a list of events from the underlying database.
+  def get_events(
+      self,
+      equality_filters: Mapping[str, FilterValue] | None = None,
+      order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
+    """Yields events from the underlying database.
     
     The events match the specified equality filters, ordering, and limit.
     """
@@ -393,25 +396,22 @@ class NDBEventRepository(IEventRepository, EventHandler):
     event = self._deserialize_event(event_entity)
     return event
 
-  def get_events(self,
-                 equality_filters: Mapping[str, FilterValue] | None = None,
-                 order_by: Sequence[str] | None = None,
-                 limit: int | None = None) -> list[Event]:
-    """Retrieve events from datastore.
+  def get_events(
+      self,
+      equality_filters: Mapping[str, FilterValue] | None = None,
+      order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
+    """Yields events from datastore.
 
     The events match the given equality filters, ordering, and limit.
     """
     entity_kind = self._default_entity
-    results = data_handler.get_entities(
+    entities_ids = data_handler.get_entities_ids(
         entity_kind=entity_kind,
         equality_filters=equality_filters,
-        order_by=order_by,
-        limit=limit)
+        order_by=order_by)
 
-    return [
-        event for entity in results
-        if (event := self._deserialize_event(entity)) is not None
-    ]
+    yield from (event for entity_id in entities_ids
+                if (event := self.get_event(entity_id)))
 
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""
@@ -577,14 +577,9 @@ def emit(event: Event) -> None:
 
 
 def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
-               order_by: Sequence[str] | None = None,
-               limit: int | None = None) -> list[Event] | None:
-  """Retrieve events matching the equality filters, ordering, and limit."""
+               order_by: Sequence[str] | None = None) -> Generator:
+  """Yields events matching the equality filters and ordering."""
   repository = get_repository()
-  if repository is None:
-    return None
-
-  events = repository.get_events(
-      equality_filters=equality_filters, order_by=order_by, limit=limit)
-
-  return events
+  if repository:
+    yield from repository.get_events(
+        equality_filters=equality_filters, order_by=order_by)

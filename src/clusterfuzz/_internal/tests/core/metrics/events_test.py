@@ -926,52 +926,49 @@ class DatastoreEventsTest(unittest.TestCase):
   def _get_events_patch(self):
     """Patch dependencies for get_events tests."""
     helpers.patch(self, [
-        'clusterfuzz._internal.datastore.data_handler.get_entities',
-        'clusterfuzz._internal.metrics.events.NDBEventRepository._deserialize_event'
+        'clusterfuzz._internal.datastore.data_handler.get_entities_ids',
+        'clusterfuzz._internal.metrics.events.NDBEventRepository.get_event'
     ])
+
+  def _get_entities_ids_mock(self, entity_kind, equality_filters, order_by):
+    """Mock for get_entities_ids that yields test entity IDs."""
+    del entity_kind, equality_filters, order_by
+    query = data_types.TestcaseLifecycleEvent.query(
+        data_types.TestcaseLifecycleEvent.event_type == 'generic_event_test')
+    yield from (key.id() for key in query.iter(keys_only=True))
 
   def test_get_events(self):
     """Verify that get_events correctly orchestrate the events retrieval."""
     self._get_events_patch()
 
     entity = data_types.TestcaseLifecycleEvent(event_type='generic_event_test')
+    entity.put()
     event = events.Event(event_type='generic_event_test')
 
-    def deserialize_mock(self_ar_gument, arg):
-      del self_ar_gument
-      if arg == entity:
-        return event
-      return None
-
-    entities = [entity]
-    self.mock.get_entities.return_value = entities
-    self.mock._deserialize_event.side_effect = deserialize_mock  # pylint: disable=protected-access
+    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
+    self.mock.get_event.side_effect = lambda _, event_id: event if event_id == entity.key.id() else None
 
     equality_filters = {'event_type': 'generic_event_test'}
     order_by = ['-timestamp']
-    limit = 1
     result = self.repository.get_events(
-        equality_filters=equality_filters, order_by=order_by, limit=limit)
+        equality_filters=equality_filters, order_by=order_by)
     expected_events = [event]
 
-    self.assertEqual(result, expected_events)
-    self.mock.get_entities.assert_called_once_with(
+    self.assertCountEqual(result, expected_events)
+    self.mock.get_entities_ids.assert_called_once_with(
         data_types.TestcaseLifecycleEvent,
         equality_filters=equality_filters,
-        order_by=order_by,
-        limit=limit)
-    self.mock._deserialize_event.assert_called_once_with(mock.ANY, entity)  # pylint: disable=protected-access
+        order_by=order_by)
+    self.mock.get_event.assert_called_once_with(mock.ANY, entity.key.id())
 
   def test_get_events_empty(self):
-    """Verify that get_events returns an empty list when no entities are found."""
+    """Verify that get_events yields no events when no events are found."""
     self._get_events_patch()
-
-    self.mock.get_entities.return_value = []
+    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
     result_events = self.repository.get_events()
-    self.assertEqual(result_events, [])
-    self.mock.get_entities.assert_called_once_with(
-        data_types.TestcaseLifecycleEvent, None, None, None)
-    self.mock._deserialize_event.assert_not_called()  # pylint: disable=protected-access
+    self.assertCountEqual(result_events, [])
+    self.mock.get_entities_ids.assert_called_once_with(
+        data_types.TestcaseLifecycleEvent, None, None)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1229,28 +1226,29 @@ class GetEventsTest(unittest.TestCase):
     self.mock.get_events.return_value = expected_events
     equality_filters = {'event_type': 'generic_event_test'}
     order_by = ['-timestamp']
-    limit = 1
     result = events.get_events(
-        equality_filters=equality_filters, order_by=order_by, limit=limit)
+        equality_filters=equality_filters, order_by=order_by)
 
-    self.assertEqual(result, expected_events)
+    self.assertCountEqual(result, expected_events)
     self.mock.get_events.assert_called_once_with(
-        mock.ANY,
-        equality_filters=equality_filters,
-        order_by=order_by,
-        limit=limit)
+        mock.ANY, equality_filters=equality_filters, order_by=order_by)
 
   def test_get_events_empty(self):
-    """Verify that get_events returns an empty list when no events are found."""
+    """Verify that get_events yields an empty generator when no events are found."""
+
+    def get_events_mock(self_arg, equality_filters, order_by):
+      del self_arg, equality_filters, order_by
+      yield from ()
+
     self.mock.get_repository.return_value = events.NDBEventRepository()
-    expected_events = []
-    self.mock.get_events.return_value = expected_events
+    self.mock.get_events.side_effect = get_events_mock
+
     result = events.get_events()
-    self.assertEqual(result, expected_events)
-    self.mock.get_events.assert_called_once_with(mock.ANY, None, None, None)
+    self.assertCountEqual(result, [])
+    self.mock.get_events.assert_called_once_with(mock.ANY, None, None)
 
   def test_get_events_with_no_repository(self):
-    """Verify that get_events returns None when no repository is configured."""
+    """Verify that get_events yields an empty generator when no repository is configured."""
     self.mock.get_repository.return_value = None
     result = events.get_events()
-    self.assertIsNone(result)
+    self.assertCountEqual(result, [])

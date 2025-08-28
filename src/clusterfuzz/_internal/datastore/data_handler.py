@@ -19,7 +19,10 @@ import os
 import re
 import shlex
 import time
-from typing import Mapping, Sequence,TypeAlias
+from typing import Generator
+from typing import Mapping
+from typing import Sequence
+from typing import TypeAlias
 
 from google.cloud import ndb
 
@@ -1609,19 +1612,32 @@ def _apply_order(query: ndb.Query, entity_kind: data_types.Model,
   return query
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='datastore.data_handler.get_entities')
-def get_entities(entity_kind: data_types.Model,
-                 equality_filters: Mapping[str, FilterValue] | None = None,
-                 order_by: Sequence[str] | None = None,
-                 limit: int | None = None) -> list[data_types.Model]:
-  """Queries the entity kind with equality filters, ordering, and a limit."""
+def get_entities_query(
+    entity_kind: data_types.Model,
+    equality_filters: Mapping[str, FilterValue] | None = None,
+    order_by: Sequence[str] | None = None) -> ndb.Query:
+  """Returns a query for the entity kind with equality filters and ordering."""
   query = entity_kind.query()
   query = _apply_filters(query, entity_kind, equality_filters)
   query = _apply_order(query, entity_kind, order_by)
-  return query.fetch(limit=limit)
+  return query
+
+
+def get_entities_ids(entity_kind: data_types.Model,
+                     equality_filters: Mapping[str, FilterValue] | None = None,
+                     order_by: Sequence[str] | None = None) -> Generator:
+  """Yields IDs of entities matching optional filters and ordering."""
+  query = get_entities_query(entity_kind, equality_filters, order_by)
+  yield from (
+      key.id() for key in ndb_utils.get_all_from_query(query, keys_only=True))
+
+
+def get_entities(entity_kind: data_types.Model,
+                 equality_filters: Mapping[str, FilterValue] | None = None,
+                 order_by: Sequence[str] | None = None) -> Generator:
+  """Yields entities matching optional filters and ordering."""
+  query = get_entities_query(entity_kind, equality_filters, order_by)
+  yield from ndb_utils.get_all_from_query(query)
 
 
 # ------------------------------------------------------------------------------
