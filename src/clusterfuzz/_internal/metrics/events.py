@@ -110,6 +110,7 @@ class GroupingReason:
   SAME_ISSUE = 'same_issue'
   IDENTICAL_VARIANT = 'identical_variant'
   GROUP_MERGE = 'group_merge'
+  UNGROUPED = 'ungrouped'
 
 
 @dataclass(kw_only=True)
