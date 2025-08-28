@@ -404,14 +404,16 @@ class NDBEventRepository(IEventRepository, EventHandler):
 
     The events match the given equality filters, ordering, and limit.
     """
-    entity_kind = self._default_entity
+    event_type = (equality_filters or {}).get('event_type')
+    entity_kind = self._event_to_entity_map.get(event_type,
+                                                self._default_entity)
     entities_ids = data_handler.get_entities_ids(
         entity_kind=entity_kind,
         equality_filters=equality_filters,
         order_by=order_by)
 
     yield from (event for entity_id in entities_ids
-                if (event := self.get_event(entity_id)))
+                if (event := self.get_event(entity_id, event_type)))
 
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""

@@ -965,6 +965,16 @@ class DatastoreEventsTest(unittest.TestCase):
     """Verify that get_events yields no events when no events are found."""
     self._get_events_patch()
     self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
+    equality_filters = {'event_type': 'generic_event_test'}
+    result_events = self.repository.get_events(equality_filters)
+    self.assertCountEqual(result_events, [])
+    self.mock.get_entities_ids.assert_called_once_with(
+        data_types.TestcaseLifecycleEvent, None, None)
+
+  def test_get_events_with_no_event_type_filter(self):
+    """Verify that get_events works correctly without an event_type."""
+    self._get_events_patch()
+    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
     result_events = self.repository.get_events()
     self.assertCountEqual(result_events, [])
     self.mock.get_entities_ids.assert_called_once_with(
