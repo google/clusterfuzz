@@ -15,6 +15,7 @@
 import datetime
 import os
 import platform
+from typing import Generator
 import unittest
 from unittest import mock
 
@@ -204,6 +205,51 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_closing.issue_id, '12345')
     self.assertEqual(event_closing.closing_reason,
                      events.ClosingReason.TESTCASE_FIXED)
+
+  def test_testcase_grouping_event(self):
+    """Test testcase grouping event class."""
+    event_type = events.EventTypes.TESTCASE_GROUPING
+    source = 'events_test'
+    testcase = test_utils.create_generic_testcase()
+    similar_testcase_id = 2
+
+    # Testcase is similar to another one.
+    event_grouping = events.TestcaseGroupingEvent(
+        source=source,
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=0,
+        similar_testcase_id=similar_testcase_id,
+        grouping_reason=events.GroupingReason.SIMILAR_CRASH)
+    self._assert_event_common_fields(event_grouping, event_type, source)
+    self._assert_testcase_fields(event_grouping, testcase)
+    self._assert_task_fields(event_grouping)
+    self.assertEqual(event_grouping.group_id, 10)
+    self.assertEqual(event_grouping.previous_group_id, 0)
+    self.assertEqual(event_grouping.similar_testcase_id, similar_testcase_id)
+    self.assertEqual(event_grouping.grouping_reason,
+                     events.GroupingReason.SIMILAR_CRASH)
+    self.assertEqual(event_grouping.group_merge_reason, None)
+
+    # Testcase's group is being merged.
+    event_grouping = events.TestcaseGroupingEvent(
+        source=source,
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=5,
+        similar_testcase_id=similar_testcase_id,
+        grouping_reason=events.GroupingReason.GROUP_MERGE,
+        group_merge_reason=events.GroupingReason.SAME_ISSUE)
+    self._assert_event_common_fields(event_grouping, event_type, source)
+    self._assert_testcase_fields(event_grouping, testcase)
+    self._assert_task_fields(event_grouping)
+    self.assertEqual(event_grouping.group_id, 10)
+    self.assertEqual(event_grouping.previous_group_id, 5)
+    self.assertEqual(event_grouping.similar_testcase_id, similar_testcase_id)
+    self.assertEqual(event_grouping.grouping_reason,
+                     events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event_grouping.group_merge_reason,
+                     events.GroupingReason.SAME_ISSUE)
 
   def test_task_execution_event(self):
     """Test task execution events."""
@@ -466,6 +512,40 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.closing_reason,
                      events.ClosingReason.TESTCASE_FIXED)
 
+  def test_serialize_testcase_grouping_event(self):
+    """Test serializing a testcase grouping event."""
+    testcase = test_utils.create_generic_testcase()
+    event = events.TestcaseGroupingEvent(
+        source='events_test',
+        testcase=testcase,
+        group_id=10,
+        previous_group_id=5,
+        similar_testcase_id=2,
+        grouping_reason=events.GroupingReason.GROUP_MERGE,
+        group_merge_reason=events.GroupingReason.IDENTICAL_VARIANT)
+    event_type = event.event_type
+    timestamp = event.timestamp
+
+    event_entity = self.repository._serialize_event(event)  # pylint: disable=protected-access
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions
+    self.assertIsNotNone(event_entity)
+    self.assertIsInstance(event_entity, data_types.TestcaseLifecycleEvent)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_testcase_fields(event_entity, testcase.key.id())
+    self._assert_task_fields(event_entity)
+
+    # TestcaseGroupingEvent specific assertions
+    self.assertEqual(event_entity.group_id, 10)
+    self.assertEqual(event_entity.previous_group_id, 5)
+    self.assertEqual(event_entity.similar_testcase_id, 2)
+    self.assertEqual(event_entity.grouping_reason,
+                     events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event_entity.group_merge_reason,
+                     events.GroupingReason.IDENTICAL_VARIANT)
+
   def test_serialize_task_execution_event(self):
     """Test serializing a task execution event into a datastore entity."""
     source = 'events_test'
@@ -713,6 +793,52 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.issue_id, '13579')
     self.assertEqual(event.closing_reason, events.ClosingReason.TESTCASE_FIXED)
 
+  def test_deserialize_testcase_grouping_event(self):
+    """Test deserializing a testcase grouping event."""
+    event_type = events.EventTypes.TESTCASE_GROUPING
+    date_now = datetime.datetime(2025, 1, 1, 10, 30, 15)
+
+    event_entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    event_entity.timestamp = date_now
+    event_entity.source = 'events_test'
+    self._set_common_event_fields(event_entity)
+    event_entity.task_id = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    event_entity.task_name = 'triage'
+    event_entity.testcase_id = 1
+    event_entity.fuzzer = 'fuzzer1'
+    event_entity.job = 'test_job'
+    event_entity.crash_revision = 2
+    event_entity.group_id = 10
+    event_entity.previous_group_id = 5
+    event_entity.similar_testcase_id = 2
+    event_entity.grouping_reason = events.GroupingReason.GROUP_MERGE
+    event_entity.group_merge_reason = events.GroupingReason.SIMILAR_CRASH
+    event_entity.put()
+
+    event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
+    self.assertIsNotNone(event)
+    self.assertIsInstance(event, events.TestcaseGroupingEvent)
+
+    # BaseTestcaseEvent and BaseTaskEvent general assertions.
+    self.assertEqual(event.event_type, event_type)
+    self.assertEqual(event.source, 'events_test')
+    self.assertEqual(event.timestamp, date_now)
+    self._assert_common_event_fields(event)
+    self.assertEqual(event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
+    self.assertEqual(event.task_name, 'triage')
+    self.assertEqual(event.testcase_id, 1)
+    self.assertEqual(event.fuzzer, 'fuzzer1')
+    self.assertEqual(event.job, 'test_job')
+    self.assertEqual(event.crash_revision, 2)
+
+    # TestcaseGroupingEvent specific assertions
+    self.assertEqual(event.group_id, 10)
+    self.assertEqual(event.previous_group_id, 5)
+    self.assertEqual(event.similar_testcase_id, 2)
+    self.assertEqual(event.grouping_reason, events.GroupingReason.GROUP_MERGE)
+    self.assertEqual(event.group_merge_reason,
+                     events.GroupingReason.SIMILAR_CRASH)
+
   def test_deserialize_task_execution_event(self):
     """Test deserializing a datastore event into a task execution event."""
     event_type = events.EventTypes.TASK_EXECUTION
@@ -799,49 +925,64 @@ class DatastoreEventsTest(unittest.TestCase):
     self._assert_common_event_fields(event)
 
   def _get_events_patch(self):
+    """Patch dependencies for get_events tests."""
     helpers.patch(self, [
-        'clusterfuzz._internal.datastore.data_handler.get_entities',
-        'clusterfuzz._internal.metrics.events.NDBEventRepository._deserialize_event'
+        'clusterfuzz._internal.datastore.data_handler.get_entities_ids',
+        'clusterfuzz._internal.metrics.events.NDBEventRepository.get_event'
     ])
 
+  def _get_entities_ids_mock(self, entity_kind, equality_filters, order_by):
+    """Mock for get_entities_ids that yields test entity IDs."""
+    del entity_kind, equality_filters, order_by
+    query = data_types.TestcaseLifecycleEvent.query(
+        data_types.TestcaseLifecycleEvent.event_type == 'generic_event_test')
+    yield from (key.id() for key in query.iter(keys_only=True))
+
   def test_get_events(self):
-    """."""
+    """Verify that get_events correctly orchestrate the events retrieval."""
     self._get_events_patch()
 
-    entity = data_types.TestcaseLifecycleEvent(event_type='generic_event_test')
-    event = events.Event(event_type='generic_event_test')
-    def deserialize_mock(self_argument, arg):
-      if arg == entity:
-        return event
-      return None
+    event_type = 'generic_event_test'
+    entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
+    entity.put()
+    event = events.Event(event_type=event_type)
 
-    entities = [entity]
-    self.mock.get_entities.return_value = entities
-    self.mock._deserialize_event.side_effect = deserialize_mock
+    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
+    self.mock.get_event.side_effect = lambda _, event_id, event_type : event if event_id == entity.key.id() else None
 
-    equality_filters = {'event_type': 'generic_event_test'}
+    equality_filters = {'event_type': event_type}
     order_by = ['-timestamp']
-    limit = 1
     result = self.repository.get_events(
-        equality_filters=equality_filters, order_by=order_by, limit=limit)
+        equality_filters=equality_filters, order_by=order_by)
     expected_events = [event]
 
-    self.assertEqual(result, expected_events)
-    self.mock.get_entities.assert_called_once_with(
-        data_types.TestcaseLifecycleEvent, equality_filters=equality_filters,
-        order_by=order_by, limit=limit)
-    self.mock._deserialize_event.assert_called_once_with(mock.ANY, entity)
+    self.assertCountEqual(result, expected_events)
+    self.mock.get_entities_ids.assert_called_once_with(
+        data_types.TestcaseLifecycleEvent,
+        equality_filters=equality_filters,
+        order_by=order_by)
+    self.mock.get_event.assert_called_once_with(mock.ANY, entity.key.id(),
+                                                event_type)
 
   def test_get_events_empty(self):
-    """."""
+    """Verify that get_events yields no events when no events are found."""
     self._get_events_patch()
+    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
+    equality_filters = {'event_type': 'generic_event_test'}
+    result_events = self.repository.get_events(equality_filters)
+    self.assertCountEqual(result_events, [])
+    self.mock.get_entities_ids.assert_called_once_with(
+        data_types.TestcaseLifecycleEvent, equality_filters, None)
 
-    self.mock.get_entities.return_value = []
+  def test_get_events_with_no_event_type_filter(self):
+    """Verify that get_events works correctly without an event_type."""
+    self._get_events_patch()
+    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
     result_events = self.repository.get_events()
-    self.assertEqual(result_events, [])
-    self.mock.get_entities.assert_called_once_with(
-      data_types.TestcaseLifecycleEvent, None, None, None)
-    self.mock._deserialize_event.assert_not_called()
+    self.assertCountEqual(result_events, [])
+    self.mock.get_entities_ids.assert_called_once_with(
+        data_types.TestcaseLifecycleEvent, None, None)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class EventsNotificationsTest(unittest.TestCase):
@@ -996,10 +1137,10 @@ class EmitEventTest(unittest.TestCase):
     self.mock._get_datetime_now.return_value = self.date_now  # pylint: disable=protected-access
     self.project_config = {}
     self.mock.ProjectConfig.return_value = self.project_config
-
-  def tearDown(self):
     # Reset handlers, since it is only configured in the first events emit.
     events._handlers = None  # pylint: disable=protected-access
+
+  def tearDown(self):
     self.project_config = {}
 
   def test_get_datastore_repository(self):
@@ -1082,7 +1223,7 @@ class EmitEventTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class GetEventsTest(unittest.TestCase):
-  """."""
+  """Test retrieving events."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -1092,31 +1233,98 @@ class GetEventsTest(unittest.TestCase):
     ])
 
   def test_get_events(self):
-    """."""
+    """Verify that get_events correctly calls the repository with filters."""
     self.mock.get_repository.return_value = events.NDBEventRepository()
     expected_events = [events.Event(event_type='generic_event_test')]
     self.mock.get_events.return_value = expected_events
     equality_filters = {'event_type': 'generic_event_test'}
     order_by = ['-timestamp']
-    limit = 1
     result = events.get_events(
-        equality_filters=equality_filters, order_by=order_by, limit=limit)
+        equality_filters=equality_filters, order_by=order_by)
 
-    self.assertEqual(result, expected_events)
+    self.assertCountEqual(result, expected_events)
     self.mock.get_events.assert_called_once_with(
-        mock.ANY, equality_filters=equality_filters, order_by=order_by,
-        limit=limit)
+        mock.ANY, equality_filters=equality_filters, order_by=order_by)
 
   def test_get_events_empty(self):
-    """."""
+    """Verify that get_events yields an empty generator when no events are found."""
+
+    def get_events_mock(self_arg, equality_filters, order_by):
+      del self_arg, equality_filters, order_by
+      yield from ()
+
     self.mock.get_repository.return_value = events.NDBEventRepository()
-    expected_events = []
-    self.mock.get_events.return_value = expected_events
+    self.mock.get_events.side_effect = get_events_mock
+
     result = events.get_events()
-    self.assertEqual(result, expected_events)
+    self.assertCountEqual(result, [])
+    self.mock.get_events.assert_called_once_with(mock.ANY, None, None)
 
   def test_get_events_with_no_repository(self):
-    """."""
+    """Verify that get_events yields an empty generator when no repository is configured."""
     self.mock.get_repository.return_value = None
     result = events.get_events()
-    self.assertIsNone(result)
+    self.assertCountEqual(result, [])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetLatestEventsFromTestcaseTest(unittest.TestCase):
+  """Test retrieving latest events from a testcase."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.get_events',
+    ])
+
+  def test_get_latest_events_from_testcase_no_filters(self):
+    """Verify that get_events is called correctly with no filters."""
+    testcase_id = 123
+    expected_events = [events.Event(event_type='generic_event_test')]
+    self.mock.get_events.return_value = iter(expected_events)
+
+    result = events.get_latest_events_from_testcase(testcase_id)
+
+    self.assertIsInstance(result, Generator)
+    self.assertCountEqual(result, expected_events)
+    expected_filters = {'testcase_id': testcase_id}
+    expected_order_by = ['-timestamp']
+    self.mock.get_events.assert_called_once_with(
+        equality_filters=expected_filters, order_by=expected_order_by)
+
+  def test_get_latest_events_from_testcase_with_event_type(self):
+    """Verify that get_events is called correctly with an event_type filter."""
+    testcase_id = 123
+    event_type = 'testcase_creation'
+    expected_events = [events.Event(event_type=event_type)]
+    self.mock.get_events.return_value = iter(expected_events)
+
+    result = events.get_latest_events_from_testcase(
+        testcase_id, event_type=event_type)
+
+    self.assertCountEqual(result, expected_events)
+    expected_filters = {'testcase_id': testcase_id, 'event_type': event_type}
+    expected_order_by = ['-timestamp']
+    self.mock.get_events.assert_called_once_with(
+        equality_filters=expected_filters, order_by=expected_order_by)
+
+  def test_get_latest_events_from_testcase_with_all_filters(self):
+    """Verify that get_events is called correctly with all filters."""
+    testcase_id = 123
+    event_type = 'testcase_creation'
+    task_name = 'fuzz'
+    expected_events = [events.Event(event_type=event_type)]
+    self.mock.get_events.return_value = iter(expected_events)
+
+    result = events.get_latest_events_from_testcase(
+        testcase_id, event_type=event_type, task_name=task_name)
+
+    self.assertCountEqual(result, expected_events)
+    expected_filters = {
+        'testcase_id': testcase_id,
+        'event_type': event_type,
+        'task_name': task_name
+    }
+    expected_order_by = ['-timestamp']
+    self.mock.get_events.assert_called_once_with(
+        equality_filters=expected_filters, order_by=expected_order_by)

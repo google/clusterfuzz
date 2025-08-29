@@ -21,11 +21,15 @@ from dataclasses import field
 from dataclasses import InitVar
 import datetime
 from typing import Any
+from typing import Generator
+from typing import Mapping
+from typing import Sequence
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore.data_handler import FilterValue
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -44,6 +48,7 @@ class EventTypes:
   ISSUE_FILING = 'issue_filing'
   TASK_EXECUTION = 'task_execution'
   ISSUE_CLOSING = 'issue_closing'
+  TESTCASE_GROUPING = 'testcase_grouping'
 
 
 class TestcaseOrigin:
@@ -97,6 +102,15 @@ class ClosingReason:
   TESTCASE_FIXED = 'testcase_fixed'
   TESTCASE_UNREPRO = 'testcase_unreproducible'
   TESTCASE_INVALID = 'testcase_invalid'
+
+
+class GroupingReason:
+  """Reason for grouping testcases."""
+  SIMILAR_CRASH = 'similar_crash'
+  SAME_ISSUE = 'same_issue'
+  IDENTICAL_VARIANT = 'identical_variant'
+  GROUP_MERGE = 'group_merge'
+  UNGROUPED = 'ungrouped'
 
 
 @dataclass(kw_only=True)
@@ -243,6 +257,22 @@ class IssueClosingEvent(BaseTestcaseEvent, BaseTaskEvent):
   closing_reason: str | None = None
 
 
+@dataclass(kw_only=True)
+class TestcaseGroupingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase grouping event."""
+  event_type: str = field(default=EventTypes.TESTCASE_GROUPING, init=False)
+  # Group ID that the testcase is currently being moved to.
+  group_id: int | None = None
+  # Previous group ID, If testcase was in a previous group.
+  previous_group_id: int | None = None
+  # Similar testcase that caused the grouping.
+  similar_testcase_id: int | None = None
+  # Reason for grouping.
+  grouping_reason: str | None = None
+  # If testcase's group is being merged, the reason that caused the grouping.
+  group_merge_reason: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
@@ -251,6 +281,7 @@ _EVENT_TYPE_CLASSES = {
     EventTypes.ISSUE_FILING: IssueFilingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
     EventTypes.ISSUE_CLOSING: IssueClosingEvent,
+    EventTypes.TESTCASE_GROUPING: TestcaseGroupingEvent,
 }
 
 
@@ -285,11 +316,14 @@ class IEventRepository(ABC):
     """Retrieve an event from the underlying database and return it."""
 
   @abstractmethod
-  def get_events(self,
-                 equality_filters: dict[str, Any] | None = None,
-                 order_by: list[str] | None = None,
-                 limit: int | None = None) -> list[Event]:
-    """Retrieves events matching the given filters, ordering, and limit."""
+  def get_events(
+      self,
+      equality_filters: Mapping[str, FilterValue] | None = None,
+      order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
+    """Yields events from the underlying database.
+    
+    The events match the specified equality filters, ordering, and limit.
+    """
 
 
 class NDBEventRepository(IEventRepository, EventHandler):
@@ -363,22 +397,24 @@ class NDBEventRepository(IEventRepository, EventHandler):
     event = self._deserialize_event(event_entity)
     return event
 
-  def get_events(self,
-                 equality_filters: dict[str, Any] | None = None,
-                 order_by: list[str] | None = None,
-                 limit: int | None = None) -> list[Event]:
-    """Retrieves events matching the given filters, ordering, and limit."""
-    entity_kind = self._default_entity
-    results = data_handler.get_entities(
+  def get_events(
+      self,
+      equality_filters: Mapping[str, FilterValue] | None = None,
+      order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
+    """Yields events from datastore.
+
+    The events match the given equality filters, ordering, and limit.
+    """
+    event_type = (equality_filters or {}).get('event_type')
+    entity_kind = self._event_to_entity_map.get(event_type,
+                                                self._default_entity)
+    entities_ids = data_handler.get_entities_ids(
         entity_kind=entity_kind,
         equality_filters=equality_filters,
-        order_by=order_by,
-        limit=limit)
+        order_by=order_by)
 
-    return [
-        event for entity in results
-        if (event := self._deserialize_event(entity)) is not None
-    ]
+    yield from (event for entity_id in entities_ids
+                if (event := self.get_event(entity_id, event_type)))
 
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""
@@ -543,15 +579,29 @@ def emit(event: Event) -> None:
     handler.emit(event)
 
 
-def get_events(equality_filters: dict[str, Any] | None = None,
-               order_by: list[str] | None = None,
-               limit: int | None = None) -> list[Event] | None:
-  """Returns events matching the given filters, ordering, and limit."""
+def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
+               order_by: Sequence[str] | None = None) -> Generator:
+  """Yields events matching the equality filters and ordering."""
   repository = get_repository()
-  if repository is None:
-    return None
+  if repository:
+    yield from repository.get_events(
+        equality_filters=equality_filters, order_by=order_by)
 
-  events = repository.get_events(
-      equality_filters=equality_filters, order_by=order_by, limit=limit)
 
-  return events
+def get_latest_events_from_testcase(testcase_id: int,
+                                    event_type: str | None = None,
+                                    task_name: str | None = None) -> Generator:
+  """Yields events from a testcase, with optional filters.
+  
+  Events are yielded in reverse chronological order."""
+  potential_filters = {
+      'testcase_id': testcase_id,
+      'event_type': event_type,
+      'task_name': task_name,
+  }
+  equality_filters = {
+      filter: value for filter, value in potential_filters.items() if value
+  }
+  order_by = ['-timestamp']
+
+  yield from get_events(equality_filters=equality_filters, order_by=order_by)

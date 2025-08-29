@@ -70,11 +70,6 @@ cron:
     schedule: every day 01:00
     target: cron-service
 
-  - description: Manage VMs.
-    url: /manage-vms
-    schedule: every 30 minutes
-    target: cron-service
-
   - description: Schedule corpus pruning task.
     url: /schedule-corpus-pruning
     schedule: every day 19:00

@@ -184,13 +184,9 @@ to deploy new changes.
 
 ### Google Compute Engine bots
 
-Once deployed, bots are automatically created via an App Engine cron task that
-runs every *30 minutes*. For faster results, you can manually force it by
-visiting the `Cron jobs` page
-[here](https://console.cloud.google.com/appengine/cronjobs) and running the
-`/manage-vms` cron job.
+ClusterFuzz bots must be created (preferably by Terraform) following the configurations in configs/test/gce/clusters.yaml.
 
-After the cron job finishes, check this
+After creation or update finishes, check
 [page](https://console.cloud.google.com/compute/instanceGroups/list) to ensure
 that all instances are created for this particular
 [instance group](#google-compute-engine-cluster).
