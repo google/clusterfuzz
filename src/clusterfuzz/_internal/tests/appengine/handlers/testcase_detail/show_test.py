@@ -612,71 +612,41 @@ class GetTestcaseTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GetLastEventsInfoTest(unittest.TestCase):
-  """Test _get_last_events_info."""
+class GetLastEventInfoTest(unittest.TestCase):
+  """Tests for _get_last_event_info function."""
 
   def setUp(self):
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.events.get_events',
+        'clusterfuzz._internal.metrics.events.get_latest_events_from_testcase',
     ])
 
-  def test_get_last_events_info(self):
-    """Test that events are retrieved and formatted correctly."""
-    event1 = data_types.TestcaseLifecycleEvent(
+  def test_get_last_event_info(self):
+    """Verify that event info is retrieved and formatted correctly."""
+    event = data_types.TestcaseLifecycleEvent(
+        creation_origin=events.TestcaseOrigin.FUZZ_TASK,
         timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
-        task_stage='stage1',
-        task_status='status1',
-        task_outcome='outcome1')
-    event2 = data_types.TestcaseLifecycleEvent(
-        timestamp=datetime.datetime(2023, 1, 2, 0, 0, 0),
-        task_stage='stage2',
-        task_status='status2',
-        task_outcome='outcome2')
+        event_type='generic_event_type')
+    self.mock.get_latest_events_from_testcase.return_value = iter([event])
 
-    def mock_get_events(equality_filters, **kwargs):
-      del kwargs
-      if equality_filters.get('task_name') == 'task1':
-        return [event1]
-      if equality_filters.get('task_name') == 'task2':
-        return [event2]
-      return []
-
-    self.mock.get_events.side_effect = mock_get_events
-
-    result = show._get_last_events_info(
-        specific_equality_filter_key='task_name',
-        specific_equality_filter_values=['task1', 'task2', 'task3'],
-        common_equality_filters={'testcase_id': 1},
-        fields_to_extract=[
-            'timestamp', 'task_stage', 'task_status', 'task_outcome'
-        ])
+    result = show._get_last_event_info(
+        testcase_id=1,
+        fields_to_extract=['timestamp', 'creation_origin'],
+        event_type=events.EventTypes.TESTCASE_CREATION)
 
     expected = {
-        'task1': {
-            'timestamp': '2023-01-01 00:00:00.000000 UTC',
-            'task_stage': 'stage1',
-            'task_status': 'status1',
-            'task_outcome': 'outcome1'
-        },
-        'task2': {
-            'timestamp': '2023-01-02 00:00:00.000000 UTC',
-            'task_stage': 'stage2',
-            'task_status': 'status2',
-            'task_outcome': 'outcome2'
-        },
-        'task3': {}
+        'timestamp': '2023-01-01 00:00:00.000000 UTC',
+        'creation_origin': 'fuzz_task'
     }
     self.assertEqual(result, expected)
+    self.mock.get_latest_events_from_testcase.assert_called_once_with(
+        1, event_type='testcase_creation', task_name=None)
 
-  def test_get_last_events_info_no_events(self):
-    """Test that an empty dict is returned when no events are found."""
-    self.mock.get_events.return_value = []
-    result = show._get_last_events_info(
-        specific_equality_filter_key='task_name',
-        specific_equality_filter_values=['task1'],
-        common_equality_filters={'testcase_id': 1},
-        fields_to_extract=['timestamp'])
-    self.assertEqual(result, {'task1': {}})
+  def test_get_last_event_info_no_event(self):
+    """Verify that an empty dict is returned when no event is found."""
+    self.mock.get_latest_events_from_testcase.return_value = iter([])
+    result = show._get_last_event_info(
+        testcase_id=1, fields_to_extract=['timestamp'])
+    self.assertEqual(result, {})
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -685,63 +655,61 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'handlers.testcase_detail.show._get_last_events_info',
+        'handlers.testcase_detail.show._get_last_event_info',
     ])
 
   def test_get_testcase_status_machine_info(self):
-    """Test that the function calls _get_last_events_info with the correct
+    """Test that the function calls _get_last_event_info with the correct
     parameters and returns the expected dictionary."""
-    task_events_info = {'analyze': {'status': 'finished'}}
-    non_task_events_info = {
-        'testcase_creation': {
-            'timestamp': '2023-01-01 00:00:00.000000 UTC'
-        }
-    }
+    analyze_event_info = {'status': 'status1'}
+    creation_event_info = {'timestamp': '2023-01-01 00:00:00.000000 UTC'}
 
-    def mock_get_last_events_info(specific_equality_filter_key, **kwargs):
-      del kwargs
-      if specific_equality_filter_key == 'task_name':
-        return task_events_info
-      if specific_equality_filter_key == 'event_type':
-        return non_task_events_info
+    def mock_get_last_event_info(testcase_id,
+                                 fields_to_extract,
+                                 event_type=None,
+                                 task_name=None):
+      del testcase_id, fields_to_extract
+      if task_name == 'analyze':
+        return analyze_event_info
+      if event_type == events.EventTypes.TESTCASE_CREATION:
+        return creation_event_info
       return {}
 
-    self.mock._get_last_events_info.side_effect = mock_get_last_events_info
+    self.mock._get_last_event_info.side_effect = mock_get_last_event_info
 
     testcase_id = 123
     result = show.get_testcase_status_machine_info(testcase_id)
 
+    expected_task_events_info = {
+        task_name: {} for task_name in show.EVENTS_TASK_NAMES
+    }
+    expected_task_events_info['analyze'] = analyze_event_info
+
+    expected_non_task_events_info = {
+        event_type: {} for event_type in show.NON_TASK_EVENT_TYPES
+    }
+    expected_non_task_events_info[
+        events.EventTypes.TESTCASE_CREATION] = creation_event_info
+
     expected = {
-        'task_events_info': task_events_info,
-        'non_task_events_info': non_task_events_info,
+        'task_events_info': expected_task_events_info,
+        'non_task_events_info': expected_non_task_events_info,
     }
     self.assertEqual(result, expected)
 
-    calls = [
+    task_calls = [
         mock.call(
-            specific_equality_filter_key='task_name',
-            specific_equality_filter_values=[
-                'analyze', 'minimize', 'impact', 'regression', 'progression'
-            ],
-            common_equality_filters={
-                'testcase_id': testcase_id,
-                'event_type': events.EventTypes.TASK_EXECUTION
-            },
-            fields_to_extract=[
-                'task_stage', 'task_status', 'task_outcome', 'timestamp'
-            ]),
-        mock.call(
-            specific_equality_filter_key='event_type',
-            specific_equality_filter_values=[
-                events.EventTypes.TESTCASE_REJECTION,
-                events.EventTypes.TESTCASE_CREATION,
-                events.EventTypes.TESTCASE_FIXED,
-                events.EventTypes.ISSUE_CLOSING,
-            ],
-            common_equality_filters={'testcase_id': testcase_id},
-            fields_to_extract=['timestamp'])
+            testcase_id,
+            ['task_stage', 'task_status', 'task_outcome', 'timestamp'],
+            event_type=events.EventTypes.TASK_EXECUTION,
+            task_name=task_name) for task_name in show.EVENTS_TASK_NAMES
     ]
-    self.mock._get_last_events_info.assert_has_calls(calls, any_order=True)
+    non_task_calls = [
+        mock.call(testcase_id, ['timestamp'], event_type=event_type)
+        for event_type in show.NON_TASK_EVENT_TYPES
+    ]
+
+    self.mock._get_last_event_info.assert_has_calls(task_calls + non_task_calls)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -760,26 +728,26 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
         task_name='analyze',
-        task_stage='main',
-        task_status='finished',
-        task_outcome='reproducible',
+        task_stage='stage1',
+        task_status='status1',
+        task_outcome='outcome1',
         timestamp=datetime.datetime(2023, 1, 1, 10, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
         task_name='analyze',
-        task_stage='postprocess',
-        task_status='completed',
-        task_outcome='reproducible_with_new_crash_type',
+        task_stage='stage2',
+        task_status='status2',
+        task_outcome='outcome2',
         timestamp=datetime.datetime(2023, 1, 1, 11, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
         task_name='minimize',
-        task_stage='main',
-        task_status='started',
+        task_stage='stage3',
+        task_status='status3',
         task_outcome=None,
         timestamp=datetime.datetime(2023, 1, 1, 12, 0, 0)).put()
 
@@ -799,14 +767,14 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
 
     expected_task_events = {
         'analyze': {
-            'task_stage': 'postprocess',
-            'task_status': 'completed',
-            'task_outcome': 'reproducible_with_new_crash_type',
+            'task_stage': 'stage2',
+            'task_status': 'status2',
+            'task_outcome': 'outcome2',
             'timestamp': '2023-01-01 11:00:00.000000 UTC'
         },
         'minimize': {
-            'task_stage': 'main',
-            'task_status': 'started',
+            'task_stage': 'stage3',
+            'task_status': 'status3',
             'task_outcome': None,
             'timestamp': '2023-01-01 12:00:00.000000 UTC'
         },

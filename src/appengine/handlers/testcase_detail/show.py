@@ -69,12 +69,16 @@ STACKTRACE_MAX_LENGTH = 500000
 EVENTS_TASK_NAMES = [
     'analyze', 'minimize', 'impact', 'regression', 'progression'
 ]
+EVENTS_TASK_FIELDS_TO_EXTRACT = [
+    'task_stage', 'task_status', 'task_outcome', 'timestamp'
+]
 NON_TASK_EVENT_TYPES = [
     events.EventTypes.TESTCASE_REJECTION,
     events.EventTypes.TESTCASE_CREATION,
     events.EventTypes.TESTCASE_FIXED,
     events.EventTypes.ISSUE_CLOSING,
 ]
+EVENTS_NON_TASK_FIELDS_TO_EXTRACT = ['timestamp']
 
 
 def _truncate_stacktrace(stacktrace):
@@ -360,58 +364,43 @@ def _format_reproduction_help(reproduction_help):
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
 
-def _get_last_events_info(
-    specific_equality_filter_key: str, specific_equality_filter_values: list,
-    common_equality_filters: dict, fields_to_extract: list) -> dict:
-  """Get events info."""
-  events_info = {}
-  order_by = ['-timestamp']
-  limit = 1
-
-  for value in specific_equality_filter_values:
-    equality_filters = common_equality_filters.copy()
-    equality_filters[specific_equality_filter_key] = value
-    events_info[value] = {}
-    last_event_list = events.get_events(
-        equality_filters=equality_filters, order_by=order_by, limit=limit)
-    if last_event_list:
-      last_event = last_event_list[0]
-      for field in fields_to_extract:
-        if hasattr(last_event, field):
-          attr_value = getattr(last_event, field)
-          if field == 'timestamp' and attr_value:
-            attr_value = attr_value.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
-          events_info[value][field] = attr_value
-
-  return events_info
+def _get_last_event_info(testcase_id: int,
+                         fields_to_extract: list,
+                         event_type: str | None = None,
+                         task_name: str | None = None) -> dict:
+  """Get latest event info for a specific filter set."""
+  last_event = next(
+      events.get_latest_events_from_testcase(
+          testcase_id, event_type=event_type, task_name=task_name), None)
+  info = {}
+  if last_event:
+    for field in fields_to_extract:
+      if hasattr(last_event, field):
+        attr_value = getattr(last_event, field)
+        if field == 'timestamp' and attr_value:
+          attr_value = attr_value.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
+        info[field] = attr_value
+  return info
 
 
 def get_testcase_status_machine_info(testcase_id: int) -> dict:
   """Get testcase status machine info."""
-  task_events_info = _get_last_events_info(
-      specific_equality_filter_key='task_name',
-      specific_equality_filter_values=EVENTS_TASK_NAMES,
-      common_equality_filters={
-          'testcase_id': testcase_id,
-          'event_type': events.EventTypes.TASK_EXECUTION
-      },
-      fields_to_extract=[
-          'task_stage', 'task_status', 'task_outcome', 'timestamp'
-      ])
-
-  non_task_events_info = _get_last_events_info(
-      specific_equality_filter_key='event_type',
-      specific_equality_filter_values=NON_TASK_EVENT_TYPES,
-      common_equality_filters={
-          'testcase_id': testcase_id,
-      },
-      fields_to_extract=['timestamp'])
-
-  testcase_status_machine_info = {
+  task_events_info = {
+      task_name: _get_last_event_info(
+          testcase_id,
+          EVENTS_TASK_FIELDS_TO_EXTRACT,
+          event_type=events.EventTypes.TASK_EXECUTION,
+          task_name=task_name) for task_name in EVENTS_TASK_NAMES
+  }
+  non_task_events_info = {
+      event_type: _get_last_event_info(
+          testcase_id, EVENTS_NON_TASK_FIELDS_TO_EXTRACT, event_type=event_type)
+      for event_type in NON_TASK_EVENT_TYPES
+  }
+  return {
       'task_events_info': task_events_info,
       'non_task_events_info': non_task_events_info,
   }
-  return testcase_status_machine_info
 
 
 def get_testcase_detail(testcase):
