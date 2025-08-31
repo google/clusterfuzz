@@ -922,8 +922,12 @@ def critical_tasks_completed(testcase):
   if not utils.is_chromium():
     return testcase.minimized_keys and testcase.regression
 
+  # Only require impact if it is feasible to run it. Don't require it if not
+  # (when regression fails).
+  impact_satisfied = testcase.is_impact_set_flag or testcase.regression == 'NA'
+
   return bool(testcase.minimized_keys and testcase.regression and
-              testcase.is_impact_set_flag and not testcase.analyze_pending)
+              impact_satisfied and not testcase.analyze_pending)
 
 
 # ------------------------------------------------------------------------------

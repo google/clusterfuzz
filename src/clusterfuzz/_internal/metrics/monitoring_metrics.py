@@ -17,9 +17,14 @@ from clusterfuzz._internal.metrics import monitor
 
 # Fuzz task metrics.
 UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
-    'debug/appengine/invocation_count',
-    description='The number of BigQuery writes',
-    field_spec=[])
+    'task/fuzz/uploaded_testcase_count',
+    description='The number of uploaded testcases in GAE.',
+    field_spec=[
+        monitor.BooleanField('success'),
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('fuzz_target'),
+    ])
 
 # Fuzz task metrics.
 BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
@@ -139,6 +144,7 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        monitor.StringField('is_batch')
     ],
 )
 
@@ -163,6 +169,7 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        monitor.StringField('is_batch')
     ],
 )
 
@@ -393,6 +400,23 @@ UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
         monitor.StringField('status'),
     ],
 )
+
+# Grouper-related metrics
+
+TESTCASE_GROUP_OVERFLOW_COUNT = monitor.GaugeMetric(
+    'grouper/testcase_group_overflow_count',
+    description='The number of testcases that were marked as closed or deleted '
+    'due to group overflow.',
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer_name'),
+    ])
+
+TESTCASE_GROUPS_SIZES = monitor.CumulativeDistributionMetric(
+    'grouper/testcase_groups_sizes',
+    description='Distribution of testcase groups sizes (before shrinkage).',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=None)
 
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',

@@ -300,7 +300,9 @@
                     </span>
                     <span slot="f">
                       <if-else condition="[[info.testcase.group_bug_information]]">
-                        <a slot="t" href="[[info.issue_url]]">[[info.testcase.group_bug_information]]</a> (from its group)
+                        <span slot="t">
+                          <a slot="t" href="[[info.issue_url]]">[[info.testcase.group_bug_information]]</a> (from its group)
+                        </span>
                         <span slot="f">None</span>
                       </if-else>
                     </span>

@@ -139,3 +139,6 @@ env:
 # Pub/Sub topic for receiving issue updates.
 #issue_updates:
   #pubsub_topic: projects/test-project/topics/issue-updates
+
+schedule_fuzz:
+  cpu_limit: 100000

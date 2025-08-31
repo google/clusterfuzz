@@ -16,6 +16,7 @@
 import re
 
 from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 ASSERT_CRASH_ADDRESSES = [
@@ -132,6 +133,14 @@ EXPERIMENTAL_CRASH_TYPES = EXTRA_SANITIZERS_SECURITY
 
 # Default page size of 4KB.
 NULL_DEREFERENCE_BOUNDARY = 0x1000
+
+CHROMIUM_MIRACLEPTR_REGEX = re.compile(r'.*MiraclePtr Status:.+')
+
+MIRACLEPTR_STATUS = {
+    'PROTECTED': 'MiraclePtr-Protected',
+    'MANUAL ANALYSIS REQUIRED': 'MiraclePtr-ManualAnalysisRequired',
+    'NOT PROTECTED': 'MiraclePtr-NotProtected'
+}
 
 
 def address_to_integer(address):
@@ -268,9 +277,26 @@ def has_signal_for_non_security_bug_type(stacktrace):
   return False
 
 
+def check_miracleptr_status(stacktrace):
+  """Look for MiraclePtr status string and return the appropriate label."""
+  for line in stacktrace.split('\n'):
+    if CHROMIUM_MIRACLEPTR_REGEX.match(line):
+      status = line.split(':')[-1].strip()
+      try:
+        return MIRACLEPTR_STATUS[status]
+      except KeyError:
+        logs.error(f'Unknown MiraclePtr status: {line}')
+        break
+  return None
+
+
 def is_security_issue(crash_stacktrace, crash_type, crash_address):
   """Based on unsymbolized crash parameters, determine whether it has security
   consequences or not."""
+  # MiraclePtr protected crashes are not security issues.
+  if check_miracleptr_status(crash_stacktrace) == 'MiraclePtr-Protected':
+    return False
+
   # Stack traces of any type can be manually labelled as a security issue.
   if re.search('FuzzerSecurityIssue(Critical|High|Medium|Low)',
                crash_stacktrace):

@@ -1660,11 +1660,15 @@ class TestcaseLifecycleEvent(Model):
   # If testcase is manually uploaded, the user email.
   uploader = ndb.StringProperty()
 
-  ### Testcase Rejection
+  ### Testcase Rejection.
   # Explanation for the testcase rejection.
   rejection_reason = ndb.StringProperty()
 
-  ### Issue Filing.
+  ### Testcase Fixed.
+  # Build revision in which the crash stopped reproducing.
+  fixed_revision = ndb.StringProperty()
+
+  ### Issue Filing/Closing.
   # Name of the project associated with the issue tracker.
   issue_tracker_project = ndb.StringProperty()
 
@@ -1673,6 +1677,25 @@ class TestcaseLifecycleEvent(Model):
 
   # If the issue filing attempt was successful.
   issue_created = ndb.BooleanProperty()
+
+  # Reason for closing the issue (e.g., testcase fixed).
+  closing_reason = ndb.StringProperty()
+
+  ### Grouping.
+  # Group ID that the testcase is currently being moved to.
+  group_id = ndb.IntegerProperty()
+
+  # Previous group ID, If testcase was in a previous group.
+  previous_group_id = ndb.IntegerProperty()
+
+  # Similar testcase that caused the grouping.
+  similar_testcase_id = ndb.IntegerProperty()
+
+  # Reason for grouping.
+  grouping_reason = ndb.StringProperty()
+
+  # If testcase's group is being merged, the reason that caused the grouping.
+  group_merge_reason = ndb.StringProperty()
 
   ### Task execution.
   # Task stage, i.e., preprocess, main or postprocess.

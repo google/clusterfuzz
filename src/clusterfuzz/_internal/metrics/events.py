@@ -40,8 +40,11 @@ class EventTypes:
   """Specific event types."""
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
+  TESTCASE_FIXED = 'testcase_fixed'
   ISSUE_FILING = 'issue_filing'
   TASK_EXECUTION = 'task_execution'
+  ISSUE_CLOSING = 'issue_closing'
+  TESTCASE_GROUPING = 'testcase_grouping'
 
 
 class TestcaseOrigin:
@@ -62,6 +65,8 @@ class RejectionReason:
   CLEANUP_INVALID_JOB = 'cleanup_invalid_job'
   GROUPER_DUPLICATE = 'grouper_duplicate'
   GROUPER_OVERFLOW = 'grouper_overflow'
+  PROGRESSION_BUILD_NOT_FOUND = 'progression_build_not_found'
+  PROGRESSION_BAD_STATE_MIN_MAX = 'progression_bad_state_min_max'
 
 
 class TaskStage:
@@ -76,7 +81,32 @@ class TaskStatus:
   """Task status."""
   STARTED = 'started'
   FINISHED = 'finished'
+  POST_STARTED = 'postprocess_started'
+  POST_COMPLETED = 'postprocess_completed'
   EXCEPTION = 'exception'
+
+
+class TaskOutcome:
+  """Task outcomes/exceptions to complement the uworker error types."""
+  # All caps to maintain style from error types proto.
+  PREPROCESS_NO_RETURN = 'PREPROCESS_NO_RETURN'
+  UNHANDLED_EXCEPTION = 'UNHANDLED_EXCEPTION'
+
+
+class ClosingReason:
+  """Reason for closing an issue during cleanup."""
+  TESTCASE_FIXED = 'testcase_fixed'
+  TESTCASE_UNREPRO = 'testcase_unreproducible'
+  TESTCASE_INVALID = 'testcase_invalid'
+
+
+class GroupingReason:
+  """Reason for grouping testcases."""
+  SIMILAR_CRASH = 'similar_crash'
+  SAME_ISSUE = 'same_issue'
+  IDENTICAL_VARIANT = 'identical_variant'
+  GROUP_MERGE = 'group_merge'
+  UNGROUPED = 'ungrouped'
 
 
 @dataclass(kw_only=True)
@@ -175,6 +205,14 @@ class TestcaseRejectionEvent(BaseTestcaseEvent, BaseTaskEvent):
 
 
 @dataclass(kw_only=True)
+class TestcaseFixedEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase fixed event."""
+  event_type: str = field(default=EventTypes.TESTCASE_FIXED, init=False)
+  # Build revision in which the crash stopped reproducing.
+  fixed_revision: str | None = None
+
+
+@dataclass(kw_only=True)
 class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   """Issue filing event."""
   event_type: str = field(default=EventTypes.ISSUE_FILING, init=False)
@@ -203,12 +241,43 @@ class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
   task_fuzzer: str | None = None
 
 
+@dataclass(kw_only=True)
+class IssueClosingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Issue closing event."""
+  event_type: str = field(default=EventTypes.ISSUE_CLOSING, init=False)
+  # Name of the project associate with the issue tracker.
+  issue_tracker_project: str | None = None
+  # The number of the issue on the issue tracker.
+  issue_id: str | None = None
+  # Reason for closing the issue (e.g., testcase fixed).
+  closing_reason: str | None = None
+
+
+@dataclass(kw_only=True)
+class TestcaseGroupingEvent(BaseTestcaseEvent, BaseTaskEvent):
+  """Testcase grouping event."""
+  event_type: str = field(default=EventTypes.TESTCASE_GROUPING, init=False)
+  # Group ID that the testcase is currently being moved to.
+  group_id: int | None = None
+  # Previous group ID, If testcase was in a previous group.
+  previous_group_id: int | None = None
+  # Similar testcase that caused the grouping.
+  similar_testcase_id: int | None = None
+  # Reason for grouping.
+  grouping_reason: str | None = None
+  # If testcase's group is being merged, the reason that caused the grouping.
+  group_merge_reason: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
+    EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
+    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
+    EventTypes.TESTCASE_GROUPING: TestcaseGroupingEvent,
 }
 
 

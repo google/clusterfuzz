@@ -1207,6 +1207,79 @@ class TruncateTest(unittest.TestCase):
     self.assertIsInstance(result, tuple)
     self.assertEqual(expected_tuple, result)
 
+  def test_namedtuple_truncation(self):
+    """Tests namedtuple truncation worked properly"""
+    import collections
+    BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
+        'clusterfuzz_release',
+        'disk_size_gb',
+        'disk_type',
+        'docker_image',
+        'user_data',
+        'service_account_email',
+        'subnetwork',
+        'preemptible',
+        'project',
+        'machine_type',
+        'network',
+        'gce_region',
+        'priority',
+        'max_run_duration',
+        'retry',
+    ])
+    limit = 20
+    spec = BatchWorkloadSpec(
+        docker_image='a' * 100,
+        disk_size_gb=1,
+        disk_type='x',
+        user_data='foo',
+        service_account_email='bar',
+        preemptible=True,
+        machine_type='xpto',
+        gce_region='region',
+        network='brisanet',
+        subnetwork='brisa',
+        project='cf',
+        clusterfuzz_release='1.0',
+        priority='high',
+        max_run_duration=10,
+        retry=False,
+    )
+    result = logs.truncate(spec, limit)
+    expected = {
+        'clusterfuzz_release':
+            '1.0',
+        'disk_size_gb':
+            1,
+        'disk_type':
+            'x',
+        'docker_image':
+            'aaaaaaaaaa\n...80 characters truncated...\naaaaaaaaaa',
+        'user_data':
+            'foo',
+        'service_account_email':
+            'bar',
+        'subnetwork':
+            'brisa',
+        'preemptible':
+            True,
+        'project':
+            'cf',
+        'machine_type':
+            'xpto',
+        'network':
+            'brisanet',
+        'gce_region':
+            'region',
+        'priority':
+            'high',
+        'max_run_duration':
+            10,
+        'retry':
+            False
+    }
+    self.assertEqual(expected, result)
+
   def test_dict_truncation(self):
     """Tests recursive truncation of dictionary values."""
     limit = 7
@@ -1316,6 +1389,28 @@ class TruncateTest(unittest.TestCase):
     self.assertEqual(expected_structure, result)
     # Check that the nested tuple type was preserved.
     self.assertIsInstance(result[0]['tags'], tuple)
+
+  def test_exception_during_dict_truncation(self):
+    """Tests the try-catch block when some object operation fails."""
+
+    class FailingDict(dict):
+      """A dict subclass designed to fail during item iteration."""
+
+      def items(self):
+        raise ValueError('Intentionally failing item access')
+
+      def __str__(self):
+        return (
+            'This is the string representation of a FailingDict object that is'
+            ' very long')
+
+    failing_dict = FailingDict({'key': 'value'})
+    limit = 25
+    result = logs.truncate(failing_dict, limit)
+
+    self.assertIn('Exception during truncate: Intentionally failing ite',
+                  result)  # Exception message is also limited.
+    self.assertIn('...50 characters truncated...', result)
 
 
 class ErrorTest(unittest.TestCase):

@@ -22,6 +22,7 @@
 /bot/*
 /coverage
 /deployment
+/clusterfuzz-config
 /local/bin/android-sdk/*
 /local/storage
 /paramiko.log

@@ -19,6 +19,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.google_cloud_utils import batch
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -48,7 +49,27 @@ class TrustedTask(BaseTask):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
     assert not environment.is_tworker()
-    self.module.execute_task(task_argument, job_type)
+    task_command = task_utils.get_command_from_module(self.module.__name__)
+    event_data = task_utils.get_task_execution_event_data(
+        task_command, task_argument, job_type)
+    event_data['task_stage'] = events.TaskStage.NA
+    events.emit(
+        events.TaskExecutionEvent(
+            **event_data, task_status=events.TaskStatus.STARTED))
+
+    try:
+      self.module.execute_task(task_argument, job_type)
+    except Exception as e:
+      events.emit(
+          events.TaskExecutionEvent(
+              **event_data,
+              task_status=events.TaskStatus.EXCEPTION,
+              task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION))
+      raise e
+
+    events.emit(
+        events.TaskExecutionEvent(
+            **event_data, task_status=events.TaskStatus.FINISHED))
 
 
 class BaseUTask(BaseTask):

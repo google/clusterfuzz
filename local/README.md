@@ -2,10 +2,34 @@ This directory contains scripts for running ClusterFuzz docker images locally.
 
 # Prerequisites
 
-Make sure you have installed the dependencies using:
-```bash
-$ ../local/install_deps.bash
-```
+## 🐍 Project Setup (`asdf`)
+
+This project uses a `.tool-versions` file. Follow these steps to install the correct Python version.
+
+1.  **Install `asdf`**
+    Follow the [official `asdf` guide](https://www.google.com/search?q=%5Bhttps://asdf-vm.com/guide/getting-started.html%5D\(https://asdf-vm.com/guide/getting-started.html\)).
+
+2.  **Add Plugins**
+    ```bash
+    asdf plugin add python
+    asdf plugin add gcloud https://github.com/jthegedus/asdf-gcloud
+    ```
+
+3.  **Install tools**
+    Run this command inside the project directory. It will read the version from the `.tool-versions` file.
+
+    ```bash
+    asdf install
+    python3.11 -m pip install pipenv
+    ```
+
+4.  **Install Deps**
+    Run this command inside the project directory. This script will use `pipenv` to set up a virtual environment and install all the required packages specified in the `Pipfile`, ensuring your local setup is consistent with the project's requirements.
+
+    ```bash
+    ./local/install_deps.bash
+    ```
+
 
 ## Running a local metadata server
 

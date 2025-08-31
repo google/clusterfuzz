@@ -83,12 +83,15 @@ class TestGetCpuUsage(unittest.TestCase):
   """Tests for get_cpu_limit_for_regions."""
 
   def setUp(self):
-    test_helpers.patch(self,
-                       ['clusterfuzz._internal.cron.schedule_fuzz._get_quotas'])
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.cron.schedule_fuzz._get_quotas',
+        'clusterfuzz._internal.config.local_config.ProjectConfig.get'
+    ])
     self.creds = credentials.get_default()
 
   def test_usage(self):
     """Tests that get_cpu_limit_for_regions handles usage properly."""
+    self.mock.get.return_value = 100_000
     self.mock._get_quotas.return_value = [{
         'metric': 'PREEMPTIBLE_CPUS',
         'limit': 5,
@@ -99,6 +102,7 @@ class TestGetCpuUsage(unittest.TestCase):
 
   def test_cpus_and_preemptible_cpus(self):
     """Tests that get_cpu_limit_for_regions handles usage properly."""
+    self.mock.get.return_value = 100_000
     self.mock._get_quotas.return_value = [{
         'metric': 'PREEMPTIBLE_CPUS',
         'limit': 5,
@@ -110,3 +114,18 @@ class TestGetCpuUsage(unittest.TestCase):
     }]
     self.assertEqual(
         schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), (5, 0))
+
+  def test_config_limit(self):
+    """Tests that the config limit is used."""
+    self.mock.get.return_value = 2
+    self.mock._get_quotas.return_value = [{
+        'metric': 'PREEMPTIBLE_CPUS',
+        'limit': 5,
+        'usage': 0
+    }, {
+        'metric': 'CPUS',
+        'limit': 5,
+        'usage': 5
+    }]
+    self.assertEqual(
+        schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), (2, 0))
