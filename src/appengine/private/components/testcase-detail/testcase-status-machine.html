@@ -116,11 +116,13 @@
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
               <td>Event Type</td>
+              <td>Extra</td>
               <td>Time</td>
             </tr>
             <template is="dom-repeat" items="[[nonTaskEvents]]" as="event">
               <tr class="body">
                 <td>[[event.event_type]]</td>
+                <td>[[event.extra]]</td>
                 <td>[[event.timestamp]]</td>
               </tr>
             </template>

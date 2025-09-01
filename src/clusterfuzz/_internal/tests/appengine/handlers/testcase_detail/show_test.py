@@ -662,17 +662,35 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
     """Test that the function calls _get_last_event_info with the correct
     parameters and returns the expected dictionary."""
     analyze_event_info = {'status': 'status1'}
-    creation_event_info = {'timestamp': '2023-01-01 00:00:00.000000 UTC'}
+    creation_event_info = {
+        'timestamp': '2023-01-01 00:00:00.000000 UTC',
+        'creation_origin': 'fuzz_task'
+    }
+    rejection_event_info = {
+        'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        'rejection_reason': 'analyze_no_repro'
+    }
+    issue_filing_event_info = {
+        'timestamp': '2023-01-03 00:00:00.000000 UTC',
+        'issue_created': True
+    }
 
     def mock_get_last_event_info(testcase_id,
                                  fields_to_extract,
                                  event_type=None,
                                  task_name=None):
-      del testcase_id, fields_to_extract
+      del testcase_id
       if task_name == 'analyze':
         return analyze_event_info
       if event_type == events.EventTypes.TESTCASE_CREATION:
+        self.assertIn('creation_origin', fields_to_extract)
         return creation_event_info
+      if event_type == events.EventTypes.TESTCASE_REJECTION:
+        self.assertIn('rejection_reason', fields_to_extract)
+        return rejection_event_info
+      if event_type == events.EventTypes.ISSUE_FILING:
+        self.assertIn('issue_created', fields_to_extract)
+        return issue_filing_event_info
       return {}
 
     self.mock._get_last_event_info.side_effect = mock_get_last_event_info
@@ -688,8 +706,18 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
     expected_non_task_events_info = {
         event_type: {} for event_type in show.NON_TASK_EVENT_TYPES
     }
-    expected_non_task_events_info[
-        events.EventTypes.TESTCASE_CREATION] = creation_event_info
+    expected_non_task_events_info[events.EventTypes.TESTCASE_CREATION] = {
+        'timestamp': '2023-01-01 00:00:00.000000 UTC',
+        'extra': 'fuzz_task'
+    }
+    expected_non_task_events_info[events.EventTypes.TESTCASE_REJECTION] = {
+        'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        'extra': 'analyze_no_repro'
+    }
+    expected_non_task_events_info[events.EventTypes.ISSUE_FILING] = {
+        'timestamp': '2023-01-03 00:00:00.000000 UTC',
+        'extra': True
+    }
 
     expected = {
         'task_events_info': expected_task_events_info,
@@ -704,12 +732,17 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
             event_type=events.EventTypes.TASK_EXECUTION,
             task_name=task_name) for task_name in show.EVENTS_TASK_NAMES
     ]
-    non_task_calls = [
-        mock.call(testcase_id, ['timestamp'], event_type=event_type)
-        for event_type in show.NON_TASK_EVENT_TYPES
-    ]
+    non_task_calls = []
+    for event_type in show.NON_TASK_EVENT_TYPES:
+      fields_to_extract = ['timestamp']
+      extra_field = show.NON_TASK_EVENT_EXTRA_FIELD_MAP.get(event_type)
+      if extra_field:
+        fields_to_extract.append(extra_field)
+      non_task_calls.append(
+          mock.call(testcase_id, fields_to_extract, event_type=event_type))
 
-    self.mock._get_last_event_info.assert_has_calls(task_calls + non_task_calls)
+    self.mock._get_last_event_info.assert_has_calls(
+        task_calls + non_task_calls, any_order=True)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -754,12 +787,26 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TESTCASE_CREATION,
+        creation_origin=events.TestcaseOrigin.FUZZ_TASK,
         timestamp=datetime.datetime(2023, 1, 1, 9, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TESTCASE_FIXED,
+        fixed_revision='123:456',
         timestamp=datetime.datetime(2023, 1, 2, 0, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.ISSUE_FILING,
+        issue_created=True,
+        timestamp=datetime.datetime(2023, 1, 3, 0, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.ISSUE_CLOSING,
+        closing_reason=events.ClosingReason.TESTCASE_FIXED,
+        timestamp=datetime.datetime(2023, 1, 4, 0, 0, 0)).put()
 
   def test_get_testcase_status_machine_info_integration(self):
     """Integration test for get_testcase_status_machine_info."""
@@ -785,13 +832,22 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
 
     expected_non_task_events = {
         events.EventTypes.TESTCASE_CREATION: {
-            'timestamp': '2023-01-01 09:00:00.000000 UTC'
+            'timestamp': '2023-01-01 09:00:00.000000 UTC',
+            'extra': events.TestcaseOrigin.FUZZ_TASK,
         },
         events.EventTypes.TESTCASE_FIXED: {
-            'timestamp': '2023-01-02 00:00:00.000000 UTC'
+            'timestamp': '2023-01-02 00:00:00.000000 UTC',
+            'extra': '123:456',
         },
         events.EventTypes.TESTCASE_REJECTION: {},
-        events.EventTypes.ISSUE_CLOSING: {},
+        events.EventTypes.ISSUE_CLOSING: {
+            'timestamp': '2023-01-04 00:00:00.000000 UTC',
+            'extra': events.ClosingReason.TESTCASE_FIXED,
+        },
+        events.EventTypes.ISSUE_FILING: {
+            'timestamp': '2023-01-03 00:00:00.000000 UTC',
+            'extra': True,
+        },
     }
 
     expected_result = {
