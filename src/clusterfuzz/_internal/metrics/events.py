@@ -604,7 +604,9 @@ def get_events_from_testcase(testcase_id: int,
       'task_name': task_name,
   }
   equality_filters = {
-      filter: value for filter, value in potential_filters.items() if value
+      filter: value
+      for filter, value in potential_filters.items()
+      if value is not None
   }
 
   order_by = None

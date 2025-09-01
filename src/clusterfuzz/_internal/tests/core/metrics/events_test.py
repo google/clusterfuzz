@@ -17,7 +17,6 @@ import os
 import platform
 from typing import Generator
 import unittest
-from unittest import mock
 
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -924,65 +923,6 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.timestamp, date_now)
     self._assert_common_event_fields(event)
 
-  def _get_events_patch(self):
-    """Patch dependencies for get_events tests."""
-    helpers.patch(self, [
-        'clusterfuzz._internal.datastore.data_handler.get_entities_ids',
-        'clusterfuzz._internal.metrics.events.NDBEventRepository.get_event'
-    ])
-
-  def _get_entities_ids_mock(self, entity_kind, equality_filters, order_by):
-    """Mock for get_entities_ids that yields test entity IDs."""
-    del entity_kind, equality_filters, order_by
-    query = data_types.TestcaseLifecycleEvent.query(
-        data_types.TestcaseLifecycleEvent.event_type == 'generic_event_test')
-    yield from (key.id() for key in query.iter(keys_only=True))
-
-  def test_get_events(self):
-    """Verify that get_events correctly orchestrate the events retrieval."""
-    self._get_events_patch()
-
-    event_type = 'generic_event_test'
-    entity = data_types.TestcaseLifecycleEvent(event_type=event_type)
-    entity.put()
-    event = events.Event(event_type=event_type)
-
-    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
-    self.mock.get_event.side_effect = lambda _, event_id, event_type : event if event_id == entity.key.id() else None
-
-    equality_filters = {'event_type': event_type}
-    order_by = ['-timestamp']
-    result = self.repository.get_events(
-        equality_filters=equality_filters, order_by=order_by)
-    expected_events = [event]
-
-    self.assertCountEqual(result, expected_events)
-    self.mock.get_entities_ids.assert_called_once_with(
-        data_types.TestcaseLifecycleEvent,
-        equality_filters=equality_filters,
-        order_by=order_by)
-    self.mock.get_event.assert_called_once_with(mock.ANY, entity.key.id(),
-                                                event_type)
-
-  def test_get_events_empty(self):
-    """Verify that get_events yields no events when no events are found."""
-    self._get_events_patch()
-    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
-    equality_filters = {'event_type': 'generic_event_test'}
-    result_events = self.repository.get_events(equality_filters)
-    self.assertCountEqual(result_events, [])
-    self.mock.get_entities_ids.assert_called_once_with(
-        data_types.TestcaseLifecycleEvent, equality_filters, None)
-
-  def test_get_events_with_no_event_type_filter(self):
-    """Verify that get_events works correctly without an event_type."""
-    self._get_events_patch()
-    self.mock.get_entities_ids.side_effect = self._get_entities_ids_mock
-    result_events = self.repository.get_events()
-    self.assertCountEqual(result_events, [])
-    self.mock.get_entities_ids.assert_called_once_with(
-        data_types.TestcaseLifecycleEvent, None, None)
-
 
 @test_utils.with_cloud_emulators('datastore')
 class EventsNotificationsTest(unittest.TestCase):
@@ -1221,126 +1161,175 @@ class EmitEventTest(unittest.TestCase):
     self.assertEqual(event_entity.crash_revision, 1)
 
 
-@test_utils.with_cloud_emulators('datastore')
-class GetEventsTest(unittest.TestCase):
+class RetrievingEventsTest(unittest.TestCase):
   """Test retrieving events."""
 
   def setUp(self):
-    helpers.patch_environ(self)
-    helpers.patch(self, [
-        'clusterfuzz._internal.metrics.events.get_repository',
-        'clusterfuzz._internal.metrics.events.NDBEventRepository.get_events'
-    ])
+    self.event1 = data_types.TestcaseLifecycleEvent(
+        event_type='type_A',
+        testcase_id=1,
+        timestamp=datetime.datetime(2025, 1, 1, 8, 0))
+    self.event1.put()
+    self.event2 = data_types.TestcaseLifecycleEvent(
+        event_type='type_B',
+        testcase_id=1,
+        timestamp=datetime.datetime(2025, 1, 1, 9, 0))
+    self.event2.put()
+    self.event3 = data_types.TestcaseLifecycleEvent(
+        event_type='type_A',
+        task_name='analyze',
+        testcase_id=2,
+        timestamp=datetime.datetime(2025, 1, 1, 10, 0))
+    self.event3.put()
+    self.event4 = data_types.TestcaseLifecycleEvent(
+        event_type='type_A',
+        task_name='impact',
+        testcase_id=2,
+        timestamp=datetime.datetime(2025, 1, 1, 11, 0))
+    self.event4.put()
+    self.event5 = data_types.TestcaseLifecycleEvent(
+        event_type='task_execution',
+        testcase_id=3,
+        timestamp=datetime.datetime(2025, 1, 1, 12, 0))
+    self.event5.put()
 
-  def test_get_events(self):
-    """Verify that get_events correctly calls the repository with filters."""
-    self.mock.get_repository.return_value = events.NDBEventRepository()
-    expected_events = [events.Event(event_type='generic_event_test')]
-    self.mock.get_events.return_value = expected_events
-    equality_filters = {'event_type': 'generic_event_test'}
-    order_by = ['-timestamp']
-    result = events.get_events(
-        equality_filters=equality_filters, order_by=order_by)
+  def _assert_events_equal(self, result_events, entities):
+    """Asserts that each event match the associated entity"""
+    self.assertEqual(len(result_events), len(entities))
+    for event, entity in zip(result_events, entities):
+      self.assertEqual(event.event_type, entity.event_type)
+      self.assertEqual(event.timestamp, entity.timestamp)
 
-    self.assertCountEqual(result, expected_events)
-    self.mock.get_events.assert_called_once_with(
-        mock.ANY, equality_filters=equality_filters, order_by=order_by)
+
+@test_utils.with_cloud_emulators('datastore')
+class GetEventsFromDatastoreTest(RetrievingEventsTest):
+  """Test get_events from datastore repository."""
+
+  def setUp(self):
+    self.repository = events.NDBEventRepository()
+    return super().setUp()
+
+  def test_get_all_events(self):
+    """Verify that all events are yielded when no filters are applied."""
+    result = list(self.repository.get_events())
+    result.sort(key=lambda e: e.timestamp)
+    expected_entities = [
+        self.event1, self.event2, self.event3, self.event4, self.event5
+    ]
+    self._assert_events_equal(result, expected_entities)
+
+  def test_get_events_return_type(self):
+    """Verify that get_events returns a Generator."""
+    result = self.repository.get_events()
+    self.assertIsInstance(result, Generator)
+
+  def test_retrieve_specific_event_type(self):
+    """Verify if a retrieved event is correctly deserialized to the correspondent event class"""
+    equality_filters = {'event_type': 'task_execution'}
+    result = list(self.repository.get_events(equality_filters=equality_filters))
+    self._assert_events_equal(result, [self.event5])
+    self.assertIsInstance(result[0], events.TaskExecutionEvent)
+
+  def test_get_events_with_equality_filters(self):
+    """Verify that only events matching the equality filters are yielded."""
+    result = list(
+        self.repository.get_events(equality_filters={'event_type': 'type_A'}))
+    result.sort(key=lambda e: e.timestamp)
+    self._assert_events_equal(result, [self.event1, self.event3, self.event4])
+
+    equality_filters = {'event_type': 'type_A', 'testcase_id': 1}
+    result = list(self.repository.get_events(equality_filters=equality_filters))
+    result.sort(key=lambda e: e.timestamp)
+    self._assert_events_equal(result, [self.event1])
+
+  def test_get_events_with_ordering(self):
+    """Verify that events are yielded in the specified order."""
+    result = list(self.repository.get_events(order_by=['-timestamp']))
+    expected_entities = [
+        self.event5, self.event4, self.event3, self.event2, self.event1
+    ]
+    self._assert_events_equal(result, expected_entities)
+
+  def test_get_events_with_filter_and_ordering(self):
+    """Verify that filtering and ordering can be combined."""
+    result = list(
+        self.repository.get_events(
+            equality_filters={'event_type': 'type_A'}, order_by=['-timestamp']))
+    self._assert_events_equal(result, [self.event4, self.event3, self.event1])
 
   def test_get_events_empty(self):
-    """Verify that get_events yields an empty generator when no events are found."""
-
-    def get_events_mock(self_arg, equality_filters, order_by):
-      del self_arg, equality_filters, order_by
-      yield from ()
-
-    self.mock.get_repository.return_value = events.NDBEventRepository()
-    self.mock.get_events.side_effect = get_events_mock
-
-    result = events.get_events()
-    self.assertCountEqual(result, [])
-    self.mock.get_events.assert_called_once_with(mock.ANY, None, None)
-
-  def test_get_events_with_no_repository(self):
-    """Verify that get_events yields an empty generator when no repository is configured."""
-    self.mock.get_repository.return_value = None
-    result = events.get_events()
+    """Verify that an empty generator is yielded when no events match."""
+    result = self.repository.get_events(
+        equality_filters={'event_type': 'non_existent'})
+    self.assertIsInstance(result, Generator)
     self.assertCountEqual(result, [])
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GetEventsFromTestcaseTest(unittest.TestCase):
-  """Test retrieving events from a testcase."""
+class GetEventsTest(RetrievingEventsTest):
+  """Test retrieving events using events module helper functions."""
 
   def setUp(self):
-    helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.metrics.events.get_events',
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
     ])
+    self.project_config = {'events.storage': 'datastore'}
+    self.mock.ProjectConfig.return_value.get.side_effect = (
+        self.project_config.get)
+    return super().setUp()
 
-  def test_get_events_from_testcase_no_filters(self):
-    """Verify that get_events is called correctly with no filters."""
-    testcase_id = 123
-    expected_events = [events.Event(event_type='generic_event_test')]
-    self.mock.get_events.return_value = iter(expected_events)
+  def test_get_all_events(self):
+    """Verify that get_events correctly retrieve events with filters and ordering."""
+    equality_filters = {'event_type': 'type_A'}
+    order_by = ['-timestamp']
+    result = list(
+        events.get_events(equality_filters=equality_filters, order_by=order_by))
+    self._assert_events_equal(result, [self.event4, self.event3, self.event1])
 
-    result = events.get_events_from_testcase(testcase_id)
+  def test_get_events_empty(self):
+    """Verify that get_events yields an empty generator when no events are found."""
+    result = events.get_events(equality_filters={'event_type': 'non_existent'})
+    self.assertCountEqual(result, [])
 
-    self.assertIsInstance(result, Generator)
-    self.assertCountEqual(result, expected_events)
-    expected_filters = {'testcase_id': testcase_id}
-    expected_order_by = ['-timestamp']
-    self.mock.get_events.assert_called_once_with(
-        equality_filters=expected_filters, order_by=expected_order_by)
+  def test_get_events_with_no_repository(self):
+    """Verify that get_events yields an empty generator when no repository is configured."""
+    self.project_config['events.storage'] = 'invalid'
+    result = events.get_events()
+    self.assertCountEqual(result, [])
 
-  def test_get_events_from_testcase_with_event_type(self):
-    """Verify that get_events is called correctly with an event_type filter."""
-    testcase_id = 123
-    event_type = 'testcase_creation'
-    expected_events = [events.Event(event_type=event_type)]
-    self.mock.get_events.return_value = iter(expected_events)
-
-    result = events.get_events_from_testcase(
-        testcase_id, event_type=event_type)
-
-    self.assertCountEqual(result, expected_events)
-    expected_filters = {'testcase_id': testcase_id, 'event_type': event_type}
-    expected_order_by = ['-timestamp']
-    self.mock.get_events.assert_called_once_with(
-        equality_filters=expected_filters, order_by=expected_order_by)
+  def test_get_events_from_testcase_with_no_filters(self):
+    """Verify that get_events_from_testcase can retrieve events with no extra filters."""
+    testcase_id = 1
+    result = list(events.get_events_from_testcase(testcase_id))
+    # Default is to sort by descending order.
+    self._assert_events_equal(result, [self.event2, self.event1])
 
   def test_get_events_from_testcase_with_all_filters(self):
-    """Verify that get_events is called correctly with all filters."""
-    testcase_id = 123
-    event_type = 'testcase_creation'
-    task_name = 'fuzz'
-    expected_events = [events.Event(event_type=event_type)]
-    self.mock.get_events.return_value = iter(expected_events)
+    """Verify that get_events_from_testcase can retrieve events with multiple filters."""
+    testcase_id = 1
+    event_type = 'type_A'
+    result = list(
+        events.get_events_from_testcase(testcase_id, event_type=event_type))
+    self._assert_events_equal(result, [self.event1])
 
-    result = events.get_events_from_testcase(
-        testcase_id, event_type=event_type, task_name=task_name)
-
-    self.assertCountEqual(result, expected_events)
-    expected_filters = {
-        'testcase_id': testcase_id,
-        'event_type': event_type,
-        'task_name': task_name
-    }
-    expected_order_by = ['-timestamp']
-    self.mock.get_events.assert_called_once_with(
-        equality_filters=expected_filters, order_by=expected_order_by)
+    testcase_id = 2
+    event_type = 'type_A'
+    task_name = 'analyze'
+    result = list(
+        events.get_events_from_testcase(
+            testcase_id, event_type=event_type, task_name=task_name))
+    self._assert_events_equal(result, [self.event3])
 
   def test_get_events_from_testcase_without_timestamp_ordering(self):
-    """Verify that get_events is called correctly with latest_first=False."""
-    testcase_id = 123
-    event_type = 'testcase_creation'
-    expected_events = [events.Event(event_type=event_type)]
-    self.mock.get_events.return_value = iter(expected_events)
+    """Verify that get_events_from_testcase can retrieve events with latest_first=False."""
+    testcase_id = 3
+    result = list(
+        events.get_events_from_testcase(testcase_id, latest_first=False))
+    self._assert_events_equal(result, [self.event5])
 
-    result = events.get_events_from_testcase(
-        testcase_id, event_type=event_type, latest_first=False)
-
-    self.assertCountEqual(result, expected_events)
-    expected_filters = {'testcase_id': testcase_id, 'event_type': event_type}
-    expected_order_by = None
-    self.mock.get_events.assert_called_once_with(
-        equality_filters=expected_filters, order_by=expected_order_by)
+  def test_get_events_from_testcase_empty(self):
+    """Verify that get_events_from_testcase returns an empty generator when no events are found."""
+    testcase_id = 0
+    result = events.get_events_from_testcase(testcase_id)
+    self.assertIsInstance(result, Generator)
+    self.assertCountEqual(result, [])
