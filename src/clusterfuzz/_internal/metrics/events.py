@@ -403,7 +403,9 @@ class NDBEventRepository(IEventRepository, EventHandler):
       order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
     """Yields events from datastore.
 
-    The events match the given equality filters, ordering, and limit.
+    The events match the given equality filters, ordering, and limit. If no
+    event type is specified in equality_filters, the default entity will be
+    used.
     """
     event_type = (equality_filters or {}).get('event_type')
     entity_kind = self._event_to_entity_map.get(event_type,
@@ -588,20 +590,27 @@ def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
         equality_filters=equality_filters, order_by=order_by)
 
 
-def get_latest_events_from_testcase(testcase_id: int,
-                                    event_type: str | None = None,
-                                    task_name: str | None = None) -> Generator:
+def get_events_from_testcase(testcase_id: int,
+                             event_type: str | None = None,
+                             task_name: str | None = None,
+                             latest_first: bool = True) -> Generator:
   """Yields events from a testcase, with optional filters.
   
-  Events are yielded in reverse chronological order."""
+  If latest_first is True, events are yielded in reverse chronological order.
+  """
   potential_filters = {
       'testcase_id': testcase_id,
       'event_type': event_type,
       'task_name': task_name,
   }
   equality_filters = {
-      filter: value for filter, value in potential_filters.items() if value
+      filter: value
+      for filter, value in potential_filters.items()
+      if value is not None
   }
-  order_by = ['-timestamp']
+
+  order_by = None
+  if latest_first:
+    order_by = ['-timestamp']
 
   yield from get_events(equality_filters=equality_filters, order_by=order_by)
