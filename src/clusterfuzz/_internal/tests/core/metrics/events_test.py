@@ -1268,8 +1268,8 @@ class GetEventsTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GetLatestEventsFromTestcaseTest(unittest.TestCase):
-  """Test retrieving latest events from a testcase."""
+class GetEventsFromTestcaseTest(unittest.TestCase):
+  """Test retrieving events from a testcase."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -1277,13 +1277,13 @@ class GetLatestEventsFromTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.events.get_events',
     ])
 
-  def test_get_latest_events_from_testcase_no_filters(self):
+  def test_get_events_from_testcase_no_filters(self):
     """Verify that get_events is called correctly with no filters."""
     testcase_id = 123
     expected_events = [events.Event(event_type='generic_event_test')]
     self.mock.get_events.return_value = iter(expected_events)
 
-    result = events.get_latest_events_from_testcase(testcase_id)
+    result = events.get_events_from_testcase(testcase_id)
 
     self.assertIsInstance(result, Generator)
     self.assertCountEqual(result, expected_events)
@@ -1292,14 +1292,14 @@ class GetLatestEventsFromTestcaseTest(unittest.TestCase):
     self.mock.get_events.assert_called_once_with(
         equality_filters=expected_filters, order_by=expected_order_by)
 
-  def test_get_latest_events_from_testcase_with_event_type(self):
+  def test_get_events_from_testcase_with_event_type(self):
     """Verify that get_events is called correctly with an event_type filter."""
     testcase_id = 123
     event_type = 'testcase_creation'
     expected_events = [events.Event(event_type=event_type)]
     self.mock.get_events.return_value = iter(expected_events)
 
-    result = events.get_latest_events_from_testcase(
+    result = events.get_events_from_testcase(
         testcase_id, event_type=event_type)
 
     self.assertCountEqual(result, expected_events)
@@ -1308,7 +1308,7 @@ class GetLatestEventsFromTestcaseTest(unittest.TestCase):
     self.mock.get_events.assert_called_once_with(
         equality_filters=expected_filters, order_by=expected_order_by)
 
-  def test_get_latest_events_from_testcase_with_all_filters(self):
+  def test_get_events_from_testcase_with_all_filters(self):
     """Verify that get_events is called correctly with all filters."""
     testcase_id = 123
     event_type = 'testcase_creation'
@@ -1316,7 +1316,7 @@ class GetLatestEventsFromTestcaseTest(unittest.TestCase):
     expected_events = [events.Event(event_type=event_type)]
     self.mock.get_events.return_value = iter(expected_events)
 
-    result = events.get_latest_events_from_testcase(
+    result = events.get_events_from_testcase(
         testcase_id, event_type=event_type, task_name=task_name)
 
     self.assertCountEqual(result, expected_events)
@@ -1326,5 +1326,21 @@ class GetLatestEventsFromTestcaseTest(unittest.TestCase):
         'task_name': task_name
     }
     expected_order_by = ['-timestamp']
+    self.mock.get_events.assert_called_once_with(
+        equality_filters=expected_filters, order_by=expected_order_by)
+
+  def test_get_events_from_testcase_without_timestamp_ordering(self):
+    """Verify that get_events is called correctly with latest_first=False."""
+    testcase_id = 123
+    event_type = 'testcase_creation'
+    expected_events = [events.Event(event_type=event_type)]
+    self.mock.get_events.return_value = iter(expected_events)
+
+    result = events.get_events_from_testcase(
+        testcase_id, event_type=event_type, latest_first=False)
+
+    self.assertCountEqual(result, expected_events)
+    expected_filters = {'testcase_id': testcase_id, 'event_type': event_type}
+    expected_order_by = None
     self.mock.get_events.assert_called_once_with(
         equality_filters=expected_filters, order_by=expected_order_by)
