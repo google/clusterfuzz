@@ -93,7 +93,25 @@ steps:
     CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
     gcloud compute project-info add-metadata --metadata=clusterfuzz-revision="$${CURRENT_CLUSTERFUZZ_REVISION}" --project "${PROJECT_ID}"
 
-timeout: 1200s
+- id: 'tf init'
+  name: 'hashicorp/terraform:1.8.2'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    cd /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
+    terraform init || exit 1
+
+- id: 'tf run'
+  name: 'hashicorp/terraform:1.8.2'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
+    terraform apply -target=module.compute -auto-approve || exit 1
+
+timeout: 2000s
 options:
   machineType: E2_HIGHCPU_32
   diskSizeGb: 500
