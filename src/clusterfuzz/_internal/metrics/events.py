@@ -403,7 +403,9 @@ class NDBEventRepository(IEventRepository, EventHandler):
       order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
     """Yields events from datastore.
 
-    The events match the given equality filters, ordering, and limit.
+    The events match the given equality filters, ordering, and limit. If no
+    event type is specified in equality_filters, the default entity will be
+    used.
     """
     event_type = (equality_filters or {}).get('event_type')
     entity_kind = self._event_to_entity_map.get(event_type,
