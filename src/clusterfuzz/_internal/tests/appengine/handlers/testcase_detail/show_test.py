@@ -611,146 +611,10 @@ class GetTestcaseTest(unittest.TestCase):
     }, result['last_tested_crash_stacktrace'])
 
 
-@test_utils.with_cloud_emulators('datastore')
-class GetLastEventInfoTest(unittest.TestCase):
-  """Tests for _get_last_event_info function."""
+class EventsInfoTest(unittest.TestCase):
+  """Helper class for tests involving retrieving events information."""
 
   def setUp(self):
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.events.get_events_from_testcase',
-    ])
-
-  def test_get_last_event_info(self):
-    """Verify that event info is retrieved and formatted correctly."""
-    event = data_types.TestcaseLifecycleEvent(
-        creation_origin=events.TestcaseOrigin.FUZZ_TASK,
-        timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
-        event_type='generic_event_type')
-    self.mock.get_events_from_testcase.return_value = iter([event])
-
-    result = show._get_last_event_info(
-        testcase_id=1,
-        fields_to_extract=['timestamp', 'creation_origin'],
-        event_type=events.EventTypes.TESTCASE_CREATION)
-
-    expected = {
-        'timestamp': '2023-01-01 00:00:00.000000 UTC',
-        'creation_origin': 'fuzz_task'
-    }
-    self.assertEqual(result, expected)
-    self.mock.get_events_from_testcase.assert_called_once_with(
-        1, event_type='testcase_creation', task_name=None)
-
-  def test_get_last_event_info_no_event(self):
-    """Verify that an empty dict is returned when no event is found."""
-    self.mock.get_events_from_testcase.return_value = iter([])
-    result = show._get_last_event_info(
-        testcase_id=1, fields_to_extract=['timestamp'])
-    self.assertEqual(result, {})
-
-
-@test_utils.with_cloud_emulators('datastore')
-class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
-  """Test get_testcase_status_machine_info."""
-
-  def setUp(self):
-    test_helpers.patch(self, [
-        'handlers.testcase_detail.show._get_last_event_info',
-    ])
-
-  def test_get_testcase_status_machine_info(self):
-    """Test that the function calls _get_last_event_info with the correct
-    parameters and returns the expected dictionary."""
-    analyze_event_info = {'status': 'status1'}
-    creation_event_info = {
-        'timestamp': '2023-01-01 00:00:00.000000 UTC',
-        'creation_origin': 'fuzz_task'
-    }
-    rejection_event_info = {
-        'timestamp': '2023-01-02 00:00:00.000000 UTC',
-        'rejection_reason': 'analyze_no_repro'
-    }
-    issue_filing_event_info = {
-        'timestamp': '2023-01-03 00:00:00.000000 UTC',
-        'issue_created': True
-    }
-
-    def mock_get_last_event_info(testcase_id,
-                                 fields_to_extract,
-                                 event_type=None,
-                                 task_name=None):
-      del testcase_id
-      if task_name == 'analyze':
-        return analyze_event_info
-      if event_type == events.EventTypes.TESTCASE_CREATION:
-        self.assertIn('creation_origin', fields_to_extract)
-        return creation_event_info
-      if event_type == events.EventTypes.TESTCASE_REJECTION:
-        self.assertIn('rejection_reason', fields_to_extract)
-        return rejection_event_info
-      if event_type == events.EventTypes.ISSUE_FILING:
-        self.assertIn('issue_created', fields_to_extract)
-        return issue_filing_event_info
-      return {}
-
-    self.mock._get_last_event_info.side_effect = mock_get_last_event_info
-
-    testcase_id = 123
-    result = show.get_testcase_status_machine_info(testcase_id)
-
-    expected_task_events_info = {
-        task_name: {} for task_name in show.TASK_EVENTS_NAMES
-    }
-    expected_task_events_info['analyze'] = analyze_event_info
-
-    expected_lifecycle_events_info = {
-        event_type: {} for event_type in show.LIFECYCLE_EVENTS_TYPES
-    }
-    expected_lifecycle_events_info[events.EventTypes.TESTCASE_CREATION] = {
-        'timestamp': '2023-01-01 00:00:00.000000 UTC',
-        'extra': 'fuzz_task'
-    }
-    expected_lifecycle_events_info[events.EventTypes.TESTCASE_REJECTION] = {
-        'timestamp': '2023-01-02 00:00:00.000000 UTC',
-        'extra': 'analyze_no_repro'
-    }
-    expected_lifecycle_events_info[events.EventTypes.ISSUE_FILING] = {
-        'timestamp': '2023-01-03 00:00:00.000000 UTC',
-        'extra': True
-    }
-
-    expected = {
-        'task_events_info': expected_task_events_info,
-        'lifecycle_events_info': expected_lifecycle_events_info,
-    }
-    self.assertEqual(result, expected)
-
-    task_calls = [
-        mock.call(
-            testcase_id,
-            show.TASK_EVENTS_FIELDS_TO_EXTRACT,
-            event_type=events.EventTypes.TASK_EXECUTION,
-            task_name=task_name) for task_name in show.TASK_EVENTS_NAMES
-    ]
-    lifecycle_events_calls = []
-    for event_type in show.LIFECYCLE_EVENTS_TYPES:
-      fields_to_extract = list(show.LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT)
-      extra_field = show.LIFECYCLE_EVENTS_EXTRA_FIELD_MAP.get(event_type)
-      if extra_field:
-        fields_to_extract.append(extra_field)
-      lifecycle_events_calls.append(
-          mock.call(testcase_id, fields_to_extract, event_type=event_type))
-
-    self.mock._get_last_event_info.assert_has_calls(
-        task_calls + lifecycle_events_calls, any_order=True)
-
-
-@test_utils.with_cloud_emulators('datastore')
-class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
-  """Integration tests for get_testcase_status_machine_info."""
-
-  def setUp(self):
-    """Set up test data."""
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
     test_helpers.patch(
@@ -808,8 +672,39 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
         closing_reason=events.ClosingReason.TESTCASE_FIXED,
         timestamp=datetime.datetime(2023, 1, 4, 0, 0, 0)).put()
 
-  def test_get_testcase_status_machine_info_integration(self):
-    """Integration test for get_testcase_status_machine_info."""
+
+@test_utils.with_cloud_emulators('datastore')
+class GetLastEventInfoTest(EventsInfoTest):
+  """Test retrieving information from the last event based on filters."""
+
+  def test_get_last_event_info(self):
+    """Verify that event info is retrieved and formatted correctly."""
+    result = show._get_last_event_info(
+        testcase_id=self.testcase_id,
+        fields_to_extract=['timestamp', 'creation_origin'],
+        event_type=events.EventTypes.TESTCASE_CREATION)
+
+    expected = {
+        'timestamp': '2023-01-01 09:00:00.000000 UTC',
+        'creation_origin': 'fuzz_task'
+    }
+    self.assertEqual(result, expected)
+
+  def test_get_last_event_info_no_event(self):
+    """Verify that an empty dict is returned when no event is found."""
+    result = show._get_last_event_info(
+        testcase_id=self.testcase_id,
+        fields_to_extract=['timestamp'],
+        event_type='non_existent_event_type')
+    self.assertEqual(result, {})
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
+  """Test retrieving testcase status machine information."""
+
+  def test_get_testcase_status_machine_info(self):
+    """Verify that testcase information is retrieved correctly from events."""
     result = show.get_testcase_status_machine_info(self.testcase_id)
 
     expected_task_events = {
