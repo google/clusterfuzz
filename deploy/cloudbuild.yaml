@@ -82,7 +82,8 @@ steps:
     echo "✅ Running deploy for project config: $configpath"
     python3.11 butler.py deploy -c $configpath --prod --targets zips appengine --force
 
-- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+- id: update project metadata with revision
+  name: gcr.io/google.com/cloudsdktool/cloud-sdk
   entrypoint: bash
   args:
   - -c
@@ -90,8 +91,30 @@ steps:
     if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
       cd clusterfuzz
     fi
+
+    METADATA_KEY="clusterfuzz-revision"
+    MAX_RETRIES=10
+    WAIT_SECONDS=10
+
     CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
-    gcloud compute project-info add-metadata --metadata=clusterfuzz-revision="$${CURRENT_CLUSTERFUZZ_REVISION}" --project "${PROJECT_ID}"
+    echo "Starting asynchronous metadata update..."
+
+    # Step 1: Run the update command in the background
+    gcloud compute project-info add-metadata --metadata="$${METADATA_KEY}=$${CURRENT_CLUSTERFUZZ_REVISION}" --project "${PROJECT_ID}" > /dev/null 2>&1 &
+
+    # Step 2: Poll for the updated metadata value
+    for ((i=1; i<=$$MAX_RETRIES; i++)); do
+      echo "Attempt $$i of $$MAX_RETRIES: Checking project metadata..."
+      # Check if the metadata value has been updated
+      if gcloud compute project-info describe --project "${PROJECT_ID}" --format="value(commonInstanceMetadata.items.$${METADATA_KEY})" | grep -q "$${CURRENT_CLUSTERFUZZ_REVISION}"; then
+        echo "Metadata updated successfully!"
+        exit 0
+      fi
+      echo "Metadata not yet updated. Waiting $$WAIT_SECONDS seconds..."
+      sleep $$WAIT_SECONDS
+    done
+    echo "Operation timed out with failure"
+    exit 1
 
 - id: 'tf init'
   name: 'hashicorp/terraform:1.8.2'

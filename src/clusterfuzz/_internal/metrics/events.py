@@ -609,8 +609,6 @@ def get_events_from_testcase(testcase_id: int,
       if value is not None
   }
 
-  order_by = None
-  if latest_first:
-    order_by = ['-timestamp']
+  order_by = ['-timestamp'] if latest_first else None
 
   yield from get_events(equality_filters=equality_filters, order_by=order_by)
