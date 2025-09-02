@@ -850,6 +850,10 @@ class FuzzerLogStruct(NamedTuple):
 class TestcaseLogStruct(NamedTuple):
   testcase_id: str
   testcase_group: str | int
+  crash_state: str
+  crash_type: str
+  security_flag: bool
+  one_time_crasher_flag: bool
 
 
 class GrouperStruct(NamedTuple):
@@ -928,7 +932,12 @@ class LogContextType(enum.Enum):
       try:
         return TestcaseLogStruct(
             testcase_id=log_contexts.meta.get('testcase_id', 'null'),
-            testcase_group=log_contexts.meta.get('testcase_group', 'null'))
+            testcase_group=log_contexts.meta.get('testcase_group', 'null'),
+            crash_state=log_contexts.meta.get('crash_state', 'null'),
+            crash_type=log_contexts.meta.get('crash_type', 'null'),
+            security_flag=log_contexts.meta.get('security_flag', 'null'),
+            one_time_crasher_flag=log_contexts.meta.get('one_time_crasher_flag',
+                                                        'null'))
       except:
         error(
             'Error retrieving context for testcase-based logs.',
@@ -948,13 +957,28 @@ class LogContextType(enum.Enum):
 
     if self == LogContextType.GROUPER:
       try:
-        first_testcase = TestcaseLogStruct(
-            testcase_id=log_contexts.meta.get('testcase_1_id', 'null'),
-            testcase_group=log_contexts.meta.get('testcase_1_group', 'null'))
-        second_testcase = TestcaseLogStruct(
-            testcase_id=log_contexts.meta.get('testcase_2_id', 'null'),
-            testcase_group=log_contexts.meta.get('testcase_2_group', 'null'))
-        symmetric_logs = [first_testcase._asdict(), second_testcase._asdict()]
+        symmetric_logs = []
+        for i in range(1, 3):
+          testcase_struct = TestcaseLogStruct(
+              testcase_id=log_contexts.meta.get(f'testcase_{i}_id', 'null'),
+              testcase_group=log_contexts.meta.get(f'testcase_{i}_group',
+                                                   'null'),
+              crash_type=log_contexts.meta.get(f'testcase_{i}_crash_type',
+                                               'null'),
+              crash_state=log_contexts.meta.get(f'testcase_{i}_crash_state',
+                                                'null'),
+              one_time_crasher_flag=log_contexts.meta.get(
+                  f'testcase_{i}_one_time_crasher_flag', 'null'),
+              security_flag=log_contexts.meta.get(f'testcase_{i}_security_flag',
+                                                  'null'))
+          fuzzer_struct = FuzzerLogStruct(
+              job=log_contexts.meta.get(f'testcase_{i}_job_type', 'null'),
+              fuzzer=log_contexts.meta.get(f'testcase_{i}_fuzzer_name', 'null'),
+              fuzz_target='unknown')
+
+          log_dict = testcase_struct._asdict()
+          log_dict.update(fuzzer_struct._asdict())
+          symmetric_logs.append(log_dict)
         return GrouperStruct(symmetric_logs=symmetric_logs)
       except:
         error(
@@ -1079,20 +1103,21 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
   with wrap_log_context(
       contexts=[LogContextType.FUZZER, LogContextType.TESTCASE]):
     try:
-      log_contexts.add_metadata('testcase', testcase)
-      if testcase:
-        log_contexts.add_metadata('testcase_id', get_testcase_id(testcase))
-        log_contexts.add_metadata('testcase_group',
-                                  testcase.group_id)  # type: ignore
-        log_contexts.add_metadata('fuzzer_name',
-                                  testcase.fuzzer_name)  # type: ignore
-        log_contexts.add_metadata('job_type', testcase.job_type)  # type: ignore
-        if fuzz_target and fuzz_target.binary:
-          fuzz_target_bin = fuzz_target.binary
+      for field in TestcaseLogStruct._fields + ('job_type', 'fuzzer_name'):
+        if field == 'testcase_id':
+          log_contexts.add_metadata('testcase_id', get_testcase_id(testcase))
+        elif field == 'testcase_group':
+          log_contexts.add_metadata('testcase_group',
+                                    getattr(testcase, 'group_id', None))
         else:
-          fuzz_target_bin = testcase.get_metadata('fuzzer_binary_name',
-                                                  'unknown')
-        log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
+          log_contexts.add_metadata(field, getattr(testcase, field, None))
+
+      if fuzz_target and fuzz_target.binary:
+        fuzz_target_bin = fuzz_target.binary
+      else:
+        fuzz_target_bin = 'unknown' if not testcase else testcase.get_metadata(
+            'fuzzer_binary_name', 'unknown')
+      log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
       yield
     except Exception as e:
       # Logging as a warning because this error will be handled
@@ -1101,9 +1126,8 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
       warning(message='Error during testcase context.')
       raise e
     finally:
-      log_contexts.delete_metadata('testcase')
-      log_contexts.delete_metadata('testcase_id')
-      log_contexts.delete_metadata('testcase_group')
+      for field in TestcaseLogStruct._fields:
+        log_contexts.delete_metadata(field)
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
@@ -1126,20 +1150,35 @@ def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
   """Creates a grouper context for a given pair of testcases."""
   with wrap_log_context(contexts=[LogContextType.GROUPER]):
     try:
-      if testcase_1:
-        log_contexts.add_metadata('testcase_1_id', get_testcase_id(testcase_1))
-        log_contexts.add_metadata('testcase_1_group',
-                                  getattr(testcase_1, 'group_id', 0))
-      if testcase_2:
-        log_contexts.add_metadata('testcase_2_id', get_testcase_id(testcase_2))
-        log_contexts.add_metadata('testcase_2_group',
-                                  getattr(testcase_2, 'group_id', 0))
+      for field in TestcaseLogStruct._fields + ('job_type', 'fuzzer_name'):
+        if field == 'testcase_id':
+          log_contexts.add_metadata('testcase_1_id',
+                                    get_testcase_id(testcase_1))
+          log_contexts.add_metadata('testcase_2_id',
+                                    get_testcase_id(testcase_2))
+        elif field == 'testcase_group':
+          log_contexts.add_metadata('testcase_1_group',
+                                    getattr(testcase_1, 'group_id', None))
+          log_contexts.add_metadata('testcase_2_group',
+                                    getattr(testcase_2, 'group_id', None))
+        else:
+          log_contexts.add_metadata(f'testcase_1_{field}',
+                                    getattr(testcase_1, field, None))
+          log_contexts.add_metadata(f'testcase_2_{field}',
+                                    getattr(testcase_2, field, None))
+
       yield
     except Exception as e:
       warning(message='Error during grouper context.')
       raise e
     finally:
-      log_contexts.delete_metadata('testcase_1_id')
-      log_contexts.delete_metadata('testcase_2_id')
-      log_contexts.delete_metadata('testcase_1_group')
-      log_contexts.delete_metadata('testcase_2_group')
+      for field in TestcaseLogStruct._fields + ('job_type', 'fuzzer_name'):
+        if field == 'testcase_id':
+          log_contexts.delete_metadata('testcase_1_id')
+          log_contexts.delete_metadata('testcase_2_id')
+        elif field == 'testcase_group':
+          log_contexts.delete_metadata('testcase_1_group')
+          log_contexts.delete_metadata('testcase_2_group')
+        else:
+          log_contexts.delete_metadata(f'testcase_1_{field}')
+          log_contexts.delete_metadata(f'testcase_2_{field}')
