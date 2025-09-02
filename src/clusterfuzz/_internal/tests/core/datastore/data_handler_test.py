@@ -16,6 +16,7 @@
 import datetime
 import json
 import os
+from typing import Generator
 import unittest
 from unittest import mock
 
@@ -1025,3 +1026,94 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         self.job.name, None, None, None, None, None, None, None,
         timeout_multiplier, None, True)
     self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetEntitiesTest(unittest.TestCase):
+  """Test retrieving entities from datastore."""
+
+  class GetEntitiesTestModel(data_types.Model):
+    """Generic model for get_entities tests."""
+    name = ndb.StringProperty()
+    value = ndb.IntegerProperty()
+    timestamp = ndb.DateTimeProperty()
+
+  def setUp(self):
+    self.entity1 = self.GetEntitiesTestModel(
+        name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
+    self.entity1.put()
+    self.entity2 = self.GetEntitiesTestModel(
+        name='b', value=2, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 2))
+    self.entity2.put()
+    self.entity3 = self.GetEntitiesTestModel(
+        name='c', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 3))
+    self.entity3.put()
+    self.entity4 = self.GetEntitiesTestModel(
+        name='d', value=3, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 4))
+    self.entity4.put()
+
+  def test_get_all(self):
+    """Verify that all entities are returned when no filters are applied."""
+    result = data_handler.get_entities(self.GetEntitiesTestModel)
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
+
+  def test_keys_only(self):
+    """Verify that get_entities_ids returns only the ids."""
+    result = data_handler.get_entities_ids(
+        self.GetEntitiesTestModel, order_by=['timestamp'])
+    expected_entities = [
+        self.entity1.key.id(),
+        self.entity2.key.id(),
+        self.entity3.key.id(),
+        self.entity4.key.id()
+    ]
+    self.assertCountEqual(result, expected_entities)
+
+  def test_with_equality_filters(self):
+    """Verify that only entities matching the equality filters are returned."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 1})
+    expected_entities = [self.entity1, self.entity3]
+    self.assertCountEqual(result, expected_entities)
+
+  @parameterized.parameterized.expand([
+      (['value', 'name'], ['entity1', 'entity3', 'entity2', 'entity4']),
+      (['-name'], ['entity4', 'entity3', 'entity2', 'entity1']),
+  ])
+  def test_with_order_by(self, order_by, expected_order_keys):
+    """Verify that entities are returned in the specified order."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=order_by)
+    expected_entities = [getattr(self, key) for key in expected_order_keys]
+    self.assertSequenceEqual(list(result), expected_entities)
+
+  def test_with_equality_filters_and_order(self):
+    """Verify that filtering and ordering can be combined."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel,
+        equality_filters={'value': 1},
+        order_by=['-name'])
+    expected_entities = [self.entity3, self.entity1]
+    self.assertSequenceEqual(list(result), expected_entities)
+
+  def test_non_existent_filter_property(self):
+    """Verify that filtering on a non-existent property returns all entities."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'non_existent': 1})
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
+
+  def test_non_existent_order_property(self):
+    """Verify that ordering by a non-existent property returns all entities."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=['non_existent'])
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
+
+  def test_no_entities_found(self):
+    """Verify that an empty generator is returned when no entities match."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 5})
+    self.assertIsInstance(result, Generator)
+    self.assertCountEqual(result, [])

@@ -21,11 +21,15 @@ from dataclasses import field
 from dataclasses import InitVar
 import datetime
 from typing import Any
+from typing import Generator
+from typing import Mapping
+from typing import Sequence
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore.data_handler import FilterValue
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -311,6 +315,16 @@ class IEventRepository(ABC):
                 event_type: str | None = None) -> Event | None:
     """Retrieve an event from the underlying database and return it."""
 
+  @abstractmethod
+  def get_events(
+      self,
+      equality_filters: Mapping[str, FilterValue] | None = None,
+      order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
+    """Yields events from the underlying database.
+    
+    The events match the specified equality filters, ordering, and limit.
+    """
+
 
 class NDBEventRepository(IEventRepository, EventHandler):
   """Implements the event repository for Datastore.
@@ -382,6 +396,27 @@ class NDBEventRepository(IEventRepository, EventHandler):
 
     event = self._deserialize_event(event_entity)
     return event
+
+  def get_events(
+      self,
+      equality_filters: Mapping[str, FilterValue] | None = None,
+      order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
+    """Yields events from datastore.
+
+    The events match the given equality filters, ordering, and limit. If no
+    event type is specified in equality_filters, the default entity will be
+    used.
+    """
+    event_type = (equality_filters or {}).get('event_type')
+    entity_kind = self._event_to_entity_map.get(event_type,
+                                                self._default_entity)
+    entities_ids = data_handler.get_entities_ids(
+        entity_kind=entity_kind,
+        equality_filters=equality_filters,
+        order_by=order_by)
+
+    yield from (event for entity_id in entities_ids
+                if (event := self.get_event(entity_id, event_type)))
 
   def emit(self, event: Event) -> Any:
     """Emit an event by persisting it to Datastore."""
@@ -544,3 +579,36 @@ def emit(event: Event) -> None:
 
   for handler in handlers:
     handler.emit(event)
+
+
+def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
+               order_by: Sequence[str] | None = None) -> Generator:
+  """Yields events matching the equality filters and ordering."""
+  repository = get_repository()
+  if repository:
+    yield from repository.get_events(
+        equality_filters=equality_filters, order_by=order_by)
+
+
+def get_events_from_testcase(testcase_id: int,
+                             event_type: str | None = None,
+                             task_name: str | None = None,
+                             latest_first: bool = True) -> Generator:
+  """Yields events from a testcase, with optional filters.
+  
+  If latest_first is True, events are yielded in reverse chronological order.
+  """
+  potential_filters = {
+      'testcase_id': testcase_id,
+      'event_type': event_type,
+      'task_name': task_name,
+  }
+  equality_filters = {
+      filter: value
+      for filter, value in potential_filters.items()
+      if value is not None
+  }
+
+  order_by = ['-timestamp'] if latest_first else None
+
+  yield from get_events(equality_filters=equality_filters, order_by=order_by)
