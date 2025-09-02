@@ -728,13 +728,13 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
     task_calls = [
         mock.call(
             testcase_id,
-            ['task_stage', 'task_status', 'task_outcome', 'timestamp'],
+            show.TASK_EVENTS_FIELDS_TO_EXTRACT,
             event_type=events.EventTypes.TASK_EXECUTION,
             task_name=task_name) for task_name in show.TASK_EVENTS_NAMES
     ]
     lifecycle_events_calls = []
     for event_type in show.LIFECYCLE_EVENTS_TYPES:
-      fields_to_extract = ['timestamp']
+      fields_to_extract = list(show.LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT)
       extra_field = show.LIFECYCLE_EVENTS_EXTRA_FIELD_MAP.get(event_type)
       if extra_field:
         fields_to_extract.append(extra_field)

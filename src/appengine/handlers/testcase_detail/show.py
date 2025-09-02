@@ -16,6 +16,8 @@
 import datetime
 import html
 import re
+from types import MappingProxyType
+from typing import Sequence
 
 import flask
 import jinja2
@@ -66,27 +68,27 @@ KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
 
 STACKTRACE_MAX_LENGTH = 500000
 
-TASK_EVENTS_NAMES = [
+TASK_EVENTS_NAMES = (
     'analyze', 'minimize', 'impact', 'regression', 'progression'
-]
-TASK_EVENTS_FIELDS_TO_EXTRACT = [
+)
+TASK_EVENTS_FIELDS_TO_EXTRACT = (
     'task_stage', 'task_status', 'task_outcome', 'timestamp'
-]
-LIFECYCLE_EVENTS_TYPES = [
+)
+LIFECYCLE_EVENTS_TYPES = (
     events.EventTypes.TESTCASE_REJECTION,
     events.EventTypes.TESTCASE_CREATION,
     events.EventTypes.TESTCASE_FIXED,
     events.EventTypes.ISSUE_CLOSING,
     events.EventTypes.ISSUE_FILING,
-]
-LIFECYCLE_EVENTS_EXTRA_FIELD_MAP = {
+)
+LIFECYCLE_EVENTS_EXTRA_FIELD_MAP = MappingProxyType({
     events.EventTypes.TESTCASE_CREATION: 'creation_origin',
     events.EventTypes.TESTCASE_REJECTION: 'rejection_reason',
     events.EventTypes.ISSUE_FILING: 'issue_created',
     events.EventTypes.TESTCASE_FIXED: 'fixed_revision',
     events.EventTypes.ISSUE_CLOSING: 'closing_reason',
-}
-LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT = ['timestamp']
+})
+LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT = ('timestamp',)
 
 
 def _truncate_stacktrace(stacktrace):
@@ -373,7 +375,7 @@ def _format_reproduction_help(reproduction_help):
 
 
 def _get_last_event_info(testcase_id: int,
-                         fields_to_extract: list,
+                         fields_to_extract: Sequence[str],
                          event_type: str | None = None,
                          task_name: str | None = None) -> dict:
   """Get last event info for a specific filter set."""
