@@ -66,27 +66,27 @@ KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
 
 STACKTRACE_MAX_LENGTH = 500000
 
-EVENTS_TASK_NAMES = [
+TASK_EVENTS_NAMES = [
     'analyze', 'minimize', 'impact', 'regression', 'progression'
 ]
-EVENTS_TASK_FIELDS_TO_EXTRACT = [
+TASK_EVENTS_FIELDS_TO_EXTRACT = [
     'task_stage', 'task_status', 'task_outcome', 'timestamp'
 ]
-NON_TASK_EVENT_TYPES = [
+LIFECYCLE_EVENTS_TYPES = [
     events.EventTypes.TESTCASE_REJECTION,
     events.EventTypes.TESTCASE_CREATION,
     events.EventTypes.TESTCASE_FIXED,
     events.EventTypes.ISSUE_CLOSING,
     events.EventTypes.ISSUE_FILING,
 ]
-NON_TASK_EVENT_EXTRA_FIELD_MAP = {
+LIFECYCLE_EVENTS_EXTRA_FIELD_MAP = {
     events.EventTypes.TESTCASE_CREATION: 'creation_origin',
     events.EventTypes.TESTCASE_REJECTION: 'rejection_reason',
     events.EventTypes.ISSUE_FILING: 'issue_created',
     events.EventTypes.TESTCASE_FIXED: 'fixed_revision',
     events.EventTypes.ISSUE_CLOSING: 'closing_reason',
 }
-EVENTS_NON_TASK_FIELDS_TO_EXTRACT = ['timestamp']
+LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT = ['timestamp']
 
 
 def _truncate_stacktrace(stacktrace):
@@ -396,14 +396,14 @@ def get_testcase_status_machine_info(testcase_id: int) -> dict:
   task_events_info = {
       task_name: _get_last_event_info(
           testcase_id,
-          EVENTS_TASK_FIELDS_TO_EXTRACT,
+          TASK_EVENTS_FIELDS_TO_EXTRACT,
           event_type=events.EventTypes.TASK_EXECUTION,
-          task_name=task_name) for task_name in EVENTS_TASK_NAMES
+          task_name=task_name) for task_name in TASK_EVENTS_NAMES
   }
-  non_task_events_info = {}
-  for event_type in NON_TASK_EVENT_TYPES:
-    fields_to_extract = list(EVENTS_NON_TASK_FIELDS_TO_EXTRACT)
-    extra_field = NON_TASK_EVENT_EXTRA_FIELD_MAP.get(event_type)
+  lifecycle_events_info = {}
+  for event_type in LIFECYCLE_EVENTS_TYPES:
+    fields_to_extract = list(LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT)
+    extra_field = LIFECYCLE_EVENTS_EXTRA_FIELD_MAP.get(event_type)
     if extra_field:
       fields_to_extract.append(extra_field)
 
@@ -413,11 +413,11 @@ def get_testcase_status_machine_info(testcase_id: int) -> dict:
     if extra_field and extra_field in event_info:
       event_info['extra'] = event_info.pop(extra_field)
 
-    non_task_events_info[event_type] = event_info
+    lifecycle_events_info[event_type] = event_info
 
   return {
       'task_events_info': task_events_info,
-      'non_task_events_info': non_task_events_info,
+      'lifecycle_events_info': lifecycle_events_info,
   }
 
 

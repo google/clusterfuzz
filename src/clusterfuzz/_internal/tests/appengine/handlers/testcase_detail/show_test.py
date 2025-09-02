@@ -699,29 +699,29 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
     result = show.get_testcase_status_machine_info(testcase_id)
 
     expected_task_events_info = {
-        task_name: {} for task_name in show.EVENTS_TASK_NAMES
+        task_name: {} for task_name in show.TASK_EVENTS_NAMES
     }
     expected_task_events_info['analyze'] = analyze_event_info
 
-    expected_non_task_events_info = {
-        event_type: {} for event_type in show.NON_TASK_EVENT_TYPES
+    expected_lifecycle_events_info = {
+        event_type: {} for event_type in show.LIFECYCLE_EVENTS_TYPES
     }
-    expected_non_task_events_info[events.EventTypes.TESTCASE_CREATION] = {
+    expected_lifecycle_events_info[events.EventTypes.TESTCASE_CREATION] = {
         'timestamp': '2023-01-01 00:00:00.000000 UTC',
         'extra': 'fuzz_task'
     }
-    expected_non_task_events_info[events.EventTypes.TESTCASE_REJECTION] = {
+    expected_lifecycle_events_info[events.EventTypes.TESTCASE_REJECTION] = {
         'timestamp': '2023-01-02 00:00:00.000000 UTC',
         'extra': 'analyze_no_repro'
     }
-    expected_non_task_events_info[events.EventTypes.ISSUE_FILING] = {
+    expected_lifecycle_events_info[events.EventTypes.ISSUE_FILING] = {
         'timestamp': '2023-01-03 00:00:00.000000 UTC',
         'extra': True
     }
 
     expected = {
         'task_events_info': expected_task_events_info,
-        'non_task_events_info': expected_non_task_events_info,
+        'lifecycle_events_info': expected_lifecycle_events_info,
     }
     self.assertEqual(result, expected)
 
@@ -730,19 +730,19 @@ class GetTestcaseStatusMachineInfoTest(unittest.TestCase):
             testcase_id,
             ['task_stage', 'task_status', 'task_outcome', 'timestamp'],
             event_type=events.EventTypes.TASK_EXECUTION,
-            task_name=task_name) for task_name in show.EVENTS_TASK_NAMES
+            task_name=task_name) for task_name in show.TASK_EVENTS_NAMES
     ]
-    non_task_calls = []
-    for event_type in show.NON_TASK_EVENT_TYPES:
+    lifecycle_events_calls = []
+    for event_type in show.LIFECYCLE_EVENTS_TYPES:
       fields_to_extract = ['timestamp']
-      extra_field = show.NON_TASK_EVENT_EXTRA_FIELD_MAP.get(event_type)
+      extra_field = show.LIFECYCLE_EVENTS_EXTRA_FIELD_MAP.get(event_type)
       if extra_field:
         fields_to_extract.append(extra_field)
-      non_task_calls.append(
+      lifecycle_events_calls.append(
           mock.call(testcase_id, fields_to_extract, event_type=event_type))
 
     self.mock._get_last_event_info.assert_has_calls(
-        task_calls + non_task_calls, any_order=True)
+        task_calls + lifecycle_events_calls, any_order=True)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -830,7 +830,7 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
         'progression': {},
     }
 
-    expected_non_task_events = {
+    expected_lifecycle_events = {
         events.EventTypes.TESTCASE_CREATION: {
             'timestamp': '2023-01-01 09:00:00.000000 UTC',
             'extra': events.TestcaseOrigin.FUZZ_TASK,
@@ -852,7 +852,7 @@ class GetTestcaseStatusMachineInfoIntegrationTest(unittest.TestCase):
 
     expected_result = {
         'task_events_info': expected_task_events,
-        'non_task_events_info': expected_non_task_events,
+        'lifecycle_events_info': expected_lifecycle_events,
     }
 
     self.assertEqual(result, expected_result)
