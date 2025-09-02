@@ -705,7 +705,7 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
 
   def test_get_testcase_status_machine_info(self):
     """Verify that testcase information is retrieved correctly from events."""
-    result = show.get_testcase_status_machine_info(self.testcase_id)
+    result = show._get_testcase_status_machine_info(self.testcase_id)
 
     expected_task_events = {
         'analyze': {
@@ -743,6 +743,7 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
             'timestamp': '2023-01-03 00:00:00.000000 UTC',
             'extra': True,
         },
+        events.EventTypes.TESTCASE_GROUPING: {},
     }
 
     expected_result = {

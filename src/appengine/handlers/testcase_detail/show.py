@@ -78,6 +78,7 @@ LIFECYCLE_EVENTS_TYPES = (
     events.EventTypes.TESTCASE_FIXED,
     events.EventTypes.ISSUE_CLOSING,
     events.EventTypes.ISSUE_FILING,
+    events.EventTypes.TESTCASE_GROUPING,
 )
 LIFECYCLE_EVENTS_EXTRA_FIELD_MAP = MappingProxyType({
     events.EventTypes.TESTCASE_CREATION: 'creation_origin',
@@ -85,6 +86,7 @@ LIFECYCLE_EVENTS_EXTRA_FIELD_MAP = MappingProxyType({
     events.EventTypes.ISSUE_FILING: 'issue_created',
     events.EventTypes.TESTCASE_FIXED: 'fixed_revision',
     events.EventTypes.ISSUE_CLOSING: 'closing_reason',
+    events.EventTypes.TESTCASE_GROUPING: 'grouping_reason',
 })
 LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT = ('timestamp',)
 
@@ -391,7 +393,7 @@ def _get_last_event_info(testcase_id: int,
   return info
 
 
-def get_testcase_status_machine_info(testcase_id: int) -> dict:
+def _get_testcase_status_machine_info(testcase_id: int) -> dict:
   """Get testcase status machine info."""
   task_events_info = {
       task_name: _get_last_event_info(
@@ -630,7 +632,7 @@ def get_testcase_detail(testcase):
       'testcase':
           testcase,
       'testcase_status_machine_info':
-          get_testcase_status_machine_info(testcase.key.id()),
+          _get_testcase_status_machine_info(testcase.key.id()),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':
