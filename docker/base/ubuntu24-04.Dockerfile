@@ -1,8 +1,8 @@
-# Copyright 2019 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# you may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -12,24 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copy some commonly linked library versions from xenial for backwards
-# compatibility with older builds.
-FROM ubuntu:16.04 as xenial
+FROM ubuntu:24.04
 
 # Prevent interactive prompts during package installation. This seems to work
 # better than `ENV DEBIAN_FRONTEND=noninteractive` for some reason.
-RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-
-RUN apt-get update && \
-    apt-get install -y \
-      libcurl3-gnutls \
-      libffi6 \
-      libnettle6 \
-      libssl1.0.0
-
-FROM ubuntu:20.04
-
-# And again with the newest ubuntu image.
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 RUN mkdir /data
@@ -48,15 +34,15 @@ RUN apt-get update && \
         libcurl4-openssl-dev \
         libffi-dev \
         libgdbm-dev \
-        libidn11 \
+        libidn12 \
         liblzma-dev \
-        libncurses5-dev \
-        libncursesw5 \
+        libncurses-dev \
+        libncursesw6 \
         libnss3-dev \
         libreadline-dev \
         libsqlite3-dev \
         libssl-dev \
-        libtinfo5 \
+        libtinfo6 \
         locales \
         lsb-release \
         net-tools \
@@ -68,16 +54,6 @@ RUN apt-get update && \
         wget \
         zip \
         zlib1g-dev
-
-COPY --from=xenial \
-    /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
-    /lib/x86_64-linux-gnu/libssl.so.1.0.0 \
-    /lib/x86_64-linux-gnu/
-COPY --from=xenial \
-    /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* \
-    /usr/lib/x86_64-linux-gnu/libffi.so.6.* \
-    /usr/lib/x86_64-linux-gnu/libnettle.so.* \
-    /usr/lib/x86_64-linux-gnu/
 
 # Install patchelf.
 RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
@@ -114,8 +90,8 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
 # Install Node.js
-COPY setup_19.x /data
-RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \

@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,5 +13,7 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu24-04
 
-RUN apt-get install -y libc6-i386 lib32gcc-s1
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y libc6-i386 lib32gcc-s1
 ENV UNTRUSTED_WORKER True

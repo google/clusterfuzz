@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,34 +19,33 @@ RUN apt-get update && \
         gettext-base \
         git \
         golang-go \
-        google-cloud-sdk-app-engine-go \
-        google-cloud-sdk-app-engine-python \
-        google-cloud-sdk-app-engine-python-extras \
         google-cloud-sdk-datastore-emulator \
         google-cloud-sdk-gke-gcloud-auth-plugin \
         google-cloud-sdk-pubsub-emulator \
         kubectl \
         liblzma-dev \
-        openjdk-11-jdk
+        openjdk-17-jdk
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
-RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \
-    curl https://storage.googleapis.com/www.bazel.build/bazel-release.pub.gpg | apt-key add - && \
+RUN apt-get update && apt-get install -y gnupg && \
+    curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/bazel.gpg && \
+    echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \
     apt-get update && \
     apt-get install -y bazel
 
-RUN npm install -g bower polymer-bundler
+RUN npm install -g bower
 
 # Install latest Chrome stable, needed for chromedriver testing.
-RUN curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+RUN curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google.gpg && \
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
     apt-get update && apt-get install -y google-chrome-stable
 
 # Install terraform.
-RUN wget https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip && \
-    echo "3de5135eecbdb882c7c941920846cc63b0685209f9f8532c6fc1460d9c58e347  terraform_1.5.6_linux_amd64.zip" | sha256sum --check --status && \
-    unzip terraform_1.5.6_linux_amd64.zip -d /usr/local/bin && \
-    rm terraform_1.5.6_linux_amd64.zip
+RUN wget https://releases.hashicorp.com/terraform/1.13.1/terraform_1.13.1_linux_amd64.zip && \
+    echo "4449e2ddc0dee283f0909dd603eaf98edeebaa950f4635cea94f2caf0ffacc5a  terraform_1.13.1_linux_amd64.zip" | sha256sum --check --status && \
+    unzip terraform_1.13.1_linux_amd64.zip -d /usr/local/bin && \
+    rm terraform_1.13.1_linux_amd64.zip
+
 
 # Container Builder mount.
 VOLUME /workspace
