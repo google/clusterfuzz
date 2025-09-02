@@ -68,12 +68,10 @@ KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
 
 STACKTRACE_MAX_LENGTH = 500000
 
-TASK_EVENTS_NAMES = (
-    'analyze', 'minimize', 'impact', 'regression', 'progression'
-)
-TASK_EVENTS_FIELDS_TO_EXTRACT = (
-    'task_stage', 'task_status', 'task_outcome', 'timestamp'
-)
+TASK_EVENTS_NAMES = ('analyze', 'minimize', 'impact', 'regression',
+                     'progression')
+TASK_EVENTS_FIELDS_TO_EXTRACT = ('task_stage', 'task_status', 'task_outcome',
+                                 'timestamp')
 LIFECYCLE_EVENTS_TYPES = (
     events.EventTypes.TESTCASE_REJECTION,
     events.EventTypes.TESTCASE_CREATION,
