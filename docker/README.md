@@ -28,3 +28,55 @@ To build all images on container builder, run:
 
 Note that your checkout needs to be on the latest deployed commit.
 You also need to have access to the `clusterfuzz-images` project.
+## Docker Image Dependency Tree
+
+```mermaid
+graph TD
+    subgraph Base Images
+        A(base)
+    end
+
+    subgraph Chromium
+        F(chromium/base)
+        K(chromium/tester)
+        L(chromium/python-profiler)
+        M(chromium/high-end)
+        E(chromium/tests-syncer)
+        G(chromium/builder)
+    end
+
+    subgraph OSS-Fuzz
+        H(oss-fuzz/base)
+        N(oss-fuzz/worker)
+        O(oss-fuzz/host)
+        P(oss-fuzz/host-high-end)
+    end
+
+    subgraph General
+        B(ci)
+        C(utask-main-scheduler)
+        D(fuchsia)
+        I(tworker)
+        J(high-end)
+    end
+
+
+    A --> B;
+    A --> C;
+    A --> D;
+    A --> E;
+    A --> F;
+    A --> G;
+    A --> H;
+    A --> I;
+    A --> J;
+
+    F --> K;
+    F --> L;
+    F --> M;
+
+    H --> N;
+    H --> O;
+
+    O --> P;
+```

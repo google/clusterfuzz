@@ -4,7 +4,7 @@
   <img src="docs/images/logo.png" width="400">
 </p>
 
-[![OpenSSF Scorecard](https://api.security.scorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
 
 ClusterFuzz is a scalable [fuzzing](https://en.wikipedia.org/wiki/Fuzzing)
 infrastructure that finds security and stability issues in software.
@@ -34,59 +34,6 @@ a software project's development process:
 <p align="center">
   <img src="docs/images/overview.png">
 </p>
-
-## Docker Image Dependency Tree
-
-```mermaid
-graph TD
-    subgraph Base Images
-        A(base)
-    end
-
-    subgraph Chromium
-        F(chromium/base)
-        K(chromium/tester)
-        L(chromium/python-profiler)
-        M(chromium/high-end)
-        E(chromium/tests-syncer)
-        G(chromium/builder)
-    end
-
-    subgraph OSS-Fuzz
-        H(oss-fuzz/base)
-        N(oss-fuzz/worker)
-        O(oss-fuzz/host)
-        P(oss-fuzz/host-high-end)
-    end
-
-    subgraph General
-        B(ci)
-        C(utask-main-scheduler)
-        D(fuchsia)
-        I(tworker)
-        J(high-end)
-    end
-
-
-    A --> B;
-    A --> C;
-    A --> D;
-    A --> E;
-    A --> F;
-    A --> G;
-    A --> H;
-    A --> I;
-    A --> J;
-
-    F --> K;
-    F --> L;
-    F --> M;
-
-    H --> N;
-    H --> O;
-
-    O --> P;
-```
 
 ## Documentation
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
