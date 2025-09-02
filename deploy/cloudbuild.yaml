@@ -108,10 +108,10 @@ steps:
   args:
   - '-c'
   - |
-    /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
+    cd /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
     terraform apply -target=module.compute -auto-approve || exit 1
 
-timeout: 2000s
+timeout: 3000s
 options:
   machineType: E2_HIGHCPU_32
   diskSizeGb: 500
