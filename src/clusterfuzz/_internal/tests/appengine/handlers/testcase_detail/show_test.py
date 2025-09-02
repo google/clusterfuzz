@@ -617,7 +617,7 @@ class GetLastEventInfoTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.events.get_latest_events_from_testcase',
+        'clusterfuzz._internal.metrics.events.get_events_from_testcase',
     ])
 
   def test_get_last_event_info(self):
@@ -626,7 +626,7 @@ class GetLastEventInfoTest(unittest.TestCase):
         creation_origin=events.TestcaseOrigin.FUZZ_TASK,
         timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
         event_type='generic_event_type')
-    self.mock.get_latest_events_from_testcase.return_value = iter([event])
+    self.mock.get_events_from_testcase.return_value = iter([event])
 
     result = show._get_last_event_info(
         testcase_id=1,
@@ -638,12 +638,12 @@ class GetLastEventInfoTest(unittest.TestCase):
         'creation_origin': 'fuzz_task'
     }
     self.assertEqual(result, expected)
-    self.mock.get_latest_events_from_testcase.assert_called_once_with(
+    self.mock.get_events_from_testcase.assert_called_once_with(
         1, event_type='testcase_creation', task_name=None)
 
   def test_get_last_event_info_no_event(self):
     """Verify that an empty dict is returned when no event is found."""
-    self.mock.get_latest_events_from_testcase.return_value = iter([])
+    self.mock.get_events_from_testcase.return_value = iter([])
     result = show._get_last_event_info(
         testcase_id=1, fields_to_extract=['timestamp'])
     self.assertEqual(result, {})

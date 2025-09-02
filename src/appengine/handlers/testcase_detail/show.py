@@ -376,9 +376,9 @@ def _get_last_event_info(testcase_id: int,
                          fields_to_extract: list,
                          event_type: str | None = None,
                          task_name: str | None = None) -> dict:
-  """Get latest event info for a specific filter set."""
+  """Get last event info for a specific filter set."""
   last_event = next(
-      events.get_latest_events_from_testcase(
+      events.get_events_from_testcase(
           testcase_id, event_type=event_type, task_name=task_name), None)
   info = {}
   if last_event:
