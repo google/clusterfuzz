@@ -3,11 +3,6 @@ import os
 import pickle
 import random
 import re
-import networkx as nx
-from matplotlib_venn import venn3, venn2
-# from matplotlib_venn.layout.venn2 import DefaultLayoutAlgorithm
-from matplotlib_venn.layout.venn3 import DefaultLayoutAlgorithm
-import matplotlib.pyplot as plt
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
@@ -24,6 +19,12 @@ from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 
 
 def groups_fixed_states():
+  import squarify
+  import networkx as nx
+  from matplotlib_venn import venn3, venn2
+  from matplotlib_venn.layout.venn3 import DefaultLayoutAlgorithm
+  import matplotlib.pyplot as plt
+
   local_dir = os.getenv('PATH_TO_LOCAL_DATA', '.')
   storage_dir = os.path.join(local_dir, 'groups_with_diff_fixed_states') 
   if not os.path.exists(storage_dir):
@@ -84,11 +85,12 @@ def groups_fixed_states():
       groups_fixed_revision_range = pickle.load(f)
 
 
-  # venn2((groups_with_not_fixed_testcases.difference(groups_with_na_testcases), groups_with_fixed_testcases.difference(groups_with_na_testcases)), ('Not fixed', 'Fixed'), layout_algorithm=DefaultLayoutAlgorithm(fixed_subset_sizes=(1,1,1,1,1,1,1)))
-  # plt.savefig('groups_fixed_venn_2.png')
-
-  # venn3((groups_with_not_fixed_testcases, groups_with_na_testcases, groups_with_fixed_testcases), ('Not fixed', 'NA', 'Fixed'), layout_algorithm=DefaultLayoutAlgorithm(fixed_subset_sizes=(1,1,1,1,1,1,1)))
-  # plt.savefig('groups_fixed_venn_3.png')
+  venn2((groups_with_not_fixed_testcases.difference(groups_with_na_testcases), groups_with_fixed_testcases.difference(groups_with_na_testcases)), ('Not fixed', 'Fixed'), layout_algorithm=DefaultLayoutAlgorithm(fixed_subset_sizes=(1,1,1,1,1,1,1)))
+  plt.savefig('groups_fixed_venn_2.png')
+  plt.clf()
+  venn3((groups_with_not_fixed_testcases, groups_with_na_testcases, groups_with_fixed_testcases), ('Not fixed', 'NA', 'Fixed'), layout_algorithm=DefaultLayoutAlgorithm(fixed_subset_sizes=(1,1,1,1,1,1,1)))
+  plt.savefig('groups_fixed_venn_3.png')
+  plt.clf()
 
   num_of_groups = len(groups_with_fixed_testcases.union(groups_with_na_testcases).union(groups_with_not_fixed_testcases))
   print(f'# Total groups: {num_of_groups}')
@@ -101,38 +103,84 @@ def groups_fixed_states():
   print(f'# Groups with only not fixed: {len(only_not_fixed)}')
 
 
-  fixed_and_not_fixed = groups_with_fixed_testcases.intersection(groups_with_not_fixed_testcases)
-  fixed_and_na = groups_with_fixed_testcases.intersection(groups_with_na_testcases)
-  not_fixed_and_na = groups_with_not_fixed_testcases.intersection(groups_with_na_testcases)
-  print(f'# Groups with fixed and not fixed: {len(fixed_and_not_fixed)}')
-  print(f'# Groups with fixed and NA: {len(fixed_and_na)}')
-  print(f'# Groups with not fixed and NA: {len(not_fixed_and_na)}')
+  # fixed_and_not_fixed = groups_with_fixed_testcases.intersection(groups_with_not_fixed_testcases)
+  # fixed_and_na = groups_with_fixed_testcases.intersection(groups_with_na_testcases)
+  # not_fixed_and_na = groups_with_not_fixed_testcases.intersection(groups_with_na_testcases)
+  # print(f'# Groups with fixed and not fixed: {len(fixed_and_not_fixed)}')
+  # print(f'# Groups with fixed and NA: {len(fixed_and_na)}')
+  # print(f'# Groups with not fixed and NA: {len(not_fixed_and_na)}')
+
+
+  print(f'-'*30)
+  not_fixed_and_fixed = groups_with_not_fixed_testcases.intersection(groups_with_fixed_testcases).difference(groups_with_na_testcases)
+  not_fixed_and_na = groups_with_not_fixed_testcases.intersection(groups_with_na_testcases).difference(groups_with_fixed_testcases)
+  not_fixed_and_na_and_fixed = groups_with_not_fixed_testcases.intersection(groups_with_na_testcases).intersection(groups_with_fixed_testcases)
+
+
+  print(f'# From {len(groups_with_not_fixed_testcases)} groups with at least one open testcase, '
+        f'{len(only_not_fixed)} have only open testcases, {len(not_fixed_and_fixed)} have only open and fixed testcases, '
+        f'{len(not_fixed_and_na)} have open and NA testcases, {len(not_fixed_and_na_and_fixed)} have open, fixed and NA testcases.')
+
+  sizes = [len(only_not_fixed), len(not_fixed_and_fixed), len(not_fixed_and_na), len(not_fixed_and_na_and_fixed)]
+  labels = ['Only Open', 'Open and fixed', 'Open and NA', 'Open, fixed and NA']
+  labels = [f'{l}\n{s}' for l, s in zip(labels, sizes)]
+  squarify.plot(sizes=sizes, label=labels, alpha=0.8)
+  plt.savefig('groups_treemap.png')
+  plt.clf()
 
   # print(list(groups_fixed_revision_range.items())[0])
   revisions_per_group = []
   count_1 = 0
-  # Look only for groups with fixed testcases
+  count_n = 0
   for group_id, group_revs in groups_fixed_revision_range.items():
+    # Look only for groups with fixed testcases.
     if group_id not in only_fixed:
       continue
-    if 'Yes' in group_revs:
+    # Remove groups with only 1 testcase.
+    if len(group_revs) <= 1:
       continue
-    if len(group_revs) == 1:
-      if count_1 % 500:
-        print(group_id)
+
+    group_unique_revs = set(group_revs)
+    # Remove groups with fixed rev 'Yes' (custom builds).
+    if 'Yes' in group_unique_revs:
+      continue
+
+    if len(group_unique_revs) == 1:
+      # if count_1 % 500:
+      #   print(group_id)
       count_1 += 1
-    revisions_per_group.append(len(group_revs))
+    else:
+      count_n += 1
 
-  print(f'# Groups with only fixed in the same revision: {count_1}')
-  # plt.figure(figsize=(12, 10))
-  # plt.hist(revisions_per_group, bins=50)
-  # plt.tight_layout()
-  # plt.savefig('revision_range_dist.png')
+    revisions_per_group.append(len(group_unique_revs))
 
+  print(f'# Groups with all fixed in same revision: {count_1} (of {count_n + count_1})')
+  plt.figure(figsize=(12, 8))
+  plt.hist(revisions_per_group, bins=50)
+  plt.xlabel('Distinct fixed revision ranges.')
+  plt.ylabel('Count')
+  plt.title('Distribution of the number of distinct fixed revisions in closed groups.')
+  plt.tight_layout()
+  plt.savefig('revision_range_dist.png')
+
+
+def get_largest_groups():
+  group_sizes = collections.Counter()
+  ungrouped = 0
+  for testcase_id in data_handler.get_open_testcase_id_iterator():
+    try:
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+    except:
+      continue
+    if testcase.group_id == 0:
+      ungrouped += 1
+    else:
+      group_sizes[testcase.group_id] += 1
+
+  print(f'\nTop 15 larger groups: {group_sizes.most_common(15)}')
+  print(f'\n # Ungrouped testcases: {ungrouped}')
 
 def execute(args):
   """Load testcases and/or run grouper locally."""
-  groups_fixed_states()
-
-### ADD ANALYSIS FOR FIXED IN THE SAME FIXED REVISION RANGE
-### ADD analysis for the top jobs causing issues
+  # groups_fixed_states()
+  get_largest_groups()
