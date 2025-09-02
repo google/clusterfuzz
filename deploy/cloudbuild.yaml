@@ -82,7 +82,8 @@ steps:
     echo "✅ Running deploy for project config: $configpath"
     python3.11 butler.py deploy -c $configpath --prod --targets zips appengine --force
 
-- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+- id: update project metadata with revision
+  name: gcr.io/google.com/cloudsdktool/cloud-sdk
   entrypoint: bash
   args:
   - -c
@@ -91,7 +92,57 @@ steps:
       cd clusterfuzz
     fi
     CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
-    gcloud compute project-info add-metadata --metadata=clusterfuzz-revision="$${CURRENT_CLUSTERFUZZ_REVISION}" --project "${PROJECT_ID}"
+    gcloud compute project-info add-metadata \
+      --metadata=clusterfuzz-revision="$${CURRENT_CLUSTERFUZZ_REVISION}" \
+      --project "${PROJECT_ID}" \
+      --async 2>&1 > /workspace/operation.txt
+
+- id: check matadata was updated
+  name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # Start a loop to check for the metadata update
+    OPERATION_ID=$(cat /workspace/operation.txt | awk '{print $3}')
+    TRIES=0
+    MAX_TRIES=10
+    SLEEP_TIME=10
+
+    while [ $TRIES -lt $MAX_TRIES ]; do
+        echo "Checking status of operation '$OPERATION_ID' (Trial $((TRIES + 1)) of $MAX_TRIES)..."
+        
+        # Get the status of the operation
+        OPERATION_STATUS=$(gcloud compute operations describe "$OPERATION_ID" \
+            --project="$PROJECT_ID" \
+            --format="value(status)")
+
+        if [ "$OPERATION_STATUS" == "DONE" ]; then
+            echo "✅ Operation '$OPERATION_ID' is complete. Verifying status code..."
+            
+            # Check if the operation completed successfully
+            OPERATION_ERROR=$(gcloud compute operations describe "$OPERATION_ID" \
+                --project="$PROJECT_ID" \
+                --format="value(error.code)")
+            
+            if [ "$OPERATION_ERROR" == "" ]; then
+                echo "✅ Metadata update was successful!"
+                exit 0 # Exit with success
+            else
+                echo "❌ Operation failed with error: $OPERATION_ERROR"
+                exit 1 # Exit with failure
+            fi
+        else
+            echo "⏳ Operation is still '$OPERATION_STATUS'. Waiting for $SLEEP_TIME seconds..."
+            sleep $SLEEP_TIME
+        fi
+        
+        TRIES=$((TRIES + 1))
+    done
+
+    # If the loop finishes without finding the metadata, it's a failure
+    echo "❌ Failed to find metadata key '$METADATA_KEY' after $MAX_TRIES attempts."
+    exit 1 # Exit with a failure status code
 
 - id: 'tf init'
   name: 'hashicorp/terraform:1.8.2'
