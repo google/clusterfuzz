@@ -111,15 +111,15 @@
           </div>
         </template>
 
-        <div class="title" title="Last non task events in the testcase lifecycle.">Non Task Events</div>
-        <template is="dom-if" if="[[nonEmpty(nonTaskEvents)]]">
+        <div class="title" title="Last non task events in the testcase lifecycle.">Lifecycle Events</div>
+        <template is="dom-if" if="[[nonEmpty(lifecycleEvents)]]">
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
               <td>Event Type</td>
               <td>Extra</td>
               <td>Time</td>
             </tr>
-            <template is="dom-repeat" items="[[nonTaskEvents]]" as="event">
+            <template is="dom-repeat" items="[[lifecycleEvents]]" as="event">
               <tr class="body">
                 <td>[[event.event_type]]</td>
                 <td>[[event.extra]]</td>
@@ -128,7 +128,7 @@
             </template>
           </table>
         </template>
-        <template is="dom-if" if="[[!nonEmpty(nonTaskEvents)]]">
+        <template is="dom-if" if="[[!nonEmpty(lifecycleEvents)]]">
           <div>
             No other events found.
           </div>
@@ -145,9 +145,9 @@
           type: Array,
           computed: 'computeEvents(info.testcase_status_info.task_events_info, "task_name")'
         },
-        nonTaskEvents: {
+        lifecycleEvents: {
           type: Array,
-          computed: 'computeEvents(info.testcase_status_info.non_task_events_info, "event_type")'
+          computed: 'computeEvents(info.testcase_status_info.lifecycle_events_info, "event_type")'
         },
       },
       computeEvents(eventsInfo, nameKey) {
