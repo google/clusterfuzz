@@ -2,7 +2,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# you may obtain a copy of the License at
+# You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -28,6 +28,7 @@ RUN apt-get update && \
         apt-transport-https \
         build-essential \
         curl \
+        file \
         gdb \
         iproute2 \
         libbz2-dev \
@@ -89,9 +90,13 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
-# Install Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs
+# Install Node.js 19.x from binary to maintain version consistency
+RUN cd /tmp && \
+    curl -sSL https://nodejs.org/dist/v19.9.0/node-v19.9.0-linux-x64.tar.xz -o node.tar.xz && \
+    tar -xJf node.tar.xz && \
+    mv node-v19.9.0-linux-x64 /usr/local/node && \
+    rm node.tar.xz
+ENV PATH="/usr/local/node/bin:${PATH}"
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \

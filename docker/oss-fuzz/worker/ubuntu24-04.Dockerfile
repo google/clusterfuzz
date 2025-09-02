@@ -13,7 +13,5 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu24-04
 
-RUN dpkg --add-architecture i386 && \
-    apt-get update && \
-    apt-get install -y libc6-i386 lib32gcc-s1
+RUN apt-get install -y libc6-i386 lib32gcc-s1
 ENV UNTRUSTED_WORKER True

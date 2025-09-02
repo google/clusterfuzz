@@ -20,9 +20,15 @@ ENV TESTS_ARCHIVE_BUCKET "clusterfuzz-data"
 ENV TESTS_ARCHIVE_NAME "web_tests.zip"
 ENV TESTS_DIR /home/$USER/tests
 
+# Add git-core/ppa for latest git version. Otherwise, we fail on gclient sync.
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:git-core/ppa
+
 RUN apt-get update && \
     apt-get install -y \
         git \
+	python-is-python3 \
         subversion \
         zip
 
