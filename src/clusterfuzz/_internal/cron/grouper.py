@@ -97,26 +97,19 @@ def _emit_grouping_event(moved_testcase: int,
           group_merge_reason=group_merge_reason))
 
 
-def _get_testcase_log_info(testcase: TestcaseAttributes):
-  """Return testcase data as string for logging."""
-  log_str = (f'group={testcase.group_id}, '
-             f'crash_type={testcase.crash_type}, '
-             f'crash_state={testcase.crash_state}, '
-             f'security_flag={testcase.security_flag}, '
-             f'one_time_crasher={testcase.one_time_crasher_flag}, '
-             f'fuzzer={testcase.fuzzer_name}, '
-             f'job={testcase.job_type}')
-  return log_str
-
-
 def combine_testcases_into_group(
     testcase_1: TestcaseAttributes, testcase_2: TestcaseAttributes,
     testcase_map: dict[int, TestcaseAttributes], reason: str) -> None:
   """Combine two testcases into a group."""
-  logs.info(f'Grouping testcase {testcase_1.id} '
-            f'({_get_testcase_log_info(testcase_1)}) and testcase '
-            f'{testcase_2.id} ({_get_testcase_log_info(testcase_2)}). '
-            f'Reason: {reason}.')
+  logs.info(
+      'Grouping testcase %s '
+      '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+      'and testcase %s '
+      '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s). Reason: %s'
+      % (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+         testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
+         testcase_2.crash_type, testcase_2.crash_state,
+         testcase_2.security_flag, testcase_2.group_id, reason))
 
   # If none of the two testcases have a group id, just assign a new group id to
   # both.
@@ -513,14 +506,12 @@ def _shrink_large_groups_if_needed(testcase_map):
                 rejection_reason=events.RejectionReason.GROUPER_OVERFLOW))
         if DELETE_TESTCASES_FROM_GROUPING:
           logs.warning(f'Deleting testcase {testcase.id} due to overflowing '
-                       f'group {testcase.group_id}. '
-                       f'Testcase data: {_get_testcase_log_info(testcase)}')
+                       f'group {testcase.group_id}.')
           testcase_entity.key.delete()
         else:
           # Mark testcase as closed instead of deleting it to avoid data loss.
           logs.warning(f'Closing testcase {testcase.id} due to overflowing '
-                       f'group {testcase.group_id}. '
-                       f'Testcase data: {_get_testcase_log_info(testcase)}')
+                       f'group {testcase.group_id}.')
           # TODO(vtcosta): Add logic to re-run progression for these testcases
           # when the group leader is closed. Delete them if they are also fixed.
           testcase_entity.fixed = 'NA'
