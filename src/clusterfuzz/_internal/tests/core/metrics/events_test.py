@@ -1162,7 +1162,7 @@ class EmitEventTest(unittest.TestCase):
 
 
 class RetrievingEventsTest(unittest.TestCase):
-  """Test retrieving events."""
+  """Helper class for testing event retrieval"""
 
   def setUp(self):
     self.event1 = data_types.TestcaseLifecycleEvent(
