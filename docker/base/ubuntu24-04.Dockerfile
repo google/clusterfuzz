@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:24.04
+# Copy some commonly linked library versions from xenial for backwards
+# compatibility with older builds.
+FROM ubuntu:16.04 as xenial
 
-# Prevent interactive prompts during package installation.
+# Prevent interactive prompts during package installation. This seems to work
+# better than `ENV DEBIAN_FRONTEND=noninteractive` for some reason.
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+RUN apt-get update && \
+    apt-get install -y \
+      libcurl3-gnutls \
+      libffi6 \
+      libnettle6 \
+      libssl1.0.0
+
+FROM ubuntu:20.04
+
+# And again with the newest ubuntu image.
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 RUN mkdir /data
 WORKDIR /data
 
-# Install essential packages
 RUN apt-get update && \
     apt-get upgrade -y && \
+    apt-get autoremove -y && \
     apt-get install -y \
         apt-transport-https \
         build-essential \
@@ -33,15 +48,15 @@ RUN apt-get update && \
         libcurl4-openssl-dev \
         libffi-dev \
         libgdbm-dev \
-        libidn12 \
+        libidn11 \
         liblzma-dev \
-        libncurses-dev \
-        libncursesw6 \
+        libncurses5-dev \
+        libncursesw5 \
         libnss3-dev \
         libreadline-dev \
         libsqlite3-dev \
         libssl-dev \
-        libtinfo6 \
+        libtinfo5 \
         locales \
         lsb-release \
         net-tools \
@@ -52,9 +67,17 @@ RUN apt-get update && \
         util-linux \
         wget \
         zip \
-        zlib1g-dev && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+        zlib1g-dev
+
+COPY --from=xenial \
+    /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
+    /lib/x86_64-linux-gnu/libssl.so.1.0.0 \
+    /lib/x86_64-linux-gnu/
+COPY --from=xenial \
+    /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* \
+    /usr/lib/x86_64-linux-gnu/libffi.so.6.* \
+    /usr/lib/x86_64-linux-gnu/libnettle.so.* \
+    /usr/lib/x86_64-linux-gnu/
 
 # Install patchelf.
 RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
@@ -124,9 +147,9 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
-COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh docker/base/setup_mock_metadata.sh Pipfile Pipfile.lock docker/base/start.sh requirements.txt /data/
+COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
 RUN cd /data && \
-    # Make pip3.11 the default
+    # Make pip3.11 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
     pipenv install --deploy --system
 

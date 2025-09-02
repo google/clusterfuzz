@@ -2,15 +2,21 @@
 
 ## Local testing
 
-You can build an image locally as:
+You can build a specific image locally using the `docker build` command from the root of the **clusterfuzz** repository.
+
+For example, to build the `base` image, run the following command from the root of the **clusterfuzz** repository:
 
 ```bash
-cd /path/to/image/dir
-docker build .
+docker build -f docker/base/Dockerfile docker/base
 ```
 
-where `/path/to/image/dir` is any image sub-directory in this directory that contains a
-'Dockerfile'.
+### Command Explanation
+
+*   `docker build`: The standard command to build a Docker image.
+*   `-f docker/base/Dockerfile`: This flag specifies the path to the `Dockerfile` to be used, relative to the repository root.
+*   `docker/base`: This is the "build context". The Docker daemon will have access to all files and folders within this path. This is necessary for the `COPY` instructions in the `Dockerfile`.
+
+You can adapt this command to build other images by changing the path to the `Dockerfile` and the build context accordingly.
 
 ## Production
 
