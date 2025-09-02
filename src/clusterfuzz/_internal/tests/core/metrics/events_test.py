@@ -1227,8 +1227,10 @@ class GetEventsFromDatastoreTest(RetrievingEventsTest):
     """Verify if a retrieved event is correctly deserialized to the correspondent event class"""
     equality_filters = {'event_type': 'task_execution'}
     result = list(self.repository.get_events(equality_filters=equality_filters))
-    self._assert_events_equal(result, [self.event5])
+    expected_entity = self.event5
+    self._assert_events_equal(result, [expected_entity])
     self.assertIsInstance(result[0], events.TaskExecutionEvent)
+    self.assertEqual(result[0].testcase_id, expected_entity.testcase_id)
 
   def test_get_events_with_equality_filters(self):
     """Verify that only events matching the equality filters are yielded."""
