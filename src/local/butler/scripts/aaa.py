@@ -32,7 +32,7 @@ def execute(args):
   # event = events.get_latest_testcase_analyze_event(4566648589582336)
   # event = events.get_latest_testcase_rejection_event(5095170395537408)
 
-  boards = show.get_testcase_status_machine_info(4506375602241536)
+  boards = show._get_testcase_status_info(4506375602241536)
   for board_name, board_data in boards.items():
     print(f"{board_name}:")
     for key, value in board_data.items():

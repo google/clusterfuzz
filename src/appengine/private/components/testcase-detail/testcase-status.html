@@ -16,7 +16,7 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../common/if-else/if-else.html">
 
-<dom-module id="testcase-status-machine">
+<dom-module id="testcase-status">
   <link rel="import" href="../../stylesheets/main.css" type="css">
   <link rel="import" href="../technology/technology.css" type="css">
   <template>
@@ -80,7 +80,7 @@
     <div class="section">
       <div class="title">
         <div title="Events in the testcase lifecycle.">
-          Testcase Status Machine
+          Testcase Status
         </div>
       </div>
       <div class="body padding">
@@ -89,9 +89,9 @@
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
               <td>Task Name</td>
-              <td>Stage</td>
-              <td>Status</td>
-              <td>Outcome</td>
+              <td>Task Stage</td>
+              <td>Task Status</td>
+              <td>Task Outcome</td>
               <td>Time</td>
             </tr>
             <template is="dom-repeat" items="[[taskEvents]]" as="taskEvent">
@@ -143,11 +143,11 @@
         info: Object,
         taskEvents: {
           type: Array,
-          computed: 'computeEvents(info.testcase_status_machine_info.task_events_info, "task_name")'
+          computed: 'computeEvents(info.testcase_status_info.task_events_info, "task_name")'
         },
         nonTaskEvents: {
           type: Array,
-          computed: 'computeEvents(info.testcase_status_machine_info.non_task_events_info, "event_type")'
+          computed: 'computeEvents(info.testcase_status_info.non_task_events_info, "event_type")'
         },
       },
       computeEvents(eventsInfo, nameKey) {

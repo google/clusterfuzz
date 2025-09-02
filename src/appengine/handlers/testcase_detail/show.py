@@ -393,8 +393,8 @@ def _get_last_event_info(testcase_id: int,
   return info
 
 
-def _get_testcase_status_machine_info(testcase_id: int) -> dict:
-  """Get testcase status machine info."""
+def _get_testcase_status_info(testcase_id: int) -> dict:
+  """Get testcase status info."""
   task_events_info = {
       task_name: _get_last_event_info(
           testcase_id,
@@ -631,8 +631,8 @@ def get_testcase_detail(testcase):
           _parse_suspected_cls(metadata.get('predator_result')),
       'testcase':
           testcase,
-      'testcase_status_machine_info':
-          _get_testcase_status_machine_info(testcase.key.id()),
+      'testcase_status_info':
+          _get_testcase_status_info(testcase.key.id()),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':

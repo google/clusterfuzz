@@ -703,9 +703,9 @@ class GetLastEventInfoTest(EventsInfoTest):
 class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
   """Test retrieving testcase status machine information."""
 
-  def test_get_testcase_status_machine_info(self):
+  def test_get_testcase_status_info(self):
     """Verify that testcase information is retrieved correctly from events."""
-    result = show._get_testcase_status_machine_info(self.testcase_id)
+    result = show._get_testcase_status_info(self.testcase_id)
 
     expected_task_events = {
         'analyze': {
