@@ -16,8 +16,6 @@
 import datetime
 import html
 import re
-from types import MappingProxyType
-from typing import Sequence
 
 import flask
 import jinja2
@@ -34,9 +32,9 @@ from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
-from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
+from handlers.testcase_detail import testcase_status
 from libs import access
 from libs import auth
 from libs import form
@@ -67,28 +65,6 @@ KERNEL_LINK_REGEX = re.compile(
 KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
 
 STACKTRACE_MAX_LENGTH = 500000
-
-TASK_EVENTS_NAMES = ('analyze', 'minimize', 'impact', 'regression',
-                     'progression')
-TASK_EVENTS_FIELDS_TO_EXTRACT = ('task_stage', 'task_status', 'task_outcome',
-                                 'timestamp')
-LIFECYCLE_EVENTS_TYPES = (
-    events.EventTypes.TESTCASE_REJECTION,
-    events.EventTypes.TESTCASE_CREATION,
-    events.EventTypes.TESTCASE_FIXED,
-    events.EventTypes.ISSUE_CLOSING,
-    events.EventTypes.ISSUE_FILING,
-    events.EventTypes.TESTCASE_GROUPING,
-)
-LIFECYCLE_EVENTS_EXTRA_FIELD_MAP = MappingProxyType({
-    events.EventTypes.TESTCASE_CREATION: 'creation_origin',
-    events.EventTypes.TESTCASE_REJECTION: 'rejection_reason',
-    events.EventTypes.ISSUE_FILING: 'issue_created',
-    events.EventTypes.TESTCASE_FIXED: 'fixed_revision',
-    events.EventTypes.ISSUE_CLOSING: 'closing_reason',
-    events.EventTypes.TESTCASE_GROUPING: 'grouping_reason',
-})
-LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT = ('timestamp',)
 
 
 def _truncate_stacktrace(stacktrace):
@@ -374,55 +350,6 @@ def _format_reproduction_help(reproduction_help):
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
 
-def _get_last_event_info(testcase_id: int,
-                         fields_to_extract: Sequence[str],
-                         event_type: str | None = None,
-                         task_name: str | None = None) -> dict:
-  """Get last event info for a specific filter set."""
-  last_event = next(
-      events.get_events_from_testcase(
-          testcase_id, event_type=event_type, task_name=task_name), None)
-  info = {}
-  if last_event:
-    for field in fields_to_extract:
-      if hasattr(last_event, field):
-        attr_value = getattr(last_event, field)
-        if field == 'timestamp' and attr_value:
-          attr_value = attr_value.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
-        info[field] = attr_value
-  return info
-
-
-def _get_testcase_status_info(testcase_id: int) -> dict:
-  """Get testcase status info."""
-  task_events_info = {
-      task_name: _get_last_event_info(
-          testcase_id,
-          TASK_EVENTS_FIELDS_TO_EXTRACT,
-          event_type=events.EventTypes.TASK_EXECUTION,
-          task_name=task_name) for task_name in TASK_EVENTS_NAMES
-  }
-  lifecycle_events_info = {}
-  for event_type in LIFECYCLE_EVENTS_TYPES:
-    fields_to_extract = list(LIFECYCLE_EVENTS_FIELDS_TO_EXTRACT)
-    extra_field = LIFECYCLE_EVENTS_EXTRA_FIELD_MAP.get(event_type)
-    if extra_field:
-      fields_to_extract.append(extra_field)
-
-    event_info = _get_last_event_info(
-        testcase_id, fields_to_extract, event_type=event_type)
-
-    if extra_field and extra_field in event_info:
-      event_info['extra'] = event_info.pop(extra_field)
-
-    lifecycle_events_info[event_type] = event_info
-
-  return {
-      'task_events_info': task_events_info,
-      'lifecycle_events_info': lifecycle_events_info,
-  }
-
-
 def get_testcase_detail(testcase):
   """Get testcase detail for rendering the testcase detail page."""
   config = db_config.get()
@@ -632,7 +559,7 @@ def get_testcase_detail(testcase):
       'testcase':
           testcase,
       'testcase_status_info':
-          _get_testcase_status_info(testcase.key.id()),
+          testcase_status.get_testcase_status_info(testcase.key.id()),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':
