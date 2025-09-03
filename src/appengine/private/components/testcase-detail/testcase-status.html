@@ -143,22 +143,15 @@
         info: Object,
         taskEvents: {
           type: Array,
-          computed: 'computeEvents(info.testcase_status_info.task_events_info, "task_name")'
+          computed: 'computeEvents(info.testcase_status_info.task_events_info)'
         },
         lifecycleEvents: {
           type: Array,
-          computed: 'computeEvents(info.testcase_status_info.lifecycle_events_info, "event_type")'
+          computed: 'computeEvents(info.testcase_status_info.lifecycle_events_info)'
         },
       },
-      computeEvents(eventsInfo, nameKey) {
-        if (!eventsInfo) {
-          return [];
-        }
-        return Object.keys(eventsInfo).map(function(key) {
-          var event = eventsInfo[key];
-          event[nameKey] = key;
-          return event;
-        });
+      computeEvents(eventsInfo) {
+        return eventsInfo || [];
       },
       nonEmpty(items) {
         return items && items.length > 0;

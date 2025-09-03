@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,20 +93,20 @@ class GetLastEventInfoTest(EventsInfoTest):
 
   def test_get_last_event_info(self):
     """Verify that event info is retrieved and formatted correctly."""
-    result = self.status_info_instance._get_last_event_info(
-        fields_to_extract=['timestamp', 'creation_origin'],
+    result = self.status_info_instance.get_last_event_info(
         event_type=events.EventTypes.TESTCASE_CREATION)
 
     expected = {
+        'event_type': events.EventTypes.TESTCASE_CREATION,
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
-        'creation_origin': 'fuzz_task'
+        'extra': 'fuzz_task'
     }
     self.assertEqual(result, expected)
 
   def test_get_last_event_info_no_event(self):
     """Verify that an empty dict is returned when no event is found."""
-    result = self.status_info_instance._get_last_event_info(
-        fields_to_extract=['timestamp'], event_type='non_existent_event_type')
+    result = self.status_info_instance.get_last_event_info(
+        event_type='non_existent_event_type')
     self.assertEqual(result, {})
 
 
@@ -118,48 +118,52 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     """Verify that testcase information is retrieved correctly from events."""
     result = self.status_info_instance.get_info()
 
-    expected_task_events = {
-        'analyze': {
+    expected_task_events = [
+        {
+            'task_name': 'analyze',
             'task_stage': 'stage2',
             'task_status': 'status2',
             'task_outcome': 'outcome2',
             'timestamp': '2023-01-01 11:00:00.000000 UTC'
         },
-        'minimize': {
+        {
+            'task_name': 'minimize',
             'task_stage': 'stage3',
             'task_status': 'status3',
             'task_outcome': None,
             'timestamp': '2023-01-01 12:00:00.000000 UTC'
         },
-        'impact': {},
-        'regression': {},
-        'progression': {},
-    }
+        {'task_name': 'impact'},
+        {'task_name': 'progression'},
+        {'task_name': 'regression'},
+    ]
 
-    expected_lifecycle_events = {
-        events.EventTypes.TESTCASE_CREATION: {
+    expected_lifecycle_events = [
+        {
+            'event_type': events.EventTypes.TESTCASE_CREATION,
             'timestamp': '2023-01-01 09:00:00.000000 UTC',
             'extra': events.TestcaseOrigin.FUZZ_TASK,
         },
-        events.EventTypes.TESTCASE_FIXED: {
+        {
+            'event_type': events.EventTypes.TESTCASE_FIXED,
             'timestamp': '2023-01-02 00:00:00.000000 UTC',
             'extra': '123:456',
         },
-        events.EventTypes.TESTCASE_REJECTION: {},
-        events.EventTypes.ISSUE_CLOSING: {
+        {'event_type': events.EventTypes.TESTCASE_REJECTION},
+        {
+            'event_type': events.EventTypes.ISSUE_CLOSING,
             'timestamp': '2023-01-04 00:00:00.000000 UTC',
             'extra': events.ClosingReason.TESTCASE_FIXED,
         },
-        events.EventTypes.ISSUE_FILING: {
+        {
+            'event_type': events.EventTypes.ISSUE_FILING,
             'timestamp': '2023-01-03 00:00:00.000000 UTC',
             'extra': True,
         },
-        events.EventTypes.TESTCASE_GROUPING: {},
-    }
+        {'event_type': events.EventTypes.TESTCASE_GROUPING}
+    ]
 
-    expected_result = {
-        'task_events_info': expected_task_events,
-        'lifecycle_events_info': expected_lifecycle_events,
-    }
-
-    self.assertEqual(result, expected_result)
+    self.assertCountEqual(result.keys(),
+                          ['task_events_info','lifecycle_events_info'])
+    self.assertCountEqual(result['task_events_info'], expected_task_events)
+    self.assertCountEqual(result['lifecycle_events_info'], expected_lifecycle_events)
