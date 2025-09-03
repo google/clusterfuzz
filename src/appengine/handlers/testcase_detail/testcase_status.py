@@ -16,6 +16,7 @@ import datetime
 
 from clusterfuzz._internal.metrics import events
 
+
 class TestcaseStatusInfo:
   """Provides methods to retrieve and format testcase status information."""
 
@@ -50,20 +51,21 @@ class TestcaseStatusInfo:
             self._format_testcase_grouping_event,
     }
 
-  def _format_timestamp(self, timestamp: datetime.datetime | None) -> str | None:
+  def _format_timestamp(self,
+                        timestamp: datetime.datetime | None) -> str | None:
     """Formats a timestamp."""
     if not timestamp:
       return None
     return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
-  
+
   def _format_string(self, text: str | None) -> str | None:
     """Formats a string by capitalizing words and replacing underscores."""
     if not text:
       return None
     return text.replace('_', ' ').title()
 
-  def _format_task_execution_event(
-      self, event: events.TaskExecutionEvent) -> dict:
+  def _format_task_execution_event(self,
+                                   event: events.TaskExecutionEvent) -> dict:
     """Formats a task execution event."""
     return {
         'task_name': self._format_string(event.task_name),
@@ -72,9 +74,8 @@ class TestcaseStatusInfo:
         'task_outcome': event.task_outcome,
         'timestamp': self._format_timestamp(event.timestamp),
     }
-  
-  def _format_lifecycle_common_fields(
-      self, event: events.Event) -> dict:
+
+  def _format_lifecycle_common_fields(self, event: events.Event) -> dict:
     """Formats common fields for lifecycle events."""
     return {
         'event_type': self._format_string(event.event_type),
@@ -85,41 +86,53 @@ class TestcaseStatusInfo:
       self, event: events.TestcaseCreationEvent) -> dict:
     """Formats a testcase creation event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'event_info': f'Creation origin: {event.creation_origin}'}
+    return common_fields | {
+        'event_info': f'Creation origin: {event.creation_origin}'
+    }
 
   def _format_testcase_rejection_event(
       self, event: events.TestcaseRejectionEvent) -> dict:
     """Formats a testcase rejection event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'event_info': f'Rejection reason: {event.rejection_reason}'}
+    return common_fields | {
+        'event_info': f'Rejection reason: {event.rejection_reason}'
+    }
 
-  def _format_testcase_fixed_event(
-      self, event: events.TestcaseFixedEvent) -> dict:
+  def _format_testcase_fixed_event(self,
+                                   event: events.TestcaseFixedEvent) -> dict:
     """Formats a testcase fixed event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'event_info': f'Fixed revision: {event.fixed_revision}'}
+    return common_fields | {
+        'event_info': f'Fixed revision: {event.fixed_revision}'
+    }
 
-  def _format_issue_filing_event(
-      self, event: events.IssueFilingEvent) -> dict:
+  def _format_issue_filing_event(self, event: events.IssueFilingEvent) -> dict:
     """Formats an issue filing event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    event_info = 'Issue created' if event.issue_created else 'Failed to create the issue'
+    event_info = 'Issue created' if (
+        event.issue_created) else 'Failed to create the issue'
     return common_fields | {'event_info': event_info}
 
-  def _format_issue_closing_event(
-      self, event: events.IssueClosingEvent) -> dict:
+  def _format_issue_closing_event(self,
+                                  event: events.IssueClosingEvent) -> dict:
     """Formats an issue closing event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'event_info': f'Closing reason: {event.closing_reason}'}
+    return common_fields | {
+        'event_info': f'Closing reason: {event.closing_reason}'
+    }
 
   def _format_testcase_grouping_event(
       self, event: events.TestcaseGroupingEvent) -> dict:
     """Formats a testcase grouping event."""
     common_fields = self._format_lifecycle_common_fields(event)
     event_info_data = {
-        'Grouping reason': event.grouping_reason,
-        'Group ID': event.group_id if event.group_id != 0 else 'ungrouped',
-        'Previous group ID': event.previous_group_id if event.previous_group_id != 0 else 'ungrouped',
+        'Grouping reason':
+            event.grouping_reason,
+        'Group ID':
+            event.group_id if event.group_id != 0 else 'ungrouped',
+        'Previous group ID':
+            event.previous_group_id
+            if event.previous_group_id != 0 else 'ungrouped',
     }
 
     if event.grouping_reason != events.GroupingReason.UNGROUPED:
@@ -128,7 +141,7 @@ class TestcaseStatusInfo:
       event_info_data['Group merge reason'] = event.group_merge_reason
 
     event_info = '\n'.join(
-      f'{key}: {value}' for key, value in event_info_data.items())
+        f'{key}: {value}' for key, value in event_info_data.items())
     return common_fields | {'event_info': event_info}
 
   def get_last_event_info(self,
@@ -140,22 +153,23 @@ class TestcaseStatusInfo:
             self._testcase_id, event_type=event_type, task_name=task_name),
         None)
     
-    return formatter(last_event) if (
-        last_event and (
-        formatter := self._formatters.get(last_event.event_type))) else {}
+    return formatter(last_event) if (last_event and
+                                     (formatter := self._formatters.get(
+                                          last_event.event_type))) else {}
 
   def get_info(self) -> dict:
     """Get testcase status information"""
     task_events_info = [
         self.get_last_event_info(
-            event_type=events.EventTypes.TASK_EXECUTION,
-            task_name=task_name) | {'task_name': self._format_string(task_name)}
-            for task_name in self.TASK_EVENTS_NAMES
+            event_type=events.EventTypes.TASK_EXECUTION, task_name=task_name)
+            | {
+                'task_name': self._format_string(task_name)
+            } for task_name in self.TASK_EVENTS_NAMES
     ]
     lifecycle_events_info = [
         self.get_last_event_info(event_type=event_type) | {
-          'event_type': self._format_string(event_type)}
-        for event_type in self.LIFECYCLE_EVENTS_TYPES
+          'event_type': self._format_string(event_type)
+        } for event_type in self.LIFECYCLE_EVENTS_TYPES
     ]
 
     return {

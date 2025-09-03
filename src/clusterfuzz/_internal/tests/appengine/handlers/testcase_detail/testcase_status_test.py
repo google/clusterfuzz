@@ -23,7 +23,8 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import testcase_status
 
-class EventsInfoBasicTest(unittest.TestCase): 
+
+class EventsInfoBasicTest(unittest.TestCase):
   """Helper class with basic setup for tests involving retrieving events."""
 
   def setUp(self):
@@ -34,6 +35,7 @@ class EventsInfoBasicTest(unittest.TestCase):
     test_helpers.patch(
         self, ['clusterfuzz._internal.config.local_config.ProjectConfig'])
     self.mock.ProjectConfig.return_value = {'events.storage': 'datastore'}
+
 
 class EventsInfoTest(EventsInfoBasicTest):
   """Helper class for tests involving retrieving events information."""
@@ -138,55 +140,53 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     """Verify that testcase information is retrieved correctly from events."""
     result = self.status_info_instance.get_info()
 
-    expected_task_events = [
-        {
-            'task_name': 'Analyze',
-            'task_stage': 'stage2',
-            'task_status': 'status2',
-            'task_outcome': 'outcome2',
-            'timestamp': '2023-01-01 11:00:00.000000 UTC'
-        },
-        {
-            'task_name': 'Minimize',
-            'task_stage': 'stage3',
-            'task_status': 'status3',
-            'task_outcome': None,
-            'timestamp': '2023-01-01 12:00:00.000000 UTC'
-        },
-        {'task_name': 'Impact'},
-        {'task_name': 'Progression'},
-        {'task_name': 'Regression'},
-    ]
+    expected_task_events = [{
+        'task_name': 'Analyze',
+        'task_stage': 'stage2',
+        'task_status': 'status2',
+        'task_outcome': 'outcome2',
+        'timestamp': '2023-01-01 11:00:00.000000 UTC'
+    }, {
+        'task_name': 'Minimize',
+        'task_stage': 'stage3',
+        'task_status': 'status3',
+        'task_outcome': None,
+        'timestamp': '2023-01-01 12:00:00.000000 UTC'
+    }, {
+        'task_name': 'Impact'
+    }, {
+        'task_name': 'Progression'
+    }, {
+        'task_name': 'Regression'
+    }]
 
-    expected_lifecycle_events = [
-        {
-            'event_type': 'Testcase Creation',
-            'timestamp': '2023-01-01 09:00:00.000000 UTC',
-            'event_info': 'Creation origin: fuzz_task',
-        },
-        {
-            'event_type': 'Testcase Fixed',
-            'timestamp': '2023-01-02 00:00:00.000000 UTC',
-            'event_info': 'Fixed revision: 123:456',
-        },
-        {'event_type': 'Testcase Rejection'},
-        {
-            'event_type': 'Issue Closing',
-            'timestamp': '2023-01-04 00:00:00.000000 UTC',
-            'event_info': 'Closing reason: testcase_fixed',
-        },
-        {
-            'event_type': 'Issue Filing',
-            'timestamp': '2023-01-03 00:00:00.000000 UTC',
-            'event_info': 'Issue created',
-        },
-        {'event_type': 'Testcase Grouping'}
-    ]
+    expected_lifecycle_events = [{
+        'event_type': 'Testcase Creation',
+        'timestamp': '2023-01-01 09:00:00.000000 UTC',
+        'event_info': 'Creation origin: fuzz_task',
+    },{
+        'event_type': 'Testcase Fixed',
+        'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        'event_info': 'Fixed revision: 123:456',
+    }, {
+        'event_type': 'Testcase Rejection'
+    }, {
+        'event_type': 'Issue Closing',
+        'timestamp': '2023-01-04 00:00:00.000000 UTC',
+        'event_info': 'Closing reason: testcase_fixed',
+    }, {
+        'event_type': 'Issue Filing',
+        'timestamp': '2023-01-03 00:00:00.000000 UTC',
+        'event_info': 'Issue created',
+    }, {
+        'event_type': 'Testcase Grouping'
+    }]
 
     self.assertCountEqual(result.keys(),
-                          ['task_events_info','lifecycle_events_info'])
+                          ['task_events_info', 'lifecycle_events_info'])
     self.assertCountEqual(result['task_events_info'], expected_task_events)
-    self.assertCountEqual(result['lifecycle_events_info'], expected_lifecycle_events)
+    self.assertCountEqual(result['lifecycle_events_info'],
+                          expected_lifecycle_events)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -198,24 +198,46 @@ class GetTestcaseStatusMachineInfoNoEventsTest(EventsInfoBasicTest):
     result = self.status_info_instance.get_info()
 
     expected_task_events = [
-        {'task_name': 'Analyze'},
-        {'task_name': 'Minimize'},
-        {'task_name': 'Impact'},
-        {'task_name': 'Regression'},
-        {'task_name': 'Progression'},
+        {
+            'task_name': 'Analyze'
+        },
+        {
+            'task_name': 'Minimize'
+        },
+        {
+            'task_name': 'Impact'
+        },
+        {
+            'task_name': 'Regression'
+        },
+        {
+            'task_name': 'Progression'
+        },
     ]
 
     expected_lifecycle_events = [
-        {'event_type': 'Testcase Rejection'},
-        {'event_type': 'Testcase Creation'},
-        {'event_type': 'Testcase Fixed'},
-        {'event_type': 'Issue Closing'},
-        {'event_type': 'Issue Filing'},
-        {'event_type': 'Testcase Grouping'},
+        {
+            'event_type': 'Testcase Rejection'
+        },
+        {
+            'event_type': 'Testcase Creation'
+        },
+        {
+            'event_type': 'Testcase Fixed'
+        },
+        {
+            'event_type': 'Issue Closing'
+        },
+        {
+            'event_type': 'Issue Filing'
+        },
+        {
+            'event_type': 'Testcase Grouping'
+        },
     ]
 
     self.assertCountEqual(result.keys(),
-                          ['task_events_info','lifecycle_events_info'])
+                          ['task_events_info', 'lifecycle_events_info'])
     self.assertCountEqual(result['task_events_info'], expected_task_events)
     self.assertCountEqual(result['lifecycle_events_info'],
                           expected_lifecycle_events)
@@ -338,8 +360,10 @@ class GetLastEventInfoFormattingTest(EventsInfoTest):
         event_type=events.EventTypes.TESTCASE_GROUPING)
 
     expected = {
-        'event_type': 'Testcase Grouping',
-        'timestamp': '2023-01-07 00:00:00.000000 UTC',
+        'event_type':
+            'Testcase Grouping',
+        'timestamp':
+            '2023-01-07 00:00:00.000000 UTC',
         'event_info': ('Grouping reason: similar_crash\n'
                        'Group ID: 101\n'
                        'Previous group ID: ungrouped\n'
@@ -363,8 +387,10 @@ class GetLastEventInfoFormattingTest(EventsInfoTest):
         event_type=events.EventTypes.TESTCASE_GROUPING)
 
     expected = {
-        'event_type': 'Testcase Grouping',
-        'timestamp': '2023-01-08 00:00:00.000000 UTC',
+        'event_type':
+            'Testcase Grouping',
+        'timestamp':
+            '2023-01-08 00:00:00.000000 UTC',
         'event_info': ('Grouping reason: group_merge\n'
                        'Group ID: 102\n'
                        'Previous group ID: 101\n'
@@ -387,8 +413,10 @@ class GetLastEventInfoFormattingTest(EventsInfoTest):
         event_type=events.EventTypes.TESTCASE_GROUPING)
 
     expected = {
-        'event_type': 'Testcase Grouping',
-        'timestamp': '2023-01-09 00:00:00.000000 UTC',
+        'event_type':
+            'Testcase Grouping',
+        'timestamp':
+            '2023-01-09 00:00:00.000000 UTC',
         'event_info': ('Grouping reason: ungrouped\n'
                        'Group ID: ungrouped\n'
                        'Previous group ID: 103')
