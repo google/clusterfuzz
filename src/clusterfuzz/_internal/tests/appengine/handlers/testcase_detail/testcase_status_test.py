@@ -97,9 +97,9 @@ class GetLastEventInfoTest(EventsInfoTest):
         event_type=events.EventTypes.TESTCASE_CREATION)
 
     expected = {
-        'event_type': events.EventTypes.TESTCASE_CREATION,
+        'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
-        'extra': 'fuzz_task'
+        'extra': 'Creation origin: fuzz_task'
     }
     self.assertEqual(result, expected)
 
@@ -120,47 +120,47 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
 
     expected_task_events = [
         {
-            'task_name': 'analyze',
+            'task_name': 'Analyze',
             'task_stage': 'stage2',
             'task_status': 'status2',
             'task_outcome': 'outcome2',
             'timestamp': '2023-01-01 11:00:00.000000 UTC'
         },
         {
-            'task_name': 'minimize',
+            'task_name': 'Minimize',
             'task_stage': 'stage3',
             'task_status': 'status3',
             'task_outcome': None,
             'timestamp': '2023-01-01 12:00:00.000000 UTC'
         },
-        {'task_name': 'impact'},
-        {'task_name': 'progression'},
-        {'task_name': 'regression'},
+        {'task_name': 'Impact'},
+        {'task_name': 'Progression'},
+        {'task_name': 'Regression'},
     ]
 
     expected_lifecycle_events = [
         {
-            'event_type': events.EventTypes.TESTCASE_CREATION,
+            'event_type': 'Testcase Creation',
             'timestamp': '2023-01-01 09:00:00.000000 UTC',
-            'extra': events.TestcaseOrigin.FUZZ_TASK,
+            'extra': 'Creation origin: fuzz_task',
         },
         {
-            'event_type': events.EventTypes.TESTCASE_FIXED,
+            'event_type': 'Testcase Fixed',
             'timestamp': '2023-01-02 00:00:00.000000 UTC',
-            'extra': '123:456',
+            'extra': 'Fixed revision: 123:456',
         },
-        {'event_type': events.EventTypes.TESTCASE_REJECTION},
+        {'event_type': 'Testcase Rejection'},
         {
-            'event_type': events.EventTypes.ISSUE_CLOSING,
+            'event_type': 'Issue Closing',
             'timestamp': '2023-01-04 00:00:00.000000 UTC',
-            'extra': events.ClosingReason.TESTCASE_FIXED,
+            'extra': 'Closing reason: testcase_fixed',
         },
         {
-            'event_type': events.EventTypes.ISSUE_FILING,
+            'event_type': 'Issue Filing',
             'timestamp': '2023-01-03 00:00:00.000000 UTC',
-            'extra': True,
+            'extra': 'Issue created',
         },
-        {'event_type': events.EventTypes.TESTCASE_GROUPING}
+        {'event_type': 'Testcase Grouping'}
     ]
 
     self.assertCountEqual(result.keys(),
