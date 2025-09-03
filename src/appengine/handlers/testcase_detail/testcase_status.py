@@ -133,7 +133,7 @@ class TestcaseStatusInfo:
             for task_name in self.TASK_EVENTS_NAMES
     ]
     lifecycle_events_info = [
-        self.get_last_event_info(event_type=event_type) | {'event_type': event_type}
+        {'event_type': event_type} | self.get_last_event_info(event_type=event_type)
         for event_type in self.LIFECYCLE_EVENTS_TYPES
     ]
 
