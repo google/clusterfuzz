@@ -85,41 +85,51 @@ class TestcaseStatusInfo:
       self, event: events.TestcaseCreationEvent) -> dict:
     """Formats a testcase creation event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'extra': f'Creation origin: {event.creation_origin}'}
+    return common_fields | {'event_info': f'Creation origin: {event.creation_origin}'}
 
   def _format_testcase_rejection_event(
       self, event: events.TestcaseRejectionEvent) -> dict:
     """Formats a testcase rejection event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'extra': f'Rejection reason: {event.rejection_reason}'}
+    return common_fields | {'event_info': f'Rejection reason: {event.rejection_reason}'}
 
   def _format_testcase_fixed_event(
       self, event: events.TestcaseFixedEvent) -> dict:
     """Formats a testcase fixed event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'extra': f'Fixed revision: {event.fixed_revision}'}
+    return common_fields | {'event_info': f'Fixed revision: {event.fixed_revision}'}
 
   def _format_issue_filing_event(
       self, event: events.IssueFilingEvent) -> dict:
     """Formats an issue filing event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    extra_info = 'Issue created' if event.issue_created else 'Failed to create the issue'
-    return common_fields | {'extra': extra_info}
+    event_info = 'Issue created' if event.issue_created else 'Failed to create the issue'
+    return common_fields | {'event_info': event_info}
 
   def _format_issue_closing_event(
       self, event: events.IssueClosingEvent) -> dict:
     """Formats an issue closing event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    return common_fields | {'extra': f'Closing reason: {event.closing_reason}'}
+    return common_fields | {'event_info': f'Closing reason: {event.closing_reason}'}
 
   def _format_testcase_grouping_event(
       self, event: events.TestcaseGroupingEvent) -> dict:
     """Formats a testcase grouping event."""
     common_fields = self._format_lifecycle_common_fields(event)
-    extra_info = f'Grouping reason: {event.grouping_reason}'
-    if event.group_merge_reason:
-      extra_info += f'; Group merge reason: {event.group_merge_reason}'
-    return common_fields | {'extra': extra_info}
+    event_info_data = {
+        'Grouping reason': event.grouping_reason,
+        'Group ID': event.group_id if event.group_id != 0 else 'ungrouped',
+        'Previous group ID': event.previous_group_id if event.previous_group_id != 0 else 'ungrouped',
+    }
+
+    if event.grouping_reason != events.GroupingReason.UNGROUPED:
+      event_info_data['Similar testcase ID'] = event.similar_testcase_id
+    if event.grouping_reason == events.GroupingReason.GROUP_MERGE:
+      event_info_data['Group merge reason'] = event.group_merge_reason
+
+    event_info = '; '.join(
+      f'{key}: {value}' for key, value in event_info_data.items())
+    return common_fields | {'event_info': event_info}
 
   def get_last_event_info(self,
                           event_type: str | None = None,

@@ -99,7 +99,7 @@ class GetLastEventInfoTest(EventsInfoTest):
     expected = {
         'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
-        'extra': 'Creation origin: fuzz_task'
+        'event_info': 'Creation origin: fuzz_task'
     }
     self.assertEqual(result, expected)
 
@@ -142,23 +142,23 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         {
             'event_type': 'Testcase Creation',
             'timestamp': '2023-01-01 09:00:00.000000 UTC',
-            'extra': 'Creation origin: fuzz_task',
+            'event_info': 'Creation origin: fuzz_task',
         },
         {
             'event_type': 'Testcase Fixed',
             'timestamp': '2023-01-02 00:00:00.000000 UTC',
-            'extra': 'Fixed revision: 123:456',
+            'event_info': 'Fixed revision: 123:456',
         },
         {'event_type': 'Testcase Rejection'},
         {
             'event_type': 'Issue Closing',
             'timestamp': '2023-01-04 00:00:00.000000 UTC',
-            'extra': 'Closing reason: testcase_fixed',
+            'event_info': 'Closing reason: testcase_fixed',
         },
         {
             'event_type': 'Issue Filing',
             'timestamp': '2023-01-03 00:00:00.000000 UTC',
-            'extra': 'Issue created',
+            'event_info': 'Issue created',
         },
         {'event_type': 'Testcase Grouping'}
     ]
