@@ -127,7 +127,7 @@ class TestcaseStatusInfo:
     if event.grouping_reason == events.GroupingReason.GROUP_MERGE:
       event_info_data['Group merge reason'] = event.group_merge_reason
 
-    event_info = '; '.join(
+    event_info = '\n'.join(
       f'{key}: {value}' for key, value in event_info_data.items())
     return common_fields | {'event_info': event_info}
 
