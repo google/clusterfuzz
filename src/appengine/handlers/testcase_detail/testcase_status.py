@@ -152,23 +152,23 @@ class TestcaseStatusInfo:
         events.get_events_from_testcase(
             self._testcase_id, event_type=event_type, task_name=task_name),
         None)
-    
+
     return formatter(last_event) if (last_event and
                                      (formatter := self._formatters.get(
-                                          last_event.event_type))) else {}
+                                         last_event.event_type))) else {}
 
   def get_info(self) -> dict:
     """Get testcase status information"""
     task_events_info = [
         self.get_last_event_info(
             event_type=events.EventTypes.TASK_EXECUTION, task_name=task_name)
-            | {
-                'task_name': self._format_string(task_name)
-            } for task_name in self.TASK_EVENTS_NAMES
+        | {
+            'task_name': self._format_string(task_name)
+        } for task_name in self.TASK_EVENTS_NAMES
     ]
     lifecycle_events_info = [
         self.get_last_event_info(event_type=event_type) | {
-          'event_type': self._format_string(event_type)
+            'event_type': self._format_string(event_type)
         } for event_type in self.LIFECYCLE_EVENTS_TYPES
     ]
 
@@ -181,4 +181,3 @@ class TestcaseStatusInfo:
 def get_testcase_status_info(testcase_id: int) -> dict:
   """Public function to retrieve testcase status information."""
   return TestcaseStatusInfo(testcase_id).get_info()
-  

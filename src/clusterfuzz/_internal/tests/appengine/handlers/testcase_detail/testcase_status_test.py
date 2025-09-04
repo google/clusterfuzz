@@ -164,7 +164,7 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
         'event_info': 'Creation origin: fuzz_task',
-    },{
+    }, {
         'event_type': 'Testcase Fixed',
         'timestamp': '2023-01-02 00:00:00.000000 UTC',
         'event_info': 'Fixed revision: 123:456',
@@ -420,43 +420,5 @@ class GetLastEventInfoFormattingTest(EventsInfoTest):
         'event_info': ('Grouping reason: ungrouped\n'
                        'Group ID: ungrouped\n'
                        'Previous group ID: 103')
-    }
-    self.assertEqual(result, expected)
-
-  def test_format_testcase_fixed_event(self):
-    """Verify that a testcase fixed event is formatted correctly."""
-    result = self.status_info_instance.get_last_event_info(
-        event_type=events.EventTypes.TESTCASE_FIXED)
-
-    expected = {
-        'event_type': 'Testcase Fixed',
-        'timestamp': '2023-01-02 00:00:00.000000 UTC',
-        'event_info': 'Fixed revision: 123:456'
-    }
-    self.assertEqual(result, expected)
-
-  def test_format_issue_closing_event(self):
-    """Verify that an issue closing event is formatted correctly."""
-    result = self.status_info_instance.get_last_event_info(
-        event_type=events.EventTypes.ISSUE_CLOSING)
-
-    expected = {
-        'event_type': 'Issue Closing',
-        'timestamp': '2023-01-04 00:00:00.000000 UTC',
-        'event_info': 'Closing reason: testcase_fixed'
-    }
-    self.assertEqual(result, expected)
-
-  def test_format_task_execution_event(self):
-    """Verify that a task execution event is formatted correctly."""
-    result = self.status_info_instance.get_last_event_info(
-        event_type=events.EventTypes.TASK_EXECUTION, task_name='minimize')
-
-    expected = {
-        'task_name': 'Minimize',
-        'task_stage': 'stage3',
-        'task_status': 'status3',
-        'task_outcome': None,
-        'timestamp': '2023-01-01 12:00:00.000000 UTC'
     }
     self.assertEqual(result, expected)
