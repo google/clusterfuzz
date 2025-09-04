@@ -57,8 +57,7 @@ class TestcaseStatusInfo:
             self._format_testcase_grouping_event,
     }
 
-  def _format_timestamp(self,
-                        timestamp: datetime.datetime) -> str | None:
+  def _format_timestamp(self, timestamp: datetime.datetime) -> str | None:
     """Formats a timestamp."""
     return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
 
@@ -68,8 +67,8 @@ class TestcaseStatusInfo:
       return None
     return text.replace('_', ' ').title()
 
-  def _format_task_execution_event(self,
-                                   event: events.TaskExecutionEvent) -> dict[str, str | None]:
+  def _format_task_execution_event(
+      self, event: events.TaskExecutionEvent) -> dict[str, str | None]:
     """Formats a task execution event."""
     return {
         'task_name': self._format_string(event.task_name),
@@ -79,7 +78,8 @@ class TestcaseStatusInfo:
         'timestamp': self._format_timestamp(event.timestamp),
     }
 
-  def _format_lifecycle_events_common_fields(self, event: events.Event) -> dict[str, str | None]:
+  def _format_lifecycle_events_common_fields(
+      self, event: events.Event) -> dict[str, str | None]:
     """Formats common fields for lifecycle events."""
     return {
         'event_type': self._format_string(event.event_type),
@@ -88,14 +88,16 @@ class TestcaseStatusInfo:
     }
 
   def _format_lifecycle_event_with_attribute_info(
-      self, event: events.Event, event_info_prefix: str, attribute_name: str) -> dict[str, str | None]:
+      self, event: events.Event, event_info_prefix: str,
+      attribute_name: str) -> dict[str, str | None]:
     """Formats a standard lifecycle event info."""
     info = self._format_lifecycle_events_common_fields(event)
     attribute_value = getattr(event, attribute_name)
     info['event_info'] = f'{event_info_prefix}: {attribute_value}'
     return info
 
-  def _format_issue_filing_event(self, event: events.IssueFilingEvent) -> dict[str, str | None]:
+  def _format_issue_filing_event(
+      self, event: events.IssueFilingEvent) -> dict[str, str | None]:
     """Formats an issue filing event."""
     info = self._format_lifecycle_events_common_fields(event)
     info['event_info'] = 'Issue created' if (
@@ -107,8 +109,10 @@ class TestcaseStatusInfo:
     """Formats a testcase grouping event."""
     info = self._format_lifecycle_events_common_fields(event)
     event_info_data = {
-        'Grouping reason': event.grouping_reason,
-        'Group ID': event.group_id if event.group_id != 0 else 'ungrouped',
+        'Grouping reason':
+            event.grouping_reason,
+        'Group ID':
+            event.group_id if event.group_id != 0 else 'ungrouped',
         'Previous group ID':
             event.previous_group_id
             if event.previous_group_id != 0 else 'ungrouped',
@@ -126,7 +130,8 @@ class TestcaseStatusInfo:
 
   def get_last_event_info(self,
                           event_type: str | None = None,
-                          task_name: str | None = None) -> dict[str, str | None]:
+                          task_name: str | None = None
+                         ) -> dict[str, str | None]:
     """Get information from the last event that matches the criteria."""
     last_event = next(
         events.get_events_from_testcase(
@@ -158,6 +163,7 @@ class TestcaseStatusInfo:
     }
 
 
-def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[dict[str, str | None]]]:
+def get_testcase_status_info(
+    testcase_id: int) -> Mapping[str, list[dict[str, str | None]]]:
   """Public function to retrieve testcase status information."""
   return TestcaseStatusInfo(testcase_id).get_info()
