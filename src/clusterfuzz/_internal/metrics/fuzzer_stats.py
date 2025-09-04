@@ -368,10 +368,12 @@ class CoverageFieldContext(BuiltinFieldContext):
       return get_coverage_info(project, date)
 
     fuzz_target = data_handler.get_fuzz_target(fuzzer)
+    engine = None
     if fuzz_target:
       fuzzer = fuzz_target.project_qualified_name()
+      engine = fuzz_target.engine
 
-    return get_coverage_info(fuzzer, date)
+    return get_coverage_info(fuzzer, date, engine)
 
 
 class BaseCoverageField:
@@ -965,11 +967,17 @@ class TableQuery:
     return ' '.join(result)
 
 
-def get_coverage_info(fuzzer, date=None):
-  """Returns a CoverageInformation entity for a given fuzzer and date. If date
-  is not specified, returns the latest entity available."""
+def get_coverage_info(fuzzer, date=None, engine=None):
+  """Returns a CoverageInformation entity for a given fuzzer, engine and date.
+
+  If date is not specified, returns the latest entity available.
+  """
   query = data_types.CoverageInformation.query(
       data_types.CoverageInformation.fuzzer == fuzzer)
+
+  if engine:
+    query = query.filter(data_types.CoverageInformation.engine == engine)
+
   if date:
     # Return info for specific date.
     query = query.filter(data_types.CoverageInformation.date == date)
