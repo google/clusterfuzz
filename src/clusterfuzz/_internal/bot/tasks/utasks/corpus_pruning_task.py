@@ -750,9 +750,10 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
 
   # Store corpus stats into CoverageInformation entity.
   project_qualified_name = context.fuzz_target.project_qualified_name()
+  engine = context.fuzz_target.engine
   today = datetime.datetime.utcnow()
   coverage_info = data_types.CoverageInformation(
-      fuzzer=project_qualified_name, date=today)
+      fuzzer=project_qualified_name, date=today, engine=engine)
 
   quarantine_corpus_size = shell.get_directory_file_count(
       context.quarantine_corpus_path)
@@ -996,6 +997,11 @@ def _save_coverage_information(output):
     return
 
   cov_info = output.corpus_pruning_task_output.coverage_info
+  # Retrieve fuzz target engine, as it is not in the cov_info proto.
+  fuzz_target = uworker_io.entity_from_protobuf(
+      output.uworker_input.corpus_pruning_task_input.fuzz_target,
+      data_types.FuzzTarget)
+  engine = fuzz_target.engine
 
   # Use ndb.transaction with retries below to mitigate risk of a race condition.
   def _try_save_coverage_information():
@@ -1003,6 +1009,7 @@ def _save_coverage_information(output):
     coverage_info = data_handler.get_coverage_information(
         cov_info.project_name,
         cov_info.timestamp.ToDatetime().date(),
+        engine=engine,
         create_if_needed=True)
 
     # Intentionally skip edge and function coverage values as those would come
