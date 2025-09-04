@@ -1196,8 +1196,7 @@ def is_tworker():
 
 
 def update_task_enabled() -> bool:
-  """ It uses the GCE VM metadata server to the the metadata 
-      `update_task_enabled` and returns it's boolean.
+  """ It uses the GCE VM metadata server `update_task_enabled` flag.
 
       This flag will be used to rollout the update_task deprecation
       by disabling it progressively for each instance group through
@@ -1224,7 +1223,6 @@ def update_task_enabled() -> bool:
     # The flag is_uworker is true for Batch environment
     # The update task should run if it's not a Batch environment
     # and the flag is enabled on the VM template metadata
-    logs.info(f"is_uworker '{is_uworker()}' and {not bool(is_uworker()) and bool_metadata_value} and {bool_metadata_value}")
     return not bool(is_uworker()) and bool_metadata_value
 
   except Exception as e:
