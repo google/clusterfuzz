@@ -63,18 +63,15 @@
       :host .title {
         position: relative;
         text-transform: uppercase;
-        text-align: center;
         margin-top: 2px;
       }
 
-      :host .subtitle {
-        background-color: #373b50;
-        color: #fff;
-        font-size: 14px;
-        margin-top: 10px;
-        padding: 4px 6px;
-        text-transform: uppercase;
-        text-align: center;
+      :host .subsection-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        color: #333;
       }
     </style>
     <div class="section">
@@ -84,7 +81,7 @@
         </div>
       </div>
       <div class="body padding">
-        <div class="title" title="Last task events in the testcase lifecycle.">Task Events</div>
+        <div class="subsection-title" title="Last task events in the testcase lifecycle.">Task Events</div>
         <template is="dom-if" if="[[nonEmpty(taskEvents)]]">
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
@@ -111,7 +108,7 @@
           </div>
         </template>
 
-        <div class="title" title="Last non task events in the testcase lifecycle.">Lifecycle Events</div>
+        <div class="subsection-title" title="Last non task events in the testcase lifecycle.">Lifecycle Events</div>
         <template is="dom-if" if="[[nonEmpty(lifecycleEvents)]]">
           <table cellpadding="0" cellspacing="0" class="variant">
             <tr class="title">
