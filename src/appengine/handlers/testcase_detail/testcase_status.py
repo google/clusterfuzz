@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions for getting testcase status information."""
-
+"""Helper functions for getting testcase status information from events."""
 import datetime
 from typing import Mapping
 
@@ -20,7 +19,7 @@ from clusterfuzz._internal.metrics import events
 
 
 class TestcaseStatusInfo:
-  """Provides methods to retrieve and format testcase status information."""
+  """Methods to retrieve and format testcase events information."""
 
   TASK_EVENTS_NAMES = ('analyze', 'minimize', 'impact', 'regression',
                        'progression')
@@ -143,7 +142,7 @@ class TestcaseStatusInfo:
                                          last_event.event_type))) else {}
 
   def get_info(self) -> Mapping[str, list[dict[str, str | None]]]:
-    """Get testcase status information"""
+    """Get testcase status information from events."""
     task_events_info = [
         self.get_last_event_info(
             event_type=events.EventTypes.TASK_EXECUTION, task_name=task_name)
