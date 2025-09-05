@@ -137,9 +137,10 @@ class TestcaseStatusInfo:
             self._testcase_id, event_type=event_type, task_name=task_name),
         None)
 
-    return formatter(last_event) if (last_event and
-                                     (formatter := self._formatters.get(
-                                         last_event.event_type))) else {}
+    if last_event and (formatter := self._formatters.get(
+        last_event.event_type)):
+      return formatter(last_event)
+    return {}
 
   def get_info(self) -> Mapping[str, list[dict[str, str | None]]]:
     """Get testcase status information from events."""
