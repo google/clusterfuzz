@@ -52,7 +52,8 @@ class Handler(base_handler.Handler):
             testcase=testcase,
             issue_tracker_project=issue_tracker.project,
             issue_id=str(issue_id) if issue_id else None,
-            issue_created=bool(issue_id)))
+            issue_created=bool(issue_id),
+            issue_reporter=user_email))
 
     if not issue_id:
       raise helpers.EarlyExitError('Unable to create new issue.', 500)

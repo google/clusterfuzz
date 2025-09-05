@@ -177,13 +177,15 @@ class EventsDataTest(unittest.TestCase):
         testcase=testcase,
         issue_tracker_project='oss-fuzz',
         issue_id='12345',
-        issue_created=True)
+        issue_created=True,
+        issue_reporter='test@google.com')
     self._assert_event_common_fields(event_filing, event_type, source)
     self._assert_testcase_fields(event_filing, testcase)
     self._assert_task_fields(event_filing)
     self.assertEqual(event_filing.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event_filing.issue_id, '12345')
     self.assertTrue(event_filing.issue_created)
+    self.assertEqual(event_filing.issue_reporter, 'test@google.com')
 
   def test_issue_closing_event(self):
     """Test issue closing event class."""
@@ -462,7 +464,8 @@ class DatastoreEventsTest(unittest.TestCase):
         testcase=testcase,
         issue_tracker_project='oss-fuzz',
         issue_id='67890',
-        issue_created=False)
+        issue_created=False,
+        issue_reporter='test@google.com')
     event_type = event.event_type
     timestamp = event.timestamp
 
@@ -481,6 +484,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event_entity.issue_id, '67890')
     self.assertFalse(event_entity.issue_created)
+    self.assertEqual(event_entity.issue_reporter, 'test@google.com')
 
   def test_serialize_issue_closing_event(self):
     """Test serializing an issue closing event."""
@@ -731,6 +735,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.issue_tracker_project = 'oss-fuzz'
     event_entity.issue_id = '13579'
     event_entity.issue_created = True
+    event_entity.issue_reporter = 'test@google.com'
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
@@ -752,6 +757,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.issue_tracker_project, 'oss-fuzz')
     self.assertEqual(event.issue_id, '13579')
     self.assertTrue(event.issue_created)
+    self.assertEqual(event.issue_reporter, 'test@google.com')
 
   def test_deserialize_issue_closing_event(self):
     """Test deserializing an issue closing event."""

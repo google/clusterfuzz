@@ -24,6 +24,7 @@ steps:
     # the repository to grab the .git directory.
     git clone 'https://github.com/google/clusterfuzz' tmp
     git -C tmp fetch origin "$COMMIT_SHA"
+    git -C tmp fetch origin master
     git -C tmp checkout -qf FETCH_HEAD
     mv tmp/.git .git
     rm -rf tmp

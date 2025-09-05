@@ -117,11 +117,13 @@ def task_loop():
     # This caches the current environment on first run. Don't move this.
     environment.reset_environment()
     try:
-      # Run regular updates.
-      # TODO(metzman): Move this after utask_main execution so that utasks can't
-      # be updated on subsequent attempts.
-      update_task.run()
-      update_task.track_revision()
+      if environment.update_task_enabled():
+        logs.info("Running update task.")
+        # Run regular updates.
+        # TODO(metzman): Move this after utask_main execution
+        # so that utasks can't be updated on subsequent attempts.
+        update_task.run()
+        update_task.track_revision()
       if environment.is_uworker():
         # Batch/Swarming tasks only run one at a time.
         sys.exit(utasks.uworker_bot_main())

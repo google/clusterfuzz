@@ -226,6 +226,8 @@ class IssueFilingEvent(BaseTestcaseEvent, BaseTaskEvent):
   issue_id: str | None = None
   # If the issue filing attempt was successful.
   issue_created: bool | None = None
+  # User email, if issue was manually created.
+  issue_reporter: str | None = None
 
 
 @dataclass(kw_only=True)

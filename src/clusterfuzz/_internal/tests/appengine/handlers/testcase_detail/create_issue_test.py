@@ -92,7 +92,8 @@ class HandlerTest(unittest.TestCase):
             testcase=self.testcase,
             issue_tracker_project='oss-fuzz',
             issue_id='100',
-            issue_created=True))
+            issue_created=True,
+            issue_reporter='test@user.com'))
 
   def test_no_issue_tracker(self):
     """No IssueTracker."""
@@ -179,4 +180,5 @@ class HandlerTest(unittest.TestCase):
             testcase=self.testcase,
             issue_tracker_project='oss-fuzz',
             issue_id=None,
-            issue_created=False))
+            issue_created=False,
+            issue_reporter='test@user.com'))

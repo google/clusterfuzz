@@ -92,7 +92,11 @@ cd $INSTALL_DIRECTORY
 
 echo "Downloading ClusterFuzz source code."
 rm -rf $ROOT_DIR
-$GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
+if [ "$USE_GCLOUD_STORAGE_CP" = "1" ]; then
+  $GSUTIL_PATH/gcloud storage cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
+else
+  $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
+fi
 unzip -q clusterfuzz-source.zip
 
 echo "Setting up android."

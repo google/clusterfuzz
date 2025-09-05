@@ -22,6 +22,7 @@ import subprocess
 import sys
 import uuid
 
+import requests
 import yaml
 
 from clusterfuzz._internal import fuzzing
@@ -1192,3 +1193,38 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
 
 def is_tworker():
   return get_value('TWORKER', False)
+
+
+def update_task_enabled() -> bool:
+  """ It uses the GCE VM metadata server `update_task_enabled` flag.
+
+      This flag will be used to rollout the update_task deprecation
+      by disabling it progressively for each instance group through
+      the instance template metadata 
+  """
+  metadata_url = ("http://metadata.google.internal/computeMetadata/v1/" +
+                  "instance/attributes/")
+  metadata_header = {"Metadata-Flavor": "Google"}
+  metadata_key = "update_task_enabled"
+
+  try:
+    # Construct the full URL for your specific metadata key
+    response = requests.get(
+        f"{metadata_url}{metadata_key}", headers=metadata_header, timeout=10)
+
+    # Raise an exception for bad status codes (4xx or 5xx)
+    response.raise_for_status()
+
+    # The metadata value is in the response text
+    metadata_value = response.text
+    logs.info(f"The value for '{metadata_key}' is: {metadata_value}")
+    bool_metadata_value = metadata_value.lower() == 'true'
+
+    # The flag is_uworker is true for Batch environment
+    # The update task should run if it's not a Batch environment
+    # and the flag is enabled on the VM template metadata
+    return not bool(is_uworker()) and bool_metadata_value
+
+  except Exception as e:
+    logs.error(f"Error fetching metadata: {e}")
+    return not bool(is_uworker())
