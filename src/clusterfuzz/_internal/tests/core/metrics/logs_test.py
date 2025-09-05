@@ -753,7 +753,12 @@ class EmitTest(unittest.TestCase):
         id='libFuzzer_abc', engine='libFuzzer', binary='abc')
     fuzz_target.put()
     testcase = data_types.Testcase(
-        fuzzer_name="test_fuzzer", job_type='test_job')
+        fuzzer_name="test_fuzzer",
+        job_type='test_job',
+        crash_state='frame1\nframe2\n',
+        crash_type='test_type',
+        security_flag=True,
+        one_time_crasher_flag=False)
     testcase.put()
 
     with logs.testcase_log_context(testcase, fuzz_target):
@@ -767,12 +772,15 @@ class EmitTest(unittest.TestCase):
       self.assertEqual(
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
-              'testcase': testcase,
               'testcase_id': 1,
               'testcase_group': 0,
               'fuzz_target': fuzz_target.binary,
               'fuzzer_name': testcase.fuzzer_name,
-              'job_type': testcase.job_type
+              'job_type': testcase.job_type,
+              'crash_state': 'frame1\nframe2\n',
+              'crash_type': 'test_type',
+              'security_flag': True,
+              'one_time_crasher_flag': False
           })
 
     logs_extra = {'target': 'bot', 'test': 'yes'}
@@ -782,7 +790,11 @@ class EmitTest(unittest.TestCase):
         'testcase_group': 0,
         'fuzz_target': 'abc',
         'job': 'test_job',
-        'fuzzer': 'test_fuzzer'
+        'fuzzer': 'test_fuzzer',
+        'crash_state': 'frame1\nframe2\n',
+        'crash_type': 'test_type',
+        'security_flag': True,
+        'one_time_crasher_flag': False
     })
     logger.log.assert_called_with(
         logging.ERROR,
@@ -912,7 +924,12 @@ class EmitTest(unittest.TestCase):
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
     testcase = data_types.Testcase(
-        fuzzer_name='test_fuzzer', job_type='test_job')
+        fuzzer_name='test_fuzzer',
+        job_type='test_job',
+        crash_state='frame1\nframe2\n',
+        crash_type='test_type',
+        security_flag=True,
+        one_time_crasher_flag=False)
     # Set this metadata to be used instead of the fuzz_target entity.
     testcase.set_metadata('fuzzer_binary_name', 'fuzz_abc')
     testcase.put()
@@ -923,7 +940,11 @@ class EmitTest(unittest.TestCase):
         'testcase_group': 0,
         'fuzz_target': 'fuzz_abc',
         'job': 'test_job',
-        'fuzzer': 'test_fuzzer'
+        'fuzzer': 'test_fuzzer',
+        'crash_state': 'frame1\nframe2\n',
+        'crash_type': 'test_type',
+        'security_flag': True,
+        'one_time_crasher_flag': False
     })
     logs_extra.update(self.common_context)
 
@@ -937,12 +958,15 @@ class EmitTest(unittest.TestCase):
       self.assertEqual(
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
-              'testcase': testcase,
               'testcase_id': 1,
               'testcase_group': 0,
               'fuzz_target': testcase.get_metadata('fuzzer_binary_name'),
               'fuzzer_name': testcase.fuzzer_name,
-              'job_type': testcase.job_type
+              'job_type': testcase.job_type,
+              'crash_state': 'frame1\nframe2\n',
+              'crash_type': 'test_type',
+              'security_flag': True,
+              'one_time_crasher_flag': False
           })
 
     logger.log.assert_called_with(
@@ -1044,6 +1068,7 @@ class EmitTest(unittest.TestCase):
   @logs.cron_log_context()
   def test_grouper_log_context(self):
     """Test the logger call and metadata for a grouper-based context."""
+    from clusterfuzz._internal.cron.grouper import FORWARDED_ATTRIBUTES
     from clusterfuzz._internal.cron.grouper import TestcaseAttributes
     from clusterfuzz._internal.datastore import data_types
     from clusterfuzz._internal.system.environment import set_task_id_vars
@@ -1051,15 +1076,29 @@ class EmitTest(unittest.TestCase):
     task_id = 'abcd-12345'
     set_task_id_vars(task_name, task_id)
 
-    testcase_1 = data_types.Testcase()
-    testcase_2 = data_types.Testcase(group_id=112233)
+    testcase_1 = data_types.Testcase(
+        fuzzer_name='test_fuzzer1',
+        job_type='test_job1',
+        crash_state='frame1\n',
+        crash_type='test_type1',
+        security_flag=True,
+        one_time_crasher_flag=True)
+    testcase_2 = data_types.Testcase(
+        group_id=112233,
+        fuzzer_name='test_fuzzer2',
+        job_type='test_job2',
+        crash_state='frame2\n',
+        crash_type='test_type2',
+        security_flag=True,
+        one_time_crasher_flag=False)
     testcase_1.put()
     testcase_2.put()
 
     testcase_1_attr = TestcaseAttributes(testcase_1.key.id())
-    testcase_1_attr.group_id = testcase_1.group_id
     testcase_2_attr = TestcaseAttributes(testcase_2.key.id())
-    testcase_2_attr.group_id = testcase_2.group_id
+    for attr in FORWARDED_ATTRIBUTES:
+      setattr(testcase_1_attr, attr, getattr(testcase_1, attr))
+      setattr(testcase_2_attr, attr, getattr(testcase_2, attr))
 
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
@@ -1076,9 +1115,21 @@ class EmitTest(unittest.TestCase):
           logs.log_contexts.meta, {
               'common_ctx': self.common_context,
               'testcase_1_id': 1,
-              'testcase_2_id': 2,
               'testcase_1_group': 0,
-              'testcase_2_group': 112233
+              'testcase_1_crash_state': 'frame1\n',
+              'testcase_1_crash_type': 'test_type1',
+              'testcase_1_security_flag': True,
+              'testcase_1_one_time_crasher_flag': True,
+              'testcase_1_job_type': 'test_job1',
+              'testcase_1_fuzzer_name': 'test_fuzzer1',
+              'testcase_2_id': 2,
+              'testcase_2_group': 112233,
+              'testcase_2_crash_state': 'frame2\n',
+              'testcase_2_crash_type': 'test_type2',
+              'testcase_2_security_flag': True,
+              'testcase_2_one_time_crasher_flag': False,
+              'testcase_2_job_type': 'test_job2',
+              'testcase_2_fuzzer_name': 'test_fuzzer2',
           })
 
     logs_extra = {'target': 'bot', 'test': 'yes'}
@@ -1092,6 +1143,13 @@ class EmitTest(unittest.TestCase):
     logs_extra.update({
         'testcase_id': 1,
         'testcase_group': 0,
+        'crash_state': 'frame1\n',
+        'crash_type': 'test_type1',
+        'security_flag': True,
+        'one_time_crasher_flag': True,
+        'job': 'test_job1',
+        'fuzzer': 'test_fuzzer1',
+        'fuzz_target': 'unknown'
     })
     logger.log.assert_any_call(
         logging.ERROR,
@@ -1110,6 +1168,13 @@ class EmitTest(unittest.TestCase):
     logs_extra.update({
         'testcase_id': 2,
         'testcase_group': 112233,
+        'crash_state': 'frame2\n',
+        'crash_type': 'test_type2',
+        'security_flag': True,
+        'one_time_crasher_flag': False,
+        'job': 'test_job2',
+        'fuzzer': 'test_fuzzer2',
+        'fuzz_target': 'unknown'
     })
     logger.log.assert_any_call(
         logging.ERROR,
