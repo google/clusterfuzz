@@ -31,6 +31,7 @@
 
       :host table.variant {
         width: 100%;
+        table-layout: fixed;
       }
 
       :host table.variant tr.title td {
@@ -55,6 +56,7 @@
         border-left: 1px dotted #777;
         border-bottom: 1px dotted #777;
         white-space: pre-wrap;
+        overflow-wrap: break-word;
       }
 
       :host table.variant tr.body td:first-child {
@@ -73,7 +75,7 @@
 
       :host .events-title {
         margin-top: 8px;
-        padding-top: 8px;
+        padding-top: 0px;
         border-top: 1px solid #777;
       }
 
