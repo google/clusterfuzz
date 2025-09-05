@@ -25,7 +25,13 @@ steps:
     # Move into the repository directory
     cd /workspace/clusterfuzz-config
     
-    # Conditionally run 'git checkout'
+    # Enforcing that the clusterfuzz and config are using the same branch
+    # It makes sure that for dev deployments the deployment overrides the
+    # current version with dev
+    echo "Checking out Clusterfuzz config to the branch $REF_NAME"
+    git checkout $REF_NAME
+
+    # Conditionally run 'git checkout' to a given revision
     if [ -n "${_CLUSTERFUZZ_CONFIG_REVISION}" ]; then
       echo "✅ _CLUSTERFUZZ_CONFIG_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_CONFIG_REVISION}"
       git checkout "${_CLUSTERFUZZ_CONFIG_REVISION}"
