@@ -34,7 +34,7 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
-from handlers.testcase_detail import testcase_status
+from handlers.testcase_detail import testcase_status_events
 from libs import access
 from libs import auth
 from libs import form
@@ -559,7 +559,7 @@ def get_testcase_detail(testcase):
       'testcase':
           testcase,
       'testcase_status_info':
-          testcase_status.get_testcase_status_info(testcase.key.id()),
+          testcase_status_events.get_testcase_status_info(testcase.key.id()),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':
