@@ -958,7 +958,8 @@ class LogContextType(enum.Enum):
     if self == LogContextType.GROUPER:
       try:
         symmetric_logs = []
-        for i in range(1, 3):
+        testcases_per_grouping = 2
+        for i in range(1, testcases_per_grouping + 1):
           testcase_struct = TestcaseLogStruct(
               testcase_id=log_contexts.meta.get(f'testcase_{i}_id', 'null'),
               testcase_group=log_contexts.meta.get(f'testcase_{i}_group',
