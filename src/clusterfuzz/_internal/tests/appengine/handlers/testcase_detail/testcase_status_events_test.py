@@ -21,7 +21,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.testcase_detail import testcase_status
+from handlers.testcase_detail import testcase_status_events
 
 
 class EventsInfoBasicTest(unittest.TestCase):
@@ -30,7 +30,7 @@ class EventsInfoBasicTest(unittest.TestCase):
   def setUp(self):
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
-    self.status_info_instance = testcase_status.TestcaseStatusInfo(
+    self.status_info_instance = testcase_status_events.TestcaseStatusInfo(
         self.testcase_id)
     test_helpers.patch(
         self, ['clusterfuzz._internal.config.local_config.ProjectConfig'])
