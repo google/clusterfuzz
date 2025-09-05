@@ -63,10 +63,7 @@ class TestcaseStatusInfo:
     """Formats a string by capitalizing words and replacing underscores."""
     if not text:
       return None
-    return (text.replace('_', ' ').title() + 
-            'ajdfjaskdjfjaskjdfljasldjflajsdlfjasljfljasdlfjlasjfdljasdldfjlasjfsaf'
-            + 'lajdfja;sdjfkjas;dfjkasdjfljsalfjasljfdljasdlfjsalfjlsajfl;sadjfl;jsdaf'
-            + 'alsjdfljas;djflasjdfljaslfjsadldjflasjfljdsalfjlsdajflasjdl;fjds')
+    return text.replace('_', ' ').title()
 
   def _format_task_execution_event(
       self, event: events.TaskExecutionEvent) -> dict[str, str | None]:
@@ -138,7 +135,7 @@ class TestcaseStatusInfo:
 
     event_info = '\n'.join(
         f'{key}: {value}' for key, value in event_info_data.items())
-    info['event_info'] = event_info + 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    info['event_info'] = event_info
     return info
 
   def get_last_event_info(self,
