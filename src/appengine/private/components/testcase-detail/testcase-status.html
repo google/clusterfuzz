@@ -41,7 +41,6 @@
         background-color: #373b50;
         color: #fff;
         border-left: 1px dotted #ccc;
-        border-top: 1px dotted #ccc;
         text-transform: uppercase;
       }
 
@@ -63,6 +62,10 @@
         border-left: 0px;
       }
 
+      :host table.variant tr.body:last-child td {
+        border-bottom: 0px;
+      }
+
       :host .title {
         position: relative;
         text-transform: uppercase;
@@ -75,7 +78,7 @@
 
       :host .events-title {
         margin-top: 8px;
-        padding-top: 0px;
+        padding-top: 8px;
         border-top: 1px solid #777;
       }
 
