@@ -141,6 +141,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.ISSUE_FILING,
         issue_created=True,
+        issue_reporter='@gmail.com',
         timestamp=datetime.datetime(2023, 1, 3, 0, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -195,7 +196,7 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     }, {
         'event_type': 'Issue Filing',
         'timestamp': '2023-01-03 00:00:00.000000 UTC',
-        'event_info': 'Issue created',
+        'event_info': 'Issue created\nManually created by @gmail.com',
     }, {
         'event_type': 'Testcase Grouping'
     }]
@@ -287,7 +288,7 @@ class GetLastEventInfoTest(EventsInfoTest):
     expected = {
         'event_type': 'Issue Filing',
         'timestamp': '2023-01-03 00:00:00.000000 UTC',
-        'event_info': 'Issue created'
+        'event_info': 'Issue created\nManually created by @gmail.com'
     }
     self.assertEqual(result, expected)
 
