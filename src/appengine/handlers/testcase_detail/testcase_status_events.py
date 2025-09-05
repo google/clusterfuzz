@@ -69,8 +69,7 @@ class TestcaseStatusInfo:
       self, event: events.TaskExecutionEvent) -> dict[str, str | None]:
     """Formats a task execution event."""
     return {
-        'task_name': (str(self._format_string(event.task_name)) + 
-                      'lasdjflkjsadjflasdjdklfjasldfj;sadkdjf;jasfkj;asjkfdjlkasdjfkljaslkfj;asdljf;sadjfjasdlkfjsadljflsdajflkjsdalkfjsdl;afjksdjfdsj'),
+        'task_name': self._format_string(event.task_name),
         'task_stage': event.task_stage,
         'task_status': event.task_status,
         'task_outcome': event.task_outcome,
@@ -93,6 +92,7 @@ class TestcaseStatusInfo:
     info = self._format_lifecycle_events_common_fields(event)
     attribute_value = getattr(event, attribute_name)
     info['event_info'] = f'{event_info_prefix}: {attribute_value}'
+    info['event_info'] += 'al;jdf;lasjdlfjs;aldjfljasdlkfjls;adjflasdjfljsadlfj;lasdjf;lasdjfljsdafljsdlfjsld;ajflsdajfladfasd'
     return info
 
   def _format_testcase_creation_event(
