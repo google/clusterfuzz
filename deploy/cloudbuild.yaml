@@ -27,7 +27,7 @@ steps:
     
     # Enforcing that the clusterfuzz and config are using the same branch
     # It makes sure that for dev deployments the deployment overrides the
-    # current version with master
+    # current version with dev
     echo "Checking out Clusterfuzz config to the branch $REF_NAME"
     git checkout $REF_NAME
 
