@@ -1678,6 +1678,9 @@ class TestcaseLifecycleEvent(Model):
   # If the issue filing attempt was successful.
   issue_created = ndb.BooleanProperty()
 
+  # User email, if issue is manually created.
+  issue_reporter = ndb.StringProperty()
+
   # Reason for closing the issue (e.g., testcase fixed).
   closing_reason = ndb.StringProperty()
 
