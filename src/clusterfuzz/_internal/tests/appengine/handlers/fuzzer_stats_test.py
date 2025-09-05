@@ -108,7 +108,9 @@ class TestBuildResults(unittest.TestCase):
         fuzz_target_name='testFuzzer2_1_fuzzer', job='job', last_run=now).put()
 
     cov_info = data_types.CoverageInformation(
-        fuzzer='2_fuzzer', date=datetime.date(2016, 10, 19))
+        fuzzer='2_fuzzer',
+        engine='testFuzzer',
+        date=datetime.date(2016, 10, 19))
     cov_info.edges_covered = 11
     cov_info.edges_total = 30
     cov_info.functions_covered = 10
@@ -124,7 +126,9 @@ class TestBuildResults(unittest.TestCase):
     cov_info.put()
 
     cov_info = data_types.CoverageInformation(
-        fuzzer='2_fuzzer', date=datetime.date(2016, 10, 21))
+        fuzzer='2_fuzzer',
+        engine='testFuzzer',
+        date=datetime.date(2016, 10, 21))
     cov_info.edges_covered = 15
     cov_info.edges_total = 30
     cov_info.functions_covered = 11
@@ -140,7 +144,9 @@ class TestBuildResults(unittest.TestCase):
     cov_info.put()
 
     cov_info = data_types.CoverageInformation(
-        fuzzer='1_fuzzer', date=datetime.date(2016, 10, 20))
+        fuzzer='1_fuzzer',
+        engine='testFuzzer',
+        date=datetime.date(2016, 10, 20))
     cov_info.edges_covered = 17
     cov_info.edges_total = 38
     cov_info.functions_covered = 12
