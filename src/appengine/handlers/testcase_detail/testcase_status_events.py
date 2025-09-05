@@ -63,7 +63,10 @@ class TestcaseStatusInfo:
     """Formats a string by capitalizing words and replacing underscores."""
     if not text:
       return None
-    return text.replace('_', ' ').title()
+    return (text.replace('_', ' ').title() + 
+            'ajdfjaskdjfjaskjdfljasldjflajsdlfjasljfljasdlfjlasjfdljasdldfjlasjfsaf'
+            + 'lajdfja;sdjfkjas;dfjkasdjfljsalfjasljfdljasdlfjsalfjlsajfl;sadjfl;jsdaf'
+            + 'alsjdfljas;djflasjdfljaslfjsadldjflasjfljdsalfjlsdajflasjdl;fjds')
 
   def _format_task_execution_event(
       self, event: events.TaskExecutionEvent) -> dict[str, str | None]:
