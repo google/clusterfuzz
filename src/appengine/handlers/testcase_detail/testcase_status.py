@@ -39,8 +39,7 @@ class TestcaseStatusInfo:
         events.EventTypes.TASK_EXECUTION:
             self._format_task_execution_event,
         events.EventTypes.TESTCASE_CREATION:
-            lambda event: self._format_lifecycle_event_with_attribute_info(
-                event, 'Creation origin', 'creation_origin'),
+            self._format_testcase_creation_event,
         events.EventTypes.TESTCASE_REJECTION:
             lambda event: self._format_lifecycle_event_with_attribute_info(
                 event, 'Rejection reason', 'rejection_reason'),
@@ -93,6 +92,16 @@ class TestcaseStatusInfo:
     info = self._format_lifecycle_events_common_fields(event)
     attribute_value = getattr(event, attribute_name)
     info['event_info'] = f'{event_info_prefix}: {attribute_value}'
+    return info
+
+  def _format_testcase_creation_event(
+      self, event: events.TestcaseCreationEvent) -> dict[str, str | None]:
+    """Formats a testcase creation event."""
+    info = self._format_lifecycle_events_common_fields(event)
+    event_info = f'Creation origin: {event.creation_origin}'
+    if event.uploader:
+      event_info += f'\nUploaded by {event.uploader}'
+    info['event_info'] = event_info
     return info
 
   def _format_issue_filing_event(

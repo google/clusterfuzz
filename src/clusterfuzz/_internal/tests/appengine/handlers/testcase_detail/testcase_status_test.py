@@ -127,7 +127,8 @@ class EventsInfoTest(EventsInfoBasicTest):
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TESTCASE_CREATION,
-        creation_origin=events.TestcaseOrigin.FUZZ_TASK,
+        creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+        uploader='@gmail.com',
         timestamp=datetime.datetime(2023, 1, 1, 9, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -180,7 +181,7 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     expected_lifecycle_events = [{
         'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
-        'event_info': 'Creation origin: fuzz_task',
+        'event_info': 'Creation origin: manual_upload\nUploaded by @gmail.com'
     }, {
         'event_type': 'Testcase Fixed',
         'timestamp': '2023-01-02 00:00:00.000000 UTC',
@@ -232,7 +233,7 @@ class GetLastEventInfoTest(EventsInfoTest):
     expected = {
         'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
-        'event_info': 'Creation origin: fuzz_task'
+        'event_info': 'Creation origin: manual_upload\nUploaded by @gmail.com'
     }
     self.assertEqual(result, expected)
 
