@@ -138,7 +138,7 @@ class TestcaseStatusInfo:
 
     event_info = '\n'.join(
         f'{key}: {value}' for key, value in event_info_data.items())
-    info['event_info'] = event_info + 'ldajfl;sdjfj;dsajfklj;sadfjkasldfjlsajdfljasldfjlsadjdf;ljaslfjasdljflksadjflksdajfl;jsd;lfjdsaklfjlksdajflasdjf;lsadjklfsdklfjkl'
+    info['event_info'] = event_info
     return info
 
   def get_last_event_info(self,
