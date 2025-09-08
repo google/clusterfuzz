@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-# Copyright 2019 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,22 +31,49 @@ IMAGES=(
   gcr.io/clusterfuzz-images/fuchsia
 )
 
+# The first argument is the version tag, e.g., 'latest', 'ubuntu-20-04'.
+VERSION_TAG=${1:-latest}
+# The second argument is the git hash.
+GIT_HASH_ARG=${2}
+
 function docker_push {
-  docker push $image
-  docker push $image:$stamp
+  docker push "$image_with_version_tag"
+  docker push "$image_with_stamp"
 }
 
-if [ -z "$1" ]; then
-  GIT_HASH=`git rev-parse HEAD | head -c7`
+if [ -z "$GIT_HASH_ARG" ]; then
+  GIT_HASH=$(git rev-parse HEAD | head -c7)
 else
-  GIT_HASH=$1
+  GIT_HASH=$GIT_HASH_ARG
 fi
 
-stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
-for image in "${IMAGES[@]}"; do
-  docker build -t $image ${image#gcr.io/clusterfuzz-images/}
-  docker tag $image $image:$stamp
+DATE_STAMP=$(date -u +%Y%m%d%H%M)
+if [ "$VERSION_TAG" == "latest" ]; then
+  stamp="$GIT_HASH-$DATE_STAMP"
+else
+  stamp="$VERSION_TAG-$GIT_HASH-$DATE_STAMP"
+fi
+
+for image_name in "${IMAGES[@]}"; do
+  image_dir=${image_name#gcr.io/clusterfuzz-images/}
+  
+  if [ "$VERSION_TAG" == "latest" ]; then
+    dockerfile="$image_dir/Dockerfile"
+  else
+    dockerfile="$image_dir/$VERSION_TAG.Dockerfile"
+  fi
+
+  if [ ! -f "$dockerfile" ]; then
+    echo "Skipping $dockerfile since it does not exist."
+    continue
+  fi
+  
+  image_with_version_tag="$image_name:$VERSION_TAG"
+  image_with_stamp="$image_name:$stamp"
+
+  docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
+  docker tag "$image_with_version_tag" "$image_with_stamp"
   docker_push
 done
 
-echo Built and pushed images successfully with stamp $stamp
+echo "Built and pushed images successfully for version $VERSION_TAG with stamp $stamp"
