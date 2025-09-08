@@ -17,6 +17,7 @@
       :host table.variant {
         width: 100%;
         table-layout: fixed;
+        border-collapse: collapse;
       }
 
       :host table.variant tr.title td {
@@ -38,7 +39,6 @@
         font-size: 14px;
         vertical-align: top;
         border-left: 1px dotted #777;
-        border-bottom: 1px dotted #777;
         white-space: pre-wrap;
         overflow-wrap: break-word;
       }
@@ -47,7 +47,11 @@
         border-left: 0px;
       }
 
-      :host table.variant tr.body:last-child td {
+      :host table.variant tr.body {
+        border-bottom: 1px dotted #777;
+      }
+
+      :host table.variant.task-events tr.body:last-child {
         border-bottom: 1px solid #777;
       }
 
