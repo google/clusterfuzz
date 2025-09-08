@@ -6,7 +6,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-FROM gcr.io/clusterfuzz-images/base:ubuntu24-04
+FROM gcr.io/clusterfuzz-images/base:ubuntu-24-04
 
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update &&     apt-get install -y         gettext-base         git         golang-go         google-cloud-sdk-app-engine-go         google-cloud-sdk-app-engine-python         google-cloud-sdk-app-engine-python-extras         google-cloud-sdk-datastore-emulator         google-cloud-sdk-gke-gcloud-auth-plugin         google-cloud-sdk-pubsub-emulator         kubectl         liblzma-dev         openjdk-17-jdk

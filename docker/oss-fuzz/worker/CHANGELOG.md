@@ -29,5 +29,5 @@ The `ubuntu24` image includes a number of updated packages. The following are so
 The `latest` and `ubuntu20` Dockerfiles are very similar, with the main difference being the `FROM` instruction pointing to the corresponding `oss-fuzz/base` image tag.
 
 The `ubuntu24` Dockerfile introduces these key changes:
-*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu24-04`.
+*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu-24-04`.
 *   **Package Name Change:** The package `lib32gcc1` (used in the latest Dockerfile) is updated to `lib32gcc-s1` in the `ubuntu20` and `ubuntu24` Dockerfiles to reflect changes in the Ubuntu package repositories.

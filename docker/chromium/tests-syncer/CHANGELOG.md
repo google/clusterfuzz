@@ -30,5 +30,5 @@ The `ubuntu24` image includes a number of updated packages. The following are so
 The `latest` and `ubuntu20` Dockerfiles are nearly identical, with the only difference being the `FROM` instruction pointing to the corresponding `base` image tag.
 
 The `ubuntu24` Dockerfile introduces these key changes:
-*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/base:ubuntu24-04`.
+*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/base:ubuntu-24-04`.
 *   **Python Version:** The `RUN_CMD` environment variable is updated to use `python3.11` instead of `python3.8`.

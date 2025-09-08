@@ -11,6 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/chromium/base:ubuntu24-04
+FROM gcr.io/clusterfuzz-images/chromium/base:ubuntu-20-04
 
 ENV USE_TEST_DEPLOYMENT True

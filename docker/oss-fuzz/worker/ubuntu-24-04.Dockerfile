@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/oss-fuzz/host:ubuntu24-04
+FROM gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu-24-04
 
-# Run less instances of ClusterFuzz on these so that each instance has more
-# resoures.
-ENV NUM_WORKERS_PER_HOST 8
-
-# We need access to corpora for JS fuzzers.
-ENV UPDATE_WEB_TESTS True
+RUN apt-get install -y libc6-i386 lib32gcc-s1
+ENV UNTRUSTED_WORKER True
