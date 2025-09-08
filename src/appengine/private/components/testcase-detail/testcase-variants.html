@@ -44,11 +44,8 @@
         background-color: #373b50;
         color: #fff;
         border-left: 1px dotted #ccc;
-        border-top: 1px dotted #ccc;
-      }
-
-      :host table.variant tr.title td {
         text-transform: uppercase;
+        border-top: 1px dotted #ccc;
       }
 
       :host table.variant tr.title td:first-child {
@@ -65,6 +62,10 @@
 
       :host table.variant tr.body td:first-child {
         border-left: 0px;
+      }
+
+      :host table.variant tr.body:last-child td {
+        border-bottom: 1px solid #777;
       }
 
       :host paper-spinner {
@@ -229,4 +230,3 @@
     });
   </script>
 </dom-module>
-
