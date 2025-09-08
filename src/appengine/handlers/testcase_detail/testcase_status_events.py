@@ -95,7 +95,6 @@ class TestcaseStatusInfo:
     info = self._format_lifecycle_events_common_fields(event)
     attribute_value = getattr(event, attribute_name)
     info['event_info'] = f'{event_info_prefix}: {attribute_value}'
-    info['event_info'] += 'al;jdf;lasjdlfjs;aldsdgpoiropfgiap[irfdisfpoisdapoifpisdapfiopdsaifopisadf[isai[fasofi[asofisaifdosadif[isdaofisapif[pdisf[pisdpfisadpfi[djfljasdlkfjls;adjflasdjfljsadlfj;lasdjf;lasdjfljsdafljsdlfjsld;ajflsdajfladfasd'
     return info
 
   def _format_testcase_creation_event(
