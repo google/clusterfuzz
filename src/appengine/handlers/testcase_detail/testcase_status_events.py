@@ -55,7 +55,7 @@ class TestcaseStatusInfo:
             self._format_testcase_grouping_event,
     }
 
-  def _format_timestamp(self, timestamp: datetime.datetime) -> str | None:
+  def _format_timestamp(self, timestamp: datetime.datetime) -> str:
     """Formats a timestamp."""
     return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
 
