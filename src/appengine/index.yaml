@@ -604,3 +604,18 @@ indexes:
   - name: status
   - name: fixed
   - name: timestamp
+
+- kind: TestcaseLifecycleEvent
+  properties:
+  - name: testcase_id
+  - name: event_type
+  - name: task_name
+  - name: timestamp
+    direction: desc
+
+- kind: TestcaseLifecycleEvent
+  properties:
+  - name: testcase_id
+  - name: event_type
+  - name: timestamp
+    direction: desc
