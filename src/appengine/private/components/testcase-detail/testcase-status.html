@@ -42,6 +42,7 @@
         color: #fff;
         border-left: 1px dotted #ccc;
         text-transform: uppercase;
+        font-weight: bold;
       }
 
       :host table.variant tr.title td:first-child {
@@ -53,6 +54,7 @@
         font-size: 14px;
         vertical-align: top;
         border-left: 1px dotted #777;
+        border-bottom: 1px dotted #777;
         white-space: pre-wrap;
         overflow-wrap: break-word;
       }
@@ -61,10 +63,9 @@
         border-left: 0px;
       }
 
-      :host table.variant tr.body {
-        border-bottom: 1px dotted #777;
+      :host table.variant tr.body:last-child td {
+        border-bottom-style: solid;
       }
-
       :host .title {
         position: relative;
         text-transform: uppercase;
