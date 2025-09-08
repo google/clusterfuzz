@@ -31,7 +31,7 @@ The `ubuntu24` image includes a large number of updated packages. The following 
 The `latest` and `ubuntu20` Dockerfiles are nearly identical, with the only difference being the `FROM` instruction pointing to the corresponding `base` image tag.
 
 The `ubuntu24` Dockerfile introduces several changes:
-*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/base:ubuntu24-04`.
+*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/base:ubuntu-24-04`.
 *   **Python Version:** The `RUN_CMD` environment variable is updated to use `python3.11` instead of `python3.8`.
 *   **Python Symlink:** A new command `RUN ln -s /usr/local/bin/python3.11 /usr/local/bin/python3` is added to create a symbolic link for python.
 *   **Build Script Patch:** The `RUN` command that executes `install-build-deps.py` includes an additional `sed` command (`sed -i "s/if requires_pinned_linux_libc():/if False:/"`) to patch the script and avoid build failures related to pinned dependencies.

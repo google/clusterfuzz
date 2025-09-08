@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu24-04
+FROM gcr.io/clusterfuzz-images/base:ubuntu-20-04
 
-COPY start_host.py /data
-RUN chmod 644 /data/start_host.py
+RUN apt-get update && apt-get install -y openssh-client
 
-ENV NUM_WORKERS_PER_HOST 16
-ENV DISABLE_MOUNTS True
-ENV TRUSTED_HOST True
+ENV OS_OVERRIDE FUCHSIA
+ENV QUEUE_OVERRIDE FUCHSIA
+ENV FUCHSIA_USE_KVM 1
 
-ENV RUN_CMD "python3.11 /data/start_host.py"
+COPY start.sh /data/start.sh

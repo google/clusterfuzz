@@ -32,6 +32,6 @@ The `ubuntu24` image includes a number of updated packages. The following are so
 The `latest` and `ubuntu20` Dockerfiles are nearly identical, with the only difference being the `FROM` instruction pointing to the corresponding `base` image tag.
 
 The `ubuntu24` Dockerfile introduces several changes:
-*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/base:ubuntu24-04`.
+*   **Base Image:** The `FROM` instruction is updated to `gcr.io/clusterfuzz-images/base:ubuntu-24-04`.
 *   **OpenJDK:** Upgrades from OpenJDK 11 to OpenJDK 17.
 *   **Bazel:** The Bazel installation is updated to use a different GPG key URL (`https://bazel.build/bazel-release.pub.gpg` instead of `https://storage.googleapis.com/www.bazel.build/bazel-release.pub.gpg`).
