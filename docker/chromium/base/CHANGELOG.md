@@ -33,6 +33,6 @@ The `ubuntu24` image includes a large number of updated packages. The following 
 
 The Dockerfiles for `latest` and `ubuntu20` are very similar. The `ubuntu24` Dockerfile has the following key differences:
 
-*   **Base Image:** Uses `gcr.io/clusterfuzz-images/base:ubuntu24-04`.
+*   **Base Image:** Uses `gcr.io/clusterfuzz-images/base:ubuntu-24-04`.
 *   **Python Symlink:** Adds a symbolic link from `python3.12` to `python3` to ensure the `install-build-deps.py` script can find the python interpreter.
 *   **Package Installation:** The list of installed packages is slightly different, reflecting the changes in Ubuntu 24.04. For example, `libdconf-dev` and `libgconf2-dev` are no longer installed.

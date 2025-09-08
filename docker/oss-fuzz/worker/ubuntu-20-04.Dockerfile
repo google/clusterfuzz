@@ -11,12 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/base:ubuntu20-04
+FROM gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu-20-04
 
-RUN apt-get update && apt-get install -y openssh-client
-
-ENV OS_OVERRIDE FUCHSIA
-ENV QUEUE_OVERRIDE FUCHSIA
-ENV FUCHSIA_USE_KVM 1
-
-COPY start.sh /data/start.sh
+RUN apt-get install -y libc6-i386 lib32gcc-s1
+ENV UNTRUSTED_WORKER True

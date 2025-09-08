@@ -11,7 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/chromium/base:ubuntu20-04
+FROM gcr.io/clusterfuzz-images/oss-fuzz/base:ubuntu-20-04
 
-# Run more app instances since we have multiple cores.
-ENV THREAD_MULTIPLIER 1.5
+COPY start_host.py /data
+RUN chmod 644 /data/start_host.py
+
+ENV NUM_WORKERS_PER_HOST 16
+ENV DISABLE_MOUNTS True
+ENV TRUSTED_HOST True
+
+ENV RUN_CMD "python3.11 /data/start_host.py"

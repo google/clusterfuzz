@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/base:ubuntu20-04
+FROM gcr.io/clusterfuzz-images/base:ubuntu-20-04
 
-# Run more app instances since we have multiple cores.
-ENV THREAD_MULTIPLIER 1.5
+# Worker that only reads from queues, preprocesses and postprocesses.
+ENV TWORKER=1
