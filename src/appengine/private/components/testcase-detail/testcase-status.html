@@ -32,6 +32,8 @@
       :host table.variant {
         width: 100%;
         table-layout: fixed;
+        border-collapse: collapse;
+        border-bottom: 1px solid #777;
       }
 
       :host table.variant tr.title td {
@@ -63,7 +65,7 @@
       }
 
       :host table.variant tr.body:last-child td {
-        border-bottom: 1px solid #777;
+        border-bottom: 0;
       }
 
       :host .title {
