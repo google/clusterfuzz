@@ -2499,6 +2499,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                     expected_state, expected_stacktrace,
                                     expected_security_flag)
 
+  def test_check_file_line(self):
+    """Tests a recent Chromium CHECK failure and file/line info parsing."""
+    data = self._read_test_data('check_file_line.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'atk_child in 143\n'
+        'base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_oom(self):
     """Test an out of memory stacktrace."""
     data = self._read_test_data('oom.txt')
