@@ -2505,7 +2505,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'CHECK failure'
     expected_address = ''
     expected_state = (
-        'atk_child in 143\n'
+        'atk_child in ax_tree_formatter_auralinux.cc\n'
         'base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork\n'
     )
     expected_stacktrace = data
