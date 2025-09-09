@@ -42,5 +42,5 @@ steps:
   - ${_PUSH_FLAG}
 timeout: 14400s
 options:
-  machineType: N1_HIGHCPU_32
+  machineType: E2_HIGHCPU_32
   diskSizeGb: 500
