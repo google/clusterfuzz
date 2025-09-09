@@ -70,7 +70,6 @@ steps:
     else
       echo "No manual build comment found. Skipping."
     fi
-
 timeout: 5400s
 options:
   machineType: E2_HIGHCPU_8
