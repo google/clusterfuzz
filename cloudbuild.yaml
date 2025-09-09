@@ -50,7 +50,6 @@ steps:
     - TEST_BACKUP_BUCKET=clusterfuzz-ci-backup
     - TEST_COVERAGE_BUCKET=clusterfuzz-ci-coverage
     - PIPENV_VENV_IN_PROJECT=1
-
 timeout: 5400s
 options:
   machineType: E2_HIGHCPU_8
