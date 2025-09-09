@@ -13,6 +13,18 @@
 # limitations under the License.
 
 steps:
+# Step 1: Check the PR comment.
+# This build should only run when invoked with a specific comment.
+- name: 'alpine'
+  id: 'Check comment trigger'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    if [ "$_COMMENT_BODY" != "/gcbrun build_base_images" ]; then
+      echo "Build not triggered by the correct comment. Exiting gracefully."
+      exit 0
+    fi
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Build latest'
   entrypoint: bash
