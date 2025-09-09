@@ -31,14 +31,38 @@ IMAGES=(
   gcr.io/clusterfuzz-images/fuchsia
 )
 
-# The first argument is the version tag, e.g., 'latest', 'ubuntu-20-04'.
-VERSION_TAG=${1:-latest}
-# The second argument is the git hash.
-GIT_HASH_ARG=${2}
+# Default values
+VERSION_TAG="latest"
+GIT_HASH_ARG=""
+PUSH="true"
+
+# Parse command-line arguments
+# The first two arguments are positional for backwards compatibility.
+if [ -n "$1" ] && ! [[ "$1" =~ ^-- ]]; then
+    VERSION_TAG="$1"
+    shift
+fi
+if [ -n "$1" ] && ! [[ "$1" =~ ^-- ]]; then
+    GIT_HASH_ARG="$1"
+    shift
+fi
+
+# Parse optional flags
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --no-push) PUSH="false";;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
 
 function docker_push {
-  docker push "$image_with_version_tag"
-  docker push "$image_with_stamp"
+  if [ "$PUSH" == "true" ]; then
+    docker push "$image_with_version_tag"
+    docker push "$image_with_stamp"
+  else
+    echo "Skipping push for $image_with_version_tag."
+  fi
 }
 
 if [ -z "$GIT_HASH_ARG" ]; then
@@ -76,4 +100,8 @@ for image_name in "${IMAGES[@]}"; do
   docker_push
 done
 
-echo "Built and pushed images successfully for version $VERSION_TAG with stamp $stamp"
+if [ "$PUSH" == "true" ]; then
+  echo "Built and pushed images successfully for version $VERSION_TAG with stamp $stamp"
+else
+  echo "Built images successfully (without push) for version $VERSION_TAG with stamp $stamp"
+fi
