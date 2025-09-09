@@ -51,6 +51,7 @@ fi
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --no-push) PUSH="false";;
+        "") ;; # Ignore empty arguments, which can be passed by Cloud Build.
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
