@@ -2878,7 +2878,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'CHECK failure'
     expected_address = ''
     expected_state = (
-        'std::string_view(content::indexed_db::EncodeSortableIDBKey(key)) == input in 40\n'
+        'std::string_view(content::indexed_db::EncodeSortableIDBKey(key)) == input in ind\n'
         'InvokeCallback\n'
         '~Cleanup\n'
     )
