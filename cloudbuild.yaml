@@ -56,6 +56,9 @@ steps:
   args:
   - '-c'
   - |
+    # Debug: Print the comment body to see its exact content.
+    echo "DEBUG: Comment body is: '$_COMMENT_BODY'"
+
     # Check if the comment body matches the trigger phrase.
     # The _COMMENT_BODY substitution is only populated on PR builds.
     if [ "$_COMMENT_BODY" == "/gcbrun build_base_images" ]; then
@@ -67,6 +70,7 @@ steps:
     else
       echo "No manual build comment found. Skipping."
     fi
+
 timeout: 5400s
 options:
   machineType: E2_HIGHCPU_8
