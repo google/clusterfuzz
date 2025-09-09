@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,11 +13,29 @@
 # limitations under the License.
 
 steps:
-- name: gcr.io/cloud-builders/docker
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Build latest'
   entrypoint: bash
   args:
   - -ex
   - build.sh
+  - latest
+  - ${_GIT_HASH}
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Build Ubuntu 20.04'
+  entrypoint: bash
+  args:
+  - -ex
+  - build.sh
+  - ubuntu-20-04
+  - ${_GIT_HASH}
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Build Ubuntu 24.04'
+  entrypoint: bash
+  args:
+  - -ex
+  - build.sh
+  - ubuntu-24-04
   - ${_GIT_HASH}
 timeout: 14400s
 options:
