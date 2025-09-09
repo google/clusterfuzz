@@ -15,6 +15,7 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Build latest'
+  waitFor: ['-']
   entrypoint: bash
   dir: 'docker'
   args:
@@ -25,6 +26,7 @@ steps:
   - ${_PUSH_FLAG}
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Build Ubuntu 20.04'
+  waitFor: ['-']
   entrypoint: bash
   dir: 'docker'
   args:
@@ -35,6 +37,7 @@ steps:
   - ${_PUSH_FLAG}
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Build Ubuntu 24.04'
+  waitFor: ['-']
   entrypoint: bash
   dir: 'docker'
   args:
