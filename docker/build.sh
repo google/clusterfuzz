@@ -31,14 +31,48 @@ IMAGES=(
   gcr.io/clusterfuzz-images/fuchsia
 )
 
-# The first argument is the version tag, e.g., 'latest', 'ubuntu-20-04'.
-VERSION_TAG=${1:-latest}
-# The second argument is the git hash.
-GIT_HASH_ARG=${2}
+# Default values
+VERSION_TAG="latest"
+GIT_HASH_ARG=""
+PUSH="true"
+NEEDS_ROOT_PIPFILE=false
+
+# Set up a trap to clean up Pipfiles on exit.
+function cleanup() {
+  if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
+    rm -f base/Pipfile base/Pipfile.lock
+  fi
+}
+trap cleanup EXIT
+
+# Parse command-line arguments
+# The first two arguments are positional for backwards compatibility.
+if [ -n "$1" ] && ! [[ "$1" =~ ^-- ]]; then
+    VERSION_TAG="$1"
+    shift
+fi
+if [ -n "$1" ] && ! [[ "$1" =~ ^-- ]]; then
+    GIT_HASH_ARG="$1"
+    shift
+fi
+
+# Parse optional flags
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --no-push) PUSH="false";;
+        "") ;; # Ignore empty arguments, which can be passed by Cloud Build.
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
 
 function docker_push {
-  docker push "$image_with_version_tag"
-  docker push "$image_with_stamp"
+  if [ "$PUSH" == "true" ]; then
+    docker push "$image_with_version_tag"
+    docker push "$image_with_stamp"
+  else
+    echo "Skipping push for $image_with_version_tag."
+  fi
 }
 
 if [ -z "$GIT_HASH_ARG" ]; then
@@ -60,7 +94,7 @@ for image_name in "${IMAGES[@]}"; do
   if [ "$VERSION_TAG" == "latest" ]; then
     dockerfile="$image_dir/Dockerfile"
   else
-    dockerfile="$image_dir/$VERSION_TAG.Dockerfile"
+    dockerfile="$image_dir/${VERSION_TAG}.Dockerfile"
   fi
 
   if [ ! -f "$dockerfile" ]; then
@@ -71,9 +105,27 @@ for image_name in "${IMAGES[@]}"; do
   image_with_version_tag="$image_name:$VERSION_TAG"
   image_with_stamp="$image_name:$stamp"
 
+  # Copy Pipfile to base for the ubuntu-24.04 build, as it's
+  # needed but not in the build context.
+  if [[ "$image_dir" == "base" && "$dockerfile" == *"ubuntu-24-04"* ]]; then
+    NEEDS_ROOT_PIPFILE=true
+    cp ../Pipfile ../Pipfile.lock base/
+  fi
+
   docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
+
+  # Clean up the copied files.
+  if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
+    rm base/Pipfile base/Pipfile.lock
+    NEEDS_ROOT_PIPFILE=false
+  fi
+
   docker tag "$image_with_version_tag" "$image_with_stamp"
   docker_push
 done
 
-echo "Built and pushed images successfully for version $VERSION_TAG with stamp $stamp"
+if [ "$PUSH" == "true" ]; then
+  echo "Built and pushed images successfully for version $VERSION_TAG with stamp $stamp"
+else
+  echo "Built images successfully (without push) for version $VERSION_TAG with stamp $stamp"
+fi
