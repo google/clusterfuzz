@@ -35,6 +35,15 @@ IMAGES=(
 VERSION_TAG="latest"
 GIT_HASH_ARG=""
 PUSH="true"
+NEEDS_ROOT_PIPFILE=false
+
+# Set up a trap to clean up Pipfiles on exit.
+function cleanup() {
+  if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
+    rm -f base/Pipfile base/Pipfile.lock
+  fi
+}
+trap cleanup EXIT
 
 # Parse command-line arguments
 # The first two arguments are positional for backwards compatibility.
@@ -85,7 +94,7 @@ for image_name in "${IMAGES[@]}"; do
   if [ "$VERSION_TAG" == "latest" ]; then
     dockerfile="$image_dir/Dockerfile"
   else
-    dockerfile="$image_dir/$VERSION_TAG.Dockerfile"
+    dockerfile="$image_dir/${VERSION_TAG}Dockerfile"
   fi
 
   if [ ! -f "$dockerfile" ]; then
@@ -96,7 +105,21 @@ for image_name in "${IMAGES[@]}"; do
   image_with_version_tag="$image_name:$VERSION_TAG"
   image_with_stamp="$image_name:$stamp"
 
+  # Copy Pipfile to base for the ubuntu-24.04 build, as it's
+  # needed but not in the build context.
+  if [[ "$image_dir" == "base" && "$dockerfile" == *"ubuntu-24-04"* ]]; then
+    NEEDS_ROOT_PIPFILE=true
+    cp ../Pipfile ../Pipfile.lock base/
+  fi
+
   docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
+
+  # Clean up the copied files.
+  if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
+    rm base/Pipfile base/Pipfile.lock
+    NEEDS_ROOT_PIPFILE=false
+  fi
+
   docker tag "$image_with_version_tag" "$image_with_stamp"
   docker_push
 done

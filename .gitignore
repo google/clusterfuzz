@@ -55,3 +55,7 @@ bazel-*
 *.tfstate*
 *.lock.hcl
 **/.terraform/*
+
+# Ignore temporary build files.
+docker/base/Pipfile
+docker/base/Pipfile.lock
