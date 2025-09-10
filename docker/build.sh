@@ -94,7 +94,7 @@ for image_name in "${IMAGES[@]}"; do
   if [ "$VERSION_TAG" == "latest" ]; then
     dockerfile="$image_dir/Dockerfile"
   else
-    dockerfile="$image_dir/${VERSION_TAG}Dockerfile"
+    dockerfile="$image_dir/${VERSION_TAG}.Dockerfile"
   fi
 
   if [ ! -f "$dockerfile" ]; then
