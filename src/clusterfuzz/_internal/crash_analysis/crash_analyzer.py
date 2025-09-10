@@ -320,15 +320,20 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     return True
 
   if crash_type == 'CHECK failure':
-    # TODO(ochang): Remove this once we pick up newer builds that distinguish
-    # DCHECKs from CHECKs.
     checks_have_security_implication = environment.get_value(
         'CHECKS_HAVE_SECURITY_IMPLICATION', False)
     return checks_have_security_implication
 
-  # Debug CHECK failure should be marked with security implications.
-  if crash_type in ('Security DCHECK failure', 'DCHECK failure'):
+  # Security DCHECKs are always security issues.
+  if crash_type == 'Security DCHECK failure':
     return True
+
+  # For regular DCHECKs, projects can choose whether or not a particular fuzzer
+  # job treats them as security issues.
+  if crash_type == 'DCHECK failure':
+    dchecks_have_security_implication = environment.get_value(
+        'DCHECKS_HAVE_SECURITY_IMPLICATION', True)
+    return dchecks_have_security_implication
 
   # Hard crash, explicitly enforced in code.
   if (crash_type == 'Fatal error' or crash_type == 'Unreachable code' or
