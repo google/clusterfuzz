@@ -22,7 +22,7 @@ The script builds all images defined in its configuration. You must specify the 
 ```
 
 -   `<ubuntu-version>`: **(Required)** The Ubuntu version to build (e.g., `20.04`, `24.04`). The script will look for a corresponding `.Dockerfile` for each image.
--   `[git-hash]`: (Optional) A git hash to use for tagging the image. Defaults to the current `HEAD`.
+-   `git-hash`: (Optional) A git hash to use for tagging the image. Defaults to the current `HEAD`.
 -   `--no-push`: (Optional) A flag to prevent the script from pushing the built images to the container registry. This is useful for local testing.
 
 ### Examples
