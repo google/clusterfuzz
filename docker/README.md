@@ -51,7 +51,10 @@ docker build -f docker/base/ubuntu-24-04.Dockerfile docker/base
 
 ## Production Builds
 
-Production images are built using Google Cloud Build. The configuration is defined in `cloudbuild.yaml`, which uses the `build.sh` script. Pushing to the `master` branch will automatically trigger this build.
+Production images are built using Google Cloud Build. The configuration is defined in `cloudbuild.yaml`, which uses the `build.sh` script. The build process is automated with the following triggers:
+
+-   **Pull Requests:** A trigger runs on every pull request that modifies files under the `docker/` directory. It builds all images with the `--no-push` flag to validate the changes without deploying them.
+-   **Push to `master`:** A trigger runs on every push to the `master` branch that modifies files under the `docker/` directory. It builds and pushes all images to the container registry, making them available for production use.
 
 ## Docker Image Dependency Tree
 
