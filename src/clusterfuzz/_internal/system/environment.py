@@ -1207,6 +1207,8 @@ def update_task_enabled() -> bool:
   metadata_header = {"Metadata-Flavor": "Google"}
   metadata_key = "update_task_enabled"
 
+  running_on_batch = bool(is_uworker())
+
   try:
     # Construct the full URL for your specific metadata key
     response = requests.get(
@@ -1218,13 +1220,17 @@ def update_task_enabled() -> bool:
     # The metadata value is in the response text
     metadata_value = response.text
     logs.info(f"The value for '{metadata_key}' is: {metadata_value}")
-    bool_metadata_value = metadata_value.lower() == 'true'
+    is_update_task_enabled = metadata_value.lower() != 'false'
 
     # The flag is_uworker is true for Batch environment
     # The update task should run if it's not a Batch environment
     # and the flag is enabled on the VM template metadata
-    return not bool(is_uworker()) and bool_metadata_value
+    return not running_on_batch and is_update_task_enabled
 
-  except Exception as e:
-    logs.error(f"Error fetching metadata: {e}")
-    return not bool(is_uworker())
+  except requests.exceptions.HTTPError as http_error:
+    logs.warning(f"Http error fetching metadata: {http_error}")
+  
+  except Exception as ex:
+    logs.error(f"Unknown exception fetching metadata: {ex}")
+  
+  return not running_on_batch
