@@ -592,8 +592,6 @@
           </div>
         </template>
 
-        <testcase-status info="[[info]]"></testcase-status>
-
         <template is="dom-if" if="[[info.formatted_reproduction_help]]">
           <div class="section">
             <div class="title">Reproduce bug</div>
@@ -631,6 +629,8 @@
             </template>
           </div>
         </div>
+
+        <testcase-status info="[[info]]"></testcase-status>
 
         <template is="dom-if" if="[[!info.is_local_development]]">
           <crash-stats
