@@ -111,8 +111,8 @@ class TestcaseStatusInfo:
                                  event: events.IssueFilingEvent) -> EventInfo:
     """Formats an issue filing event."""
     info = self._format_lifecycle_events_common_fields(event)
-    info['event_info'] = ('Issue created' if event.issue_created else
-                          'Failed to create the issue')
+    info['event_info'] = (f'Issue created ({event.issue_id})' if
+                          event.issue_created else 'Failed to create the issue')
     if event.issue_created and event.issue_reporter:
       info['event_info'] += f'\nManually created by {event.issue_reporter}'
     return info
