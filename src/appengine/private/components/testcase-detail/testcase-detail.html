@@ -609,6 +609,9 @@
         <template is="dom-if" if="[[info.suspected_cls]]">
           <suspected-cls info="[[info]]"></suspected-cls>
         </template>
+
+        <testcase-status info="[[info]]"></testcase-status>
+
         <div class="section">
           <div class="title">
             Crash Stacktrace
@@ -629,8 +632,6 @@
             </template>
           </div>
         </div>
-
-        <testcase-status info="[[info]]"></testcase-status>
 
         <template is="dom-if" if="[[!info.is_local_development]]">
           <crash-stats
