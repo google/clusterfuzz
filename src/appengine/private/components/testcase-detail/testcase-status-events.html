@@ -1,0 +1,155 @@
+<!--
+  Copyright 2025 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="testcase-status-events">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .section .title > div {
+        display: inline-block;
+      }
+
+      :host table.variant {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        border-bottom: 1px solid #777;
+      }
+
+      :host table.variant tr.title td {
+        text-align: left;
+        font-size: 14px;
+        padding: 4px 6px;
+        background-color: #373b50;
+        color: #fff;
+        border-left: 1px dotted #777;
+        text-transform: uppercase;
+        font-weight: normal;
+      }
+
+      :host table.variant tr.title td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.variant tr.body td {
+        padding: 4px 6px;
+        font-size: 14px;
+        vertical-align: top;
+        border-left: 1px dotted #777;
+        border-bottom: 1px dotted #777;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
+
+      :host table.variant tr.body td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.variant tr.body:last-child td {
+        border-bottom: 0;
+      }
+
+      :host .title {
+        position: relative;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+
+      :host .body .title {
+        font-weight: bold;
+        margin-top: 18px;
+        margin-bottom: 8px;
+      }
+
+      :host .body .events-title {
+        margin-top: 24px;
+      }
+
+    </style>
+    <div class="section">
+      <div class="title">
+        <div title="Last testcase events.">
+          Testcase Status
+        </div>
+      </div>
+      <div class="body padding">
+        <div class="title" title="Last testcase task events.">Task Events</div>
+        <template is="dom-if" if="[[info.testcase_status_info.task_events_info.length]]">
+          <table cellpadding="0" cellspacing="0" class="variant task-events">
+            <tr class="title">
+              <td>Task Name</td>
+              <td>Task Stage</td>
+              <td>Task Status</td>
+              <td>Task Outcome</td>
+              <td>Time</td>
+            </tr>
+            <template is="dom-repeat" items="[[info.testcase_status_info.task_events_info]]" as="taskEvent">
+              <tr class="body">
+                <td>[[taskEvent.task_name]]</td>
+                <td>[[taskEvent.task_stage]]</td>
+                <td>[[taskEvent.task_status]]</td>
+                <td>[[taskEvent.task_outcome]]</td>
+                <td>[[taskEvent.timestamp]]</td>
+              </tr>
+            </template>
+          </table>
+        </template>
+        <template is="dom-if" if="[[!info.testcase_status_info.task_events_info.length]]">
+          <div>
+            No task events found.
+          </div>
+        </template>
+
+        <div class="title events-title" title="Last testcase non task events.">Lifecycle Events</div>
+        <template is="dom-if" if="[[info.testcase_status_info.lifecycle_events_info.length]]">
+          <table cellpadding="0" cellspacing="0" class="variant">
+            <tr class="title">
+              <td>Event Type</td>
+              <td>Event Info</td>
+              <td>Time</td>
+            </tr>
+            <template is="dom-repeat" items="[[info.testcase_status_info.lifecycle_events_info]]" as="event">
+              <tr class="body">
+                <td>[[event.event_type]]</td>
+                <td>[[event.event_info]]</td>
+                <td>[[event.timestamp]]</td>
+              </tr>
+            </template>
+          </table>
+        </template>
+        <template is="dom-if" if="[[!info.testcase_status_info.lifecycle_events_info.length]]">
+          <div>
+            No lifecycle events found.
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'testcase-status-events',
+      properties: {
+        info: Object,
+      },
+    });
+  </script>
+</dom-module>
