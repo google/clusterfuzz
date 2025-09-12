@@ -437,6 +437,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^_L_unlock_',
     r'^_\$LT\$',
     r'^__GI_',
+    r'^___interceptor_backtrace',
     r'^__asan::',
     r'^__asan_',
     r'^__assert_',
