@@ -81,6 +81,44 @@ class GrouperTest(unittest.TestCase):
       self.assertTrue(self.testcases[index].is_leader)
     self.mock.emit.assert_not_called()
 
+  # Regression test for https://issues.chromium.org/issues/443261679
+  def test_security_crash_state_null(self):
+    """Test grouping of crashes with NULL state for security issues"""
+    def group():
+      """Helper to group and return testcase ids."""
+      for t in self.testcases:
+        t.put()
+      grouper.group_testcases()
+      return list(data_handler.get_open_testcase_id_iterator())
+
+    # Group if the crash_type matches for security crashes.
+    self.testcases[0].security_flag = True
+    self.testcases[0].crash_state = 'NULL'
+    self.testcases[0].crash_type = 'Heap-buffer-overflow'
+    self.testcases[1].security_flag = True
+    self.testcases[1].crash_state = 'NULL'
+    self.testcases[1].crash_type = 'Heap-buffer-overflow'
+    self.assertEqual(len(group()), 1)
+
+    # Don't group if the crash_type doesn't match for security crashes.
+    self.testcases[0].security_flag = True
+    self.testcases[0].crash_state = 'NULL'
+    self.testcases[0].crash_type = 'Use-after-free'
+    self.testcases[1].security_flag = True
+    self.testcases[1].crash_state = 'NULL'
+    self.testcases[1].crash_type = 'Heap-buffer-overflow'
+    self.assertEqual(len(group()), 2)
+
+    # Don't group if only one of them as a 'NULL' crash state.
+    self.testcases[0].security_flag = True
+    self.testcases[0].crash_state = 'NULL'
+    self.testcases[0].crash_type = 'Heap-buffer-overflow'
+    self.testcases[1].security_flag = True
+    self.testcases[1].crash_state = 'abc\ndef'
+    self.testcases[1].crash_type = 'Heap-buffer-overflow'
+    self.assertEqual(len(group()), 2)
+
+
   def test_same_crash_same_security(self):
     """Test that crashes with same crash states and same security flags get
     de-duplicated with one of them removed."""

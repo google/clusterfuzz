@@ -358,28 +358,28 @@ def _compare_testcases_crash_states(testcase_1, testcase_2) -> bool:
   if (testcase_1.crash_type in data_types.CRASH_TYPES_WITH_UNIQUE_STATE or
       testcase_2.crash_type in data_types.CRASH_TYPES_WITH_UNIQUE_STATE):
 
-    # For grouping, make sure that both crash type and state match.
-    if (testcase_1.crash_type != testcase_2.crash_type or
-        testcase_1.crash_state != testcase_2.crash_state):
-      return False
+    # For grouping, make sure that both crash type and state match exactly.
+    return (
+      testcase_1.crash_type == testcase_2.crash_type and
+      testcase_1.crash_state == testcase_2.crash_state
+    )
 
-  else:
-    # Rule: For functional bugs, compare for similar crash states.
-    if not testcase_1.security_flag:
-      crash_comparer = CrashComparer(
-          testcase_1.crash_type, testcase_2.crash_type,
-          CRASH_COMPARER_THRESHOLD, CRASH_COMPARER_SAME_FRAMES)
-      if not crash_comparer.is_similar():
-        return False
+  crash_comparer_type = CrashComparer(
+      testcase_1.crash_type, testcase_2.crash_type,
+      CRASH_COMPARER_THRESHOLD, CRASH_COMPARER_SAME_FRAMES)
+  crash_comparer_state = CrashComparer(
+      testcase_1.crash_state, testcase_2.crash_state,
+      CRASH_COMPARER_THRESHOLD, CRASH_COMPARER_SAME_FRAMES)
 
-    # Rule: Check for crash state similarity.
-    crash_comparer = CrashComparer(
-        testcase_1.crash_state, testcase_2.crash_state,
-        CRASH_COMPARER_THRESHOLD, CRASH_COMPARER_SAME_FRAMES)
-    if not crash_comparer.is_similar():
-      return False
+  # Rule: Security bugs: Only the crash state matters, if any.
+  if (testcase_1.security_flag and testcase_1.crash_state != 'NULL' and
+      testcase_2.security_flag and testcase_2.crash_state != 'NULL'):
+    return crash_comparer_state.is_similar()
 
-  return True
+  return (
+      crash_comparer_state.is_similar() and
+      crash_comparer_type.is_similar()
+  )
 
 
 def _group_testcases_with_similar_states(testcase_map):
