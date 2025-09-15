@@ -119,3 +119,17 @@ class CrashComparerTest(unittest.TestCase):
 
     crash_state_2 = 'third\nsecond\nfirst\n'
     self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+  def test_is_similar_null_string(self):
+    """Test is_similar with "NULL" strings."""
+    crash_state_1 = 'first\nsecond\nthird\n'
+    crash_state_2 = 'NULL'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+    crash_state_1 = 'NULL'
+    crash_state_2 = 'first\nsecond\nthird\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+    crash_state_1 = 'NULL'
+    crash_state_2 = 'NULL'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
