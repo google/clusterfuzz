@@ -24,6 +24,7 @@ from typing import Any
 from typing import Generator
 from typing import Mapping
 from typing import Sequence
+from typing import Type
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
@@ -355,8 +356,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
   the correct entity.
   """
   # Maps `event_type` to a Datastore model.
-  # For now, only testcase lifecycle events are being traced.
-  _event_to_entity_map = {
+  _event_to_entity_map: dict[str, Type[data_types.Model]] = {
       EventTypes.FUZZER_TASK_EXECUTION: data_types.FuzzerTaskEvent,
   }
   _default_entity = data_types.TestcaseLifecycleEvent
@@ -410,6 +410,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
   def get_event(self, event_id: str | int,
                 event_type: str | None = None) -> Event | None:
     """Retrieve an event from a Datastore entity id."""
+    event_type = event_type or ''
     entity_kind = self._event_to_entity_map.get(event_type,
                                                 self._default_entity)
     event_entity = data_handler.get_entity_by_type_and_id(entity_kind, event_id)
@@ -431,6 +432,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
     used.
     """
     event_type = (equality_filters or {}).get('event_type')
+    event_type = '' if not isinstance(event_type, str) else event_type
     entity_kind = self._event_to_entity_map.get(event_type,
                                                 self._default_entity)
     entities_ids = data_handler.get_entities_ids(
