@@ -19,6 +19,24 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
+_TESTCASE_BASED_TASKS = {
+    'analyze',
+    'blame',
+    'impact',
+    'minimize',
+    'progression',
+    'regression',
+    'symbolize',
+    'variant',
+}
+
+
+_FUZZER_BASED_TASKS = {
+    'corpus_pruning',
+    'fuzz',
+}
+
+
 def get_command_from_module(full_module_name: str) -> str:
   module_name = full_module_name.split('.')[-1]
   if not module_name.endswith('_task'):
@@ -38,21 +56,11 @@ class UworkerMsgParseError(RuntimeError):
   """Error for parsing UworkerMsgs."""
 
 
-TESTCASE_BASED_TASKS = {
-    'analyze',
-    'blame',
-    'impact',
-    'minimize',
-    'progression',
-    'regression',
-    'symbolize',
-    'variant',
-}
+def is_testcase_based_task(task_name: str):
+  return task_name in _TESTCASE_BASED_TASKS
 
-FUZZER_BASED_TASKS = {
-    'corpus_pruning',
-    'fuzz',
-}
+def is_fuzzer_based_task(task_name: str):
+  return task_name in _FUZZER_BASED_TASKS
 
 
 def get_task_execution_event_data(
@@ -62,14 +70,14 @@ def get_task_execution_event_data(
   """Returns a formatted dict with task execution event data."""
   event_data = {}
   event_data['task_job'] = job_type
-  if task_command in TESTCASE_BASED_TASKS:
+  if is_testcase_based_task(task_command):
     testcase_id = (
         task_argument.testcase_id
         if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
         else task_argument)
     event_data['testcase_id'] = None if testcase_id is None else int(
         testcase_id)
-  elif task_command in FUZZER_BASED_TASKS:
+  elif is_fuzzer_based_task(task_command):
     event_data['task_fuzzer'] = (
         task_argument.fuzzer_name
         if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
