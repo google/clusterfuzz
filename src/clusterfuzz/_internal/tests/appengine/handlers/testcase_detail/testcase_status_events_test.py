@@ -19,7 +19,7 @@ import unittest
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
-from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import testcase_status_events
 
@@ -32,7 +32,7 @@ class EventsInfoBasicTest(unittest.TestCase):
     self.testcase_id = self.testcase.key.id()
     self.status_info_instance = testcase_status_events.TestcaseStatusInfo(
         self.testcase_id)
-    test_helpers.patch(
+    helpers.patch(
         self, ['clusterfuzz._internal.config.local_config.ProjectConfig'])
     self.mock.ProjectConfig.return_value = {'events.storage': 'datastore'}
 
@@ -104,6 +104,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage1',
         task_status='status1',
         task_outcome='outcome1',
+        task_id='1',
         timestamp=datetime.datetime(2023, 1, 1, 10, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -113,6 +114,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage2',
         task_status='status2',
         task_outcome='outcome2',
+        task_id='1',
         timestamp=datetime.datetime(2023, 1, 1, 11, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -122,6 +124,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage3',
         task_status='status3',
         task_outcome=None,
+        task_id='2',
         timestamp=datetime.datetime(2023, 1, 1, 12, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -394,3 +397,77 @@ class GetLastEventInfoTest(EventsInfoTest):
     result = self.status_info_instance.get_last_event_info(
         event_type='non_existent_event_type')
     self.assertEqual(result, {})
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetTestcaseEventHistoryTest(EventsInfoTest):
+  """Test retrieving testcase event history."""
+
+  def setUp(self):
+    super().setUp()
+
+  def test_get_history(self):
+    """Verify that testcase event history is retrieved correctly."""
+    history = testcase_status_events.get_testcase_event_history(
+        self.testcase_id)
+
+    expected_history = [
+        {
+            'event_type': 'issue_closing',
+            'closing_reason': 'testcase_fixed',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 4, 0, 0)
+        },
+        {
+            'event_type': 'issue_filing',
+            'issue_created': True,
+            'issue_id': '123456',
+            'issue_reporter': '@gmail.com',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 3, 0, 0)
+        },
+        {
+            'event_type': 'testcase_fixed',
+            'fixed_revision': '123:456',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 2, 0, 0)
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'minimize',
+            'task_stage': 'stage3',
+            'task_status': 'status3',
+            'task_id': '2',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 1, 12, 0, 0)
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'analyze',
+            'task_stage': 'stage2',
+            'task_status': 'status2',
+            'task_outcome': 'outcome2',
+            'task_id': '1',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 1, 11, 0, 0)
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'analyze',
+            'task_stage': 'stage1',
+            'task_status': 'status1',
+            'task_outcome': 'outcome1',
+            'task_id': '1',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 1, 10, 0, 0)
+        },
+        {
+            'event_type': 'testcase_creation',
+            'creation_origin': 'manual_upload',
+            'uploader': '@gmail.com',
+            'testcase_id': self.testcase_id,
+            'timestamp': datetime.datetime(2023, 1, 1, 9, 0, 0)
+        },
+    ]
+
+    self.assertEqual(history, expected_history)

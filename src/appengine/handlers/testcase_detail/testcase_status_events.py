@@ -13,6 +13,7 @@
 # limitations under the License.
 """Helper functions for getting testcase status information from events."""
 import datetime
+from dataclasses import asdict
 from typing import Mapping
 from typing import TypeAlias
 
@@ -176,6 +177,32 @@ class TestcaseStatusInfo:
     }
 
 
+class TestcaseEventHistory:
+  """Methods to retrieve the testcase events history."""
+
+  def __init__(self, testcase_id: int):
+    self._testcase_id = testcase_id
+
+  def _remove_null_values(self, event_info: EventInfo) -> EventInfo:
+    """Removes null values from an event info dictionary."""
+    return {k: v for k, v in event_info.items() if v is not None}
+
+  def get_history(self) -> list[EventInfo]:
+    """Get all testcase events information in reverse chronological order."""
+    event_history = events.get_events_from_testcase(self._testcase_id)
+
+    formatted_event_history = []
+    for event in event_history:
+      formatted_event_history.append(self._remove_null_values(asdict(event)))
+
+    return formatted_event_history
+    
+
 def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   """Public function to retrieve testcase status information."""
   return TestcaseStatusInfo(testcase_id).get_info()
+
+
+def get_testcase_event_history(testcase_id: int) -> list[EventInfo]:
+  """Public function to retrieve the testcase event history."""
+  return TestcaseEventHistory(testcase_id).get_history()

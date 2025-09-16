@@ -619,3 +619,9 @@ indexes:
   - name: event_type
   - name: timestamp
     direction: desc
+
+- kind: TestcaseLifecycleEvent
+  properties:
+  - name: testcase_id
+  - name: timestamp
+    direction: desc
