@@ -1731,7 +1731,7 @@ class FuzzerTaskEvent(Model):
   will be used to assist with tracing clusterfuzz execution.
   """
   # Fuzzer task events' TTL, currently set to 2 months.
-  TESTCASE_EVENT_TTL = datetime.timedelta(days=60)
+  FUZZER_EVENT_TTL = datetime.timedelta(days=60)
 
   ### Event definition.
   # Event type (mostly task_execution).
@@ -1787,4 +1787,4 @@ class FuzzerTaskEvent(Model):
 
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
-        datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
+        datetime.datetime.now() + self.FUZZER_EVENT_TTL)
