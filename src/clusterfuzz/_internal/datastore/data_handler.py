@@ -25,6 +25,7 @@ from typing import Sequence
 from typing import Type
 from typing import TypeAlias
 from typing import Type
+from typing import TypeAlias
 
 from google.cloud import ndb
 
