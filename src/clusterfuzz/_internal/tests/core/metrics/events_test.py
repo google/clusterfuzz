@@ -979,10 +979,10 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.task_fuzzer, 'fuzzer1')
     self.assertEqual(event.task_job, 'test_job')
 
-  def test_store_event(self):
-    """Test storing an event into datastore."""
+  def test_store_events(self):
+    """Test storing events into datastore."""
+    # Test for TestcaseLifecycleEvent entity.
     testcase = test_utils.create_generic_testcase()
-
     event_tc_creation = events.TestcaseCreationEvent(
         source='events_test',
         testcase=testcase,
@@ -1005,6 +1005,34 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.creation_origin,
                      events.TestcaseOrigin.FUZZ_TASK)
     self.assertIsNone(event_entity.uploader)
+
+    # Test for FuzzerTaskEvent entity.
+    event_fuzzer_task_exec = events.FuzzerTaskExecutionEvent(
+        source='events_test',
+        task_fuzzer='fuzzer_test',
+        task_job='job_test',
+        task_stage=events.TaskStage.PREPROCESS,
+        task_status=events.TaskStatus.STARTED,
+        task_outcome=None)
+    event_type = event_fuzzer_task_exec.event_type
+    timestamp = event_fuzzer_task_exec.timestamp
+    eid = self.repository.store_event(event_fuzzer_task_exec)
+    self.assertIsNotNone(eid)
+
+    # Assert correctness of the stored event entity.
+    event_entity = data_handler.get_entity_by_type_and_id(
+        data_types.FuzzerTaskEvent, eid)
+    self.assertIsNotNone(event_entity)
+    self.assertEqual(event_entity.event_type, event_type)
+    self.assertEqual(event_entity.source, 'events_test')
+    self.assertEqual(event_entity.timestamp, timestamp)
+    self._assert_common_event_fields(event_entity)
+    self._assert_task_fields(event_entity)
+    self.assertEqual(event_entity.task_stage, events.TaskStage.PREPROCESS)
+    self.assertEqual(event_entity.task_status, events.TaskStatus.STARTED)
+    self.assertIsNone(event_entity.task_outcome)
+    self.assertEqual(event_entity.task_job, 'job_test')
+    self.assertEqual(event_entity.task_fuzzer, 'fuzzer_test')
 
   def test_get_event(self):
     """Test retrieving an event from datastore."""
