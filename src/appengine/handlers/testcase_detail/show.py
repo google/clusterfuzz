@@ -561,6 +561,8 @@ def get_testcase_detail(testcase):
           testcase,
       'testcase_status_info':
           testcase_status_events.get_testcase_status_info(testcase_id),
+      'testcase_event_history':
+          testcase_status_events.get_testcase_event_history(testcase_id),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':
