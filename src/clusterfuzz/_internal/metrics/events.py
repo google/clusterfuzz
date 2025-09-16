@@ -45,10 +45,11 @@ class EventTypes:
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_REJECTION = 'testcase_rejection'
   TESTCASE_FIXED = 'testcase_fixed'
-  ISSUE_FILING = 'issue_filing'
-  TASK_EXECUTION = 'task_execution'
-  ISSUE_CLOSING = 'issue_closing'
   TESTCASE_GROUPING = 'testcase_grouping'
+  ISSUE_FILING = 'issue_filing'
+  ISSUE_CLOSING = 'issue_closing'
+  TASK_EXECUTION = 'task_execution'
+  FUZZER_TASK_EXECUTION = 'fuzzer_task_execution'
 
 
 class TestcaseOrigin:
@@ -275,15 +276,33 @@ class TestcaseGroupingEvent(BaseTestcaseEvent, BaseTaskEvent):
   group_merge_reason: str | None = None
 
 
+@dataclass(kw_only=True)
+class FuzzerTaskExecutionEvent(BaseTaskEvent):
+  """Fuzzer-based task execution event."""
+  event_type: str = field(default=EventTypes.FUZZER_TASK_EXECUTION, init=False)
+  # Task stage (preprocess, main or postprocess).
+  task_stage: str | None = None
+  # Task status (e.g., started, finished, exception).
+  task_status: str | None = None
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome: str | None = None
+
+  # Task-specific job type and fuzzer name - this is needed to disambiguate
+  # from testcase metadata.
+  task_job: str | None = None
+  task_fuzzer: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
     EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
-    EventTypes.ISSUE_FILING: IssueFilingEvent,
-    EventTypes.TASK_EXECUTION: TaskExecutionEvent,
-    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
     EventTypes.TESTCASE_GROUPING: TestcaseGroupingEvent,
+    EventTypes.ISSUE_FILING: IssueFilingEvent,
+    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
+    EventTypes.TASK_EXECUTION: TaskExecutionEvent,
+    EventTypes.FUZZER_TASK_EXECUTION: FuzzerTaskExecutionEvent,
 }
 
 
@@ -337,7 +356,9 @@ class NDBEventRepository(IEventRepository, EventHandler):
   """
   # Maps `event_type` to a Datastore model.
   # For now, only testcase lifecycle events are being traced.
-  _event_to_entity_map = {}
+  _event_to_entity_map = {
+      EventTypes.FUZZER_TASK_EXECUTION: data_types.FuzzerTaskEvent,
+  }
   _default_entity = data_types.TestcaseLifecycleEvent
 
   def _serialize_event(self, event: Event) -> data_types.Model | None:
