@@ -23,6 +23,7 @@ from typing import Generator
 from typing import Mapping
 from typing import Sequence
 from typing import TypeAlias
+from typing import Type
 
 from google.cloud import ndb
 
@@ -1578,7 +1579,7 @@ def get_entity_by_type_and_id(entity_type, entity_id):
   return entity_type.get_by_id(int(entity_id))
 
 
-def _apply_filters(query: ndb.Query, entity_kind: data_types.Model,
+def _apply_filters(query: ndb.Query, entity_kind: Type[data_types.Model],
                    equality_filters: Mapping[str, FilterValue] | None):
   """Applies equality filters to a query."""
   if not equality_filters:
@@ -1594,7 +1595,7 @@ def _apply_filters(query: ndb.Query, entity_kind: data_types.Model,
   return query
 
 
-def _apply_order(query: ndb.Query, entity_kind: data_types.Model,
+def _apply_order(query: ndb.Query, entity_kind: Type[data_types.Model],
                  order_by: Sequence[str] | None):
   """Applies ordering to a query."""
   if not order_by:
@@ -1613,7 +1614,7 @@ def _apply_order(query: ndb.Query, entity_kind: data_types.Model,
 
 
 def get_entities_query(
-    entity_kind: data_types.Model,
+    entity_kind: Type[data_types.Model],
     equality_filters: Mapping[str, FilterValue] | None = None,
     order_by: Sequence[str] | None = None) -> ndb.Query:
   """Returns a query for the entity kind with equality filters and ordering."""
@@ -1623,7 +1624,7 @@ def get_entities_query(
   return query
 
 
-def get_entities_ids(entity_kind: data_types.Model,
+def get_entities_ids(entity_kind: Type[data_types.Model],
                      equality_filters: Mapping[str, FilterValue] | None = None,
                      order_by: Sequence[str] | None = None) -> Generator:
   """Yields IDs of entities matching optional filters and ordering."""
@@ -1632,7 +1633,7 @@ def get_entities_ids(entity_kind: data_types.Model,
       key.id() for key in ndb_utils.get_all_from_query(query, keys_only=True))
 
 
-def get_entities(entity_kind: data_types.Model,
+def get_entities(entity_kind: Type[data_types.Model],
                  equality_filters: Mapping[str, FilterValue] | None = None,
                  order_by: Sequence[str] | None = None) -> Generator:
   """Yields entities matching optional filters and ordering."""
