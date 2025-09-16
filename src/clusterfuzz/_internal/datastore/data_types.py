@@ -1744,23 +1744,23 @@ class FuzzerTaskEvent(Model):
   ttl_expiry_timestamp = ndb.DateTimeProperty(indexed=False)
 
   # Source location that emitted the event.
-  source = ndb.StringProperty(indexed=False)
+  source = ndb.TextProperty()
 
   ### Common metadata.
   # Source code commit hash.
-  clusterfuzz_version = ndb.StringProperty(indexed=False)
+  clusterfuzz_version = ndb.TextProperty()
 
   # Config code commit hash.
-  clusterfuzz_config_version = ndb.StringProperty(indexed=False)
+  clusterfuzz_config_version = ndb.TextProperty()
 
   # Identifier for the running instance on batch, GCE, GKE, etc.
-  instance_id = ndb.StringProperty(indexed=False)
+  instance_id = ndb.TextProperty()
 
   # Operating system name.
-  operating_system = ndb.StringProperty(indexed=False)
+  operating_system = ndb.StringProperty()
 
   # Operating system version.
-  os_version = ndb.StringProperty(indexed=False)
+  os_version = ndb.TextProperty()
 
   ### Task-related properties.
   # Task ID (artificial or corresponding to the utask execution).
@@ -1780,10 +1780,10 @@ class FuzzerTaskEvent(Model):
   task_outcome = ndb.StringProperty()
 
   # Task-related job type.
-  task_job = ndb.StringProperty(indexed=False)
+  task_job = ndb.TextProperty()
 
   # Task-related fuzzer name.
-  task_fuzzer = ndb.StringProperty(indexed=False)
+  task_fuzzer = ndb.TextProperty()
 
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
