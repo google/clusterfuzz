@@ -174,11 +174,19 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       logs.warning('Missing event data for emitting utask execution event.')
       return
 
-    event_task_exec = events.TaskExecutionEvent(
-        **self._event_data,
-        task_stage=self._subtask.value,
-        task_status=task_status,
-        task_outcome=task_outcome)
+    task_name = (self._labels or {}).get('task', '')
+    if task_utils.is_fuzzer_based_task(task_name):
+      event_task_exec = events.FuzzerTaskExecutionEvent(
+          **self._event_data,
+          task_stage=self._subtask.value,
+          task_status=task_status,
+          task_outcome=task_outcome)
+    else:
+      event_task_exec = events.TaskExecutionEvent(
+          **self._event_data,
+          task_stage=self._subtask.value,
+          task_status=task_status,
+          task_outcome=task_outcome)
     events.emit(event_task_exec)
 
   def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
