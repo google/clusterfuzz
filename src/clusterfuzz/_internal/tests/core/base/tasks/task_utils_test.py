@@ -43,8 +43,9 @@ class GetTaskEventDataTest(unittest.TestCase):
   def test_task_based_lists(self):
     """Asserts that the task names defined in type-based sets are correct."""
     all_task_commands = set(commands._COMMAND_MODULE_MAP.keys())
-    self.assertTrue(task_utils.TESTCASE_BASED_TASKS.issubset(all_task_commands))
-    self.assertTrue(task_utils.FUZZER_BASED_TASKS.issubset(all_task_commands))
+    self.assertTrue(
+        task_utils._TESTCASE_BASED_TASKS.issubset(all_task_commands))
+    self.assertTrue(task_utils._FUZZER_BASED_TASKS.issubset(all_task_commands))
 
   def test_get_task_event_data_preprocess(self):
     """Tests retrieving event data directly from task argument."""
