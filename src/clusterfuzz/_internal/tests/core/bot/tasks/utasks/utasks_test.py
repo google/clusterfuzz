@@ -62,13 +62,13 @@ class TworkerPreprocessTest(unittest.TestCase):
     os.environ['CF_TASK_NAME'] = 'mock_task'
 
   def tearDown(self):
-    task_utils.TESTCASE_BASED_TASKS.discard('mock')
+    task_utils._TESTCASE_BASED_TASKS.discard('mock')
 
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
   def test_tworker_preprocess(self, execution_mode: utasks.Mode):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock(__name__='mock_task')
-    task_utils.TESTCASE_BASED_TASKS.add('mock')
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
 
     self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
 
@@ -132,7 +132,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     """Tests tworker_preprocess works as expected if utask returns none."""
     module = mock.MagicMock(__name__='mock_task')
     module.utask_preprocess.return_value = None
-    task_utils.TESTCASE_BASED_TASKS.add('mock')
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
 
     self.assertIsNone(
         utasks.tworker_preprocess(module, self.TASK_ARGUMENT, self.JOB_TYPE,
@@ -294,7 +294,7 @@ class TworkerPostprocessTest(unittest.TestCase):
     os.environ['CF_TASK_NAME'] = 'mock_task'
 
   def tearDown(self):
-    task_utils.FUZZER_BASED_TASKS.discard('mock')
+    task_utils._FUZZER_BASED_TASKS.discard('mock')
 
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
   def test_success(self, execution_mode: utasks.Mode):
@@ -319,7 +319,7 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     module = mock.MagicMock(__name__='mock_task')
     self.mock.get_utask_module.return_value = module
-    task_utils.FUZZER_BASED_TASKS.add('mock')
+    task_utils._FUZZER_BASED_TASKS.add('mock')
 
     utasks.tworker_postprocess(download_url)
     end_time_ns = time.time_ns()
@@ -350,15 +350,13 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     # Asserts for task execution event.
     self.assertEqual(self.mock.emit.call_count, 2)
-    task_finished_event = events.TaskExecutionEvent(
-        testcase_id=None,
+    task_finished_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
         task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.POST_STARTED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
-    task_post_event = events.TaskExecutionEvent(
-        testcase_id=None,
+    task_post_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
         task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.POST_COMPLETED,
@@ -393,7 +391,7 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     module = mock.MagicMock(__name__='mock_task')
     self.mock.get_utask_module.return_value = module
-    task_utils.FUZZER_BASED_TASKS.add('mock')
+    task_utils._FUZZER_BASED_TASKS.add('mock')
 
     module.utask_postprocess.side_effect = ValueError
     try:
@@ -406,15 +404,13 @@ class TworkerPostprocessTest(unittest.TestCase):
     module.utask_postprocess.assert_called_with(uworker_output)
     # Asserts for task execution event.
     self.assertEqual(self.mock.emit.call_count, 2)
-    task_finished_event = events.TaskExecutionEvent(
-        testcase_id=None,
+    task_finished_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
         task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.POST_STARTED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
-    task_post_event = events.TaskExecutionEvent(
-        testcase_id=None,
+    task_post_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
         task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
         task_status=events.TaskStatus.EXCEPTION,
