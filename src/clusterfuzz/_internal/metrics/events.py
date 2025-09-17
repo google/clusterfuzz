@@ -43,14 +43,14 @@ def _get_datetime_now():
 
 class EventTypes:
   """Specific event types."""
+  FUZZER_TASK_EXECUTION = 'fuzzer_task_execution'
+  ISSUE_CLOSING = 'issue_closing'
+  ISSUE_FILING = 'issue_filing'
+  TASK_EXECUTION = 'task_execution'
   TESTCASE_CREATION = 'testcase_creation'
-  TESTCASE_REJECTION = 'testcase_rejection'
   TESTCASE_FIXED = 'testcase_fixed'
   TESTCASE_GROUPING = 'testcase_grouping'
-  ISSUE_FILING = 'issue_filing'
-  ISSUE_CLOSING = 'issue_closing'
-  TASK_EXECUTION = 'task_execution'
-  FUZZER_TASK_EXECUTION = 'fuzzer_task_execution'
+  TESTCASE_REJECTION = 'testcase_rejection'
 
 
 class TestcaseOrigin:
@@ -295,14 +295,14 @@ class FuzzerTaskExecutionEvent(BaseTaskEvent):
 
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
+    EventTypes.FUZZER_TASK_EXECUTION: FuzzerTaskExecutionEvent,
+    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
+    EventTypes.ISSUE_FILING: IssueFilingEvent,
+    EventTypes.TASK_EXECUTION: TaskExecutionEvent,
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
-    EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
     EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
     EventTypes.TESTCASE_GROUPING: TestcaseGroupingEvent,
-    EventTypes.ISSUE_FILING: IssueFilingEvent,
-    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
-    EventTypes.TASK_EXECUTION: TaskExecutionEvent,
-    EventTypes.FUZZER_TASK_EXECUTION: FuzzerTaskExecutionEvent,
+    EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
 }
 
 
