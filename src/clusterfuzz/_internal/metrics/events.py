@@ -46,7 +46,6 @@ class EventTypes:
   FUZZER_TASK_EXECUTION = 'fuzzer_task_execution'
   ISSUE_CLOSING = 'issue_closing'
   ISSUE_FILING = 'issue_filing'
-  ISSUE_CLOSING = 'issue_closing'
   TASK_EXECUTION = 'task_execution'
   TESTCASE_CREATION = 'testcase_creation'
   TESTCASE_FIXED = 'testcase_fixed'
@@ -299,7 +298,6 @@ _EVENT_TYPE_CLASSES = {
     EventTypes.FUZZER_TASK_EXECUTION: FuzzerTaskExecutionEvent,
     EventTypes.ISSUE_CLOSING: IssueClosingEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
-    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
     EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
     EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
