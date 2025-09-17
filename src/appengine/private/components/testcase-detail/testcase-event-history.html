@@ -71,11 +71,24 @@
             <tbody><tr class="title">
               <td>Event</td>
               <td>Task ID</td>
+              <td>Logs</td>
             </tr>
             <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
               <tr class="body">
-                <td><pre>[[_formatEvent(event)]]</pre></td>
-                <td>[[_or(event.task_id, 'N/A')]]</td>
+                <td><pre>[[_formatEvent(event[0])]]</pre></td>
+                <td>[[_or(event[0].task_id, 'N/A')]]</td>
+                <td>
+                  <template is="dom-if" if="[[_isTaskExecution(event[0])]]">
+                    <pre>[[_or(event[1], 'No log preview available.')]]</pre>
+                    <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&task_name=[[event[0].task_name]]&task_id=[[event[0].task_id]]" download$="task_[[event[0].task_id]].log">
+                      <iron-icon icon="icons:cloud-download"></iron-icon>
+                      Download full log
+                    </a>
+                  </template>
+                  <template is="dom-if" if="[[!_isTaskExecution(event[0])]]">
+                    N/A
+                  </template>
+                </td>
               </tr>
             </template>
           </tbody></table>
@@ -95,6 +108,9 @@
         info: Object,
       },
       _formatEvent(event) {
+        if (!event) {
+          return '';
+        }
         const eventCopy = JSON.parse(JSON.stringify(event));
         if (eventCopy.timestamp) {
           eventCopy.timestamp = new Date(eventCopy.timestamp).toUTCString();
@@ -103,7 +119,13 @@
       },
       _or(val1, val2) {
         return val1 || val2;
-      }
+      },
+      _isTaskExecution(event) {
+        if (!event) {
+          return false;
+        }
+        return event.event_type === 'TASK_EXECUTION' && event.task_id;
+      },
     });
   </script>
 </dom-module>

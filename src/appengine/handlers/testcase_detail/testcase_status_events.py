@@ -13,11 +13,14 @@
 # limitations under the License.
 """Helper functions for getting testcase status information from events."""
 import datetime
+import json
 from dataclasses import asdict
+from typing import Generator
 from typing import Mapping
 from typing import TypeAlias
 
 from clusterfuzz._internal.metrics import events
+from google.cloud import logging_v2
 
 EventInfo: TypeAlias = dict[str, str | None]
 
@@ -187,22 +190,30 @@ class TestcaseEventHistory:
     """Removes null values from an event info dictionary."""
     return {k: v for k, v in event_info.items() if v is not None}
 
-  def get_history(self) -> list[EventInfo]:
+  def get_history(self) -> Generator[Mapping, None, None]:
     """Get all testcase events information in reverse chronological order."""
     event_history = events.get_events_from_testcase(self._testcase_id)
 
-    formatted_event_history = []
-    for event in event_history:
-      formatted_event_history.append(self._remove_null_values(asdict(event)))
+    yield from (self._remove_null_values(asdict(event)) for event in event_history)
+  
+  def get_task_log(self, task_id: str) -> str:
+    """Returns the logs for a given task as a string."""
+    client = logging_v2.Client()
+    filter_str = (
+        f'jsonPayload.extras.task_id={task_id}')
 
-    return formatted_event_history
+    entries = client.list_entries(
+        filter_=filter_str, max_results=3, order_by=logging_v2.DESCENDING)
+
+    return '\n'.join(
+        json.dumps(entry.to_api_repr(), indent=2) for entry in entries)
     
-
 def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   """Public function to retrieve testcase status information."""
   return TestcaseStatusInfo(testcase_id).get_info()
 
 
-def get_testcase_event_history(testcase_id: int) -> list[EventInfo]:
+def get_testcase_event_history(testcase_id: int) -> Generator[Mapping, None, None]:
   """Public function to retrieve the testcase event history."""
-  return TestcaseEventHistory(testcase_id).get_history()
+  event_history = TestcaseEventHistory(testcase_id)
+  yield from ((event_dict, event_history.get_task_log(event_dict['task_id'])) for event_dict in event_history.get_history())

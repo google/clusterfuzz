@@ -470,4 +470,4 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
         },
     ]
 
-    self.assertEqual(history, expected_history)
+    self.assertEqual(list(history), expected_history)
