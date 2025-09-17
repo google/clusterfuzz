@@ -64,6 +64,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TrustedTaskEventTest(unittest.TestCase):
+  # pylint: disable=protected-access
   """Tests for emitting task execution events in trusted tasks."""
 
   def setUp(self):
@@ -72,7 +73,7 @@ class TrustedTaskEventTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'mock_task'
 

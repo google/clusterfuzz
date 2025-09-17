@@ -35,7 +35,9 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 @test_utils.with_cloud_emulators('datastore')
 class TworkerPreprocessTest(unittest.TestCase):
+  # pylint: disable=protected-access
   """Tests that tworker_preprocess works as intended."""
+
   OUTPUT_SIGNED_UPLOAD_URL = 'https://signed-upload-output'
   OUTPUT_DOWNLOAD_GCS_URL = '/download-output'
   INPUT_SIGNED_DOWNLOAD_URL = 'https://signed-download-input'
@@ -53,7 +55,7 @@ class TworkerPreprocessTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
     self.mock.get_uworker_output_urls.return_value = (
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
@@ -70,7 +72,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     module = mock.MagicMock(__name__='mock_task')
     task_utils._TESTCASE_BASED_TASKS.add('mock')
 
-    self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
+    self.mock._get_execution_mode.return_value = execution_mode
 
     uworker_input = uworker_msg_pb2.Input(job_type='something')
     module.utask_preprocess.return_value = uworker_input
@@ -118,7 +120,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     # Asserts for task execution event.
     task_event = events.TaskExecutionEvent(
         testcase_id=int(self.TASK_ARGUMENT),
-        task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.PREPROCESS.value,
         task_status=events.TaskStatus.STARTED,
         task_outcome=None,
         task_job=self.JOB_TYPE,
@@ -140,7 +142,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     # Asserts for task execution event.
     task_event = events.TaskExecutionEvent(
         testcase_id=int(self.TASK_ARGUMENT),
-        task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.PREPROCESS.value,
         task_status=events.TaskStatus.EXCEPTION,
         task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
         task_job=self.JOB_TYPE,
@@ -157,7 +159,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     # Asserts for task execution event.
     task_event = events.TaskExecutionEvent(
         testcase_id=int(self.TASK_ARGUMENT),
-        task_stage=utasks._Subtask.PREPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.PREPROCESS.value,
         task_status=events.TaskStatus.EXCEPTION,
         task_outcome=events.TaskOutcome.PREPROCESS_NO_RETURN,
         task_job=self.JOB_TYPE,
@@ -277,6 +279,7 @@ class GetUtaskModuleTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TworkerPostprocessTest(unittest.TestCase):
+  # pylint: disable=protected-access
   """Tests that tworker_postprocess works as intended."""
 
   def setUp(self):
@@ -289,7 +292,7 @@ class TworkerPostprocessTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'mock_task'
 
@@ -300,7 +303,7 @@ class TworkerPostprocessTest(unittest.TestCase):
   def test_success(self, execution_mode: utasks.Mode):
     """Tests that if utask_postprocess suceeds, uworker_postprocess does too.
     """
-    self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
+    self.mock._get_execution_mode.return_value = execution_mode  #
     download_url = 'https://uworker_output_download_url'
 
     start_time_ns = time.time_ns()
@@ -352,13 +355,13 @@ class TworkerPostprocessTest(unittest.TestCase):
     self.assertEqual(self.mock.emit.call_count, 2)
     task_finished_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
-        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.POSTPROCESS.value,
         task_status=events.TaskStatus.POST_STARTED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
     task_post_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
-        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.POSTPROCESS.value,
         task_status=events.TaskStatus.POST_COMPLETED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
@@ -376,7 +379,7 @@ class TworkerPostprocessTest(unittest.TestCase):
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
   def test_event_emit_during_exception(self, execution_mode: utasks.Mode):
     """Test the task event emit when an unhandle exception occurs."""
-    self.mock._get_execution_mode.return_value = execution_mode  # pylint: disable=protected-access
+    self.mock._get_execution_mode.return_value = execution_mode
     download_url = 'https://uworker_output_download_url'
     preprocess_start_timestamp = timestamp_pb2.Timestamp()
     preprocess_start_timestamp.FromNanoseconds(time.time_ns())
@@ -406,13 +409,13 @@ class TworkerPostprocessTest(unittest.TestCase):
     self.assertEqual(self.mock.emit.call_count, 2)
     task_finished_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
-        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.POSTPROCESS.value,
         task_status=events.TaskStatus.POST_STARTED,
         task_outcome=uworker_msg_pb2.ErrorType.Name(0),
         task_job='foo-job')
     task_post_event = events.FuzzerTaskExecutionEvent(
         task_fuzzer='fuzzer_test',
-        task_stage=utasks._Subtask.POSTPROCESS.value,  # pylint: disable=protected-access
+        task_stage=utasks._Subtask.POSTPROCESS.value,
         task_status=events.TaskStatus.EXCEPTION,
         task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION,
         task_job='foo-job')
