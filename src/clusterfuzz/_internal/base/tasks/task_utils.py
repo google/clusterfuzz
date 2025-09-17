@@ -18,7 +18,6 @@ appengine."""
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
-
 _TESTCASE_BASED_TASKS = {
     'analyze',
     'blame',
@@ -29,7 +28,6 @@ _TESTCASE_BASED_TASKS = {
     'symbolize',
     'variant',
 }
-
 
 _FUZZER_BASED_TASKS = {
     'corpus_pruning',
@@ -58,6 +56,7 @@ class UworkerMsgParseError(RuntimeError):
 
 def is_testcase_based_task(task_name: str):
   return task_name in _TESTCASE_BASED_TASKS
+
 
 def is_fuzzer_based_task(task_name: str):
   return task_name in _FUZZER_BASED_TASKS
