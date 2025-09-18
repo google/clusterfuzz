@@ -88,7 +88,7 @@
                 </td>
                 <td>
                   <template is="dom-if" if="[[_isTaskExecution(event)]]">
-                    <a href$="[[_formatGcpLogUrl(info.testcase.project_name, event.task_id)]]" target="_blank" title="View logs in GCP">
+                    <a href$="[[_formatGcpLogUrl(info.application_id, event.task_id)]]" target="_blank" title="View logs in GCP">
                       <iron-icon icon="icons:open-in-new"></iron-icon>
                     </a>
                   </template>
@@ -130,13 +130,13 @@
         }
         return event.event_type === 'task_execution' && event.task_id;
       },
-      _formatGcpLogUrl(projectName, taskId) {
-        if (!projectName || !taskId) {
+      _formatGcpLogUrl(applicationId, taskId) {
+        if (!applicationId || !taskId) {
           return '';
         }
         const query = `jsonPayload.extras.task_id="${taskId}"`;
         const encodedQuery = encodeURIComponent(query);
-        return `https://console.cloud.google.com/logs/viewer?project=${projectName}&query=${encodedQuery}`;
+        return `https://console.cloud.google.com/logs/viewer?project=${applicationId}&query=${encodedQuery}`;
       },
     });
   </script>

@@ -489,6 +489,8 @@ def get_testcase_detail(testcase):
   return {
       'id':
           testcase_id,
+      'application_id':
+          utils.get_application_id(),
       'crash_type':
           crash_type,
       'crash_address':
