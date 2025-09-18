@@ -25,6 +25,10 @@ from google.cloud import logging_v2
 EventInfo: TypeAlias = dict[str, str | None]
 
 
+def _format_timestamp(timestamp: datetime.datetime) -> str:
+  """Formats a timestamp."""
+  return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
+
 class TestcaseStatusInfo:
   """Methods to retrieve and format testcase events information."""
 
@@ -62,10 +66,6 @@ class TestcaseStatusInfo:
             self._format_testcase_grouping_event,
     }
 
-  def _format_timestamp(self, timestamp: datetime.datetime) -> str:
-    """Formats a timestamp."""
-    return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
-
   def _format_string(self, text: str | None) -> str | None:
     """Formats a string by capitalizing words and replacing underscores."""
     if not text:
@@ -80,7 +80,7 @@ class TestcaseStatusInfo:
         'task_stage': event.task_stage,
         'task_status': event.task_status,
         'task_outcome': event.task_outcome,
-        'timestamp': self._format_timestamp(event.timestamp),
+        'timestamp': _format_timestamp(event.timestamp),
     }
 
   def _format_lifecycle_events_common_fields(self,
@@ -88,7 +88,7 @@ class TestcaseStatusInfo:
     """Formats common fields for lifecycle events."""
     return {
         'event_type': self._format_string(event.event_type),
-        'timestamp': self._format_timestamp(event.timestamp),
+        'timestamp': _format_timestamp(event.timestamp),
         'event_info': None,
     }
 
@@ -186,15 +186,19 @@ class TestcaseEventHistory:
   def __init__(self, testcase_id: int):
     self._testcase_id = testcase_id
 
-  def _remove_null_values(self, event_info: EventInfo) -> EventInfo:
+  def _remove_null_values(self, event: events.Event) -> EventInfo:
     """Removes null values from an event info dictionary."""
-    return {k: v for k, v in event_info.items() if v is not None}
+    timestamp_str = _format_timestamp(event.timestamp)
+    event_info = asdict(event)
+    d = {k: v for k, v in event_info.items() if v is not None}
+    d['timestamp'] = timestamp_str
+    return d 
 
   def get_history(self) -> Generator[Mapping, None, None]:
     """Get all testcase events information in reverse chronological order."""
     event_history = events.get_events_from_testcase(self._testcase_id)
 
-    yield from (self._remove_null_values(asdict(event)) for event in event_history)
+    yield from (self._remove_null_values(event) for event in event_history)
   
   def get_task_log(self, task_id: str) -> str:
     """Returns the logs for a given task as a string."""
