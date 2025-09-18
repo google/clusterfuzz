@@ -48,22 +48,14 @@ def execute(args):
     ndb_utils.delete_multi(ndb_utils.get_all_from_query(query, keys_only=True))
     return
 
-  # If we choose to delete most, but migrate the latest ones.
-  last_month = datetime.datetime.now() - datetime.timedelta(days=30)
-  query_delete = query.filter(
-      data_types.TestcaseLifecycleEvent.timestamp < last_month)
-  ndb_utils.delete_multi(
-      ndb_utils.get_all_from_query(query_delete, keys_only=True))
-
-  query_update = query.filter(
-      data_types.TestcaseLifecycleEvent.timestamp >= last_month)
+  # If we choose to migrate them into the new entity model.
   to_update = []
   to_delete = []
   total_count = 0
-  for event in ndb_utils.get_all_from_query(query_update):
+  for event in ndb_utils.get_all_from_query(query):
     migrate_event = data_types.FuzzerTaskEvent(
         event_type=events.EventTypes.FUZZER_TASK_EXECUTION)
-    for attr in _MIGRATE_FIELDS:
+    for attr in _MIGRATE_FIELDS: 
       setattr(migrate_event, attr, getattr(event, attr))
     to_update.append(migrate_event)
     to_delete.append(event.key)
