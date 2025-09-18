@@ -213,7 +213,7 @@ def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   return TestcaseStatusInfo(testcase_id).get_info()
 
 
-def get_testcase_event_history(testcase_id: int) -> Generator[Mapping, None, None]:
+def get_testcase_event_history(testcase_id: int) -> list[tuple[Mapping, str]]:
   """Public function to retrieve the testcase event history."""
   event_history = TestcaseEventHistory(testcase_id)
-  yield from ((event_dict, event_history.get_task_log(event_dict['task_id'])) for event_dict in event_history.get_history())
+  return list((event_dict, event_history.get_task_log(event_dict['task_id'])) for event_dict in event_history.get_history())
