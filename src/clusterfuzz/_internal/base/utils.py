@@ -254,6 +254,11 @@ def get_application_id():
   return app_id
 
 
+def get_logging_cloud_project_id():
+  """Return logging cloud project id."""
+  return environment.get_value('LOGGING_CLOUD_PROJECT_ID')
+
+
 def get_clusterfuzz_release():
   return os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
 

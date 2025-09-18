@@ -65,7 +65,7 @@
     </style>
     <div class="section">
       <div class="title" title="Testcase event history.">Event History</div>
-      <template is="dom-if" if="[[info.testcase_event_history.length]]">
+      <template is="dom-if" if="[[info.testcase_event_history.event_history.length]]">
         <div class="body">
           <table cellpadding="0" cellspacing="0" class="variant">
             <tbody><tr class="title">
@@ -73,7 +73,7 @@
               <td>Download Log</td>
               <td>GCP Logs</td>
             </tr>
-            <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
+            <template is="dom-repeat" items="[[info.testcase_event_history.event_history]]" as="event">
               <tr class="body">
                 <td><pre>[[_formatEvent(event)]]</pre></td>
                 <td>
@@ -88,7 +88,7 @@
                 </td>
                 <td>
                   <template is="dom-if" if="[[_isTaskExecution(event)]]">
-                    <a href$="[[_formatGcpLogUrl(info.application_id, event.task_id)]]" target="_blank" title="View logs in GCP">
+                    <a href$="[[_formatGcpLogUrl(info.testcase_event_history.log_application_id, event.task_id)]]" target="_blank" title="View logs in GCP">
                       <iron-icon icon="icons:open-in-new"></iron-icon>
                     </a>
                   </template>
@@ -101,7 +101,7 @@
           </tbody></table>
         </div>
       </template>
-      <template is="dom-if" if="[[!info.testcase_event_history.length]]">
+      <template is="dom-if" if="[[!info.testcase_event_history.event_history.length]]">
         <div class="body padding">
           No event history found.
         </div>

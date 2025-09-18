@@ -188,11 +188,11 @@ class TestcaseEventHistory:
 
   def _remove_null_values(self, event: events.Event) -> EventInfo:
     """Removes null values from an event info dictionary."""
-    timestamp_str = _format_timestamp(event.timestamp)
-    event_info = asdict(event)
-    d = {k: v for k, v in event_info.items() if v is not None}
-    d['timestamp'] = timestamp_str
-    return d 
+    event_info = {
+        k: v for k, v in asdict(event).items() if v is not None
+    }
+    event_info['timestamp'] = _format_timestamp(event.timestamp)
+    return event_info
 
   def get_history(self) -> Generator[Mapping, None, None]:
     """Get all testcase events information in reverse chronological order."""

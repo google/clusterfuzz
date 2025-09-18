@@ -489,8 +489,6 @@ def get_testcase_detail(testcase):
   return {
       'id':
           testcase_id,
-      'application_id':
-          utils.get_application_id(),
       'crash_type':
           crash_type,
       'crash_address':
@@ -563,8 +561,12 @@ def get_testcase_detail(testcase):
           testcase,
       'testcase_status_info':
           testcase_status_events.get_testcase_status_info(testcase_id),
-      'testcase_event_history':
-          testcase_status_events.get_testcase_event_history(testcase_id),
+      'testcase_event_history': {
+          'event_history':
+              testcase_status_events.get_testcase_event_history(testcase_id),
+          'log_application_id':
+              utils.get_logging_cloud_project_id()
+      },
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':
