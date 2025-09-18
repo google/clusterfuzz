@@ -119,10 +119,6 @@
           return '';
         }
         const eventCopy = JSON.parse(JSON.stringify(event));
-        if (eventCopy.timestamp) {
-          const timestampInMs = eventCopy.timestamp * 1000;
-          eventCopy.timestamp = new Date(timestampInMs).toUTCString();
-        }
         return JSON.stringify(eventCopy, null, 2);
       },
       _isTaskExecution(event) {
