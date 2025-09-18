@@ -128,7 +128,7 @@
         if (!event) {
           return false;
         }
-        return event.event_type === 'TASK_EXECUTION' && event.task_id;
+        return event.event_type === 'task_execution' && event.task_id;
       },
       _formatGcpLogUrl(projectName, taskId) {
         if (!projectName || !taskId) {
