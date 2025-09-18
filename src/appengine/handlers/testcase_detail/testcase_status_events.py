@@ -217,19 +217,10 @@ def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   return TestcaseStatusInfo(testcase_id).get_info()
 
 def get_testcase_event_history(testcase_id: int) -> list[Mapping]:
+  """Public function to retrieve all events from a testcase in reverse chronological order."""
   return list(TestcaseEventHistory(testcase_id).get_history())
 
-# TODO (andrenribeiro): It is too slow and the front currently forces to load
-# everything at the same time. One idea is to have a view icon that loads
-# another page and it only get the logs when this page is loaded
-def get_testcase_event_history_with_task_log(testcase_id: int) -> list[tuple[Mapping, str]]:
-  """Public function to retrieve the testcase event history."""
-  event_history = TestcaseEventHistory(testcase_id)
-  result = []
-  for event_dict in event_history.get_history():
-    if 'task_id' in event_dict:
-      result.append((event_dict, event_history.get_task_log(event_dict['task_id'])))
-    else:
-      result.append((event_dict, ''))
-
-  return result
+def get_task_log(testcase_id: int, task_id: str) -> str:
+  """Public function to return the logs for a given task as a string."""
+  return TestcaseEventHistory(testcase_id).get_task_log(task_id)
+  
