@@ -119,9 +119,6 @@
           return '';
         }
         const eventCopy = JSON.parse(JSON.stringify(event));
-        if (eventCopy.timestamp) {
-          eventCopy.timestamp = new Date(eventCopy.timestamp).toUTCString();
-        }
         return JSON.stringify(eventCopy, null, 2);
       },
       _isTaskExecution(event) {
