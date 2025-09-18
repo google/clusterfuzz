@@ -59,6 +59,7 @@ def execute(args):
       data_types.TestcaseLifecycleEvent.timestamp >= last_month)
   to_update = []
   to_delete = []
+  total_count = 0
   for event in ndb_utils.get_all_from_query(query_update):
     migrate_event = data_types.FuzzerTaskEvent(
         event_type=events.EventTypes.FUZZER_TASK_EXECUTION)
@@ -66,7 +67,9 @@ def execute(args):
       setattr(migrate_event, attr, getattr(event, attr))
     to_update.append(migrate_event)
     to_delete.append(event.key)
+    total_count += 1
     if len(to_update) == _BATCH_SIZE:
+      logs.info(f'Migrated {total_count} fuzzer-based task events.')
       ndb_utils.put_multi(to_update)
       ndb_utils.delete_multi(to_delete)
       to_update = []
