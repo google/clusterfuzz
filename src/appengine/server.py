@@ -185,6 +185,7 @@ handlers = [
     ('/testcase-detail/remove-duplicate', remove_duplicate.Handler),
     ('/testcase-detail/remove-issue', remove_issue.Handler),
     ('/testcase-detail/remove-group', remove_group.Handler),
+    ('/testcase-detail/task-log', show_testcase.TaskLogHandler),
     ('/testcase-detail/testcase-variants', testcase_variants.Handler),
     ('/testcase-detail/update-from-trunk', update_from_trunk.Handler),
     ('/testcase-detail/update-issue', update_issue.Handler),
