@@ -1719,3 +1719,72 @@ class TestcaseLifecycleEvent(Model):
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
+
+
+class FuzzerTaskEvent(Model):
+  """An event from fuzzer-based tasks, namely fuzz and corpus pruning.
+
+  This entity is needed to avoid flooding the `TestcaseLifecycleEvent` with task
+  execution events that are not actually linked to a specific testcase.
+  Since fuzz task execution events are highly frequent, this tries to reduce the
+  Datastore usage by limiting the amount of indexed fields, except those that
+  will be used to assist with tracing clusterfuzz execution.
+  """
+  # Fuzzer task events' TTL, currently set to 2 months.
+  FUZZER_EVENT_TTL = datetime.timedelta(days=60)
+
+  ### Event definition.
+  # Event type (mostly task_execution).
+  event_type = ndb.StringProperty(required=True)
+
+  # Event creation time.
+  timestamp = ndb.DateTimeProperty()
+
+  # Event expiration time (should only be used for TTL, not read by CF).
+  ttl_expiry_timestamp = ndb.DateTimeProperty(indexed=False)
+
+  # Source location that emitted the event.
+  source = ndb.TextProperty()
+
+  ### Common metadata.
+  # Source code commit hash.
+  clusterfuzz_version = ndb.TextProperty()
+
+  # Config code commit hash.
+  clusterfuzz_config_version = ndb.TextProperty()
+
+  # Identifier for the running instance on batch, GCE, GKE, etc.
+  instance_id = ndb.TextProperty()
+
+  # Operating system name.
+  operating_system = ndb.StringProperty()
+
+  # Operating system version.
+  os_version = ndb.TextProperty()
+
+  ### Task-related properties.
+  # Task ID (artificial or corresponding to the utask execution).
+  task_id = ndb.StringProperty()
+
+  # Task name.
+  task_name = ndb.StringProperty()
+
+  ### Task execution.
+  # Task stage, i.e., preprocess, main or postprocess.
+  task_stage = ndb.StringProperty()
+
+  # Task status (e.g., started, finished, exception).
+  task_status = ndb.StringProperty()
+
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome = ndb.StringProperty()
+
+  # Task-related job type.
+  task_job = ndb.TextProperty()
+
+  # Task-related fuzzer name.
+  task_fuzzer = ndb.TextProperty()
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.FUZZER_EVENT_TTL)

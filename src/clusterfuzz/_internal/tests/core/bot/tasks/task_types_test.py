@@ -64,6 +64,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class TrustedTaskEventTest(unittest.TestCase):
+  # pylint: disable=protected-access
   """Tests for emitting task execution events in trusted tasks."""
 
   def setUp(self):
@@ -72,17 +73,17 @@ class TrustedTaskEventTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
-    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)  # pylint: disable=protected-access
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'mock_task'
 
   def tearDown(self):
-    task_utils.TESTCASE_BASED_TASKS.discard('mock')
+    task_utils._TESTCASE_BASED_TASKS.discard('mock')
 
   def test_task_event_emit(self):
     """Tests that task events are emitted during a successfull execution."""
     module = mock.MagicMock(__name__='mock_task')
-    task_utils.TESTCASE_BASED_TASKS.add('mock')
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
 
     task = task_types.TrustedTask(module)
     task.execute(task_argument='1', job_type='job1', uworker_env={})
@@ -106,7 +107,7 @@ class TrustedTaskEventTest(unittest.TestCase):
   def test_event_emit_during_exception(self):
     """Tests that task events are emitted during a unhandled exception."""
     module = mock.MagicMock(__name__='mock_task')
-    task_utils.TESTCASE_BASED_TASKS.add('mock')
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
 
     module.execute_task.side_effect = ValueError
     task = task_types.TrustedTask(module)

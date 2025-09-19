@@ -1229,8 +1229,8 @@ def update_task_enabled() -> bool:
 
   except requests.exceptions.HTTPError as http_error:
     logs.warning(f"Http error fetching metadata: {http_error}")
-  
+
   except Exception as ex:
     logs.error(f"Unknown exception fetching metadata: {ex}")
-  
+
   return not running_on_batch

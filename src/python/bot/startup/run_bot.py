@@ -124,6 +124,10 @@ def task_loop():
         # so that utasks can't be updated on subsequent attempts.
         update_task.run()
         update_task.track_revision()
+      else:
+        logs.info("Update task not enabled. Running platform init scripts.")
+        update_task.run_platform_init_scripts()
+
       if environment.is_uworker():
         # Batch/Swarming tasks only run one at a time.
         sys.exit(utasks.uworker_bot_main())

@@ -24,6 +24,7 @@ from typing import Any
 from typing import Generator
 from typing import Mapping
 from typing import Sequence
+from typing import Type
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
@@ -42,13 +43,14 @@ def _get_datetime_now():
 
 class EventTypes:
   """Specific event types."""
-  TESTCASE_CREATION = 'testcase_creation'
-  TESTCASE_REJECTION = 'testcase_rejection'
-  TESTCASE_FIXED = 'testcase_fixed'
+  FUZZER_TASK_EXECUTION = 'fuzzer_task_execution'
+  ISSUE_CLOSING = 'issue_closing'
   ISSUE_FILING = 'issue_filing'
   TASK_EXECUTION = 'task_execution'
-  ISSUE_CLOSING = 'issue_closing'
+  TESTCASE_CREATION = 'testcase_creation'
+  TESTCASE_FIXED = 'testcase_fixed'
   TESTCASE_GROUPING = 'testcase_grouping'
+  TESTCASE_REJECTION = 'testcase_rejection'
 
 
 class TestcaseOrigin:
@@ -275,15 +277,32 @@ class TestcaseGroupingEvent(BaseTestcaseEvent, BaseTaskEvent):
   group_merge_reason: str | None = None
 
 
+@dataclass(kw_only=True)
+class FuzzerTaskExecutionEvent(BaseTaskEvent):
+  """Fuzzer-based task execution event."""
+  event_type: str = field(default=EventTypes.FUZZER_TASK_EXECUTION, init=False)
+  # Task stage (preprocess, main or postprocess).
+  task_stage: str | None = None
+  # Task status (e.g., started, finished, exception).
+  task_status: str | None = None
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome: str | None = None
+
+  # Task-specific job type and fuzzer name.
+  task_job: str | None = None
+  task_fuzzer: str | None = None
+
+
 # Mapping of specific event types to their data classes.
 _EVENT_TYPE_CLASSES = {
-    EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
-    EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
-    EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
+    EventTypes.FUZZER_TASK_EXECUTION: FuzzerTaskExecutionEvent,
+    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
     EventTypes.TASK_EXECUTION: TaskExecutionEvent,
-    EventTypes.ISSUE_CLOSING: IssueClosingEvent,
+    EventTypes.TESTCASE_CREATION: TestcaseCreationEvent,
+    EventTypes.TESTCASE_FIXED: TestcaseFixedEvent,
     EventTypes.TESTCASE_GROUPING: TestcaseGroupingEvent,
+    EventTypes.TESTCASE_REJECTION: TestcaseRejectionEvent,
 }
 
 
@@ -336,8 +355,9 @@ class NDBEventRepository(IEventRepository, EventHandler):
   the correct entity.
   """
   # Maps `event_type` to a Datastore model.
-  # For now, only testcase lifecycle events are being traced.
-  _event_to_entity_map = {}
+  _event_to_entity_map: dict[str, Type[data_types.Model]] = {
+      EventTypes.FUZZER_TASK_EXECUTION: data_types.FuzzerTaskEvent,
+  }
   _default_entity = data_types.TestcaseLifecycleEvent
 
   def _serialize_event(self, event: Event) -> data_types.Model | None:
@@ -389,6 +409,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
   def get_event(self, event_id: str | int,
                 event_type: str | None = None) -> Event | None:
     """Retrieve an event from a Datastore entity id."""
+    event_type = event_type or ''
     entity_kind = self._event_to_entity_map.get(event_type,
                                                 self._default_entity)
     event_entity = data_handler.get_entity_by_type_and_id(entity_kind, event_id)
@@ -410,6 +431,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
     used.
     """
     event_type = (equality_filters or {}).get('event_type')
+    event_type = '' if not isinstance(event_type, str) else event_type
     entity_kind = self._event_to_entity_map.get(event_type,
                                                 self._default_entity)
     entities_ids = data_handler.get_entities_ids(
