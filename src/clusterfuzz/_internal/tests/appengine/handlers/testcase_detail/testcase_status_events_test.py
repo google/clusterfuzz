@@ -61,6 +61,12 @@ class GetTestcaseStatusMachineInfoNoEventsTest(EventsInfoBasicTest):
         {
             'task_name': 'Progression'
         },
+        {
+            'task_name': 'Blame'
+        },
+        {
+            'task_name': 'Variant'
+        },
     ]
 
     expected_lifecycle_events = [
@@ -151,6 +157,24 @@ class EventsInfoTest(EventsInfoBasicTest):
         closing_reason=events.ClosingReason.TESTCASE_FIXED,
         timestamp=datetime.datetime(2023, 1, 4, 0, 0, 0)).put()
 
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='blame',
+        task_stage='stage4',
+        task_status='status4',
+        task_outcome='outcome5',
+        timestamp=datetime.datetime(2023, 1, 1, 13, 0, 0)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='variant',
+        task_stage='stage2',
+        task_status='status3',
+        task_outcome='outcome2',
+        timestamp=datetime.datetime(2023, 1, 1, 14, 0, 0)).put()
+
 
 @test_utils.with_cloud_emulators('datastore')
 class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
@@ -178,6 +202,18 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         'task_name': 'Progression'
     }, {
         'task_name': 'Regression'
+    }, {
+        'task_name': 'Blame',
+        'task_stage': 'stage4',
+        'task_status': 'status4',
+        'task_outcome': 'outcome5',
+        'timestamp': '2023-01-01 13:00:00.000000 UTC'
+    }, {
+        'task_name': 'Variant',
+        'task_stage': 'stage2',
+        'task_status': 'status3',
+        'task_outcome': 'outcome2',
+        'timestamp': '2023-01-01 14:00:00.000000 UTC'
     }]
 
     expected_lifecycle_events = [{
@@ -224,6 +260,34 @@ class GetLastEventInfoTest(EventsInfoTest):
         'task_status': 'status3',
         'task_outcome': None,
         'timestamp': '2023-01-01 12:00:00.000000 UTC'
+    }
+    self.assertEqual(result, expected)
+
+  def test_format_blame_task_execution_event(self):
+    """Verify the retrieval of a blame event information."""
+    result = self.status_info_instance.get_last_event_info(
+        event_type=events.EventTypes.TASK_EXECUTION, task_name='blame')
+
+    expected = {
+        'task_name': 'Blame',
+        'task_stage': 'stage4',
+        'task_status': 'status4',
+        'task_outcome': 'outcome5',
+        'timestamp': '2023-01-01 13:00:00.000000 UTC'
+    }
+    self.assertEqual(result, expected)
+
+  def test_format_variant_task_execution_event(self):
+    """Verify the retrieval of a variant event information."""
+    result = self.status_info_instance.get_last_event_info(
+        event_type=events.EventTypes.TASK_EXECUTION, task_name='variant')
+
+    expected = {
+        'task_name': 'Variant',
+        'task_stage': 'stage2',
+        'task_status': 'status3',
+        'task_outcome': 'outcome2',
+        'timestamp': '2023-01-01 14:00:00.000000 UTC'
     }
     self.assertEqual(result, expected)
 

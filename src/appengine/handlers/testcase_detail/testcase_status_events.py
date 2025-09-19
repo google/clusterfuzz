@@ -25,7 +25,7 @@ class TestcaseStatusInfo:
   """Methods to retrieve and format testcase events information."""
 
   TASK_EVENTS_NAMES = ('analyze', 'minimize', 'impact', 'regression',
-                       'progression')
+                       'progression', 'blame', 'variant')
   LIFECYCLE_EVENTS_TYPES = (
       events.EventTypes.TESTCASE_REJECTION,
       events.EventTypes.TESTCASE_CREATION,
