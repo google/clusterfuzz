@@ -652,4 +652,6 @@ class TaskLogHandler(base_handler.Handler):
     log_content = testcase_status_events.get_task_log(testcase_id, task_id)
     response = flask.make_response(log_content)
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename="task_{task_id}.log"')
     return response
