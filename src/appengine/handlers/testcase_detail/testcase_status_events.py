@@ -203,15 +203,14 @@ class TestcaseEventHistory:
   def get_task_log(self, task_id: str) -> str:
     """Returns the logs for a given task as a string."""
     client = logging_v2.Client()
-    filter_str = (
-        f'jsonPayload.extras.task_id={task_id}')
+    filter_str = f'jsonPayload.extras.task_id="{task_id}"'
 
     entries = client.list_entries(
         filter_=filter_str, max_results=3, order_by=logging_v2.DESCENDING)
 
     return '\n'.join(
         json.dumps(entry.to_api_repr(), indent=2) for entry in entries)
-    
+
 def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   """Public function to retrieve testcase status information."""
   return TestcaseStatusInfo(testcase_id).get_info()
