@@ -78,7 +78,7 @@
                 <td><pre>[[_formatEvent(event)]]</pre></td>
                 <td>
                   <template is="dom-if" if="[[_isTaskExecution(event)]]">
-                    <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]" download$="task_[[event.task_id]].log">
+                    <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]">
                       <iron-icon icon="icons:cloud-download"></iron-icon>
                     </a>
                   </template>
