@@ -73,8 +73,5 @@ def put_multi(entities):
 def delete_multi(keys):
   """Delete multiple entities, working around a limitation in the NDB library
   with the maximum number of keys allowed."""
-  total_ct = 0
   for chunk in _gen_chunks(keys, _MODIFY_BATCH_SIZE):
     ndb.delete_multi(chunk)
-    total_ct += len(chunk)
-    print(f'Deleted #{total_ct} entities.')
