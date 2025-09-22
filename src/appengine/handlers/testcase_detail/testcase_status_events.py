@@ -218,6 +218,8 @@ class TestcaseEventHistory:
 
     entries = client.list_entries(
         filter_=filter_str, max_results=3, order_by=logging_v2.DESCENDING)
+    
+    return 'Test download!!!! ClusterFuzz'
 
     return '\n'.join(
         json.dumps(entry.to_api_repr(), indent=2) for entry in entries)
