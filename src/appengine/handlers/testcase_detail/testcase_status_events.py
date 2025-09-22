@@ -19,7 +19,9 @@ from typing import Generator
 from typing import Mapping
 from typing import TypeAlias
 
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.system import environment
 from google.cloud import logging_v2
 
 EventInfo: TypeAlias = dict[str, str | None]
@@ -202,8 +204,17 @@ class TestcaseEventHistory:
   
   def get_task_log(self, task_id: str) -> str:
     """Returns the logs for a given task as a string."""
-    client = logging_v2.Client()
-    filter_str = f'jsonPayload.extras.task_id="{task_id}"'
+    project_id = environment.get_value('PROJECT_ID')
+    client = logging_v2.Client(project=project_id)
+
+    end_time = utils.utcnow()
+    start_time = end_time - datetime.timedelta(days=30)
+    time_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+    filter_str = (
+      f'jsonPayload.extras.task_id="{task_id}" '
+      f'timestamp >= "{start_time.strftime(time_format)}" AND '
+      f'timestamp <= "{end_time.strftime(time_format)}"'
+    )
 
     entries = client.list_entries(
         filter_=filter_str, max_results=3, order_by=logging_v2.DESCENDING)

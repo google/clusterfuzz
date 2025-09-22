@@ -17,13 +17,25 @@ from clusterfuzz._internal.system import environment
 from appengine.handlers.testcase_detail import testcase_status_events
 from google.cloud import logging_v2
 
+import datetime
+import json
 import os
 
 def download_logs():
   """Downloads up to 10 log entries based on a specific query."""
-  client = logging_v2.Client()
+  project_id = environment.get_value('PROJECT_ID') or 'clusterfuzz-development'
+  client = logging_v2.Client(project=project_id)
+
+  # Add a time range to the filter. The Logs API may not find older entries
+  # without one. A 30-day window is a reasonable default for debugging.
+  end_time = datetime.datetime.utcnow()
+  start_time = end_time - datetime.timedelta(days=30)
+  time_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+
   filter_str = (
-      'jsonPayload.extras.task_id="d9b41f9a-8925-449e-92ed-31b14f349aee"')
+      f'jsonPayload.extras.task_id="c67a1bf0-ccab-43f8-b137-9eb3ba1e2291" '
+      f'timestamp >= "{start_time.strftime(time_format)}" AND timestamp <= "{end_time.strftime(time_format)}"'
+  )
 
   entries = client.list_entries(
       filter_=filter_str, max_results=3, order_by=logging_v2.DESCENDING)
@@ -31,8 +43,7 @@ def download_logs():
   print('Log entries:')
   count = 0
   for entry in entries:
-    
-    print(entry.payload['created'])
+    print(json.dumps(entry.to_api_repr(), indent=2))
     count += 1
 
   if not count:
@@ -43,10 +54,10 @@ def execute(args):
   """"""
   del args
 
-  # environment.set_bot_environment()
-  # os.environ['LOG_TO_CONSOLE'] = 'True'
-  # os.environ['LOCAL_DEVELOPMENT'] = 'True'
-  # os.environ['LOG_TO_GCP'] = ''
+  environment.set_bot_environment()
+  os.environ['LOG_TO_CONSOLE'] = 'True'
+  os.environ['LOCAL_DEVELOPMENT'] = 'True'
+  os.environ['LOG_TO_GCP'] = ''
 
   # # dev 4566648589582336
   # # dev 5095170395537408
@@ -57,3 +68,5 @@ def execute(args):
   #   print(event['timestamp'])
 
   download_logs()
+  response = testcase_status_events.get_task_log(5095170395537408, 'c67a1bf0-ccab-43f8-b137-9eb3ba1e2291')
+  print(response)
