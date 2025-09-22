@@ -57,8 +57,6 @@ def execute(args):
         print(f"Deleted {len(keys_batch)} entities (Total: {total_deleted})")
         if not more:
           break
-        if total_deleted >= 10000:
-          break
         keys_batch, next_cursor, more = query.fetch_page(
             _BATCH_SIZE, keys_only=True, start_cursor=next_cursor)
 
