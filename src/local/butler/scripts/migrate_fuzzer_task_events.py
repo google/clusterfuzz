@@ -28,7 +28,7 @@ _MIGRATE_FIELDS = [
 ]
 
 _BATCH_SIZE = 500
-_DELETE_ALL = False
+_DELETE_ALL = True
 
 
 def execute(args):
@@ -46,6 +46,7 @@ def execute(args):
   # If we choose to delete all entities from the old model.
   if _DELETE_ALL:
     ndb_utils.delete_multi(ndb_utils.get_all_from_query(query, keys_only=True))
+    logs.info('Done deleting fuzzer-based task execution events!')
     return
 
   # If we choose to migrate them into the new entity model.
