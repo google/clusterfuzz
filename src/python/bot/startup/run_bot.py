@@ -125,7 +125,10 @@ def task_loop():
         update_task.run()
         update_task.track_revision()
       else:
-        logs.info("Update task not enabled. Running platform init scripts.")
+        logs.info(
+            "Update task not enabled. Running environment cleanup and platform init scripts."
+        )
+        update_task.prepare_environment_for_new_task()
         update_task.run_platform_init_scripts()
 
       if environment.is_uworker():
