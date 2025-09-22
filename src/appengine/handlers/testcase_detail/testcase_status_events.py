@@ -204,7 +204,7 @@ class TestcaseEventHistory:
   
   def get_task_log(self, task_id: str) -> str:
     """Returns the logs for a given task as a string."""
-    project_id = environment.get_value('PROJECT_ID')
+    project_id = utils.get_logging_cloud_project_id()
     client = logging_v2.Client(project=project_id)
 
     end_time = utils.utcnow()
@@ -218,8 +218,6 @@ class TestcaseEventHistory:
 
     entries = client.list_entries(
         filter_=filter_str, max_results=3, order_by=logging_v2.DESCENDING)
-    
-    return 'Test download!!!! ClusterFuzz'
 
     return '\n'.join(
         json.dumps(entry.to_api_repr(), indent=2) for entry in entries)
