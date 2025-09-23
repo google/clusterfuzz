@@ -180,13 +180,16 @@ class _MetricRecorder(contextlib.AbstractContextManager):
           **self._event_data,
           task_stage=self._subtask.value,
           task_status=task_status,
-          task_outcome=task_outcome)
+          task_outcome=task_outcome,
+          task_comments=environment.get_value('TASK_COMMENTS'))
     else:
       event_task_exec = events.TaskExecutionEvent(
           **self._event_data,
           task_stage=self._subtask.value,
           task_status=task_status,
-          task_outcome=task_outcome)
+          task_outcome=task_outcome,
+          task_comments=environment.get_value('TASK_COMMENTS'))
+
     events.emit(event_task_exec)
 
   def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
