@@ -341,11 +341,11 @@ def update_tests_if_needed():
   tasks.track_task_end()
 
 
-def run():
-  """Run update task."""
-  # Since this code is particularly sensitive for bot stability, continue
-  # execution but store the exception if anything goes wrong during one of these
-  # steps.
+def prepare_environment_for_new_task():
+  """
+  It performs all requirements to cleanup and prepare the 
+  environment for receiving a new task.
+  """
   try:
     # Update heartbeat with current time.
     data_handler.update_heartbeat()
@@ -358,8 +358,16 @@ def run():
     if not environment.is_uworker():
       update_tests_if_needed()
   except Exception:
-    logs.error('Error occurred while running update task.')
+    logs.error('Error occurred while cleaning the environment before the task')
 
+
+def run():
+  """Run update task."""
+  # Since this code is particularly sensitive for bot stability, continue
+  # execution but store the exception if anything goes wrong during one of these
+  # steps.
+
+  prepare_environment_for_new_task()
   # Even if there is an exception in one of the other steps, we want to try to
   # update the source. If for some reason the source code update fails, it is
   # not necessary to run the init scripts.
