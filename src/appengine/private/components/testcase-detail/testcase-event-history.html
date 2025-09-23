@@ -77,22 +77,22 @@
               <tr class="body">
                 <td><pre>[[_formatEvent(event)]]</pre></td>
                 <td>
-                  <template is="dom-if" if="[[_isTaskExecution(event)]]">
+                  <template is="dom-if" if="[[_hasTask(event)]]">
                     <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]">
                       <iron-icon icon="icons:cloud-download"></iron-icon>
                     </a>
                   </template>
-                  <template is="dom-if" if="[[!_isTaskExecution(event)]]">
+                  <template is="dom-if" if="[[!_hasTask(event)]]">
                     N/A
                   </template>
                 </td>
                 <td>
-                  <template is="dom-if" if="[[_isTaskExecution(event)]]">
+                  <template is="dom-if" if="[[_hasTask(event)]]">
                     <a href$="[[_formatGcpLogUrl(info.testcase_event_history.log_application_id, event.task_id)]]" target="_blank" title="View logs in GCP">
                       <iron-icon icon="icons:open-in-new"></iron-icon>
                     </a>
                   </template>
-                  <template is="dom-if" if="[[!_isTaskExecution(event)]]">
+                  <template is="dom-if" if="[[!_hasTask(event)]]">
                     N/A
                   </template>
                 </td>
@@ -121,11 +121,11 @@
         const eventCopy = JSON.parse(JSON.stringify(event));
         return JSON.stringify(eventCopy, null, 2);
       },
-      _isTaskExecution(event) {
+      _hasTask(event) {
         if (!event) {
           return false;
         }
-        return event.event_type === 'task_execution' && event.task_id;
+        return event.task_id != null;
       },
       _formatGcpLogUrl(applicationId, taskId) {
         if (!applicationId || !taskId) {

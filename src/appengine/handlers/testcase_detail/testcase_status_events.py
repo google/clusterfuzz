@@ -207,7 +207,6 @@ class TestcaseEventHistory:
   def get_history(self) -> Generator[Mapping, None, None]:
     """Get all testcase events information in reverse chronological order."""
     event_history = events.get_events_from_testcase(self._testcase_id)
-
     yield from (self._remove_null_values(event) for event in event_history)
   
   def get_task_log(self, task_id: str) -> str:
@@ -215,9 +214,9 @@ class TestcaseEventHistory:
     project_id = utils.get_logging_cloud_project_id()
     client = logging_v2.Client(project=project_id)
 
-    end_time = utils.utcnow()
+    end_time = datetime.datetime.now(datetime.timezone.utc)
     start_time = end_time - datetime.timedelta(days=30)
-    time_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+    time_format = '%Y-%m-%dT%H:%M:%S.%f%z'
     filter_str = (
       f'jsonPayload.extras.task_id="{task_id}" '
       f'timestamp >= "{start_time.strftime(time_format)}" AND '
