@@ -1710,6 +1710,9 @@ class TestcaseLifecycleEvent(Model):
   # UTask return code based on error types from uworker protobuf.
   task_outcome = ndb.StringProperty()
 
+  # Task-specific message (usually added to testcases comment field).
+  task_comments = ndb.TextProperty()
+
   # Task-related job type.
   task_job = ndb.StringProperty()
 
@@ -1778,6 +1781,9 @@ class FuzzerTaskEvent(Model):
 
   # UTask return code based on error types from uworker protobuf.
   task_outcome = ndb.StringProperty()
+
+  # Task-specific message (usually added to testcases comment field).
+  task_comments = ndb.TextProperty()
 
   # Task-related job type.
   task_job = ndb.TextProperty()

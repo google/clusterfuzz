@@ -242,6 +242,8 @@ class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
   task_status: str | None = None
   # UTask return code based on error types from uworker protobuf.
   task_outcome: str | None = None
+  # Task-specific message (usually added to testcases comment field).
+  task_comments: str | None = None
 
   # Task-specific job type and fuzzer name - this is needed to disambiguate
   # from testcase metadata.
@@ -287,6 +289,8 @@ class FuzzerTaskExecutionEvent(BaseTaskEvent):
   task_status: str | None = None
   # UTask return code based on error types from uworker protobuf.
   task_outcome: str | None = None
+  # Task-specific message (usually added to testcases comment field).
+  task_comments: str | None = None
 
   # Task-specific job type and fuzzer name.
   task_job: str | None = None
