@@ -158,7 +158,7 @@ class TestcaseStatusInfo:
   def get_info(self) -> Mapping[str, list[EventInfo]]:
     """Get testcase status information from events.
     
-    The lists of events are returned in reverse chronological order.
+    The lists of events are returned in chronological order.
     """
     task_events_info = [
         self.get_last_event_info(
@@ -175,9 +175,8 @@ class TestcaseStatusInfo:
 
     # String sorting works here because timestamps are in the
     # `strftime('%Y-%m-%d %H:%M:%S.%f UTC')` format.
-    task_events_info.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-    lifecycle_events_info.sort(
-        key=lambda x: x.get('timestamp', ''), reverse=True)
+    task_events_info.sort(key=lambda x: x.get('timestamp', ''))
+    lifecycle_events_info.sort(key=lambda x: x.get('timestamp', ''))
 
     return {
         'task_events_info': task_events_info,

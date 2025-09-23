@@ -185,23 +185,11 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     result = self.status_info_instance.get_info()
 
     expected_task_events = [{
-        'task_name': 'Variant',
-        'task_stage': 'stage2',
-        'task_status': 'status3',
-        'task_outcome': 'outcome2',
-        'timestamp': '2023-01-01 14:00:00.000000 UTC'
+        'task_name': 'Impact'
     }, {
-        'task_name': 'Blame',
-        'task_stage': 'stage4',
-        'task_status': 'status4',
-        'task_outcome': 'outcome5',
-        'timestamp': '2023-01-01 13:00:00.000000 UTC'
+        'task_name': 'Regression'
     }, {
-        'task_name': 'Minimize',
-        'task_stage': 'stage3',
-        'task_status': 'status3',
-        'task_outcome': None,
-        'timestamp': '2023-01-01 11:04:09.000000 UTC'
+        'task_name': 'Progression'
     }, {
         'task_name': 'Analyze',
         'task_stage': 'stage2',
@@ -209,33 +197,45 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         'task_outcome': 'outcome2',
         'timestamp': '2023-01-01 11:03:11.000000 UTC'
     }, {
-        'task_name': 'Impact'
+        'task_name': 'Minimize',
+        'task_stage': 'stage3',
+        'task_status': 'status3',
+        'task_outcome': None,
+        'timestamp': '2023-01-01 11:04:09.000000 UTC'
     }, {
-        'task_name': 'Regression'
+        'task_name': 'Blame',
+        'task_stage': 'stage4',
+        'task_status': 'status4',
+        'task_outcome': 'outcome5',
+        'timestamp': '2023-01-01 13:00:00.000000 UTC'
     }, {
-        'task_name': 'Progression'
+        'task_name': 'Variant',
+        'task_stage': 'stage2',
+        'task_status': 'status3',
+        'task_outcome': 'outcome2',
+        'timestamp': '2023-01-01 14:00:00.000000 UTC'
     }]
 
     expected_lifecycle_events = [{
-        'event_type': 'Issue Closing',
-        'timestamp': '2023-01-04 00:00:00.000000 UTC',
-        'event_info': 'Closing reason: testcase_fixed',
+        'event_type': 'Testcase Rejection'
     }, {
-        'event_type': 'Issue Filing',
-        'timestamp': '2023-01-03 00:00:00.000000 UTC',
-        'event_info': 'Issue created (123456)\nManually created by @gmail.com',
-    }, {
-        'event_type': 'Testcase Fixed',
-        'timestamp': '2023-01-02 00:00:00.000000 UTC',
-        'event_info': 'Fixed revision: 123:456',
+        'event_type': 'Testcase Grouping'
     }, {
         'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',
         'event_info': 'Creation origin: manual_upload\nUploaded by @gmail.com'
     }, {
-        'event_type': 'Testcase Rejection'
+        'event_type': 'Testcase Fixed',
+        'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        'event_info': 'Fixed revision: 123:456',
     }, {
-        'event_type': 'Testcase Grouping'
+        'event_type': 'Issue Filing',
+        'timestamp': '2023-01-03 00:00:00.000000 UTC',
+        'event_info': 'Issue created (123456)\nManually created by @gmail.com',
+    }, {
+        'event_type': 'Issue Closing',
+        'timestamp': '2023-01-04 00:00:00.000000 UTC',
+        'event_info': 'Closing reason: testcase_fixed',
     }]
 
     self.assertCountEqual(result.keys(),
