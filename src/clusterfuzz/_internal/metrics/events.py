@@ -36,9 +36,13 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def _get_datetime_now():
+def _get_datetime_now(tz_aware=False):
   """Returns the current datetime (useful for testing)."""
-  return datetime.datetime.now()
+  utc_time = datetime.datetime.now(datetime.timezone.utc)
+  if not tz_aware:
+    # Remove tz info to comply with the format expected by datastore.
+    utc_time = utc_time.replace(tzinfo=None)
+  return utc_time
 
 
 class EventTypes:
