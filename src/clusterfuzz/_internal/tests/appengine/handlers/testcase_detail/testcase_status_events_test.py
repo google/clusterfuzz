@@ -243,6 +243,49 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     self.assertEqual(result['task_events_info'], expected_task_events)
     self.assertEqual(result['lifecycle_events_info'], expected_lifecycle_events)
 
+  def test_get_testcase_status_info_chronological_order(self):
+    """Verify that testcase information is retrieved in chronological order."""
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='progression',
+        timestamp=datetime.datetime(2023, 1, 1, 11, 4, 9, 1000)).put()
+
+    data_types.TestcaseLifecycleEvent(
+        testcase_id=self.testcase_id,
+        event_type=events.EventTypes.TASK_EXECUTION,
+        task_name='impact',
+        timestamp=datetime.datetime(2023, 1, 1, 11, 4, 9, 500)).put()
+
+    result = self.status_info_instance.get_info()
+
+    task_events = result['task_events_info']
+    lifecycle_events = result['lifecycle_events_info']
+
+    task_timestamps = [
+        event['timestamp'] for event in task_events if 'timestamp' in event
+    ]
+    lifecycle_timestamps = [
+        event['timestamp'] for event in lifecycle_events if 'timestamp' in event
+    ]
+
+    expected_task_timestamps = [
+        '2023-01-01 11:03:11.000000 UTC',
+        '2023-01-01 11:04:09.000000 UTC',
+        '2023-01-01 11:04:09.000500 UTC',
+        '2023-01-01 11:04:09.001000 UTC',
+        '2023-01-01 13:00:00.000000 UTC',
+        '2023-01-01 14:00:00.000000 UTC',
+    ]
+    self.assertEqual(task_timestamps, expected_task_timestamps)
+    expected_lifecycle_timestamps = [
+        '2023-01-01 09:00:00.000000 UTC',
+        '2023-01-02 00:00:00.000000 UTC',
+        '2023-01-03 00:00:00.000000 UTC',
+        '2023-01-04 00:00:00.000000 UTC',
+    ]
+    self.assertEqual(lifecycle_timestamps, expected_lifecycle_timestamps)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class GetLastEventInfoTest(EventsInfoTest):
