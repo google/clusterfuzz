@@ -119,7 +119,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage2',
         task_status='status2',
         task_outcome='outcome2',
-        timestamp=datetime.datetime(2023, 1, 1, 11, 0, 0)).put()
+        timestamp=datetime.datetime(2023, 1, 1, 11, 3, 11)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
@@ -128,7 +128,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage3',
         task_status='status3',
         task_outcome=None,
-        timestamp=datetime.datetime(2023, 1, 1, 12, 0, 0)).put()
+        timestamp=datetime.datetime(2023, 1, 1, 11, 4, 9)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
@@ -185,23 +185,11 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     result = self.status_info_instance.get_info()
 
     expected_task_events = [{
-        'task_name': 'Analyze',
+        'task_name': 'Variant',
         'task_stage': 'stage2',
-        'task_status': 'status2',
-        'task_outcome': 'outcome2',
-        'timestamp': '2023-01-01 11:00:00.000000 UTC'
-    }, {
-        'task_name': 'Minimize',
-        'task_stage': 'stage3',
         'task_status': 'status3',
-        'task_outcome': None,
-        'timestamp': '2023-01-01 12:00:00.000000 UTC'
-    }, {
-        'task_name': 'Impact'
-    }, {
-        'task_name': 'Progression'
-    }, {
-        'task_name': 'Regression'
+        'task_outcome': 'outcome2',
+        'timestamp': '2023-01-01 14:00:00.000000 UTC'
     }, {
         'task_name': 'Blame',
         'task_stage': 'stage4',
@@ -209,24 +197,26 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         'task_outcome': 'outcome5',
         'timestamp': '2023-01-01 13:00:00.000000 UTC'
     }, {
-        'task_name': 'Variant',
-        'task_stage': 'stage2',
+        'task_name': 'Minimize',
+        'task_stage': 'stage3',
         'task_status': 'status3',
+        'task_outcome': None,
+        'timestamp': '2023-01-01 11:04:09.000000 UTC'
+    }, {
+        'task_name': 'Analyze',
+        'task_stage': 'stage2',
+        'task_status': 'status2',
         'task_outcome': 'outcome2',
-        'timestamp': '2023-01-01 14:00:00.000000 UTC'
+        'timestamp': '2023-01-01 11:03:11.000000 UTC'
+    }, {
+        'task_name': 'Impact'
+    }, {
+        'task_name': 'Regression'
+    }, {
+        'task_name': 'Progression'
     }]
 
     expected_lifecycle_events = [{
-        'event_type': 'Testcase Creation',
-        'timestamp': '2023-01-01 09:00:00.000000 UTC',
-        'event_info': 'Creation origin: manual_upload\nUploaded by @gmail.com'
-    }, {
-        'event_type': 'Testcase Fixed',
-        'timestamp': '2023-01-02 00:00:00.000000 UTC',
-        'event_info': 'Fixed revision: 123:456',
-    }, {
-        'event_type': 'Testcase Rejection'
-    }, {
         'event_type': 'Issue Closing',
         'timestamp': '2023-01-04 00:00:00.000000 UTC',
         'event_info': 'Closing reason: testcase_fixed',
@@ -235,14 +225,23 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         'timestamp': '2023-01-03 00:00:00.000000 UTC',
         'event_info': 'Issue created (123456)\nManually created by @gmail.com',
     }, {
+        'event_type': 'Testcase Fixed',
+        'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        'event_info': 'Fixed revision: 123:456',
+    }, {
+        'event_type': 'Testcase Creation',
+        'timestamp': '2023-01-01 09:00:00.000000 UTC',
+        'event_info': 'Creation origin: manual_upload\nUploaded by @gmail.com'
+    }, {
+        'event_type': 'Testcase Rejection'
+    }, {
         'event_type': 'Testcase Grouping'
     }]
 
     self.assertCountEqual(result.keys(),
                           ['task_events_info', 'lifecycle_events_info'])
-    self.assertCountEqual(result['task_events_info'], expected_task_events)
-    self.assertCountEqual(result['lifecycle_events_info'],
-                          expected_lifecycle_events)
+    self.assertEqual(result['task_events_info'], expected_task_events)
+    self.assertEqual(result['lifecycle_events_info'], expected_lifecycle_events)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -259,7 +258,7 @@ class GetLastEventInfoTest(EventsInfoTest):
         'task_stage': 'stage3',
         'task_status': 'status3',
         'task_outcome': None,
-        'timestamp': '2023-01-01 12:00:00.000000 UTC'
+        'timestamp': '2023-01-01 11:04:09.000000 UTC'
     }
     self.assertEqual(result, expected)
 
