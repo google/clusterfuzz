@@ -77,7 +77,7 @@ class TrustedTask(BaseTask):
     del uworker_env
     assert not environment.is_tworker()
     os.environ.pop('TASK_COMMENTS', None)
-    # environment.set_value('TASK_COMMENTS', '')
+
     task_command = task_utils.get_command_from_module(self.module.__name__)
     event_data = task_utils.get_task_execution_event_data(
         task_command, task_argument, job_type)
