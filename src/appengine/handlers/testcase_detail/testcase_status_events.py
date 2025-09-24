@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions for getting testcase status information from events."""
+from dataclasses import asdict
 import datetime
 import json
-import urllib.parse
-from dataclasses import asdict
 from typing import Generator
 from typing import Mapping
 from typing import TypeAlias
+import urllib.parse
+
+from google.cloud import logging_v2
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import events
-from clusterfuzz._internal.system import environment
-from google.cloud import logging_v2
 
 EventInfo: TypeAlias = dict[str, str | None]
 
@@ -31,6 +31,7 @@ EventInfo: TypeAlias = dict[str, str | None]
 def _format_timestamp(timestamp: datetime.datetime) -> str:
   """Formats a timestamp."""
   return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
+
 
 class TestcaseStatusInfo:
   """Methods to retrieve and format testcase events information."""
@@ -199,31 +200,33 @@ class TestcaseEventHistory:
 
   def _get_time_range_filter(self, days: int) -> str:
     """Returns a filter string for a time range."""
-    start_time = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)
+    start_time = utils.utcnow() - datetime.timedelta(days=days)
     time_format = '%Y-%m-%dT%H:%M:%S.%f%z'
     return f'timestamp >= "{start_time.strftime(time_format)}"'
 
-  def _get_task_log_query_filter(self, task_id: str) -> str:
+  def _get_task_log_query_filter(self, task_id: str, task_name: str) -> str:
     """Returns the filter string for querying task logs."""
     query = (f'jsonPayload.extras.task_id="{task_id}" AND '
-             f'jsonPayload.extras.testcase_id="{self._testcase_id}"')
+             f'jsonPayload.extras.testcase_id="{self._testcase_id}" AND '
+             f'jsonPayload.extras.task_name="{task_name}"')
     query += f' AND {self._get_time_range_filter(days=31)}'
     return query
 
   def _enrich_event_info_with_gcp_log_url(self, event_info: EventInfo) -> None:
-    """Formats the GCP log URL for a given task ID."""
+    """Adds the GCP log URL to the event info."""
     project_id = utils.get_logging_cloud_project_id()
-    if project_id and (task_id := event_info.get('task_id')):
-      query = self._get_task_log_query_filter(task_id)
+    task_id = event_info.get('task_id')
+    task_name = event_info.get('task_name')
+    if project_id and task_id and task_name:
+      query = self._get_task_log_query_filter(task_id, task_name)
       encoded_query = urllib.parse.quote(query)
-      event_info['gcp_log_url'] = (f'https://console.cloud.google.com/logs/viewer'
-                                   f'?project={project_id}&query={encoded_query}')
+      event_info['gcp_log_url'] = (
+          f'https://console.cloud.google.com/logs/viewer'
+          f'?project={project_id}&query={encoded_query}')
 
   def _format_event_for_history(self, event: events.Event) -> EventInfo:
-    """Formats an event for display in the history view."""
-    event_info = {
-        k: v for k, v in asdict(event).items() if v is not None
-    }
+    """Formats an event for display in the event history table."""
+    event_info = {k: v for k, v in asdict(event).items() if v is not None}
     event_info['timestamp'] = _format_timestamp(event.timestamp)
     return event_info
 
@@ -234,27 +237,29 @@ class TestcaseEventHistory:
       event_info = self._format_event_for_history(event)
       self._enrich_event_info_with_gcp_log_url(event_info)
       yield event_info
-  
-  def get_task_log(self, task_id: str) -> str:
+
+  def get_task_log(self, task_id: str, task_name: str) -> str:
     """Returns the logs for a given task as a string."""
     project_id = utils.get_logging_cloud_project_id()
     client = logging_v2.Client(project=project_id)
-    filter_str = self._get_task_log_query_filter(task_id)
+    filter_str = self._get_task_log_query_filter(task_id, task_name)
     entries = client.list_entries(
-        filter_=filter_str, max_results=50, order_by=logging_v2.DESCENDING)
+        filter_=filter_str, max_results=500, order_by=logging_v2.ASCENDING)
 
-    return '\n\n'.join(
+    return '\n'.join(
         json.dumps(entry.to_api_repr(), indent=2) for entry in entries)
+
 
 def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   """Public function to retrieve testcase status information."""
   return TestcaseStatusInfo(testcase_id).get_info()
 
+
 def get_testcase_event_history(testcase_id: int) -> list[Mapping]:
-  """Public function to retrieve all events from a testcase in reverse chronological order."""
+  """Public function to get event history (reverse chronological order)."""
   return list(TestcaseEventHistory(testcase_id).get_history())
 
-def get_task_log(testcase_id: int, task_id: str) -> str:
+
+def get_task_log(testcase_id: int, task_id: str, task_name: str) -> str:
   """Public function to return the logs for a given task as a string."""
-  return TestcaseEventHistory(testcase_id).get_task_log(task_id)
-  
+  return TestcaseEventHistory(testcase_id).get_task_log(task_id, task_name)

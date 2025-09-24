@@ -118,11 +118,8 @@
         if (!event) {
           return '';
         }
-        // Create a shallow copy to avoid modifying the original object.
         const eventCopy = Object.assign({}, event);
         delete eventCopy.gcp_log_url;
-
-        // Create a new object with sorted keys.
         const ordered = Object.keys(eventCopy).sort().reduce(
           (obj, key) => {
             obj[key] = eventCopy[key];
@@ -130,8 +127,7 @@
           },
           {}
         );
-
-        return JSON.stringify(ordered);
+        return JSON.stringify(ordered, null, 2);
       },
     });
   </script>

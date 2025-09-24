@@ -13,13 +13,15 @@
 # limitations under the License.
 """Test script."""
 
-from clusterfuzz._internal.system import environment
-from appengine.handlers.testcase_detail import testcase_status_events
-from google.cloud import logging_v2
-
 import datetime
 import json
 import os
+
+from google.cloud import logging_v2
+
+from appengine.handlers.testcase_detail import testcase_status_events
+from clusterfuzz._internal.system import environment
+
 
 def download_logs():
   """Downloads up to 10 log entries based on a specific query."""
@@ -61,5 +63,6 @@ def execute(args):
 
   # history = testcase_status_events.get_testcase_event_history(5183725214138368)
   # download_logs()
-  response = testcase_status_events.get_task_log(5183725214138368, 'bfc3e657-8861-4f4d-8a29-300f23b6dadd')
+  response = testcase_status_events.get_task_log(
+      5183725214138368, 'bfc3e657-8861-4f4d-8a29-300f23b6dadd')
   print(response)
