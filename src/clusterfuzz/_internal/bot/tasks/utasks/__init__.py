@@ -16,6 +16,7 @@
 import contextlib
 import enum
 import importlib
+import os
 import time
 from typing import Optional
 
@@ -293,6 +294,7 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env,
   tworker_preprocess."""
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
+  _reset_stage_env()
 
   recorder.set_task_details(
       utask_module,
@@ -358,6 +360,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+    _reset_stage_env()
 
     recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
                               environment.platform(),
@@ -391,6 +394,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
     uworker_output.uworker_input.CopyFrom(uworker_input)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
+    _reset_stage_env()
 
     recorder.set_task_details(
         utask_module,
@@ -439,6 +443,13 @@ def set_uworker_env(uworker_env: dict) -> None:
     environment.set_value(key, value)
 
 
+def _reset_stage_env() -> None:
+  """Helper to unset env vars before a task stage."""
+  unset_vars = ['TASK_COMMENTS']
+  for var in unset_vars:
+    os.environ.pop(var, None)
+
+
 @logs.task_stage_context(logs.Stage.MAIN)
 def uworker_main(input_download_url) -> None:
   """Executes the main part of a utask on the uworker (locally if not using
@@ -456,6 +467,7 @@ def uworker_main(input_download_url) -> None:
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+    _reset_stage_env()
 
     logs.info('Starting HTTP server.')
     _start_web_server_if_needed(uworker_input.job_type)
@@ -504,6 +516,7 @@ def tworker_postprocess(output_download_url) -> None:
         output_download_url)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
+    _reset_stage_env()
 
     utask_module = get_utask_module(uworker_output.uworker_input.module_name)
     execution_mode = _get_execution_mode(utask_module,
