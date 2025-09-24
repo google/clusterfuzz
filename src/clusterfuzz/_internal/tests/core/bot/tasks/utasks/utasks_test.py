@@ -62,7 +62,6 @@ class TworkerPreprocessTest(unittest.TestCase):
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'mock_task'
-    os.environ.pop('TASK_COMMENTS', None)
 
   def tearDown(self):
     task_utils._TESTCASE_BASED_TASKS.discard('mock')
@@ -296,7 +295,6 @@ class TworkerPostprocessTest(unittest.TestCase):
     self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'mock_task'
-    os.environ.pop('TASK_COMMENTS', None)
 
   def tearDown(self):
     task_utils._FUZZER_BASED_TASKS.discard('mock')
