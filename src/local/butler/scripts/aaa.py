@@ -63,9 +63,9 @@ def execute(args):
   # # dev 5095170395537408
   # # dev 4506375602241536
 
-  # history = testcase_status_events.get_testcase_event_history(5095170395537408)
-  # for event in history:
-  #   print(event['timestamp'])
+  history = testcase_status_events.get_testcase_event_history(5095170395537408)
+  for event in history:
+    print(event)
 
   download_logs()
   response = testcase_status_events.get_task_log(5095170395537408, 'c67a1bf0-ccab-43f8-b137-9eb3ba1e2291')

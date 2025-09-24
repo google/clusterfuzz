@@ -559,12 +559,9 @@ def get_testcase_detail(testcase):
           _parse_suspected_cls(metadata.get('predator_result')),
       'testcase':
           testcase,
-      'testcase_event_history': {
-          'event_history':
-              testcase_status_events.get_testcase_event_history(testcase_id),
-          'log_application_id':
-              utils.get_logging_cloud_project_id()
-      },
+      'testcase_event_history':
+          testcase_status_events.get_testcase_event_history(testcase_id)
+      ,
       'testcase_status_info':
           testcase_status_events.get_testcase_status_info(testcase_id),
       'timestamp':

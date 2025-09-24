@@ -511,6 +511,9 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
 
   def setUp(self):
     super().setUp()
+    helpers.patch(
+        self, ['clusterfuzz._internal.base.utils.get_logging_cloud_project_id'])
+    self.mock.get_logging_cloud_project_id.return_value = 'test-project'
 
   def test_get_history(self):
     """Verify that testcase event history is retrieved correctly."""
@@ -522,7 +525,7 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'event_type': 'issue_closing',
             'closing_reason': 'testcase_fixed',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 4, 0, 0)
+            'timestamp': '2023-01-04 00:00:00.000000 UTC',
         },
         {
             'event_type': 'issue_filing',
@@ -530,49 +533,73 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'issue_id': '123456',
             'issue_reporter': '@gmail.com',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 3, 0, 0)
+            'timestamp': '2023-01-03 00:00:00.000000 UTC',
         },
         {
             'event_type': 'testcase_fixed',
             'fixed_revision': '123:456',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 2, 0, 0)
+            'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'variant',
+            'task_stage': 'stage2',
+            'task_status': 'status3',
+            'task_outcome': 'outcome2',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-01 14:00:00.000000 UTC',
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'blame',
+            'task_stage': 'stage4',
+            'task_status': 'status4',
+            'task_outcome': 'outcome5',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-01 13:00:00.000000 UTC',
         },
         {
             'event_type': 'task_execution',
             'task_name': 'minimize',
             'task_stage': 'stage3',
             'task_status': 'status3',
-            'task_id': '2',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 1, 12, 0, 0)
+            'task_id': '2',
+            'timestamp': '2023-01-01 11:04:09.000000 UTC',
+            'gcp_log_url': ('https://console.cloud.google.com/logs/viewer'
+                          '?project=test-project&query=jsonPayload.extras.task_id%3D%222%22')
         },
         {
             'event_type': 'task_execution',
             'task_name': 'analyze',
             'task_stage': 'stage2',
             'task_status': 'status2',
-            'task_outcome': 'outcome2',
-            'task_id': '1',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 1, 11, 0, 0)
+            'task_id': '1',
+            'task_outcome': 'outcome2',
+            'timestamp': '2023-01-01 11:03:11.000000 UTC',
+            'gcp_log_url': ('https://console.cloud.google.com/logs/viewer'
+                          '?project=test-project&query=jsonPayload.extras.task_id%3D%221%22')
         },
         {
             'event_type': 'task_execution',
             'task_name': 'analyze',
             'task_stage': 'stage1',
             'task_status': 'status1',
-            'task_outcome': 'outcome1',
-            'task_id': '1',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 1, 10, 0, 0)
+            'task_id': '1',
+            'task_outcome': 'outcome1',
+            'timestamp': '2023-01-01 10:00:00.000000 UTC',
+            'gcp_log_url': ('https://console.cloud.google.com/logs/viewer'
+                          '?project=test-project&query=jsonPayload.extras.task_id%3D%221%22')
         },
         {
             'event_type': 'testcase_creation',
             'creation_origin': 'manual_upload',
             'uploader': '@gmail.com',
             'testcase_id': self.testcase_id,
-            'timestamp': datetime.datetime(2023, 1, 1, 9, 0, 0)
+            'timestamp': '2023-01-01 09:00:00.000000 UTC',
         },
     ]
 

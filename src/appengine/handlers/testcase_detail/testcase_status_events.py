@@ -14,6 +14,7 @@
 """Helper functions for getting testcase status information from events."""
 import datetime
 import json
+import urllib.parse
 from dataclasses import asdict
 from typing import Generator
 from typing import Mapping
@@ -196,8 +197,17 @@ class TestcaseEventHistory:
   def __init__(self, testcase_id: int):
     self._testcase_id = testcase_id
 
-  def _remove_null_values(self, event: events.Event) -> EventInfo:
-    """Removes null values from an event info dictionary."""
+  def _enrich_event_info_with_gcp_log_url(self, event_info: EventInfo) -> None:
+    """Formats the GCP log URL for a given task ID."""
+    project_id = utils.get_logging_cloud_project_id()
+    if project_id and (task_id := event_info.get('task_id')):
+      query = f'jsonPayload.extras.task_id="{task_id}"'
+      encoded_query = urllib.parse.quote(query)
+      event_info['gcp_log_url'] = (f'https://console.cloud.google.com/logs/viewer'
+                                   f'?project={project_id}&query={encoded_query}')
+
+  def _format_event_for_history(self, event: events.Event) -> EventInfo:
+    """Formats an event for display in the history view."""
     event_info = {
         k: v for k, v in asdict(event).items() if v is not None
     }
@@ -207,7 +217,10 @@ class TestcaseEventHistory:
   def get_history(self) -> Generator[Mapping, None, None]:
     """Get all testcase events information in reverse chronological order."""
     event_history = events.get_events_from_testcase(self._testcase_id)
-    yield from (self._remove_null_values(event) for event in event_history)
+    for event in event_history:
+      event_info = self._format_event_for_history(event)
+      self._enrich_event_info_with_gcp_log_url(event_info)
+      yield event_info
   
   def get_task_log(self, task_id: str) -> str:
     """Returns the logs for a given task as a string."""
