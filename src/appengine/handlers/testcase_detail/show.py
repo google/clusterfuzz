@@ -560,8 +560,7 @@ def get_testcase_detail(testcase):
       'testcase':
           testcase,
       'testcase_event_history':
-          testcase_status_events.get_testcase_event_history(testcase_id)
-      ,
+          testcase_status_events.get_testcase_event_history(testcase_id),
       'testcase_status_info':
           testcase_status_events.get_testcase_status_info(testcase_id),
       'timestamp':

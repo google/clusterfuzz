@@ -118,9 +118,20 @@
         if (!event) {
           return '';
         }
-        const eventCopy = JSON.parse(JSON.stringify(event));
+        // Create a shallow copy to avoid modifying the original object.
+        const eventCopy = Object.assign({}, event);
         delete eventCopy.gcp_log_url;
-        return JSON.stringify(eventCopy, null, 2);
+
+        // Create a new object with sorted keys.
+        const ordered = Object.keys(eventCopy).sort().reduce(
+          (obj, key) => {
+            obj[key] = eventCopy[key];
+            return obj;
+          },
+          {}
+        );
+
+        return JSON.stringify(ordered);
       },
     });
   </script>
