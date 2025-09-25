@@ -25,9 +25,6 @@
 
       :host table.variant {
         width: 100%;
-        table-layout: fixed;
-        border-collapse: collapse;
-        border-bottom: 1px solid #777;
       }
 
       :host table.variant tr.title td {
@@ -36,7 +33,8 @@
         padding: 4px 6px;
         background-color: #373b50;
         color: #fff;
-        border-left: 1px dotted #777;
+        border-left: 1px dotted #ccc;
+        border-top: 1px dotted #ccc;
         text-transform: uppercase;
         font-weight: normal;
       }
@@ -57,10 +55,6 @@
 
       :host table.variant tr.body td:first-child {
         border-left: 0px;
-      }
-
-      :host table.variant tr.body:last-child td {
-        border-bottom: 0;
       }
     </style>
     <div class="section">
