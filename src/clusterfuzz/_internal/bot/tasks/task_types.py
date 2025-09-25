@@ -15,8 +15,6 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 
-import os
-
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
@@ -52,7 +50,7 @@ class TrustedTask(BaseTask):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
     assert not environment.is_tworker()
-    os.environ.pop('TASK_COMMENTS', None)
+    task_utils.reset_task_stage_env()
 
     task_command = task_utils.get_command_from_module(self.module.__name__)
     event_data = task_utils.get_task_execution_event_data(
