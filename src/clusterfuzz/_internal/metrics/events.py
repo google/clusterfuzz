@@ -643,11 +643,11 @@ def get_events_from_testcase(testcase_id: int,
   yield from get_events(equality_filters=equality_filters, order_by=order_by)
 
 
-def emit_task_event(task_command,
-                    event_data,
-                    task_status,
-                    task_stage=None,
-                    task_outcome=None):
+def emit_task_event(task_command: str,
+                    event_data: Mapping[str, Any],
+                    task_status: str,
+                    task_stage: str | None = None,
+                    task_outcome: str | None = None) -> None:
   """Helper to emit task execution events for tasks."""
 
   event_class = (
