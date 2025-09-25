@@ -107,31 +107,31 @@ class EventsInfoTest(EventsInfoBasicTest):
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
+        task_id='1',
         task_name='analyze',
         task_stage='stage1',
         task_status='status1',
         task_outcome='outcome1',
-        task_id='1',
         timestamp=datetime.datetime(2023, 1, 1, 10, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
+        task_id='1',
         task_name='analyze',
         task_stage='stage2',
         task_status='status2',
         task_outcome='outcome2',
-        task_id='1',
         timestamp=datetime.datetime(2023, 1, 1, 11, 3, 11)).put()
 
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
+        task_id='2',
         task_name='minimize',
         task_stage='stage3',
         task_status='status3',
         task_outcome=None,
-        task_id='2',
         timestamp=datetime.datetime(2023, 1, 1, 11, 4, 9)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -647,9 +647,10 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
 
 @test_utils.with_cloud_emulators('datastore')
 class TestcaseEventHistoryTest(unittest.TestCase):
-  """Tests for TestcaseEventHistory methods with no event retrieval."""
+  """Tests for TestcaseEventHistory."""
 
   def setUp(self):
+    """Set up test environment."""
     super().setUp()
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
@@ -706,8 +707,8 @@ class TestcaseEventHistoryTest(unittest.TestCase):
 
     url_query = (
         'jsonPayload.extras.task_id%3D%22task123%22%20AND%20jsonPayload.extras.'
-        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize'
-        '%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22')
+        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize%22%20AND%20timestamp'
+        '%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22')
 
     self.assertIn('gcp_log_url', event_info)
     self.assertIn('project=test-project', event_info['gcp_log_url'])
@@ -741,7 +742,9 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     mock_client_instance = self.mock.Client.return_value
     mock_entry1 = mock.Mock()
     mock_entry1.to_api_repr.return_value = {'payload': 'log1'}
-    mock_client_instance.list_entries.return_value = [mock_entry1]
+    mock_entry2 = mock.Mock()
+    mock_entry2.to_api_repr.return_value = {'payload': 'log2'}
+    mock_client_instance.list_entries.return_value = [mock_entry2, mock_entry1]
     expected_filter = (
         f'jsonPayload.extras.task_id="task123" AND '
         f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
@@ -752,5 +755,9 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     self.mock.Client.assert_called_with(project='test-project')
     mock_client_instance.list_entries.assert_called_with(
         filter_=expected_filter, max_results=500, order_by=mock.ANY)
+
     self.assertIn('"payload": "log1"', result)
-    self.assertEqual(result.count('\n'), 2)
+    self.assertIn('"payload": "log2"', result)
+    self.assertLess(
+        result.find('"payload": "log1"'), result.find('"payload": "log2"'))
+    self.assertEqual(result.count('\n'), 5)
