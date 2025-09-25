@@ -55,17 +55,20 @@
       }
 
       :host table.variant tr.body td iron-icon {
-        width: 20px;
-        height: 20px;
-        vertical-align: top;
+        width: 25px;
+        height: 25px;
+        display: block;
       }
 
       :host table.variant tr.body td a {
         text-decoration: none;
       }
 
-      :host table.variant tr.body td:first-child {
-        border-left: 0px;
+      :host table.variant tr.body td.event-cell {
+        font-family: 'Source Code Pro', monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
       }
 
     </style>
@@ -74,9 +77,9 @@
       <template is="dom-if" if="[[info.testcase_event_history.length]]">
         <table cellpadding="0" cellspacing="0" class="variant">
           <tbody><tr class="title">
-            <td style="width: 74.00%;">Event</td>
-            <td style="width: 13.00%;">Download Log</td>
-            <td style="width: 13.00%;">GCP Logs</td>
+            <td style="width: 80.00%;">Event</td>
+            <td style="width: 10.00%;">Download Log</td>
+            <td style="width: 10.00%;">GCP Logs</td>
           </tr>
           <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
             <tr class="body">
@@ -125,7 +128,7 @@
           },
           {}
         );
-        return JSON.stringify(ordered);
+        return JSON.stringify(ordered).replace(/,/g, ', ');
       },
     });
   </script>
