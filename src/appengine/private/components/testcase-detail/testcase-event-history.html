@@ -56,44 +56,41 @@
       :host table.variant tr.body td:first-child {
         border-left: 0px;
       }
+
+      :host table.variant tr.body td.event-cell {
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
     </style>
     <div class="section">
       <div class="title" title="Testcase event history.">Event History</div>
       <template is="dom-if" if="[[info.testcase_event_history.length]]">
-        <div class="body">
-          <table cellpadding="0" cellspacing="0" class="variant">
-            <tbody><tr class="title">
-              <td style="width: 70%;">Event</td>
-              <td>Download Log</td>
-              <td>GCP Logs</td>
+        <table cellpadding="0" cellspacing="0" class="variant">
+          <tbody><tr class="title">
+            <td style="width: 70%;">Event</td>
+            <td>Download Log</td>
+            <td>GCP Logs</td>
+          </tr>
+          <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
+            <tr class="body">
+              <td class="event-cell">[[_formatEvent(event)]]</td>
+              <td>
+                <template is="dom-if" if="[[event.gcp_log_url]]">
+                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]">
+                    <iron-icon icon="icons:cloud-download"></iron-icon>
+                  </a>
+                </template>
+              </td>
+              <td>
+                <template is="dom-if" if="[[event.gcp_log_url]]">
+                  <a href$="[[event.gcp_log_url]]" target="_blank" title="View logs in GCP">
+                    <iron-icon icon="icons:open-in-new"></iron-icon>
+                  </a>
+                </template>
+              </td>
             </tr>
-            <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
-              <tr class="body">
-                <td><pre>[[_formatEvent(event)]]</pre></td>
-                <td>
-                  <template is="dom-if" if="[[event.gcp_log_url]]">
-                    <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]">
-                      <iron-icon icon="icons:cloud-download"></iron-icon>
-                    </a>
-                  </template>
-                  <template is="dom-if" if="[[!event.gcp_log_url]]">
-                    N/A
-                  </template>
-                </td>
-                <td>
-                  <template is="dom-if" if="[[event.gcp_log_url]]">
-                    <a href$="[[event.gcp_log_url]]" target="_blank" title="View logs in GCP">
-                      <iron-icon icon="icons:open-in-new"></iron-icon>
-                    </a>
-                  </template>
-                  <template is="dom-if" if="[[!event.gcp_log_url]]">
-                    N/A
-                  </template>
-                </td>
-              </tr>
-            </template>
-          </tbody></table>
-        </div>
+          </template>
+        </tbody></table>
       </template>
       <template is="dom-if" if="[[!info.testcase_event_history.length]]">
         <div class="body padding">
