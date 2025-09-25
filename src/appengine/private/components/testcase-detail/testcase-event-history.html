@@ -13,6 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 
 <dom-module id="testcase-event-history">
@@ -47,10 +48,14 @@
         padding: 4px 6px;
         font-size: 14px;
         vertical-align: top;
-        border-left: 1px dotted #777;
         border-bottom: 1px dotted #777;
         white-space: pre-wrap;
         overflow-wrap: break-word;
+      }
+
+      :host table.variant tr.body td iron-icon {
+        width: 18px;
+        height: 18px;
       }
 
       :host table.variant tr.body td:first-child {
@@ -58,6 +63,7 @@
       }
 
       :host table.variant tr.body td.event-cell {
+        font-family: 'Source Code Pro', monospace;
         white-space: pre-wrap;
         overflow-wrap: break-word;
       }
@@ -65,32 +71,34 @@
     <div class="section">
       <div class="title" title="Testcase event history.">Event History</div>
       <template is="dom-if" if="[[info.testcase_event_history.length]]">
-        <table cellpadding="0" cellspacing="0" class="variant">
-          <tbody><tr class="title">
-            <td style="width: 70%;">Event</td>
-            <td>Download Log</td>
-            <td>GCP Logs</td>
-          </tr>
-          <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
-            <tr class="body">
-              <td class="event-cell">[[_formatEvent(event)]]</td>
-              <td>
-                <template is="dom-if" if="[[event.gcp_log_url]]">
-                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]">
-                    <iron-icon icon="icons:cloud-download"></iron-icon>
-                  </a>
-                </template>
-              </td>
-              <td>
-                <template is="dom-if" if="[[event.gcp_log_url]]">
-                  <a href$="[[event.gcp_log_url]]" target="_blank" title="View logs in GCP">
-                    <iron-icon icon="icons:open-in-new"></iron-icon>
-                  </a>
-                </template>
-              </td>
+        <div class="body">
+          <table cellpadding="0" cellspacing="0" class="variant">
+            <tbody><tr class="title">
+              <td style="width: 66.66%;">Event</td>
+              <td style="width: 16.67%;">Download Log</td>
+              <td style="width: 16.67%;">GCP Logs</td>
             </tr>
-          </template>
-        </tbody></table>
+            <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
+              <tr class="body">
+                <td class="event-cell">[[_formatEvent(event)]]</td>
+                <td>
+                  <template is="dom-if" if="[[event.gcp_log_url]]">
+                    <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]">
+                      <iron-icon icon="icons:cloud-download"></iron-icon>
+                    </a>
+                  </template>
+                </td>
+                <td>
+                  <template is="dom-if" if="[[event.gcp_log_url]]">
+                    <a href$="[[event.gcp_log_url]]" target="_blank" title="View logs in GCP">
+                      <iron-icon icon="icons:open-in-new"></iron-icon>
+                    </a>
+                  </template>
+                </td>
+              </tr>
+            </template>
+          </tbody></table>
+        </div>
       </template>
       <template is="dom-if" if="[[!info.testcase_event_history.length]]">
         <div class="body padding">
