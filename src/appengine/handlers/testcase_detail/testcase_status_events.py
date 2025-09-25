@@ -243,10 +243,11 @@ class TestcaseEventHistory:
     client = logging_v2.Client(project=project_id)
     filter_str = self._get_task_log_query_filter(task_id, task_name)
     entries = client.list_entries(
-        filter_=filter_str, max_results=500, order_by=logging_v2.ASCENDING)
+        filter_=filter_str, max_results=500, order_by=logging_v2.DESCENDING)
 
     return '\n'.join(
-        json.dumps(entry.to_api_repr(), indent=2) for entry in entries)
+        json.dumps(entry.to_api_repr(), indent=2)
+        for entry in reversed(list(entries)))
 
 
 def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:

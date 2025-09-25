@@ -742,7 +742,9 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     mock_client_instance = self.mock.Client.return_value
     mock_entry1 = mock.Mock()
     mock_entry1.to_api_repr.return_value = {'payload': 'log1'}
-    mock_client_instance.list_entries.return_value = [mock_entry1]
+    mock_entry2 = mock.Mock()
+    mock_entry2.to_api_repr.return_value = {'payload': 'log2'}
+    mock_client_instance.list_entries.return_value = [mock_entry2, mock_entry1]
     expected_filter = (
         f'jsonPayload.extras.task_id="task123" AND '
         f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
@@ -753,5 +755,9 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     self.mock.Client.assert_called_with(project='test-project')
     mock_client_instance.list_entries.assert_called_with(
         filter_=expected_filter, max_results=500, order_by=mock.ANY)
+
     self.assertIn('"payload": "log1"', result)
-    self.assertEqual(result.count('\n'), 2)
+    self.assertIn('"payload": "log2"', result)
+    self.assertLess(
+        result.find('"payload": "log1"'), result.find('"payload": "log2"'))
+    self.assertEqual(result.count('\n'), 5)
