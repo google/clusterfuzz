@@ -98,6 +98,7 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 def _add_integration_tests_subparsers(toplevel_subparsers):
+  """Adds a parser for the `integration_tests` command."""
   toplevel_subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')
   
