@@ -64,5 +64,5 @@ def execute(args):
   # history = testcase_status_events.get_testcase_event_history(5183725214138368)
   # download_logs()
   response = testcase_status_events.get_task_log(
-      5183725214138368, 'bfc3e657-8861-4f4d-8a29-300f23b6dadd')
+      5183725214138368, 'bfc3e657-8861-4f4d-8a29-300f23b6dadd', 'impact')
   print(response)
