@@ -642,10 +642,11 @@ class TaskLogHandler(base_handler.Handler):
     """Serve the task log."""
     testcase_id = flask.request.args.get('testcase_id')
     task_id = flask.request.args.get('task_id')
+    task_name = flask.request.args.get('task_name')
 
     access.check_access_and_get_testcase(testcase_id)
 
-    log_content = testcase_status_events.get_task_log(testcase_id, task_id)
+    log_content = testcase_status_events.get_task_log(testcase_id, task_id, task_name)
     response = flask.make_response(log_content)
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
     response.headers['Content-Disposition'] = (
