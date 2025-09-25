@@ -55,16 +55,17 @@
       }
 
       :host table.variant tr.body td iron-icon {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
+        vertical-align: top;
+      }
+
+      :host table.variant tr.body td a {
+        text-decoration: none;
       }
 
       :host table.variant tr.body td:first-child {
         border-left: 0px;
-      }
-
-      :host table.variant tr.body td.no-border {
-        border-bottom: none;
       }
 
     </style>
@@ -73,21 +74,21 @@
       <template is="dom-if" if="[[info.testcase_event_history.length]]">
         <table cellpadding="0" cellspacing="0" class="variant">
           <tbody><tr class="title">
-            <td style="width: 66.66%;">Event</td>
-            <td style="width: 16.67%;">Download Log</td>
-            <td style="width: 16.67%;">GCP Logs</td>
+            <td style="width: 74.00%;">Event</td>
+            <td style="width: 13.00%;">Download Log</td>
+            <td style="width: 13.00%;">GCP Logs</td>
           </tr>
           <template is="dom-repeat" items="[[info.testcase_event_history]]" as="event">
             <tr class="body">
               <td class="event-cell">[[_formatEvent(event)]]</td>
-                <td class="no-border">
+                <td>
                 <template is="dom-if" if="[[event.gcp_log_url]]">
                   <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]">
                     <iron-icon icon="icons:cloud-download"></iron-icon>
                   </a>
                 </template>
               </td>
-                <td class="no-border">
+                <td>
                 <template is="dom-if" if="[[event.gcp_log_url]]">
                   <a href$="[[event.gcp_log_url]]" target="_blank" title="View logs in GCP">
                     <iron-icon icon="icons:open-in-new"></iron-icon>
