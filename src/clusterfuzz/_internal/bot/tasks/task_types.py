@@ -27,30 +27,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def _emit_trusted_task_event(task_command,
-                             event_data,
-                             task_status,
-                             task_outcome=None):
-  """Helper to emit task execution events for trusted tasks."""
-
-  if task_utils.is_fuzzer_based_task(task_command):
-    task_event = events.FuzzerTaskExecutionEvent(
-        **event_data,
-        task_stage=events.TaskStage.NA,
-        task_status=task_status,
-        task_outcome=task_outcome,
-        task_comments=environment.get_value('TASK_COMMENTS'))
-  else:
-    task_event = events.TaskExecutionEvent(
-        **event_data,
-        task_stage=events.TaskStage.NA,
-        task_status=task_status,
-        task_outcome=task_outcome,
-        task_comments=environment.get_value('TASK_COMMENTS'))
-
-  events.emit(task_event)
-
-
 class BaseTask:
   """Base module for tasks."""
 
@@ -81,19 +57,19 @@ class TrustedTask(BaseTask):
     task_command = task_utils.get_command_from_module(self.module.__name__)
     event_data = task_utils.get_task_execution_event_data(
         task_command, task_argument, job_type)
-    _emit_trusted_task_event(task_command, event_data,
-                             events.TaskStatus.STARTED)
+    events.emit_task_event(task_command, event_data, events.TaskStatus.STARTED)
 
     try:
       self.module.execute_task(task_argument, job_type)
     except Exception as e:
-      _emit_trusted_task_event(task_command, event_data,
-                               events.TaskStatus.EXCEPTION,
-                               events.TaskOutcome.UNHANDLED_EXCEPTION)
+      events.emit_task_event(
+          task_command,
+          event_data,
+          events.TaskStatus.EXCEPTION,
+          task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION)
       raise e
 
-    _emit_trusted_task_event(task_command, event_data,
-                             events.TaskStatus.FINISHED)
+    events.emit_task_event(task_command, event_data, events.TaskStatus.FINISHED)
 
 
 class BaseUTask(BaseTask):
