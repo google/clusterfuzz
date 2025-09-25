@@ -647,10 +647,9 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
 
 @test_utils.with_cloud_emulators('datastore')
 class TestcaseEventHistoryTest(unittest.TestCase):
-  """Tests for TestcaseEventHistory."""
+  """Tests for TestcaseEventHistory methods with no event retrieval."""
 
   def setUp(self):
-    """Set up test environment."""
     super().setUp()
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
@@ -707,8 +706,8 @@ class TestcaseEventHistoryTest(unittest.TestCase):
 
     url_query = (
         'jsonPayload.extras.task_id%3D%22task123%22%20AND%20jsonPayload.extras.'
-        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize%22%20AND%20timestamp'
-        '%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22')
+        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize'
+        '%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22')
 
     self.assertIn('gcp_log_url', event_info)
     self.assertIn('project=test-project', event_info['gcp_log_url'])
