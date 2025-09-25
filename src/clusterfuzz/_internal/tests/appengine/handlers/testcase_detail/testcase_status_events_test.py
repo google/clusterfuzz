@@ -517,8 +517,7 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
         'clusterfuzz._internal.base.utils.utcnow'
     ])
     self.mock.get_logging_cloud_project_id.return_value = 'test-project'
-    self.mock.utcnow.return_value = datetime.datetime(
-        2025, 2, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+    self.mock.utcnow.return_value = datetime.datetime(2025, 2, 1, 0, 0, 0)
 
   def test_get_history(self):
     """Verify that testcase event history is retrieved correctly."""
@@ -582,9 +581,9 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'gcp_log_url': (
                 'https://console.cloud.google.com/logs/viewer'
                 '?project=test-project&query=jsonPayload.extras.task_id%3D%222%22%20AND%20'
-                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20'
-                'jsonPayload.extras.task_name%3D%22minimize%22%20AND%20timestamp'
-                '%20%3E%3D%20%222025-01-01T00%3A00%3A00.000000%2B0000%22')
+                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20jsonPayload.extras.task_name'
+                '%3D%22minimize%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22'
+            )
         },
         {
             'event_type':
@@ -606,9 +605,9 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'gcp_log_url': (
                 'https://console.cloud.google.com/logs/viewer'
                 '?project=test-project&query=jsonPayload.extras.task_id%3D%221%22%20AND%20'
-                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20'
-                'jsonPayload.extras.task_name%3D%22analyze%22%20AND%20timestamp'
-                '%20%3E%3D%20%222025-01-01T00%3A00%3A00.000000%2B0000%22')
+                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20jsonPayload.extras.task_name'
+                '%3D%22analyze%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22'
+            )
         },
         {
             'event_type':
@@ -630,9 +629,9 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'gcp_log_url': (
                 'https://console.cloud.google.com/logs/viewer'
                 '?project=test-project&query=jsonPayload.extras.task_id%3D%221%22%20AND%20'
-                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20'
-                'jsonPayload.extras.task_name%3D%22analyze%22%20AND%20timestamp'
-                '%20%3E%3D%20%222025-01-01T00%3A00%3A00.000000%2B0000%22')
+                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20jsonPayload.extras.task_name'
+                '%3D%22analyze%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22'
+            )
         },
         {
             'event_type': 'testcase_creation',
@@ -662,13 +661,12 @@ class TestcaseEventHistoryTest(unittest.TestCase):
         'google.cloud.logging_v2.Client',
         'clusterfuzz._internal.base.utils.utcnow'
     ])
-    self.mock.utcnow.return_value = datetime.datetime(
-        2025, 2, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+    self.mock.utcnow.return_value = datetime.datetime(2025, 2, 1, 0, 0, 0)
 
   def test_get_time_range_filter(self):
     """Verify that the time range filter is generated correctly."""
     result = self.event_history._get_time_range_filter(days=1)
-    self.assertEqual(result, 'timestamp >= "2025-01-31T00:00:00.000000+0000"')
+    self.assertEqual(result, 'timestamp >= "2025-01-31T00:00:00Z"')
 
   def test_get_task_log_query_filter(self):
     """Verify that the task log query filter is generated correctly."""
@@ -677,7 +675,7 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     expected = (f'jsonPayload.extras.task_id="task123" AND '
                 f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
                 'jsonPayload.extras.task_name="minimize" AND '
-                'timestamp >= "2025-01-01T00:00:00.000000+0000"')
+                'timestamp >= "2025-01-01T00:00:00Z"')
     self.assertEqual(result, expected)
 
   def test_enrich_event_info_with_gcp_log_url_no_project(self):
@@ -709,9 +707,8 @@ class TestcaseEventHistoryTest(unittest.TestCase):
 
     url_query = (
         'jsonPayload.extras.task_id%3D%22task123%22%20AND%20jsonPayload.extras.'
-        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize'
-        '%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00.000000%2B0000%22'
-    )
+        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize%22%20AND%20timestamp'
+        '%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22')
 
     self.assertIn('gcp_log_url', event_info)
     self.assertIn('project=test-project', event_info['gcp_log_url'])
@@ -750,7 +747,7 @@ class TestcaseEventHistoryTest(unittest.TestCase):
         f'jsonPayload.extras.task_id="task123" AND '
         f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
         'jsonPayload.extras.task_name="minimize" AND '
-        'timestamp >= "2025-01-01T00:00:00.000000+0000"')
+        'timestamp >= "2025-01-01T00:00:00Z"')
 
     result = self.event_history.get_task_log('task123', 'minimize')
     self.mock.Client.assert_called_with(project='test-project')

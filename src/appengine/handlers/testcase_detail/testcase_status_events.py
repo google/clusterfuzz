@@ -201,8 +201,7 @@ class TestcaseEventHistory:
   def _get_time_range_filter(self, days: int) -> str:
     """Returns a filter string for a time range."""
     start_time = utils.utcnow() - datetime.timedelta(days=days)
-    time_format = '%Y-%m-%dT%H:%M:%S.%f%z'
-    return f'timestamp >= "{start_time.strftime(time_format)}"'
+    return f'timestamp >= "{start_time.isoformat()}Z"'
 
   def _get_task_log_query_filter(self, task_id: str, task_name: str) -> str:
     """Returns the filter string for querying task logs."""
