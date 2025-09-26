@@ -24,6 +24,7 @@ from google.cloud import logging_v2
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.metrics import logs
 
 EventInfo: TypeAlias = dict[str, str | None]
 
@@ -215,14 +216,21 @@ class TestcaseEventHistory:
 
   def _enrich_event_info_with_gcp_log_url(self, event_info: EventInfo) -> None:
     """Adds the GCP log URL to the event info."""
-    project_id = utils.get_logging_cloud_project_id()
-    task_id = event_info.get('task_id')
-    task_name = event_info.get('task_name')
-    if project_id and task_id and task_name:
+    required_info = {
+        'project_id': utils.get_logging_cloud_project_id(),
+        'task_id': event_info.get('task_id'),
+        'task_name': event_info.get('task_name'),
+    }
+    if all(required_info.values()):
+      project_id, task_id, task_name = required_info.values()
       query = self._get_task_log_query_filter(task_id, task_name)
       encoded_query = urllib.parse.quote(query)
       event_info['gcp_log_url'] = (
           _BASE_LOGS_URL + f'?project={project_id}&query={encoded_query}')
+    else:
+      missing = [k for k, v in required_info.items() if not v]
+      logs.error('Unable to generate GCP log URL due to missing info. '
+                 f'Missing info: {missing}')
 
   def _format_event_for_history(self, event: events.Event) -> EventInfo:
     """Formats an event for display in the event history table."""
