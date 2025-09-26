@@ -659,7 +659,8 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.get_logging_cloud_project_id',
         'google.cloud.logging_v2.Client',
-        'clusterfuzz._internal.base.utils.utcnow'
+        'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
     self.mock.utcnow.return_value = datetime.datetime(2025, 2, 1, 0, 0, 0)
 
@@ -684,20 +685,19 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     event_info = {'task_id': 'task123', 'task_name': 'minimize'}
     self.event_history._enrich_event_info_with_gcp_log_url(event_info)
     self.assertNotIn('gcp_log_url', event_info)
+    self.mock.error.assert_called_once_with(
+        'Unable to generate GCP log URL due to missing info. '
+        "Missing info: ['project_id']")
 
-  def test_enrich_event_info_with_gcp_log_url_no_task_id(self):
-    """Verify that no log URL is added when the task ID is missing."""
+  def test_enrich_event_info_with_gcp_log_url_no_task_info(self):
+    """Verify that no log URL is added when the task info is missing."""
     self.mock.get_logging_cloud_project_id.return_value = 'test-project'
-    event_info = {'other_key': 'value', 'task_name': 'minimize'}
+    event_info = {'other_key': 'value'}
     self.event_history._enrich_event_info_with_gcp_log_url(event_info)
     self.assertNotIn('gcp_log_url', event_info)
-
-  def test_enrich_event_info_with_gcp_log_url_no_task_name(self):
-    """Verify that no log URL is added when the task name is missing."""
-    self.mock.get_logging_cloud_project_id.return_value = 'test-project'
-    event_info = {'task_id': 'task123'}
-    self.event_history._enrich_event_info_with_gcp_log_url(event_info)
-    self.assertNotIn('gcp_log_url', event_info)
+    self.mock.error.assert_called_once_with(
+        'Unable to generate GCP log URL due to missing info. '
+        "Missing info: ['task_id', 'task_name']")
 
   def test_enrich_event_info_with_gcp_log_url_success(self):
     """Verify that the log URL is correctly added to the event info."""
