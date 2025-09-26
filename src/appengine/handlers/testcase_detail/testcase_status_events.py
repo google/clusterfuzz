@@ -15,7 +15,7 @@
 from dataclasses import asdict
 import datetime
 import json
-from typing import Generator
+from typing import Iterator
 from typing import Mapping
 from typing import TypeAlias
 import urllib.parse
@@ -229,7 +229,7 @@ class TestcaseEventHistory:
     event_info['timestamp'] = _format_timestamp(event.timestamp)
     return event_info
 
-  def get_history(self) -> Generator[Mapping, None, None]:
+  def get_history(self) -> Iterator[Mapping]:
     """Get all testcase events information in reverse chronological order."""
     event_history = events.get_events_from_testcase(self._testcase_id)
     for event in event_history:
