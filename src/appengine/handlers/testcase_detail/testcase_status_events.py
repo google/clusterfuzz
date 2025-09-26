@@ -27,6 +27,8 @@ from clusterfuzz._internal.metrics import events
 
 EventInfo: TypeAlias = dict[str, str | None]
 
+_BASE_LOGS_URL = 'https://console.cloud.google.com/logs/viewer'
+
 
 def _format_timestamp(timestamp: datetime.datetime) -> str:
   """Formats a timestamp."""
@@ -220,8 +222,7 @@ class TestcaseEventHistory:
       query = self._get_task_log_query_filter(task_id, task_name)
       encoded_query = urllib.parse.quote(query)
       event_info['gcp_log_url'] = (
-          f'https://console.cloud.google.com/logs/viewer'
-          f'?project={project_id}&query={encoded_query}')
+          _BASE_LOGS_URL + f'?project={project_id}&query={encoded_query}')
 
   def _format_event_for_history(self, event: events.Event) -> EventInfo:
     """Formats an event for display in the event history table."""
