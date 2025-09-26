@@ -242,7 +242,6 @@ class TestcaseEventHistory:
     project_id = utils.get_logging_cloud_project_id()
     client = logging_v2.Client(project=project_id)
     filter_str = self._get_task_log_query_filter(task_id, task_name)
-    raise Exception('Testing exception of list_entries')
     entries = client.list_entries(
         filter_=filter_str, max_results=500, order_by=logging_v2.DESCENDING)
 
