@@ -84,7 +84,7 @@
       :host paper-button {
         font-size: 12px;
         padding: 0px;
-        display: block;
+        display: inline-block;
         text-align: center;
       }
 
@@ -94,7 +94,7 @@
       }
 
     </style>
-    <div class="section">
+    <div id="event-history" class="section">
       <div class="title" title="Testcase event history.">Event History</div>
       <template is="dom-if" if="[[info.testcase_event_history.length]]">
         <table cellpadding="0" cellspacing="0" class="variant">
@@ -187,7 +187,10 @@
         return history && history.length > 3;
       },
       toggle() {
+        const shouldCollapse = !this.shouldPreview;
         this.shouldPreview = !this.shouldPreview;
+        if (shouldCollapse)
+          this.$.event-history.scrollIntoView();
       },
       _formatEvent(event) {
         if (!event) {
