@@ -27,10 +27,10 @@ from typing import Sequence
 from typing import Type
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore.data_handler import FilterValue
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -246,6 +246,8 @@ class TaskExecutionEvent(BaseTestcaseEvent, BaseTaskEvent):
   task_status: str | None = None
   # UTask return code based on error types from uworker protobuf.
   task_outcome: str | None = None
+  # Task-specific message (usually added to testcases comment field).
+  task_comments: str | None = None
 
   # Task-specific job type and fuzzer name - this is needed to disambiguate
   # from testcase metadata.
@@ -291,6 +293,8 @@ class FuzzerTaskExecutionEvent(BaseTaskEvent):
   task_status: str | None = None
   # UTask return code based on error types from uworker protobuf.
   task_outcome: str | None = None
+  # Task-specific message (usually added to testcases comment field).
+  task_comments: str | None = None
 
   # Task-specific job type and fuzzer name.
   task_job: str | None = None
@@ -343,7 +347,7 @@ class IEventRepository(ABC):
   @abstractmethod
   def get_events(
       self,
-      equality_filters: Mapping[str, FilterValue] | None = None,
+      equality_filters: Mapping[str, data_handler.FilterValue] | None = None,
       order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
     """Yields events from the underlying database.
     
@@ -426,7 +430,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
 
   def get_events(
       self,
-      equality_filters: Mapping[str, FilterValue] | None = None,
+      equality_filters: Mapping[str, data_handler.FilterValue] | None = None,
       order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
     """Yields events from datastore.
 
@@ -609,8 +613,9 @@ def emit(event: Event) -> None:
     handler.emit(event)
 
 
-def get_events(equality_filters: Mapping[str, FilterValue] | None = None,
-               order_by: Sequence[str] | None = None) -> Generator:
+def get_events(
+    equality_filters: Mapping[str, data_handler.FilterValue] | None = None,
+    order_by: Sequence[str] | None = None) -> Generator:
   """Yields events matching the equality filters and ordering."""
   repository = get_repository()
   if repository:
@@ -640,3 +645,24 @@ def get_events_from_testcase(testcase_id: int,
   order_by = ['-timestamp'] if latest_first else None
 
   yield from get_events(equality_filters=equality_filters, order_by=order_by)
+
+
+def emit_task_event(task_command: str,
+                    event_data: Mapping[str, Any],
+                    task_status: str,
+                    task_stage: str | None = None,
+                    task_outcome: str | None = None) -> None:
+  """Helper to emit task execution events for tasks."""
+
+  event_class = (
+      FuzzerTaskExecutionEvent
+      if task_utils.is_fuzzer_based_task(task_command) else TaskExecutionEvent)
+  task_stage = TaskStage.NA if not task_stage else task_stage
+  task_event = event_class(
+      **event_data,
+      task_stage=task_stage,
+      task_status=task_status,
+      task_outcome=task_outcome,
+      task_comments=environment.get_value('TASK_COMMENTS'))
+
+  emit(task_event)
