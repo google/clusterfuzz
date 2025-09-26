@@ -83,9 +83,14 @@
 
       :host paper-button {
         font-size: 12px;
-        padding: 0px;
-        display: inline-block;
+        display: block;
         text-align: center;
+        padding: 0;
+      }
+
+      :host .center-block {
+        margin: 0 auto;
+        width: 16px;
       }
 
       :host paper-button iron-icon {
@@ -94,7 +99,7 @@
       }
 
     </style>
-    <div id="event-history" class="section">
+    <div id="event-history-section" class="section">
       <div class="title" title="Testcase event history.">Event History</div>
       <template is="dom-if" if="[[info.testcase_event_history.length]]">
         <table cellpadding="0" cellspacing="0" class="variant">
@@ -149,12 +154,14 @@
         <template is="dom-if" if="[[canExpand(info.testcase_event_history)]]">
           <tr class="expand-control">
             <td colspan="3">
-              <paper-button on-tap="toggle">
-                <if-else condition="[[shouldPreview]]">
-                  <iron-icon slot="t" icon="icons:expand-more"></iron-icon>
-                  <iron-icon slot="f" icon="icons:expand-less"></iron-icon>
-                </if-else>
-              </paper-button>
+              <div class="center-block">
+                <paper-button on-tap="toggle">
+                  <if-else condition="[[shouldPreview]]">
+                    <iron-icon slot="t" icon="icons:expand-more"></iron-icon>
+                    <iron-icon slot="f" icon="icons:expand-less"></iron-icon>
+                  </if-else>
+                </paper-button>
+              </div>
             </td>
           </tr>
         </template>
@@ -189,8 +196,9 @@
       toggle() {
         const shouldCollapse = !this.shouldPreview;
         this.shouldPreview = !this.shouldPreview;
-        if (shouldCollapse)
-          this.$.event-history.scrollIntoView();
+        if (shouldCollapse) {
+          this.$['event-history-section'].scrollIntoView();
+        }
       },
       _formatEvent(event) {
         if (!event) {
