@@ -98,8 +98,8 @@
         <table cellpadding="0" cellspacing="0" class="revision">
           <tbody><tr class="title">
             <td style="width: 80.00%;">Event</td>
-            <td style="width: 10.00%;">Download Task's Logs</td>
-            <td style="width: 10.00%;">GCP Task's Logs</td>
+            <td style="width: 10.00%;">Download Task Logs</td>
+            <td style="width: 10.00%;">GCP Task Logs</td>
           </tr>
           <template is="dom-if" if="[[!shouldPreview]]">
             <template is="dom-repeat" items="[[_reversedHistory]]" as="event">
@@ -107,7 +107,7 @@
                 <td class="event-cell" inner-h-t-m-l="[[_formatEvent(event)]]"></td>
                   <td>
                   <template is="dom-if" if="[[event.gcp_log_url]]">
-                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]" title="Download task's log">
+                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]" title="Download task logs">
                       <iron-icon icon="icons:cloud-download"></iron-icon>
                     </a>
                   </template>
@@ -128,7 +128,7 @@
                 <td class="event-cell" inner-h-t-m-l="[[_formatEvent(event)]]"></td>
                   <td>
                   <template is="dom-if" if="[[event.gcp_log_url]]">
-                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]" title="Download task's logs">
+                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]" title="Download task logs">
                       <iron-icon icon="icons:cloud-download"></iron-icon>
                     </a>
                   </template>
