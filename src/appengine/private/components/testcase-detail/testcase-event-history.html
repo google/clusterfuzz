@@ -1,0 +1,217 @@
+<!--
+  Copyright 2025 Google LLC
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../common/if-else/if-else.html">
+
+<dom-module id="testcase-event-history">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host table.revision {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      :host table.revision tr.title td {
+        width: 33%;
+        font-size: 14px;
+        padding: 4px 6px;
+        background-color: #373b50;
+        color: #fff;
+        border-left: 1px dotted #ccc;
+        border-top: 1px dotted #ccc;
+        text-transform: uppercase;
+        font-weight: normal;
+      }
+
+      :host table.revision tr.title td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.revision tr.body td {
+        padding: 4px 6px;
+        font-size: 14px;
+        vertical-align: top;
+        border-bottom: 1px dotted #777;
+        border-left: 1px dotted #777;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
+
+      :host table.revision tr.body td iron-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      :host table.revision tr.body td a {
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #3a80b0;
+      }
+
+      :host table.revision tr.body td.event-cell {
+        font-family: 'Source Code Pro', monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
+
+      :host table.revision tr.expand-control td {
+        border-top: 1px dotted #777;
+        text-align: center;
+      }
+
+      :host paper-button {
+        font-size: 12px;
+        padding: 0px;
+        display: block;
+        text-align: center;
+      }
+
+      :host paper-button iron-icon {
+        --iron-icon-width: 16px;
+        --iron-icon-height: 16px;
+      }
+
+    </style>
+    <div id="event-history-section" class="section">
+      <div class="title" title="Testcase event history.">Event History</div>
+      <template is="dom-if" if="[[info.testcase_event_history.length]]">
+        <table cellpadding="0" cellspacing="0" class="revision">
+          <tbody><tr class="title">
+            <td style="width: 80.00%;">Event</td>
+            <td style="width: 10.00%;">Download Task's Logs</td>
+            <td style="width: 10.00%;">GCP Task's Logs</td>
+          </tr>
+          <template is="dom-if" if="[[!shouldPreview]]">
+            <template is="dom-repeat" items="[[_reversedHistory]]" as="event">
+              <tr class="body">
+                <td class="event-cell" inner-h-t-m-l="[[_formatEvent(event)]]"></td>
+                  <td>
+                  <template is="dom-if" if="[[event.gcp_log_url]]">
+                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]" title="Download task's log">
+                      <iron-icon icon="icons:cloud-download"></iron-icon>
+                    </a>
+                  </template>
+                </td>
+                  <td>
+                  <template is="dom-if" if="[[event.gcp_log_url]]">
+                    <a href$="[[event.gcp_log_url]]" target="_blank" title="View task logs in GCP">
+                      <iron-icon icon="icons:open-in-new"></iron-icon>
+                    </a>
+                  </template>
+                </td>
+              </tr>
+            </template>
+          </template>
+          <template is="dom-if" if="[[shouldPreview]]">
+            <template is="dom-repeat" items="[[previewItems]]" as="event">
+              <tr class="body">
+                <td class="event-cell" inner-h-t-m-l="[[_formatEvent(event)]]"></td>
+                  <td>
+                  <template is="dom-if" if="[[event.gcp_log_url]]">
+                  <a href$="/testcase-detail/task-log?testcase_id=[[info.testcase.id]]&amp;task_id=[[event.task_id]]&amp;task_name=[[event.task_name]]" title="Download task's logs">
+                      <iron-icon icon="icons:cloud-download"></iron-icon>
+                    </a>
+                  </template>
+                </td>
+                  <td>
+                  <template is="dom-if" if="[[event.gcp_log_url]]">
+                    <a href$="[[event.gcp_log_url]]" target="_blank" title="View task logs in GCP">
+                      <iron-icon icon="icons:open-in-new"></iron-icon>
+                    </a>
+                  </template>
+                </td>
+              </tr>
+            </template>
+          </template>          <template is="dom-if" if="[[canExpand(info.testcase_event_history)]]">
+            <tr class="expand-control">
+              <td colspan="3">
+                <paper-button on-tap="toggle">
+                  <if-else condition="[[shouldPreview]]">
+                    <iron-icon slot="t" icon="icons:expand-more"></iron-icon>
+                    <iron-icon slot="f" icon="icons:expand-less"></iron-icon>
+                  </if-else>
+                </paper-button>
+              </td>
+            </tr>
+          </template>
+        </tbody></table>
+      </template>
+      <template is="dom-if" if="[[!info.testcase_event_history.length]]">
+        <div class="body padding">
+          No event history found.
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'testcase-event-history',
+      properties: {
+        info: Object,
+        shouldPreview: {
+          type: Boolean,
+          value: true,
+        },
+        previewItems: {
+          type: Array,
+          computed: '_computePreviewItems(_reversedHistory)'
+        },
+        _reversedHistory: {
+          type: Array,
+          computed: '_computeReversedHistory(info.testcase_event_history)'
+        }
+      },
+      _computeReversedHistory(history) {
+        return history ? history.slice().reverse() : [];
+      },
+      _computePreviewItems(reversedHistory) {
+        return reversedHistory ? reversedHistory.slice(0, 3) : [];
+      },
+      canExpand(history) {
+        return history && history.length > 3;
+      },
+      toggle() {
+        this.shouldPreview = !this.shouldPreview;
+      },
+      _formatEvent(event) {
+        if (!event) {
+          return '';
+        }
+        const eventCopy = Object.assign({}, event); 
+        delete eventCopy.gcp_log_url; 
+        const boldKeys = ['event_type', 'task_name', 'timestamp', 'task_id']; 
+        const keys = Object.keys(eventCopy).sort();
+        let result = '{';
+        result += keys.map(key => {
+          const value = JSON.stringify(eventCopy[key]);
+          if (boldKeys.includes(key)) {
+            return `<b>"${key}"</b>: <b>${value}</b>`;
+          }
+          return `"${key}": ${value}`;
+        }).join(', ');
+        result += '}';
+        return result;
+      },
+    });
+  </script>
+</dom-module>
