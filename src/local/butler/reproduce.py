@@ -24,45 +24,59 @@ from clusterfuzz._internal.datastore.data_types import Testcase, Job
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.commands import update_environment_for_job 
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.bot.fuzzers import init
+from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.bot.tasks import setup
+
 
 def _execute(args) -> None:
     """Reproduce a testcase locally."""
-    testcase : Testcase = data_handler.get_testcase_by_id(args.testcase_id) # TODO: check if testcase-id exists
-
-    print("Testcase: ")
-    print(f'Testcase id: {testcase.key.id()}')
-    print(f'Status: {testcase.status}')
-    print(f'Crash revsion: {testcase.crash_revision}')
-    print(f'Job type: {testcase.job_type}')
-    print(f'Archive filename: {testcase.archive_filename}')
-    print(f'Path: {testcase.absolute_path}')
-    print(f'Fuzzer name: {testcase.actual_fuzzer_name()}')
-    print(f'Fuzz target: {testcase.get_fuzz_target()}')
-
-    # print(json.dumps(testcase.to_dict(), indent=4, default=str))
+    testcase : Testcase = data_handler.get_testcase_by_id(args.testcase_id) 
     
     job : Job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
+    environment.set_value('JOB_NAME', job.name)
     update_environment_for_job(job.get_environment_string())
 
-    print()
-    print("Job: ")
-    print(json.dumps(job.to_dict(), indent=4, default=str))
+    # setup.setup_testcase(testcase, job.name, None) this is used in progression task.
+    # probably I'm going to need to write my own setup_testcase.
+
+    if(testcase.get_fuzz_target()):
+        build_manager.setup_build(revision=testcase.crash_revision, fuzz_target=testcase.get_fuzz_target().binary)
+    else:
+        build_manager.setup_build(revision=testcase.crash_revision)
+
+    bad_build_result : uworker_msg_pb2.BuildData = testcase_manager.check_for_bad_build(job.name, testcase.crash_revision) # TODO: check the return type
     
-    # if input('Do you want to try to reproduce the testcase? (y/N): ').lower() != 'y':
-    #     print('Exiting.')
-    #     return
-    testcase_manager.get_command_line_for_application(testcase.absolute_path, needs_http=False)
-    # testcase_manager.test_for_crash_with_retries(
-    #     testcase.get_fuzz_target(),
-    #     testcase,
-    #     testcase.absolute_path,
-    #     test_timeout=10,
-    #     crash_retries=2
-    # )
+    if(bad_build_result.is_bad_build):
+        print('Bad build detected, exiting.')
+        return
+    
+    reproduces = testcase_manager.test_for_reproducibility(
+        fuzz_target=testcase.get_fuzz_target(),
+        testcase_path=testcase.absolute_path, # this is wrong. it doesn't gets the path for the local testcase
+        crash_type=testcase.crash_type,
+        expected_state=None,
+        expected_security_flag=None,
+        test_timeout=20,
+        http_flag=testcase.http_flag,
+        gestures=testcase.gestures,
+        arguments=None
+    )
+
+    print(reproduces)
 
 def execute(args) -> None:
     os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(args.config_dir) # Do I really need this?
-    local_config.ProjectConfig().set_environment()
+    local_config.ProjectConfig().set_environment() # this is alredy done in set_bot_environment()
+    environment.set_bot_environment()
+    os.environ['LOG_TO_CONSOLE'] = 'True'
+    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+    os.environ['LOG_TO_GCP'] = ''
+    logs.configure('run_bot')
+    init.run()
 
     """Reproduce a testcase locally."""
     with ndb_init.context():
