@@ -26,20 +26,24 @@ if [ -z "$HOST_JOB_SELECTION" ]; then
   fi
 fi
 
-CLUSTERFUZZ_FILE=clusterfuzz_package.zip
-# When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
-if [[ -z "$LOCAL_SRC" ]]; then
-  # Set up ClusterFuzz
-  echo "Downloading ClusterFuzz source code."
-  rm -rf clusterfuzz
+if [[ "$IMMUTABLE_IMAGE" == "true" ]]; then
+  echo "Not downloading Clusterfuzz source code as it an immutable image"
+else
+  CLUSTERFUZZ_FILE=clusterfuzz_package.zip
+  # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
+  if [[ -z "$LOCAL_SRC" ]]; then
+    # Set up ClusterFuzz
+    echo "Downloading ClusterFuzz source code."
+    rm -rf clusterfuzz
 
-  # DEPLOYMENT_ZIP might be test-deployment/linux-3.zip, so we do not extract DEPLOYMENT_ZIP directly
-  if [ "$USE_GCLOUD_STORAGE_CP" = "1" ]; then
-    gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
-  else
-    gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
+    # DEPLOYMENT_ZIP might be test-deployment/linux-3.zip, so we do not extract DEPLOYMENT_ZIP directly
+    if [ "$USE_GCLOUD_STORAGE_CP" = "1" ]; then
+      gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
+    else
+      gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
+    fi
+    unzip -q -o $CLUSTERFUZZ_FILE
   fi
-  unzip -q -o $CLUSTERFUZZ_FILE
 fi
 
 # Some configurations (e.g. hosts) run many instances of ClusterFuzz. Don't
