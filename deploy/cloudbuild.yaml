@@ -88,6 +88,26 @@ steps:
     echo "✅ Running deploy for project config: $configpath"
     python3.11 butler.py deploy -c $configpath --prod --targets zips appengine --force
 
+
+- id: build immutable image
+  name: gcr.io/cloud-builders/docker
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      cd clusterfuzz
+    fi
+    
+    if [[ "${_PROJECT}" == "chrome-development" ]]; then
+      cp deployment/linux-3.zip docker/chromium/immutable/
+      CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
+      docker build -t gcr.io/clusterfuzz-images/chromium/immutable:$${CURRENT_CLUSTERFUZZ_REVISION} docker/chromium/immutable/
+      docker push gcr.io/clusterfuzz-images/chromium/immutable:$${CURRENT_CLUSTERFUZZ_REVISION}
+    else
+      echo "Not building immutable as project is not internal"
+    fi
+
 - id: update project metadata with revision
   name: gcr.io/google.com/cloudsdktool/cloud-sdk
   entrypoint: bash
