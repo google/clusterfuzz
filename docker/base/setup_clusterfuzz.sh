@@ -27,7 +27,7 @@ if [ -z "$HOST_JOB_SELECTION" ]; then
 fi
 
 if [[ "$IMMUTABLE_IMAGE" == "true" ]]; then
-  echo "Not downloading Clusterfuzz source code as it an immutable image"
+  echo "Not downloading Clusterfuzz source code as it is an immutable image"
 else
   CLUSTERFUZZ_FILE=clusterfuzz_package.zip
   # When $LOCAL_SRC is set, use source zip on mounted volume for local testing.
