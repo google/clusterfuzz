@@ -630,3 +630,22 @@ class RefreshHandler(base_handler.Handler):
     """Serve the testcase detail JSON."""
     testcase_id = flask.request.get('testcaseId')
     return self.render_json(get_testcase_detail_by_id(testcase_id))
+
+
+class TaskLogHandler(base_handler.Handler):
+  """Handler for downloading a task's log."""
+
+  @handler.get(handler.TEXT)
+  def get(self):
+    """Serve the task log."""
+    task_id = flask.request.args.get('task_id')
+    task_name = flask.request.args.get('task_name')
+    testcase_id = flask.request.args.get('testcase_id')
+    log_content = testcase_status_events.get_task_log(testcase_id, task_id,
+                                                      task_name)
+
+    response = flask.make_response(log_content)
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename="task_{task_id}_log.txt"')
+    return response

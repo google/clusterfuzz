@@ -15,6 +15,10 @@ FROM gcr.io/clusterfuzz-images/chromium/base
 
 ENV IMMUTABLE_IMAGE=true
 
-COPY linux-3.zip /data/
+ARG CLUSTERFUZZ_SOURCE_DIR
 
-RUN unzip /data/linux-3.zip -d /data/
+COPY ${CLUSTERFUZZ_SOURCE_DIR} /data/clusterfuzz
+
+RUN bash /data/clusterfuzz/local/install_deps.bash
+
+CMD ["echo", "Hello World!"]
