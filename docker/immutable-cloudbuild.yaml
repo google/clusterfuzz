@@ -73,9 +73,10 @@ steps:
     CF_CONFIG_SHA=$(git -C /workspace/clusterfuzz-config rev-parse --short HEAD)
     
     # Using the builder service account as the user
-    USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+    RAW_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+    USER=$(echo "$$RAW_USER" | cut -d'@' -f1)
     
-    REVISION="$${TIMESTAMP}-$${CF_SHA}-$${USER}-$${CF_CONFIG_SHA}"
+    REVISION="$${TIMESTAMP}-$${CF_SHA}-$${USER}-$${CF_CONFIG_SHA}-dev"
     echo "Computed revision: $${REVISION}"
     echo "$${REVISION}" > /workspace/revision.txt
 
@@ -103,3 +104,4 @@ timeout: 14400s
 options:
   machineType: E2_HIGHCPU_32
   diskSizeGb: 500
+  logging: CLOUD_LOGGING_ONLY
