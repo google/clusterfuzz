@@ -19,6 +19,6 @@ ARG CLUSTERFUZZ_SOURCE_DIR
 
 COPY ${CLUSTERFUZZ_SOURCE_DIR} /data/clusterfuzz
 
-RUN bash /data/clusterfuzz/local/install_deps.bash
+RUN cd /data/clusterfuzz && ./local/install_deps.bash
 
 CMD ["echo", "Hello World!"]
