@@ -83,8 +83,8 @@ steps:
 - id: build immutable image
   name: gcr.io/cloud-builders/docker
   entrypoint: bash
-  args:
   dir: docker
+  args:
   - -ex
   - build-immutable.sh
   - ${_CLUSTERFUZZ_REVISION}
