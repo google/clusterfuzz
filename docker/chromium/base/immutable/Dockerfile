@@ -21,6 +21,6 @@ COPY ${CLUSTERFUZZ_SOURCE_DIR} /data/clusterfuzz
 
 RUN cd /data/clusterfuzz && ./local/install_deps.bash
 
-RUN cp /data/clusterfuzz/clusterfuzz-config/configs/internal /data/clusterfuzz/src/appengine/config
+RUN cp -r /data/clusterfuzz/clusterfuzz-config/configs/internal /data/clusterfuzz/src/appengine/config
 
 RUN rm -rf /data/clusterfuzz/clusterfuzz-config
