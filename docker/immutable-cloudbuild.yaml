@@ -76,7 +76,7 @@ steps:
     RAW_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
     USER=$(echo "$$RAW_USER" | cut -d'@' -f1)
     
-    REVISION="$${TIMESTAMP}-$${CF_SHA}-$${USER}-$${CF_CONFIG_SHA}-dev"
+    REVISION="$${TIMESTAMP}-$${CF_SHA}-$${USER}-$${CF_CONFIG_SHA}-prod"
     echo "Computed revision: $${REVISION}"
     echo "$${REVISION}" > /workspace/revision.txt
 
@@ -84,22 +84,10 @@ steps:
   name: gcr.io/cloud-builders/docker
   entrypoint: bash
   args:
-  - -c
-  - |
-    BUILD_CONTEXT_DIR=/workspace
-    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
-      BUILD_CONTEXT_DIR=/workspace/clusterfuzz
-    fi
-
-    if [[ "${_PROJECT}" == "dev" ]]; then
-      CURRENT_CLUSTERFUZZ_REVISION="$(cat /workspace/revision.txt)"
-      # Set the build context to the source root and use -f to specify the Dockerfile path.
-      # The source dir for the COPY command inside the Dockerfile becomes '.' (the context root).
-      docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -f $${BUILD_CONTEXT_DIR}/docker/chromium/immutable/Dockerfile -t gcr.io/clusterfuzz-images/chromium/immutable:$${CURRENT_CLUSTERFUZZ_REVISION} $${BUILD_CONTEXT_DIR}
-      docker push gcr.io/clusterfuzz-images/chromium/immutable:$${CURRENT_CLUSTERFUZZ_REVISION}
-    else
-      echo "Not building immutable as project is not internal"
-    fi
+  dir: docker
+  - -ex
+  - build-immutable.sh
+  - ${_CLUSTERFUZZ_REVISION}
 
 timeout: 14400s
 options:
