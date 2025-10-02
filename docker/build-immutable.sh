@@ -24,7 +24,7 @@ fi
 for image_name in "${IMAGES[@]}"; do
   echo $PWD
   CURRENT_CLUSTERFUZZ_REVISION="$(cat /workspace/revision.txt)"
-  image_dir=${image_name#gcr.io/clusterfuzz-images/}
+  image_dir=docker/${image_name#gcr.io/clusterfuzz-images/}
   docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=$PWD -t "$image_name":${CURRENT_CLUSTERFUZZ_REVISION} "$image_dir"
   docker push "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}
 
