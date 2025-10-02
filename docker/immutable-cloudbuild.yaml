@@ -83,10 +83,9 @@ steps:
 - id: build immutable image
   name: gcr.io/cloud-builders/docker
   entrypoint: bash
-  dir: docker
   args:
   - -ex
-  - build-immutable.sh
+  - docker/build-immutable.sh
   - ${_CLUSTERFUZZ_REVISION}
 
 timeout: 14400s
