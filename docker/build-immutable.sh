@@ -27,6 +27,7 @@ for image_name in "${IMAGES[@]}"; do
   CURRENT_CLUSTERFUZZ_REVISION="$(cat /workspace/revision.txt)"
   image_dir=docker/${image_name#gcr.io/clusterfuzz-images/}
   docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$image_name":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
-  docker push "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}
-
+  if [ "$2" == "true" ]; then
+    docker push "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}
+  fi
 done
