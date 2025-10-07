@@ -32,6 +32,8 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.system import shell
+from clusterfuzz._internal.system import archive
+
 
 def setup_fuzzer(fuzzer_name : str) -> bool:
     """Sets up the fuzzer"""
@@ -43,12 +45,43 @@ def setup_fuzzer(fuzzer_name : str) -> bool:
         return False
 
     if fuzzer.launcher_script:
-        logs.warning("Fuzzers with launcher scripts not supported yet")
+        logs.warning("Fuzzers with launch script not supported yet")
         return False
 
     if not fuzzer.builtin:
-        logs.warning("Not built in fuzzers not supported yet")
-        return False
+        fuzzer_directory : str = setup.get_fuzzer_directory(fuzzer.name)
+        
+        if not shell.remove_directory(fuzzer_directory, recreate=True):
+            logs.error('Failed to clear fuzzer directory.')
+            return False
+
+        archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
+        if not blobs.read_blob_to_disk(fuzzer.blobstore_key, archive_path):
+            logs.error('Failed to copy fuzzer archive.')
+            return False
+
+        try:
+            with archive.open(archive_path) as reader:
+                reader.extract_all(fuzzer_directory)
+        except Exception:
+            error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
+                            '(bad archive or unsupported format).')
+            logs.error(error_message)
+
+            return False
+
+        fuzzer_path = os.path.join(fuzzer_directory, fuzzer.executable_path)
+        if not os.path.exists(fuzzer_path):
+            error_message = ('Fuzzer executable %s not found. '
+                            'Check fuzzer configuration.') % fuzzer.executable_path
+            logs.error(error_message)
+            return False
+
+        os.chmod(fuzzer_path, 0o750)
+
+        shell.remove_file(archive_path)
+
+        return True
 
     return True
 
@@ -94,11 +127,13 @@ def _execute(args) -> None:
         print('Bad build detected, exiting.')
         return
     
+    environment.set_value('APP_ARGS', testcase.minimized_arguments)
+
     result = testcase_manager.test_for_crash_with_retries(
         fuzz_target=testcase.get_fuzz_target(),
         testcase=testcase,
         testcase_path=testcase_file_path,
-        test_timeout=20,
+        test_timeout=60,
         http_flag=testcase.http_flag,
         use_gestures=testcase.gestures,
         compare_crash=True
@@ -117,10 +152,10 @@ def _execute(args) -> None:
         crash_type=testcase.crash_type,
         expected_state=None,
         expected_security_flag=testcase.security_flag,
-        test_timeout=20,
+        test_timeout=60,
         http_flag=testcase.http_flag,
         gestures=testcase.gestures,
-        arguments=None
+        arguments=testcase.minimized_arguments
     )
 
     if reproduces:
@@ -130,10 +165,9 @@ def _execute(args) -> None:
 
 def execute(args) -> None:
     os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(args.config_dir) # Do I really need this?
-    local_config.ProjectConfig().set_environment() # this is alredy done in set_bot_environment()
+    local_config.ProjectConfig().set_environment() 
     environment.set_bot_environment()
     os.environ['LOG_TO_CONSOLE'] = 'True'
-    # os.environ['LOCAL_DEVELOPMENT'] = 'True'
     os.environ['LOG_TO_GCP'] = ''
     logs.configure('run_bot')
     init.run()
