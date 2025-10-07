@@ -15,6 +15,7 @@
 
 IMAGES=(
   gcr.io/clusterfuzz-images/chromium/base/immutable
+  gcr.io/clusterfuzz-images/chromium/base/immutable/dev
   gcr.io/clusterfuzz-images/base/immutable
 )
 
