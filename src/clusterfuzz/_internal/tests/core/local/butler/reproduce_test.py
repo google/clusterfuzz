@@ -251,9 +251,11 @@ class ReproduceTestcaseTest(unittest.TestCase):
             'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
             'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
             'clusterfuzz._internal.bot.testcase_manager.test_for_reproducibility',
+            'clusterfuzz._internal.bot.untrusted_runner.host.stub',
         ])
 
         self.mock_testcase = mock.MagicMock(spec=Testcase)
+        self.mock_testcase.job_type = 'test_job'
         self.mock_job = mock.MagicMock(spec=Job)
         self.mock.get_testcase_by_id.return_value = self.mock_testcase
         self.mock.query.return_value.get.return_value = self.mock_job
