@@ -51,7 +51,7 @@ for image_name in "${IMAGES[@]}"; do
     #   name and the current ClusterFuzz revision.
     # -f "$image_dir/Dockerfile": Specifies the path to the Dockerfile.
     # .: Sets the build context to the current directory.
-    docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$image_name":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
+    docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$image_dir":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
 
     # If the second argument to the script is "true", push the newly built
     # image to the container registry.
