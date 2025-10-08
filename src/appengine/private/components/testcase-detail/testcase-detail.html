@@ -28,6 +28,7 @@
 <link rel="import" href="find-similar-issues-panel.html">
 <link rel="import" href="redo-dialog.html">
 <link rel="import" href="refresh-button.html">
+<link rel="import" href="testcase-event-history.html">
 <link rel="import" href="testcase-status-events.html">
 <link rel="import" href="testcase-variants.html">
 <link rel="import" href="set-security-dialog.html">
@@ -653,6 +654,9 @@
           <div class="title">Metadata</div>
           <div class="body padding pre-line">[[info.footer]]</div>
         </div>
+
+        <testcase-event-history info="[[info]]"></testcase-event-history>
+
       </div>
     </div>
   </template>

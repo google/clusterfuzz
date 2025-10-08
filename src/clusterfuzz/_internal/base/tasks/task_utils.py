@@ -15,6 +15,8 @@
 any other module in tasks to prevent circular imports and issues with
 appengine."""
 
+import os
+
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
@@ -82,3 +84,10 @@ def get_task_execution_event_data(
         if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
         else task_argument)
   return event_data
+
+
+def reset_task_stage_env() -> None:
+  """Helper to unset env vars before a task stage."""
+  unset_vars = ['TASK_COMMENTS']
+  for var in unset_vars:
+    os.environ.pop(var, None)

@@ -14,6 +14,7 @@
 """Types of tasks. This needs to be seperate from commands.py because
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
+
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
@@ -49,27 +50,24 @@ class TrustedTask(BaseTask):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
     assert not environment.is_tworker()
+    task_utils.reset_task_stage_env()
+
     task_command = task_utils.get_command_from_module(self.module.__name__)
     event_data = task_utils.get_task_execution_event_data(
         task_command, task_argument, job_type)
-    event_data['task_stage'] = events.TaskStage.NA
-    events.emit(
-        events.TaskExecutionEvent(
-            **event_data, task_status=events.TaskStatus.STARTED))
+    events.emit_task_event(task_command, event_data, events.TaskStatus.STARTED)
 
     try:
       self.module.execute_task(task_argument, job_type)
     except Exception as e:
-      events.emit(
-          events.TaskExecutionEvent(
-              **event_data,
-              task_status=events.TaskStatus.EXCEPTION,
-              task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION))
+      events.emit_task_event(
+          task_command,
+          event_data,
+          events.TaskStatus.EXCEPTION,
+          task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION)
       raise e
 
-    events.emit(
-        events.TaskExecutionEvent(
-            **event_data, task_status=events.TaskStatus.FINISHED))
+    events.emit_task_event(task_command, event_data, events.TaskStatus.FINISHED)
 
 
 class BaseUTask(BaseTask):

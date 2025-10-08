@@ -882,6 +882,8 @@ def update_testcase_comment(testcase, task_state, message=None):
                                            task_state)
   if message:
     testcase.comments += ': %s' % message.rstrip('.')
+    task_comments = environment.get_value('TASK_COMMENTS', '')
+    environment.set_value('TASK_COMMENTS', task_comments + message + '\n')
   testcase.comments += '.\n'
 
   # Truncate if too long.

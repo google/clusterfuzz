@@ -1,0 +1,96 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+- id: clone config
+  name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # First, clone the repository
+    git config --global credential.helper gcloud.sh
+    git clone https://clusterfuzz-config-472119376969-git.us-central1.sourcemanager.dev/clusterfuzz-testing/clusterfuzz-config.git /workspace/clusterfuzz-config
+    
+    # Move into the repository directory
+    cd /workspace/clusterfuzz-config
+    
+    # Enforcing that the clusterfuzz and config are using the same branch
+    # It makes sure that for dev deployments the deployment overrides the
+    # current version with dev
+    echo "Checking out Clusterfuzz config to the branch $REF_NAME"
+    git checkout $REF_NAME
+
+    # Conditionally run 'git checkout' to a given revision
+    if [ -n "${_CLUSTERFUZZ_CONFIG_REVISION}" ]; then
+      echo "✅ _CLUSTERFUZZ_CONFIG_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_CONFIG_REVISION}"
+      git checkout "${_CLUSTERFUZZ_CONFIG_REVISION}"
+    else
+      echo "☑️ _CLUSTERFUZZ_CONFIG_REVISION is not set. Using the latest commit."
+    fi
+
+- id: clone clusterfuzz if needed
+  name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # Conditionally clone the upstream clusterfuzz and 'git checkout' if the revision is provided
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      echo "✅ _CLUSTERFUZZ_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_REVISION}"
+      git clone https://github.com/google/clusterfuzz.git
+      cd clusterfuzz
+      git checkout "${_CLUSTERFUZZ_REVISION}"
+    else
+      echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
+    fi
+
+- id: compute revision
+  name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    set -e
+    TIMESTAMP=$(date -u +'%Y%m%d%H%M%S-utc')
+
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      cd /workspace/clusterfuzz
+    fi
+
+    CF_SHA=$(git rev-parse --short HEAD)
+    CF_CONFIG_SHA=$(git -C /workspace/clusterfuzz-config rev-parse --short HEAD)
+    
+    # Using the builder service account as the user
+    RAW_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+    USER=$(echo "$$RAW_USER" | cut -d'@' -f1)
+    
+    REVISION="$${TIMESTAMP}-$${CF_SHA}-$${USER}-$${CF_CONFIG_SHA}-prod"
+    echo "Computed revision: $${REVISION}"
+    echo "$${REVISION}" > /workspace/revision.txt
+
+- id: build immutable image
+  name: gcr.io/cloud-builders/docker
+  entrypoint: bash
+  args:
+  - -ex
+  - docker/build-immutable.sh
+  - ${_CLUSTERFUZZ_REVISION}
+  - ${_PUSH_IMAGES}
+
+timeout: 14400s
+options:
+  machineType: E2_HIGHCPU_32
+  diskSizeGb: 500
+  logging: CLOUD_LOGGING_ONLY

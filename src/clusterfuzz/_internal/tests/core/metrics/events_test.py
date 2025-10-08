@@ -259,6 +259,7 @@ class EventsDataTest(unittest.TestCase):
     testcase_id = 1
     event_type = events.EventTypes.TASK_EXECUTION
     source = 'events_test'
+    task_comments = 'test_comments\n'
 
     event_task_exec_pre = events.TaskExecutionEvent(
         source=source,
@@ -266,7 +267,8 @@ class EventsDataTest(unittest.TestCase):
         task_job=job_type,
         task_fuzzer=fuzzer_name,
         task_stage=events.TaskStage.PREPROCESS,
-        task_status=events.TaskStatus.STARTED)
+        task_status=events.TaskStatus.STARTED,
+        task_comments=task_comments)
     self._assert_event_common_fields(event_task_exec_pre, event_type, source)
     self._assert_task_fields(event_task_exec_pre)
     self.assertEqual(event_task_exec_pre.task_stage,
@@ -275,6 +277,7 @@ class EventsDataTest(unittest.TestCase):
     self.assertIsNone(event_task_exec_pre.task_outcome)
     self.assertEqual(event_task_exec_pre.task_job, job_type)
     self.assertEqual(event_task_exec_pre.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_task_exec_pre.task_comments, task_comments)
     self.assertEqual(event_task_exec_pre.testcase_id, testcase_id)
 
     task_outcome = uworker_msg_pb2.ErrorType.Name(
@@ -286,7 +289,8 @@ class EventsDataTest(unittest.TestCase):
         task_fuzzer=fuzzer_name,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.POST_COMPLETED,
-        task_outcome=task_outcome)
+        task_outcome=task_outcome,
+        task_comments=task_comments)
     self._assert_event_common_fields(event_task_exec_post_finish, event_type,
                                      source)
     self._assert_task_fields(event_task_exec_post_finish)
@@ -297,6 +301,7 @@ class EventsDataTest(unittest.TestCase):
     self.assertEqual(event_task_exec_post_finish.task_outcome, task_outcome)
     self.assertEqual(event_task_exec_post_finish.task_job, job_type)
     self.assertEqual(event_task_exec_post_finish.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_task_exec_post_finish.task_comments, task_comments)
     self.assertEqual(event_task_exec_post_finish.testcase_id, testcase_id)
 
   def test_fuzzer_task_exec_event(self):
@@ -304,13 +309,15 @@ class EventsDataTest(unittest.TestCase):
     job_type = 'job_test'
     fuzzer_name = 'fuzzer_test'
     event_type = events.EventTypes.FUZZER_TASK_EXECUTION
+    task_comments = 'test_comments\n'
 
     event_fuzzer_task_exec = events.FuzzerTaskExecutionEvent(
         task_job=job_type,
         task_fuzzer=fuzzer_name,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.POST_STARTED,
-        task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION)
+        task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION,
+        task_comments=task_comments)
 
     self._assert_event_common_fields(event_fuzzer_task_exec, event_type, None)
     self._assert_task_fields(event_fuzzer_task_exec)
@@ -322,6 +329,7 @@ class EventsDataTest(unittest.TestCase):
                      events.TaskOutcome.UNHANDLED_EXCEPTION)
     self.assertEqual(event_fuzzer_task_exec.task_job, job_type)
     self.assertEqual(event_fuzzer_task_exec.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_fuzzer_task_exec.task_comments, task_comments)
 
   def test_mapping_event_classes(self):
     """Assert that all defined event types are in the classes map."""
@@ -581,6 +589,7 @@ class DatastoreEventsTest(unittest.TestCase):
     testcase_id = 1
     task_outcome = uworker_msg_pb2.ErrorType.Name(
         uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH)
+    task_comments = 'test_comments\n'
     event_task_exec = events.TaskExecutionEvent(
         source=source,
         testcase_id=testcase_id,
@@ -588,7 +597,8 @@ class DatastoreEventsTest(unittest.TestCase):
         task_job=job_type,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.POST_COMPLETED,
-        task_outcome=task_outcome)
+        task_outcome=task_outcome,
+        task_comments=task_comments)
     event_type = event_task_exec.event_type
     timestamp = event_task_exec.timestamp
 
@@ -610,6 +620,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.testcase_id, testcase_id)
     self.assertEqual(event_entity.task_job, job_type)
     self.assertEqual(event_entity.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_entity.task_comments, task_comments)
 
   def test_serialize_fuzzer_task_execution_event(self):
     """Test serializing a fuzzer task event into a datastore entity."""
@@ -618,13 +629,15 @@ class DatastoreEventsTest(unittest.TestCase):
     fuzzer_name = 'fuzzer_test'
     task_outcome = uworker_msg_pb2.ErrorType.Name(
         uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)
+    task_comments = 'test_comments\n'
     event_task_exec = events.FuzzerTaskExecutionEvent(
         source=source,
         task_fuzzer=fuzzer_name,
         task_job=job_type,
         task_stage=events.TaskStage.POSTPROCESS,
         task_status=events.TaskStatus.POST_STARTED,
-        task_outcome=task_outcome)
+        task_outcome=task_outcome,
+        task_comments=task_comments)
     event_type = event_task_exec.event_type
     timestamp = event_task_exec.timestamp
 
@@ -645,6 +658,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event_entity.task_outcome, task_outcome)
     self.assertEqual(event_entity.task_job, job_type)
     self.assertEqual(event_entity.task_fuzzer, fuzzer_name)
+    self.assertEqual(event_entity.task_comments, task_comments)
 
   def test_deserialize_generic_event(self):
     """Test deserializing a datastore event entity into an event class."""
@@ -920,6 +934,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.task_stage = events.TaskStage.POSTPROCESS
     event_entity.task_status = events.TaskStatus.EXCEPTION
     event_entity.task_outcome = 'REGRESSION_BAD_BUILD_ERROR'
+    event_entity.task_comments = 'test_comments\n'
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
@@ -941,6 +956,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.testcase_id, 1)
     self.assertEqual(event.task_fuzzer, 'fuzzer1')
     self.assertEqual(event.task_job, 'test_job')
+    self.assertEqual(event.task_comments, 'test_comments\n')
 
   def test_deserialize_fuzzer_task_event(self):
     """Test deserializing a datastore event into a fuzzer task event."""
@@ -958,6 +974,7 @@ class DatastoreEventsTest(unittest.TestCase):
     event_entity.task_stage = events.TaskStage.POSTPROCESS
     event_entity.task_status = events.TaskStatus.POST_COMPLETED
     event_entity.task_outcome = 'CORPUS_PRUNING_ERROR'
+    event_entity.task_comments = 'test_comments\n'
     event_entity.put()
 
     event = self.repository._deserialize_event(event_entity)  # pylint: disable=protected-access
@@ -978,6 +995,7 @@ class DatastoreEventsTest(unittest.TestCase):
     self.assertEqual(event.task_outcome, 'CORPUS_PRUNING_ERROR')
     self.assertEqual(event.task_fuzzer, 'fuzzer1')
     self.assertEqual(event.task_job, 'test_job')
+    self.assertEqual(event.task_comments, 'test_comments\n')
 
   def test_store_events(self):
     """Test storing events into datastore."""

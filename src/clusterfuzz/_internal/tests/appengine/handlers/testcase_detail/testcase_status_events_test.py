@@ -16,10 +16,11 @@
 
 import datetime
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
-from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import testcase_status_events
 
@@ -32,8 +33,8 @@ class EventsInfoBasicTest(unittest.TestCase):
     self.testcase_id = self.testcase.key.id()
     self.status_info_instance = testcase_status_events.TestcaseStatusInfo(
         self.testcase_id)
-    test_helpers.patch(
-        self, ['clusterfuzz._internal.config.local_config.ProjectConfig'])
+    helpers.patch(self,
+                  ['clusterfuzz._internal.config.local_config.ProjectConfig'])
     self.mock.ProjectConfig.return_value = {'events.storage': 'datastore'}
 
 
@@ -106,6 +107,7 @@ class EventsInfoTest(EventsInfoBasicTest):
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
+        task_id='1',
         task_name='analyze',
         task_stage='stage1',
         task_status='status1',
@@ -115,6 +117,7 @@ class EventsInfoTest(EventsInfoBasicTest):
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
+        task_id='1',
         task_name='analyze',
         task_stage='stage2',
         task_status='status2',
@@ -124,6 +127,7 @@ class EventsInfoTest(EventsInfoBasicTest):
     data_types.TestcaseLifecycleEvent(
         testcase_id=self.testcase_id,
         event_type=events.EventTypes.TASK_EXECUTION,
+        task_id='2',
         task_name='minimize',
         task_stage='stage3',
         task_status='status3',
@@ -500,3 +504,260 @@ class GetLastEventInfoTest(EventsInfoTest):
     result = self.status_info_instance.get_last_event_info(
         event_type='non_existent_event_type')
     self.assertEqual(result, {})
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetTestcaseEventHistoryTest(EventsInfoTest):
+  """Test retrieving testcase event history."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.get_logging_cloud_project_id',
+        'clusterfuzz._internal.base.utils.utcnow'
+    ])
+    self.mock.get_logging_cloud_project_id.return_value = 'test-project'
+    self.mock.utcnow.return_value = datetime.datetime(2025, 2, 1, 0, 0, 0)
+
+  def test_get_history(self):
+    """Verify that testcase event history is retrieved correctly."""
+    history = testcase_status_events.get_testcase_event_history(
+        self.testcase_id)
+
+    expected_history = [
+        {
+            'event_type': 'issue_closing',
+            'closing_reason': 'testcase_fixed',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-04 00:00:00.000000 UTC',
+        },
+        {
+            'event_type': 'issue_filing',
+            'issue_created': True,
+            'issue_id': '123456',
+            'issue_reporter': '@gmail.com',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-03 00:00:00.000000 UTC',
+        },
+        {
+            'event_type': 'testcase_fixed',
+            'fixed_revision': '123:456',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-02 00:00:00.000000 UTC',
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'variant',
+            'task_stage': 'stage2',
+            'task_status': 'status3',
+            'task_outcome': 'outcome2',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-01 14:00:00.000000 UTC',
+        },
+        {
+            'event_type': 'task_execution',
+            'task_name': 'blame',
+            'task_stage': 'stage4',
+            'task_status': 'status4',
+            'task_outcome': 'outcome5',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-01 13:00:00.000000 UTC',
+        },
+        {
+            'event_type':
+                'task_execution',
+            'task_name':
+                'minimize',
+            'task_stage':
+                'stage3',
+            'task_status':
+                'status3',
+            'testcase_id':
+                self.testcase_id,
+            'task_id':
+                '2',
+            'timestamp':
+                '2023-01-01 11:04:09.000000 UTC',
+            'gcp_log_url': (
+                'https://console.cloud.google.com/logs/viewer'
+                '?project=test-project&query=jsonPayload.extras.task_id%3D%222%22%20AND%20'
+                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20jsonPayload.extras.task_name'
+                '%3D%22minimize%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22'
+            )
+        },
+        {
+            'event_type':
+                'task_execution',
+            'task_name':
+                'analyze',
+            'task_stage':
+                'stage2',
+            'task_status':
+                'status2',
+            'testcase_id':
+                self.testcase_id,
+            'task_id':
+                '1',
+            'task_outcome':
+                'outcome2',
+            'timestamp':
+                '2023-01-01 11:03:11.000000 UTC',
+            'gcp_log_url': (
+                'https://console.cloud.google.com/logs/viewer'
+                '?project=test-project&query=jsonPayload.extras.task_id%3D%221%22%20AND%20'
+                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20jsonPayload.extras.task_name'
+                '%3D%22analyze%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22'
+            )
+        },
+        {
+            'event_type':
+                'task_execution',
+            'task_name':
+                'analyze',
+            'task_stage':
+                'stage1',
+            'task_status':
+                'status1',
+            'testcase_id':
+                self.testcase_id,
+            'task_id':
+                '1',
+            'task_outcome':
+                'outcome1',
+            'timestamp':
+                '2023-01-01 10:00:00.000000 UTC',
+            'gcp_log_url': (
+                'https://console.cloud.google.com/logs/viewer'
+                '?project=test-project&query=jsonPayload.extras.task_id%3D%221%22%20AND%20'
+                f'jsonPayload.extras.testcase_id%3D%22{self.testcase_id}%22%20AND%20jsonPayload.extras.task_name'
+                '%3D%22analyze%22%20AND%20timestamp%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22'
+            )
+        },
+        {
+            'event_type': 'testcase_creation',
+            'creation_origin': 'manual_upload',
+            'uploader': '@gmail.com',
+            'testcase_id': self.testcase_id,
+            'timestamp': '2023-01-01 09:00:00.000000 UTC',
+        },
+    ]
+
+    self.assertEqual(list(history), expected_history)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestcaseEventHistoryTest(unittest.TestCase):
+  """Tests for TestcaseEventHistory."""
+
+  def setUp(self):
+    """Set up test environment."""
+    super().setUp()
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase_id = self.testcase.key.id()
+    self.event_history = testcase_status_events.TestcaseEventHistory(
+        self.testcase_id)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.get_logging_cloud_project_id',
+        'google.cloud.logging_v2.Client',
+        'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+    self.mock.utcnow.return_value = datetime.datetime(2025, 2, 1, 0, 0, 0)
+
+  def test_get_time_range_filter(self):
+    """Verify that the time range filter is generated correctly."""
+    result = self.event_history._get_time_range_filter(days=1)
+    self.assertEqual(result, 'timestamp >= "2025-01-31T00:00:00Z"')
+
+  def test_get_task_log_query_filter(self):
+    """Verify that the task log query filter is generated correctly."""
+    result = self.event_history._get_task_log_query_filter(
+        'task123', 'minimize')
+    expected = (f'jsonPayload.extras.task_id="task123" AND '
+                f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
+                'jsonPayload.extras.task_name="minimize" AND '
+                'timestamp >= "2025-01-01T00:00:00Z"')
+    self.assertEqual(result, expected)
+
+  def test_enrich_event_info_with_gcp_log_url_no_project(self):
+    """Verify that no log URL is added when the project ID is missing."""
+    self.mock.get_logging_cloud_project_id.return_value = None
+    event_info = {'task_id': 'task123', 'task_name': 'minimize'}
+    self.event_history._enrich_event_info_with_gcp_log_url(event_info)
+    self.assertNotIn('gcp_log_url', event_info)
+    self.mock.error.assert_called_once_with(
+        'Unable to generate GCP log URL due to missing info. '
+        "Missing info: ['project_id']")
+
+  def test_enrich_event_info_with_gcp_log_url_no_task_info(self):
+    """Verify that no log URL is added when the task info is missing."""
+    self.mock.get_logging_cloud_project_id.return_value = 'test-project'
+    event_info = {'other_key': 'value'}
+    self.event_history._enrich_event_info_with_gcp_log_url(event_info)
+    self.assertNotIn('gcp_log_url', event_info)
+    self.mock.error.assert_called_once_with(
+        'Unable to generate GCP log URL due to missing info. '
+        "Missing info: ['task_id', 'task_name']")
+
+  def test_enrich_event_info_with_gcp_log_url_success(self):
+    """Verify that the log URL is correctly added to the event info."""
+    self.mock.get_logging_cloud_project_id.return_value = 'test-project'
+    event_info = {'task_id': 'task123', 'task_name': 'minimize'}
+    self.event_history._enrich_event_info_with_gcp_log_url(event_info)
+
+    url_query = (
+        'jsonPayload.extras.task_id%3D%22task123%22%20AND%20jsonPayload.extras.'
+        'testcase_id%3D%221%22%20AND%20jsonPayload.extras.task_name%3D%22minimize%22%20AND%20timestamp'
+        '%20%3E%3D%20%222025-01-01T00%3A00%3A00Z%22')
+
+    self.assertIn('gcp_log_url', event_info)
+    self.assertIn('project=test-project', event_info['gcp_log_url'])
+    self.assertIn(f'query={url_query}', event_info['gcp_log_url'])
+
+  def test_format_event_for_history(self):
+    """Verify that an event is formatted correctly for the history view."""
+    test_event = events.TestcaseCreationEvent(
+        testcase_id=self.testcase_id,
+        creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+        uploader='user@example.com',
+        source=None)
+    test_event.timestamp = datetime.datetime(2023, 1, 1, 10, 0, 0)
+
+    result = self.event_history._format_event_for_history(test_event)
+    self.assertIn('timestamp', result)
+    self.assertEqual(result['timestamp'], '2023-01-01 10:00:00.000000 UTC')
+    self.assertEqual(result['creation_origin'], 'manual_upload')
+    self.assertNotIn('source', result)
+
+  def test_get_task_log_no_project_id(self):
+    """Verify that get_task_log returns an empty string if no project ID is available."""
+    self.mock.get_logging_cloud_project_id.return_value = None
+    self.mock.Client.return_value.list_entries.return_value = []
+    result = self.event_history.get_task_log('task123', 'minimize')
+    self.assertEqual(result, '')
+
+  def test_get_task_log_api_call(self):
+    """Verify that get_task_log calls the logging API correctly."""
+    self.mock.get_logging_cloud_project_id.return_value = 'test-project'
+    mock_client_instance = self.mock.Client.return_value
+    mock_entry1 = mock.Mock()
+    mock_entry1.to_api_repr.return_value = {'payload': 'log1'}
+    mock_entry2 = mock.Mock()
+    mock_entry2.to_api_repr.return_value = {'payload': 'log2'}
+    mock_client_instance.list_entries.return_value = [mock_entry2, mock_entry1]
+    expected_filter = (
+        f'jsonPayload.extras.task_id="task123" AND '
+        f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
+        'jsonPayload.extras.task_name="minimize" AND '
+        'timestamp >= "2025-01-01T00:00:00Z"')
+
+    result = self.event_history.get_task_log('task123', 'minimize')
+    self.mock.Client.assert_called_with(project='test-project')
+    mock_client_instance.list_entries.assert_called_with(
+        filter_=expected_filter, max_results=500, order_by=mock.ANY)
+
+    self.assertIn('"payload": "log1"', result)
+    self.assertIn('"payload": "log2"', result)
+    self.assertLess(
+        result.find('"payload": "log1"'), result.find('"payload": "log2"'))
+    self.assertEqual(result.count('\n'), 5)
