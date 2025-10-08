@@ -33,9 +33,12 @@ class EventsInfoBasicTest(unittest.TestCase):
     self.testcase_id = self.testcase.key.id()
     self.status_info_instance = testcase_status_events.TestcaseStatusInfo(
         self.testcase_id)
-    helpers.patch(self,
-                  ['clusterfuzz._internal.config.local_config.ProjectConfig'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
+        'clusterfuzz._internal.base.utils.is_chromium'
+    ])
     self.mock.ProjectConfig.return_value = {'events.storage': 'datastore'}
+    self.mock.is_chromium.return_value = True
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -64,6 +67,56 @@ class GetTestcaseStatusMachineInfoNoEventsTest(EventsInfoBasicTest):
         },
         {
             'task_name': 'Blame'
+        },
+        {
+            'task_name': 'Variant'
+        },
+    ]
+
+    expected_lifecycle_events = [
+        {
+            'event_type': 'Testcase Rejection'
+        },
+        {
+            'event_type': 'Testcase Creation'
+        },
+        {
+            'event_type': 'Testcase Fixed'
+        },
+        {
+            'event_type': 'Issue Closing'
+        },
+        {
+            'event_type': 'Issue Filing'
+        },
+        {
+            'event_type': 'Testcase Grouping'
+        },
+    ]
+
+    self.assertCountEqual(result.keys(),
+                          ['task_events_info', 'lifecycle_events_info'])
+    self.assertCountEqual(result['task_events_info'], expected_task_events)
+    self.assertCountEqual(result['lifecycle_events_info'],
+                          expected_lifecycle_events)
+
+  def test_get_testcase_status_info_no_events_no_chromium(self):
+    """Verify that Chrome tasks are not retrieved by non-chromium fuzzing instances."""
+    self.mock.is_chromium.return_value = False
+    result = self.status_info_instance.get_info()
+
+    expected_task_events = [
+        {
+            'task_name': 'Analyze'
+        },
+        {
+            'task_name': 'Minimize'
+        },
+        {
+            'task_name': 'Regression'
+        },
+        {
+            'task_name': 'Progression'
         },
         {
             'task_name': 'Variant'
@@ -189,11 +242,11 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     result = self.status_info_instance.get_info()
 
     expected_task_events = [{
-        'task_name': 'Impact'
+        'task_name': 'Progression'
     }, {
         'task_name': 'Regression'
     }, {
-        'task_name': 'Progression'
+        'task_name': 'Impact'
     }, {
         'task_name': 'Analyze',
         'task_stage': 'stage2',
@@ -221,9 +274,9 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
     }]
 
     expected_lifecycle_events = [{
-        'event_type': 'Testcase Rejection'
-    }, {
         'event_type': 'Testcase Grouping'
+    }, {
+        'event_type': 'Testcase Rejection'
     }, {
         'event_type': 'Testcase Creation',
         'timestamp': '2023-01-01 09:00:00.000000 UTC',

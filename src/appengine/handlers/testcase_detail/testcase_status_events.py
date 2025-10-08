@@ -39,15 +39,16 @@ def _format_timestamp(timestamp: datetime.datetime) -> str:
 class TestcaseStatusInfo:
   """Methods to retrieve and format testcase events information."""
 
-  TASK_EVENTS_NAMES = ('analyze', 'minimize', 'impact', 'regression',
-                       'progression', 'blame', 'variant')
+  TASK_EVENTS_NAMES = ('analyze', 'minimize', 'progression', 'regression',
+                       'variant')
+  CHROME_TASK_EVENTS_NAMES = ('blame', 'impact')
   LIFECYCLE_EVENTS_TYPES = (
-      events.EventTypes.TESTCASE_REJECTION,
-      events.EventTypes.TESTCASE_CREATION,
-      events.EventTypes.TESTCASE_FIXED,
       events.EventTypes.ISSUE_CLOSING,
       events.EventTypes.ISSUE_FILING,
+      events.EventTypes.TESTCASE_CREATION,
+      events.EventTypes.TESTCASE_FIXED,
       events.EventTypes.TESTCASE_GROUPING,
+      events.EventTypes.TESTCASE_REJECTION,
   )
 
   def __init__(self, testcase_id: int):
@@ -72,6 +73,16 @@ class TestcaseStatusInfo:
         events.EventTypes.TESTCASE_GROUPING:
             self._format_testcase_grouping_event,
     }
+
+  def _get_event_selectors(self):
+    """Returns the selectors for task and lifecycle events."""
+    task_events_names = self.TASK_EVENTS_NAMES
+    lifecycle_events_types = self.LIFECYCLE_EVENTS_TYPES
+
+    if utils.is_chromium():
+      task_events_names += self.CHROME_TASK_EVENTS_NAMES
+
+    return task_events_names, lifecycle_events_types
 
   def _format_string(self, text: str | None) -> str | None:
     """Formats a string by capitalizing words and replacing underscores."""
@@ -171,17 +182,18 @@ class TestcaseStatusInfo:
     
     The lists of events are returned in chronological order.
     """
+    task_events_names, lifecycle_events_types = self._get_event_selectors()
     task_events_info = [
         self.get_last_event_info(
             event_type=events.EventTypes.TASK_EXECUTION, task_name=task_name)
         | {
             'task_name': self._format_string(task_name)
-        } for task_name in self.TASK_EVENTS_NAMES
+        } for task_name in task_events_names
     ]
     lifecycle_events_info = [
         self.get_last_event_info(event_type=event_type) | {
             'event_type': self._format_string(event_type)
-        } for event_type in self.LIFECYCLE_EVENTS_TYPES
+        } for event_type in lifecycle_events_types
     ]
 
     # String sorting works here because timestamps are in the
