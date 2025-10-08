@@ -15,6 +15,9 @@
 
 IMAGES=(
   gcr.io/clusterfuzz-images/chromium/base/immutable
+  gcr.io/clusterfuzz-images/chromium/base/immutable/dev
+  gcr.io/clusterfuzz-images/chromium/base/immutable/staging
+  gcr.io/clusterfuzz-images/base/immutable
 )
 
 if [ -n "$1" ]; then
@@ -26,6 +29,7 @@ for image_name in "${IMAGES[@]}"; do
   CURRENT_CLUSTERFUZZ_REVISION="$(cat /workspace/revision.txt)"
   image_dir=docker/${image_name#gcr.io/clusterfuzz-images/}
   docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$image_name":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
-  docker push "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}
-
+  if [ "$2" == "true" ]; then
+    docker push "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}
+  fi
 done
