@@ -21,6 +21,6 @@ COPY ${CLUSTERFUZZ_SOURCE_DIR} /data/clusterfuzz
 
 RUN cd /data/clusterfuzz && bash local/install_deps.bash
 
-RUN cp -r /data/clusterfuzz/clusterfuzz-config/configs/chrome-staging /data/clusterfuzz/src/appengine/config
+COPY ${CLUSTERFUZZ_SOURCE_DIR}/clusterfuzz-config/configs/chrome-staging /data/clusterfuzz/src/appengine/config
 
 RUN rm -rf /data/clusterfuzz/clusterfuzz-config

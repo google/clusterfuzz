@@ -32,6 +32,10 @@ if [ -n "$1" ]; then
   cd /workspace/clusterfuzz
 fi
 
+# Deleting the current config that is used for testing purposes.
+# It will be replaced by the project config during the image build.
+rm -rf src/appengine/config
+
 # Loop through each image name in the IMAGES array.
 for image_name in "${IMAGES[@]}"; do
   # Read the ClusterFuzz revision from the revision.txt file. This is used to
@@ -56,7 +60,7 @@ for image_name in "${IMAGES[@]}"; do
     # If the second argument to the script is "true", push the newly built
     # image to the container registry.
     if [ "$2" == "true" ]; then
-      docker push "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}
+      docker push "$image_dir":${CURRENT_CLUSTERFUZZ_REVISION}
     fi
   done
 done
