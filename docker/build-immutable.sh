@@ -48,19 +48,23 @@ for image_name in "${IMAGES[@]}"; do
   # Loop through each subdirectory in the project directory. This allows for
   # building multiple image variants from the same base project directory.
   for image_dir in ${project_dir}/*; do
+    # Combine the base image name with the subdirectory to create the full
+    # image reference.
+    full_image_name="$image_name/$(basename "$image_dir")"
+
     # Build the Docker image.
     # --build-arg CLUSTERFUZZ_SOURCE_DIR=.: Passes the location of the
     #   ClusterFuzz source directory as a build argument.
-    # -t "$image_name":${CURRENT_CLUSTERFUZZ_REVISION}: Tags the image with its
-    #   name and the current ClusterFuzz revision.
+    # -t "$full_image_name":${CURRENT_CLUSTERFUZZ_REVISION}: Tags the image with
+    #   its name and the current ClusterFuzz revision.
     # -f "$image_dir/Dockerfile": Specifies the path to the Dockerfile.
     # .: Sets the build context to the current directory.
-    docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$image_dir":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
+    docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$full_image_name":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
 
     # If the second argument to the script is "true", push the newly built
     # image to the container registry.
     if [ "$2" == "true" ]; then
-      docker push "$image_dir":${CURRENT_CLUSTERFUZZ_REVISION}
+      docker push "$full_image_name":${CURRENT_CLUSTERFUZZ_REVISION}
     fi
   done
 done
