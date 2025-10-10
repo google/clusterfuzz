@@ -24,6 +24,7 @@ IMAGES=(
   gcr.io/clusterfuzz-images/chromium/builder/immutable
   gcr.io/clusterfuzz-images/base/immutable
   gcr.io/clusterfuzz-images/utask-main-scheduler/immutable
+  gcr.io/clusterfuzz-images/tworker/immutable
 )
 
 # If an argument is provided, change the current directory to
