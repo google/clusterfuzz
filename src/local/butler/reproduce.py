@@ -50,11 +50,15 @@ def _setup_fuzzer(fuzzer_name: str) -> bool:
   Returns:
     True if setup was successful, False otherwise.
   """
-  fuzzer: Optional[Fuzzer] = data_types.Fuzzer.query(
+  fuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer:
     logs.error(f'Fuzzer {fuzzer_name} not found.')
     return False
+
+  if fuzzer.untrusted_content:
+    logs.warning('You are about to run an untrusted fuzzer locally. '
+                 'This can be dangerous.')
 
   environment.set_value('UNTRUSTED_CONTENT', fuzzer.untrusted_content)
 
@@ -140,9 +144,12 @@ def _setup_testcase_locally(testcase: Testcase) -> Tuple[bool, Optional[str]]:
 
   try:
     _, testcase_file_path = setup._get_testcase_file_and_path(testcase)
-    if not blobs.read_blob_to_disk(testcase.fuzzed_keys, testcase_file_path):
-      logs.error('Failed to download testcase from blobstore: '
-                 f'{testcase.fuzzed_keys}')
+    if testcase.minimized_keys and testcase.minimized_keys != 'NA':
+      blob_key = testcase.minimized_keys
+    else:
+      blob_key = testcase.fuzzed_keys
+    if not blobs.read_blob_to_disk(blob_key, testcase_file_path):
+      logs.error(f'Failed to download testcase from blobstore: {blob_key}')
       # Returning None for path when download fails
       return False, None
     setup.prepare_environment_for_testcase(testcase)
@@ -159,13 +166,13 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   Args:
     args: Parsed command-line arguments.
   """
-  testcase: Optional[Testcase] = data_handler.get_testcase_by_id(
+  testcase = data_handler.get_testcase_by_id(
       args.testcase_id)
   if not testcase:
     logs.error(f'Testcase with ID {args.testcase_id} not found.')
     return
 
-  job: Optional[Job] = data_types.Job.query(
+  job = data_types.Job.query(
       data_types.Job.name == testcase.job_type).get()
   if not job:
     logs.error(f'Job type {testcase.job_type} not found for testcase.')
@@ -180,8 +187,9 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
     logs.error(f'Failed to setup fuzzer {testcase.fuzzer_name}. Exiting.')
     return
 
-  ok, testcase_file_path = _setup_testcase_locally(testcase)
-  if not ok or testcase_file_path is None:
+  testcase_setup_successful, testcase_file_path = _setup_testcase_locally(
+      testcase)
+  if not testcase_setup_successful or testcase_file_path is None:
     logs.error('Could not setup testcase locally. Exiting.')
     return
 

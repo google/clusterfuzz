@@ -197,8 +197,9 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
 
     self.mock_testcase = mock.MagicMock(spec=Testcase)
     self.mock_testcase.fuzzed_keys = 'testcase_key'
+    self.mock_testcase.minimized_keys = None
 
-  def test_success(self):
+  def test_success_fuzzed_keys(self):
     """Test successful local setup of a testcase."""
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
@@ -213,6 +214,22 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock.prepare_environment_for_testcase.assert_called_once_with(
         self.mock_testcase)
 
+  def test_success_minimized_keys(self):
+    """Test successful local setup of a testcase with minimized keys."""
+    self.mock_testcase.minimized_keys = 'minimized_key'
+    self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
+                                                          '/tmp/testcase')
+    self.mock.read_blob_to_disk.return_value = True
+
+    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    self.assertTrue(ok)
+    self.assertEqual(path, '/tmp/testcase')
+    self.mock.clear_testcase_directories.assert_called_once()
+    self.mock.read_blob_to_disk.assert_called_once_with('minimized_key',
+                                                        '/tmp/testcase')
+    self.mock.prepare_environment_for_testcase.assert_called_once_with(
+        self.mock_testcase)
+
   def test_clear_directories_fails(self):
     """Test handling an exception from clear_testcase_directories."""
     self.mock.clear_testcase_directories.side_effect = Exception(
@@ -223,7 +240,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock_logs['error'].assert_called_with(
         'Error clearing testcase directories: mock clear error')
 
-  def test_download_fails(self):
+  def test_download_fails_fuzzed_keys(self):
     """Test handling a download failure from read_blob_to_disk."""
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
@@ -233,6 +250,18 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
         'Failed to download testcase from blobstore: testcase_key')
+
+  def test_download_fails_minimized_keys(self):
+    """Test handling a download failure from read_blob_to_disk with minimized keys."""
+    self.mock_testcase.minimized_keys = 'minimized_key'
+    self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
+                                                          '/tmp/testcase')
+    self.mock.read_blob_to_disk.return_value = False
+    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    self.assertFalse(ok)
+    self.assertIsNone(path)
+    self.mock_logs['error'].assert_called_with(
+        'Failed to download testcase from blobstore: minimized_key')
 
   def test_prepare_env_fails(self):
     """Test handling an exception from prepare_environment_for_testcase."""
