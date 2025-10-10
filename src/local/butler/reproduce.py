@@ -21,15 +21,13 @@ from typing import Tuple
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import init
 from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.commands import update_environment_for_job
+from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
-from clusterfuzz._internal.datastore.data_types import Fuzzer
-from clusterfuzz._internal.datastore.data_types import Job
-from clusterfuzz._internal.datastore.data_types import Testcase
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -50,11 +48,15 @@ def _setup_fuzzer(fuzzer_name: str) -> bool:
   Returns:
     True if setup was successful, False otherwise.
   """
-  fuzzer: Optional[Fuzzer] = data_types.Fuzzer.query(
+  fuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer:
     logs.error(f'Fuzzer {fuzzer_name} not found.')
     return False
+
+  if fuzzer.untrusted_content:
+    logs.warning('You are about to run an untrusted fuzzer locally. '
+                 'This can be dangerous.')
 
   environment.set_value('UNTRUSTED_CONTENT', fuzzer.untrusted_content)
 
@@ -121,7 +123,7 @@ def _setup_fuzzer(fuzzer_name: str) -> bool:
   return True
 
 
-def _setup_testcase_locally(testcase: Testcase) -> Tuple[bool, Optional[str]]:
+def _setup_testcase_locally(testcase: data_types.Testcase) -> Tuple[bool, Optional[str]]:
   """Sets up the testcase file locally.
 
   Args:
@@ -140,9 +142,12 @@ def _setup_testcase_locally(testcase: Testcase) -> Tuple[bool, Optional[str]]:
 
   try:
     _, testcase_file_path = setup._get_testcase_file_and_path(testcase)
-    if not blobs.read_blob_to_disk(testcase.fuzzed_keys, testcase_file_path):
-      logs.error('Failed to download testcase from blobstore: '
-                 f'{testcase.fuzzed_keys}')
+    if testcase.minimized_keys and testcase.minimized_keys != 'NA':
+      blob_key = testcase.minimized_keys
+    else:
+      blob_key = testcase.fuzzed_keys
+    if not blobs.read_blob_to_disk(blob_key, testcase_file_path):
+      logs.error(f'Failed to download testcase from blobstore: {blob_key}')
       # Returning None for path when download fails
       return False, None
     setup.prepare_environment_for_testcase(testcase)
@@ -159,13 +164,13 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   Args:
     args: Parsed command-line arguments.
   """
-  testcase: Optional[Testcase] = data_handler.get_testcase_by_id(
+  testcase = data_handler.get_testcase_by_id(
       args.testcase_id)
   if not testcase:
     logs.error(f'Testcase with ID {args.testcase_id} not found.')
     return
 
-  job: Optional[Job] = data_types.Job.query(
+  job = data_types.Job.query(
       data_types.Job.name == testcase.job_type).get()
   if not job:
     logs.error(f'Job type {testcase.job_type} not found for testcase.')
@@ -174,14 +179,15 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   # The job name is not set in update_environment_for_job,
   # so it was needed to manually set it here.
   environment.set_value('JOB_NAME', job.name)
-  update_environment_for_job(job.get_environment_string())
+  commands.update_environment_for_job(job.get_environment_string())
 
   if not _setup_fuzzer(testcase.fuzzer_name):
     logs.error(f'Failed to setup fuzzer {testcase.fuzzer_name}. Exiting.')
     return
 
-  ok, testcase_file_path = _setup_testcase_locally(testcase)
-  if not ok or testcase_file_path is None:
+  testcase_setup_successful, testcase_file_path = _setup_testcase_locally(
+      testcase)
+  if not testcase_setup_successful or testcase_file_path is None:
     logs.error('Could not setup testcase locally. Exiting.')
     return
 
@@ -248,9 +254,8 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   else:
     logs.info('The testcase does not reliably reproduce.')
 
-
-def execute(args: argparse.Namespace) -> None:
-  """Initializes the environment and reproduces a testcase locally.
+def _setup_reproduce(args) -> None:
+  """Sets up the environment for reproducing a testcase.
 
   Args:
     args: Parsed command-line arguments.
@@ -258,10 +263,15 @@ def execute(args: argparse.Namespace) -> None:
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(args.config_dir)
   local_config.ProjectConfig().set_environment()
   environment.set_bot_environment()
-  os.environ['LOG_TO_CONSOLE'] = 'True'
-  os.environ['LOG_TO_GCP'] = ''
   logs.configure('run_bot')
   init.run()
 
+def execute(args: argparse.Namespace) -> None:
+  """Initializes the environment and reproduces a testcase locally.
+
+  Args:
+    args: Parsed command-line arguments.
+  """
+  _setup_reproduce(args)
   with ndb_init.context():
     _reproduce_testcase(args)
