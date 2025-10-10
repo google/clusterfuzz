@@ -1,0 +1,5 @@
+# Build artifacts
+build/
+dist/
+*.egg-info/
+src/casp.egg-info/
