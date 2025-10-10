@@ -254,9 +254,8 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   else:
     logs.info('The testcase does not reliably reproduce.')
 
-
-def execute(args: argparse.Namespace) -> None:
-  """Initializes the environment and reproduces a testcase locally.
+def _setup_reproduce(args) -> None:
+  """Sets up the environment for reproducing a testcase.
 
   Args:
     args: Parsed command-line arguments.
@@ -264,10 +263,15 @@ def execute(args: argparse.Namespace) -> None:
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(args.config_dir)
   local_config.ProjectConfig().set_environment()
   environment.set_bot_environment()
-  os.environ['LOG_TO_CONSOLE'] = 'True'
-  os.environ['LOG_TO_GCP'] = ''
   logs.configure('run_bot')
   init.run()
 
+def execute(args: argparse.Namespace) -> None:
+  """Initializes the environment and reproduces a testcase locally.
+
+  Args:
+    args: Parsed command-line arguments.
+  """
+  _setup_reproduce(args)
   with ndb_init.context():
     _reproduce_testcase(args)
