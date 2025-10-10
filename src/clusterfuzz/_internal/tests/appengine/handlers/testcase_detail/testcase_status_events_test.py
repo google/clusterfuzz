@@ -165,6 +165,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage1',
         task_status='status1',
         task_outcome='outcome1',
+        task_comments='comment1',
         timestamp=datetime.datetime(2023, 1, 1, 10, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -175,6 +176,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage2',
         task_status='status2',
         task_outcome='outcome2',
+        task_comments='comment2',
         timestamp=datetime.datetime(2023, 1, 1, 11, 3, 11)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -185,6 +187,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage3',
         task_status='status3',
         task_outcome=None,
+        task_comments='comment3',
         timestamp=datetime.datetime(2023, 1, 1, 11, 4, 9)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -221,6 +224,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage4',
         task_status='status4',
         task_outcome='outcome5',
+        task_comments='comment4',
         timestamp=datetime.datetime(2023, 1, 1, 13, 0, 0)).put()
 
     data_types.TestcaseLifecycleEvent(
@@ -230,6 +234,7 @@ class EventsInfoTest(EventsInfoBasicTest):
         task_stage='stage2',
         task_status='status3',
         task_outcome='outcome2',
+        task_comments='comment5',
         timestamp=datetime.datetime(2023, 1, 1, 14, 0, 0)).put()
 
 
@@ -252,24 +257,28 @@ class GetTestcaseStatusMachineInfoTest(EventsInfoTest):
         'task_stage': 'stage2',
         'task_status': 'status2',
         'task_outcome': 'outcome2',
+        'task_comments': 'comment2',
         'timestamp': '2023-01-01 11:03:11.000000 UTC'
     }, {
         'task_name': 'Minimize',
         'task_stage': 'stage3',
         'task_status': 'status3',
         'task_outcome': None,
+        'task_comments': 'comment3',
         'timestamp': '2023-01-01 11:04:09.000000 UTC'
     }, {
         'task_name': 'Blame',
         'task_stage': 'stage4',
         'task_status': 'status4',
         'task_outcome': 'outcome5',
+        'task_comments': 'comment4',
         'timestamp': '2023-01-01 13:00:00.000000 UTC'
     }, {
         'task_name': 'Variant',
         'task_stage': 'stage2',
         'task_status': 'status3',
         'task_outcome': 'outcome2',
+        'task_comments': 'comment5',
         'timestamp': '2023-01-01 14:00:00.000000 UTC'
     }]
 
@@ -358,6 +367,7 @@ class GetLastEventInfoTest(EventsInfoTest):
         'task_stage': 'stage3',
         'task_status': 'status3',
         'task_outcome': None,
+        'task_comments': 'comment3',
         'timestamp': '2023-01-01 11:04:09.000000 UTC'
     }
     self.assertEqual(result, expected)
@@ -372,6 +382,7 @@ class GetLastEventInfoTest(EventsInfoTest):
         'task_stage': 'stage4',
         'task_status': 'status4',
         'task_outcome': 'outcome5',
+        'task_comments': 'comment4',
         'timestamp': '2023-01-01 13:00:00.000000 UTC'
     }
     self.assertEqual(result, expected)
@@ -386,6 +397,7 @@ class GetLastEventInfoTest(EventsInfoTest):
         'task_stage': 'stage2',
         'task_status': 'status3',
         'task_outcome': 'outcome2',
+        'task_comments': 'comment5',
         'timestamp': '2023-01-01 14:00:00.000000 UTC'
     }
     self.assertEqual(result, expected)
@@ -604,6 +616,7 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'task_stage': 'stage2',
             'task_status': 'status3',
             'task_outcome': 'outcome2',
+            'task_comments': 'comment5',
             'testcase_id': self.testcase_id,
             'timestamp': '2023-01-01 14:00:00.000000 UTC',
         },
@@ -613,6 +626,7 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
             'task_stage': 'stage4',
             'task_status': 'status4',
             'task_outcome': 'outcome5',
+            'task_comments': 'comment4',
             'testcase_id': self.testcase_id,
             'timestamp': '2023-01-01 13:00:00.000000 UTC',
         },
@@ -629,6 +643,8 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
                 self.testcase_id,
             'task_id':
                 '2',
+            'task_comments':
+                'comment3',
             'timestamp':
                 '2023-01-01 11:04:09.000000 UTC',
             'gcp_log_url': (
@@ -653,6 +669,8 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
                 '1',
             'task_outcome':
                 'outcome2',
+            'task_comments':
+                'comment2',
             'timestamp':
                 '2023-01-01 11:03:11.000000 UTC',
             'gcp_log_url': (
@@ -677,6 +695,8 @@ class GetTestcaseEventHistoryTest(EventsInfoTest):
                 '1',
             'task_outcome':
                 'outcome1',
+            'task_comments':
+                'comment1',
             'timestamp':
                 '2023-01-01 10:00:00.000000 UTC',
             'gcp_log_url': (

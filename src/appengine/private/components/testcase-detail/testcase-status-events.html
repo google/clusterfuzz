@@ -100,6 +100,7 @@
               <td>Task Stage</td>
               <td>Task Status</td>
               <td>Task Outcome</td>
+              <td>Task Comments</td>
               <td>Time</td>
             </tr>
             <template is="dom-repeat" items="[[info.testcase_status_info.task_events_info]]" as="taskEvent">
@@ -108,6 +109,7 @@
                 <td>[[taskEvent.task_stage]]</td>
                 <td>[[taskEvent.task_status]]</td>
                 <td>[[taskEvent.task_outcome]]</td>
+                <td>[[taskEvent.task_comments]]</td>
                 <td>[[taskEvent.timestamp]]</td>
               </tr>
             </template>
