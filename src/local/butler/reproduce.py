@@ -21,15 +21,13 @@ from typing import Tuple
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import init
 from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.commands import update_environment_for_job
+from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
-from clusterfuzz._internal.datastore.data_types import Fuzzer
-from clusterfuzz._internal.datastore.data_types import Job
-from clusterfuzz._internal.datastore.data_types import Testcase
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -125,7 +123,7 @@ def _setup_fuzzer(fuzzer_name: str) -> bool:
   return True
 
 
-def _setup_testcase_locally(testcase: Testcase) -> Tuple[bool, Optional[str]]:
+def _setup_testcase_locally(testcase: data_types.Testcase) -> Tuple[bool, Optional[str]]:
   """Sets up the testcase file locally.
 
   Args:
@@ -181,7 +179,7 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   # The job name is not set in update_environment_for_job,
   # so it was needed to manually set it here.
   environment.set_value('JOB_NAME', job.name)
-  update_environment_for_job(job.get_environment_string())
+  commands.update_environment_for_job(job.get_environment_string())
 
   if not _setup_fuzzer(testcase.fuzzer_name):
     logs.error(f'Failed to setup fuzzer {testcase.fuzzer_name}. Exiting.')
