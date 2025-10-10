@@ -99,6 +99,7 @@ class TestcaseStatusInfo:
         'task_status': event.task_status,
         'task_outcome': event.task_outcome,
         'timestamp': _format_timestamp(event.timestamp),
+        'task_comments': event.task_comments,
     }
 
   def _format_lifecycle_events_common_fields(self,
