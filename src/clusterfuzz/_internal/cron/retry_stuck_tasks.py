@@ -36,6 +36,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 
 RETRY_ATTEMPT_COUNT_KEY = 'retry_stuck_task_attempt_count'
 RETRY_LAST_ATTEMPT_TIME_KEY = 'retry_stuck_task_last_attempt_time'
@@ -389,14 +390,30 @@ def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
   an error for each testcase that has been given up on, escalating them for
   manual review and increasing data integrity visibility.
   """
+  skipped_complete_count = len(results.skipped_as_complete)
+  monitoring_metrics.STUCK_TESTCASE_COUNT.increment_by(
+      skipped_complete_count, {'result': 'skipped_as_complete'})
+
+  skipped_invalid_job_count = len(results.skipped_for_invalid_job)
+  monitoring_metrics.STUCK_TESTCASE_COUNT.increment_by(
+      skipped_invalid_job_count, {'result': 'skipped_for_invalid_job'})
+
+  skipped_cooldown_count = len(results.skipped_for_cooldown)
+  monitoring_metrics.STUCK_TESTCASE_COUNT.increment_by(
+      skipped_cooldown_count, {'result': 'skipped_for_cooldown'})
+
+  skipped_max_attempts_count = len(results.skipped_max_attempts)
+  monitoring_metrics.STUCK_TESTCASE_COUNT.increment_by(
+      skipped_max_attempts_count, {'result': 'skipped_max_attempts'})
+
   logs.info(f"""
     Analysis phase complete.
     Total candidates from query: {total_from_query}
     -------------------------------------------------------------------
-    Skipped (already complete): {len(results.skipped_as_complete)}
-    Skipped (job no longer exists): {len(results.skipped_for_invalid_job)}
-    Skipped (in cooldown period): {len(results.skipped_for_cooldown)}
-    Skipped (max attempts reached): {len(results.skipped_max_attempts)}
+    Skipped (already complete): {skipped_complete_count}
+    Skipped (job no longer exists): {skipped_invalid_job_count}
+    Skipped (in cooldown period): {skipped_cooldown_count}
+    Skipped (max attempts reached): {skipped_max_attempts_count}
     -------------------------------------------------------------------
     Testcases to be restarted: {len(results.to_restart)}
     """)
@@ -428,6 +445,7 @@ def main(args: list[str] | None = None):
   query = _get_stuck_testcase_candidates_query(config.stuck_deadline)
 
   all_candidates = list(query)
+  monitoring_metrics.STUCK_TESTCASE_CANDIDATE_COUNT.set(len(all_candidates))
 
   categorized_results = filter_and_categorize_candidates(all_candidates, config)
 
@@ -435,6 +453,8 @@ def main(args: list[str] | None = None):
 
   restarted_count = restart_analysis_for_testcases(
       categorized_results.to_restart, config)
+  monitoring_metrics.STUCK_TESTCASE_COUNT.increment_by(
+      restarted_count, {'result': 'restarted'})
 
   logs.info(f"Stuck testcase recovery cron finished. {len(all_candidates)} "
             f"candidates analyzed, {restarted_count} "

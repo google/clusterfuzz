@@ -440,3 +440,15 @@ PRODUCTION_DEPLOYMENT = monitor.CounterMetric(
         monitor.BooleanField('deploy_terraform'),
         monitor.StringField('clusterfuzz_version')
     ])
+
+STUCK_TESTCASE_COUNT = monitor.CounterMetric(
+    'stuck_testcase_count',
+    description='The number of stuck testcases processed by the cron job.',
+    field_spec=[
+        monitor.StringField('result'),
+    ])
+
+STUCK_TESTCASE_CANDIDATE_COUNT = monitor.GaugeMetric(
+    'stuck_testcase_candidate_count',
+    description='The number of candidates for stuck testcases.',
+    field_spec=[])
