@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/chromium/base
+FROM gcr.io/clusterfuzz-images/utask-main-scheduler
 
 ENV IMMUTABLE_IMAGE=true
 
@@ -21,6 +21,6 @@ COPY ${CLUSTERFUZZ_SOURCE_DIR} /data/clusterfuzz
 
 RUN cd /data/clusterfuzz && bash local/install_deps.bash
 
-RUN cp -r /data/clusterfuzz/clusterfuzz-config/configs/internal /data/clusterfuzz/src/appengine/config
+COPY ${CLUSTERFUZZ_SOURCE_DIR}/clusterfuzz-config/configs/chrome-development /data/clusterfuzz/src/appengine/config
 
 RUN rm -rf /data/clusterfuzz/clusterfuzz-config

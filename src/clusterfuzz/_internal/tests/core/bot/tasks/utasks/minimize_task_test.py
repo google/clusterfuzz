@@ -22,6 +22,7 @@ from unittest import mock
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
+from clusterfuzz._internal.bot.minimizer import errors as minimizer_errors
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -383,6 +384,65 @@ class UTaskMainTest(unittest.TestCase):
     uworker_output = minimize_task.utask_main(uworker_input)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class JsMinimizeTest(unittest.TestCase):
+  """JS minimization unit tests."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_irreducible_input(self):
+    """Test that unicode minimizer does nothing when
+    the crash is due to escape."""
+
+    def mock_test_function_unicode_dependent(data_file):
+      """If crash -> False, otherwise -> True."""
+      data = open(data_file, 'rb').read()
+
+      if data == b'consol\\u0065.log(42);':
+        return False
+      return True
+
+    self.assertEqual(
+        minimize_task.do_js_minimization(mock_test_function_unicode_dependent,
+                                         None, b'consol\\u0065.log(42);', None,
+                                         1, 20, None),
+        b'consol\\u0065.log(42);')
+
+  def test_reducible_input(self):
+    """Test that unicode minimizer removes escape
+    if the crash is not due to it."""
+
+    def mock_test_function_unicode_independent(data_file):
+      """If crash -> False, otherwise -> True."""
+      data = open(data_file, 'rb').read()
+
+      if data in (b'consol\\u0065.log(42);', b'console.log(42);'):
+        return False
+      return True
+
+    self.assertEqual(
+        minimize_task.do_js_minimization(mock_test_function_unicode_independent,
+                                         None, b'consol\\u0065.log(42);', None,
+                                         1, 20, None), b'console.log(42);')
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.minimizer.unicode_minimizer.UnicodeMinimizer._execute'
+  )
+  def test_unicode_minimizer_throws(self, mock_execute):
+    """If there was an error in unicode minimizer, we simply return original data.
+    The error shouldn't happen in production, but we don't want to block JS minimization pipeline on it in any case."""
+
+    mock_execute.side_effect = minimizer_errors.TokenizationFailureError(
+        'Unicode Minimizer')
+
+    self.assertEqual(
+        minimize_task.do_unicode_minimization(None, None, b'test data', None, 1,
+                                              20, None), b'test data')
+
+    mock_execute.assert_called_once()
 
 
 @test_utils.with_cloud_emulators('datastore')
