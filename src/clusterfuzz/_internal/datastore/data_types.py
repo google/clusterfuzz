@@ -1389,6 +1389,7 @@ class CoverageInformation(Model):
   """Coverage info."""
   date = ndb.DateProperty(auto_now_add=True)
   fuzzer = ndb.StringProperty()
+  engine = ndb.StringProperty()
 
   # Function coverage information.
   functions_covered = ndb.IntegerProperty()

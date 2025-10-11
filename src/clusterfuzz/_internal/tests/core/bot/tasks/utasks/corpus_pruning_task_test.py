@@ -283,6 +283,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
                 None,
             'fuzzer':
                 'test_fuzzer',
+            'engine':
+                'libFuzzer',
             'html_report_url':
                 None,
             'quarantine_location':
