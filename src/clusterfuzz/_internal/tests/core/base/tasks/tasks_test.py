@@ -296,3 +296,107 @@ class GetTaskFromMessageTest(unittest.TestCase):
       task = tasks.get_task_from_message(mock.Mock())
 
       self.assertEqual(task.queue, mock_queue)
+
+
+class AddUTaskMainTest(unittest.TestCase):
+  """Tests for add_utask_main."""
+
+  def setUp(self):
+    self.mock_add_task = mock.patch(
+        'clusterfuzz._internal.base.tasks.add_task').start()
+    self.mock_environment = mock.patch(
+        'clusterfuzz._internal.system.environment.get_value').start()
+    self.mock_queue_for_platform = mock.patch(
+        'clusterfuzz._internal.base.tasks.queue_for_platform',
+        return_value='jobs-windows').start()
+
+  def tearDown(self):
+    self.mock_add_task.stop()
+    self.mock_environment.stop()
+    self.mock_queue_for_platform.stop()
+
+  def test_add_utask_main_linux(self):
+    """Test that linux jobs are added to the utask_main queue."""
+    self.mock_environment.side_effect = \
+        lambda key, default=None: {
+            'PLATFORM': 'LINUX',
+            'TASK_PAYLOAD': 'initial_command'
+        }.get(key, default)
+    tasks.add_utask_main('command', 'input_url', 'job_type')
+    self.mock_add_task.assert_called_with(
+        'command',
+        'input_url',
+        'job_type',
+        queue=tasks.UTASK_MAIN_QUEUE,
+        wait_time=None,
+        extra_info={'initial_command': 'initial_command'})
+
+  def test_add_utask_main_non_linux(self):
+    """Test that non-linux jobs are added to their specific queue."""
+    self.mock_environment.side_effect = \
+        lambda key, default=None: {
+            'PLATFORM': 'WINDOWS',
+            'TASK_PAYLOAD': 'initial_command',
+            'THREAD_MULTIPLIER': 1
+        }.get(key, default)
+    tasks.add_utask_main('command', 'input_url', 'job_type')
+    self.mock_add_task.assert_called_with(
+        'command',
+        'input_url',
+        'job_type',
+        queue='jobs-windows',
+        wait_time=None,
+        extra_info={'initial_command': 'initial_command'})
+    self.mock_queue_for_platform.assert_called_with(
+        'WINDOWS', is_high_end=False, force_true_queue=True)
+
+  def test_add_utask_main_non_linux_high_end(self):
+    """Test that non-linux high-end jobs are added to their specific queue."""
+    self.mock_environment.side_effect = \
+        lambda key, default=None: {
+            'PLATFORM': 'WINDOWS',
+            'TASK_PAYLOAD': 'initial_command',
+            'THREAD_MULTIPLIER': 2
+        }.get(key, default)
+    self.mock_queue_for_platform.return_value = 'high-end-jobs-windows'
+    tasks.add_utask_main('command', 'input_url', 'job_type')
+    self.mock_add_task.assert_called_with(
+        'command',
+        'input_url',
+        'job_type',
+        queue='high-end-jobs-windows',
+        wait_time=None,
+        extra_info={'initial_command': 'initial_command'})
+    self.mock_queue_for_platform.assert_called_with(
+        'WINDOWS', is_high_end=True, force_true_queue=True)
+
+
+class QueueForJobTest(unittest.TestCase):
+  """Tests for queue_for_job."""
+
+  def setUp(self):
+    self.mock_job = mock.MagicMock()
+    self.mock_job_query = mock.patch(
+        'clusterfuzz._internal.datastore.data_types.Job.query',
+        return_value=mock.MagicMock(get=lambda: self.mock_job))
+    self.mock_full_utask_task_model = mock.patch(
+        'clusterfuzz._internal.base.tasks.full_utask_task_model').start()
+    self.mock_job_query.start()
+
+  def tearDown(self):
+    self.mock_job_query.stop()
+    self.mock_full_utask_task_model.stop()
+
+  def test_queue_for_job_force_true_queue(self):
+    """Test that force_true_queue gets the true queue."""
+    self.mock_job.platform = 'WINDOWS'
+    self.mock_full_utask_task_model.return_value = True
+    queue = tasks.queue_for_job('job_type', force_true_queue=True)
+    self.assertEqual(queue, 'jobs-windows')
+
+  def test_queue_for_job_no_force(self):
+    """Test that no force gets the preprocess queue."""
+    self.mock_job.platform = 'WINDOWS'
+    self.mock_full_utask_task_model.return_value = True
+    queue = tasks.queue_for_job('job_type')
+    self.assertEqual(queue, tasks.PREPROCESS_QUEUE)
