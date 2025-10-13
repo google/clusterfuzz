@@ -88,6 +88,7 @@ steps:
   - docker/build-immutable.sh
   - ${_CLUSTERFUZZ_REVISION}
   - ${_PUSH_IMAGES}
+  - ${PROJECT_ID}
 
 timeout: 14400s
 options:
