@@ -74,20 +74,20 @@ class SetupFuzzerTest(unittest.TestCase):
     self.mock_archive_reader = mock.create_autospec(spec=archive.ArchiveReader, instance=True, spec_set=True)
     self.mock.open.return_value.__enter__.return_value = self.mock_archive_reader
 
-    # Common mock fuzzer object
-    self.mock_fuzzer = mock.create_autospec(spec=Fuzzer, instance=True, spec_set=True)
-    self.mock_fuzzer.name = 'test_fuzzer'
-    self.mock_fuzzer.builtin = False
-    self.mock_fuzzer.data_bundle_name = 'test_bundle'
-    self.mock_fuzzer.launcher_script = None
-    self.mock_fuzzer.filename = 'fuzzer.zip'
-    self.mock_fuzzer.executable_path = 'fuzzer_exe'
-    self.mock_fuzzer.blobstore_key = 'some_key'
-    self.mock_get.return_value = self.mock_fuzzer
+    # Common fuzzer object
+    self.fuzzer = Fuzzer(
+        name='test_fuzzer',
+        builtin=False,
+        data_bundle_name='test_bundle',
+        launcher_script=None,
+        filename='fuzzer.zip',
+        executable_path='fuzzer_exe',
+        blobstore_key='some_key')
+    self.mock_get.return_value = self.fuzzer
 
   def test_setup_fuzzer_builtin_success(self):
     """Test successful setup of a builtin fuzzer."""
-    self.mock_fuzzer.builtin = True
+    self.fuzzer.builtin = True
     self.assertTrue(reproduce._setup_fuzzer('builtin_fuzzer'))
     self.mock.set_value.assert_called_once()
     self.mock.remove_directory.assert_not_called()
@@ -118,7 +118,7 @@ class SetupFuzzerTest(unittest.TestCase):
 
   def test_launcher_script_unsupported(self):
     """Test that fuzzers with launcher scripts are not supported."""
-    self.mock_fuzzer.launcher_script = 'launcher.sh'
+    self.fuzzer.launcher_script = 'launcher.sh'
     self.assertFalse(reproduce._setup_fuzzer('launcher_fuzzer'))
     self.mock_logs['error'].assert_called_with(
         'Fuzzers with launch script not supported yet.')
@@ -196,9 +196,8 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.setup.prepare_environment_for_testcase'
     ])
 
-    self.mock_testcase = mock.create_autospec(spec=Testcase, spec_set=True, instance=True)
-    self.mock_testcase.fuzzed_keys = 'testcase_key'
-    self.mock_testcase.minimized_keys = None
+    self.testcase = Testcase(
+        fuzzed_keys='testcase_key', minimized_keys=None)
 
   def test_success_fuzzed_keys(self):
     """Test successful local setup of a testcase."""
@@ -206,36 +205,36 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = True
 
-    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    ok, path = reproduce._setup_testcase_locally(self.testcase)
     self.assertTrue(ok)
     self.assertEqual(path, '/tmp/testcase')
     self.mock.clear_testcase_directories.assert_called_once()
     self.mock.read_blob_to_disk.assert_called_once_with('testcase_key',
                                                         '/tmp/testcase')
     self.mock.prepare_environment_for_testcase.assert_called_once_with(
-        self.mock_testcase)
+        self.testcase)
 
   def test_success_minimized_keys(self):
     """Test successful local setup of a testcase with minimized keys."""
-    self.mock_testcase.minimized_keys = 'minimized_key'
+    self.testcase.minimized_keys = 'minimized_key'
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = True
 
-    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    ok, path = reproduce._setup_testcase_locally(self.testcase)
     self.assertTrue(ok)
     self.assertEqual(path, '/tmp/testcase')
     self.mock.clear_testcase_directories.assert_called_once()
     self.mock.read_blob_to_disk.assert_called_once_with('minimized_key',
                                                         '/tmp/testcase')
     self.mock.prepare_environment_for_testcase.assert_called_once_with(
-        self.mock_testcase)
+        self.testcase)
 
   def test_clear_directories_fails(self):
     """Test handling an exception from clear_testcase_directories."""
     self.mock.clear_testcase_directories.side_effect = Exception(
         'mock clear error')
-    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    ok, path = reproduce._setup_testcase_locally(self.testcase)
     self.assertFalse(ok)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
@@ -246,7 +245,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = False
-    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    ok, path = reproduce._setup_testcase_locally(self.testcase)
     self.assertFalse(ok)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
@@ -254,11 +253,11 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
 
   def test_download_fails_minimized_keys(self):
     """Test handling a download failure from read_blob_to_disk with minimized keys."""
-    self.mock_testcase.minimized_keys = 'minimized_key'
+    self.testcase.minimized_keys = 'minimized_key'
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = False
-    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    ok, path = reproduce._setup_testcase_locally(self.testcase)
     self.assertFalse(ok)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
@@ -271,7 +270,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock.read_blob_to_disk.return_value = True
     self.mock.prepare_environment_for_testcase.side_effect = Exception(
         'mock prepare error')
-    ok, path = reproduce._setup_testcase_locally(self.mock_testcase)
+    ok, path = reproduce._setup_testcase_locally(self.testcase)
     self.assertFalse(ok)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
@@ -305,27 +304,26 @@ class ReproduceTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.bot.untrusted_runner.host.stub',
     ])
 
-    self.mock_testcase = mock.create_autospec(spec=Testcase, instance=True, spec_set=True)
-    self.mock_testcase.job_type = 'test_job'
-    self.mock_testcase.fuzzer_name = 'test_fuzzer'
-    self.mock_testcase.crash_revision = 12345
-    self.mock_job = mock.create_autospec(spec=Job, instance=True, spec_set=True)
-    self.mock.get_testcase_by_id.return_value = self.mock_testcase
-    self.mock.query.return_value.get.return_value = self.mock_job
+    self.testcase = Testcase(
+        job_type='test_job',
+        fuzzer_name='test_fuzzer',
+        crash_revision=12345)
+    self.testcase.get_fuzz_target = mock.Mock()
+    self.job = Job(name='test_job')
+    self.mock.get_testcase_by_id.return_value = self.testcase
+    self.mock.query.return_value.get.return_value = self.job
 
     self.mock._setup_fuzzer.return_value = True
     self.mock._setup_testcase_locally.return_value = (True, '/tmp/testcase')
 
-    mock_build_result = mock.create_autospec(
-        spec=uworker_msg_pb2.BuildData, instance=True)
-    mock_build_result.is_bad_build = False
-    self.mock.check_for_bad_build.return_value = mock_build_result
+    build_result = uworker_msg_pb2.BuildData(is_bad_build=False)
+    self.mock.check_for_bad_build.return_value = build_result
 
-    self.mock_crash_result = mock.create_autospec(
-        spec=CrashResult, instance=True)
-    self.mock_crash_result.is_crash.return_value = True
-    self.mock_crash_result.output = 'mock crash output'
-    self.mock.test_for_crash_with_retries.return_value = self.mock_crash_result
+    # The crash result needs to be a real object, but we need to control the
+    # return value of is_crash().
+    crash_result = CrashResult(1, 1, 'mock crash output')
+    crash_result.is_crash = mock.Mock(return_value=True)
+    self.mock.test_for_crash_with_retries.return_value = crash_result
 
     self.mock.test_for_reproducibility.return_value = True
 
@@ -366,7 +364,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
     self.mock.query.return_value.get.return_value = None
     reproduce._reproduce_testcase(self.args)
     self.mock_logs['error'].assert_called_with(
-        f'Job type {self.mock_testcase.job_type} not found for testcase.')
+        f'Job type {self.testcase.job_type} not found for testcase.')
     self.mock._setup_fuzzer.assert_not_called()
 
   def test_setup_fuzzer_fails(self):
@@ -374,7 +372,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
     self.mock._setup_fuzzer.return_value = False
     reproduce._reproduce_testcase(self.args)
     self.mock_logs['error'].assert_called_with(
-        f'Failed to setup fuzzer {self.mock_testcase.fuzzer_name}. Exiting.')
+        f'Failed to setup fuzzer {self.testcase.fuzzer_name}. Exiting.')
     self.mock._setup_testcase_locally.assert_not_called()
 
   def test_setup_testcase_fails(self):
@@ -391,7 +389,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
     reproduce._reproduce_testcase(self.args)
     self.mock_logs['error'].assert_called_with(
         f'Error setting up build for revision '
-        f'{self.mock_testcase.crash_revision}: mock build error')
+        f'{self.testcase.crash_revision}: mock build error')
     self.mock.check_for_bad_build.assert_not_called()
 
   def test_bad_build(self):
