@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casp"
-version = "0.0.6"
+version = "0.0.8"
 authors = [
-  { name="placeholder", email="placeholder@placeholder" },
+  { name="PauloVLB", email="paulovlb@google.com" },
 ]
 description = "A new, modern Command-Line Interface (CLI) for ClusterFuzz."
 readme = "README.md"

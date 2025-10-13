@@ -7,31 +7,15 @@
 #      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is is "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Casp CLI."""
+"""Reproduce command."""
 
 import click
 
-from .commands import hi
-from .commands import init
-from .commands import reproduce
-from .commands import run_task
-from .commands import version
-
-
-@click.group()
+@click.command(name='reproduce', help='Reproduces a testcase locally')
 def cli():
-  """A new, modern Command-Line Interface (CLI) for ClusterFuzz."""
-
-
-cli.add_command(version.cli)
-cli.add_command(hi.cli)
-cli.add_command(init.cli)
-cli.add_command(run_task.cli)
-cli.add_command(reproduce.cli)
-
-if __name__ == '__main__':
-  cli()
+  """Reproduces a testcase locally"""
+  click.echo('To be implemented...')

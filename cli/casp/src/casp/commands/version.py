@@ -13,8 +13,9 @@
 # limitations under the License.
 """Version command."""
 
-import click
 from importlib import metadata
+
+import click
 
 
 @click.command(name='version', help='Prints the version of the CLI.')
