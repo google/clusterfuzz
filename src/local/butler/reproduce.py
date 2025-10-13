@@ -123,7 +123,7 @@ def _setup_fuzzer(fuzzer_name: str) -> bool:
   return True
 
 
-def _setup_testcase_locally(testcase: data_types.Testcase) -> Tuple[bool, Optional[str]]:
+def _setup_testcase_locally(testcase: data_types.Testcase) -> str | None:
   """Sets up the testcase file locally.
 
   Args:
@@ -138,7 +138,7 @@ def _setup_testcase_locally(testcase: data_types.Testcase) -> Tuple[bool, Option
     shell.clear_testcase_directories()
   except Exception as e:
     logs.error(f'Error clearing testcase directories: {e}')
-    return False, None
+    return None
 
   try:
     _, testcase_file_path = setup._get_testcase_file_and_path(testcase)
@@ -149,13 +149,13 @@ def _setup_testcase_locally(testcase: data_types.Testcase) -> Tuple[bool, Option
     if not blobs.read_blob_to_disk(blob_key, testcase_file_path):
       logs.error(f'Failed to download testcase from blobstore: {blob_key}')
       # Returning None for path when download fails
-      return False, None
+      return None
     setup.prepare_environment_for_testcase(testcase)
   except Exception as e:
     logs.error(f'Error setting up testcase locally: {e}')
-    return False, None
+    return None
 
-  return True, testcase_file_path
+  return testcase_file_path
 
 
 def _reproduce_testcase(args: argparse.Namespace) -> None:
@@ -185,9 +185,8 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
     logs.error(f'Failed to setup fuzzer {testcase.fuzzer_name}. Exiting.')
     return
 
-  testcase_setup_successful, testcase_file_path = _setup_testcase_locally(
-      testcase)
-  if not testcase_setup_successful or testcase_file_path is None:
+  testcase_file_path = _setup_testcase_locally(testcase)
+  if testcase_file_path is None:
     logs.error('Could not setup testcase locally. Exiting.')
     return
 

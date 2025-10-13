@@ -22,9 +22,6 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.commands import update_environment_for_job
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore.data_types import Fuzzer
-from clusterfuzz._internal.datastore.data_types import Job
-from clusterfuzz._internal.datastore.data_types import Testcase
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
@@ -75,7 +72,7 @@ class SetupFuzzerTest(unittest.TestCase):
     self.mock.open.return_value.__enter__.return_value = self.mock_archive_reader
 
     # Common fuzzer object
-    self.fuzzer = Fuzzer(
+    self.fuzzer = data_types.Fuzzer(
         name='test_fuzzer',
         builtin=False,
         data_bundle_name='test_bundle',
@@ -196,7 +193,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.setup.prepare_environment_for_testcase'
     ])
 
-    self.testcase = Testcase(
+    self.testcase = data_types.Testcase(
         fuzzed_keys='testcase_key', minimized_keys=None)
 
   def test_success_fuzzed_keys(self):
@@ -205,8 +202,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = True
 
-    ok, path = reproduce._setup_testcase_locally(self.testcase)
-    self.assertTrue(ok)
+    path = reproduce._setup_testcase_locally(self.testcase)
     self.assertEqual(path, '/tmp/testcase')
     self.mock.clear_testcase_directories.assert_called_once()
     self.mock.read_blob_to_disk.assert_called_once_with('testcase_key',
@@ -221,8 +217,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = True
 
-    ok, path = reproduce._setup_testcase_locally(self.testcase)
-    self.assertTrue(ok)
+    path = reproduce._setup_testcase_locally(self.testcase)
     self.assertEqual(path, '/tmp/testcase')
     self.mock.clear_testcase_directories.assert_called_once()
     self.mock.read_blob_to_disk.assert_called_once_with('minimized_key',
@@ -234,8 +229,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     """Test handling an exception from clear_testcase_directories."""
     self.mock.clear_testcase_directories.side_effect = Exception(
         'mock clear error')
-    ok, path = reproduce._setup_testcase_locally(self.testcase)
-    self.assertFalse(ok)
+    path = reproduce._setup_testcase_locally(self.testcase)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
         'Error clearing testcase directories: mock clear error')
@@ -245,8 +239,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = False
-    ok, path = reproduce._setup_testcase_locally(self.testcase)
-    self.assertFalse(ok)
+    path = reproduce._setup_testcase_locally(self.testcase)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
         'Failed to download testcase from blobstore: testcase_key')
@@ -257,8 +250,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock._get_testcase_file_and_path.return_value = (mock.ANY,
                                                           '/tmp/testcase')
     self.mock.read_blob_to_disk.return_value = False
-    ok, path = reproduce._setup_testcase_locally(self.testcase)
-    self.assertFalse(ok)
+    path = reproduce._setup_testcase_locally(self.testcase)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
         'Failed to download testcase from blobstore: minimized_key')
@@ -270,8 +262,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
     self.mock.read_blob_to_disk.return_value = True
     self.mock.prepare_environment_for_testcase.side_effect = Exception(
         'mock prepare error')
-    ok, path = reproduce._setup_testcase_locally(self.testcase)
-    self.assertFalse(ok)
+    path = reproduce._setup_testcase_locally(self.testcase)
     self.assertIsNone(path)
     self.mock_logs['error'].assert_called_with(
         'Error setting up testcase locally: mock prepare error')
@@ -304,17 +295,17 @@ class ReproduceTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.bot.untrusted_runner.host.stub',
     ])
 
-    self.testcase = Testcase(
+    self.testcase = data_types.Testcase(
         job_type='test_job',
         fuzzer_name='test_fuzzer',
         crash_revision=12345)
     self.testcase.get_fuzz_target = mock.Mock()
-    self.job = Job(name='test_job')
+    self.job = data_types.Job(name='test_job')
     self.mock.get_testcase_by_id.return_value = self.testcase
     self.mock.query.return_value.get.return_value = self.job
 
     self.mock._setup_fuzzer.return_value = True
-    self.mock._setup_testcase_locally.return_value = (True, '/tmp/testcase')
+    self.mock._setup_testcase_locally.return_value = '/tmp/testcase'
 
     build_result = uworker_msg_pb2.BuildData(is_bad_build=False)
     self.mock.check_for_bad_build.return_value = build_result
@@ -377,7 +368,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
 
   def test_setup_testcase_fails(self):
     """Test that it exits when testcase setup fails."""
-    self.mock._setup_testcase_locally.return_value = (False, None)
+    self.mock._setup_testcase_locally.return_value = None
     reproduce._reproduce_testcase(self.args)
     self.mock_logs['error'].assert_called_with(
         'Could not setup testcase locally. Exiting.')
