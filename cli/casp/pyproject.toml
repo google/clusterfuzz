@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "casp"
+version = "0.0.8"
+authors = [
+  { name="PauloVLB", email="paulovlb@google.com" },
+]
+description = "A new, modern Command-Line Interface (CLI) for ClusterFuzz."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "click",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/google/clusterfuzz/"
+
+[project.scripts]
+casp = "casp.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
