@@ -25,6 +25,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore.data_types import Fuzzer
 from clusterfuzz._internal.datastore.data_types import Job
 from clusterfuzz._internal.datastore.data_types import Testcase
+from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -70,11 +71,11 @@ class SetupFuzzerTest(unittest.TestCase):
     self.mock.remove_directory.return_value = True
     self.mock.read_blob_to_disk.return_value = True
 
-    self.mock_archive_reader = mock.MagicMock()
+    self.mock_archive_reader = mock.create_autospec(spec=archive.ArchiveReader, instance=True, spec_set=True)
     self.mock.open.return_value.__enter__.return_value = self.mock_archive_reader
 
     # Common mock fuzzer object
-    self.mock_fuzzer = mock.MagicMock(spec=Fuzzer)
+    self.mock_fuzzer = mock.create_autospec(spec=Fuzzer, instance=True, spec_set=True)
     self.mock_fuzzer.name = 'test_fuzzer'
     self.mock_fuzzer.builtin = False
     self.mock_fuzzer.data_bundle_name = 'test_bundle'
@@ -195,7 +196,7 @@ class SetupTestcaseLocallyTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.setup.prepare_environment_for_testcase'
     ])
 
-    self.mock_testcase = mock.MagicMock(spec=Testcase)
+    self.mock_testcase = mock.create_autospec(spec=Testcase, spec_set=True, instance=True)
     self.mock_testcase.fuzzed_keys = 'testcase_key'
     self.mock_testcase.minimized_keys = None
 
@@ -304,23 +305,26 @@ class ReproduceTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.bot.untrusted_runner.host.stub',
     ])
 
-    self.mock_testcase = mock.MagicMock(spec=Testcase)
+    self.mock_testcase = mock.create_autospec(spec=Testcase, instance=True, spec_set=True)
     self.mock_testcase.job_type = 'test_job'
     self.mock_testcase.fuzzer_name = 'test_fuzzer'
     self.mock_testcase.crash_revision = 12345
-    self.mock_job = mock.MagicMock(spec=Job)
+    self.mock_job = mock.create_autospec(spec=Job, instance=True, spec_set=True)
     self.mock.get_testcase_by_id.return_value = self.mock_testcase
     self.mock.query.return_value.get.return_value = self.mock_job
 
     self.mock._setup_fuzzer.return_value = True
     self.mock._setup_testcase_locally.return_value = (True, '/tmp/testcase')
 
-    mock_build_result = mock.MagicMock(spec=uworker_msg_pb2.BuildData)
+    mock_build_result = mock.create_autospec(
+        spec=uworker_msg_pb2.BuildData, instance=True)
     mock_build_result.is_bad_build = False
     self.mock.check_for_bad_build.return_value = mock_build_result
 
-    self.mock_crash_result = mock.MagicMock()
+    self.mock_crash_result = mock.create_autospec(
+        spec=CrashResult, instance=True)
     self.mock_crash_result.is_crash.return_value = True
+    self.mock_crash_result.output = 'mock crash output'
     self.mock.test_for_crash_with_retries.return_value = self.mock_crash_result
 
     self.mock.test_for_reproducibility.return_value = True
