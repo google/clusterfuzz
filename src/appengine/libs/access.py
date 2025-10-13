@@ -13,6 +13,8 @@
 # limitations under the License.
 """access.py contains static methods around access permissions."""
 
+from googleapiclient import discovery
+
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
@@ -31,9 +33,26 @@ def _is_privileged_user(email):
 
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
-  return any(
-      utils.emails_equal(email, privileged_user_email)
-      for privileged_user_email in privileged_user_emails)
+  identity_service = discovery.build('cloudidentity', 'v1')
+
+  for privileged_user_email in privileged_user_emails:
+    if utils.emails_equal(email, privileged_user_email):
+      return True
+
+    # Filter for non-group patterns.
+    if ('@' not in privileged_user_email or
+        privileged_user_email.endswith('gserviceaccount.com')):
+      continue
+
+    group_id = auth.get_google_group_id(privileged_user_email, identity_service)
+    if not group_id:
+      continue
+
+    if auth.check_transitive_group_membership(group_id, email,
+                                              identity_service):
+      return True
+
+  return False
 
 
 def _is_blacklisted_user(email):

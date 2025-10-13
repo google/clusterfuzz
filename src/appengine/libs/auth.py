@@ -14,12 +14,13 @@
 """Authentication helpers."""
 
 import collections
+from urllib import parse
 
 from firebase_admin import auth
 from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
-from googleapiclient.discovery import build
+from googleapiclient import discovery
 import jwt
 import requests
 
@@ -74,7 +75,7 @@ def is_current_user_admin():
 @memoize.wrap(memoize.FifoInMemory(1))
 def _project_number_from_id(project_id):
   """Get the project number from project ID."""
-  resource_manager = build('cloudresourcemanager', 'v1')
+  resource_manager = discovery.build('cloudresourcemanager', 'v1')
   # pylint: disable=no-member
   result = resource_manager.projects().get(projectId=project_id).execute()
   if 'projectNumber' not in result:
@@ -249,3 +250,41 @@ def decode_claims(session_cookie):
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
   except (ValueError, auth.AuthError):
     raise AuthError('Invalid session cookie.')
+
+
+def get_google_group_id(group_email: str,
+                        identity_service: discovery.Resource | None = None
+                       ) -> str | None:
+  """Retrive a google group ID."""
+  if not identity_service:
+    identity_service = discovery.build('cloudidentity', 'v1')
+
+  try:
+    request = identity_service.groups().lookup(groupKey_id=group_email)
+    response = request.execute()
+    return response.get('name')
+  except Exception:
+    logs.error(f"Error looking up group {group_email}.")
+    return None
+
+
+def check_transitive_group_membership(
+    group_id: str,
+    member: str,
+    identity_service: discovery.Resource | None = None) -> bool:
+  """Check if an user is a member of a google group."""
+  if not identity_service:
+    identity_service = discovery.build('cloudidentity', 'v1')
+
+  try:
+    query_params = parse.urlencode({
+        "query": "member_key_id == '{}'".format(member)
+    })
+    request = identity_service.groups().memberships().checkTransitiveMembership(
+        parent=group_id)
+    request.uri += "&" + query_params
+    response = request.execute()
+    return response.get('hasMembership', False)
+  except Exception:
+    logs.error(f'Error checking group membership from {member} to {group_id}.')
+    return False
