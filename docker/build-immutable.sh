@@ -29,6 +29,14 @@ IMAGES=(
   gcr.io/clusterfuzz-images/fuchsia/immutable
 )
 
+if [ "$3" == "google.com:cluster-fuzz" ]; then
+  IMAGES=(
+    gcr.io/google.com/cluster-fuzz/base/immutable
+    gcr.io/google.com/cluster-fuzz/android-emulator/immutable
+    gcr.io/google.com/cluster-fuzz/android-cuttlefish/immutable
+  )
+fi
+
 # If an argument is provided, change the current directory to
 # /workspace/clusterfuzz. This is typically used in CI/CD environments where the
 # script is executed from a different context.
@@ -48,6 +56,9 @@ for image_name in "${IMAGES[@]}"; do
 
   # Determine the directory containing the Dockerfile and related build context.
   project_dir=docker/${image_name#gcr.io/clusterfuzz-images/}
+  if [ "$3" == "google.com:cluster-fuzz" ]; then
+    project_dir=docker/google/${image_name#gcr.io/google.com/cluster-fuzz/}
+  fi
 
   # Loop through each subdirectory in the project directory. This allows for
   # building multiple image variants from the same base project directory.
