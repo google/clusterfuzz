@@ -35,9 +35,9 @@ def check_transitive_membership(service, parent, member):
     request.uri += "&" + query_params
     response = request.execute()
     print(response)
-    print(response['hasMembership'])
+    print(response.get('hasMembership', False))
   except Exception as e:
-    print(e)
+    print(f'Except - {e}')
 
 
 def get_group_id(service, group_email):
@@ -57,7 +57,8 @@ def execute(args):
   logs.configure('run_bot')
 
   service = discovery.build('cloudidentity', 'v1')
-  group_id = get_group_id(service, 'clusterfuzz-dev@google.com')
+  # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
+  group_id = get_group_id(service, 'mdb.chrome-fuzzing-team@google.com')
   print(group_id)
   if not group_id:
     return
