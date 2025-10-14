@@ -268,13 +268,19 @@ def _get_config_names(
     platform = job.platform if not utils.is_oss_fuzz() else 'LINUX'
     disk_size_gb = environment.get_value(
         'DISK_SIZE_GB', env=job.get_environment())
-    project_name = job.project
-    oss_fuzz_project = data_types.OssFuzzProject.get_by_id(project_name)
-    base_os_version = oss_fuzz_project.base_os_version if oss_fuzz_project else None
+    # Get the OS version from the job, this is the least specific version.
+    base_os_version = job.base_os_version
+
+    # If we are running in the oss-fuzz context, the project-specific config
+    # is more specific and overrides the job-level one.
+    if environment.get_value('PROJECT_NAME') == 'oss-fuzz':
+      project_name = job.project
+      oss_fuzz_project = data_types.OssFuzzProject.get_by_id(project_name)
+      if oss_fuzz_project and oss_fuzz_project.base_os_version:
+        base_os_version = oss_fuzz_project.base_os_version
 
     config_map[(task.command, task.job_type)] = (f'{platform}{suffix}',
-                                                 disk_size_gb,
-                                                 base_os_version)
+                                                 disk_size_gb, base_os_version)
   # TODO(metzman): Come up with a more systematic way for configs to
   # be overridden by jobs.
   return config_map
@@ -313,8 +319,8 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     if (task.command, task.job_type) in specs:
       # Don't repeat work for no reason.
       continue
-    config_name, disk_size_gb, base_os_version = config_map[(
-        task.command, task.job_type)]
+    config_name, disk_size_gb, base_os_version = config_map[(task.command,
+                                                             task.job_type)]
 
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:

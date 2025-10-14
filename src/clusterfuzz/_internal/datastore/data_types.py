@@ -948,6 +948,9 @@ class Job(Model):
   # The platform that this job can run on.
   platform = ndb.StringProperty()
 
+  # Base OS version for the job.
+  base_os_version = ndb.StringProperty()
+
   # Blobstore key of the custom binary for this job.
   custom_binary_key = ndb.StringProperty()
 
