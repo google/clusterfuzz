@@ -52,6 +52,7 @@ steps:
       git clone https://github.com/google/clusterfuzz.git
       cd clusterfuzz
       git checkout "${_CLUSTERFUZZ_REVISION}"
+      cp -r /workspace/clusterfuzz-config .
     else
       echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
     fi
