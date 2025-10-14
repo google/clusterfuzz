@@ -160,8 +160,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
-  def emit_task_events(self, task_status: str,
-                       task_outcome: str | None = None) -> None:
+  def emit_utask_events(self, task_status: str,
+                        task_outcome: str | None = None) -> None:
     """Helper to emit task execution events during the recorder context."""
     if environment.is_uworker():
       # Events can't be sent from untrusted workers for now.
@@ -175,19 +175,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       return
 
     task_name = (self._labels or {}).get('task', '')
-    if task_utils.is_fuzzer_based_task(task_name):
-      event_task_exec = events.FuzzerTaskExecutionEvent(
-          **self._event_data,
-          task_stage=self._subtask.value,
-          task_status=task_status,
-          task_outcome=task_outcome)
-    else:
-      event_task_exec = events.TaskExecutionEvent(
-          **self._event_data,
-          task_stage=self._subtask.value,
-          task_status=task_status,
-          task_outcome=task_outcome)
-    events.emit(event_task_exec)
+    events.emit_task_event(
+        task_command=task_name,
+        event_data=self._event_data,
+        task_status=task_status,
+        task_stage=self._subtask.value,
+        task_outcome=task_outcome)
 
   def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
     """Returns True if task succeeded, False otherwise."""
@@ -203,8 +196,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       return
 
     if exc_type is not None:
-      self.emit_task_events(events.TaskStatus.EXCEPTION,
-                            events.TaskOutcome.UNHANDLED_EXCEPTION)
+      self.emit_utask_events(events.TaskStatus.EXCEPTION,
+                             events.TaskOutcome.UNHANDLED_EXCEPTION)
       return
 
     if self._subtask == _Subtask.PREPROCESS:
@@ -212,10 +205,10 @@ class _MetricRecorder(contextlib.AbstractContextManager):
         # Info about whether preprocess returned is missing.
         return
       if not self.preprocess_returned:
-        self.emit_task_events(events.TaskStatus.EXCEPTION,
-                              events.TaskOutcome.PREPROCESS_NO_RETURN)
+        self.emit_utask_events(events.TaskStatus.EXCEPTION,
+                               events.TaskOutcome.PREPROCESS_NO_RETURN)
         return
-      self.emit_task_events(events.TaskStatus.STARTED)
+      self.emit_utask_events(events.TaskStatus.STARTED)
       return
 
     if self._subtask == _Subtask.POSTPROCESS:
@@ -223,7 +216,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       if self.post_utask_main_failure is not None:
         task_outcome = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
             self.post_utask_main_failure)
-      self.emit_task_events(events.TaskStatus.POST_COMPLETED, task_outcome)
+      self.emit_utask_events(events.TaskStatus.POST_COMPLETED, task_outcome)
       return
 
   def __exit__(self, _exc_type, _exc_value, _traceback):
@@ -290,6 +283,7 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env,
   tworker_preprocess."""
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
+  task_utils.reset_task_stage_env()
 
   recorder.set_task_details(
       utask_module,
@@ -355,6 +349,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+    task_utils.reset_task_stage_env()
 
     recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
                               environment.platform(),
@@ -388,6 +383,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
     uworker_output.uworker_input.CopyFrom(uworker_input)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
+    task_utils.reset_task_stage_env()
 
     recorder.set_task_details(
         utask_module,
@@ -400,7 +396,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
 
     # This emit is needed because we are not sending events from utask main.
     # Thus, this confirms that main finished and postprocess will start.
-    recorder.emit_task_events(
+    recorder.emit_utask_events(
         events.TaskStatus.POST_STARTED,
         uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
             uworker_output.error_type))
@@ -453,6 +449,7 @@ def uworker_main(input_download_url) -> None:
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+    task_utils.reset_task_stage_env()
 
     logs.info('Starting HTTP server.')
     _start_web_server_if_needed(uworker_input.job_type)
@@ -501,6 +498,7 @@ def tworker_postprocess(output_download_url) -> None:
         output_download_url)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
+    task_utils.reset_task_stage_env()
 
     utask_module = get_utask_module(uworker_output.uworker_input.module_name)
     execution_mode = _get_execution_mode(utask_module,
@@ -516,7 +514,7 @@ def tworker_postprocess(output_download_url) -> None:
 
     # This emit is needed because we are not sending events from utask main.
     # Thus, this confirms that main finished and postprocess will start.
-    recorder.emit_task_events(
+    recorder.emit_utask_events(
         events.TaskStatus.POST_STARTED,
         uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
             uworker_output.error_type))
