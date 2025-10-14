@@ -1467,6 +1467,9 @@ class OssFuzzProject(Model):
   # CCs for the project.
   ccs = ndb.StringProperty(repeated=True)
 
+  # Base OS version for the project.
+  base_os_version = ndb.StringProperty()
+
 
 class OssFuzzProjectInfo(Model):
   """Set up information for a project (cpu allocation, instance groups, service
