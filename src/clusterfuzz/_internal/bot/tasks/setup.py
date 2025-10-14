@@ -352,10 +352,12 @@ def _get_testcase_key_and_archive_status(testcase):
 
 
 def _is_testcase_minimized(testcase):
+  """Returns True if the testcase is minimized."""
   return testcase.minimized_keys and testcase.minimized_keys != 'NA'
 
 
 def download_testcase(testcase_download_url, dst):
+  """Downloads a testcase from a signed url"""
   return storage.download_signed_url_to_file(testcase_download_url, dst)
 
 
