@@ -29,11 +29,7 @@ def _is_privileged_user(email):
   if local_config.AuthConfig().get('all_users_privileged'):
     return True
 
-  privileged_user_emails = (db_config.get_value('privileged_users') or
-                            '').splitlines()
-  return any(
-      utils.emails_equal(email, privileged_user_email)
-      for privileged_user_email in privileged_user_emails)
+  return auth.is_current_user_privileged(email)
 
 
 def _is_blacklisted_user(email):

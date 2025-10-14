@@ -35,6 +35,8 @@ from libs import request_cache
 User = collections.namedtuple('User', ['email'])
 BEARER_PREFIX = 'Bearer '
 
+PRIVILEGED_USER_ROLE = 'roles/privilegedUser'
+
 
 class AuthError(Exception):
   """Auth error."""
@@ -69,6 +71,37 @@ def is_current_user_admin():
 
   key = ndb.Key(data_types.Admin, user.email)
   return bool(key.get())
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
+def _has_iam_permission(permission, user_email, project_id):
+  """Check if a user has a specific IAM permission."""
+  if environment.is_local_development():
+    # For local development, we can grant all permissions.
+    return True
+
+  try:
+    service = build('cloudresourcemanager', 'v1')
+    body = {'permissions': [permission]}
+    # pylint: disable=no-member
+    response = service.projects().testIamPermissions(
+        resource=project_id, body=body).execute()
+
+    return permission in response.get('permissions', [])
+  except Exception as e:
+    logs.error(f'Failed to check IAM permission: {e}')
+    return False
+
+
+def is_current_user_privileged(user_email):
+  """Returns whether the current user has privileged access."""
+
+  project_id = utils.get_application_id()
+  role_id = f'projects/{project_id}/{PRIVILEGED_USER_ROLE}'
+  logs.info(f'Test privileged role: {role_id}')
+  has_iam_privilege = _has_iam_permission(role_id, user_email, project_id)
+
+  return has_iam_privilege
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
