@@ -49,7 +49,7 @@ _DATA_BUNDLE_CACHE_COUNT = 10
 _DATA_BUNDLE_SYNC_INTERVAL_IN_SECONDS = 6 * 60 * 60
 _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
-
+_EXECUTABLE_PERMISSIONS = 0o750
 
 def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
   """Get the timeout associated with this testcase."""
@@ -653,7 +653,7 @@ def _update_fuzzer(
     return False
 
   # Make fuzzer executable.
-  os.chmod(fuzzer_path, 0o750)
+  os.chmod(fuzzer_path, _EXECUTABLE_PERMISSIONS)
 
   # Cleanup unneeded archive.
   shell.remove_file(archive_path)
@@ -892,3 +892,120 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     shell.remove_file(zip_path)
 
   return archived, absolute_filename, zip_filename
+
+def setup_local_testcase(testcase: data_types.Testcase) -> str | None:
+  """Sets up the testcase file locally.
+
+  Args:
+    testcase: The Testcase object.
+
+  Returns:
+    A tuple containing:
+        - bool: True if the testcase was downloaded successfully.
+        - Optional[str]: The local file path to the testcase, or None on failure.
+  """
+  try:
+    shell.clear_testcase_directories()
+  except Exception as e:
+    logs.error(f'Error clearing testcase directories: {e}')
+    return None
+
+  try:
+    _, testcase_file_path = _get_testcase_file_and_path(testcase)
+    if testcase.minimized_keys and testcase.minimized_keys != 'NA':
+      blob_key = testcase.minimized_keys
+    else:
+      blob_key = testcase.fuzzed_keys
+    if not blobs.read_blob_to_disk(blob_key, testcase_file_path):
+      logs.error(f'Failed to download testcase from blobstore: {blob_key}')
+      # Returning None for path when download fails
+      return None
+    prepare_environment_for_testcase(testcase)
+  except Exception as e:
+    logs.error(f'Error setting up testcase locally: {e}')
+    return None
+
+  return testcase_file_path
+
+def setup_local_fuzzer(fuzzer_name: str) -> bool:
+  """Sets up the fuzzer binaries and environment.
+
+  Args:
+    fuzzer_name: The name of the fuzzer to set up.
+
+  Returns:
+    True if setup was successful, False otherwise.
+  """
+  fuzzer = data_types.Fuzzer.query(
+      data_types.Fuzzer.name == fuzzer_name).get()
+  if not fuzzer:
+    logs.error(f'Fuzzer {fuzzer_name} not found.')
+    return False
+
+  if fuzzer.untrusted_content:
+    logs.warning('You are about to run an untrusted fuzzer locally. '
+                 'This can be dangerous.')
+
+  environment.set_value('UNTRUSTED_CONTENT', fuzzer.untrusted_content)
+
+  if fuzzer.data_bundle_name:
+    logs.info(
+        f'Fuzzer {fuzzer_name} uses data bundle: {fuzzer.data_bundle_name}')
+
+  if fuzzer.launcher_script:
+    logs.error('Fuzzers with launch script not supported yet.')
+    return False
+
+  if fuzzer.builtin:
+    logs.info(f'Fuzzer {fuzzer_name} is builtin, no setup required.')
+    return True
+
+  fuzzer_directory: str = get_fuzzer_directory(fuzzer.name)
+
+  try:
+    if not shell.remove_directory(fuzzer_directory, recreate=True):
+      logs.error(f'Failed to clear fuzzer directory: {fuzzer_directory}')
+      return False
+  except Exception as e:
+    logs.error(f'Error clearing fuzzer directory {fuzzer_directory}: {e}')
+    return False
+
+  archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
+  if not blobs.read_blob_to_disk(fuzzer.blobstore_key, archive_path):
+    logs.error('Failed to download fuzzer archive from blobstore: '
+               f'{fuzzer.blobstore_key}')
+    return False
+
+  try:
+    with archive.open(archive_path) as reader:
+      reader.extract_all(fuzzer_directory)
+  except archive.ArchiveError as e:
+    logs.error(f'Failed to unpack fuzzer archive {fuzzer.filename}: {e}')
+    return False
+  except Exception as e:
+    logs.error(
+        f'Unexpected error unpacking fuzzer archive {fuzzer.filename}: {e}')
+    return False
+  finally:
+    if os.path.exists(archive_path):
+      try:
+        shell.remove_file(archive_path)
+      except Exception as e:
+        logs.warning(
+            f'Failed to remove temporary archive file {archive_path}: {e}')
+
+  fuzzer_path = os.path.join(fuzzer_directory, fuzzer.executable_path)
+  if not os.path.exists(fuzzer_path):
+    logs.error(
+        f'Fuzzer executable {fuzzer.executable_path} not found in archive. '
+        'Check fuzzer configuration.')
+    return False
+
+  try:
+    os.chmod(fuzzer_path, _EXECUTABLE_PERMISSIONS)
+  except OSError as e:
+    logs.error(
+        f'Failed to set permissions on fuzzer executable {fuzzer_path}: {e}')
+    return False
+
+  return True
