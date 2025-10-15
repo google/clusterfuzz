@@ -319,12 +319,16 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
     tasks.get_preprocess_task()
     mock_puller.assert_called_with('preprocess-ubuntu-24-04')
 
-  @mock.patch('clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks')
-  def test_get_postprocess_task_queue_selection(self, mock_is_remote, mock_env_get, mock_puller):
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
+  )
+  def test_get_postprocess_task_queue_selection(self, mock_is_remote,
+                                                mock_env_get, mock_puller):
     """Tests that get_postprocess_task selects the correct queue."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
-    with mock.patch('clusterfuzz._internal.system.environment.platform') as mock_platform:
+    with mock.patch(
+        'clusterfuzz._internal.system.environment.platform') as mock_platform:
       mock_platform.return_value.lower.return_value = 'linux'
 
       # Scenario 1: No OS version ENV.
@@ -357,7 +361,8 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
 
 
 @mock.patch('clusterfuzz._internal.system.environment.get_value')
-@mock.patch('clusterfuzz._internal.datastore.data_types.OssFuzzProject.get_by_id')
+@mock.patch(
+    'clusterfuzz._internal.datastore.data_types.OssFuzzProject.get_by_id')
 @mock.patch('clusterfuzz._internal.datastore.data_types.Job.query')
 @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
 class AddTaskTest(unittest.TestCase):
@@ -369,7 +374,7 @@ class AddTaskTest(unittest.TestCase):
     self.job.is_external.return_value = False
 
   def test_add_task_with_os_version(self, mock_bulk_add_tasks, mock_job_query,
-                                     mock_project_get, mock_env_get):
+                                    mock_project_get, mock_env_get):
     """Test that the base_os_version attribute is correctly added."""
     # Setup common mocks.
     mock_job_query.return_value.get.return_value = self.job
@@ -399,7 +404,8 @@ class AddTaskTest(unittest.TestCase):
     self.job.base_os_version = None
     mock_project.base_os_version = None
     mock_env_get.return_value = 'oss-fuzz'
-    tasks.add_task('test_command', 'test_arg', 'test_job', extra_info={'other': 'info'})
+    tasks.add_task(
+        'test_command', 'test_arg', 'test_job', extra_info={'other': 'info'})
     task_call = mock_bulk_add_tasks.call_args[0][0][0]
     self.assertNotIn('base_os_version', task_call.extra_info)
     self.assertEqual(task_call.extra_info['other'], 'info')
