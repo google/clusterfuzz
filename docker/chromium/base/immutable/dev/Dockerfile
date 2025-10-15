@@ -17,10 +17,10 @@ ENV IMMUTABLE_IMAGE=true
 
 ARG CLUSTERFUZZ_SOURCE_DIR
 
-COPY ${CLUSTERFUZZ_SOURCE_DIR} ${INSTALL_DIRECTORY}
+COPY ${CLUSTERFUZZ_SOURCE_DIR} /data/clusterfuzz
 
-RUN cd ${INSTALL_DIRECTORY}/clusterfuzz && bash local/install_deps.bash
+RUN cd /data/clusterfuzz && bash local/install_deps.bash
 
-COPY ${CLUSTERFUZZ_SOURCE_DIR}/clusterfuzz-config/configs/chrome-development ${INSTALL_DIRECTORY}/clusterfuzz/src/appengine/config
+COPY ${CLUSTERFUZZ_SOURCE_DIR}/clusterfuzz-config/configs/chrome-development /data/clusterfuzz/src/appengine/config
 
-RUN rm -rf ${INSTALL_DIRECTORY}/clusterfuzz/clusterfuzz-config
+RUN rm -rf /data/clusterfuzz/clusterfuzz-config
