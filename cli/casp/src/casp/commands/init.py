@@ -16,6 +16,8 @@
 import click
 
 from ..utils import docker
+from ..utils import gcloud
+
 
 @click.command(name='init', help='Initializes the CLI.')
 def cli():
@@ -23,14 +25,25 @@ def cli():
   required image."""
   click.echo('Checking Docker setup...')
   if not docker.check_docker_setup():
-    click.secho('Docker setup check failed. Please resolve the issues above.',
-                fg='red')
+    click.secho(
+        'Docker setup check failed. Please resolve the issues above.', fg='red')
     return
 
   click.secho('Docker setup is correct.', fg='green')
 
+  click.echo('Checking gcloud authentication...')
+  if gcloud.save_credentials_path():
+    click.secho('gcloud authentication is configured correctly.', fg='green')
+  else:
+    click.secho('gcloud authentication check failed.', fg='red')
+    return
+
+  click.echo(f'Pulling Docker image: {docker.DOCKER_IMAGE}...')
   if docker.pull_image():
+    click.secho(f'\nSuccessfully pulled {docker.DOCKER_IMAGE}.', fg='green')
     click.secho('Initialization complete.', fg='green')
   else:
+    click.secho(
+        f'\nError: Failed to pull Docker image {docker.DOCKER_IMAGE}.',
+        fg='red')
     click.secho('Initialization failed.', fg='red')
-

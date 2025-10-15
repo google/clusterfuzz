@@ -17,14 +17,18 @@ import os
 import sys
 
 import click
+from docker.errors import DockerException
+from docker.errors import ImageNotFound
+
 import docker
-from docker.errors import DockerException, ImageNotFound
+
+from . import config
 
 # TODO: Make this configurable.
 DOCKER_IMAGE = 'gcr.io/clusterfuzz-images/chromium/base/immutable/dev:20251008165901-utc-893e97e-640142509185-compute-d609115-prod'
 
 
-def check_docker_setup():
+def check_docker_setup() -> docker.client.DockerClient | None:
   """Checks if Docker is installed, running, and has correct permissions.
 
   Returns:
@@ -40,9 +44,9 @@ def check_docker_setup():
           'Error: Permission denied while connecting to the Docker daemon.',
           fg='red')
       click.echo('Please add your user to the "docker" group by running:')
-      click.secho(f'  sudo usermod -aG docker ${os.environ.get("USER")}', fg='yellow')
-      click.echo(
-          'Then, log out and log back in for the change to take effect.')
+      click.secho(
+          f'  sudo usermod -aG docker ${os.environ.get("USER")}', fg='yellow')
+      click.echo('Then, log out and log back in for the change to take effect.')
     else:
       click.secho(
           'Error: Docker is not running or is not installed. Please start '
@@ -51,7 +55,7 @@ def check_docker_setup():
     return None
 
 
-def pull_image():
+def pull_image() -> bool:
   """Pulls the docker image."""
   client = check_docker_setup()
   if not client:
@@ -67,12 +71,12 @@ def pull_image():
     return False
 
 
-def run_in_container(command):
+def run_in_container(command) -> bool:
   """Runs a command in a Docker container.
-
+ 
   Args:
     command: The command to run in the container.
-
+ 
   Returns:
     True if the command was successful, False otherwise.
   """
@@ -83,23 +87,29 @@ def run_in_container(command):
   try:
     client.images.get(DOCKER_IMAGE)
   except ImageNotFound:
-    click.echo(
-        f'Image {DOCKER_IMAGE} not found locally. Pulling now...')
+    click.echo(f'Image {DOCKER_IMAGE} not found locally. Pulling now...')
     if not pull_image():
+      click.secho(
+          f'\nError: Failed to pull Docker image {DOCKER_IMAGE}.', fg='red')
       return False
+
+  cfg = config.load_config()
+  volumes = {os.getcwd(): {'bind': '/app', 'mode': 'rw'}}
+  gcloud_credentials_path = cfg.get('gcloud_credentials_path')
+  if gcloud_credentials_path and os.path.exists(gcloud_credentials_path):
+    volumes[gcloud_credentials_path] = {
+        'bind': '/root/.config/gcloud/application_default_credentials.json',
+        'mode': 'ro'
+    }
 
   container = client.containers.run(
       DOCKER_IMAGE,
       command,
-      volumes={os.getcwd(): {
-          'bind': '/app',
-          'mode': 'rw'
-      }},
+      volumes=volumes,
       working_dir='/app',
       detach=True,
       stderr=True,
   )
-
   try:
     for line in container.logs(stream=True, follow=True):
       sys.stdout.write(line.decode('utf-8'))
