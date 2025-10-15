@@ -51,6 +51,7 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 _EXECUTABLE_PERMISSIONS = 0o750
 
+
 def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
   """Get the timeout associated with this testcase."""
   metadata = data_types.TestcaseUploadMetadata.query(
@@ -801,8 +802,10 @@ def get_fuzzer_directory(fuzzer_name):
   return fuzzer_directory
 
 
-def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
-                                             upload_url: str):
+def archive_testcase_and_dependencies_in_gcs(
+    resource_list,
+    testcase_path: str,  # pylint: disable=line-too-long
+    upload_url: str):
   """Archive testcase and its dependencies, and store in blobstore. Returns
   whether it is archived, the absolute_filename, and the zip_filename."""
   if not os.path.exists(testcase_path):
@@ -893,6 +896,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
 
   return archived, absolute_filename, zip_filename
 
+
 def setup_local_testcase(testcase: data_types.Testcase) -> str | None:
   """Sets up the testcase file locally.
 
@@ -900,9 +904,7 @@ def setup_local_testcase(testcase: data_types.Testcase) -> str | None:
     testcase: The Testcase object.
 
   Returns:
-    A tuple containing:
-        - bool: True if the testcase was downloaded successfully.
-        - Optional[str]: The local file path to the testcase, or None on failure.
+    - str | None : The local file path to the testcase, or None on failure.
   """
   try:
     shell.clear_testcase_directories()
@@ -927,6 +929,7 @@ def setup_local_testcase(testcase: data_types.Testcase) -> str | None:
 
   return testcase_file_path
 
+
 def setup_local_fuzzer(fuzzer_name: str) -> bool:
   """Sets up the fuzzer binaries and environment.
 
@@ -936,8 +939,7 @@ def setup_local_fuzzer(fuzzer_name: str) -> bool:
   Returns:
     True if setup was successful, False otherwise.
   """
-  fuzzer = data_types.Fuzzer.query(
-      data_types.Fuzzer.name == fuzzer_name).get()
+  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer:
     logs.error(f'Fuzzer {fuzzer_name} not found.')
     return False

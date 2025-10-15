@@ -15,24 +15,22 @@
 
 import argparse
 import os
-from typing import Optional
-from typing import Tuple
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import init
-from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 _DEFAULT_TEST_TIMEOUT = 60
+
 
 def _setup_reproduce(args) -> None:
   """Sets up the environment for reproducing a testcase.
@@ -45,21 +43,20 @@ def _setup_reproduce(args) -> None:
   environment.set_bot_environment()
   logs.configure('run_bot')
   init.run()
-  
+
+
 def _reproduce_testcase(args: argparse.Namespace) -> None:
   """Reproduces a testcase locally based on the provided arguments.
 
   Args:
     args: Parsed command-line arguments.
   """
-  testcase = data_handler.get_testcase_by_id(
-      args.testcase_id)
+  testcase = data_handler.get_testcase_by_id(args.testcase_id)
   if not testcase:
     logs.error(f'Testcase with ID {args.testcase_id} not found.')
     return
 
-  job = data_types.Job.query(
-      data_types.Job.name == testcase.job_type).get()
+  job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
   if not job:
     logs.error(f'Job type {testcase.job_type} not found for testcase.')
     return
@@ -89,7 +86,7 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
         f'Error setting up build for revision {testcase.crash_revision}: {e}')
     return
 
-  bad_build_result: uworker_msg_pb2.BuildData = (
+  bad_build_result: uworker_msg_pb2.BuildData = (  # pylint: disable=no-member
       testcase_manager.check_for_bad_build(job.name, testcase.crash_revision))
   if bad_build_result.is_bad_build:
     logs.error('Bad build detected. Exiting.')
@@ -140,6 +137,7 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
     logs.info('The testcase reliably reproduces.')
   else:
     logs.info('The testcase does not reliably reproduce.')
+
 
 def execute(args: argparse.Namespace) -> None:
   """Initializes the environment and reproduces a testcase locally.

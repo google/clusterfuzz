@@ -22,11 +22,10 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from clusterfuzz._internal.system import archive
-
 
 
 # pylint: disable=protected-access
@@ -238,6 +237,7 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
     setup.update_fuzzer_and_data_bundles(setup_input)
     self.assertEqual(self.mock.update_data_bundle.call_count, 2)
 
+
 class SetupLocalFuzzerTest(unittest.TestCase):
   """Tests for the setup_local_fuzzer function."""
 
@@ -273,7 +273,8 @@ class SetupLocalFuzzerTest(unittest.TestCase):
     self.mock.remove_directory.return_value = True
     self.mock.read_blob_to_disk.return_value = True
 
-    self.mock_archive_reader = unittest.mock.create_autospec(spec=archive.ArchiveReader, instance=True, spec_set=True)
+    self.mock_archive_reader = unittest.mock.create_autospec(
+        spec=archive.ArchiveReader, instance=True, spec_set=True)
     self.mock.open.return_value.__enter__.return_value = self.mock_archive_reader
 
     # Common fuzzer object

@@ -11,24 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Tests for the reproduce butler."""
 
 import argparse
-import os
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.commands import update_environment_for_job
-from clusterfuzz._internal.datastore import data_handler
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
-from clusterfuzz._internal.google_cloud_utils import blobs
-from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
-from clusterfuzz._internal.system import archive
-from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import helpers
 from local.butler import reproduce
 
@@ -61,9 +52,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
     ])
 
     self.testcase = data_types.Testcase(
-        job_type='test_job',
-        fuzzer_name='test_fuzzer',
-        crash_revision=12345)
+        job_type='test_job', fuzzer_name='test_fuzzer', crash_revision=12345)
     self.testcase.get_fuzz_target = mock.Mock()
     self.job = data_types.Job(name='test_job')
     self.mock.get_testcase_by_id.return_value = self.testcase
@@ -83,12 +72,12 @@ class ReproduceTestcaseTest(unittest.TestCase):
 
     self.mock.test_for_reproducibility.return_value = True
 
-    self.mock.get_value.return_value = str(reproduce._DEFAULT_TEST_TIMEOUT)
+    self.mock.get_value.return_value = str(reproduce._DEFAULT_TEST_TIMEOUT)  # pylint: disable=protected-access
     self.args = argparse.Namespace(testcase_id=123, config_dir='/foo')
 
   def test_success_crash_reproduces(self):
     """Test the full success path where the crash reproduces."""
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
 
     self.mock.get_testcase_by_id.assert_called_once_with(123)
     self.mock.setup_local_fuzzer.assert_called_once()
@@ -102,7 +91,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_success_crash_not_reproduces(self):
     """Test the success path where the crash does not reproduce."""
     self.mock.test_for_reproducibility.return_value = False
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock.test_for_reproducibility.assert_called_once()
     self.mock_logs['info'].assert_any_call(
         'The testcase does not reliably reproduce.')
@@ -110,7 +99,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_testcase_not_found(self):
     """Test that it exits when the testcase is not found."""
     self.mock.get_testcase_by_id.return_value = None
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['error'].assert_called_with(
         'Testcase with ID 123 not found.')
     self.mock.setup_local_fuzzer.assert_not_called()
@@ -118,7 +107,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_job_not_found(self):
     """Test that it exits when the job is not found."""
     self.mock.query.return_value.get.return_value = None
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['error'].assert_called_with(
         f'Job type {self.testcase.job_type} not found for testcase.')
     self.mock.setup_local_fuzzer.assert_not_called()
@@ -126,7 +115,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_setup_fuzzer_fails(self):
     """Test that it exits when fuzzer setup fails."""
     self.mock.setup_local_fuzzer.return_value = False
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['error'].assert_called_with(
         f'Failed to setup fuzzer {self.testcase.fuzzer_name}. Exiting.')
     self.mock.setup_local_testcase.assert_not_called()
@@ -134,7 +123,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_setup_testcase_fails(self):
     """Test that it exits when testcase setup fails."""
     self.mock.setup_local_testcase.return_value = None
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['error'].assert_called_with(
         'Could not setup testcase locally. Exiting.')
     self.mock.setup_build.assert_not_called()
@@ -142,7 +131,7 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_setup_build_fails(self):
     """Test that it exits when build setup fails."""
     self.mock.setup_build.side_effect = Exception('mock build error')
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['error'].assert_called_with(
         f'Error setting up build for revision '
         f'{self.testcase.crash_revision}: mock build error')
@@ -151,27 +140,27 @@ class ReproduceTestcaseTest(unittest.TestCase):
   def test_bad_build(self):
     """Test that it exits when a bad build is detected."""
     self.mock.check_for_bad_build.return_value.is_bad_build = True
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['error'].assert_called_with('Bad build detected. Exiting.')
     self.mock.test_for_crash_with_retries.assert_not_called()
 
   def test_no_crash(self):
     """Test that it exits when the initial crash does not occur."""
     self.mock.test_for_crash_with_retries.return_value.is_crash.return_value = False
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['info'].assert_any_call('No crash occurred. Exiting.')
     self.mock.test_for_reproducibility.assert_not_called()
 
   def test_invalid_timeout_env(self):
     """Test when TEST_TIMEOUT environment variable is invalid."""
     self.mock.get_value.return_value = 'invalid'
-    reproduce._reproduce_testcase(self.args)
+    reproduce._reproduce_testcase(self.args)  # pylint: disable=protected-access
     self.mock_logs['warning'].assert_any_call(
         f"Invalid TEST_TIMEOUT value: invalid. "
-        f"Using default: {reproduce._DEFAULT_TEST_TIMEOUT}")
+        f"Using default: {reproduce._DEFAULT_TEST_TIMEOUT}")  # pylint: disable=protected-access
     # Check that test_for_crash_with_retries was called with default timeout
     _, kwargs = self.mock.test_for_crash_with_retries.call_args
-    self.assertEqual(kwargs['test_timeout'], reproduce._DEFAULT_TEST_TIMEOUT)
+    self.assertEqual(kwargs['test_timeout'], reproduce._DEFAULT_TEST_TIMEOUT)  # pylint: disable=protected-access
 
 
 if __name__ == '__main__':
