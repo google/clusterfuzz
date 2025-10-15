@@ -630,6 +630,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'ccs': [
             'primary@example.com', 'user@example.com', 'user2@googlemail.com'
         ],
+        'base_os_version':
+            None,
     }, lib1_settings.to_dict())
 
     lib2_settings = ndb.Key(data_types.OssFuzzProject, 'lib2').get()
@@ -644,6 +646,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'service_account': 'lib3@serviceaccount.com',
         'high_end': False,
         'ccs': ['user@example.com'],
+        'base_os_version': None,
     }, lib3_settings.to_dict())
 
     lib4_settings = ndb.Key(data_types.OssFuzzProject, 'lib4').get()
@@ -655,6 +658,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'service_account': 'lib4@serviceaccount.com',
         'high_end': True,
         'ccs': ['user@example.com'],
+        'base_os_version': None,
     }, lib4_settings.to_dict())
 
     old_lib_settings = ndb.Key(data_types.OssFuzzProject, 'old_lib').get()
