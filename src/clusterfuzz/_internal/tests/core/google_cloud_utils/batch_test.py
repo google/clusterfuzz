@@ -14,6 +14,7 @@
 """Batch tests."""
 
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
@@ -147,6 +148,63 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     spec = batch._get_specs_from_config(
         [batch.BatchTask('fuzz', job_name, None)])
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
+
+  @mock.patch('clusterfuzz._internal.google_cloud_utils.batch.environment')
+  @mock.patch(
+      'clusterfuzz._internal.datastore.data_types.OssFuzzProject.get_by_id')
+  @mock.patch('clusterfuzz._internal.datastore.ndb_utils.get_all_from_query')
+  def test_get_config_names_os_version(self, mock_get_jobs, mock_get_project,
+                                       mock_env):
+    """Test the hierarchical logic for determining base_os_version."""
+    # Test Case 1: Internal project, job-level OS version is used.
+    mock_env.get_value.return_value = 'internal-project'
+    job1 = data_types.Job(
+        name='job1', platform='LINUX', base_os_version='job-os-ubuntu-20')
+    mock_get_jobs.return_value = [job1]
+    config_map = batch._get_config_names(
+        [batch.BatchTask('fuzz', 'job1', None)])
+    self.assertEqual(config_map[('fuzz', 'job1')][2], 'job-os-ubuntu-20')
+
+    # Test Case 2: OSS-Fuzz project, project-level version overrides job-level.
+    mock_env.get_value.return_value = 'oss-fuzz'
+    job2 = data_types.Job(
+        name='job2',
+        project='my-project',
+        platform='LINUX',
+        base_os_version='job-os-ubuntu-20')
+    project = data_types.OssFuzzProject(
+        name='my-project', base_os_version='project-os-ubuntu-24')
+    mock_get_jobs.return_value = [job2]
+    mock_get_project.return_value = project
+    config_map = batch._get_config_names(
+        [batch.BatchTask('fuzz', 'job2', None)])
+    self.assertEqual(config_map[('fuzz', 'job2')][2], 'project-os-ubuntu-24')
+
+    # Test Case 3: OSS-Fuzz project, only project-level version exists.
+    job3 = data_types.Job(name='job3', project='my-project', platform='LINUX')
+    mock_get_jobs.return_value = [job3]
+    config_map = batch._get_config_names(
+        [batch.BatchTask('fuzz', 'job3', None)])
+    self.assertEqual(config_map[('fuzz', 'job3')][2], 'project-os-ubuntu-24')
+
+    # Test Case 4: Internal project, no version is set, should be None.
+    mock_env.get_value.return_value = 'internal-project'
+    job4 = data_types.Job(name='job4', platform='LINUX')
+    mock_get_jobs.return_value = [job4]
+    config_map = batch._get_config_names(
+        [batch.BatchTask('fuzz', 'job4', None)])
+    self.assertIsNone(config_map[('fuzz', 'job4')][2])
+
+    # Test Case 5: OSS-Fuzz project, but no versions are set anywhere.
+    mock_env.get_value.return_value = 'oss-fuzz'
+    job5 = data_types.Job(
+        name='job5', project='my-project-no-version', platform='LINUX')
+    project_no_version = data_types.OssFuzzProject(name='my-project-no-version')
+    mock_get_jobs.return_value = [job5]
+    mock_get_project.return_value = project_no_version
+    config_map = batch._get_config_names(
+        [batch.BatchTask('fuzz', 'job5', None)])
+    self.assertIsNone(config_map[('fuzz', 'job5')][2])
 
 
 def _get_spec_from_config(command, job_name):

@@ -1,3 +1,5 @@
 {
-  "contextFileName": "AGENTS.md"
+  "context": {
+    "fileName": "AGENTS.md"
+  }
 }

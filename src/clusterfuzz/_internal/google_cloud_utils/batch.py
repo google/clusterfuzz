@@ -268,8 +268,19 @@ def _get_config_names(
     platform = job.platform if not utils.is_oss_fuzz() else 'LINUX'
     disk_size_gb = environment.get_value(
         'DISK_SIZE_GB', env=job.get_environment())
+    # Get the OS version from the job, this is the least specific version.
+    base_os_version = job.base_os_version
+
+    # If we are running in the oss-fuzz context, the project-specific config
+    # is more specific and overrides the job-level one.
+    if environment.get_value('PROJECT_NAME') == 'oss-fuzz':
+      project_name = job.project
+      oss_fuzz_project = data_types.OssFuzzProject.get_by_id(project_name)
+      if oss_fuzz_project and oss_fuzz_project.base_os_version:
+        base_os_version = oss_fuzz_project.base_os_version
+
     config_map[(task.command, task.job_type)] = (f'{platform}{suffix}',
-                                                 disk_size_gb)
+                                                 disk_size_gb, base_os_version)
   # TODO(metzman): Come up with a more systematic way for configs to
   # be overridden by jobs.
   return config_map
@@ -308,11 +319,23 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     if (task.command, task.job_type) in specs:
       # Don't repeat work for no reason.
       continue
-    config_name, disk_size_gb = config_map[(task.command, task.job_type)]
+    config_name, disk_size_gb, base_os_version = config_map[(task.command,
+                                                             task.job_type)]
 
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
       raise ValueError(f'No mapping for {config_name}')
+
+    # Decide which docker image to use.
+    versioned_images_map = instance_spec.get('versioned_docker_images')
+    if (base_os_version and versioned_images_map and
+        base_os_version in versioned_images_map):
+      # New path: Use the versioned image if specified and available.
+      docker_image_uri = versioned_images_map[base_os_version]
+    else:
+      # Fallback/legacy path: Use the original docker_image key.
+      docker_image_uri = instance_spec['docker_image']
+
     project_name = batch_config.get('project')
     clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
     # Lower numbers are a lower priority, meaning less likely to run From:
@@ -332,7 +355,7 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
     subconfig = subconfig_map[config_name]
     spec = BatchWorkloadSpec(
-        docker_image=instance_spec['docker_image'],
+        docker_image=docker_image_uri,
         disk_size_gb=disk_size_gb,
         disk_type=instance_spec['disk_type'],
         user_data=instance_spec['user_data'],
