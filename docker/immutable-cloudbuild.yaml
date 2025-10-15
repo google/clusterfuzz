@@ -75,11 +75,11 @@ steps:
     
     # Using the builder service account as the user
     RAW_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
-    USER=$(echo "$$RAW_USER" | cut -d'@' -f1)
+    USER=$(echo "$$RAW_USER" | cut -d'@' -f1 | sed 's/-compute//')
     
     REVISION="$${TIMESTAMP}-$${CF_SHA}-$${USER}-$${CF_CONFIG_SHA}-prod"
     echo "Computed revision: $${REVISION}"
-    echo "$${REVISION}" > /workspace/revision.txt
+    echo "$${REVISION}" > src/appengine/resources/clusterfuzz-source.manifest
 
 - id: build immutable image
   name: gcr.io/cloud-builders/docker

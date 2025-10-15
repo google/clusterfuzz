@@ -50,9 +50,9 @@ rm -rf src/appengine/config
 
 # Loop through each image name in the IMAGES array.
 for image_name in "${IMAGES[@]}"; do
-  # Read the ClusterFuzz revision from the revision.txt file. This is used to
+  # Read the ClusterFuzz revision from the clusterfuzz-source.manifest file. This is used to
   # tag the Docker images.
-  CURRENT_CLUSTERFUZZ_REVISION="$(cat /workspace/revision.txt)"
+  CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
 
   # Determine the directory containing the Dockerfile and related build context.
   project_dir=docker/${image_name#gcr.io/clusterfuzz-images/}
