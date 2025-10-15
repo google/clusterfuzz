@@ -296,7 +296,13 @@ def get_postprocess_task():
   # wasting our precious non-linux bots on generic postprocess tasks.
   if not environment.platform().lower() == 'linux':
     return None
-  pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
+
+  queue_name = POSTPROCESS_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   logs.info('Pulling from postprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
@@ -312,7 +318,12 @@ def allow_all_tasks():
 
 
 def get_preprocess_task():
-  pubsub_puller = PubSubPuller(PREPROCESS_QUEUE)
+  queue_name = PREPROCESS_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
@@ -587,7 +598,12 @@ def get_task_from_message(message, queue=None, can_defer=True,
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  pubsub_puller = PubSubPuller(UTASK_MAIN_QUEUE)
+  queue_name = UTASK_MAIN_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
   return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
@@ -757,6 +773,18 @@ def add_task(command,
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
       raise Error(f'Job {job_type} not found.')
+
+    # Determine base_os_version.
+    base_os_version = job.base_os_version
+    if environment.get_value('PROJECT_NAME') == 'oss-fuzz':
+      oss_fuzz_project = data_types.OssFuzzProject.get_by_id(job.project)
+      if oss_fuzz_project and oss_fuzz_project.base_os_version:
+        base_os_version = oss_fuzz_project.base_os_version
+
+    if base_os_version:
+      if extra_info is None:
+        extra_info = {}
+      extra_info['base_os_version'] = base_os_version
 
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)

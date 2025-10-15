@@ -296,3 +296,110 @@ class GetTaskFromMessageTest(unittest.TestCase):
       task = tasks.get_task_from_message(mock.Mock())
 
       self.assertEqual(task.queue, mock_queue)
+
+
+@mock.patch('clusterfuzz._internal.base.tasks.PubSubPuller')
+@mock.patch('clusterfuzz._internal.system.environment.get_value')
+class GetTaskQueueSelectionTest(unittest.TestCase):
+  """Tests for dynamic queue selection in get_*_task functions."""
+
+  def test_get_preprocess_task_queue_selection(self, mock_env_get, mock_puller):
+    """Tests that get_preprocess_task selects the correct queue."""
+    mock_puller.return_value.get_messages.return_value = []
+
+    # Scenario 1: No OS version ENV. Should use the default queue.
+    mock_env_get.return_value = None
+    tasks.get_preprocess_task()
+    mock_puller.assert_called_with('preprocess')
+
+    mock_puller.reset_mock()
+
+    # Scenario 2: With OS version ENV. Should use the suffixed queue.
+    mock_env_get.return_value = 'ubuntu-24-04'
+    tasks.get_preprocess_task()
+    mock_puller.assert_called_with('preprocess-ubuntu-24-04')
+
+  @mock.patch('clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks')
+  def test_get_postprocess_task_queue_selection(self, mock_is_remote, mock_env_get, mock_puller):
+    """Tests that get_postprocess_task selects the correct queue."""
+    mock_is_remote.return_value = True
+    mock_puller.return_value.get_messages.return_value = []
+    with mock.patch('clusterfuzz._internal.system.environment.platform') as mock_platform:
+      mock_platform.return_value.lower.return_value = 'linux'
+
+      # Scenario 1: No OS version ENV.
+      mock_env_get.return_value = None
+      tasks.get_postprocess_task()
+      mock_puller.assert_called_with('postprocess')
+
+      mock_puller.reset_mock()
+
+      # Scenario 2: With OS version ENV.
+      mock_env_get.return_value = 'ubuntu-24-04'
+      tasks.get_postprocess_task()
+      mock_puller.assert_called_with('postprocess-ubuntu-24-04')
+
+  def test_get_utask_mains_queue_selection(self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the correct queue."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
+
+    # Scenario 1: No OS version ENV.
+    mock_env_get.return_value = None
+    tasks.get_utask_mains()
+    mock_puller.assert_called_with('utask_main')
+
+    mock_puller.reset_mock()
+
+    # Scenario 2: With OS version ENV.
+    mock_env_get.return_value = 'ubuntu-24-04'
+    tasks.get_utask_mains()
+    mock_puller.assert_called_with('utask_main-ubuntu-24-04')
+
+
+@mock.patch('clusterfuzz._internal.system.environment.get_value')
+@mock.patch('clusterfuzz._internal.datastore.data_types.OssFuzzProject.get_by_id')
+@mock.patch('clusterfuzz._internal.datastore.data_types.Job.query')
+@mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+class AddTaskTest(unittest.TestCase):
+  """Tests for add_task."""
+
+  def setUp(self):
+    self.job = mock.MagicMock()
+    self.job.project = 'test-project'
+    self.job.is_external.return_value = False
+
+  def test_add_task_with_os_version(self, mock_bulk_add_tasks, mock_job_query,
+                                     mock_project_get, mock_env_get):
+    """Test that the base_os_version attribute is correctly added."""
+    # Setup common mocks.
+    mock_job_query.return_value.get.return_value = self.job
+
+    # Scenario 1: Job-level OS version.
+    self.job.base_os_version = 'ubuntu-20-04'
+    mock_env_get.return_value = 'not-oss-fuzz'
+    tasks.add_task('test_command', 'test_arg', 'test_job')
+    task_call = mock_bulk_add_tasks.call_args[0][0][0]
+    self.assertEqual(task_call.extra_info['base_os_version'], 'ubuntu-20-04')
+
+    mock_bulk_add_tasks.reset_mock()
+
+    # Scenario 2: Project-level override.
+    self.job.base_os_version = 'ubuntu-20-04'
+    mock_env_get.return_value = 'oss-fuzz'
+    mock_project = mock.MagicMock()
+    mock_project.base_os_version = 'ubuntu-24-04'
+    mock_project_get.return_value = mock_project
+    tasks.add_task('test_command', 'test_arg', 'test_job')
+    task_call = mock_bulk_add_tasks.call_args[0][0][0]
+    self.assertEqual(task_call.extra_info['base_os_version'], 'ubuntu-24-04')
+
+    mock_bulk_add_tasks.reset_mock()
+
+    # Scenario 3: No OS version defined.
+    self.job.base_os_version = None
+    mock_project.base_os_version = None
+    mock_env_get.return_value = 'oss-fuzz'
+    tasks.add_task('test_command', 'test_arg', 'test_job', extra_info={'other': 'info'})
+    task_call = mock_bulk_add_tasks.call_args[0][0][0]
+    self.assertNotIn('base_os_version', task_call.extra_info)
+    self.assertEqual(task_call.extra_info['other'], 'info')
