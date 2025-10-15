@@ -173,6 +173,9 @@ def stop_android_heartbeat():
 
 def update_source_code_if_needed():
   """Update source code if needed."""
+  if environment.is_immutable_instance():
+    logs.info("This is an immutable image, not updating source code.")
+    return
   try:
     # Update the bot source, if there's a newer version.
     newer_source_revision = update_task.get_newer_source_revision()
