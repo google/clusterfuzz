@@ -802,10 +802,8 @@ def get_fuzzer_directory(fuzzer_name):
   return fuzzer_directory
 
 
-def archive_testcase_and_dependencies_in_gcs(
-    resource_list,
-    testcase_path: str,  # pylint: disable=line-too-long
-    upload_url: str):
+def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
+                                             upload_url: str):
   """Archive testcase and its dependencies, and store in blobstore. Returns
   whether it is archived, the absolute_filename, and the zip_filename."""
   if not os.path.exists(testcase_path):
