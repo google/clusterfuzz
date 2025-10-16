@@ -1195,6 +1195,10 @@ def is_tworker():
   return get_value('TWORKER', False)
 
 
+def is_immutable_instance():
+  return get_value('IMMUTABLE_IMAGE', False)
+
+
 def update_task_enabled() -> bool:
   """ It uses the GCE VM metadata server `update_task_enabled` flag.
 
