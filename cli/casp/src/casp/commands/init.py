@@ -13,8 +13,11 @@
 # limitations under the License.
 """Init command."""
 
+import os
+
 import click
 
+from ..utils import config
 from ..utils import docker
 from ..utils import gcloud
 
@@ -28,22 +31,44 @@ def cli():
     click.secho(
         'Docker setup check failed. Please resolve the issues above.', fg='red')
     return
-
   click.secho('Docker setup is correct.', fg='green')
 
   click.echo('Checking gcloud authentication...')
-  if gcloud.save_credentials_path():
-    click.secho('gcloud authentication is configured correctly.', fg='green')
-  else:
+  credentials_path = gcloud.get_credentials_path()
+
+  if not credentials_path:
     click.secho('gcloud authentication check failed.', fg='red')
     return
 
+  click.echo(
+      f'Saving credentials found in {credentials_path} file path to ~/.casp/config.json'
+  )
+  cfg = config.load_config()
+  if not cfg:
+    click.echo('Configit file not found, creating it...')
+  cfg['gcloud_credentials_path'] = credentials_path
+  config.save_config(cfg)
+
+  click.secho('gcloud authentication is configured correctly.', fg='green')
+
+  custom_config_path = click.prompt(
+      'Enter path to custom config directory (optional)',
+      default='',
+      show_default=False,
+      type=click.Path())
+
+  if custom_config_path and os.path.exists(custom_config_path):
+    cfg = config.load_config()
+    cfg['custom_config_path'] = custom_config_path
+    config.save_config(cfg)
+    click.secho(
+        f'Custom config path saved to {config.CONFIG_FILE}.', fg='green')
+
   click.echo(f'Pulling Docker image: {docker.DOCKER_IMAGE}...')
-  if docker.pull_image():
-    click.secho(f'\nSuccessfully pulled {docker.DOCKER_IMAGE}.', fg='green')
-    click.secho('Initialization complete.', fg='green')
-  else:
+  if not docker.pull_image():
     click.secho(
         f'\nError: Failed to pull Docker image {docker.DOCKER_IMAGE}.',
         fg='red')
     click.secho('Initialization failed.', fg='red')
+
+  click.secho('Initialization complete.', fg='green')

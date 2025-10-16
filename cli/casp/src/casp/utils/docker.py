@@ -64,7 +64,6 @@ def pull_image() -> bool:
   try:
     click.echo(f'Pulling Docker image: {DOCKER_IMAGE}...')
     client.images.pull(DOCKER_IMAGE)
-    click.secho(f'Successfully pulled {DOCKER_IMAGE}.', fg='green')
     return True
   except DockerException:
     click.secho(f'Error: Docker image {DOCKER_IMAGE} not found.', fg='red')
