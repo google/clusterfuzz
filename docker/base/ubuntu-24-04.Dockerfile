@@ -107,7 +107,6 @@ RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
 
 # Common environment variables.
 ENV USER=clusterfuzz
-ENV BASE_OS_VERSION=ubuntu-24-04
 ENV INSTALL_DIRECTORY /mnt/scratch0
 ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
 ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
