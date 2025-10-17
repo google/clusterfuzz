@@ -21,7 +21,6 @@ from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-
 class InitializeTaskTest(unittest.TestCase):
   """Tests for initialize_task."""
 
@@ -301,6 +300,46 @@ class GetTaskFromMessageTest(unittest.TestCase):
       self.assertEqual(task.queue, mock_queue)
 
 
+@test_utils.with_cloud_emulators('datastore')
+@mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+@mock.patch('clusterfuzz._internal.base.external_tasks.add_external_task')
+class AddTaskTest(unittest.TestCase):
+  """Tests for add_task."""
+
+  def setUp(self):
+    self.oss_fuzz_project = data_types.OssFuzzProject(
+        name='d8', base_os_version='ubuntu-24-04')
+    self.oss_fuzz_project.put()
+
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_with_os_version(self, mock_job_query, mock_add_external,
+                                    mock_bulk_add):
+    """Test that the base_os_version attribute is correctly added."""
+    mock_job = mock.MagicMock()
+    mock_job.base_os_version = 'ubuntu-20-04'
+    mock_job.project = 'd8'
+    mock_job_query.return_value.get.return_value = mock_job
+
+    # Scenario 1: Not an external job. Should use the job's OS version and
+    # call bulk_add_tasks.
+    mock_job.is_external.return_value = False
+    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+    mock_add_external.assert_not_called()
+    mock_bulk_add.assert_called()
+    task_payload = mock_bulk_add.call_args[0][0][0]
+    self.assertEqual(task_payload.extra_info['base_os_version'], 'ubuntu-20-04')
+
+    mock_bulk_add.reset_mock()
+    mock_add_external.reset_mock()
+
+    # Scenario 2: External (OSS-Fuzz) job. Should use the project's OS version
+    # and call add_external_task.
+    mock_job.is_external.return_value = True
+    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+    mock_bulk_add.assert_not_called()
+    mock_add_external.assert_called()
+
+
 @mock.patch('clusterfuzz._internal.base.tasks.PubSubPuller')
 @mock.patch('clusterfuzz._internal.system.environment.get_value')
 class GetTaskQueueSelectionTest(unittest.TestCase):
@@ -326,7 +365,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
       'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
   )
   def test_get_postprocess_task_queue_selection(self, mock_is_remote,
-                                                 mock_env_get, mock_puller):
+                                                mock_env_get, mock_puller):
     """Tests that get_postprocess_task selects the correct queue."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
@@ -401,45 +440,3 @@ class QueueNameGenerationTest(unittest.TestCase):
         'QUEUE_OVERRIDE': ''
     }.get(key, default)
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
-
-
-
-
-@test_utils.with_cloud_emulators('datastore')
-@mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
-class AddTaskTest(unittest.TestCase):
-  """Tests for add_task."""
-
-  def setUp(self):
-    # This project is needed for the second scenario.
-    self.oss_fuzz_project = data_types.OssFuzzProject(
-        name='d8', base_os_version='ubuntu-24-04')
-    self.oss_fuzz_project.put()
-
-  @mock.patch('clusterfuzz._internal.base.tasks.data_types.OssFuzzProject.get_by_id')
-  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_add_task_with_os_version(self, mock_job_query, mock_project_get,
-                                     mock_bulk_add):
-    """Test that the base_os_version attribute is correctly added."""
-    mock_job = mock.MagicMock()
-    mock_job.base_os_version = 'ubuntu-20.04'
-    mock_job.project = 'd8'
-    mock_job_query.return_value.get.return_value = mock_job
-
-    mock_project_get.return_value = self.oss_fuzz_project
-
-    # Scenario 1: Not an external job. Should use the job's OS version.
-    mock_job.is_external.return_value = False
-    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
-    task_payload = mock_bulk_add.call_args[0][0][0]
-    self.assertEqual(task_payload.extra_info['base_os_version'],
-                     'ubuntu-20.04')
-
-    mock_bulk_add.reset_mock()
-
-    # Scenario 2: External (OSS-Fuzz) job. Should use the project's OS version.
-    mock_job.is_external.return_value = True
-    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
-    task_payload = mock_bulk_add.call_args[0][0][0]
-    self.assertEqual(task_payload.extra_info['base_os_version'],
-                     'ubuntu-24-04')
