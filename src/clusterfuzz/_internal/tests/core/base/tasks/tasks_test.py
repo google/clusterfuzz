@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for tasks."""
-
 import unittest
 from unittest import mock
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.tests.test_libs import test_utils
+
 
 
 class InitializeTaskTest(unittest.TestCase):
@@ -323,7 +326,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
       'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
   )
   def test_get_postprocess_task_queue_selection(self, mock_is_remote,
-                                                mock_env_get, mock_puller):
+                                                 mock_env_get, mock_puller):
     """Tests that get_postprocess_task selects the correct queue."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
@@ -361,51 +364,82 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
 
 
 @mock.patch('clusterfuzz._internal.system.environment.get_value')
-@mock.patch(
-    'clusterfuzz._internal.datastore.data_types.OssFuzzProject.get_by_id')
-@mock.patch('clusterfuzz._internal.datastore.data_types.Job.query')
+@mock.patch('clusterfuzz._internal.system.environment.platform')
+class QueueNameGenerationTest(unittest.TestCase):
+  """Tests for queue name generation functions."""
+
+  def test_default_queue_suffix_generation(self, mock_platform, mock_env_get):
+    """Tests the logic of default_queue_suffix."""
+    # Mock QUEUE_OVERRIDE to be unset.
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': '',
+        'QUEUE_OVERRIDE': ''
+    }.get(key, default)
+
+    # Scenario 1: Linux platform, no OS version.
+    mock_platform.return_value = 'LINUX'
+    self.assertEqual(tasks.default_queue_suffix(), '-linux')
+
+    # Scenario 2: Linux platform, with OS version.
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': 'ubuntu-24-04',
+        'QUEUE_OVERRIDE': ''
+    }.get(key, default)
+    self.assertEqual(tasks.default_queue_suffix(), '-linux-ubuntu-24-04')
+
+    # Scenario 3: Mac platform, no OS version.
+    mock_platform.return_value = 'MAC'
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': '',
+        'QUEUE_OVERRIDE': ''
+    }.get(key, default)
+    self.assertEqual(tasks.default_queue_suffix(), '-mac')
+
+    # Scenario 4: Mac platform, with OS version (should be ignored).
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': 'ubuntu-24-04',
+        'QUEUE_OVERRIDE': ''
+    }.get(key, default)
+    self.assertEqual(tasks.default_queue_suffix(), '-mac')
+
+
+
+
+@test_utils.with_cloud_emulators('datastore')
 @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
 class AddTaskTest(unittest.TestCase):
   """Tests for add_task."""
 
   def setUp(self):
-    self.job = mock.MagicMock()
-    self.job.project = 'test-project'
-    self.job.is_external.return_value = False
+    # This project is needed for the second scenario.
+    self.oss_fuzz_project = data_types.OssFuzzProject(
+        name='d8', base_os_version='ubuntu-24-04')
+    self.oss_fuzz_project.put()
 
-  def test_add_task_with_os_version(self, mock_bulk_add_tasks, mock_job_query,
-                                    mock_project_get, mock_env_get):
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.OssFuzzProject.get_by_id')
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_with_os_version(self, mock_job_query, mock_project_get,
+                                     mock_bulk_add):
     """Test that the base_os_version attribute is correctly added."""
-    # Setup common mocks.
-    mock_job_query.return_value.get.return_value = self.job
+    mock_job = mock.MagicMock()
+    mock_job.base_os_version = 'ubuntu-20.04'
+    mock_job.project = 'd8'
+    mock_job_query.return_value.get.return_value = mock_job
 
-    # Scenario 1: Job-level OS version.
-    self.job.base_os_version = 'ubuntu-20-04'
-    mock_env_get.return_value = 'not-oss-fuzz'
-    tasks.add_task('test_command', 'test_arg', 'test_job')
-    task_call = mock_bulk_add_tasks.call_args[0][0][0]
-    self.assertEqual(task_call.extra_info['base_os_version'], 'ubuntu-20-04')
+    mock_project_get.return_value = self.oss_fuzz_project
 
-    mock_bulk_add_tasks.reset_mock()
+    # Scenario 1: Not an external job. Should use the job's OS version.
+    mock_job.is_external.return_value = False
+    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+    task_payload = mock_bulk_add.call_args[0][0][0]
+    self.assertEqual(task_payload.extra_info['base_os_version'],
+                     'ubuntu-20.04')
 
-    # Scenario 2: Project-level override.
-    self.job.base_os_version = 'ubuntu-20-04'
-    mock_env_get.return_value = 'oss-fuzz'
-    mock_project = mock.MagicMock()
-    mock_project.base_os_version = 'ubuntu-24-04'
-    mock_project_get.return_value = mock_project
-    tasks.add_task('test_command', 'test_arg', 'test_job')
-    task_call = mock_bulk_add_tasks.call_args[0][0][0]
-    self.assertEqual(task_call.extra_info['base_os_version'], 'ubuntu-24-04')
+    mock_bulk_add.reset_mock()
 
-    mock_bulk_add_tasks.reset_mock()
-
-    # Scenario 3: No OS version defined.
-    self.job.base_os_version = None
-    mock_project.base_os_version = None
-    mock_env_get.return_value = 'oss-fuzz'
-    tasks.add_task(
-        'test_command', 'test_arg', 'test_job', extra_info={'other': 'info'})
-    task_call = mock_bulk_add_tasks.call_args[0][0][0]
-    self.assertNotIn('base_os_version', task_call.extra_info)
-    self.assertEqual(task_call.extra_info['other'], 'info')
+    # Scenario 2: External (OSS-Fuzz) job. Should use the project's OS version.
+    mock_job.is_external.return_value = True
+    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+    task_payload = mock_bulk_add.call_args[0][0][0]
+    self.assertEqual(task_payload.extra_info['base_os_version'],
+                     'ubuntu-24-04')

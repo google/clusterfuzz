@@ -123,9 +123,16 @@ def default_queue_suffix():
   logs.info(f'QUEUE_OVERRIDE is [{queue_override}]. '
             f'Platform is {environment.platform()}')
   if queue_override:
-    return queue_suffix_for_platform(queue_override)
+    platform = queue_override
+  else:
+    platform = environment.platform()
 
-  return queue_suffix_for_platform(environment.platform())
+  platform_suffix = queue_suffix_for_platform(platform)
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version and 'LINUX' in platform.upper():
+    platform_suffix = f'{platform_suffix}-{base_os_version}'
+
+  return platform_suffix
 
 
 def regular_queue(prefix=JOBS_PREFIX):
@@ -776,7 +783,7 @@ def add_task(command,
 
     # Determine base_os_version.
     base_os_version = job.base_os_version
-    if environment.get_value('PROJECT_NAME') == 'oss-fuzz':
+    if job.is_external():
       oss_fuzz_project = data_types.OssFuzzProject.get_by_id(job.project)
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
         base_os_version = oss_fuzz_project.base_os_version
