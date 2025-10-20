@@ -36,7 +36,7 @@ def create_google_group_membership(service, group_id, member_key):
     membership = {
       "preferredMemberKey": {"id": member_key},
       "roles" : {
-        "name" : "MEMBER",
+        "name" : "OWNER",
       }
     }
     # Create a membership using the ID for the parent group and a membership object
@@ -147,5 +147,5 @@ def execute(args):
   # search_transitive_memberships(service, "groups/01fob9te2jnakdb", 50)
   
   check_transitive_membership(service, "groups/01fob9te2jnakdb", 'vtcosta@google.com')
-  check_transitive_membership(service, "groups/01fob9te2jnakdb", 'andrenribeiro@google.com')
-  check_transitive_membership(service, "groups/01fob9te2jnakdb", 'carlolemos@google.com')
+  # check_transitive_membership(service, "groups/01fob9te2jnakdb", 'andrenribeiro@google.com')
+  # check_transitive_membership(service, "groups/01fob9te2jnakdb", 'carlolemos@google.com')
