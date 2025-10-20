@@ -23,6 +23,26 @@ from clusterfuzz._internal.system import environment
 from googleapiclient import discovery
 from urllib.parse import urlencode
 
+def create_google_group(service, customer_id, group_id, group_display_name, group_description):
+  group_key = {"id": group_id}
+  group = {
+    "parent": "customers/" + customer_id,
+    "description": group_description,
+    "displayName": group_display_name,
+    "groupKey": group_key,
+    # Set the label to specify creation of a Google Group.
+    "labels": {
+      "cloudidentity.googleapis.com/groups.discussion_forum": ""
+    }
+  }
+
+  try:
+    request = service.groups().create(body=group)
+    request.uri += "&initialGroupConfig=WITH_INITIAL_OWNER"
+    response = request.execute()
+    print(response)
+  except Exception as e:
+    print(e)
 
 def check_transitive_membership(service, parent, member):
   try:
@@ -57,9 +77,11 @@ def execute(args):
   logs.configure('run_bot')
 
   service = discovery.build('cloudidentity', 'v1')
-  # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
-  group_id = get_group_id(service, 'mdb.chrome-fuzzing-team@google.com')
-  print(group_id)
-  if not group_id:
-    return
-  check_transitive_membership(service, group_id, 'vtcosta@google.com')
+  # # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
+  # group_id = get_group_id(service, 'mdb.chrome-fuzzing-team@google.com')
+  # print(group_id)
+  # if not group_id:
+  #   return
+  # check_transitive_membership(service, group_id, 'vtcosta@google.com')
+
+  create_google_group(service, customer_id='C02h8e9nw', group_id='test-clusterfuzz-acl@google.com', group_display_name='Test ACL', group_description='group for testing ACL.')
