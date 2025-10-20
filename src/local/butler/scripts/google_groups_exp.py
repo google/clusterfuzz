@@ -140,8 +140,8 @@ def execute(args):
   # check_transitive_membership(service, group_id, 'vtcosta@google.com')
 
   # create_google_group(service, customer_id='C02h8e9nw', group_id='test-clusterfuzz-acl@google.com', group_display_name='Test ACL', group_description='group for testing ACL.')
-  create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='vtcosta@google.com')
-  create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='andrenribeiro@google.com')
+  # create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='vtcosta@google.com')
+  # create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='andrenribeiro@google.com')
 
 
   search_transitive_memberships(service, "groups/01fob9te2jnakdb", 50)
