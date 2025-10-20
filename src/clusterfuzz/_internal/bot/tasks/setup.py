@@ -912,7 +912,7 @@ def setup_local_testcase(testcase: data_types.Testcase) -> str | None:
 
   try:
     _, testcase_file_path = _get_testcase_file_and_path(testcase)
-    if testcase.minimized_keys and testcase.minimized_keys != 'NA':
+    if _is_testcase_minimized(testcase):
       blob_key = testcase.minimized_keys
     else:
       blob_key = testcase.fuzzed_keys
