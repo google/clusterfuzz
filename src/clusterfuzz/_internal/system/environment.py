@@ -1003,6 +1003,10 @@ def set_bot_environment():
 
 def set_local_log_only():
   """Force logs to be local-only."""
+
+  # We set this to an empty string because currently the logs 
+  # module does not correctly evaluate env vars
+  # (i.e., 'false' is evaluated to true).
   set_value('LOG_TO_GCP', '')
   set_value('LOG_TO_CONSOLE', 'True')
 
