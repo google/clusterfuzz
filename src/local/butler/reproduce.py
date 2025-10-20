@@ -249,6 +249,17 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
     logs.info('The testcase does not reliably reproduce.')
 
 
+def run_reproduction(testcase_id: int, config_dir: str) -> None:
+  """Initializes the environment and reproduces a testcase."""
+  # Mock the argparse Namespace.
+  class Args:
+    def __init__(self, testcase_id, config_dir):
+        self.testcase_id = testcase_id
+        self.config_dir = config_dir
+
+  args = Args(testcase_id, config_dir)
+  execute(args)
+
 def execute(args: argparse.Namespace) -> None:
   """Initializes the environment and reproduces a testcase locally.
 
