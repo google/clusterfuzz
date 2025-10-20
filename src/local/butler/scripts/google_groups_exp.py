@@ -77,11 +77,11 @@ def execute(args):
   logs.configure('run_bot')
 
   service = discovery.build('cloudidentity', 'v1')
-  # # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
-  # group_id = get_group_id(service, 'mdb.chrome-fuzzing-team@google.com')
-  # print(group_id)
-  # if not group_id:
-  #   return
-  # check_transitive_membership(service, group_id, 'vtcosta@google.com')
+  # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
+  group_id = get_group_id(service, 'test-clusterfuzz-acl@google.com')
+  print(group_id)
+  if not group_id:
+    return
+  check_transitive_membership(service, group_id, 'vtcosta@google.com')
 
-  create_google_group(service, customer_id='C02h8e9nw', group_id='test-clusterfuzz-acl@google.com', group_display_name='Test ACL', group_description='group for testing ACL.')
+  # create_google_group(service, customer_id='C02h8e9nw', group_id='test-clusterfuzz-acl@google.com', group_display_name='Test ACL', group_description='group for testing ACL.')
