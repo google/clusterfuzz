@@ -23,6 +23,60 @@ from clusterfuzz._internal.system import environment
 from googleapiclient import discovery
 from urllib.parse import urlencode
 
+
+def create_google_group_membership(service, group_id, member_key):
+  param = "&groupKey.id=" + group_id
+  try:
+    lookupGroupNameRequest = service.groups().lookup()
+    lookupGroupNameRequest.uri += param
+    # Given a group ID and namespace, retrieve the ID for parent group
+    lookupGroupNameResponse = lookupGroupNameRequest.execute()
+    groupName = lookupGroupNameResponse.get("name")
+    # Create a membership object with a memberKey and a single role of type MEMBER
+    membership = {
+      "preferredMemberKey": {"id": member_key},
+      "roles" : {
+        "name" : "MEMBER",
+      }
+    }
+    # Create a membership using the ID for the parent group and a membership object
+    response = service.groups().memberships().create(parent=groupName, body=membership).execute()
+    print(response)
+  except Exception as e:
+    print(e)
+
+
+def search_transitive_memberships(service, parent, page_size):
+  try:
+    memberships = []
+    next_page_token = ''
+    while True:
+      query_params = urlencode(
+        {
+          "page_size": page_size,
+          "page_token": next_page_token
+        }
+      )
+      request = service.groups().memberships().searchTransitiveMemberships(parent=parent)
+      request.uri += "&" + query_params
+      response = request.execute()
+
+      if 'memberships' in response:
+        memberships += response['memberships']
+
+      if 'nextPageToken' in response:
+        next_page_token = response['nextPageToken']
+      else:
+        next_page_token = ''
+
+      if len(next_page_token) == 0:
+        break;
+
+    print(memberships)
+  except Exception as e:
+    print(e)
+
+
 def create_google_group(service, customer_id, group_id, group_display_name, group_description):
   group_key = {"id": group_id}
   group = {
@@ -79,10 +133,15 @@ def execute(args):
   service = discovery.build('cloudidentity', 'v1')
   # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
   # group_id = get_group_id(service, 'test-clusterfuzz-acl@google.com')
-  group_id = get_group_id(service, 'clusterfuzz-dev@google.com')
-  print(group_id)
-  if not group_id:
-    return
-  check_transitive_membership(service, group_id, 'vtcosta@google.com')
+  # group_id = get_group_id(service, 'clusterfuzz-dev@google.com')
+  # print(group_id)
+  # if not group_id:
+  #   return
+  # check_transitive_membership(service, group_id, 'vtcosta@google.com')
 
   # create_google_group(service, customer_id='C02h8e9nw', group_id='test-clusterfuzz-acl@google.com', group_display_name='Test ACL', group_description='group for testing ACL.')
+  create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='vtcosta@google.com')
+  create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='andrenribeiro@google.com')
+
+
+  search_transitive_memberships(service, "groups/01fob9te2jnakdb", 50)
