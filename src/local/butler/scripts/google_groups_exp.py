@@ -37,6 +37,7 @@ def create_google_group_membership(service, group_id, member_key):
       "preferredMemberKey": {"id": member_key},
       "roles" : {
         "name" : "OWNER",
+        "name" : "MEMBER"
       }
     }
     # Create a membership using the ID for the parent group and a membership object
