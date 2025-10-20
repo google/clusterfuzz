@@ -78,7 +78,8 @@ def execute(args):
 
   service = discovery.build('cloudidentity', 'v1')
   # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
-  group_id = get_group_id(service, 'test-clusterfuzz-acl@google.com')
+  # group_id = get_group_id(service, 'test-clusterfuzz-acl@google.com')
+  group_id = get_group_id(service, 'clusterfuzz-dev@google.com')
   print(group_id)
   if not group_id:
     return
