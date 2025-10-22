@@ -79,10 +79,6 @@ def get_credentials_path() -> str | None:
   """
   Finds a valid gcloud credentials path, prompting the user if needed.
 
-  This function orchestrates the process of finding credentials by first
-  checking the default path, then offering an interactive login, and finally
-  allowing the user to specify a custom path.
-
   Returns:
       The path to a valid credentials file, or None if one cannot be found.
   """
