@@ -31,12 +31,15 @@ def _is_privileged_user(email):
   if local_config.AuthConfig().get('all_users_privileged'):
     return True
 
+  # Check privileged access from direct user emails.
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
-  for privileged_user_email in privileged_user_emails:
-    if utils.emails_equal(email, privileged_user_email):
-      return True
+  if any(
+      utils.emails_equal(email, privileged_user_email)
+      for privileged_user_email in privileged_user_emails):
+    return True
 
+  # Check privileged access from google groups.
   privileged_groups = (db_config.get_value('privileged_groups') or
                        '').splitlines()
   identity_service = discovery.build('cloudidentity', 'v1')
