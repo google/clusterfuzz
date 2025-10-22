@@ -28,6 +28,7 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from libs import helpers
@@ -252,12 +253,18 @@ def decode_claims(session_cookie):
     raise AuthError('Invalid session cookie.')
 
 
+def get_identity_api() -> discovery.Resource:
+  """Return cloud identity api client."""
+  creds, _ = credentials.get_default()
+  return discovery.build('cloudidentity', 'v1', credentials=creds)
+
+
 def get_google_group_id(group_email: str,
                         identity_service: discovery.Resource | None = None
                        ) -> str | None:
   """Retrive a google group ID."""
   if not identity_service:
-    identity_service = discovery.build('cloudidentity', 'v1')
+    identity_service = get_identity_api()
 
   try:
     request = identity_service.groups().lookup(groupKey_id=group_email)
@@ -274,7 +281,7 @@ def check_transitive_group_membership(
     identity_service: discovery.Resource | None = None) -> bool:
   """Check if an user is a member of a google group."""
   if not identity_service:
-    identity_service = discovery.build('cloudidentity', 'v1')
+    identity_service = get_identity_api()
 
   try:
     query_params = parse.urlencode({
