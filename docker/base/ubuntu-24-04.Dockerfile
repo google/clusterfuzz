@@ -127,6 +127,8 @@ WORKDIR $INSTALL_DIRECTORY
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
+ENV BASE_OS_VERSION=ubuntu-24-04
+
 
 COPY Pipfile Pipfile.lock setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh /data/
 RUN cd /data && \

@@ -97,11 +97,13 @@ def _setup_args_for_remote(parser):
 
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
+
 def _add_integration_tests_subparsers(toplevel_subparsers):
   """Adds a parser for the `integration_tests` command."""
   toplevel_subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')
-  
+
+
 def _add_weights_fuzzer_subparser(weights_subparsers):
   """Adds a parser for the `weights fuzzer` command."""
   parser = weights_subparsers.add_parser(
@@ -236,6 +238,7 @@ def _add_weights_subparser(toplevel_subparsers):
   _add_weights_batches_subparser(subparsers)
   _add_weights_target_subparser(subparsers)
 
+
 def _add_reproduce_subparser(toplevel_subparsers):
   """Adds a parser for the `reproduce` command."""
   parser = toplevel_subparsers.add_parser(
@@ -243,12 +246,21 @@ def _add_reproduce_subparser(toplevel_subparsers):
   parser.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
   parser.add_argument(
-      '-t', '--testcase-id', required=True, help='The testcase ID to reproduce.')
+      '-t',
+      '--testcase-id',
+      required=True,
+      help='The testcase ID to reproduce.')
+
 
 def main():
   """Parse the command-line args and invoke the right command."""
   parser = _ArgumentParser(
       description='Butler is here to help you with command-line tasks.')
+  parser.add_argument(
+      '--local-logging',
+      action='store_true',
+      default=False,
+      help='Force logs to be local-only.')
   subparsers = parser.add_subparsers(dest='command')
 
   subparsers.add_parser(
@@ -424,12 +436,12 @@ def main():
     parser.print_help()
     return 0
 
-  _setup()
+  _setup(args)
   command = importlib.import_module(f'local.butler.{args.command}')
   return command.execute(args)
 
 
-def _setup():
+def _setup(args):
   """Set up configs and import paths."""
   os.environ['ROOT_DIR'] = os.path.abspath('.')
   os.environ['PYTHONIOENCODING'] = 'UTF-8'
@@ -437,6 +449,10 @@ def _setup():
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
   from clusterfuzz._internal.base import modules
   modules.fix_module_search_paths()
+
+  if args.local_logging:
+    from clusterfuzz._internal.system import environment
+    environment.set_local_log_only()
 
 
 if __name__ == '__main__':

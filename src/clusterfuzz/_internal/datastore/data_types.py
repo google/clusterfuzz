@@ -948,6 +948,9 @@ class Job(Model):
   # The platform that this job can run on.
   platform = ndb.StringProperty()
 
+  # Base OS version for the job.
+  base_os_version = ndb.StringProperty()
+
   # Blobstore key of the custom binary for this job.
   custom_binary_key = ndb.StringProperty()
 
@@ -1466,6 +1469,9 @@ class OssFuzzProject(Model):
 
   # CCs for the project.
   ccs = ndb.StringProperty(repeated=True)
+
+  # Base OS version for the project.
+  base_os_version = ndb.StringProperty()
 
 
 class OssFuzzProjectInfo(Model):

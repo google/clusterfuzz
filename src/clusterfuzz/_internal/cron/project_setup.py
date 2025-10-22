@@ -543,6 +543,7 @@ def create_project_settings(project, info, service_account):
 
   ccs = ccs_from_info(info)
   language = info.get('language')
+  base_os_version = info.get('base_os_version')
 
   if oss_fuzz_project:
     if oss_fuzz_project.service_account != service_account['email']:
@@ -556,6 +557,10 @@ def create_project_settings(project, info, service_account):
     if oss_fuzz_project.ccs != ccs:
       oss_fuzz_project.ccs = ccs
       oss_fuzz_project.put()
+
+    if oss_fuzz_project.base_os_version != base_os_version:
+      oss_fuzz_project.base_os_version = base_os_version
+      oss_fuzz_project.put()
   else:
     if language in MEMORY_SAFE_LANGUAGES:
       cpu_weight = OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT
@@ -568,7 +573,8 @@ def create_project_settings(project, info, service_account):
         high_end=is_high_end,
         cpu_weight=cpu_weight,
         service_account=service_account['email'],
-        ccs=ccs).put()
+        ccs=ccs,
+        base_os_version=base_os_version).put()
 
 
 def _create_pubsub_topic(name, client):
