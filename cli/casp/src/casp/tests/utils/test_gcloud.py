@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,167 +12,183 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for the gcloud utility functions.
+
   For running all the tests, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -v 
+  python -m unittest discover -s cli/casp/src/casp/tests -v
 """
 
 import subprocess
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, Mock 
 
 from google.auth import exceptions as auth_exceptions
-
 from casp.utils import gcloud
 
 
-class GcloudUtilsTest(unittest.TestCase):
-  """Test gcloud utility functions."""
+class IsValidCredentialsTest(unittest.TestCase):
+  """Tests for _is_valid_credentials."""
 
-  @patch('os.path.exists')
-  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file')
-  def test_is_valid_credentials_valid(self, mock_from_file, mock_exists):
-    """Test _is_valid_credentials with a valid path."""
-    mock_exists.return_value = True
-    mock_from_file.return_value = MagicMock()
+  @patch('os.path.exists', return_value=True, autospec=True)
+  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file', autospec=True)
+  def test_valid_credentials(self, mock_from_file, mock_exists):
+    """Tests with a valid credentials file."""
+    mock_from_file.return_value = Mock()
     self.assertTrue(gcloud._is_valid_credentials('valid/path'))
+    mock_exists.assert_called_once_with('valid/path')
+    mock_from_file.assert_called_once_with('valid/path')
 
-  @patch('os.path.exists')
-  def test_is_valid_credentials_not_exists(self, mock_exists):
-    """Test _is_valid_credentials with a non-existent path."""
-    mock_exists.return_value = False
+  @patch('os.path.exists', return_value=False, autospec=True)
+  def test_path_does_not_exist(self, mock_exists):
+    """Tests with a non-existent path."""
     self.assertFalse(gcloud._is_valid_credentials('invalid/path'))
+    mock_exists.assert_called_once_with('invalid/path')
 
-  @patch('os.path.exists')
-  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file')
-  def test_is_valid_credentials_auth_error(self, mock_from_file, mock_exists):
-    """Test _is_valid_credentials with an auth exception."""
-    mock_exists.return_value = True
+  @patch('os.path.exists', return_value=True, autospec=True)
+  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file', autospec=True)
+  def test_auth_error(self, mock_from_file, mock_exists):
+    """Tests with an auth exception."""
     mock_from_file.side_effect = auth_exceptions.DefaultCredentialsError
     self.assertFalse(gcloud._is_valid_credentials('path'))
+    mock_exists.assert_called_once_with('path')
+    mock_from_file.assert_called_once_with('path')
 
-  @patch('os.path.exists')
-  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file')
-  def test_is_valid_credentials_value_error(self, mock_from_file, mock_exists):
-    """Test _is_valid_credentials with a ValueError."""
-    mock_exists.return_value = True
+  @patch('os.path.exists', return_value=True, autospec=True)
+  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file', autospec=True)
+  def test_value_error(self, mock_from_file, mock_exists):
+    """Tests with a ValueError."""
     mock_from_file.side_effect = ValueError
     self.assertFalse(gcloud._is_valid_credentials('path'))
+    mock_exists.assert_called_once_with('path')
+    mock_from_file.assert_called_once_with('path')
 
-  @patch('os.path.exists')
-  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file')
-  def test_is_valid_credentials_key_error(self, mock_from_file, mock_exists):
-    """Test _is_valid_credentials with a KeyError."""
-    mock_exists.return_value = True
-    mock_from_file.side_effect = KeyError
-    self.assertFalse(gcloud._is_valid_credentials('path'))
+  def test_empty_path(self):
+    """Tests with an empty path string."""
+    self.assertFalse(gcloud._is_valid_credentials(''))
 
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  @patch('subprocess.run')
-  def test_run_gcloud_login_success(self, mock_run, mock_is_valid):
-    """Test _run_gcloud_login successful."""
-    mock_run.return_value = MagicMock()
-    mock_is_valid.return_value = True
+  def test_none_path(self):
+    """Tests with a None path."""
+    self.assertFalse(gcloud._is_valid_credentials(None))
+
+
+class RunGcloudLoginTest(unittest.TestCase):
+  """Tests for _run_gcloud_login."""
+
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=True, autospec=True)
+  @patch('subprocess.run', autospec=True)
+  def test_login_success(self, mock_run, mock_is_valid):
+    """Tests successful gcloud login."""
     self.assertTrue(gcloud._run_gcloud_login())
-    mock_run.assert_called_with(
+    mock_run.assert_called_once_with(
         ['gcloud', 'auth', 'application-default', 'login'], check=True)
-    mock_is_valid.assert_called_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_is_valid.assert_called_once_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
 
-  @patch('subprocess.run')
-  def test_run_gcloud_login_file_not_found(self, mock_run):
-    """Test _run_gcloud_login with gcloud not found."""
+  @patch('subprocess.run', autospec=True)
+  @patch('click.secho', autospec=True)
+  def test_gcloud_not_found(self, mock_secho, mock_run):
+    """Tests with gcloud command not found."""
     mock_run.side_effect = FileNotFoundError
     self.assertFalse(gcloud._run_gcloud_login())
+    mock_secho.assert_called_once()
+    args, _ = mock_secho.call_args
+    self.assertIn('gcloud command not found', args[0])
 
-  @patch('subprocess.run')
-  def test_run_gcloud_login_failed(self, mock_run):
-    """Test _run_gcloud_login with a failed login command."""
+  @patch('subprocess.run', autospec=True)
+  @patch('click.secho', autospec=True)
+  def test_login_failed(self, mock_secho, mock_run):
+    """Tests with a failed login command."""
     mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd')
     self.assertFalse(gcloud._run_gcloud_login())
+    mock_secho.assert_called_once_with('Error: gcloud login failed.', fg='red')
 
-  @patch('click.prompt')
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_prompt_for_custom_path_valid(self, mock_is_valid, mock_prompt):
-    """Test _prompt_for_custom_path with a valid path."""
+
+class PromptForCustomPathTest(unittest.TestCase):
+  """Tests for _prompt_for_custom_path."""
+
+  @patch('click.prompt', autospec=True)
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=True, autospec=True)
+  def test_valid_path(self, mock_is_valid, mock_prompt):
+    """Tests with a valid custom path."""
     mock_prompt.return_value = '/valid/path'
-    mock_is_valid.return_value = True
     self.assertEqual(gcloud._prompt_for_custom_path(), '/valid/path')
+    mock_is_valid.assert_called_once_with('/valid/path')
 
-  @patch('click.prompt')
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_prompt_for_custom_path_invalid(self, mock_is_valid, mock_prompt):
-    """Test _prompt_for_custom_path with an invalid path."""
+  @patch('click.prompt', autospec=True)
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=False, autospec=True)
+  @patch('click.secho', autospec=True)
+  def test_invalid_path(self, mock_secho, mock_is_valid, mock_prompt):
+    """Tests with an invalid custom path."""
     mock_prompt.return_value = '/invalid/path'
-    mock_is_valid.return_value = False
     self.assertIsNone(gcloud._prompt_for_custom_path())
+    mock_is_valid.assert_called_once_with('/invalid/path')
+    mock_secho.assert_called_once_with(
+        'Error: The provided credentials file is not valid.', fg='red')
 
-  @patch('click.prompt')
-  def test_prompt_for_custom_path_empty(self, mock_prompt):
-    """Test _prompt_for_custom_path with empty input."""
+  @patch('click.prompt', autospec=True)
+  def test_empty_path(self, mock_prompt):
+    """Tests with empty input from prompt."""
     mock_prompt.return_value = ''
     self.assertIsNone(gcloud._prompt_for_custom_path())
 
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_get_credentials_path_default_valid(self, mock_is_valid):
-    """Test get_credentials_path when default is valid."""
-    mock_is_valid.return_value = True
-    self.assertEqual(
-        gcloud.get_credentials_path(), gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
-    mock_is_valid.assert_called_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
 
-  @patch('casp.utils.gcloud._prompt_for_custom_path')
-  @patch('casp.utils.gcloud._run_gcloud_login')
-  @patch('click.confirm')
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_get_credentials_path_login_success(self, mock_is_valid,
-                                              mock_confirm, mock_login,
-                                              mock_prompt):
-    """Test get_credentials_path with successful login."""
-    mock_is_valid.return_value = False
-    mock_confirm.return_value = True
-    mock_login.return_value = True
+class GetCredentialsPathTest(unittest.TestCase):
+  """Tests for get_credentials_path."""
+
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=True, autospec=True)
+  def test_default_path_valid(self, mock_is_valid):
+    """Tests when the default credentials path is valid."""
     self.assertEqual(
         gcloud.get_credentials_path(), gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_is_valid.assert_called_once_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+
+  @patch('casp.utils.gcloud._prompt_for_custom_path', autospec=True)
+  @patch('casp.utils.gcloud._run_gcloud_login', return_value=True, autospec=True)
+  @patch('click.confirm', return_value=True, autospec=True)
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=False, autospec=True)
+  def test_login_success(self, mock_is_valid, mock_confirm, mock_login,
+                         mock_prompt):
+    """Tests successful login after default path fails."""
+    self.assertEqual(
+        gcloud.get_credentials_path(), gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_is_valid.assert_called_once_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_confirm.assert_called_once()
+    mock_login.assert_called_once()
     mock_prompt.assert_not_called()
 
-  @patch('casp.utils.gcloud._prompt_for_custom_path')
-  @patch('casp.utils.gcloud._run_gcloud_login')
-  @patch('click.confirm')
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_get_credentials_path_login_fail_then_custom(self, mock_is_valid,
-                                                       mock_confirm,
-                                                       mock_login,
-                                                       mock_prompt):
-    """Test get_credentials_path with failed login then custom path."""
-    mock_is_valid.return_value = False
-    mock_confirm.return_value = True
-    mock_login.return_value = False
-    mock_prompt.return_value = '/custom/path'
+  @patch('casp.utils.gcloud._prompt_for_custom_path', return_value='/custom/path', autospec=True)
+  @patch('casp.utils.gcloud._run_gcloud_login', return_value=False, autospec=True)
+  @patch('click.confirm', return_value=True, autospec=True)
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=False, autospec=True)
+  def test_login_fail_then_custom_path(self, mock_is_valid, mock_confirm,
+                                        mock_login, mock_prompt):
+    """Tests providing a custom path after a failed login."""
     self.assertEqual(gcloud.get_credentials_path(), '/custom/path')
+    mock_is_valid.assert_called_once_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_confirm.assert_called_once()
+    mock_login.assert_called_once()
+    mock_prompt.assert_called_once()
 
-  @patch('casp.utils.gcloud._prompt_for_custom_path')
-  @patch('casp.utils.gcloud._run_gcloud_login')
-  @patch('click.confirm')
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_get_credentials_path_no_login_then_custom(self, mock_is_valid,
-                                                     mock_confirm, mock_login,
-                                                     mock_prompt):
-    """Test get_credentials_path with no login then custom path."""
-    mock_is_valid.return_value = False
-    mock_confirm.return_value = False
-    mock_prompt.return_value = '/custom/path'
+  @patch('casp.utils.gcloud._prompt_for_custom_path', return_value='/custom/path', autospec=True)
+  @patch('casp.utils.gcloud._run_gcloud_login', autospec=True)
+  @patch('click.confirm', return_value=False, autospec=True)
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=False, autospec=True)
+  def test_decline_login_then_custom_path(self, mock_is_valid, mock_confirm,
+                                           mock_login, mock_prompt):
+    """Tests providing a custom path after declining to log in."""
     self.assertEqual(gcloud.get_credentials_path(), '/custom/path')
+    mock_is_valid.assert_called_once_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_confirm.assert_called_once()
     mock_login.assert_not_called()
+    mock_prompt.assert_called_once()
 
-  @patch('casp.utils.gcloud._prompt_for_custom_path')
-  @patch('click.confirm')
-  @patch('casp.utils.gcloud._is_valid_credentials')
-  def test_get_credentials_path_all_fail(self, mock_is_valid, mock_confirm,
-                                         mock_prompt):
-    """Test get_credentials_path when all methods fail."""
-    mock_is_valid.return_value = False
-    mock_confirm.return_value = False
-    mock_prompt.return_value = None
+  @patch('casp.utils.gcloud._prompt_for_custom_path', return_value=None, autospec=True)
+  @patch('click.confirm', return_value=False, autospec=True)
+  @patch('casp.utils.gcloud._is_valid_credentials', return_value=False, autospec=True)
+  def test_all_fail(self, mock_is_valid, mock_confirm, mock_prompt):
+    """Tests when all methods to get credentials fail."""
     self.assertIsNone(gcloud.get_credentials_path())
+    mock_is_valid.assert_called_once_with(gcloud.DEFAULT_GCLOUD_CREDENTIALS_PATH)
+    mock_confirm.assert_called_once()
+    mock_prompt.assert_called_once()
 
 
 if __name__ == '__main__':
