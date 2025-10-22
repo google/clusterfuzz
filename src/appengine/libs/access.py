@@ -33,18 +33,20 @@ def _is_privileged_user(email):
 
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
-  identity_service = discovery.build('cloudidentity', 'v1')
-
   for privileged_user_email in privileged_user_emails:
     if utils.emails_equal(email, privileged_user_email):
       return True
 
+  privileged_groups = (db_config.get_value('privileged_groups') or
+                       '').splitlines()
+  identity_service = discovery.build('cloudidentity', 'v1')
+  for privileged_group in privileged_groups:
     # Filter for non-group patterns.
-    if ('@' not in privileged_user_email or
-        privileged_user_email.endswith('gserviceaccount.com')):
+    if ('@' not in privileged_group or
+        utils.is_service_account(privileged_group)):
       continue
 
-    group_id = auth.get_google_group_id(privileged_user_email, identity_service)
+    group_id = auth.get_google_group_id(privileged_group, identity_service)
     if not group_id:
       continue
 

@@ -264,7 +264,7 @@ def get_google_group_id(group_email: str,
     response = request.execute()
     return response.get('name')
   except Exception:
-    logs.error(f"Error looking up group {group_email}.")
+    logs.info(f"Unable to look up group {group_email}.")
     return None
 
 
@@ -286,5 +286,5 @@ def check_transitive_group_membership(
     response = request.execute()
     return response.get('hasMembership', False)
   except Exception:
-    logs.error(f'Error checking group membership from {member} to {group_id}.')
+    logs.info(f'Unable to check group membership from {member} to {group_id}.')
     return False
