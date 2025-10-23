@@ -476,11 +476,16 @@ class ServiceAccountEmailTest(unittest.TestCase):
     self.assertEqual('project-id.domain.com@appspot.gserviceaccount.com',
                      utils.service_account_email())
 
+
+class CheckServiceAccountEmailTest(unittest.TestCase):
+  """Tests the service account email pattern check. """
+
   @parameterized.parameterized.expand([
       'project-id.domain.com@appspot.gserviceaccount.com',
       '123-compute@developer.iam.gserviceaccount.com'
   ])
   def test_is_service_account(self, sa_email):
+    """Test the expected service account email pattern."""
     self.assertTrue(utils.is_service_account(sa_email))
 
   @parameterized.parameterized.expand([
@@ -488,6 +493,7 @@ class ServiceAccountEmailTest(unittest.TestCase):
       'test.not.email.gserviceaccount.com'
   ])
   def test_is_not_service_account(self, email):
+    """Test for email patterns that are not from service accounts."""
     self.assertFalse(utils.is_service_account(email))
 
 
