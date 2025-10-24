@@ -109,10 +109,10 @@ def check_transitive_membership(service, parent, member):
     request = service.groups().memberships().checkTransitiveMembership(parent=parent)
     request.uri += "&" + query_params
     response = request.execute()
-    print(response)
-    print(response.get('hasMembership', False))
+    return response.get('hasMembership', False)
   except Exception as e:
     print(f'Except - {e}')
+    return False
 
 
 def get_group_id(service, group_email):
@@ -130,18 +130,20 @@ def execute(args):
   del args
   environment.set_bot_environment()
   logs.configure('run_bot')
+  print()
 
   service = discovery.build('cloudidentity', 'v1')
   # group_id = get_group_id(service, 'mdb.clusterfuzz@google.com')
   # group_id = get_group_id(service, 'test-clusterfuzz-acl@google.com')
-  # group_id = get_group_id(service, 'clusterfuzz-dev@google.com')
-  # print(group_id)
-  # if not group_id:
-  #   return
-  # check_transitive_membership(service, group_id, 'vtcosta@google.com')
+  group_id = get_group_id(service, 'clusterfuzz-dev@google.com')
+  if not group_id:
+    return
 
+  print(group_id)
+  is_member = check_transitive_membership(service, group_id, 'vtcosta@google.com')
+  print(is_member)
   # create_google_group(service, customer_id='C02h8e9nw', group_id='test-clusterfuzz-acl@google.com', group_display_name='Test ACL', group_description='group for testing ACL.')
-  create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='vtcosta@google.com')
+  # create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='vtcosta@google.com')
   # create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='andrenribeiro@google.com')
   # create_google_group_membership(service, group_id='test-clusterfuzz-acl@google.com', member_key='clusterfuzz-dev@google.com')
 
