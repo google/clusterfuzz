@@ -497,4 +497,4 @@ def copy_if_newer(src, dst):
 def update_dir(src_dir, dst_dir):
   """Recursively copy from src_dir to dst_dir, replacing files but only if
   they're newer or don't exist."""
-  shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer)
+  shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer, dirs_exist_ok=True)
