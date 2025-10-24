@@ -58,3 +58,14 @@ class StacktracesTest(unittest.TestCase):
         '_ZN7android26openDeclaredPassthroughHalERKNS_8String16ES2_i\n',
         crash_info.crash_state)
     self.assertEqual(stacktrace, crash_info.crash_stacktrace)
+
+  def test_mte_segv_crash(self):
+    """Test for MTE stack trace parsing issue."""
+    stacktrace = _load_test_data('mte_segv_crash_stacktrace.txt')
+    parser = clusterfuzz.stacktraces.StackParser()
+    crash_info = parser.parse(stacktrace)
+
+    self.assertEqual('Tag-mismatch (read)', crash_info.crash_type)
+    self.assertEqual('0x007df3228300', crash_info.crash_address)
+    self.assertEqual('Read\n', crash_info.crash_state)
+    self.assertEqual(stacktrace, crash_info.crash_stacktrace)

@@ -776,6 +776,13 @@ class StackParser:
         if android_segv_match:
           state.found_java_exception = False
 
+          # If the line indicates an MTE SEGV (SEGV_MTESERR), extract the
+          # access type using regex and set crash_type to "Tag-mismatch"
+          # with the access type (defaulting to empty if absent).
+          if 'SEGV_MTESERR' in line:
+            mte_match = ANDROID_SEGV_REGEX.search(line)
+            state.crash_type = f"Tag-mismatch{(mte_match.group(2) or '')}"
+
           # Set the crash address for SEGVs.
           if 'SIGSEGV' in line:
             state.crash_address = android_segv_match.group(1)
