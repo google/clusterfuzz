@@ -21,6 +21,7 @@ from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
 from googleapiclient import discovery
+from googleapiclient.errors import HttpError
 import jwt
 import requests
 
@@ -270,8 +271,8 @@ def get_google_group_id(group_email: str,
     request = identity_service.groups().lookup(groupKey_id=group_email)
     response = request.execute()
     return response.get('name')
-  except Exception:
-    logs.info(f"Unable to look up group {group_email}.")
+  except HttpError:
+    logs.warning(f"Unable to look up group {group_email}.")
     return None
 
 
@@ -292,6 +293,7 @@ def check_transitive_group_membership(
     request.uri += "&" + query_params
     response = request.execute()
     return response.get('hasMembership', False)
-  except Exception:
-    logs.info(f'Unable to check group membership from {member} to {group_id}.')
+  except HttpError:
+    logs.warning(
+        f'Unable to check group membership from {member} to {group_id}.')
     return False
