@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test Google Groups API."""
+from googleapiclient.errors import HttpError
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.datastore import data_handler
@@ -110,7 +111,7 @@ def check_transitive_membership(service, parent, member):
     request.uri += "&" + query_params
     response = request.execute()
     return response.get('hasMembership', False)
-  except Exception as e:
+  except HttpError as e:
     print(f'Except - {e}')
     return False
 
@@ -120,10 +121,8 @@ def get_group_id(service, group_email):
     request = service.groups().lookup(groupKey_id=group_email)
     response = request.execute()
     return response.get('name')
-  except Exception as e:
+  except HttpError as e:
     print(f"Error looking up group {group_email}: {e}")
-    print()
-    print(type(e).__name__)
     return None
 
 
