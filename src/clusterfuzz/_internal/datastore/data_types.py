@@ -818,6 +818,9 @@ class Config(Model):
   # Privileged users.
   privileged_users = ndb.TextProperty(default='')
 
+  # Privileged groups.
+  privileged_groups = ndb.TextProperty(default='')
+
   # Blacklisted users.
   blacklisted_users = ndb.TextProperty(default='')
 

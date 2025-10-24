@@ -1005,6 +1005,14 @@ def emails_equal(first, second):
   return normalize_email(first) == normalize_email(second)
 
 
+def is_service_account(email: str) -> bool:
+  """Check if an email is a SA based on email address pattern."""
+  sa_email = normalize_email(email)
+  if '@' not in sa_email:
+    return False
+  return sa_email.endswith('gserviceaccount.com')
+
+
 def parse_delimited(value_or_handle, delimiter, strip=False,
                     remove_empty=False):
   """Parse a delimter separated value."""

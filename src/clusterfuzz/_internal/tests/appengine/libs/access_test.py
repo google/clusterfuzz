@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """access tests."""
+
 import unittest
 # pylint: disable=protected-access
 from unittest import mock
@@ -63,21 +64,34 @@ class GetUserJobTypeTest(unittest.TestCase):
 class IsPrivilegedUserTest(unittest.TestCase):
   """Test _is_privileged_user."""
 
-  _FAKE_CONFIG = 'Test@test.com\n'
+  _FAKE_CONFIG = {
+      'privileged_users': 'Test@test.com\n',
+      'privileged_groups': 'test@group.com\n'
+  }
+
+  def _get_value_mock(self, key):
+    """Helper to return the config based on the key."""
+    return self._FAKE_CONFIG.get(key)
 
   def setUp(self):
-    test_helpers.patch(self,
-                       ['clusterfuzz._internal.config.db_config.get_value'])
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.db_config.get_value',
+        'libs.auth.get_google_group_id',
+        'libs.auth.check_transitive_group_membership',
+        'libs.auth.get_identity_api'
+    ])
 
   def test_none(self):
     """Ensure it returns False when config is invalid."""
     self.mock.get_value.return_value = None
     self.assertFalse(access._is_privileged_user('test'))
-    self.mock.get_value.assert_has_calls([mock.call('privileged_users')])
+    self.mock.get_value.assert_has_calls(
+        [mock.call('privileged_users'),
+         mock.call('privileged_groups')])
 
   def test_global(self):
     """Ensure it returns True if an email is permitted globally."""
-    self.mock.get_value.return_value = self._FAKE_CONFIG
+    self.mock.get_value.side_effect = self._get_value_mock
     self.assertTrue(access._is_privileged_user('test@test.com'))
     self.mock.get_value.assert_has_calls([mock.call('privileged_users')])
 
@@ -89,6 +103,40 @@ class IsPrivilegedUserTest(unittest.TestCase):
         'all_users_privileged': True,
     })
     self.assertTrue(access._is_privileged_user('a@user.com'))
+
+  def test_privileged_group(self):
+    """Test success access for member of privileged group."""
+    self.mock.get_value.side_effect = self._get_value_mock
+    self.mock.get_identity_api.return_value = None
+    self.mock.get_google_group_id.return_value = 1
+    self.mock.check_transitive_group_membership.return_value = True
+
+    self.assertTrue(access._is_privileged_user('usertest@google.com'))
+    self.mock.get_google_group_id.assert_called_with('test@group.com', None)
+    self.mock.check_transitive_group_membership.assert_called_with(
+        1, 'usertest@google.com', None)
+
+  def test_privileged_group_id_not_available(self):
+    """Test failed access if privileged group not found."""
+    self.mock.get_value.side_effect = self._get_value_mock
+    self.mock.get_identity_api.return_value = None
+    self.mock.get_google_group_id.return_value = None
+
+    self.assertFalse(access._is_privileged_user('usertest@google.com'))
+    self.mock.get_google_group_id.assert_called_with('test@group.com', None)
+    self.mock.check_transitive_group_membership.assert_not_called()
+
+  def test_not_member_privileged_group(self):
+    """Test failed access if user not member of privileged group."""
+    self.mock.get_value.side_effect = self._get_value_mock
+    self.mock.get_identity_api.return_value = None
+    self.mock.get_google_group_id.return_value = 1
+    self.mock.check_transitive_group_membership.return_value = False
+
+    self.assertFalse(access._is_privileged_user('usertest@google.com'))
+    self.mock.get_google_group_id.assert_called_with('test@group.com', None)
+    self.mock.check_transitive_group_membership.assert_called_with(
+        1, 'usertest@google.com', None)
 
 
 class IsDomainAllowedTest(unittest.TestCase):
