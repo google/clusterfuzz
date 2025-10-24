@@ -122,6 +122,8 @@ def get_group_id(service, group_email):
     return response.get('name')
   except Exception as e:
     print(f"Error looking up group {group_email}: {e}")
+    print()
+    print(type(e).__name__)
     return None
 
 
