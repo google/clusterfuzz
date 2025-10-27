@@ -14,6 +14,7 @@
 """Init command."""
 
 import os
+import sys
 
 import click
 
@@ -30,7 +31,7 @@ def cli():
   if not docker_utils.check_docker_setup():
     click.secho(
         'Docker setup check failed. Please resolve the issues above.', fg='red')
-    return
+    sys.exit(1)
   click.secho('Docker setup is correct.', fg='green')
 
   click.echo('Checking gcloud authentication...')
@@ -38,7 +39,7 @@ def cli():
 
   if not credentials_path:
     click.secho('gcloud authentication check failed.', fg='red')
-    return
+    sys.exit(1)
 
   click.echo(
       f'Saving credentials found in {credentials_path} file path to ~/.casp/config.json'
@@ -70,5 +71,6 @@ def cli():
         f'\nError: Failed to pull Docker image {docker_utils.DOCKER_IMAGE}.',
         fg='red')
     click.secho('Initialization failed.', fg='red')
+    sys.exit(1)
 
   click.secho('Initialization complete.', fg='green')
