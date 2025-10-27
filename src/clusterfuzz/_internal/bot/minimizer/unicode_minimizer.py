@@ -20,11 +20,18 @@ from . import errors
 from . import minimizer
 from . import utils
 
-UNICODE_TOKEN_PATTERN = rb'(\\u[0-9a-fA-F]{4})'
+UNICODE_TOKEN_PATTERN = (
+    rb'('
+    rb'\\u[0-9a-fA-F]{4}'  # \uXXXX format
+    rb'|'
+    rb'\\u\{[0-9a-fA-F]+\}'  # \u{...} format
+    rb'|'
+    rb'\\x[0-9a-fA-F]{2}'  # \xXX format
+    rb')')
 
 
 def is_unicode_escape(s):
-  """Returns true if string matches \\uXXXX pattern."""
+  """Returns true if string matches \\uXXXX, \\u{...}, or \\xXX pattern."""
 
   return re.fullmatch(UNICODE_TOKEN_PATTERN, s)
 
@@ -39,10 +46,22 @@ def split_and_decode_unicode_literal(s):
   for token in intermediate_tokens:
     tokens.append(token)
     if re.fullmatch(UNICODE_TOKEN_PATTERN, token):
-      hex_code = token[2:]
-      decoded_char = int(hex_code, 16)
-      # JS engines require UTF-8 encoding
-      tokens.append(chr(decoded_char).encode('utf-8'))
+      try:
+        hex_code = b''
+        if token.startswith(b'\\u{'):
+          hex_code = token[3:-1]
+        elif token.startswith(b'\\u') or token.startswith(b'\\x'):
+          hex_code = token[2:]
+
+        decoded_char = int(hex_code, 16)
+        # JS engines require UTF-8 encoding
+        tokens.append(chr(decoded_char).encode('utf-8'))
+
+      except (ValueError, OverflowError):
+        # If decoding fails, just don't append the replacement token.
+        # The original escape is already in `tokens`.
+        pass
+
   return tokens
 
 

@@ -120,6 +120,7 @@ class Handler(base_handler.Handler):
         'oss_fuzz_robot_github_personal_access_token')
     platform_group_mappings = request.get('platform_group_mappings')
     privileged_users = request.get('privileged_users')
+    privileged_groups = request.get('privileged_groups')
     blacklisted_users = request.get('blacklisted_users')
     relax_security_bug_restrictions = request.get(
         'relax_security_bug_restrictions')
@@ -146,6 +147,7 @@ class Handler(base_handler.Handler):
     config.jira_url = jira_url
     config.platform_group_mappings = platform_group_mappings
     config.privileged_users = privileged_users
+    config.privileged_groups = privileged_groups
     config.blacklisted_users = blacklisted_users
     config.relax_security_bug_restrictions = bool(
         relax_security_bug_restrictions)
