@@ -16,17 +16,14 @@
 import os
 import sys
 
+from casp.utils import config
+from casp.utils import docker_utils
+from casp.utils import gcloud
 import click
 
-from ..utils import config
-from ..utils import docker_utils
-from ..utils import gcloud
 
-
-@click.command(name='init', help='Initializes the CLI.')
-def cli():
-  """Initializes the CLI by checking the Docker setup and pulling the
-  required image."""
+def _setup_docker():
+  """Sets up Docker."""
   click.echo('Checking Docker setup...')
   if not docker_utils.check_docker_setup():
     click.secho(
@@ -34,6 +31,9 @@ def cli():
     sys.exit(1)
   click.secho('Docker setup is correct.', fg='green')
 
+
+def _setup_gcloud_credentials():
+  """"Setup gcloud credentials. Prompts the user if not found."""
   click.echo('Checking gcloud authentication...')
   credentials_path = gcloud.get_credentials_path()
 
@@ -42,7 +42,7 @@ def cli():
     sys.exit(1)
 
   click.echo(
-      f'Saving credentials found in {credentials_path} file path to ~/.casp/config.json'
+      f'Saving credentials found in {credentials_path} to file path to ~/.casp/config.json'  # pylint: disable=line-too-long
   )
   cfg = config.load_config()
   if not cfg:
@@ -52,6 +52,9 @@ def cli():
 
   click.secho('gcloud authentication is configured correctly.', fg='green')
 
+
+def _setup_custom_config():
+  """Sets up optional custom configuration directory path."""
   custom_config_path = click.prompt(
       'Enter path to custom config directory (optional)',
       default='',
@@ -65,6 +68,9 @@ def cli():
     click.secho(
         f'Custom config path saved to {config.CONFIG_FILE}.', fg='green')
 
+
+def _pull_image():
+  """Pulls the docker image."""
   click.echo(f'Pulling Docker image: {docker_utils.DOCKER_IMAGE}...')
   if not docker_utils.pull_image():
     click.secho(
@@ -74,3 +80,13 @@ def cli():
     sys.exit(1)
 
   click.secho('Initialization complete.', fg='green')
+
+
+@click.command(name='init', help='Initializes the CLI.')
+def cli():
+  """Initializes the CLI by checking the Docker setup and pulling the
+  required image."""
+  _setup_docker()
+  _setup_gcloud_credentials()
+  _setup_custom_config()
+  _pull_image()

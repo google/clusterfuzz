@@ -21,12 +21,12 @@ import os
 import unittest
 from unittest.mock import patch
 
-from click.testing import CliRunner
-
 from casp.commands import init
+from click.testing import CliRunner
 
 
 class InitCliTest(unittest.TestCase):
+  """Tests for the init command."""
 
   def setUp(self):
     super().setUp()
@@ -46,26 +46,30 @@ class InitCliTest(unittest.TestCase):
     self.mock_docker_utils.check_docker_setup.return_value = True
     self.mock_docker_utils.pull_image.return_value = True
     self.mock_docker_utils.DOCKER_IMAGE = 'gcr.io/casp/runner:latest'
-    self.mock_gcloud.get_credentials_path.return_value = '/fake/path/credentials.json'
+    self.mock_gcloud.get_credentials_path.return_value = '/fake/path/credentials.json'  # pylint: disable=line-too-long
     self.mock_config.load_config.return_value = {}
     self.mock_config.CONFIG_FILE = '~/.casp/config.json'
 
   def test_init_success_all_steps(self):
     """Tests successful initialization through all steps, no custom config."""
-    result = self.runner.invoke(init.cli, input='\n')  # Enter for optional prompt
+    result = self.runner.invoke(
+        init.cli, input='\n')  # Enter for optional prompt
 
     self.assertEqual(0, result.exit_code)
     self.assertIn('Docker setup is correct.', result.output)
-    self.assertIn('gcloud authentication is configured correctly.', result.output)
-    self.assertIn(f'Pulling Docker image: {self.mock_docker_utils.DOCKER_IMAGE}',
+    self.assertIn('gcloud authentication is configured correctly.',
                   result.output)
+    self.assertIn(
+        f'Pulling Docker image: {self.mock_docker_utils.DOCKER_IMAGE}',
+        result.output)
     self.assertIn('Initialization complete.', result.output)
 
     self.mock_docker_utils.check_docker_setup.assert_called_once()
     self.mock_gcloud.get_credentials_path.assert_called_once()
     self.mock_config.load_config.assert_called()
-    self.mock_config.save_config.assert_any_call(
-        {'gcloud_credentials_path': '/fake/path/credentials.json'})
+    self.mock_config.save_config.assert_any_call({
+        'gcloud_credentials_path': '/fake/path/credentials.json'
+    })
     self.mock_docker_utils.pull_image.assert_called_once()
 
   def test_init_docker_setup_fails(self):
@@ -101,7 +105,9 @@ class InitCliTest(unittest.TestCase):
 
   def test_init_with_existing_config(self):
     """Tests that existing config is loaded and updated."""
-    self.mock_config.load_config.return_value = {'existing_key': 'existing_value'}
+    self.mock_config.load_config.return_value = {
+        'existing_key': 'existing_value'
+    }
     result = self.runner.invoke(init.cli, input='\n')
 
     self.assertEqual(0, result.exit_code)
@@ -146,9 +152,11 @@ class InitCliTest(unittest.TestCase):
     self.assertEqual(0, result.exit_code)
     self.mock_os_path_exists.assert_any_call(custom_path)
 
-    # Check that save_config was called for gcloud_credentials_path but NOT again for custom_config_path
-    gcloud_save_call = unittest.mock.call(
-        {'gcloud_credentials_path': '/fake/path/credentials.json'})
+    # Check that save_config was called for
+    # gcloud_credentials_path but NOT again for custom_config_path
+    gcloud_save_call = unittest.mock.call({
+        'gcloud_credentials_path': '/fake/path/credentials.json'
+    })
     self.assertIn(gcloud_save_call, self.mock_config.save_config.mock_calls)
 
     custom_save_call_args = {
@@ -168,8 +176,9 @@ class InitCliTest(unittest.TestCase):
 
     self.assertEqual(0, result.exit_code)
     # Check save_config was only called once for gcloud creds
-    self.mock_config.save_config.assert_called_once_with(
-        {'gcloud_credentials_path': '/fake/path/credentials.json'})
+    self.mock_config.save_config.assert_called_once_with({
+        'gcloud_credentials_path': '/fake/path/credentials.json'
+    })
     self.assertNotIn('Custom config path saved', result.output)
     self.assertIn('Initialization complete.', result.output)
 
