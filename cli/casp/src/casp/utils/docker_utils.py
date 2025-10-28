@@ -16,6 +16,7 @@
 import os
 
 import click
+import logging
 from docker.errors import DockerException
 
 import docker
@@ -44,6 +45,7 @@ def check_docker_setup() -> docker.client.DockerClient | None:
           f'  sudo usermod -aG docker ${os.environ.get("USER")}', fg='yellow')
       click.echo('Then, log out and log back in for the change to take effect.')
     else:
+      logging.error(e)
       click.secho(
           'Error: Docker is not running or is not installed. Please start '
           'Docker and try again.',
