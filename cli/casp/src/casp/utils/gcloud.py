@@ -17,7 +17,6 @@ import os
 import subprocess
 
 import click
-from google.auth import exceptions as auth_exceptions
 from google.oauth2 import credentials
 
 DEFAULT_GCLOUD_CREDENTIALS_PATH = os.path.expanduser(
