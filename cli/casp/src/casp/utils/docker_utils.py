@@ -21,7 +21,7 @@ from docker.errors import DockerException
 import docker
 
 # TODO: Make this configurable.
-DOCKER_IMAGE = 'gcr.io/clusterfuzz-images/chromium/base/immutable/dev:20251008165901-utc-893e97e-640142509185-compute-d609115-prod'
+DOCKER_IMAGE = 'gcr.io/clusterfuzz-images/chromium/base/immutable/dev:20251008165901-utc-893e97e-640142509185-compute-d609115-prod'  # pylint: disable=line-too-long
 
 
 def check_docker_setup() -> docker.client.DockerClient | None:
@@ -64,4 +64,3 @@ def pull_image() -> bool:
   except DockerException:
     click.secho(f'Error: Docker image {DOCKER_IMAGE} not found.', fg='red')
     return False
-
