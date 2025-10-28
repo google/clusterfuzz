@@ -47,15 +47,6 @@ class IsValidCredentialsTest(unittest.TestCase):
   @patch('google.oauth2.credentials.Credentials.from_authorized_user_file', autospec=True)
   def test_auth_error(self, mock_from_file, mock_exists):
     """Tests with an auth exception."""
-    mock_from_file.side_effect = auth_exceptions.DefaultCredentialsError
-    self.assertFalse(gcloud._is_valid_credentials('path'))
-    mock_exists.assert_called_once_with('path')
-    mock_from_file.assert_called_once_with('path')
-
-  @patch('os.path.exists', return_value=True, autospec=True)
-  @patch('google.oauth2.credentials.Credentials.from_authorized_user_file', autospec=True)
-  def test_value_error(self, mock_from_file, mock_exists):
-    """Tests with a ValueError."""
     mock_from_file.side_effect = ValueError
     self.assertFalse(gcloud._is_valid_credentials('path'))
     mock_exists.assert_called_once_with('path')

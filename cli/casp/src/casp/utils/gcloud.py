@@ -27,11 +27,13 @@ DEFAULT_GCLOUD_CREDENTIALS_PATH = os.path.expanduser(
 def _is_valid_credentials(path: str) -> bool:
   """Returns True if the path points to a valid credentials file."""
   if not path or not os.path.exists(path):
+    click.secho('Error: No valid credentials file found.', fg='red')
     return False
   try:
     credentials.Credentials.from_authorized_user_file(path)
     return True
-  except (auth_exceptions.DefaultCredentialsError, ValueError, KeyError):
+  except ValueError as e:
+    click.secho(f'Error: {e}', fg='red')
     return False
 
 
