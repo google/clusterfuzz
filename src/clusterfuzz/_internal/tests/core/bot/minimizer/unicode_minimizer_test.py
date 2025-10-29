@@ -20,14 +20,23 @@ from clusterfuzz._internal.bot.minimizer import unicode_minimizer
 
 
 def replace_unicode(data):
+  """Helper function to replace all valid unicode/hex escapes."""
 
   def replacer(match):
-    hex_code = match.group(1)
-    code_point = int(hex_code, 16)
-    # JS engines require UTF-8 encoded input.
-    return chr(code_point).encode('utf-8')
+    hex_code = match.group(1) or match.group(2) or match.group(3)
+    if not hex_code:
+      return match.group(0)
 
-  pattern = rb'\\u([0-9a-fA-F]{4})'
+    try:
+      code_point = int(hex_code, 16)
+      # JS engines require UTF-8 encoded input.
+      # This will fail for code_point > 0x10FFFF
+      return chr(code_point).encode('utf-8')
+    except (ValueError, OverflowError):
+      # If it's an invalid code point, return the original escape.
+      return match.group(0)
+
+  pattern = rb'\\u\{([0-9a-fA-F]+)\}|\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})'
   return re.sub(pattern, replacer, data)
 
 
@@ -108,3 +117,74 @@ class UnicodeMinimizerTest(unittest.TestCase):
 
     self.assertEqual(
         result, b'text E text G some text H some other text I yet another text')
+
+  def test_minimize_buggy_hex_escape(self):
+    """Program crashes because of \\x41."""
+    data = b'text \\x41 text'  # \x41 = 'A'
+    self.crash_programs.append(data)
+    self.no_crash_programs.append(replace_unicode(data))  # b'text A text'
+
+    result = self._minimizer.minimize(data)
+    self.assertEqual(result, b'text \\x41 text')
+
+  def test_minimize_not_buggy_hex_escape(self):
+    """Program crashes, but not because of \\x41."""
+    data = b'text \\x41 text'
+    self.crash_programs.append(data)
+    self.crash_programs.append(replace_unicode(data))  # b'text A text'
+
+    result = self._minimizer.minimize(data)
+    self.assertEqual(result, b'text A text')
+
+  def test_minimize_buggy_extended_unicode_escape(self):
+    """Program crashes because of \\u{42}."""
+    data = b'text \\u{42} text'  # \u{42} = 'B'
+    self.crash_programs.append(data)
+    self.no_crash_programs.append(replace_unicode(data))  # b'text B text'
+
+    result = self._minimizer.minimize(data)
+    self.assertEqual(result, b'text \\u{42} text')
+
+  def test_minimize_not_buggy_extended_unicode_escape(self):
+    """Program crashes, but not because of \\u{42}."""
+    data = b'text \\u{42} text'
+    self.crash_programs.append(data)
+    self.crash_programs.append(replace_unicode(data))  # b'text B text'
+
+    result = self._minimizer.minimize(data)
+    self.assertEqual(result, b'text B text')
+
+  def test_minimize_buggy_all_escapes(self):
+    """Program crashes because of one of the mixed escapes."""
+    data = b'A \\u0041 B \\x42 C \\u{43} D'  # A, B, C
+    self.crash_programs.append(data)
+    self.no_crash_programs.append(replace_unicode(data))  # b'A A B B C C D'
+
+    result = self._minimizer.minimize(data)
+    self.assertEqual(result, b'A \\u0041 B \\x42 C \\u{43} D')
+
+  def test_minimize_not_buggy_all_escapes(self):
+    """Program crashes, but not because of any of the mixed escapes."""
+    data = b'A \\u0041 B \\x42 C \\u{43} D'  # A, B, C
+    self.crash_programs.append(data)
+    self.crash_programs.append(replace_unicode(data))  # b'A A B B C C D'
+
+    result = self._minimizer.minimize(data)
+    self.assertEqual(result, b'A A B B C C D')
+
+  def test_minimize_invalid_unicode_escape(self):
+    """Minimizer should not replace invalid escape sequences."""
+    # \\u{110000} is outside the valid Unicode range (max 0x10FFFF)
+    data = b'text \\u{110000} text'
+    self.crash_programs.append(data)
+
+    # replace_unicode will fail to decode and return the original string
+    replaced_data = replace_unicode(data)
+    self.assertEqual(data, replaced_data)
+
+    # Add the (un)replaced data to crash_programs
+    self.crash_programs.append(replaced_data)
+
+    result = self._minimizer.minimize(data)
+
+    self.assertEqual(result, data)

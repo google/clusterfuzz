@@ -33,4 +33,3 @@ jobs:
 
       - name: Run basic tests
         run: ./local/tests/ci_tests.bash
-

@@ -112,12 +112,14 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
+RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11
 
 # Install Node.js
 COPY setup_19.x /data
 RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
 
-RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
+RUN export CLOUDSDK_PYTHON=python3.11 && \
+    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
     | apt-key add - && \
@@ -151,6 +153,6 @@ COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metada
 RUN cd /data && \
     # Make pip3.11 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
-    pipenv install --deploy --system
+    python3.11 -m pipenv install --deploy --system
 
 CMD ["bash", "-ex", "/data/start.sh"]
