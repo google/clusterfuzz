@@ -17,7 +17,6 @@ from unittest import mock
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
@@ -312,9 +311,8 @@ class AddTaskTest(unittest.TestCase):
     self.oss_fuzz_project.put()
 
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_add_task_internal_job_with_os_version(self, mock_job_query,
-                                                   mock_add_external,
-                                                   mock_bulk_add):
+  def test_add_task_internal_job_with_os_version(
+      self, mock_job_query, mock_add_external, mock_bulk_add):
     """Test add_task with an internal job and an OS version."""
     mock_job = mock.MagicMock()
     mock_job.base_os_version = 'ubuntu-20-04'
@@ -330,9 +328,8 @@ class AddTaskTest(unittest.TestCase):
     self.assertEqual(task_payload.extra_info['base_os_version'], 'ubuntu-20-04')
 
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_add_task_external_job_with_os_version(self, mock_job_query,
-                                                   mock_add_external,
-                                                   mock_bulk_add):
+  def test_add_task_external_job_with_os_version(
+      self, mock_job_query, mock_add_external, mock_bulk_add):
     """Test add_task with an external (OSS-Fuzz) job and an OS version."""
     mock_job = mock.MagicMock()
     mock_job.base_os_version = 'ubuntu-20-04'
@@ -370,7 +367,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
       'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
   )
   def test_get_postprocess_task_without_os_version(self, mock_is_remote,
-                                                    mock_env_get, mock_puller):
+                                                   mock_env_get, mock_puller):
     """Tests that get_postprocess_task selects the default queue."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
@@ -385,7 +382,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
       'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
   )
   def test_get_postprocess_task_with_os_version(self, mock_is_remote,
-                                                 mock_env_get, mock_puller):
+                                                mock_env_get, mock_puller):
     """Tests that get_postprocess_task selects the suffixed queue."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
