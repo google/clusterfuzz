@@ -15,6 +15,7 @@
 
 import click
 
+
 @click.command(name='init', help='Initializes the CLI')
 def cli():
   """Initializes the CLI"""
