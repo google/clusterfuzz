@@ -312,32 +312,38 @@ class AddTaskTest(unittest.TestCase):
     self.oss_fuzz_project.put()
 
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_add_task_with_os_version(self, mock_job_query, mock_add_external,
-                                    mock_bulk_add):
-    """Test that the base_os_version attribute is correctly added."""
+  def test_add_task_internal_job_with_os_version(self, mock_job_query,
+                                                   mock_add_external,
+                                                   mock_bulk_add):
+    """Test add_task with an internal job and an OS version."""
     mock_job = mock.MagicMock()
     mock_job.base_os_version = 'ubuntu-20-04'
     mock_job.project = 'd8'
+    mock_job.is_external.return_value = False
     mock_job_query.return_value.get.return_value = mock_job
 
-    # Scenario 1: Not an external job. Should use the job's OS version and
-    # call bulk_add_tasks.
-    mock_job.is_external.return_value = False
     tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+
     mock_add_external.assert_not_called()
-    mock_bulk_add.assert_called()
+    mock_bulk_add.assert_called_once()
     task_payload = mock_bulk_add.call_args[0][0][0]
     self.assertEqual(task_payload.extra_info['base_os_version'], 'ubuntu-20-04')
 
-    mock_bulk_add.reset_mock()
-    mock_add_external.reset_mock()
-
-    # Scenario 2: External (OSS-Fuzz) job. Should use the project's OS version
-    # and call add_external_task.
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_external_job_with_os_version(self, mock_job_query,
+                                                   mock_add_external,
+                                                   mock_bulk_add):
+    """Test add_task with an external (OSS-Fuzz) job and an OS version."""
+    mock_job = mock.MagicMock()
+    mock_job.base_os_version = 'ubuntu-20-04'
+    mock_job.project = 'd8'
     mock_job.is_external.return_value = True
+    mock_job_query.return_value.get.return_value = mock_job
+
     tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+
     mock_bulk_add.assert_not_called()
-    mock_add_external.assert_called()
+    mock_add_external.assert_called_once()
 
 
 @mock.patch('clusterfuzz._internal.base.tasks.PubSubPuller')
@@ -345,18 +351,17 @@ class AddTaskTest(unittest.TestCase):
 class GetTaskQueueSelectionTest(unittest.TestCase):
   """Tests for dynamic queue selection in get_*_task functions."""
 
-  def test_get_preprocess_task_queue_selection(self, mock_env_get, mock_puller):
-    """Tests that get_preprocess_task selects the correct queue."""
+  def test_get_preprocess_task_without_os_version(self, mock_env_get,
+                                                  mock_puller):
+    """Tests that get_preprocess_task selects the default queue."""
     mock_puller.return_value.get_messages.return_value = []
-
-    # Scenario 1: No OS version ENV. Should use the default queue.
     mock_env_get.return_value = None
     tasks.get_preprocess_task()
     mock_puller.assert_called_with('preprocess')
 
-    mock_puller.reset_mock()
-
-    # Scenario 2: With OS version ENV. Should use the suffixed queue.
+  def test_get_preprocess_task_with_os_version(self, mock_env_get, mock_puller):
+    """Tests that get_preprocess_task selects the suffixed queue."""
+    mock_puller.return_value.get_messages.return_value = []
     mock_env_get.return_value = 'ubuntu-24-04'
     tasks.get_preprocess_task()
     mock_puller.assert_called_with('preprocess-ubuntu-24-04')
@@ -364,39 +369,43 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
   )
-  def test_get_postprocess_task_queue_selection(self, mock_is_remote,
-                                                mock_env_get, mock_puller):
-    """Tests that get_postprocess_task selects the correct queue."""
+  def test_get_postprocess_task_without_os_version(self, mock_is_remote,
+                                                    mock_env_get, mock_puller):
+    """Tests that get_postprocess_task selects the default queue."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
     with mock.patch(
         'clusterfuzz._internal.system.environment.platform') as mock_platform:
       mock_platform.return_value.lower.return_value = 'linux'
-
-      # Scenario 1: No OS version ENV.
       mock_env_get.return_value = None
       tasks.get_postprocess_task()
       mock_puller.assert_called_with('postprocess')
 
-      mock_puller.reset_mock()
-
-      # Scenario 2: With OS version ENV.
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks'
+  )
+  def test_get_postprocess_task_with_os_version(self, mock_is_remote,
+                                                 mock_env_get, mock_puller):
+    """Tests that get_postprocess_task selects the suffixed queue."""
+    mock_is_remote.return_value = True
+    mock_puller.return_value.get_messages.return_value = []
+    with mock.patch(
+        'clusterfuzz._internal.system.environment.platform') as mock_platform:
+      mock_platform.return_value.lower.return_value = 'linux'
       mock_env_get.return_value = 'ubuntu-24-04'
       tasks.get_postprocess_task()
       mock_puller.assert_called_with('postprocess-ubuntu-24-04')
 
-  def test_get_utask_mains_queue_selection(self, mock_env_get, mock_puller):
-    """Tests that get_utask_mains selects the correct queue."""
+  def test_get_utask_mains_without_os_version(self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the default queue."""
     mock_puller.return_value.get_messages_time_limited.return_value = []
-
-    # Scenario 1: No OS version ENV.
     mock_env_get.return_value = None
     tasks.get_utask_mains()
     mock_puller.assert_called_with('utask_main')
 
-    mock_puller.reset_mock()
-
-    # Scenario 2: With OS version ENV.
+  def test_get_utask_mains_with_os_version(self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the suffixed queue."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
     mock_env_get.return_value = 'ubuntu-24-04'
     tasks.get_utask_mains()
     mock_puller.assert_called_with('utask_main-ubuntu-24-04')
@@ -407,36 +416,39 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
 class QueueNameGenerationTest(unittest.TestCase):
   """Tests for queue name generation functions."""
 
-  def test_default_queue_suffix_generation(self, mock_platform, mock_env_get):
-    """Tests the logic of default_queue_suffix."""
-    # Mock QUEUE_OVERRIDE to be unset.
-    mock_env_get.side_effect = lambda key, default='': {
-        'BASE_OS_VERSION': '',
-        'QUEUE_OVERRIDE': ''
-    }.get(key, default)
-
-    # Scenario 1: Linux platform, no OS version.
+  def test_default_queue_suffix_linux_no_os_version(self, mock_platform,
+                                                    mock_env_get):
+    """Tests queue suffix for Linux without an OS version."""
+    mock_env_get.side_effect = lambda key, default='': {'QUEUE_OVERRIDE': ''}.get(key, default)
     mock_platform.return_value = 'LINUX'
     self.assertEqual(tasks.default_queue_suffix(), '-linux')
 
-    # Scenario 2: Linux platform, with OS version.
+  def test_default_queue_suffix_linux_with_os_version(self, mock_platform,
+                                                      mock_env_get):
+    """Tests queue suffix for Linux with an OS version."""
     mock_env_get.side_effect = lambda key, default='': {
         'BASE_OS_VERSION': 'ubuntu-24-04',
         'QUEUE_OVERRIDE': ''
     }.get(key, default)
+    mock_platform.return_value = 'LINUX'
     self.assertEqual(tasks.default_queue_suffix(), '-linux-ubuntu-24-04')
 
-    # Scenario 3: Mac platform, no OS version.
-    mock_platform.return_value = 'MAC'
+  def test_default_queue_suffix_mac_no_os_version(self, mock_platform,
+                                                  mock_env_get):
+    """Tests queue suffix for Mac without an OS version."""
     mock_env_get.side_effect = lambda key, default='': {
         'BASE_OS_VERSION': '',
         'QUEUE_OVERRIDE': ''
     }.get(key, default)
+    mock_platform.return_value = 'MAC'
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
 
-    # Scenario 4: Mac platform, with OS version (should be ignored).
+  def test_default_queue_suffix_mac_with_os_version(self, mock_platform,
+                                                    mock_env_get):
+    """Tests queue suffix for Mac with an OS version (should be ignored)."""
     mock_env_get.side_effect = lambda key, default='': {
         'BASE_OS_VERSION': 'ubuntu-24-04',
         'QUEUE_OVERRIDE': ''
     }.get(key, default)
+    mock_platform.return_value = 'MAC'
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
