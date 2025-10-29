@@ -180,9 +180,9 @@ def execute(args):
     # Explicitly compare against master if we're running on the CI
     diff_command = 'git diff --name-only master FETCH_HEAD'
   else:
-    print(f'GITHUB_ACTIONS: {os.environ["GITHUB_ACTIONS"]}')
-    print(f'GITHUB_ACTION: {os.environ["GITHUB_ACTION"]}')
-    print(f'CI: {os.environ["CI"]}')
+    print(f'GITHUB_ACTIONS: {os.environ.get("GITHUB_ACTIONS")}')
+    print(f'GITHUB_ACTION: {os.environ.get("GITHUB_ACTION")}')
+    print(f'CI: {os.environ.get("CI")}')
     if 'GITHUB_ACTIONS' in os.environ:
       # In GitHub actions, we want to compare against the base branch.
       diff_command = 'git diff --name-only FETCH_HEAD'
