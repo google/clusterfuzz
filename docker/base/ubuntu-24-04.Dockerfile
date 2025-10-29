@@ -89,7 +89,8 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
-RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11
+RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
+    ln -s /usr/bin/python3.11 /usr/bin/python3
 
 # Install Node.js 19.x from binary to maintain version consistency
 RUN cd /tmp && \
