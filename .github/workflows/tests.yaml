@@ -33,6 +33,3 @@ jobs:
 
       - name: Run basic tests
         run: ./local/tests/ci_tests.bash
-        env:
-          IS_GITHUB_ACTIONS: "true"
-
