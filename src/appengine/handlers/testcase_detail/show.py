@@ -633,6 +633,7 @@ class RefreshHandler(base_handler.Handler):
     testcase_id = flask.request.get('testcaseId')
     return self.render_json(get_testcase_detail_by_id(testcase_id))
 
+
 class TaskLogHandler(base_handler.Handler):
   """Handler for downloading a task's log."""
 

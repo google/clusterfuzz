@@ -84,6 +84,7 @@ class GrouperTest(unittest.TestCase):
   # Regression test for https://issues.chromium.org/issues/443261679
   def test_security_crash_state_null(self):
     """Test grouping of crashes with NULL state for security issues"""
+
     def group():
       """Helper to group and return testcase ids."""
       for t in self.testcases:
@@ -117,7 +118,6 @@ class GrouperTest(unittest.TestCase):
     self.testcases[1].crash_state = 'abc\ndef'
     self.testcases[1].crash_type = 'Heap-buffer-overflow'
     self.assertEqual(len(group()), 2)
-
 
   def test_same_crash_same_security(self):
     """Test that crashes with same crash states and same security flags get
