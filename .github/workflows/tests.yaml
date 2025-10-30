@@ -23,8 +23,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
+      - run: |  # Needed for git diff to work.
+          git fetch origin master --depth 1
+          git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/master
 
       - name: Setup python environment
         uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
