@@ -324,7 +324,8 @@ def allow_all_tasks():
   """Returns True if the bot should be allowed to execute any task.
 
   Preemptible bots are not allowed to execute all tasks, because some tasks
-  are not safe to be preempted."""
+  are not safe to be preempted.
+  """
   return not environment.get_value('PREEMPTIBLE')
 
 
