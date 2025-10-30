@@ -321,10 +321,14 @@ def get_postprocess_task():
 
 
 def allow_all_tasks():
+  """Returns True if the bot should be allowed to execute any task.
+  Preemptible bots are not allowed to execute all tasks, because some tasks
+  are not safe to be preempted."""
   return not environment.get_value('PREEMPTIBLE')
 
 
 def get_preprocess_task():
+  """Get a preprocess task."""
   queue_name = PREPROCESS_QUEUE
   base_os_version = environment.get_value('BASE_OS_VERSION')
   if base_os_version:

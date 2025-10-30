@@ -29,8 +29,12 @@ import threading
 import time
 import traceback
 from typing import Any
+from typing import Dict
+from typing import List
 from typing import NamedTuple
+from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 
 # This is needed to avoid circular import
 if TYPE_CHECKING:
@@ -770,7 +774,7 @@ def log_fatal_and_exit(message, **extras):
   sys.exit(-1)
 
 
-def get_common_log_context() -> dict[str, str]:
+def get_common_log_context() -> Dict[str, str]:
   """Return common context to be propagated by logs."""
   # Avoid circular imports on the top level.
   from clusterfuzz._internal.base import utils
@@ -804,8 +808,8 @@ def get_common_log_context() -> dict[str, str]:
     return {}
 
 
-def get_testcase_id(
-    testcase: 'Testcase | TestcaseAttributes') -> int | str | None:
+def get_testcase_id(testcase: Union['Testcase', 'TestcaseAttributes']
+                   ) -> Optional[Union[int, str]]:
   """Return the ID for a testcase or testcase attributes object."""
   # Importing here as 3P libs becomes accessible during runtime, after modules
   # path search is resolved (and logs may be imported before that).
@@ -849,7 +853,7 @@ class FuzzerLogStruct(NamedTuple):
 
 class TestcaseLogStruct(NamedTuple):
   testcase_id: str
-  testcase_group: str | int
+  testcase_group: Union[str, int]
   crash_state: str
   crash_type: str
   security_flag: bool
@@ -858,7 +862,7 @@ class TestcaseLogStruct(NamedTuple):
 
 class GrouperStruct(NamedTuple):
   # Represents the TestcaseLogStruct for each testcase being grouped.
-  symmetric_logs: list[dict]
+  symmetric_logs: List[Dict]
 
 
 class LogContextType(enum.Enum):
@@ -1017,7 +1021,7 @@ class LogContexts(metaclass=Singleton):
     self.meta: dict[Any, Any] = {}
     self._data_lock = threading.Lock()
 
-  def add(self, new_contexts: list[LogContextType]):
+  def add(self, new_contexts: List[LogContextType]):
     with self._data_lock:
       self.contexts += new_contexts
 
@@ -1025,7 +1029,7 @@ class LogContexts(metaclass=Singleton):
     with self._data_lock:
       self.meta[key] = value
 
-  def delete(self, contexts: list[LogContextType]):
+  def delete(self, contexts: List[LogContextType]):
     with self._data_lock:
       for ctx in contexts:
         self.contexts.remove(ctx)
@@ -1044,7 +1048,7 @@ log_contexts = LogContexts()
 
 
 @contextlib.contextmanager
-def wrap_log_context(contexts: list[LogContextType]):
+def wrap_log_context(contexts: List[LogContextType]):
   try:
     log_contexts.add(contexts)
     yield
