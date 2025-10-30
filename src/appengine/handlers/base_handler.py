@@ -14,7 +14,7 @@
 """The superclass of all handlers."""
 
 import base64
-import cgi
+import cgi  # pylint: disable=deprecated-module
 import datetime
 import json
 import logging
@@ -273,7 +273,7 @@ class Handler(MethodView):
 
   def dispatch_request(self, *args, **kwargs):
     """Dispatch a request and postprocess."""
-    self.is_json = False
+    self.is_json = False  # pylint: disable=attribute-defined-outside-init
     try:
       return super().dispatch_request(*args, **kwargs)
     except Exception as exception:
@@ -285,7 +285,7 @@ class GcsUploadHandler(Handler):
 
   def dispatch_request(self, *args, **kwargs):
     """Dispatch a request and postprocess."""
-    self.upload = None
+    self.upload = None  # pylint: disable=attribute-defined-outside-init
     return super().dispatch_request(*args, **kwargs)
 
   def get_upload(self):
@@ -301,5 +301,5 @@ class GcsUploadHandler(Handler):
     if not blob_info:
       raise helpers.EarlyExitError('Failed to upload.', 500)
 
-    self.upload = blob_info
+    self.upload = blob_info  # pylint: disable=attribute-defined-outside-init
     return self.upload
