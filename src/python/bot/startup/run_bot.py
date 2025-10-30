@@ -126,8 +126,8 @@ def task_loop():
         update_task.track_revision()
       else:
         logs.info(
-            "Update task not enabled. Running environment cleanup and platform init scripts."
-        )
+            "Update task not enabled. Running environment cleanup and platform "
+            "init scripts.")
         update_task.prepare_environment_for_new_task()
         update_task.run_platform_init_scripts()
 
