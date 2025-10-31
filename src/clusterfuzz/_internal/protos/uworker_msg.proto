@@ -261,6 +261,9 @@ message FuzzTaskOutput {
   optional BuildData build_data = 14;
   optional int64 app_revision = 15;
   repeated EngineOutput engine_outputs = 16;
+  optional string build_key = 17;
+  optional string build_url = 18;
+  optional string gn_args = 19;
 }
 
 message MinimizeTaskOutput {
