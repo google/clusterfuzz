@@ -852,29 +852,35 @@ def get_filtered_gn_args() -> str | None:
   return None
 
 
-def set_build_metadata_to_testcase(
-    testcase: data_types.Testcase,
-    build_key: str | None = None,
-    build_url: str | None = None,
-    gn_args: str | None = None,
-):
+def set_build_metadata_to_testcase(testcase: data_types.Testcase,
+                                   build_key: str | None = None,
+                                   build_url: str | None = None,
+                                   gn_args: str | None = None,
+                                   update: bool = False):
   """Set testcase metadata fields related to the build metadata."""
+  dirty_flag = False
   if not testcase.get_metadata('build_key'):
     build_key = (
         environment.get_value('BUILD_KEY') if build_key is None else build_key)
     if build_key:
+      dirty_flag = True
       testcase.set_metadata('build_key', build_key, update_testcase=False)
 
   if not testcase.get_metadata('build_url'):
     build_url = (
         environment.get_value('BUILD_URL') if build_url is None else build_url)
     if build_url:
+      dirty_flag = True
       testcase.set_metadata('build_url', build_url, update_testcase=False)
 
   if not testcase.get_metadata('gn_args'):
     gn_args = get_filtered_gn_args() if gn_args is None else gn_args
     if gn_args:
+      dirty_flag = True
       testcase.set_metadata('gn_args', gn_args, update_testcase=False)
+
+  if update and dirty_flag:
+    testcase.put()
 
 
 def set_initial_testcase_metadata(testcase: data_types.Testcase) -> None:

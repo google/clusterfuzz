@@ -1043,7 +1043,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       testcase,
       build_key=fuzz_task_output.build_key,
       build_url=fuzz_task_output.build_url,
-      gn_args=fuzz_task_output.gn_args)
+      gn_args=fuzz_task_output.gn_args,
+      update=True)
 
   if group.context.fuzzer_metadata:
     for key, value in group.context.fuzzer_metadata.items():
