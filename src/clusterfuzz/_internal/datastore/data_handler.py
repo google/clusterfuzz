@@ -860,14 +860,14 @@ def set_build_metadata_to_testcase(
 ):
   """Set testcase metadata fields related to the build metadata."""
   if not testcase.get_metadata('build_key'):
-    build_key = environment.get_value(
-        'BUILD_KEY') if build_key is None else build_key
+    build_key = (
+        environment.get_value('BUILD_KEY') if build_key is None else build_key)
     if build_key:
       testcase.set_metadata('build_key', build_key, update_testcase=False)
 
   if not testcase.get_metadata('build_url'):
-    build_url = environment.get_value(
-        'BUILD_URL') if build_url is None else build_url
+    build_url = (
+        environment.get_value('BUILD_URL') if build_url is None else build_url)
     if build_url:
       testcase.set_metadata('build_url', build_url, update_testcase=False)
 
