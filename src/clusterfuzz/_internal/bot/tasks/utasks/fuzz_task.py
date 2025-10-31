@@ -1037,8 +1037,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       events.TestcaseCreationEvent(
           testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK))
 
-  # Adds build metadata to testcase. Needed due to build env vars not being
-  # propagated if utask is not executing locally (e.g. BUILD_URL).
+  # Add build metadata to testcase. This is needed due to some build env vars
+  # not being propagated if utask is not executed locally (e.g., BUILD_URL).
   data_handler.set_build_metadata_to_testcase(
       testcase,
       build_key=fuzz_task_output.build_key,
