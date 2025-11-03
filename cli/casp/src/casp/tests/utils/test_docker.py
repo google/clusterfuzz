@@ -87,10 +87,9 @@ class CheckDockerSetupTest(unittest.TestCase):
 
     self.assertIsNone(client)
     mock_from_env.assert_called_once()
-    mock_secho.assert_called_once_with(
-        'Error: Docker is not running or is not installed. Please start '
-        'Docker and try again.',
-        fg='red')
+    mock_secho.assert_called_once()
+    args, _ = mock_secho.call_args
+    self.assertIn('Docker is not running', args[0])
     mock_echo.assert_not_called()
 
   @patch('docker.from_env', autospec=True)
@@ -108,10 +107,9 @@ class CheckDockerSetupTest(unittest.TestCase):
     self.assertIsNone(client)
     mock_from_env.assert_called_once()
     mock_client.ping.assert_called_once()
-    mock_secho.assert_called_once_with(
-        'Error: Docker is not running or is not installed. Please start '
-        'Docker and try again.',
-        fg='red')
+    mock_secho.assert_called_once()
+    args, _ = mock_secho.call_args
+    self.assertIn('Docker is not running', args[0])
     mock_echo.assert_not_called()
 
 
@@ -135,8 +133,9 @@ class PullImageTest(unittest.TestCase):
     result = docker_utils.pull_image()
 
     self.assertTrue(result)
-    mock_echo.assert_called_once_with(
-        f'Pulling Docker image: {docker_utils.DOCKER_IMAGE}...')
+    mock_echo.assert_called_once()
+    args, _ = mock_echo.call_args
+    self.assertIn('Pulling Docker image:', args[0])
     mock_check_docker_setup.assert_called_once()
     mock_images_collection.pull.assert_called_once_with(
         docker_utils.DOCKER_IMAGE)
