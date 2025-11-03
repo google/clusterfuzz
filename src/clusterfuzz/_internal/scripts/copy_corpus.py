@@ -87,7 +87,8 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
     target_url = '%s/%s' % (url_part, fuzz_target)
 
     _run_command(
-        [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url], 'rsync')
+        [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url],
+        'rsync')
 
   print('Copy corpus finished successfully.')
 

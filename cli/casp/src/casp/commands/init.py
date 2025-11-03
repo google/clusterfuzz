@@ -81,8 +81,7 @@ def _pull_image():
 
   click.secho('Initialization complete.', fg='green')
 
-
-@click.command(name='init', help='Initializes the CLI.')
+@click.command(name='init', help='Initializes the CLI')
 def cli():
   """Initializes the CLI by checking the Docker setup and pulling the
   required image."""
