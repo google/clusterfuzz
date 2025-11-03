@@ -97,8 +97,9 @@ class RunGcloudLoginTest(unittest.TestCase):
     """Tests with a failed login command."""
     mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd')
     self.assertFalse(gcloud._run_gcloud_login())  # pylint: disable=protected-access
-    mock_secho.assert_called_once_with('Error: gcloud login failed.', fg='red')
-
+    mock_secho.assert_called_once()
+    args, _ = mock_secho.call_args
+    self.assertIn('gcloud login failed', args[0])
 
 class PromptForCustomPathTest(unittest.TestCase):
   """Tests for _prompt_for_custom_path."""

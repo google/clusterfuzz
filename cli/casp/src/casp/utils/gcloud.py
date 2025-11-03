@@ -32,7 +32,7 @@ def _is_valid_credentials(path: str) -> bool:
     credentials.Credentials.from_authorized_user_file(path)
     return True
   except ValueError as e:
-    click.secho(f'Error: {e}', fg='red')
+    click.secho(f'Error when checking for valid credentials: {e}', fg='red')
     return False
 
 
@@ -48,11 +48,17 @@ def _run_gcloud_login() -> bool:
   except FileNotFoundError:
     click.secho(
         'Error: gcloud command not found. Please ensure it is installed and '
-        'in your PATH.',
+        'in your PATH. '
+        'Or you can mannually run '
+        '`gcloud auth application-default login`',
         fg='red')
     return False
   except subprocess.CalledProcessError:
-    click.secho('Error: gcloud login failed.', fg='red')
+    click.secho(
+          'Error: gcloud login failed. ' 
+          'You can mannually run '
+          '`gcloud auth application-default login`',
+          fg='red')
     return False
 
 
