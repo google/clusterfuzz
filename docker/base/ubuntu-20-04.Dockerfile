@@ -86,6 +86,16 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
     make install && \
     rm -rf /tmp/patchelf-*
 
+# Install Ruby, for Ruby fuzzing.
+RUN apt-get install -y binutils xz-utils libyaml-dev libffi-dev zlib1g-dev && \
+    RUBY_VERSION=3.3.1 && \
+    curl -O https://cache.ruby-lang.org/pub/ruby/3.3/ruby-$RUBY_VERSION.tar.gz && \
+    tar -xvf ruby-$RUBY_VERSION.tar.gz && \
+    cd ruby-$RUBY_VERSION && \
+    ./configure && \
+    make -j$(nproc) && \
+    make install
+
 # Install OpenJDK 17 for Jazzer (Java fuzzer).
 # Copied from gcr.io/oss-fuzz-base/base-runner.
 ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
