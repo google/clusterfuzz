@@ -15,6 +15,7 @@
 
 import click
 
+
 @click.command(name='reproduce', help='Reproduces a testcase locally')
 def cli():
   """Reproduces a testcase locally"""
