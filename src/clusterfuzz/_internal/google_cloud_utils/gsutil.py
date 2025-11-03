@@ -28,8 +28,7 @@ FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 def use_gcloud_for_command(command):
   """Returns whether to use gcloud storage for the given command."""
-  return bool(
-      environment.get_value(f'USE_GCLOUD_STORAGE_{command.upper()}'))
+  return bool(environment.get_value(f'USE_GCLOUD_STORAGE_{command.upper()}'))
 
 
 def get_gcloud_path():
@@ -133,14 +132,10 @@ class GSUtilRunner:
 
     return runner, additional_args
 
-  def run_gsutil(self,
-                 arguments,
-                 use_gcloud_storage,
-                 quiet=False,
-                 **kwargs):
+  def run_gsutil(self, arguments, use_gcloud_storage, quiet=False, **kwargs):
     """Run GSUtil or gcloud storage."""
-    runner, additional_args = self._get_runner_and_args(
-        use_gcloud_storage, quiet)
+    runner, additional_args = self._get_runner_and_args(use_gcloud_storage,
+                                                        quiet)
     arguments = additional_args + arguments
 
     env = os.environ.copy()
@@ -178,15 +173,13 @@ class GSUtilRunner:
         _filter_path(destination, write=True),
     ])
 
-    return self.run_gsutil(
-        command, use_gcloud, timeout=timeout, quiet=True)
+    return self.run_gsutil(command, use_gcloud, timeout=timeout, quiet=True)
 
   def download_file(self, gcs_url, file_path, timeout=None):
     """Download a file from GCS."""
     use_gcloud = use_gcloud_for_command('cp')
     command = ['cp', _filter_path(gcs_url), file_path]
-    result = self.run_gsutil(
-        command, use_gcloud, timeout=timeout)
+    result = self.run_gsutil(command, use_gcloud, timeout=timeout)
     if result.return_code:
       logs.error('GSUtilRunner.download_file failed:\nCommand: %s\n'
                  'Url: %s\n'
@@ -212,8 +205,7 @@ class GSUtilRunner:
         cp_command.append('--gzip-in-flight-all')
 
       cp_command.extend([file_path, _filter_path(gcs_url, write=True)])
-      result = self.run_gsutil(
-          cp_command, use_gcloud, timeout=timeout)
+      result = self.run_gsutil(cp_command, use_gcloud, timeout=timeout)
 
       if result.return_code != 0:
         logs.error('GSUtilRunner.upload_file (cp step) failed:\nCommand: %s\n'
@@ -233,8 +225,7 @@ class GSUtilRunner:
         # pylint: disable=line-too-long
         update_command.append(','.join(metadata_args))
 
-        result = self.run_gsutil(
-            update_command, use_gcloud, timeout=timeout)
+        result = self.run_gsutil(update_command, use_gcloud, timeout=timeout)
         if result.return_code != 0:
           logs.error(
               'GSUtilRunner.upload_file (update metadata step) failed:\nCommand: %s\n'
@@ -258,8 +249,7 @@ class GSUtilRunner:
       command.append('-Z')
 
     command.extend([file_path, _filter_path(gcs_url, write=True)])
-    result = self.run_gsutil(
-        command, use_gcloud, timeout=timeout)
+    result = self.run_gsutil(command, use_gcloud, timeout=timeout)
 
     if result.return_code:
       logs.error('GSUtilRunner.upload_file failed:\nCommand: %s\n'

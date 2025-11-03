@@ -2862,8 +2862,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = (
         'std::string_view(content::indexed_db::EncodeSortableIDBKey(key)) == input (0wwwy\n'
         'InvokeCallback\n'
-        '~Cleanup\n'
-    )
+        '~Cleanup\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -2880,8 +2879,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = (
         'std::string_view(content::indexed_db::EncodeSortableIDBKey(key)) == input in ind\n'
         'InvokeCallback\n'
-        '~Cleanup\n'
-    )
+        '~Cleanup\n')
     expected_stacktrace = data
     expected_security_flag = False
 

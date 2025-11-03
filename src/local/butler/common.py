@@ -79,13 +79,19 @@ class Gsutil:
         arguments.extend(args)
       elif args[0] == 'defstorageclass' and args[1] == 'set':
         # gsutil defstorageclass set <class> gs://<bucket>
-        # gcloud storage buckets update gs://<bucket> --default-storage-class <class>
-        arguments.extend(['buckets', 'update', args[3], '--default-storage-class', args[2]])
+        # gcloud storage buckets update gs://<bucket>
+        # --default-storage-class <class>
+        arguments.extend(
+            ['buckets', 'update', args[3], '--default-storage-class', args[2]])
       elif args[0] == 'iam' and args[1] == 'ch':
         # gsutil iam ch <role>:<member> gs://<bucket>
-        # gcloud storage buckets add-iam-policy-binding gs://<bucket> --member=<member> --role=<role>
+        # gcloud storage buckets add-iam-policy-binding gs://<bucket>
+        # --member=<member> --role=<role>
         role, member = args[2].split(':')
-        arguments.extend(['buckets', 'add-iam-policy-binding', args[3], f'--member={member}', f'--role={role}'])
+        arguments.extend([
+            'buckets', 'add-iam-policy-binding', args[3], f'--member={member}',
+            f'--role={role}'
+        ])
       else:
         arguments.extend(args)
     else:

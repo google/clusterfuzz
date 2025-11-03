@@ -15,6 +15,7 @@
 
 import click
 
+
 @click.command(name='run_task', help='Runs a given task locally')
 def cli():
   """Runs a given task locally"""
