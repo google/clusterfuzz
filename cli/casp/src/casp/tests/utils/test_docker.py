@@ -24,8 +24,6 @@ from unittest.mock import create_autospec
 from unittest.mock import patch
 
 from casp.utils import docker_utils
-from docker.errors import DockerException
-from docker.models import images as docker_images
 
 import docker
 
@@ -58,7 +56,7 @@ class CheckDockerSetupTest(unittest.TestCase):
   @patch('click.echo', autospec=True)
   def test_docker_permission_denied(self, mock_echo, mock_secho, mock_from_env):
     """Tests when DockerException is raised due to permission issues."""
-    mock_from_env.side_effect = DockerException(
+    mock_from_env.side_effect = docker.errors.DockerException(
         "Permission denied while connecting to the Docker daemon")
 
     client = docker_utils.check_docker_setup()
@@ -81,7 +79,8 @@ class CheckDockerSetupTest(unittest.TestCase):
   @patch('click.echo', autospec=True)
   def test_docker_not_running(self, mock_echo, mock_secho, mock_from_env):
     """Tests when DockerException is raised for other reasons."""
-    mock_from_env.side_effect = DockerException("Generic Docker error")
+    mock_from_env.side_effect = docker.errors.DockerException("Generic Docker "
+                                                              "error")
 
     client = docker_utils.check_docker_setup()
 
@@ -100,7 +99,7 @@ class CheckDockerSetupTest(unittest.TestCase):
     mock_client = create_autospec(
         docker.DockerClient, instance=True, spec_set=True)
     mock_from_env.return_value = mock_client
-    mock_client.ping.side_effect = DockerException("Ping failed")
+    mock_client.ping.side_effect = docker.errors.DockerException("Ping failed")
 
     client = docker_utils.check_docker_setup()
 
@@ -127,7 +126,7 @@ class PullImageTest(unittest.TestCase):
     mock_check_docker_setup.return_value = mock_client
 
     mock_images_collection = create_autospec(
-        docker_images.ImageCollection, instance=True, spec_set=True)
+        docker.models.images.ImageCollection, instance=True, spec_set=True)
     mock_client.images = mock_images_collection
 
     result = docker_utils.pull_image()
@@ -168,9 +167,10 @@ class PullImageTest(unittest.TestCase):
     mock_check_docker_setup.return_value = mock_client
 
     mock_images_collection = create_autospec(
-        docker_images.ImageCollection, instance=True, spec_set=True)
+        docker.models.images.ImageCollection, instance=True, spec_set=True)
     mock_client.images = mock_images_collection
-    mock_images_collection.pull.side_effect = DockerException("Image not found")
+    mock_images_collection.pull.side_effect = docker.errors.DockerException(
+        "Image not found")
 
     result = docker_utils.pull_image()
 
