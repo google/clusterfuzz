@@ -101,6 +101,7 @@ class RunGcloudLoginTest(unittest.TestCase):
     args, _ = mock_secho.call_args
     self.assertIn('gcloud login failed', args[0])
 
+
 class PromptForCustomPathTest(unittest.TestCase):
   """Tests for _prompt_for_custom_path."""
 

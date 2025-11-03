@@ -55,10 +55,10 @@ def _run_gcloud_login() -> bool:
     return False
   except subprocess.CalledProcessError:
     click.secho(
-          'Error: gcloud login failed. ' 
-          'You can mannually run '
-          '`gcloud auth application-default login`',
-          fg='red')
+        'Error: gcloud login failed. '
+        'You can mannually run '
+        '`gcloud auth application-default login`',
+        fg='red')
     return False
 
 
