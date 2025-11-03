@@ -13,16 +13,16 @@
 # limitations under the License.
 """Docker utility functions."""
 
+import logging
 import os
 
 import click
-import logging
-from docker.errors import DockerException
 
 import docker
 
 # TODO: Make this configurable.
-DOCKER_IMAGE = 'gcr.io/clusterfuzz-images/chromium/base/immutable/dev:20251008165901-utc-893e97e-640142509185-compute-d609115-prod'  # pylint: disable=line-too-long
+DOCKER_IMAGE = ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
+                "20251008165901-utc-893e97e-640142509185-compute-d609115-prod")
 
 
 def check_docker_setup() -> docker.client.DockerClient | None:
@@ -35,7 +35,7 @@ def check_docker_setup() -> docker.client.DockerClient | None:
     client = docker.from_env()
     client.ping()
     return client
-  except DockerException as e:
+  except docker.errors.DockerException as e:
     if 'Permission denied' in str(e):
       click.secho(
           'Error: Permission denied while connecting to the Docker daemon.',
@@ -63,6 +63,6 @@ def pull_image() -> bool:
     click.echo(f'Pulling Docker image: {DOCKER_IMAGE}...')
     client.images.pull(DOCKER_IMAGE)
     return True
-  except DockerException:
+  except docker.errors.DockerException:
     click.secho(f'Error: Docker image {DOCKER_IMAGE} not found.', fg='red')
     return False
