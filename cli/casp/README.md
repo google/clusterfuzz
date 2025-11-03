@@ -63,3 +63,11 @@ For example, to add a `my-command` command, follow these steps:
 
 Once you have completed these steps, the new command will be available as
 `casp my-command`.
+
+## Running Tests
+
+To run all unit tests for the `casp` CLI, use the following command from the root of the project:
+
+```bash
+python -m unittest discover -s cli/casp/src/casp/tests -v
+```
