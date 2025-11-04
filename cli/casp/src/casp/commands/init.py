@@ -64,21 +64,22 @@ def _setup_custom_config(cfg: Dict[str, Any]):
       show_default=False,
       type=click.Path())
 
-  if custom_config_path:
-    if os.path.exists(custom_config_path):
-      cfg['custom_config_path'] = custom_config_path
-      click.secho(
-          f'Custom config path set to: {custom_config_path}', fg='green')
-    else:
-      click.secho(
-          f'Custom config path "{custom_config_path}" does not exist. '
-          'Skipping.',
-          fg='yellow')
-  else:
+  if not custom_config_path:
     # Handle case where user wants to clear the path
     if 'custom_config_path' in cfg:
       del cfg['custom_config_path']
       click.echo('Cleared custom config path.')
+    return
+
+  if not os.path.exists(custom_config_path):
+    click.secho(
+        f'Custom config path "{custom_config_path}" does not exist. '
+        'Skipping.',
+        fg='yellow')
+    return
+
+  cfg['custom_config_path'] = custom_config_path
+  click.secho(f'Custom config path set to: {custom_config_path}', fg='green')
 
 
 def _pull_image():
