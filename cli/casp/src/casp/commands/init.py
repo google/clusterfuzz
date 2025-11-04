@@ -94,8 +94,15 @@ def _pull_image():
 
 @click.command(name='init', help='Initializes the CLI')
 def cli():
-  """Initializes the CLI by checking the Docker setup and pulling the
-  required image."""
+  """Initializes the CASP CLI.
+
+  This is done by:
+    1. Checking the Docker setup
+    2. Setting up the gcloud credentials for later use
+    3. Optionally setting up a custom configuration directory path
+    4. Saving the configuration to the config file
+    5. Pulling the Docker image
+  """
   _setup_docker()
 
   cfg = config.load_config()
