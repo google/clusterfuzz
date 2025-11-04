@@ -1002,9 +1002,10 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
                     fully_qualified_fuzzer_name: str):
   """Create a testcase based on crash."""
   crash = group.main_crash
+  fuzz_task_output = uworker_output.fuzz_task_output
   comment = (f'Fuzzer {fully_qualified_fuzzer_name} generated testcase crashed '
              f'in {crash.crash_time} seconds '
-             f'(r{uworker_output.fuzz_task_output.crash_revision})')
+             f'(r{fuzz_task_output.crash_revision})')
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key or None,
@@ -1012,7 +1013,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       regression=get_regression(group.one_time_crasher_flag),
       fixed=get_fixed_or_minimized_key(group.one_time_crasher_flag),
       one_time_crasher_flag=group.one_time_crasher_flag,
-      crash_revision=int(uworker_output.fuzz_task_output.crash_revision),
+      crash_revision=int(fuzz_task_output.crash_revision),
       comment=comment,
       absolute_path=crash.absolute_path,
       fuzzer_name=uworker_input.fuzzer_name,
@@ -1035,6 +1036,15 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   events.emit(
       events.TestcaseCreationEvent(
           testcase=testcase, creation_origin=events.TestcaseOrigin.FUZZ_TASK))
+
+  # Add build metadata to testcase. This is needed due to some build env vars
+  # not being propagated if utask is not executed locally (e.g., BUILD_URL).
+  data_handler.set_build_metadata_to_testcase(
+      testcase,
+      build_key=fuzz_task_output.build_key,
+      build_url=fuzz_task_output.build_url,
+      gn_args=fuzz_task_output.gn_args,
+      update=True)
 
   if group.context.fuzzer_metadata:
     for key, value in group.context.fuzzer_metadata.items():
@@ -1879,6 +1889,7 @@ class FuzzingSession:
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
+    _add_build_metadata_to_output(self.fuzz_task_output)
 
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
@@ -2239,6 +2250,14 @@ def _to_engine_output(output: str, crash_path: str, return_code: int,
     engine_output.testcase = fp.read()
 
   return engine_output
+
+
+def _add_build_metadata_to_output(
+    fuzz_task_output: uworker_msg_pb2.FuzzTaskOutput) -> None:
+  """Add build metadata from environment to fuzz task output."""
+  fuzz_task_output.build_key = environment.get_value('BUILD_KEY', '')
+  fuzz_task_output.build_url = environment.get_value('BUILD_URL', '')
+  fuzz_task_output.gn_args = data_handler.get_filtered_gn_args() or ''
 
 
 def _upload_engine_output(engine_output):

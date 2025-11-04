@@ -40,11 +40,10 @@ class SetInitialTestcaseMetadata(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
 
-  def test_set(self):
-    """Test set everything."""
+  def test_testcase_metadata_from_env(self):
+    """Tests the initial testcase metadata set from the env vars."""
     os.environ['FAIL_RETRIES'] = '3'
     os.environ['FAIL_WAIT'] = '3'
-    os.environ['BUILD_KEY'] = 'build_key_value'
     os.environ['BUILD_KEY'] = 'build_key_value'
     os.environ['BUILD_URL'] = 'build_url_value'
     os.environ['APP_DIR'] = 'app_dir_value'
@@ -64,6 +63,31 @@ class SetInitialTestcaseMetadata(fake_filesystem_unittest.TestCase):
     self.assertEqual('build_url_value', metadata['build_url'])
     self.assertEqual(
         'is_asan = true\nuse_goma = true\nv8_enable_verify_heap = true',
+        metadata['gn_args'])
+
+  def test_testcase_metadata_from_args(self):
+    """Tests that testcase build metadata is set from args."""
+    build_key = 'build_key_test'
+    build_url = 'build_url_test'
+    os.environ['GN_ARGS_PATH'] = 'app_dir_value/args.gn'
+    self.fs.create_file(
+        'app_dir_value/args.gn',
+        contents=('is_asan = true\n'
+                  'goma_dir = /home/user/goma\n'
+                  'use_goma = false\n'
+                  'v8_enable_verify_heap = true'))
+    gn_args = data_handler.get_filtered_gn_args()
+    del os.environ['GN_ARGS_PATH']
+
+    testcase = data_types.Testcase()
+    data_handler.set_build_metadata_to_testcase(
+        testcase, build_key=build_key, build_url=build_url, gn_args=gn_args)
+    metadata = json.loads(testcase.additional_metadata)
+
+    self.assertEqual('build_key_test', metadata['build_key'])
+    self.assertEqual('build_url_test', metadata['build_url'])
+    self.assertEqual(
+        'is_asan = true\nuse_goma = false\nv8_enable_verify_heap = true',
         metadata['gn_args'])
 
 

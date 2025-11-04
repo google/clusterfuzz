@@ -834,16 +834,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   return testcase_id
 
 
-def set_initial_testcase_metadata(testcase):
-  """Set various testcase metadata fields during testcase initialization."""
-  build_key = environment.get_value('BUILD_KEY')
-  if build_key:
-    testcase.set_metadata('build_key', build_key, update_testcase=False)
-
-  build_url = environment.get_value('BUILD_URL')
-  if build_url:
-    testcase.set_metadata('build_url', build_url, update_testcase=False)
-
+def get_filtered_gn_args() -> str | None:
+  """Return filtered GN args based on filepath GN_ARGS_PATH."""
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
   if gn_args_path:
     gn_args = utils.read_data_from_file(
@@ -856,8 +848,41 @@ def set_initial_testcase_metadata(testcase):
         if not GOMA_DIR_LINE_REGEX.match(line)
     ]
     filtered_gn_args = '\n'.join(filtered_gn_args_lines)
-    testcase.set_metadata('gn_args', filtered_gn_args, update_testcase=False)
+    return filtered_gn_args
+  return None
 
+
+def set_build_metadata_to_testcase(testcase: data_types.Testcase,
+                                   build_key: str | None = None,
+                                   build_url: str | None = None,
+                                   gn_args: str | None = None,
+                                   update: bool = False):
+  """Set testcase metadata fields related to the build metadata."""
+  dirty_flag = False
+  build_key = (
+      environment.get_value('BUILD_KEY') if build_key is None else build_key)
+  if build_key and not testcase.get_metadata('build_key'):
+    dirty_flag = True
+    testcase.set_metadata('build_key', build_key, update_testcase=False)
+
+  build_url = (
+      environment.get_value('BUILD_URL') if build_url is None else build_url)
+  if build_url and not testcase.get_metadata('build_url'):
+    dirty_flag = True
+    testcase.set_metadata('build_url', build_url, update_testcase=False)
+
+  gn_args = get_filtered_gn_args() if gn_args is None else gn_args
+  if gn_args and not testcase.get_metadata('gn_args'):
+    dirty_flag = True
+    testcase.set_metadata('gn_args', gn_args, update_testcase=False)
+
+  if update and dirty_flag:
+    testcase.put()
+
+
+def set_initial_testcase_metadata(testcase: data_types.Testcase) -> None:
+  """Set various testcase metadata fields during testcase initialization."""
+  set_build_metadata_to_testcase(testcase)
   testcase.platform = environment.platform().lower()
   testcase.platform_id = environment.get_platform_id()
 
