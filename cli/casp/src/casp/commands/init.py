@@ -15,6 +15,8 @@
 
 import os
 import sys
+from typing import Any
+from typing import Dict
 
 from casp.utils import config
 from casp.utils import docker_utils
@@ -32,8 +34,12 @@ def _setup_docker():
   click.secho('Docker setup is correct.', fg='green')
 
 
-def _setup_gcloud_credentials():
-  """"Setup gcloud credentials. Prompts the user if not found."""
+def _setup_gcloud_credentials(cfg: Dict[str, Any]):
+  """"Setup gcloud credentials. Prompts the user if not found.
+
+  Args:
+    cfg: The configuration dictionary to update.
+  """
   click.echo('Checking gcloud authentication...')
   credentials_path = gcloud.get_credentials_path()
 
@@ -41,32 +47,38 @@ def _setup_gcloud_credentials():
     click.secho('gcloud authentication check failed.', fg='red')
     sys.exit(1)
 
-  click.echo(
-      f'Saving credentials found in {credentials_path} to file path to ~/.casp/config.json'  # pylint: disable=line-too-long
-  )
-  cfg = config.load_config()
-  if not cfg:
-    click.echo('Config file not found, creating it...')
+  click.echo(f'Using credentials found in {credentials_path}')
   cfg['gcloud_credentials_path'] = credentials_path
-  config.save_config(cfg)
-
   click.secho('gcloud authentication is configured correctly.', fg='green')
 
 
-def _setup_custom_config():
-  """Sets up optional custom configuration directory path."""
+def _setup_custom_config(cfg: Dict[str, Any]):
+  """Sets up optional custom configuration directory path.
+
+  Args:
+    cfg: The configuration dictionary to update.
+  """
   custom_config_path = click.prompt(
       'Enter path to custom config directory (optional)',
       default='',
       show_default=False,
       type=click.Path())
 
-  if custom_config_path and os.path.exists(custom_config_path):
-    cfg = config.load_config()
-    cfg['custom_config_path'] = custom_config_path
-    config.save_config(cfg)
-    click.secho(
-        f'Custom config path saved to {config.CONFIG_FILE}.', fg='green')
+  if custom_config_path:
+    if os.path.exists(custom_config_path):
+      cfg['custom_config_path'] = custom_config_path
+      click.secho(
+          f'Custom config path set to: {custom_config_path}', fg='green')
+    else:
+      click.secho(
+          f'Custom config path "{custom_config_path}" does not exist. '
+          'Skipping.',
+          fg='yellow')
+  else:
+    # Handle case where user wants to clear the path
+    if 'custom_config_path' in cfg:
+      del cfg['custom_config_path']
+      click.echo('Cleared custom config path.')
 
 
 def _pull_image():
@@ -79,14 +91,23 @@ def _pull_image():
     click.secho('Initialization failed.', fg='red')
     sys.exit(1)
 
-  click.secho('Initialization complete.', fg='green')
-
 
 @click.command(name='init', help='Initializes the CLI')
 def cli():
   """Initializes the CLI by checking the Docker setup and pulling the
   required image."""
   _setup_docker()
-  _setup_gcloud_credentials()
-  _setup_custom_config()
+
+  cfg = config.load_config()
+  if not cfg:
+    click.echo('Config file not found, creating a new one...')
+    cfg = {}
+
+  _setup_gcloud_credentials(cfg)
+  _setup_custom_config(cfg)
+
+  config.save_config(cfg)
+  click.secho(f'Configuration saved to {config.CONFIG_FILE}.', fg='green')
+
   _pull_image()
+  click.secho('Initialization complete.', fg='green')
