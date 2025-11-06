@@ -46,7 +46,7 @@ write_files:
       [Service]
       Environment="HOME=/home/root"
       ExecStartPre=/usr/bin/docker-credential-gcr configure-docker
-      ExecStart=/bin/bash -c 'export IMAGE=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/docker-image) && /usr/bin/docker pull $IMAGE && /usr/bin/docker run --memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 -e USE_GCLOUD_STORAGE_RSYNC=1 -P --privileged --cap-add=all -v /var/scratch0:/mnt/scratch0 --name=clusterfuzz $IMAGE'
+      ExecStart=/bin/bash -c 'export IMAGE=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/docker-image) && /usr/bin/docker pull $IMAGE && /usr/bin/docker run --memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 -P --privileged --cap-add=all -v /var/scratch0:/mnt/scratch0 --name=clusterfuzz $IMAGE'
       ExecStop=/usr/bin/docker stop clusterfuzz
       ExecStopPost=/usr/bin/docker rm clusterfuzz
       Restart=always
