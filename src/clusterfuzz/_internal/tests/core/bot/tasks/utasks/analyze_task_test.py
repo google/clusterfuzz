@@ -266,9 +266,8 @@ class UTaskPostprocessTest(unittest.TestCase):
 
     analyze_task.utask_postprocess(uworker_output)
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.mock.update_testcase_comment.assert_called_with(testcase,
-                                                         'finished',
-                                                         expected_message)
+    self.mock.update_testcase_comment.assert_called_with(
+        testcase, 'finished', expected_message)
 
 
 @test_utils.with_cloud_emulators('datastore')
