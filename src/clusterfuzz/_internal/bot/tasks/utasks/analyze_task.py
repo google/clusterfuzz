@@ -602,7 +602,8 @@ def _utask_postprocess(output):
     one_time_crasher_message = ', but is flaky'
   else:
     one_time_crasher_message = ''
-  log_message = (f'Testcase crashed in {output.test_timeout} seconds '
+  log_message = (f'Testcase crashed in {output.crash_time} of '
+                 f'{output.test_timeout} seconds '
                  f'(r{testcase.crash_revision}){one_time_crasher_message}')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        log_message)
