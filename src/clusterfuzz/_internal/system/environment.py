@@ -1130,6 +1130,11 @@ def is_android(plt=None):
   return 'ANDROID' in (plt or platform())
 
 
+def is_android_auto(plt=None):
+  """Return True if we are on automotive platform."""
+  return 'ANDROID_AUTO' in (plt or platform())
+
+
 def is_android_cuttlefish(plt=None):
   """Return True if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
