@@ -288,6 +288,66 @@ class DataHandlerTest(unittest.TestCase):
     self.assertTrue(
         test_utils.entities_equal(exclude_result, reproducible_no_bug))
 
+  @mock.patch('clusterfuzz._internal.fuzzing.ENGINES', ['engine1', 'engine2'])
+  def test_find_testcase_with_fuzz_target_deduplication(self):
+    """Test find_testcase with fuzz_target deduplication enabled."""
+    environment.set_value('DEDUP_ONLY_SAME_TARGET', True)
+
+    # Create testcases with different fuzz targets.
+    testcase1 = test_utils.create_generic_testcase()
+    testcase1.one_time_crasher_flag = False  # higher priority
+    testcase1.project_name = 'project'
+    testcase1.crash_type = 'type'
+    testcase1.crash_state = 'state'
+    testcase1.security_flag = True
+    testcase1.overridden_fuzzer_name = 'engine1_target_test1'
+    testcase1.fuzzer_name = 'engine1'
+    testcase1.status = 'Processed'
+    testcase1.open = True
+    testcase1.put()
+
+    testcase2 = test_utils.create_generic_testcase()
+    testcase1.one_time_crasher_flag = True  # lower priority
+    testcase2.project_name = 'project'
+    testcase2.crash_type = 'type'
+    testcase2.crash_state = 'state'
+    testcase2.security_flag = True
+    testcase2.overridden_fuzzer_name = 'engine2_target_test1'
+    testcase2.fuzzer_name = 'engine2'
+    testcase2.status = 'Processed'
+    testcase2.open = True
+    testcase2.put()
+
+    testcase3 = test_utils.create_generic_testcase()
+    testcase3.project_name = 'project'
+    testcase3.crash_type = 'type'
+    testcase3.crash_state = 'state'
+    testcase3.security_flag = True
+    testcase3.overridden_fuzzer_name = 'engine1_target_test2'
+    testcase3.status = 'Processed'
+    testcase3.open = True
+    testcase3.put()
+
+    # Case 1: Matching fuzz_target.
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target='engine1_target_test1')
+    self.assertTrue(test_utils.entities_equal(result, testcase1))
+
+    # Case 2: Matching fuzz_target with different engine.
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target='engine2_target_test1')
+    self.assertTrue(test_utils.entities_equal(result, testcase1))
+
+    # Case 3: Engine in fuzz_target not found.
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target='unknown_target_test2')
+    self.assertIsNone(result)
+
+    # Case 4: Fuzz_target not correctly formatted.
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target='engine1')
+    self.assertIsNone(result)
+
   def test_get_issue_description_oom(self):
     """Test get_issue_description for an oom testcase."""
     self.mock.get().name = 'chromium'
