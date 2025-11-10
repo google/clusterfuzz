@@ -265,8 +265,7 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
     if similar_testcase.open and not similar_testcase.one_time_crasher_flag:
       _add_triage_message(
           testcase, 'Delaying filing a bug since similar reproducible testcase '
-          f'({similar_testcase.key.id()}) in issue ({issue.id}) is not '
-          'verified yet.')
+          f'({similar_testcase.key.id()}) in issue ({issue.id}) is open.')
       return True
 
     # If the issue is still open, no need to file a duplicate bug.
