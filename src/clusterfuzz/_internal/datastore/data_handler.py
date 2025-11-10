@@ -1850,7 +1850,10 @@ def get_all_job_type_names(project=None):
   return sorted([job.name for job in query])
 
 
-def get_coverage_information(fuzzer_name, date, create_if_needed=False):
+def get_coverage_information(fuzzer_name,
+                             date,
+                             engine=None,
+                             create_if_needed=False):
   """Get coverage information, or create if it doesn't exist."""
   coverage_info = ndb.Key(
       data_types.CoverageInformation,
@@ -1858,7 +1861,7 @@ def get_coverage_information(fuzzer_name, date, create_if_needed=False):
 
   if not coverage_info and create_if_needed:
     coverage_info = data_types.CoverageInformation(
-        fuzzer=fuzzer_name, date=date)
+        fuzzer=fuzzer_name, date=date, engine=engine)
 
   return coverage_info
 
