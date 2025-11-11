@@ -1299,12 +1299,12 @@ def setup_regular_build(revision,
   if not build_url:
     return None
 
-  # all_bucket_paths = _get_build_bucket_paths()
-  # latest_revision = _get_latest_revision(all_bucket_paths)
+  all_bucket_paths = _get_build_bucket_paths()
+  latest_revision = _get_latest_revision(all_bucket_paths)
 
-  # if revision == latest_revision:
-  #   _emit_build_age_metric(build_url)
-  #   _emit_build_revision_metric(revision)
+  if revision == latest_revision:
+    _emit_build_age_metric(build_url)
+    _emit_build_revision_metric(revision)
 
   # build_url points to a GCP bucket, and we're only converting it to its HTTP
   # endpoint so that we can use remote unzipping.
