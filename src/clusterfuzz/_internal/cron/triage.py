@@ -263,10 +263,17 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
     # might be caused by non-availability of latest builds. In that case,
     # don't file a new bug yet.
     if similar_testcase.open and not similar_testcase.one_time_crasher_flag:
+      _add_triage_message(
+          testcase, 'Delaying filing a bug since similar reproducible testcase '
+          f'({similar_testcase.key.id()} in issue {issue.id}) is not verified '
+          'yet.')
       return True
 
     # If the issue is still open, no need to file a duplicate bug.
     if issue.is_open:
+      _add_triage_message(
+          testcase, f'Skipping filing a bug since similar testcase '
+          f'({similar_testcase.key.id()}) has an open issue ({issue.id}).')
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to
@@ -292,7 +299,7 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
       _add_triage_message(
           testcase,
           'Skipping filing unreproducible bug since one was already filed '
-          f'({similar_testcase.key.id()}).')
+          f'({similar_testcase.key.id()} in issue {issue.id}).')
       return True
 
     # If the issue is recently closed, wait certain time period to make sure
