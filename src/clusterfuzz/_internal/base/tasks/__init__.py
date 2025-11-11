@@ -585,11 +585,54 @@ class PubSubTTask(PubSubTask):
     track_task_end()
 
 
+def _filter_task_for_os_mismatch(message, queue) -> bool:
+  """Filters a task if its OS version does not match the bot's OS.
+
+  This function checks for a `base_os_version` attribute in the message. If the
+  attribute exists and does not match the bot's `BASE_OS_VERSION` environment
+  variable, it handles the message and signals that it should be skipped.
+
+  This scenario can occur if a message is misrouted or if the bot is listening
+  to a legacy subscription that lacks OS-specific filters.
+
+  When a mismatch is found, this function:
+  1. Logs a warning.
+  2. Acknowledges (`ack()`) the message to permanently remove it from this
+     subscription. This prevents reprocessing loops and assumes the message
+     was correctly delivered to another, properly filtered subscription.
+
+  Args:
+    message: The Pub/Sub message object.
+    queue: The name of the queue from which the message was pulled.
+
+  Returns:
+    True if the message was filtered and acknowledged, False otherwise.
+  """
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  message_base_os_version = message.attributes.get('base_os_version')
+
+  if not (message_base_os_version and base_os_version and
+          message_base_os_version != base_os_version):
+    return False
+
+  logs.warning(
+      'Acking (skipping) task for different OS.',
+      queue=queue,
+      message_os_version=message_base_os_version,
+      base_os_version=base_os_version)
+  message.ack()
+  return True
+
+
 def get_task_from_message(message, queue=None, can_defer=True,
                           task_cls=None) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
+
+  if _filter_task_for_os_mismatch(message, queue):
+    return None
+
   try:
     task = initialize_task(message, task_cls=task_cls)
     if task is None:
