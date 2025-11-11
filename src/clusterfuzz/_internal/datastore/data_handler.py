@@ -159,8 +159,13 @@ def find_testcase(project_name,
         culprit_engine = engine
         target_without_engine = fuzz_target[len(culprit_engine) + 1:]
         break
-      target_with_different_engines = []
-      assert culprit_engine
+
+    if not culprit_engine:
+      logs.error(
+          f'Engine not found for target {fuzz_target} when searching for a '
+          'testcase. If the job sets DEDUP_ONLY_SAME_TARGET, the fuzz target '
+          'is expected to follow the pattern: <engine>_<target>.')
+      return None
 
     target_with_different_engines = [
         f'{engine}_{target_without_engine}' for engine in fuzzing.ENGINES
@@ -661,7 +666,7 @@ def handle_duplicate_entry(testcase):
       testcase.crash_state,
       testcase.security_flag,
       testcase_to_exclude=testcase,
-      fuzz_target=testcase.fuzzer_name)
+      fuzz_target=testcase.actual_fuzzer_name())
   if not existing_testcase:
     return
 

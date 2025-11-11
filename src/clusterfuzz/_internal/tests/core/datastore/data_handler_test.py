@@ -288,6 +288,88 @@ class DataHandlerTest(unittest.TestCase):
     self.assertTrue(
         test_utils.entities_equal(exclude_result, reproducible_no_bug))
 
+  @parameterized.parameterized.expand([
+      ('engine1_target_test1', True),  # Same fuzz_target.
+      ('engine2_target_test1', True),  # Same fuzz_target with diff engine.
+      ('engine1_target_test3', False)  # Not matching any fuzz_target.
+  ])
+  @mock.patch('clusterfuzz._internal.fuzzing.ENGINES', ['engine1', 'engine2'])
+  def test_find_testcase_with_fuzz_target_deduplication(self, fuzz_target,
+                                                        should_find):
+    """Test find_testcase with fuzz_target deduplication enabled."""
+    environment.set_value('DEDUP_ONLY_SAME_TARGET', True)
+
+    # Create testcases with different fuzz targets.
+    testcase1 = test_utils.create_generic_testcase()
+    testcase1.one_time_crasher_flag = False  # higher priority
+    testcase1.project_name = 'project'
+    testcase1.crash_type = 'type'
+    testcase1.crash_state = 'state'
+    testcase1.security_flag = True
+    testcase1.overridden_fuzzer_name = 'engine1_target_test1'
+    testcase1.fuzzer_name = 'engine1'
+    testcase1.status = 'Processed'
+    testcase1.open = True
+    testcase1.put()
+
+    testcase2 = test_utils.create_generic_testcase()
+    testcase1.one_time_crasher_flag = True  # lower priority
+    testcase2.project_name = 'project'
+    testcase2.crash_type = 'type'
+    testcase2.crash_state = 'state'
+    testcase2.security_flag = True
+    testcase2.overridden_fuzzer_name = 'engine2_target_test1'
+    testcase2.fuzzer_name = 'engine2'
+    testcase2.status = 'Processed'
+    testcase2.open = True
+    testcase2.put()
+
+    testcase3 = test_utils.create_generic_testcase()
+    testcase3.one_time_crasher_flag = False
+    testcase3.project_name = 'project'
+    testcase3.crash_type = 'type'
+    testcase3.crash_state = 'state'
+    testcase3.security_flag = True
+    testcase3.overridden_fuzzer_name = 'engine1_target_test2'
+    testcase3.fuzzer_name = 'engine1'
+    testcase3.status = 'Processed'
+    testcase3.open = True
+    testcase3.put()
+
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target=fuzz_target)
+    if should_find:
+      # Uses testcase1 as it has the highest priority.
+      self.assertTrue(test_utils.entities_equal(result, testcase1))
+    else:
+      self.assertIsNone(result)
+
+  @parameterized.parameterized.expand([
+      'unknown_target_test2',  # Engine in fuzz_target not found.
+      'engine1'  # fuzz_target malformatted.
+  ])
+  @mock.patch('clusterfuzz._internal.fuzzing.ENGINES', ['engine1', 'engine2'])
+  def test_find_testcase_with_fuzz_target_deduplication_exceptions(
+      self, fuzz_target):
+    """Test handled failures in find_testcase with fuzz_target dedup enabled."""
+    environment.set_value('DEDUP_ONLY_SAME_TARGET', True)
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.one_time_crasher_flag = True
+    testcase.project_name = 'project'
+    testcase.crash_type = 'type'
+    testcase.crash_state = 'state'
+    testcase.security_flag = True
+    testcase.overridden_fuzzer_name = 'engine1_target_test2'
+    testcase.fuzzer_name = 'engine1'
+    testcase.status = 'Processed'
+    testcase.open = True
+    testcase.put()
+
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target=fuzz_target)
+    self.assertIsNone(result)
+
   def test_get_issue_description_oom(self):
     """Test get_issue_description for an oom testcase."""
     self.mock.get().name = 'chromium'
