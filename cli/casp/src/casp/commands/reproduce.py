@@ -13,17 +13,21 @@
 # limitations under the License.
 """Reproduce command."""
 
+import os
 import sys
 
+from casp.utils import config
+from casp.utils import docker_utils
 import click
-
-from ..utils import config
-from ..utils import docker_utils
 
 
 @click.command(name='reproduce', help='Reproduces a testcase locally.')
 @click.option(
-    '--config-dir', required=True, help='Path to the config directory.')
+    '--config-dir',
+    required=False,
+    default='/data/clusterfuzz/src/appengine/config',
+    help=('Path to the config directory. If you set a custom '
+          'config diectory, this argument is not used.'))
 @click.option(
     '--testcase-id', required=True, help='The ID of the testcase to reproduce.')
 def cli(config_dir: str, testcase_id: str) -> None:
@@ -35,15 +39,16 @@ def cli(config_dir: str, testcase_id: str) -> None:
         fg='red')
     sys.exit(1)
 
-  credentials_path = cfg['gcloud_credentials_path']
-  volumes = {credentials_path: {'bind': '/root/.config/gcloud/application_default_credentials.json', 'mode': 'rw'}}
+  credentials_path = os.path.dirname(cfg['gcloud_credentials_path'])
+  volumes = {credentials_path: {'bind': '/root/.config/gcloud/', 'mode': 'rw'}}
+  if 'custom_config_path' in cfg:
+    config_dir = '/data/clusterfuzz/src/appengine/custom_config'
+    volumes[cfg['custom_config_path']] = {'bind': config_dir, 'mode': 'rw'}
+    click.echo(f'Using custom config directory: {cfg["custom_config_path"]}')
 
-  # Note: The working directory is set to /data/clusterfuzz in the Dockerfile.
-  # See docker/base/Dockerfile
   command = [
-      'bash', '-c',
-      'pipenv run python butler.py reproduce '
-      f'--config-dir={config_dir} --testcase-id={testcase_id}'
+      'bash', '-c', 'pipenv run python butler.py --local-logging reproduce ' +
+      f'--config-dir={config_dir} ' + f'--testcase-id={testcase_id}'
   ]
 
   if not docker_utils.run_command(command, volumes):
