@@ -1,0 +1,43 @@
+l10-09 13:05:18.246  7157  7157 F libc    : Fatal signal 11 (SIGSEGV), code 9 (SEGV_MTESERR), fault addr 0x7df3228300 in tid 7157 (example_mte_fuz), pid 7157 (example_mte_fuz)
+10-09 13:05:18.364  7161  7161 I crash_dump64: obtaining output fd from tombstoned, type: kDebuggerdTombstoneProto
+10-09 13:05:18.373   676   676 I tombstoned: received crash request for pid 7157
+10-09 13:05:18.378  7161  7161 I crash_dump64: performing dump of process 7157 (target tid = 7157)
+10-09 13:05:18.397  1804  1816 I pixel-thermal: VIRTUAL-SKIN-SPEAKER:31.2777 raw data: VIRTUAL-SKIN-SPEAKER:31277.7 VIRTUAL-SKIN-SPEAKER-SUB-0:28485.3 VIRTUAL-SKIN-SPEAKER-SUB-1:30613.3 VIRTUAL-SKIN-SPEAKER-SUB-2:31277.7 VIRTUAL-SKIN-SPEAKER-SUB-3:31177 battery:33800 cam_therm:33865 charge_therm:38072 disp_therm:33063 neutral_therm:35601 north_therm:33130 quiet_therm:33197 soc_therm:34755 usb_pwr_therm:33776
+10-09 13:05:18.558   486   486 I logd    : logdr: UID=0 GID=0 PID=7161 n tail=500 logMask=8 pid=7157 start=0ns deadline=0ns
+10-09 13:05:18.563   486   486 I logd    : logdr: UID=0 GID=0 PID=7161 n tail=500 logMask=1 pid=7157 start=0ns deadline=0ns
+10-09 13:05:18.559  7161  7161 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+10-09 13:05:18.559  7161  7161 F DEBUG   : Build fingerprint: 'google/shiba_fullmte/shiba:16/MAIN/14234540:userdebug/dev-keys'
+10-09 13:05:18.559  7161  7161 F DEBUG   : Kernel Release: '6.1.145-android14-11-gbd17012cc2f7-ab14044926'
+10-09 13:05:18.560  7161  7161 F DEBUG   : Revision: 'MP1.0'
+10-09 13:05:18.560  7161  7161 F DEBUG   : ABI: 'arm64'
+10-09 13:05:18.560  7161  7161 F DEBUG   : Timestamp: 2025-10-09 13:05:18.384210281+0530
+10-09 13:05:18.560  7161  7161 F DEBUG   : Process uptime: 1s
+10-09 13:05:18.560  7161  7161 F DEBUG   : Executable: /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer
+10-09 13:05:18.560  7161  7161 F DEBUG   : Cmdline: ./example_mte_fuzzer
+10-09 13:05:18.560  7161  7161 F DEBUG   : pid: 7157, tid: 7157, name: example_mte_fuz  >>> ./example_mte_fuzzer <<<
+10-09 13:05:18.560  7161  7161 F DEBUG   : uid: 0
+10-09 13:05:18.560  7161  7161 F DEBUG   : tagged_addr_ctrl: 000000000007fff3 (PR_TAGGED_ADDR_ENABLE, PR_MTE_TCF_SYNC, mask 0xfffe)
+10-09 13:05:18.560  7161  7161 F DEBUG   : pac_enabled_keys: 000000000000000f (PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY)
+10-09 13:05:18.560  7161  7161 F DEBUG   : esr: 0000000092000011 (Data Abort Exception 0x24)
+10-09 13:05:18.560  7161  7161 F DEBUG   : signal 11 (SIGSEGV), code 9 (SEGV_MTESERR), fault addr 0x0000007df3228300 (read)
+10-09 13:05:18.560  7161  7161 F DEBUG   :     x0  0e00007df32282f0  x1  0000000000000006  x2  0000000000000001  x3  0000000000000000
+10-09 13:05:18.560  7161  7161 F DEBUG   :     x4  00000060051980a9  x5  0000000000000004  x6  00000000efefef0a  x7  0000000000000001
+10-09 13:05:18.560  7161  7161 F DEBUG   :     x8  0000006005198000  x9  0000000000000001  x10 0000000000000001  x11 00000000000f4240
+10-09 13:05:18.561  7161  7161 F DEBUG   :     x12 0000000068e765b6  x13 000000007fffffff  x14 0000000000010d7e  x15 0000000171aa4e97
+10-09 13:05:18.561  7161  7161 F DEBUG   :     x16 0000006005197128  x17 0000007f032955c0  x18 0000007f0bc84000  x19 0e00007df32282f6
+10-09 13:05:18.561  7161  7161 F DEBUG   :     x20 0e00007df32282f0  x21 0000000000000006  x22 0d00007da3230030  x23 0000006005199200
+10-09 13:05:18.561  7161  7161 F DEBUG   :     x24 0000006005198208  x25 0000006005198428  x26 0000006005198430  x27 0000006005199000
+10-09 13:05:18.561  7161  7161 F DEBUG   :     x28 0000000000000000  x29 0000007feac38940
+10-09 13:05:18.561  7161  7161 F DEBUG   :     lr  005d8d600514e8bc  sp  0000007feac38940  pc  0000006005134144  pst 0000000060001000
+10-09 13:05:18.561  7161  7161 F DEBUG   :     esr 0000000092000011
+10-09 13:05:18.561  7161  7161 F DEBUG   : 8 total frames
+10-09 13:05:18.561  7161  7161 F DEBUG   : backtrace:
+10-09 13:05:18.561  7161  7161 F DEBUG   :       #00 pc 0000000000018144  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (LLVMFuzzerTestOneInput+36) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.561  7161  7161 F DEBUG   :       #01 pc 00000000000328b8  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long)+320) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.561  7161  7161 F DEBUG   :       #02 pc 0000000000032034  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*)+60) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.561  7161  7161 F DEBUG   :       #03 pc 0000000000033a0c  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (fuzzer::Fuzzer::MutateAndTestOne()+636) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.562  7161  7161 F DEBUG   :       #04 pc 0000000000034704  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (fuzzer::Fuzzer::Loop(std::__Fuzzer::vector<fuzzer::SizedFile, std::__Fuzzer::allocator<fuzzer::SizedFile>>&)+904) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.562  7161  7161 F DEBUG   :       #05 pc 000000000002397c  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long))+7876) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.562  7161  7161 F DEBUG   :       #06 pc 000000000004c6f4  /data/fuzz/arm64/example_mte_fuzzer/example_mte_fuzzer (main+40) (BuildId: afde90b99928f80d8f07ce6e5fad5004)
+10-09 13:05:18.562  7161  7161 F DEBUG   :       #07 pc 0000000000073c3c  /data/fuzz/arm64/lib/libc.so (__libc_init+124) (BuildId: 5816bdfa959bf1b0b29a10ca0b215cd4)
+10-09 13:05:18.562  7161  7161 F DEBUG   : Learn more about MTE reports: https://source.android.com/docs/security/test/memory-safety/mte-reports

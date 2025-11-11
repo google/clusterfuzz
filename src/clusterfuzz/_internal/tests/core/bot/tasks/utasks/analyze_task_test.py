@@ -19,6 +19,8 @@ import os
 import tempfile
 import unittest
 
+import parameterized
+
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -201,7 +203,8 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.analyze_task._ERROR_HANDLER.handle',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
-        'clusterfuzz._internal.bot.tasks.utasks.analyze_task._add_default_issue_metadata'
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task._add_default_issue_metadata',
+        'clusterfuzz._internal.datastore.data_handler.update_testcase_comment',
     ])
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_metadata = data_types.TestcaseUploadMetadata(
@@ -245,9 +248,30 @@ class UTaskPostprocessTest(unittest.TestCase):
     self.assertTrue(self.mock._add_default_issue_metadata.called)  # pylint: disable=protected-access
     self.assertTrue(self.mock.create_tasks.called)
 
+  @parameterized.parameterized.expand([
+      (False, 'Testcase crashed in 13.0 of 17.0 seconds (r123)'),
+      (True, 'Testcase crashed in 13.0 of 17.0 seconds (r123), but is flaky'),
+  ])
+  def test_crash_time_test_timeout_in_log_message(self, is_flaky,
+                                                  expected_message):
+    """Test log message of crashed analyze tasks."""
+    analyze_task_output = uworker_msg_pb2.AnalyzeTaskOutput(
+        crash_revision=123, one_time_crasher_flag=is_flaky)
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        analyze_task_output=analyze_task_output,
+        crash_time=13,
+        test_timeout=17,
+        issue_metadata='{}')
+
+    analyze_task.utask_postprocess(uworker_output)
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.mock.update_testcase_comment.assert_called_with(
+        testcase, 'finished', expected_message)
+
 
 @test_utils.with_cloud_emulators('datastore')
-class HandleEventEmitionNonCrashTest(unittest.TestCase):
+class HandleEventEmissionNonCrashTest(unittest.TestCase):
   """Tests for handle_noncrash."""
 
   def setUp(self):
@@ -268,7 +292,7 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
         testcase_id=str(self.testcase.key.id()))
     self.uworker_output = uworker_msg_pb2.Output(uworker_input=uworker_input)
 
-  def test_event_emition_handle_noncrash_first_attempt(self):
+  def test_event_emission_handle_noncrash_first_attempt(self):
     """Test that a non-crashing testcase is retried on the first attempt."""
     self.mock.is_first_attempt_for_task.return_value = True
     analyze_task.handle_noncrash(self.uworker_output)
@@ -278,7 +302,7 @@ class HandleEventEmitionNonCrashTest(unittest.TestCase):
             rejection_reason=events.RejectionReason.
             ANALYZE_FLAKE_ON_FIRST_ATTEMPT))
 
-  def test_event_emition_handle_noncrash_second_attempt(self):
+  def test_event_emission_handle_noncrash_second_attempt(self):
     """Test that a non-crashing testcase is marked invalid after the second attempt."""
     self.mock.is_first_attempt_for_task.return_value = False
     analyze_task.handle_noncrash(self.uworker_output)

@@ -63,6 +63,16 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
     make install && \
     rm -rf /tmp/patchelf-*
 
+# Install Ruby, for Ruby fuzzing.
+RUN apt-get install -y binutils xz-utils libyaml-dev libffi-dev zlib1g-dev && \
+    RUBY_VERSION=3.3.1 && \
+    curl -O https://cache.ruby-lang.org/pub/ruby/3.3/ruby-$RUBY_VERSION.tar.gz && \
+    tar -xvf ruby-$RUBY_VERSION.tar.gz && \
+    cd ruby-$RUBY_VERSION && \
+    ./configure && \
+    make -j$(nproc) && \
+    make install
+
 # Install OpenJDK 17 for Jazzer (Java fuzzer).
 # Copied from gcr.io/oss-fuzz-base/base-runner.
 ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
@@ -89,6 +99,8 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
+RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
+    ln -s /usr/bin/python3.11 /usr/bin/python3
 
 # Install Node.js 19.x from binary to maintain version consistency
 RUN cd /tmp && \
@@ -98,7 +110,8 @@ RUN cd /tmp && \
     rm node.tar.xz
 ENV PATH="/usr/local/node/bin:${PATH}"
 
-RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
+RUN export CLOUDSDK_PYTHON=python3.11 && \
+    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
     | apt-key add - && \
@@ -134,6 +147,6 @@ COPY Pipfile Pipfile.lock setup_common.sh setup_clusterfuzz.sh start_clusterfuzz
 RUN cd /data && \
     # Make pip3.11 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
-    pipenv install --deploy --system
+    python3.11 -m pipenv install --deploy --system
 
 CMD ["bash", "-ex", "/data/start.sh"]

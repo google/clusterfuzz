@@ -123,9 +123,16 @@ def default_queue_suffix():
   logs.info(f'QUEUE_OVERRIDE is [{queue_override}]. '
             f'Platform is {environment.platform()}')
   if queue_override:
-    return queue_suffix_for_platform(queue_override)
+    platform = queue_override
+  else:
+    platform = environment.platform()
 
-  return queue_suffix_for_platform(environment.platform())
+  platform_suffix = queue_suffix_for_platform(platform)
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version and 'LINUX' in platform.upper():
+    platform_suffix = f'{platform_suffix}-{base_os_version}'
+
+  return platform_suffix
 
 
 def regular_queue(prefix=JOBS_PREFIX):
@@ -296,7 +303,13 @@ def get_postprocess_task():
   # wasting our precious non-linux bots on generic postprocess tasks.
   if not environment.platform().lower() == 'linux':
     return None
-  pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
+
+  queue_name = POSTPROCESS_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   logs.info('Pulling from postprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
@@ -308,11 +321,22 @@ def get_postprocess_task():
 
 
 def allow_all_tasks():
+  """Returns True if the bot should be allowed to execute any task.
+
+  Preemptible bots are not allowed to execute all tasks, because some tasks
+  are not safe to be preempted.
+  """
   return not environment.get_value('PREEMPTIBLE')
 
 
 def get_preprocess_task():
-  pubsub_puller = PubSubPuller(PREPROCESS_QUEUE)
+  """Get a preprocess task."""
+  queue_name = PREPROCESS_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
@@ -587,7 +611,12 @@ def get_task_from_message(message, queue=None, can_defer=True,
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  pubsub_puller = PubSubPuller(UTASK_MAIN_QUEUE)
+  queue_name = UTASK_MAIN_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
   return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
@@ -757,6 +786,18 @@ def add_task(command,
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
       raise Error(f'Job {job_type} not found.')
+
+    # Determine base_os_version.
+    base_os_version = job.base_os_version
+    if job.is_external():
+      oss_fuzz_project = data_types.OssFuzzProject.get_by_id(job.project)
+      if oss_fuzz_project and oss_fuzz_project.base_os_version:
+        base_os_version = oss_fuzz_project.base_os_version
+
+    if base_os_version:
+      if extra_info is None:
+        extra_info = {}
+      extra_info['base_os_version'] = base_os_version
 
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)

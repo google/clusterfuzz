@@ -14,19 +14,19 @@
 """Tests for the init command.
 
    For running all the tests, use (from the root of the project):
-   python -m unittest discover -s cli/casp/src/casp/tests -v
+   python -m unittest discover -s cli/casp/src/casp/tests -p test_init.py -v
 """
 
 import os
 import unittest
 from unittest.mock import patch
 
-from click.testing import CliRunner
-
 from casp.commands import init
+from click.testing import CliRunner
 
 
 class InitCliTest(unittest.TestCase):
+  """Tests for the init command."""
 
   def setUp(self):
     super().setUp()
@@ -46,26 +46,29 @@ class InitCliTest(unittest.TestCase):
     self.mock_docker_utils.check_docker_setup.return_value = True
     self.mock_docker_utils.pull_image.return_value = True
     self.mock_docker_utils.DOCKER_IMAGE = 'gcr.io/casp/runner:latest'
-    self.mock_gcloud.get_credentials_path.return_value = '/fake/path/credentials.json'
+    credentials_path = '/fake/path/credentials.json'
+    self.mock_gcloud.get_credentials_path.return_value = credentials_path
     self.mock_config.load_config.return_value = {}
     self.mock_config.CONFIG_FILE = '~/.casp/config.json'
 
   def test_init_success_all_steps(self):
     """Tests successful initialization through all steps, no custom config."""
-    result = self.runner.invoke(init.cli, input='\n')  # Enter for optional prompt
+    result = self.runner.invoke(
+        init.cli, input='\n')  # Enter for optional prompt
 
     self.assertEqual(0, result.exit_code)
     self.assertIn('Docker setup is correct.', result.output)
-    self.assertIn('gcloud authentication is configured correctly.', result.output)
-    self.assertIn(f'Pulling Docker image: {self.mock_docker_utils.DOCKER_IMAGE}',
+    self.assertIn('gcloud authentication is configured correctly.',
                   result.output)
+    self.assertIn(
+        f'Pulling Docker image: {self.mock_docker_utils.DOCKER_IMAGE}',
+        result.output)
     self.assertIn('Initialization complete.', result.output)
 
     self.mock_docker_utils.check_docker_setup.assert_called_once()
     self.mock_gcloud.get_credentials_path.assert_called_once()
-    self.mock_config.load_config.assert_called()
-    self.mock_config.save_config.assert_any_call(
-        {'gcloud_credentials_path': '/fake/path/credentials.json'})
+    expected_config = {'gcloud_credentials_path': '/fake/path/credentials.json'}
+    self.mock_config.save_config.assert_called_once_with(expected_config)
     self.mock_docker_utils.pull_image.assert_called_once()
 
   def test_init_docker_setup_fails(self):
@@ -101,77 +104,78 @@ class InitCliTest(unittest.TestCase):
 
   def test_init_with_existing_config(self):
     """Tests that existing config is loaded and updated."""
-    self.mock_config.load_config.return_value = {'existing_key': 'existing_value'}
+    self.mock_config.load_config.return_value = {
+        'existing_key': 'existing_value'
+    }
     result = self.runner.invoke(init.cli, input='\n')
 
     self.assertEqual(0, result.exit_code)
-    self.mock_config.save_config.assert_any_call({
+    expected_config = {
         'existing_key': 'existing_value',
         'gcloud_credentials_path': '/fake/path/credentials.json'
-    })
+    }
+    self.mock_config.save_config.assert_called_once_with(expected_config)
 
   def test_init_custom_config_path_success(self):
     """Tests providing a valid custom config path."""
     custom_path = '/my/custom/config/dir'
     self.mock_os_path_exists.return_value = True  # Path exists
-
-    # Simulate loading config multiple times
-    load_returns = [
-        {},  # First load for gcloud creds
-        {
-            'gcloud_credentials_path': '/fake/path/credentials.json'
-        }  # Second load before saving custom path
-    ]
-    self.mock_config.load_config.side_effect = load_returns
+    self.mock_config.load_config.return_value = {}
 
     result = self.runner.invoke(init.cli, input=f'{custom_path}\n')
 
     self.assertEqual(0, result.exit_code)
     self.mock_os_path_exists.assert_any_call(custom_path)
-    self.mock_config.save_config.assert_any_call({
+    expected_config = {
         'gcloud_credentials_path': '/fake/path/credentials.json',
         'custom_config_path': custom_path
-    })
-    self.assertIn(f'Custom config path saved to {self.mock_config.CONFIG_FILE}',
-                  result.output)
+    }
+    self.mock_config.save_config.assert_called_once_with(expected_config)
+    self.assertIn(f'Custom config path set to: {custom_path}', result.output)
     self.assertIn('Initialization complete.', result.output)
 
   def test_init_custom_config_path_not_exists(self):
     """Tests providing a custom config path that does not exist."""
     custom_path = '/non/existent/dir'
     self.mock_os_path_exists.return_value = False  # Path does not exist
+    self.mock_config.load_config.return_value = {}
 
     result = self.runner.invoke(init.cli, input=f'{custom_path}\n')
 
     self.assertEqual(0, result.exit_code)
     self.mock_os_path_exists.assert_any_call(custom_path)
-
-    # Check that save_config was called for gcloud_credentials_path but NOT again for custom_config_path
-    gcloud_save_call = unittest.mock.call(
-        {'gcloud_credentials_path': '/fake/path/credentials.json'})
-    self.assertIn(gcloud_save_call, self.mock_config.save_config.mock_calls)
-
-    custom_save_call_args = {
-        'gcloud_credentials_path': '/fake/path/credentials.json',
-        'custom_config_path': custom_path
-    }
-    self.assertNotIn(
-        unittest.mock.call(custom_save_call_args),
-        self.mock_config.save_config.mock_calls)
-
-    self.assertNotIn('Custom config path saved', result.output)
+    expected_config = {'gcloud_credentials_path': '/fake/path/credentials.json'}
+    self.mock_config.save_config.assert_called_once_with(expected_config)
+    self.assertIn(f'Custom config path "{custom_path}" does not exist.',
+                  result.output)
+    self.assertIn('Skipping.', result.output)
+    self.assertNotIn('Custom config path set to', result.output)
     self.assertIn('Initialization complete.', result.output)
 
   def test_init_custom_config_path_empty(self):
     """Tests providing an empty custom config path (skipping)."""
+    self.mock_config.load_config.return_value = {}
     result = self.runner.invoke(init.cli, input='\n')  # Just press Enter
 
     self.assertEqual(0, result.exit_code)
-    # Check save_config was only called once for gcloud creds
-    self.mock_config.save_config.assert_called_once_with(
-        {'gcloud_credentials_path': '/fake/path/credentials.json'})
-    self.assertNotIn('Custom config path saved', result.output)
+    expected_config = {'gcloud_credentials_path': '/fake/path/credentials.json'}
+    self.mock_config.save_config.assert_called_once_with(expected_config)
+    self.assertNotIn('Custom config path set to', result.output)
+    self.assertNotIn('Cleared custom config path', result.output)
     self.assertIn('Initialization complete.', result.output)
+
+  def test_init_custom_config_path_empty_clears_existing(self):
+    """Tests that an empty input for custom 
+    config path clears an existing one."""
+    self.mock_config.load_config.return_value = {
+        'custom_config_path': '/my/old/path'
+    }
+    result = self.runner.invoke(init.cli, input='\n')
+
+    self.assertEqual(0, result.exit_code)
+    expected_config = {'gcloud_credentials_path': '/fake/path/credentials.json'}
+    self.mock_config.save_config.assert_called_once_with(expected_config)
+    self.assertIn('Cleared custom config path.', result.output)
 
 
 if __name__ == '__main__':

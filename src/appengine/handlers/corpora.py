@@ -86,12 +86,12 @@ class CreateHandler(base_handler.Handler):
     template_values = {
         'title':
             'Success',
-        'message':
-            ('Upload data to the corpus using: ' +
-             ('gcloud storage rsync -r <local_corpus_directory> {bucket_url}'
-              if gsutil.use_gcloud_for_command('rsync') else
-              'gsutil -d -m rsync -r <local_corpus_directory> {bucket_url}'
-             ).format(bucket_url=bucket_url)),
+        'message': (
+            'Upload data to the corpus using: ' +
+            ('gcloud storage rsync -r <local_corpus_directory> {bucket_url}'
+             if gsutil.use_gcloud_for_command('rsync') else
+             'gsutil -d -m rsync -r <local_corpus_directory> {bucket_url}'
+            ).format(bucket_url=bucket_url)),
     }
     return self.render('message.html', template_values)
 

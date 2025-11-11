@@ -14,7 +14,7 @@
 """Tests for config utility functions."
 
   For running all the tests, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -v
+  python -m unittest discover -s cli/casp/src/casp/tests -p test_config.py -v
 """
 
 import json
@@ -28,6 +28,7 @@ from casp.utils import config as config_utils
 
 
 class ConfigUtilsTest(unittest.TestCase):
+  """Tests for config utility functions."""
 
   def setUp(self):
     """Creates a temporary directory for each test."""
@@ -47,7 +48,8 @@ class ConfigUtilsTest(unittest.TestCase):
     shutil.rmtree(self.temp_dir)
 
   def test_save_config_creates_dir_and_file(self):
-    """Tests that save_config creates the directory and file with correct content."""
+    """Tests that save_config creates the 
+    directory and file with correct content."""
     test_data = {'key1': 'value1', 'number': 123}
 
     config_utils.save_config(test_data)
@@ -59,7 +61,8 @@ class ConfigUtilsTest(unittest.TestCase):
     self.assertEqual(test_data, saved_data)
 
   def test_load_config_file_not_exists(self):
-    """Tests that load_config returns an empty dict if the file doesn't exist."""
+    """Tests that load_config returns an empty 
+    dict if the file doesn't exist."""
     loaded_data = config_utils.load_config()
 
     self.assertEqual({}, loaded_data)

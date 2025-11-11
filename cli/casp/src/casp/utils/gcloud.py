@@ -17,7 +17,6 @@ import os
 import subprocess
 
 import click
-from google.auth import exceptions as auth_exceptions
 from google.oauth2 import credentials
 
 DEFAULT_GCLOUD_CREDENTIALS_PATH = os.path.expanduser(
@@ -27,11 +26,13 @@ DEFAULT_GCLOUD_CREDENTIALS_PATH = os.path.expanduser(
 def _is_valid_credentials(path: str) -> bool:
   """Returns True if the path points to a valid credentials file."""
   if not path or not os.path.exists(path):
+    click.secho('Error: No valid credentials file found.', fg='red')
     return False
   try:
     credentials.Credentials.from_authorized_user_file(path)
     return True
-  except (auth_exceptions.DefaultCredentialsError, ValueError, KeyError):
+  except ValueError as e:
+    click.secho(f'Error when checking for valid credentials: {e}', fg='red')
     return False
 
 
@@ -47,11 +48,17 @@ def _run_gcloud_login() -> bool:
   except FileNotFoundError:
     click.secho(
         'Error: gcloud command not found. Please ensure it is installed and '
-        'in your PATH.',
+        'in your PATH. '
+        'Or you can mannually run '
+        '`gcloud auth application-default login`',
         fg='red')
     return False
   except subprocess.CalledProcessError:
-    click.secho('Error: gcloud login failed.', fg='red')
+    click.secho(
+        'Error: gcloud login failed. '
+        'You can mannually run '
+        '`gcloud auth application-default login`',
+        fg='red')
     return False
 
 
