@@ -586,27 +586,25 @@ class PubSubTTask(PubSubTask):
 
 
 def _filter_task_for_os_mismatch(message, queue) -> bool:
-  """Filters a task if its OS version does not match the bot's OS.
+  """Filters a Pub/Sub message if its OS version does not match the bot's OS.
 
-  This function checks for a `base_os_version` attribute in the message. If the
-  attribute exists and does not match the bot's `BASE_OS_VERSION` environment
-  variable, it handles the message and signals that it should be skipped.
+  This function checks the `base_os_version` attribute in the incoming message
+  against the bot's `BASE_OS_VERSION` environment variable. This handles cases
+  where a message is misrouted or received from a legacy subscription without
+  OS-specific filters.
 
-  This scenario can occur if a message is misrouted or if the bot is listening
-  to a legacy subscription that lacks OS-specific filters.
-
-  When a mismatch is found, this function:
-  1. Logs a warning.
-  2. Acknowledges (`ack()`) the message to permanently remove it from this
-     subscription. This prevents reprocessing loops and assumes the message
-     was correctly delivered to another, properly filtered subscription.
+  If an OS version mismatch is detected, the function logs a warning and
+  acknowledges (`ack()`) the message. Acknowledging the message permanently
+  removes it from the current subscription, effectively skipping it for this
+  bot. This assumes the message was also correctly delivered to another,
+  properly filtered subscription for processing.
 
   Args:
-    message: The Pub/Sub message object.
+    message: The `pubsub.Message` object to check.
     queue: The name of the queue from which the message was pulled.
 
   Returns:
-    True if the message was filtered and acknowledged, False otherwise.
+    True if the message had a mismatch and was acknowledged; False otherwise.
   """
   base_os_version = environment.get_value('BASE_OS_VERSION')
   message_base_os_version = message.attributes.get('base_os_version')
@@ -616,7 +614,7 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
     return False
 
   logs.warning(
-      'Acking (skipping) task for different OS.',
+      'Skipping task for different OS.',
       queue=queue,
       message_os_version=message_base_os_version,
       base_os_version=base_os_version)
