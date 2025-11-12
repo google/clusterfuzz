@@ -133,6 +133,7 @@ def _get_task_spec(batch_workload_spec):
       '-e HOST_UID=1337 -P --privileged --cap-add=all '
       f'-e CLUSTERFUZZ_RELEASE={clusterfuzz_release} '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
+      '-e USE_GCLOUD_STORAGE_RSYNC=1 '
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()

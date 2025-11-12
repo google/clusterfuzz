@@ -809,12 +809,18 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   for task in tasks:
     # Determine base_os_version.
     job = data_types.Job.query(data_types.Job.name == task.job).get()
-    base_os_version = job.base_os_version
+    if not job:
+      logs.warning(f"Job {task.job} not found for bulk task.", task=task)
+      continue
+
+    task.extra_info = task.extra_info or {}
+    if job.base_os_version:
+      task.extra_info['base_os_version'] = job.base_os_version
+
     if job.is_external():
       oss_fuzz_project = data_types.OssFuzzProject.query(
           data_types.OssFuzzProject.name == job.project).get()
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
-        task.extra_info = task.extra_info or {}
         task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
 
   pubsub_client = pubsub.PubSubClient()
