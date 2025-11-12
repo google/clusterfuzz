@@ -806,6 +806,17 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     for task in tasks:
       task.eta = now
 
+  for task in tasks:
+    # Determine base_os_version.
+    job = data_types.Job.query(data_types.Job.name == task.job).get()
+    base_os_version = job.base_os_version
+    if job.is_external():
+      oss_fuzz_project = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name == job.project).get()
+      if oss_fuzz_project and oss_fuzz_project.base_os_version:
+        task.extra_info = task.extra_info or {}
+        task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
+
   pubsub_client = pubsub.PubSubClient()
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
   topic_name = pubsub.topic_name(utils.get_application_id(), queue)
@@ -827,18 +838,6 @@ def add_task(command,
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
       raise Error(f'Job {job_type} not found.')
-
-    # Determine base_os_version.
-    base_os_version = job.base_os_version
-    if job.is_external():
-      oss_fuzz_project = data_types.OssFuzzProject.get_by_id(job.project)
-      if oss_fuzz_project and oss_fuzz_project.base_os_version:
-        base_os_version = oss_fuzz_project.base_os_version
-
-    if base_os_version:
-      if extra_info is None:
-        extra_info = {}
-      extra_info['base_os_version'] = base_os_version
 
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)
