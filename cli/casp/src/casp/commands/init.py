@@ -17,6 +17,7 @@ import os
 import sys
 from typing import Any
 from typing import Dict
+from typing import Tuple
 
 from casp.utils import config
 from casp.utils import docker_utils
@@ -82,19 +83,28 @@ def _setup_custom_config(cfg: Dict[str, Any]):
   click.secho(f'Custom config path set to: {custom_config_path}', fg='green')
 
 
-def _pull_image():
+def _pull_image(image: str = 'internal'):
   """Pulls the docker image."""
-  click.echo(f'Pulling Docker image: {docker_utils.DOCKER_IMAGE}...')
-  if not docker_utils.pull_image():
+  if not docker_utils.pull_image(image):
     click.secho(
-        f'\nError: Failed to pull Docker image {docker_utils.DOCKER_IMAGE}.',
+        (f'\nError: Failed to pull Docker image: '
+         f'{docker_utils.DOCKER_IMAGES[image]}.'),
         fg='red')
     click.secho('Initialization failed.', fg='red')
     sys.exit(1)
 
 
 @click.command(name='init', help='Initializes the CLI')
-def cli():
+@click.option(
+    '--image',
+    '-i',
+    help=('The Docker image to use. You can specify multiple images.'
+          'Ex.: --image dev --image internal'),
+    required=False,
+    default=('internal',),
+    type=click.Choice(['dev', 'internal', 'external'], case_sensitive=False),
+    multiple=True)
+def cli(image: Tuple[str, ...]):
   """Initializes the CASP CLI.
 
   This is done by:
@@ -117,5 +127,7 @@ def cli():
   config.save_config(cfg)
   click.secho(f'Configuration saved to {config.CONFIG_FILE}.', fg='green')
 
-  _pull_image()
+  for img in image:
+    _pull_image(img)
+
   click.secho('Initialization complete.', fg='green')
