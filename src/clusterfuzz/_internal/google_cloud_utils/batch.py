@@ -133,7 +133,6 @@ def _get_task_spec(batch_workload_spec):
       '-e HOST_UID=1337 -P --privileged --cap-add=all '
       f'-e CLUSTERFUZZ_RELEASE={clusterfuzz_release} '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      '-e USE_GCLOUD_STORAGE_RSYNC=1 '
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
@@ -275,8 +274,8 @@ def _get_config_names(
     # If we are running in the oss-fuzz context, the project-specific config
     # is more specific and overrides the job-level one.
     if environment.get_value('PROJECT_NAME') == 'oss-fuzz':
-      project_name = job.project
-      oss_fuzz_project = data_types.OssFuzzProject.get_by_id(project_name)
+      oss_fuzz_project = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name == job.project).get()
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
         base_os_version = oss_fuzz_project.base_os_version
 
