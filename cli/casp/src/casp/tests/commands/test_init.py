@@ -45,7 +45,6 @@ class InitCliTest(unittest.TestCase):
     # Default mock behaviors for success paths
     self.mock_docker_utils.check_docker_setup.return_value = True
     self.mock_docker_utils.pull_image.return_value = True
-    self.mock_docker_utils.DOCKER_IMAGE = 'gcr.io/casp/runner:latest'
     credentials_path = '/fake/path/credentials.json'
     self.mock_gcloud.get_credentials_path.return_value = credentials_path
     self.mock_config.load_config.return_value = {}
@@ -60,9 +59,6 @@ class InitCliTest(unittest.TestCase):
     self.assertIn('Docker setup is correct.', result.output)
     self.assertIn('gcloud authentication is configured correctly.',
                   result.output)
-    self.assertIn(
-        f'Pulling Docker image: {self.mock_docker_utils.DOCKER_IMAGE}',
-        result.output)
     self.assertIn('Initialization complete.', result.output)
 
     self.mock_docker_utils.check_docker_setup.assert_called_once()

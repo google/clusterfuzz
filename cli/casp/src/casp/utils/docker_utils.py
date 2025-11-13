@@ -20,8 +20,15 @@ import click
 import docker
 
 # TODO: Make this configurable.
-DOCKER_IMAGE = ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
-                "20251008165901-utc-893e97e-640142509185-compute-d609115-prod")
+PROJECT_TO_IMAGE = {
+    'dev': ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
+            "20251008165901-utc-893e97e-640142509185-compute-d609115-prod"),
+    'internal': (
+        "gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
+        "20251110132749-utc-363160d-640142509185-compute-c7f2f8c-prod"),
+    'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
+                 "20251111191918-utc-b5863ff-640142509185-compute-c5c296c-prod")
+}
 
 
 def check_docker_setup() -> docker.client.DockerClient | None:
@@ -52,16 +59,16 @@ def check_docker_setup() -> docker.client.DockerClient | None:
     return None
 
 
-def pull_image() -> bool:
+def pull_image(image: str = PROJECT_TO_IMAGE['internal']) -> bool:
   """Pulls the docker image."""
   client = check_docker_setup()
   if not client:
     return False
 
   try:
-    click.echo(f'Pulling Docker image: {DOCKER_IMAGE}...')
-    client.images.pull(DOCKER_IMAGE)
+    click.echo(f'Pulling Docker image: {image}...')
+    client.images.pull(image)
     return True
   except docker.errors.DockerException:
-    click.secho(f'Error: Docker image {DOCKER_IMAGE} not found.', fg='red')
+    click.secho(f'Error: Docker image {image} not found.', fg='red')
     return False
