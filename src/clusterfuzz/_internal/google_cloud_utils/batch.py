@@ -274,7 +274,7 @@ def _get_config_names(
 
     # If we are running in the oss-fuzz context, the project-specific config
     # is more specific and overrides the job-level one.
-    if job.is_external():
+    if utils.is_oss_fuzz():
       oss_fuzz_project = data_types.OssFuzzProject.query(
           data_types.OssFuzzProject.name == job.project).get()
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
