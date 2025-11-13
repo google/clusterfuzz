@@ -817,7 +817,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     if job.base_os_version:
       task.extra_info['base_os_version'] = job.base_os_version
 
-    if job.is_external():
+    if utils.is_oss_fuzz():
       oss_fuzz_project = data_types.OssFuzzProject.query(
           data_types.OssFuzzProject.name == job.project).get()
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
