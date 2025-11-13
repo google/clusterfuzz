@@ -95,20 +95,22 @@ class ReproduceCliTest(unittest.TestCase):
     self.assertNotEqual(0, result.exit_code)
     self.mock_docker_utils.run_command.assert_called_once()
 
-  def test_reproduce_with_image_option(self):
-    """Tests that the --image option is passed to docker_utils."""
+  def test_reproduce_with_project_option(self):
+    """Tests that the --project option is passed to docker_utils."""
     self.mock_config.load_config.return_value = {
         'gcloud_credentials_path': '/fake/credentials/path'
     }
     self.mock_docker_utils.run_command.return_value = True
+    self.mock_docker_utils.PROJECT_TO_IMAGE = {'dev': 'dev-image'}
 
     result = self.runner.invoke(reproduce.cli,
-                                ['--testcase-id', '123', '--image', 'dev'])
+                                ['--testcase-id', '123', '--project', 'dev'])
 
     self.assertEqual(0, result.exit_code)
     self.mock_docker_utils.run_command.assert_called_once()
     _, kwargs = self.mock_docker_utils.run_command.call_args
-    self.assertEqual('dev', kwargs.get('image'))
+    self.assertEqual(self.mock_docker_utils.PROJECT_TO_IMAGE['dev'],
+                     kwargs.get('image'))
 
 
 if __name__ == '__main__':
