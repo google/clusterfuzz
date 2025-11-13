@@ -358,8 +358,8 @@ class AddTasksTest(unittest.TestCase):
 
   @mock.patch('clusterfuzz._internal.google_cloud_utils.pubsub.PubSubClient')
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_bulk_add_tasks_internal_job_with_os_version(
-      self, mock_job_query, mock_pubsub_client):
+  def test_bulk_add_tasks_internal_job_with_os_version(self, mock_job_query,
+                                                       mock_pubsub_client):
     """Test bulk_add_tasks with an internal job and an OS version."""
     mock_job = mock.MagicMock()
     mock_job.base_os_version = 'ubuntu-20-04'
@@ -377,8 +377,8 @@ class AddTasksTest(unittest.TestCase):
 
   @mock.patch('clusterfuzz._internal.google_cloud_utils.pubsub.PubSubClient')
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_bulk_add_tasks_external_job_with_os_version(
-      self, mock_job_query, mock_pubsub_client):
+  def test_bulk_add_tasks_external_job_with_os_version(self, mock_job_query,
+                                                       mock_pubsub_client):
     """Test bulk_add_tasks with an external (OSS-Fuzz) job and an OS version."""
     mock_job = mock.MagicMock()
     mock_job.base_os_version = None  # No version on job.
