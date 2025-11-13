@@ -13,8 +13,8 @@
 # limitations under the License.
 """Tests for the reproduce command.
 
-   For running all the tests, use (from the root of the project):
-   python -m unittest discover -s cli/casp/src/casp/tests -p test_reproduce.py -v
+  For running all the tests, use (from the root of the project):
+  python -m unittest discover -s cli/casp/src/casp/tests -p test_reproduce.py -v
 """
 
 import unittest
@@ -60,7 +60,7 @@ class ReproduceCliTest(unittest.TestCase):
     self.assertIn('Using custom config directory: /my/custom/config',
                   result.output)
     self.mock_docker_utils.run_command.assert_called_once()
-    args, kwargs = self.mock_docker_utils.run_command.call_args
+    args, _ = self.mock_docker_utils.run_command.call_args
     self.assertIn('config-dir=/data/clusterfuzz/src/appengine/custom_config',
                   args[0][2])
     self.assertIn('/my/custom/config', args[1])
@@ -102,8 +102,8 @@ class ReproduceCliTest(unittest.TestCase):
     }
     self.mock_docker_utils.run_command.return_value = True
 
-    result = self.runner.invoke(
-        reproduce.cli, ['--testcase-id', '123', '--image', 'dev'])
+    result = self.runner.invoke(reproduce.cli,
+                                ['--testcase-id', '123', '--image', 'dev'])
 
     self.assertEqual(0, result.exit_code)
     self.mock_docker_utils.run_command.assert_called_once()

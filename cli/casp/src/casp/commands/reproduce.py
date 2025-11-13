@@ -30,7 +30,7 @@ _CONTAINER_CREDENTIALS_PATH = '/root/.config/gcloud/'
     '-i',
     help='The Docker image to use',
     required=False,
-    default=('internal',),
+    default='internal',
     type=click.Choice(['dev', 'internal', 'external'], case_sensitive=False))
 @click.option(
     '--config-dir',
