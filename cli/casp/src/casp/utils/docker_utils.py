@@ -29,6 +29,7 @@ PROJECT_TO_IMAGE = {
     'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
                  "20251111191918-utc-b5863ff-640142509185-compute-c5c296c-prod")
 }
+_DEFAULT_WORKING_DIR = '/data/clusterfuzz'
 
 
 def check_docker_setup() -> docker.client.DockerClient | None:
@@ -103,7 +104,7 @@ def run_command(command: list[str],
         image,
         command,
         volumes=volumes,
-        working_dir='/data/clusterfuzz',
+        working_dir=_DEFAULT_WORKING_DIR,
         privileged=privileged,
         detach=True,
         remove=False)  # Can't auto-remove if we want to stream logs
