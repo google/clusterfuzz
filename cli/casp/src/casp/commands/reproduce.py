@@ -26,12 +26,13 @@ _CONTAINER_CREDENTIALS_PATH = '/root/.config/gcloud/'
 
 @click.command(name='reproduce', help='Reproduces a testcase locally.')
 @click.option(
-    '--image',
-    '-i',
-    help='The Docker image to use',
+    '--project',
+    '-p',
+    help='The ClusterFuzz project to use.',
     required=False,
     default='internal',
-    type=click.Choice(['dev', 'internal', 'external'], case_sensitive=False))
+    type=click.Choice(
+        docker_utils.PROJECT_TO_IMAGE.keys(), case_sensitive=False))
 @click.option(
     '--config-dir',
     required=False,
@@ -40,7 +41,7 @@ _CONTAINER_CREDENTIALS_PATH = '/root/.config/gcloud/'
           'config diectory, this argument is not used.'))
 @click.option(
     '--testcase-id', required=True, help='The ID of the testcase to reproduce.')
-def cli(image: str, config_dir: str, testcase_id: str) -> None:
+def cli(project: str, config_dir: str, testcase_id: str) -> None:
   """Reproduces a testcase locally."""
   cfg = config.load_config()
   if not cfg or 'gcloud_credentials_path' not in cfg:
@@ -68,5 +69,8 @@ def cli(image: str, config_dir: str, testcase_id: str) -> None:
   ]
 
   if not docker_utils.run_command(
-      command, volumes, privileged=True, image=image):
+      command,
+      volumes,
+      privileged=True,
+      image=docker_utils.PROJECT_TO_IMAGE[project]):
     sys.exit(1)
