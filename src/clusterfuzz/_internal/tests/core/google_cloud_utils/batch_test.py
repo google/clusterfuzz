@@ -150,8 +150,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
 
   @mock.patch('clusterfuzz._internal.google_cloud_utils.batch.environment')
-  @mock.patch(
-      'clusterfuzz._internal.datastore.data_types.OssFuzzProject.query')
+  @mock.patch('clusterfuzz._internal.datastore.data_types.OssFuzzProject.query')
   @mock.patch('clusterfuzz._internal.datastore.ndb_utils.get_all_from_query')
   def test_get_config_names_os_version(self, mock_get_jobs, mock_query_project,
                                        mock_env):
