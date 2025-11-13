@@ -137,7 +137,7 @@ class PullImageTest(unittest.TestCase):
     self.assertIn('Pulling Docker image:', args[0])
     mock_check_docker_setup.assert_called_once()
     mock_images_collection.pull.assert_called_once_with(
-        docker_utils.DOCKER_IMAGES["internal"])
+        docker_utils.PROJECT_TO_IMAGE["internal"])
     mock_secho.assert_not_called()
 
   @patch(
@@ -176,10 +176,10 @@ class PullImageTest(unittest.TestCase):
 
     self.assertFalse(result)
     mock_echo.assert_called_once_with(
-        f'Pulling Docker image: {docker_utils.DOCKER_IMAGES["internal"]}...')
+        f'Pulling Docker image: {docker_utils.PROJECT_TO_IMAGE["internal"]}...')
     mock_check_docker_setup.assert_called_once()
     mock_images_collection.pull.assert_called_once_with(
-        docker_utils.DOCKER_IMAGES["internal"])
+        docker_utils.PROJECT_TO_IMAGE["internal"])
     mock_secho.assert_called_once()
     args, _ = mock_secho.call_args
     self.assertIn('not found', args[0])

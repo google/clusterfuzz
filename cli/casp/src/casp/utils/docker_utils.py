@@ -20,7 +20,7 @@ import click
 import docker
 
 # TODO: Make this configurable.
-DOCKER_IMAGES = {
+PROJECT_TO_IMAGE = {
     'dev': ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
             "20251008165901-utc-893e97e-640142509185-compute-d609115-prod"),
     'internal': (
@@ -59,17 +59,16 @@ def check_docker_setup() -> docker.client.DockerClient | None:
     return None
 
 
-def pull_image(image: str = 'internal') -> bool:
+def pull_image(image: str = PROJECT_TO_IMAGE['internal']) -> bool:
   """Pulls the docker image."""
   client = check_docker_setup()
   if not client:
     return False
 
   try:
-    click.echo(f'Pulling Docker image: {DOCKER_IMAGES[image]}...')
-    client.images.pull(DOCKER_IMAGES[image])
+    click.echo(f'Pulling Docker image: {image}...')
+    client.images.pull(image)
     return True
   except docker.errors.DockerException:
-    click.secho(
-        f'Error: Docker image {DOCKER_IMAGES[image]} not found.', fg='red')
+    click.secho(f'Error: Docker image {image} not found.', fg='red')
     return False

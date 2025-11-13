@@ -83,12 +83,12 @@ def _setup_custom_config(cfg: Dict[str, Any]):
   click.secho(f'Custom config path set to: {custom_config_path}', fg='green')
 
 
-def _pull_image(image: str = 'internal'):
-  """Pulls the docker image."""
-  if not docker_utils.pull_image(image):
+def _pull_image_for_project(project: str = 'internal'):
+  """Pulls the docker image for the given project."""
+  if not docker_utils.pull_image(docker_utils.PROJECT_TO_IMAGE[project]):
     click.secho(
         (f'\nError: Failed to pull Docker image: '
-         f'{docker_utils.DOCKER_IMAGES[image]}.'),
+         f'{docker_utils.PROJECT_TO_IMAGE[project]}.'),
         fg='red')
     click.secho('Initialization failed.', fg='red')
     sys.exit(1)
@@ -96,15 +96,17 @@ def _pull_image(image: str = 'internal'):
 
 @click.command(name='init', help='Initializes the CLI')
 @click.option(
-    '--image',
-    '-i',
-    help=('The Docker image to use. You can specify multiple images.'
-          'Ex.: --image dev --image internal'),
+    '--projects',
+    '--project',
+    '-p',
+    help=('The ClusterFuzz project to use. You can specify multiple projects.'
+          'Ex.: -p dev -p internal'),
     required=False,
     default=('internal',),
-    type=click.Choice(['dev', 'internal', 'external'], case_sensitive=False),
+    type=click.Choice(
+        docker_utils.PROJECT_TO_IMAGE.keys(), case_sensitive=False),
     multiple=True)
-def cli(image: Tuple[str, ...]):
+def cli(projects: Tuple[str, ...]):
   """Initializes the CASP CLI.
 
   This is done by:
@@ -127,7 +129,7 @@ def cli(image: Tuple[str, ...]):
   config.save_config(cfg)
   click.secho(f'Configuration saved to {config.CONFIG_FILE}.', fg='green')
 
-  for img in image:
-    _pull_image(img)
+  for project in projects:
+    _pull_image_for_project(project)
 
   click.secho('Initialization complete.', fg='green')
