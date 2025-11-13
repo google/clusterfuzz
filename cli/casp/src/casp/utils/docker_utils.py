@@ -72,3 +72,71 @@ def pull_image(image: str = PROJECT_TO_IMAGE['internal']) -> bool:
   except docker.errors.DockerException:
     click.secho(f'Error: Docker image {image} not found.', fg='red')
     return False
+
+
+def run_command(command: list[str],
+                volumes: dict,
+                privileged: bool = False,
+                image: str = PROJECT_TO_IMAGE['internal']) -> bool:
+  """Runs a command in a docker container and streams logs.
+
+  Args:
+    command: The command to run.
+    volumes: A dictionary of volumes to mount.
+    privileged: Whether to run the container as privileged.
+    image: The docker image to use.
+
+  Returns:
+    True on success, False otherwise.
+  """
+  client = check_docker_setup()
+  if not client:
+    return False
+
+  if not pull_image(image):
+    return False
+
+  container = None
+  try:
+    click.echo(f'Running command in Docker container: {command}')
+    container = client.containers.run(
+        image,
+        command,
+        volumes=volumes,
+        working_dir='/data/clusterfuzz',
+        privileged=privileged,
+        detach=True,
+        remove=False)  # Can't auto-remove if we want to stream logs
+
+    for line in container.logs(stream=True, follow=True):
+      click.echo(line.decode('utf-8').strip())
+
+    result = container.wait()
+    if result['StatusCode'] != 0:
+      # Get final logs in case of error
+      error_logs = container.logs().decode('utf-8')
+      click.secho(
+          'Error: Command failed in Docker container with exit code '
+          f'{result["StatusCode"]}.',
+          fg='red')
+      click.secho(error_logs, fg='red')
+      return False
+
+    return True
+  except docker.errors.ContainerError as e:
+    click.secho(f'Error: Command failed in Docker container: {e}', fg='red')
+    if e.stderr:
+      click.secho(e.stderr.decode('utf-8'), fg='red')
+    return False
+  except docker.errors.ImageNotFound as e:
+    click.secho(f'Error: Docker image {image} not found: {e}', fg='red')
+    return False
+  except docker.errors.APIError as e:
+    click.secho(f'Error: Docker API error: {e}', fg='red')
+    return False
+  finally:
+    if container:
+      try:
+        container.remove()
+      except docker.errors.APIError as e:
+        click.secho(f'Error removing container: {e}', fg='yellow')
