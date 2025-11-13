@@ -280,6 +280,8 @@ class GetTaskFromMessageTest(unittest.TestCase):
 
   def test_success(self):
     """Test successful task creation from a message."""
+    self.mock_env_get.return_value = None
+    self.mock_message.attributes = {}
     self.assertEqual(
         tasks.get_task_from_message(self.mock_message), self.mock_task)
 
@@ -297,6 +299,8 @@ class GetTaskFromMessageTest(unittest.TestCase):
   def test_set_queue(self):
     """Tests the set_queue method of a task."""
     mock_queue = mock.Mock()
+    self.mock_env_get.return_value = None
+    self.mock_message.attributes = {}
     task = tasks.get_task_from_message(self.mock_message, queue=mock_queue)
     task.set_queue.assert_called_with(mock_queue)
 
@@ -336,15 +340,21 @@ class GetTaskFromMessageTest(unittest.TestCase):
     self.assertEqual(result, self.mock_task)
     self.mock_message.ack.assert_not_called()
 
-  def test_bot_has_no_os_message_does(self):
-    """Test that a message is processed if the message has an OS but the bot does not."""
+  @mock.patch('clusterfuzz._internal.metrics.logs.warning')
+  def test_bot_has_no_os_message_does(self, mock_log_warning):
+    """Test that a message is skipped if it has an OS but the bot does not."""
     self.mock_env_get.return_value = None
     self.mock_message.attributes = {'base_os_version': 'ubuntu-24-04'}
 
     result = tasks.get_task_from_message(self.mock_message)
 
-    self.assertEqual(result, self.mock_task)
-    self.mock_message.ack.assert_not_called()
+    self.assertIsNone(result)
+    self.mock_message.ack.assert_called_once()
+    mock_log_warning.assert_called_with(
+        'Skipping task for different OS.',
+        queue=None,
+        message_os_version='ubuntu-24-04',
+        base_os_version=None)
 
 
 @test_utils.with_cloud_emulators('datastore')

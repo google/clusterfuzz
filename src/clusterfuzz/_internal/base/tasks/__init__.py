@@ -586,40 +586,43 @@ class PubSubTTask(PubSubTask):
 
 
 def _filter_task_for_os_mismatch(message, queue) -> bool:
-  """Filters a Pub/Sub message if its OS version does not match the bot's OS.
+  """Filters a Pub/Sub message if its OS version mismatches the bot's OS.
 
-  This function checks the `base_os_version` attribute in the incoming message
-  against the bot's `BASE_OS_VERSION` environment variable. This handles cases
-  where a message is misrouted or received from a legacy subscription without
-  OS-specific filters.
+  This function compares the `base_os_version` attribute from the message
+  against the bot's `BASE_OS_VERSION` environment variable.
 
-  If an OS version mismatch is detected, the function logs a warning and
-  acknowledges (`ack()`) the message. Acknowledging the message permanently
-  removes it from the current subscription, effectively skipping it for this
-  bot. This assumes the message was also correctly delivered to another,
-  properly filtered subscription for processing.
+  A task is skipped (and the message is acknowledged) if the message specifies
+  an OS version, and the bot's OS is different. This includes the legacy
+  scenario where a bot does not have `BASE_OS_VERSION` set (evaluating to
+  `None`), preventing it from processing tasks meant for newer OS versions.
+
+  If the message does not specify an OS version, it can be processed by any
+  bot. If the versions match, it is also processed.
 
   Args:
-    message: The `pubsub.Message` object to check.
-    queue: The name of the queue from which the message was pulled.
+    message (pubsub.Message): The message object to check.
+    queue (str): The name of the queue from which the message was pulled.
 
   Returns:
-    True if the message had a mismatch and was acknowledged; False otherwise.
+    bool: True if the message had a mismatch and was acknowledged, otherwise
+    False.
   """
   base_os_version = environment.get_value('BASE_OS_VERSION')
   message_base_os_version = message.attributes.get('base_os_version')
 
-  if not (message_base_os_version and base_os_version and
-          message_base_os_version != base_os_version):
+  if not message_base_os_version:
     return False
 
-  logs.warning(
-      'Skipping task for different OS.',
-      queue=queue,
-      message_os_version=message_base_os_version,
-      base_os_version=base_os_version)
-  message.ack()
-  return True
+  if message_base_os_version != base_os_version:
+    logs.warning(
+        'Skipping task for different OS.',
+        queue=queue,
+        message_os_version=message_base_os_version,
+        base_os_version=base_os_version)
+    message.ack()
+    return True
+
+  return False
 
 
 def get_task_from_message(message, queue=None, can_defer=True,
