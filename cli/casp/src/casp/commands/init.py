@@ -17,7 +17,6 @@ import os
 import sys
 from typing import Any
 from typing import Dict
-from typing import Tuple
 
 from casp.utils import config
 from casp.utils import docker_utils
@@ -106,7 +105,7 @@ def _pull_image_for_project(project: str = 'internal'):
     type=click.Choice(
         docker_utils.PROJECT_TO_IMAGE.keys(), case_sensitive=False),
     multiple=True)
-def cli(projects: Tuple[str, ...]):
+def cli(projects: tuple[str, ...]):
   """Initializes the CASP CLI.
 
   This is done by:
