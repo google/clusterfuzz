@@ -441,7 +441,8 @@ class Task:
     self.queue = queue
 
   def __repr__(self):
-    return f'Task: {self.command} {self.argument} {self.job} {self.queue} {self.extra_info}'
+    return (f'Task: {self.command} {self.argument} {self.job} {self.queue} '
+            f'{self.extra_info}')
 
   def attribute(self, _):
     return None
@@ -818,7 +819,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   jobs = ndb_utils.get_all_from_query(jobs_query)
   jobs_map = {job.name: job for job in jobs}
 
-  logs.info(f"Jobs map", jobs_map=jobs_map)
+  logs.info("Jobs map", jobs_map=jobs_map)
 
   oss_fuzz_projects_map = {}
   if utils.is_oss_fuzz():
@@ -833,7 +834,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
           project.name: project for project in oss_fuzz_projects
       }
   logs.info(
-      f"Oss fuzz projects map", oss_fuzz_projects_map=oss_fuzz_projects_map)
+      "Oss fuzz projects map", oss_fuzz_projects_map=oss_fuzz_projects_map)
 
   for task in tasks:
     # Determine base_os_version.
@@ -851,7 +852,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
         task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
 
-  logs.info(f"tasks with extra info", tasks=tasks)
+  logs.info("tasks with extra info", tasks=tasks)
 
   pubsub_client = pubsub.PubSubClient()
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
