@@ -366,8 +366,6 @@ class AddTaskTest(unittest.TestCase):
         name='d8', base_os_version='ubuntu-24-04')
     self.oss_fuzz_project.put()
 
-
-
   @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
   @mock.patch('clusterfuzz._internal.base.external_tasks.add_external_task')
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
