@@ -135,18 +135,21 @@ class FuzzTaskCandidate:
   Something like this would probably not be needed if we were using SQL and
   could use joins."""
 
-  def __init__(self, job, project, fuzzer=None, weight=None):
+  def __init__(self, job, project, fuzzer=None, weight=None,
+               base_os_version=None):
     self.job = job
     self.project = project
     self.fuzzer = fuzzer
     self.weight = weight
+    self.base_os_version = base_os_version
 
   def copy(self):
     return FuzzTaskCandidate(
         job=self.job,
         project=self.project,
         fuzzer=self.fuzzer,
-        weight=self.weight)
+        weight=self.weight,
+        base_os_version=self.base_os_version)
 
 
 class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
@@ -166,13 +169,22 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
       project_weight = project.cpu_weight / total_cpu_weight
       project_weights[project.name] = project_weight
 
+    projects_by_name = {project.name: project for project in projects}
+
     # Then get FuzzTaskCandidate weights.
     logs.info('Getting jobs.')
     # TODO(metzman): Handle cases where jobs are fuzzed by multiple fuzzers.
     candidates_by_job = {}
     for job in ndb_utils.get_all_from_query(data_types.Job.query()):
+      project = projects_by_name.get(job.project)
+      base_os_version = None
+      if project and project.base_os_version:
+        base_os_version = project.base_os_version
+      elif job.base_os_version:
+        base_os_version = job.base_os_version
+
       candidates_by_job[job.name] = FuzzTaskCandidate(
-          job=job.name, project=job.project)
+          job=job.name, project=job.project, base_os_version=base_os_version)
 
     fuzzer_job_weight_by_project = collections.defaultdict(int)
     fuzz_task_candidates = []
@@ -213,8 +225,13 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     choices = random.choices(
         fuzz_task_candidates, weights=weights, k=num_instances)
     fuzz_tasks = [
-        tasks.Task('fuzz', fuzz_task_candidate.fuzzer, fuzz_task_candidate.job)
-        for fuzz_task_candidate in choices
+        tasks.Task(
+            'fuzz',
+            fuzz_task_candidate.fuzzer,
+            fuzz_task_candidate.job,
+            extra_info={
+                'base_os_version': fuzz_task_candidate.base_os_version
+            }) for fuzz_task_candidate in choices
     ]
     # TODO(metzman): Use number of targets even though weight
     # implicitly includes this often.
@@ -236,8 +253,14 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
     # Only consider linux jobs for chrome fuzzing.
     job_query = data_types.Job.query(data_types.Job.platform == 'LINUX')
     for job in ndb_utils.get_all_from_query(job_query):
+      base_os_version = None
+      if job.base_os_version:
+        base_os_version = job.base_os_version
+
       candidates_by_job[job.name] = FuzzTaskCandidate(
-          job=job.name, project=job.project)
+          job=job.name,
+          project=job.project,
+          base_os_version=base_os_version)
 
     fuzz_task_candidates = []
     fuzzer_job_query = ndb_utils.get_all_from_query(
@@ -261,7 +284,11 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
     choices = random.choices(
         fuzz_task_candidates, weights=weights, k=num_instances)
     fuzz_tasks = [
-        tasks.Task('fuzz', candidate.fuzzer, candidate.job)
+        tasks.Task(
+            'fuzz',
+            candidate.fuzzer,
+            candidate.job,
+            extra_info={'base_os_version': candidate.base_os_version})
         for candidate in choices
     ]
     return fuzz_tasks
