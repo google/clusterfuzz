@@ -187,7 +187,6 @@ def execute(args):
       # If not, fall back to diffing against HEAD.
       diff_command = 'git diff --name-only HEAD'
 
-  diff_command = 'git ls-files cli'
   _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
