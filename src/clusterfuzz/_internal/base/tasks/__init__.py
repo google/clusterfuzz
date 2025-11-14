@@ -824,7 +824,8 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   oss_fuzz_projects_map = {}
   if utils.is_oss_fuzz():
     # Fetch all unique project names from the jobs.
-    project_names = list({job.project for job in jobs if job})
+    project_names = list({job.project for job in jobs if job and job.project})
+    logs.info("Project names", project_names=project_names)
     if project_names:
       # Query all OssFuzzProject entities in a single batch.
       oss_fuzz_projects_query = data_types.OssFuzzProject.query(
@@ -833,8 +834,8 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       oss_fuzz_projects_map = {
           project.name: project for project in oss_fuzz_projects
       }
-  logs.info(
-      "Oss fuzz projects map", oss_fuzz_projects_map=oss_fuzz_projects_map)
+    logs.info(
+        "Oss fuzz projects map", oss_fuzz_projects_map=oss_fuzz_projects_map)
 
   for task in tasks:
     # Determine base_os_version.
