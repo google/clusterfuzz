@@ -135,7 +135,11 @@ class FuzzTaskCandidate:
   Something like this would probably not be needed if we were using SQL and
   could use joins."""
 
-  def __init__(self, job, project, fuzzer=None, weight=None,
+  def __init__(self,
+               job,
+               project,
+               fuzzer=None,
+               weight=None,
                base_os_version=None):
     self.job = job
     self.project = project
@@ -229,9 +233,8 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
             'fuzz',
             fuzz_task_candidate.fuzzer,
             fuzz_task_candidate.job,
-            extra_info={
-                'base_os_version': fuzz_task_candidate.base_os_version
-            }) for fuzz_task_candidate in choices
+            extra_info={'base_os_version': fuzz_task_candidate.base_os_version})
+        for fuzz_task_candidate in choices
     ]
     # TODO(metzman): Use number of targets even though weight
     # implicitly includes this often.
@@ -258,9 +261,7 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
         base_os_version = job.base_os_version
 
       candidates_by_job[job.name] = FuzzTaskCandidate(
-          job=job.name,
-          project=job.project,
-          base_os_version=base_os_version)
+          job=job.name, project=job.project, base_os_version=base_os_version)
 
     fuzz_task_candidates = []
     fuzzer_job_query = ndb_utils.get_all_from_query(
