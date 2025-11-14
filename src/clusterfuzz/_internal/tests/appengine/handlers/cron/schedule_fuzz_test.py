@@ -46,6 +46,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
         name=job_name,
         environment_string=f'PROJECT_NAME = {project_name}',
         platform='LINUX',
+        base_os_version='job-os-version',
     )
     job.put()
 
@@ -65,7 +66,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     dead_project_job = data_types.FuzzerJob(
         job='dead_project_job', platform='LINUX', fuzzer='libFuzzer')
     dead_project_job.put()
-    data_types.OssFuzzProject(name=project_name).put()
+    data_types.OssFuzzProject(name=project_name, base_os_version='project-os-version').put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
     num_cpus = 10
@@ -73,9 +74,43 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     tasks = scheduler.get_fuzz_tasks()
     comparable_results = []
     for task in tasks:
-      comparable_results.append((task.command, task.argument, task.job))
+      comparable_results.append((task.command, task.argument, task.job, task.extra_info['base_os_version']))
 
-    expected_results = [('fuzz', 'libFuzzer', 'myjob')] * 5
+    expected_results = [('fuzz', 'libFuzzer', 'myjob', 'project-os-version')] * 5
+    self.assertListEqual(comparable_results, expected_results)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ChromeFuzzTaskScheduler(unittest.TestCase):
+  """Tests for ChromeFuzzTaskScheduler."""
+
+  def setUp(self):
+    self.maxDiff = None
+
+  def test_get_fuzz_tasks(self):
+    """Tests that get_fuzz_tasks uses weights as intended for Chrome."""
+    job_name = 'myjob'
+    project_name = 'myproject'
+    job = data_types.Job(
+        name=job_name,
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+        base_os_version='job-os-version',
+    )
+    job.put()
+
+    fuzzer_job = data_types.FuzzerJob(
+        job=job_name, platform='LINUX', fuzzer='libFuzzer')
+    fuzzer_job.put()
+
+    num_cpus = 10
+    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler(num_cpus)
+    tasks = scheduler.get_fuzz_tasks()
+    comparable_results = []
+    for task in tasks:
+      comparable_results.append((task.command, task.argument, task.job, task.extra_info['base_os_version']))
+
+    expected_results = [('fuzz', 'libFuzzer', 'myjob', 'job-os-version')] * 5
     self.assertListEqual(comparable_results, expected_results)
 
 
