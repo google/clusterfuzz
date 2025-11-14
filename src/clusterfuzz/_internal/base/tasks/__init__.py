@@ -809,23 +809,6 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     for task in tasks:
       task.eta = now
 
-  for task in tasks:
-    # Determine base_os_version.
-    job = data_types.Job.query(data_types.Job.name == task.job).get()
-    if not job:
-      logs.warning(f"Job {task.job} not found for bulk task.", task=task)
-      continue
-
-    task.extra_info = task.extra_info or {}
-    if job.base_os_version:
-      task.extra_info['base_os_version'] = job.base_os_version
-
-    if utils.is_oss_fuzz():
-      oss_fuzz_project = data_types.OssFuzzProject.query(
-          data_types.OssFuzzProject.name == job.project).get()
-      if oss_fuzz_project and oss_fuzz_project.base_os_version:
-        task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
-
   pubsub_client = pubsub.PubSubClient()
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
   topic_name = pubsub.topic_name(utils.get_application_id(), queue)
@@ -843,17 +826,32 @@ def add_task(command,
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
+  base_os_version = None
   if job_type != 'none':
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
       raise Error(f'Job {job_type} not found.')
 
-    if job.is_external():
+    if utils.is_oss_fuzz():
+      project = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name == job.project).get()
+      if project and project.base_os_version:
+        base_os_version = project.base_os_version
+      elif job.base_os_version:
+        base_os_version = job.base_os_version
+    else: # Not OSS-Fuzz, so only consider job.base_os_version
+      if job.base_os_version:
+        base_os_version = job.base_os_version
+
+    if utils.is_oss_fuzz(): # Changed from job.is_external()
       external_tasks.add_external_task(command, argument, job)
       return
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
+  extra_info = extra_info or {}
+  if base_os_version:
+    extra_info['base_os_version'] = base_os_version
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
 
   bulk_add_tasks([task], queue=queue)
