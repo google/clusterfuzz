@@ -441,7 +441,7 @@ class Task:
     self.queue = queue
 
   def __repr__(self):
-    return f'Task: {self.command} {self.argument} {self.job} {self.queue}'
+    return f'Task: {self.command} {self.argument} {self.job} {self.queue} {self.extra_info}'
 
   def attribute(self, _):
     return None
@@ -611,6 +611,8 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
   message_base_os_version = message.attributes.get('base_os_version')
 
   if not message_base_os_version:
+    logs.warning(
+        "Not os version set in message.", msg=message, attr=message.attributes)
     return False
 
   if message_base_os_version != base_os_version:
@@ -816,6 +818,8 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   jobs = ndb_utils.get_all_from_query(jobs_query)
   jobs_map = {job.name: job for job in jobs}
 
+  logs.info(f"Jobs map", jobs_map=jobs_map)
+
   oss_fuzz_projects_map = {}
   if utils.is_oss_fuzz():
     # Fetch all unique project names from the jobs.
@@ -828,6 +832,8 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       oss_fuzz_projects_map = {
           project.name: project for project in oss_fuzz_projects
       }
+  logs.info(
+      f"Oss fuzz projects map", oss_fuzz_projects_map=oss_fuzz_projects_map)
 
   for task in tasks:
     # Determine base_os_version.
@@ -844,6 +850,8 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       oss_fuzz_project = oss_fuzz_projects_map.get(job.project)
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
         task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
+
+  logs.info(f"tasks with extra info", tasks=tasks)
 
   pubsub_client = pubsub.PubSubClient()
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
