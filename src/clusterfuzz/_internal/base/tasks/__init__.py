@@ -839,11 +839,11 @@ def add_task(command,
         base_os_version = project.base_os_version
       elif job.base_os_version:
         base_os_version = job.base_os_version
-    else: # Not OSS-Fuzz, so only consider job.base_os_version
+    else:
       if job.base_os_version:
         base_os_version = job.base_os_version
 
-    if utils.is_oss_fuzz(): # Changed from job.is_external()
+    if job.is_external():
       external_tasks.add_external_task(command, argument, job)
       return
 
