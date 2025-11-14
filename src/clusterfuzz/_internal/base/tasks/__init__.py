@@ -824,9 +824,10 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       # Query all OssFuzzProject entities in a single batch.
       oss_fuzz_projects_query = data_types.OssFuzzProject.query(
           data_types.OssFuzzProject.name.IN(project_names))
-      oss_fuzz_projects = ndb_utils.get_all_from_query(
-          oss_fuzz_projects_query)
-      oss_fuzz_projects_map = {project.name: project for project in oss_fuzz_projects}
+      oss_fuzz_projects = ndb_utils.get_all_from_query(oss_fuzz_projects_query)
+      oss_fuzz_projects_map = {
+          project.name: project for project in oss_fuzz_projects
+      }
 
   for task in tasks:
     # Determine base_os_version.
