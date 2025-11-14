@@ -809,9 +809,28 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     for task in tasks:
       task.eta = now
 
+  # Fetch all unique job names from the tasks.
+  job_names = list({task.job for task in tasks})
+  # Query all jobs in a single batch.
+  jobs_query = data_types.Job.query(data_types.Job.name.IN(job_names))
+  jobs = ndb_utils.get_all_from_query(jobs_query)
+  jobs_map = {job.name: job for job in jobs}
+
+  oss_fuzz_projects_map = {}
+  if utils.is_oss_fuzz():
+    # Fetch all unique project names from the jobs.
+    project_names = list({job.project for job in jobs if job})
+    if project_names:
+      # Query all OssFuzzProject entities in a single batch.
+      oss_fuzz_projects_query = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name.IN(project_names))
+      oss_fuzz_projects = ndb_utils.get_all_from_query(
+          oss_fuzz_projects_query)
+      oss_fuzz_projects_map = {project.name: project for project in oss_fuzz_projects}
+
   for task in tasks:
     # Determine base_os_version.
-    job = data_types.Job.query(data_types.Job.name == task.job).get()
+    job = jobs_map.get(task.job)
     if not job:
       logs.warning(f"Job {task.job} not found for bulk task.", task=task)
       continue
@@ -821,8 +840,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       task.extra_info['base_os_version'] = job.base_os_version
 
     if utils.is_oss_fuzz():
-      oss_fuzz_project = data_types.OssFuzzProject.query(
-          data_types.OssFuzzProject.name == job.project).get()
+      oss_fuzz_project = oss_fuzz_projects_map.get(job.project)
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
         task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
 
