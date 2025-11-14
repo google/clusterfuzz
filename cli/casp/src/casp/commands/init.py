@@ -17,7 +17,6 @@ import os
 import sys
 from typing import Any
 from typing import Dict
-from typing import Tuple
 
 from casp.utils import config
 from casp.utils import docker_utils
