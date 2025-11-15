@@ -361,22 +361,18 @@ class GetTaskFromMessageTest(unittest.TestCase):
 class AddTasksTest(unittest.TestCase):
   """Tests for add_task and bulk_add_tasks."""
 
-  def setUp(self):
-    self.oss_fuzz_project = data_types.OssFuzzProject(
-        name='d8', base_os_version='ubuntu-24-04')
-    self.oss_fuzz_project.put()
-
   @mock.patch('clusterfuzz._internal.google_cloud_utils.pubsub.PubSubClient')
-  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  @mock.patch('clusterfuzz._internal.base.tasks.ndb_utils.get_all_from_query')
   @mock.patch('clusterfuzz._internal.base.tasks.utils.is_oss_fuzz')
   def test_bulk_add_tasks_internal_job_with_os_version(
-      self, mock_is_oss_fuzz, mock_job_query, mock_pubsub_client):
+      self, mock_is_oss_fuzz, mock_get_all_from_query, mock_pubsub_client):
     """Test bulk_add_tasks with an internal job and an OS version."""
     mock_is_oss_fuzz.return_value = False
     mock_job = mock.MagicMock()
+    mock_job.name = 'linux_asan_d8_dbg'
     mock_job.base_os_version = 'ubuntu-20-04'
     mock_job.project = 'd8'
-    mock_job_query.return_value.get.return_value = mock_job
+    mock_get_all_from_query.return_value = [mock_job]
 
     task = tasks.Task("regression", "123", "linux_asan_d8_dbg")
     tasks.bulk_add_tasks([task])
@@ -387,16 +383,24 @@ class AddTasksTest(unittest.TestCase):
     self.assertEqual(messages[0].attributes['base_os_version'], 'ubuntu-20-04')
 
   @mock.patch('clusterfuzz._internal.google_cloud_utils.pubsub.PubSubClient')
-  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  @mock.patch('clusterfuzz._internal.base.tasks.ndb_utils.get_all_from_query')
   @mock.patch('clusterfuzz._internal.base.tasks.utils.is_oss_fuzz')
   def test_bulk_add_tasks_external_job_with_os_version(
-      self, mock_is_oss_fuzz, mock_job_query, mock_pubsub_client):
+      self, mock_is_oss_fuzz, mock_get_all_from_query, mock_pubsub_client):
     """Test bulk_add_tasks with an external (OSS-Fuzz) job and an OS version."""
     mock_is_oss_fuzz.return_value = True
     mock_job = mock.MagicMock()
+    mock_job.name = 'linux_asan_d8_dbg'
     mock_job.base_os_version = None  # No version on job.
     mock_job.project = 'd8'
-    mock_job_query.return_value.get.return_value = mock_job
+
+    oss_fuzz_project = data_types.OssFuzzProject(
+        name='d8', base_os_version='ubuntu-24-04')
+
+    mock_get_all_from_query.side_effect = [
+        [mock_job],
+        [oss_fuzz_project],
+    ]
 
     task = tasks.Task("regression", "123", "linux_asan_d8_dbg")
     tasks.bulk_add_tasks([task])

@@ -441,7 +441,8 @@ class Task:
     self.queue = queue
 
   def __repr__(self):
-    return f'Task: {self.command} {self.argument} {self.job} {self.queue}'
+    return (f'Task: {self.command} {self.argument} {self.job} {self.queue} '
+            f'{self.extra_info}')
 
   def attribute(self, _):
     return None
@@ -611,6 +612,8 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
   message_base_os_version = message.attributes.get('base_os_version')
 
   if not message_base_os_version:
+    logs.warning(
+        "Not os version set in message.", msg=message, attr=message.attributes)
     return False
 
   if message_base_os_version != base_os_version:
@@ -809,9 +812,34 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     for task in tasks:
       task.eta = now
 
+  # Fetch all unique job names from the tasks.
+  job_names = list({task.job for task in tasks})
+  # Query all jobs in a single batch.
+  jobs_query = data_types.Job.query(data_types.Job.name.IN(job_names))
+  jobs = ndb_utils.get_all_from_query(jobs_query)
+  jobs_map = {job.name: job for job in jobs}
+
+  logs.info("Jobs map", jobs_map=jobs_map)
+
+  oss_fuzz_projects_map = {}
+  if utils.is_oss_fuzz():
+    # Fetch all unique project names from the jobs.
+    project_names = list({job.project for job in jobs_map.values()})
+    logs.info("Project names", project_names=project_names)
+    if project_names:
+      # Query all OssFuzzProject entities in a single batch.
+      oss_fuzz_projects_query = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name.IN(project_names))
+      oss_fuzz_projects = ndb_utils.get_all_from_query(oss_fuzz_projects_query)
+      oss_fuzz_projects_map = {
+          project.name: project for project in oss_fuzz_projects
+      }
+    logs.info(
+        "Oss fuzz projects map", oss_fuzz_projects_map=oss_fuzz_projects_map)
+
   for task in tasks:
     # Determine base_os_version.
-    job = data_types.Job.query(data_types.Job.name == task.job).get()
+    job = jobs_map.get(task.job)
     if not job:
       logs.warning(f"Job {task.job} not found for bulk task.", task=task)
       continue
@@ -821,10 +849,11 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
       task.extra_info['base_os_version'] = job.base_os_version
 
     if utils.is_oss_fuzz():
-      oss_fuzz_project = data_types.OssFuzzProject.query(
-          data_types.OssFuzzProject.name == job.project).get()
+      oss_fuzz_project = oss_fuzz_projects_map.get(job.project)
       if oss_fuzz_project and oss_fuzz_project.base_os_version:
         task.extra_info['base_os_version'] = oss_fuzz_project.base_os_version
+
+  logs.info("tasks with extra info", tasks=tasks)
 
   pubsub_client = pubsub.PubSubClient()
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
