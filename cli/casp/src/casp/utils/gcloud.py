@@ -49,14 +49,14 @@ def _run_gcloud_login() -> bool:
     click.secho(
         'Error: gcloud command not found. Please ensure it is installed and '
         'in your PATH. '
-        'Or you can mannually run '
+        'Or you can manually run '
         '`gcloud auth application-default login`',
         fg='red')
     return False
   except subprocess.CalledProcessError:
     click.secho(
         'Error: gcloud login failed. '
-        'You can mannually run '
+        'You can manually run '
         '`gcloud auth application-default login`',
         fg='red')
     return False
