@@ -824,7 +824,7 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   oss_fuzz_projects_map = {}
   if utils.is_oss_fuzz():
     # Fetch all unique project names from the jobs.
-    project_names = list({job.project for job in jobs if job and job.project})
+    project_names = list({job.project for job in jobs_map.values()})
     logs.info("Project names", project_names=project_names)
     if project_names:
       # Query all OssFuzzProject entities in a single batch.
