@@ -60,7 +60,7 @@ def cli(project: str, config_dir: str, testcase_id: str) -> None:
     config_dir = f'{_CONTAINER_CONFIG_PATH}/custom_config'
     custom_config_path = cfg['custom_config_path']
     volumes[custom_config_path] = {'bind': config_dir, 'mode': 'rw'}
-    click.echo(f'Using custom config directory: {cfg["custom_config_path"]}')
+    click.echo(f'Using custom config directory: {custom_config_path}')
 
   command = [
       'bash', '-c', 'pipenv run python butler.py --local-logging reproduce ' +
