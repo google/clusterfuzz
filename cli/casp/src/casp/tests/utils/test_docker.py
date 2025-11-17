@@ -207,14 +207,14 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['echo', 'hello']
     volumes = {'/tmp': {'bind': '/data', 'mode': 'rw'}}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertTrue(result)
     mock_check_docker_setup.assert_called_once()
-    mock_pull_image.assert_called_once_with(
-        docker_utils.PROJECT_TO_IMAGE['internal'])
+    mock_pull_image.assert_called_once_with(image)
     mock_client.containers.run.assert_called_once_with(
-        docker_utils.PROJECT_TO_IMAGE['internal'],
+        image,
         command,
         volumes=volumes,
         working_dir='/data/clusterfuzz',
@@ -228,8 +228,10 @@ class RunCommandTest(unittest.TestCase):
     mock_container.remove.assert_called_once()
     mock_secho.assert_not_called()
 
+  @patch('casp.utils.docker_utils.pull_image', return_value=True, autospec=True)
   @patch('casp.utils.docker_utils.check_docker_setup', autospec=True)
-  def test_run_command_privileged(self, mock_check_docker_setup):
+  def test_run_command_privileged(self, mock_check_docker_setup,
+                                  mock_pull_image):
     """Tests running a command with privileged=True."""
     mock_client = create_autospec(
         docker.DockerClient, instance=True, spec_set=True)
@@ -243,10 +245,12 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['echo', 'hello']
     volumes = {}
-    docker_utils.run_command(command, volumes, privileged=True)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    docker_utils.run_command(command, volumes, image, privileged=True)
 
+    mock_pull_image.assert_called_once_with(image)
     mock_client.containers.run.assert_called_once_with(
-        docker_utils.PROJECT_TO_IMAGE['internal'],
+        image,
         command,
         volumes=volumes,
         working_dir='/data/clusterfuzz',
@@ -266,7 +270,8 @@ class RunCommandTest(unittest.TestCase):
     """Tests when check_docker_setup fails."""
     command = ['echo', 'hello']
     volumes = {'/tmp': {'bind': '/data', 'mode': 'rw'}}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertFalse(result)
     mock_check_docker_setup.assert_called_once()
@@ -286,11 +291,12 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['echo', 'hello']
     volumes = {'/tmp': {'bind': '/data', 'mode': 'rw'}}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertFalse(result)
     mock_check_docker_setup.assert_called_once()
-    mock_pull_image.assert_called_once()
+    mock_pull_image.assert_called_once_with(image)
     mock_client.containers.run.assert_not_called()
 
   @patch('casp.utils.docker_utils.pull_image', return_value=True, autospec=True)
@@ -314,11 +320,12 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['false']
     volumes = {}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertFalse(result)
     mock_check_docker_setup.assert_called_once()
-    mock_pull_image.assert_called_once()
+    mock_pull_image.assert_called_once_with(image)
     mock_client.containers.run.assert_called_once()
     self.assertEqual(mock_container.logs.call_count, 2)
     mock_container.wait.assert_called_once()
@@ -327,41 +334,47 @@ class RunCommandTest(unittest.TestCase):
     mock_secho.assert_any_call('error log', fg='red')
     mock_container.remove.assert_called_once()
 
+  @patch('casp.utils.docker_utils.pull_image', return_value=True, autospec=True)
   @patch('casp.utils.docker_utils.check_docker_setup', autospec=True)
   @patch('click.secho', autospec=True)
   def test_run_command_container_error_exception_with_stderr(
-      self, mock_secho, mock_check_docker_setup):
+      self, mock_secho, mock_check_docker_setup, mock_pull_image):
     """Tests ContainerError with stderr."""
     mock_client = create_autospec(
         docker.DockerClient, instance=True, spec_set=True)
     mock_check_docker_setup.return_value = mock_client
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
     mock_exception = docker.errors.ContainerError(
-        None, 1, 'cmd', 'img', stderr=b'error details')
+        None, 1, 'cmd', image, stderr=b'error details')
     mock_client.containers.run.side_effect = mock_exception
 
-    result = docker_utils.run_command(['fail'], {})
+    result = docker_utils.run_command(['fail'], {}, image)
 
     self.assertFalse(result)
+    mock_pull_image.assert_called_once_with(image)
     mock_secho.assert_any_call(
         f'Error: Command failed in Docker container: {mock_exception}',
         fg='red')
     mock_secho.assert_any_call('error details', fg='red')
 
+  @patch('casp.utils.docker_utils.pull_image', return_value=True, autospec=True)
   @patch('casp.utils.docker_utils.check_docker_setup', autospec=True)
   @patch('click.secho', autospec=True)
   def test_run_command_container_error_exception_no_stderr(
-      self, mock_secho, mock_check_docker_setup):
+      self, mock_secho, mock_check_docker_setup, mock_pull_image):
     """Tests ContainerError without stderr."""
     mock_client = create_autospec(
         docker.DockerClient, instance=True, spec_set=True)
     mock_check_docker_setup.return_value = mock_client
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
     mock_exception = docker.errors.ContainerError(
-        None, 1, 'cmd', 'img', stderr=None)
+        None, 1, 'cmd', image, stderr=None)
     mock_client.containers.run.side_effect = mock_exception
 
-    result = docker_utils.run_command(['fail'], {})
+    result = docker_utils.run_command(['fail'], {}, image)
 
     self.assertFalse(result)
+    mock_pull_image.assert_called_once_with(image)
     mock_secho.assert_called_once_with(
         f'Error: Command failed in Docker container: {mock_exception}',
         fg='red')
@@ -380,11 +393,12 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['run']
     volumes = {}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertFalse(result)
     mock_check_docker_setup.assert_called_once()
-    mock_pull_image.assert_called_once()
+    mock_pull_image.assert_called_once_with(image)
     mock_client.containers.run.assert_called_once()
     mock_secho.assert_called_once()
     args, _ = mock_secho.call_args
@@ -404,22 +418,25 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['run']
     volumes = {}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertFalse(result)
     mock_check_docker_setup.assert_called_once()
-    mock_pull_image.assert_called_once()
+    mock_pull_image.assert_called_once_with(image)
     mock_client.containers.run.assert_called_once()
     mock_secho.assert_called_once()
     args, _ = mock_secho.call_args
     self.assertIn('Error: Docker API error', args[0])
 
+  @patch('casp.utils.docker_utils.pull_image', return_value=True, autospec=True)
   @patch('casp.utils.docker_utils.check_docker_setup', autospec=True)
   @patch('click.secho', autospec=True)
   def test_run_command_remove_container_fails(
       self,
       mock_secho,
       mock_check_docker_setup,
+      mock_pull_image,
   ):
     """Tests when removing the container fails."""
     mock_client = create_autospec(
@@ -435,9 +452,11 @@ class RunCommandTest(unittest.TestCase):
 
     command = ['echo', 'hello']
     volumes = {}
-    result = docker_utils.run_command(command, volumes)
+    image = docker_utils.PROJECT_TO_IMAGE['internal']
+    result = docker_utils.run_command(command, volumes, image)
 
     self.assertTrue(result)
+    mock_pull_image.assert_called_once_with(image)
     mock_container.remove.assert_called_once()
     mock_secho.assert_called_once()
     args, kwargs = mock_secho.call_args
