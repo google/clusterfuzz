@@ -15,6 +15,7 @@
 
 import click
 
+from .commands import format as format_command
 from .commands import hi
 from .commands import init
 from .commands import reproduce
@@ -32,6 +33,7 @@ cli.add_command(hi.cli)
 cli.add_command(init.cli)
 cli.add_command(run_task.cli)
 cli.add_command(reproduce.cli)
+cli.add_command(format_command.cli)
 
 if __name__ == '__main__':
   cli()
