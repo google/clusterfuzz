@@ -60,7 +60,7 @@ def check_docker_setup() -> docker.client.DockerClient | None:
     return None
 
 
-def pull_image(image: str = PROJECT_TO_IMAGE['internal']) -> bool:
+def pull_image(image: str) -> bool:
   """Pulls the docker image."""
   client = check_docker_setup()
   if not client:
@@ -75,17 +75,19 @@ def pull_image(image: str = PROJECT_TO_IMAGE['internal']) -> bool:
     return False
 
 
-def run_command(command: list[str],
-                volumes: dict,
-                privileged: bool = False,
-                image: str = PROJECT_TO_IMAGE['internal']) -> bool:
+def run_command(
+    command: list[str],
+    volumes: dict,
+    image: str,
+    privileged: bool = False,
+) -> bool:
   """Runs a command in a docker container and streams logs.
 
   Args:
     command: The command to run.
     volumes: A dictionary of volumes to mount.
-    privileged: Whether to run the container as privileged.
     image: The docker image to use.
+    privileged: Whether to run the container as privileged.
 
   Returns:
     True on success, False otherwise.
