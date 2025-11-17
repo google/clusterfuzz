@@ -46,7 +46,6 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
         name=job_name,
         environment_string=f'PROJECT_NAME = {project_name}',
         platform='LINUX',
-        base_os_version='job-os-version',
     )
     job.put()
 
@@ -66,7 +65,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     dead_project_job = data_types.FuzzerJob(
         job='dead_project_job', platform='LINUX', fuzzer='libFuzzer')
     dead_project_job.put()
-    data_types.OssFuzzProject(name=project_name, base_os_version='project-os-version').put()
+    data_types.OssFuzzProject(name=project_name).put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
     num_cpus = 10
@@ -74,44 +73,167 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     tasks = scheduler.get_fuzz_tasks()
     comparable_results = []
     for task in tasks:
-      comparable_results.append((task.command, task.argument, task.job, task.extra_info['base_os_version']))
+      comparable_results.append((task.command, task.argument, task.job))
 
-    expected_results = [('fuzz', 'libFuzzer', 'myjob', 'project-os-version')] * 5
+    expected_results = [('fuzz', 'libFuzzer', 'myjob')] * 5
     self.assertListEqual(comparable_results, expected_results)
+
+  def test_os_version_precedence_project_over_job(self):
+    """Tests that project version is prioritized over job version."""
+    job_name = 'myjob'
+    project_name = 'myproject'
+    data_types.Job(
+        name='dead_job',
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+    ).put()
+    data_types.Job(
+        name=job_name,
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+        base_os_version='job-version',
+    ).put()
+    data_types.Job(
+        name='dead_project_job',
+        environment_string='PROJECT_NAME = dead_project',
+        platform='LINUX',
+    ).put()
+
+    data_types.FuzzerJob(
+        job='dead_job', weight=0.0, platform='LINUX', fuzzer='libFuzzer').put()
+    data_types.FuzzerJob(
+        job=job_name, platform='LINUX', fuzzer='libFuzzer').put()
+    data_types.FuzzerJob(
+        job='dead_project_job', platform='LINUX', fuzzer='libFuzzer').put()
+
+    data_types.OssFuzzProject(
+        name=project_name, base_os_version='project-version').put()
+    data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
+
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus=2)
+    tasks = scheduler.get_fuzz_tasks()
+    self.assertEqual(len(tasks), 1)
+    task = tasks[0]
+
+    self.assertEqual(task.job, job_name)
+    self.assertEqual(task.extra_info.get('base_os_version'), 'project-version')
+
+  def test_os_version_fallback_to_job(self):
+    """Tests that job version is used as a fallback."""
+    job_name = 'myjob'
+    project_name = 'myproject'
+    data_types.Job(
+        name='dead_job',
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+    ).put()
+    data_types.Job(
+        name=job_name,
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+        base_os_version='job-version',
+    ).put()
+    data_types.Job(
+        name='dead_project_job',
+        environment_string='PROJECT_NAME = dead_project',
+        platform='LINUX',
+    ).put()
+
+    data_types.FuzzerJob(
+        job='dead_job', weight=0.0, platform='LINUX', fuzzer='libFuzzer').put()
+    data_types.FuzzerJob(
+        job=job_name, platform='LINUX', fuzzer='libFuzzer').put()
+    data_types.FuzzerJob(
+        job='dead_project_job', platform='LINUX', fuzzer='libFuzzer').put()
+
+    data_types.OssFuzzProject(name=project_name).put()
+    data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
+
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus=2)
+    tasks = scheduler.get_fuzz_tasks()
+    self.assertEqual(len(tasks), 1)
+    task = tasks[0]
+
+    self.assertEqual(task.job, job_name)
+    self.assertEqual(task.extra_info.get('base_os_version'), 'job-version')
+
+  def test_os_version_no_version(self):
+    """Tests that no os version is set when neither project nor job has one."""
+    job_name = 'myjob'
+    project_name = 'myproject'
+    data_types.Job(
+        name='dead_job',
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+    ).put()
+    data_types.Job(
+        name=job_name,
+        environment_string=f'PROJECT_NAME = {project_name}',
+        platform='LINUX',
+        base_os_version=None,
+    ).put()
+    data_types.Job(
+        name='dead_project_job',
+        environment_string='PROJECT_NAME = dead_project',
+        platform='LINUX',
+    ).put()
+
+    data_types.FuzzerJob(
+        job='dead_job', weight=0.0, platform='LINUX', fuzzer='libFuzzer').put()
+    data_types.FuzzerJob(
+        job=job_name, platform='LINUX', fuzzer='libFuzzer').put()
+    data_types.FuzzerJob(
+        job='dead_project_job', platform='LINUX', fuzzer='libFuzzer').put()
+
+    data_types.OssFuzzProject(name=project_name).put()
+    data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
+
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus=2)
+    tasks = scheduler.get_fuzz_tasks()
+    self.assertEqual(len(tasks), 1)
+    task = tasks[0]
+
+    self.assertEqual(task.job, job_name)
+    self.assertIsNone(task.extra_info.get('base_os_version'))
 
 
 @test_utils.with_cloud_emulators('datastore')
-class ChromeFuzzTaskScheduler(unittest.TestCase):
+class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
   """Tests for ChromeFuzzTaskScheduler."""
 
   def setUp(self):
     self.maxDiff = None
+    self.job_name = 'myjob'
 
-  def test_get_fuzz_tasks(self):
-    """Tests that get_fuzz_tasks uses weights as intended for Chrome."""
-    job_name = 'myjob'
-    project_name = 'myproject'
-    job = data_types.Job(
-        name=job_name,
-        environment_string=f'PROJECT_NAME = {project_name}',
+  def _setup_chrome_entities(self, job_os_version=None):
+    """Set up entities for Chrome tests."""
+    data_types.Job(
+        name=self.job_name,
+        project='chrome',
         platform='LINUX',
-        base_os_version='job-os-version',
-    )
-    job.put()
+        base_os_version=job_os_version).put()
+    data_types.FuzzerJob(
+        job=self.job_name, platform='LINUX', fuzzer='libFuzzer',
+        weight=1.0).put()
 
-    fuzzer_job = data_types.FuzzerJob(
-        job=job_name, platform='LINUX', fuzzer='libFuzzer')
-    fuzzer_job.put()
-
-    num_cpus = 10
-    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler(num_cpus)
+  def _run_and_get_task(self):
+    """Runs the scheduler and returns the single task created."""
+    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler(num_cpus=2)
     tasks = scheduler.get_fuzz_tasks()
-    comparable_results = []
-    for task in tasks:
-      comparable_results.append((task.command, task.argument, task.job, task.extra_info['base_os_version']))
+    self.assertEqual(len(tasks), 1)
+    return tasks[0]
 
-    expected_results = [('fuzz', 'libFuzzer', 'myjob', 'job-os-version')] * 5
-    self.assertListEqual(comparable_results, expected_results)
+  def test_os_version_from_job(self):
+    """Tests that the os version is correctly read from the job."""
+    self._setup_chrome_entities(job_os_version='job-version')
+    task = self._run_and_get_task()
+    self.assertEqual(task.extra_info.get('base_os_version'), 'job-version')
+
+  def test_os_version_job_without_version(self):
+    """Tests that no os version is set when the job has none."""
+    self._setup_chrome_entities()
+    task = self._run_and_get_task()
+    self.assertIsNone(task.extra_info.get('base_os_version'))
 
 
 class TestGetCpuUsage(unittest.TestCase):
