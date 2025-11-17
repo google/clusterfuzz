@@ -28,9 +28,11 @@ ISORT_CMD = ('isort --dont-order-by-type --force-single-line-imports '
                  [f'-p {mod}' for mod in FIRST_PARTY_MODULES]) + ' ')
 
 
-def execute(_):
+def execute(args):
   """Format changed code."""
-  if os.path.exists('.git/FETCH_HEAD'):
+  if args.dir:
+    diff_command = f'git ls-files {os.path.abspath(args.dir)}'
+  elif os.path.exists('.git/FETCH_HEAD'):
     diff_command = 'git diff --name-only FETCH_HEAD'
   else:
     # If not, fall back to diffing against HEAD.
