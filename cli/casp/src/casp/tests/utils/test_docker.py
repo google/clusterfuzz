@@ -129,7 +129,7 @@ class PullImageTest(unittest.TestCase):
         docker.models.images.ImageCollection, instance=True, spec_set=True)
     mock_client.images = mock_images_collection
 
-    result = docker_utils.pull_image()
+    result = docker_utils.pull_image(docker_utils.PROJECT_TO_IMAGE["internal"])
 
     self.assertTrue(result)
     mock_echo.assert_called_once()
@@ -149,7 +149,7 @@ class PullImageTest(unittest.TestCase):
   def test_pull_image_docker_setup_fails(self, mock_echo, mock_secho,
                                          mock_check_docker_setup):
     """Tests when check_docker_setup returns None."""
-    result = docker_utils.pull_image()
+    result = docker_utils.pull_image(docker_utils.PROJECT_TO_IMAGE["internal"])
 
     self.assertFalse(result)
     mock_check_docker_setup.assert_called_once()
@@ -172,7 +172,7 @@ class PullImageTest(unittest.TestCase):
     mock_images_collection.pull.side_effect = docker.errors.DockerException(
         "Image not found")
 
-    result = docker_utils.pull_image()
+    result = docker_utils.pull_image(docker_utils.PROJECT_TO_IMAGE["internal"])
 
     self.assertFalse(result)
     mock_echo.assert_called_once_with(

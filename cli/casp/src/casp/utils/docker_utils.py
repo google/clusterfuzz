@@ -60,7 +60,7 @@ def check_docker_setup() -> docker.client.DockerClient | None:
     return None
 
 
-def pull_image(image: str = PROJECT_TO_IMAGE['internal']) -> bool:
+def pull_image(image: str) -> bool:
   """Pulls the docker image."""
   client = check_docker_setup()
   if not client:
