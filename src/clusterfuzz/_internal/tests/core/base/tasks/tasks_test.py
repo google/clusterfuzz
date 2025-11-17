@@ -358,59 +358,19 @@ class GetTaskFromMessageTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class AddTasksTest(unittest.TestCase):
-  """Tests for add_task and bulk_add_tasks."""
+class AddTaskTest(unittest.TestCase):
+  """Tests for add_task."""
 
   def setUp(self):
     self.oss_fuzz_project = data_types.OssFuzzProject(
         name='d8', base_os_version='ubuntu-24-04')
     self.oss_fuzz_project.put()
 
-  @mock.patch('clusterfuzz._internal.google_cloud_utils.pubsub.PubSubClient')
-  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  @mock.patch('clusterfuzz._internal.base.tasks.utils.is_oss_fuzz')
-  def test_bulk_add_tasks_internal_job_with_os_version(
-      self, mock_is_oss_fuzz, mock_job_query, mock_pubsub_client):
-    """Test bulk_add_tasks with an internal job and an OS version."""
-    mock_is_oss_fuzz.return_value = False
-    mock_job = mock.MagicMock()
-    mock_job.base_os_version = 'ubuntu-20-04'
-    mock_job.project = 'd8'
-    mock_job_query.return_value.get.return_value = mock_job
-
-    task = tasks.Task("regression", "123", "linux_asan_d8_dbg")
-    tasks.bulk_add_tasks([task])
-
-    mock_pubsub_client.return_value.publish.assert_called_once()
-    messages = mock_pubsub_client.return_value.publish.call_args[0][1]
-    self.assertEqual(len(messages), 1)
-    self.assertEqual(messages[0].attributes['base_os_version'], 'ubuntu-20-04')
-
-  @mock.patch('clusterfuzz._internal.google_cloud_utils.pubsub.PubSubClient')
-  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  @mock.patch('clusterfuzz._internal.base.tasks.utils.is_oss_fuzz')
-  def test_bulk_add_tasks_external_job_with_os_version(
-      self, mock_is_oss_fuzz, mock_job_query, mock_pubsub_client):
-    """Test bulk_add_tasks with an external (OSS-Fuzz) job and an OS version."""
-    mock_is_oss_fuzz.return_value = True
-    mock_job = mock.MagicMock()
-    mock_job.base_os_version = None  # No version on job.
-    mock_job.project = 'd8'
-    mock_job_query.return_value.get.return_value = mock_job
-
-    task = tasks.Task("regression", "123", "linux_asan_d8_dbg")
-    tasks.bulk_add_tasks([task])
-
-    mock_pubsub_client.return_value.publish.assert_called_once()
-    messages = mock_pubsub_client.return_value.publish.call_args[0][1]
-    self.assertEqual(len(messages), 1)
-    self.assertEqual(messages[0].attributes['base_os_version'], 'ubuntu-24-04')
-
   @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
   @mock.patch('clusterfuzz._internal.base.external_tasks.add_external_task')
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_add_task_external_job(self, mock_job_query, mock_add_external,
-                                 mock_bulk_add):
+  def test_add_task_external_job_without_os_version(
+      self, mock_job_query, mock_add_external, mock_bulk_add):
     """Test add_task with an external (OSS-Fuzz) job."""
     mock_job = mock.MagicMock()
     mock_job.is_external.return_value = True
@@ -424,8 +384,8 @@ class AddTasksTest(unittest.TestCase):
   @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
   @mock.patch('clusterfuzz._internal.base.external_tasks.add_external_task')
   @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
-  def test_add_task_internal_job(self, mock_job_query, mock_add_external,
-                                 mock_bulk_add):
+  def test_add_task_internal_job_without_os_version(
+      self, mock_job_query, mock_add_external, mock_bulk_add):
     """Test add_task with an internal job."""
     mock_job = mock.MagicMock()
     mock_job.is_external.return_value = False
@@ -435,6 +395,38 @@ class AddTasksTest(unittest.TestCase):
 
     mock_add_external.assert_not_called()
     mock_bulk_add.assert_called_once()
+
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_internal_job_with_os_version(self, mock_job_query,
+                                                 mock_bulk_add):
+    """Test add_task with an internal job and an OS version."""
+    mock_job = mock.MagicMock()
+    mock_job.base_os_version = 'ubuntu-20-04'
+    mock_job.project = 'd8'
+    mock_job.is_external.return_value = False
+    mock_job_query.return_value.get.return_value = mock_job
+
+    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+
+    mock_bulk_add.assert_called_once()
+    task_payload = mock_bulk_add.call_args[0][0][0]
+    self.assertEqual(task_payload.extra_info['base_os_version'], 'ubuntu-20-04')
+
+  @mock.patch('clusterfuzz._internal.base.external_tasks.add_external_task')
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_external_job_with_os_version(self, mock_job_query,
+                                                 mock_add_external_task):
+    """Test add_task with an external (OSS-Fuzz) job and an OS version."""
+    mock_job = mock.MagicMock()
+    mock_job.base_os_version = None  # No version on job.
+    mock_job.project = 'd8'
+    mock_job.is_external.return_value = True
+    mock_job_query.return_value.get.return_value = mock_job
+
+    tasks.add_task('regression', '123', 'linux_asan_d8_dbg')
+
+    mock_add_external_task.assert_called_once()
 
 
 @mock.patch('clusterfuzz._internal.base.tasks.PubSubPuller')
