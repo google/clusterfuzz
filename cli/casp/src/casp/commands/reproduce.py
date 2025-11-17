@@ -29,8 +29,7 @@ _CONTAINER_CREDENTIALS_PATH = '/root/.config/gcloud/'
     '--project',
     '-p',
     help='The ClusterFuzz project to use.',
-    required=False,
-    default='internal',
+    required=True,
     type=click.Choice(
         docker_utils.PROJECT_TO_IMAGE.keys(), case_sensitive=False))
 @click.option(

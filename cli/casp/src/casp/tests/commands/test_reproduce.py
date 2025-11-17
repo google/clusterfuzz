@@ -41,7 +41,8 @@ class ReproduceCliTest(unittest.TestCase):
     }
     self.mock_docker_utils.run_command.return_value = True
 
-    result = self.runner.invoke(reproduce.cli, ['--testcase-id', '123'])
+    result = self.runner.invoke(
+        reproduce.cli, ['--testcase-id', '123', '--project', 'internal'])
 
     self.assertEqual(0, result.exit_code)
     self.mock_docker_utils.run_command.assert_called_once()
@@ -54,7 +55,8 @@ class ReproduceCliTest(unittest.TestCase):
     }
     self.mock_docker_utils.run_command.return_value = True
 
-    result = self.runner.invoke(reproduce.cli, ['--testcase-id', '123'])
+    result = self.runner.invoke(
+        reproduce.cli, ['--testcase-id', '123', '--project', 'internal'])
 
     self.assertEqual(0, result.exit_code)
     self.assertIn('Using custom config directory: /my/custom/config',
@@ -68,7 +70,8 @@ class ReproduceCliTest(unittest.TestCase):
   def test_reproduce_no_config(self):
     """Tests when no config is found."""
     self.mock_config.load_config.return_value = None
-    result = self.runner.invoke(reproduce.cli, ['--testcase-id', '123'])
+    result = self.runner.invoke(
+        reproduce.cli, ['--testcase-id', '123', '--project', 'internal'])
 
     self.assertNotEqual(0, result.exit_code)
     self.assertIn('Error: gcloud credentials not found.', result.output)
@@ -77,7 +80,8 @@ class ReproduceCliTest(unittest.TestCase):
   def test_reproduce_no_gcloud_credentials(self):
     """Tests when gcloud credentials are not in the config."""
     self.mock_config.load_config.return_value = {}
-    result = self.runner.invoke(reproduce.cli, ['--testcase-id', '123'])
+    result = self.runner.invoke(
+        reproduce.cli, ['--testcase-id', '123', '--project', 'internal'])
 
     self.assertNotEqual(0, result.exit_code)
     self.assertIn('Error: gcloud credentials not found.', result.output)
@@ -90,7 +94,8 @@ class ReproduceCliTest(unittest.TestCase):
     }
     self.mock_docker_utils.run_command.return_value = False
 
-    result = self.runner.invoke(reproduce.cli, ['--testcase-id', '123'])
+    result = self.runner.invoke(
+        reproduce.cli, ['--testcase-id', '123', '--project', 'internal'])
 
     self.assertNotEqual(0, result.exit_code)
     self.mock_docker_utils.run_command.assert_called_once()
