@@ -138,13 +138,35 @@ class GSUtilRunner:
                                                         quiet)
     arguments = additional_args + arguments
 
+    tool_name = 'gcloud storage' if use_gcloud_storage else 'gsutil'
+    logs.info(
+        f'Running {tool_name}.',
+        tool_name=tool_name,
+        cwd=os.getcwd(),
+        cmd=arguments)
+
     env = os.environ.copy()
     if not use_gcloud_storage and 'PYTHONPATH' in env:
       # GSUtil may be on Python 3, and our PYTHONPATH breaks it because we're on
       # Python 2.
       env.pop('PYTHONPATH')
 
-    return runner.run_and_wait(arguments, env=env, **kwargs)
+    try:
+      result = runner.run_and_wait(arguments, env=env, **kwargs)
+      logs.info(
+          f'Finished running {tool_name}.',
+          tool_name=tool_name,
+          return_code=result.return_code,
+          timed_out=result.timed_out,
+          output=result.output)
+      return result
+    except Exception as e:
+      logs.error(
+          f'Failed to run {tool_name}.',
+          tool_name=tool_name,
+          cmd=arguments,
+          error=str(e))
+      raise
 
   def rsync(self,
             source,
