@@ -20,6 +20,10 @@ import threading
 
 import googleapiclient
 import httplib2
+from builtins import object
+import os
+
+from google.cloud import pubsub_v1
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -70,6 +74,11 @@ class PubSubClient:
   def __init__(self, emulator_host=None):
     self._local = threading.local()
     self._emulator_host = emulator_host
+    self.project = environment.get_value('PROJECT_ID')
+    if self._emulator_host:
+      os.environ['PUBSUB_EMULATOR_HOST'] = self._emulator_host
+      self._publisher_client = pubsub_v1.PublisherClient()
+      self._subscriber_client = pubsub_v1.SubscriberClient()
 
   @retry.wrap(
       retries=_PUBSUB_FAIL_RETRIES,
@@ -132,6 +141,26 @@ class PubSubClient:
 
   def publish(self, topic, messages):
     """Publish a message to a topic."""
+    if self._emulator_host:
+        print(f'Publishing {len(messages)} messages to emulator topic: {topic}')
+        futures = []
+        for message in messages:
+            message_dict = _message_to_dict(message)
+            data = message_dict.get('data', '')
+            attributes = message_dict.get('attributes', {})
+
+            # pubsub_v1 expects attributes to be strings
+            for key, value in attributes.items():
+                attributes[key] = str(value)
+
+            future = self._publisher_client.publish(
+                topic, data.encode('utf-8'), **attributes)
+            futures.append(future)
+
+        for future in futures:
+            future.result()
+        return []
+
     request_body = {
         'messages': [_message_to_dict(message) for message in messages]
     }
@@ -140,6 +169,9 @@ class PubSubClient:
 
     response = self._execute_with_retry(request)
     if response is None:
+      if self._emulator_host:
+        # When using the emulator, a None response can mean success.
+        return []
       raise RuntimeError('Invalid topic: ' + topic)
 
     return sorted(response.get('messageIds'))

@@ -20,6 +20,7 @@ import time
 from typing import Dict
 from typing import List
 
+from google.cloud import ndb
 from google.cloud import monitoring_v3
 from googleapiclient import discovery
 
@@ -166,7 +167,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     projects = list(
         ndb_utils.get_all_from_query(data_types.OssFuzzProject.query()))
 
-    logs.info(f'Got {len(projects)} projects.')
+    print(f'Got {len(projects)} projects.')
     total_cpu_weight = sum(project.cpu_weight for project in projects)
     project_weights = {}
     for project in projects:
@@ -176,7 +177,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     projects_by_name = {project.name: project for project in projects}
 
     # Then get FuzzTaskCandidate weights.
-    logs.info('Getting jobs.')
+    print('Getting jobs.')
     # TODO(metzman): Handle cases where jobs are fuzzed by multiple fuzzers.
     candidates_by_job = {}
     for job in ndb_utils.get_all_from_query(data_types.Job.query()):
@@ -205,6 +206,8 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
       fuzzer_job_weight_by_project[fuzz_task_candidate.project] += (
           fuzzer_job.actual_weight)
 
+    print(f'Generated {len(fuzz_task_candidates)} fuzz task candidates.')
+
     for fuzz_task_candidate in fuzz_task_candidates:
       project_weight = project_weights.get(fuzz_task_candidate.project, None)
       if project_weight is None:
@@ -221,10 +224,11 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     weights = []
     for fuzz_task_candidate in fuzz_task_candidates:
       weights.append(fuzz_task_candidate.weight)
+    print(f'Calculated weights: {weights}')
 
     # TODO(metzman): Handle high-end jobs correctly.
     num_instances = int(self.num_cpus / self._get_cpus_per_fuzz_job(None))
-    logs.info(f'Scheduling {num_instances} fuzz tasks for OSS-Fuzz.')
+    print(f'Scheduling {num_instances} fuzz tasks for OSS-Fuzz.')
 
     choices = random.choices(
         fuzz_task_candidates, weights=weights, k=num_instances)
@@ -296,9 +300,12 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
 
 
 def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
+  print(f'utils.is_oss_fuzz() returned: {utils.is_oss_fuzz()}')
   if utils.is_oss_fuzz():
+    print('Using OssfuzzFuzzTaskScheduler.')
     scheduler = OssfuzzFuzzTaskScheduler(available_cpus)
   else:
+    print('Using ChromeFuzzTaskScheduler.')
     scheduler = ChromeFuzzTaskScheduler(available_cpus)
   fuzz_tasks = scheduler.get_fuzz_tasks()
   return fuzz_tasks
@@ -319,54 +326,9 @@ def get_batch_regions(batch_config):
 
 def get_available_cpus(project: str, regions: List[str]) -> int:
   """Returns the available CPUs for fuzz tasks."""
-  # TODO(metzman): This doesn't distinguish between fuzz and non-fuzz
-  # tasks (nor preemptible and non-preemptible CPUs). Fix this.
-  # Get total scheduled and queued.
-  creds = credentials.get_default()[0]
-
-  target = 0
-  usage = 0
-  for region in regions:
-    region_target, region_usage = get_cpu_usage(creds, project, region)
-    target += region_target
-    usage += region_usage
-  waiting_tasks = (
-      count_unacked(creds, project, 'preprocess') + count_unacked(
-          creds, project, 'utask_main'))
-
-  if usage + waiting_tasks * CPUS_PER_FUZZ_JOB > .95 * target:
-    # Only worry about queueing build up if we are above 95% utilization.
-    count_args = ((project, region) for region in regions)
-    with multiprocessing.Pool(2) as pool:
-      target *= CPU_BUFFER_MULTIPLIER
-      # These calls are extremely slow (about 30 minutes total).
-      result = pool.starmap_async(  # pylint: disable=no-member
-          batch.count_queued_or_scheduled_tasks, count_args)
-
-      region_counts = zip(*result.get())  #  Group all queued and all scheduled.
-      # Add up all queued and scheduled.
-      region_counts = [sum(tup) for tup in region_counts]
-      logs.info(f'QUEUED/SCHEDULED tasks per region: {region_counts}')
-      if region_counts[0] > 10_000:
-        # Check queued tasks.
-        logs.info('Too many jobs queued, not scheduling more fuzzing.')
-        return 0
-      waiting_tasks += sum(region_counts)  # Add up queued and scheduled.
-  else:
-    logs.info('Skipping getting tasks.')
-
-  occupied_cpus = waiting_tasks * CPUS_PER_FUZZ_JOB + usage
-  logs.info(f'Soon or currently occupied CPUs: {occupied_cpus}')
-
-  logs.info(f'Target number CPUs: {target}')
-  available_cpus = max(target - occupied_cpus, 0)
-  logs.info(f'Available CPUs: {available_cpus}')
-
-  # Don't schedule more than 50K tasks at once. So we don't overload batch.
-  # This number is arbitrary, but we aren't at full capacity at lower numbers.
-  available_cpus = min(available_cpus, 50_000 * len(regions))
-
-  return available_cpus
+  # NOTE: This is a temporary modification for a high-load test.
+  # This will be reverted.
+  return 6
 
 
 def respect_project_max_cpus(num_cpus):
@@ -385,18 +347,20 @@ def schedule_fuzz_tasks() -> bool:
   regions = get_batch_regions(batch_config)
   start = time.time()
   available_cpus = get_available_cpus(project, regions)
-  logs.info(f'{available_cpus} available CPUs.')
+  print(f'{available_cpus} available CPUs.')
   if not available_cpus:
     return False
 
   fuzz_tasks = get_fuzz_tasks(available_cpus)
+  print(f'Publishing {len(fuzz_tasks)} tasks.')
   if not fuzz_tasks:
-    logs.error('No fuzz tasks found to schedule.')
+    print('No fuzz tasks found to schedule.')
     return False
 
-  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
+  print(f'Adding {fuzz_tasks} to preprocess queue.')
+  print(f'Calling tasks.bulk_add_tasks with {len(fuzz_tasks)} tasks.')
   tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+  print(f'Finished tasks.bulk_add_tasks. Scheduled {len(fuzz_tasks)} fuzz tasks.')
 
   end = time.time()
   total = end - start
@@ -404,5 +368,23 @@ def schedule_fuzz_tasks() -> bool:
   return True
 
 
+import os
+import json
+from google.oauth2 import credentials as oauth_credentials
+
 def main():
-  return schedule_fuzz_tasks()
+  print('Main function in schedule_fuzz.py is being executed.')
+  # Force load credentials from the local ADC file.
+  # This is a temporary change for testing and will be reverted.
+  adc_path = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+  with open(adc_path, 'r') as f:
+    creds_info = json.load(f)
+  
+  creds = oauth_credentials.Credentials.from_authorized_user_info(creds_info)
+  
+  client = ndb.Client(project='clusterfuzz-external', credentials=creds)
+  with client.context():
+    return schedule_fuzz_tasks()
+
+if __name__ == '__main__':
+  main()

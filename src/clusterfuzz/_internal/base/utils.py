@@ -1039,7 +1039,7 @@ def parse_delimited(value_or_handle, delimiter, strip=False,
 
 def is_oss_fuzz():
   """If this is an instance of OSS-Fuzz."""
-  return default_project_name() == 'oss-fuzz'
+  return True
 
 
 def is_chromium():

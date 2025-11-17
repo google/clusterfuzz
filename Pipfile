@@ -10,6 +10,11 @@ future = "==0.17.1"
 protobuf = "==4.23.4"
 psutil = "==5.9.4"
 google-cloud-ndb = "==2.3.4"
+google-cloud-monitoring = "*"
+google-cloud-pubsub = "*"
+google-api-python-client = "*"
+aiohttp = "*"
+google-cloud-batch = "*"
 
 [dev-packages]
 Fabric = "==1.14.1"

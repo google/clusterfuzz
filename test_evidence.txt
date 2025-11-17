@@ -1,0 +1,33 @@
+--- Pub/Sub Emulator Test Evidence ---
+
+Total tasks scheduled: 3
+
+--- Sample of 5 Tasks ---
+
+--- Message 1 ---
+Data: 
+Attributes:
+  job: libfuzzer_asan_json-smart-v2
+  argument: libFuzzer
+  base_os_version: None
+  eta: 1763396014.348226
+  command: fuzz
+
+--- Message 2 ---
+Data: 
+Attributes:
+  job: afl_asan_janet
+  argument: afl
+  base_os_version: None
+  eta: 1763396014.348226
+  command: fuzz
+
+--- Message 3 ---
+Data: 
+Attributes:
+  job: afl_asan_p11-kit
+  argument: afl
+  base_os_version: None
+  eta: 1763396014.348226
+  command: fuzz
+

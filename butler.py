@@ -431,10 +431,24 @@ def main():
   _add_integration_tests_subparsers(subparsers)
   _add_weights_subparser(subparsers)
   _add_reproduce_subparser(subparsers)
+  parser_run_schedule_fuzz = subparsers.add_parser(
+      'run_schedule_fuzz', help='Run the schedule_fuzz cron job.')
+  parser_run_schedule_fuzz.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+  parser_run_schedule_fuzz.add_argument(
+      '--non-dry-run',
+      action='store_true',
+      help='Run with actual datastore writes. Default to dry-run.')
   args = parser.parse_args()
   if not args.command:
     parser.print_help()
     return 0
+
+  if args.command == 'run_schedule_fuzz':
+    _setup(args)
+    os.environ['APP_CONFIG_DIR'] = args.config_dir
+    from clusterfuzz._internal.cron import schedule_fuzz
+    return schedule_fuzz.main()
 
   _setup(args)
   command = importlib.import_module(f'local.butler.{args.command}')

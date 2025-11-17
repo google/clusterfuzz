@@ -809,9 +809,11 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     for task in tasks:
       task.eta = now
 
-  pubsub_client = pubsub.PubSubClient()
+  pubsub_client = pubsub.PubSubClient(emulator_host='localhost:8085')
+  project_id = 'testes-locais'
+  topic_name = pubsub.topic_name(project_id, 'topic-testes')
+  print(f'Publishing to project: {project_id}, topic: {topic_name}')
   pubsub_messages = [task.to_pubsub_message() for task in tasks]
-  topic_name = pubsub.topic_name(utils.get_application_id(), queue)
   for batch in utils.batched(pubsub_messages, MAX_PUBSUB_MESSAGES_PER_REQ):
     pubsub_client.publish(topic_name, batch)
 
