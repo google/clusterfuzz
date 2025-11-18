@@ -13,14 +13,13 @@
 # limitations under the License.
 """Casp CLI."""
 
+from casp.commands import format as format_command
+from casp.commands import hi
+from casp.commands import init
+from casp.commands import reproduce
+from casp.commands import run_task
+from casp.commands import version
 import click
-
-from .commands import format as format_command
-from .commands import hi
-from .commands import init
-from .commands import reproduce
-from .commands import run_task
-from .commands import version
 
 
 @click.group()
