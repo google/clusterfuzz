@@ -13,28 +13,27 @@
 # limitations under the License.
 """Casp CLI."""
 
+from casp.commands import bootstrap
+from casp.commands import clean_indexes
+from casp.commands import create_config
+from casp.commands import deploy
+from casp.commands import format as format_command
+from casp.commands import hi
+from casp.commands import init
+from casp.commands import integration_tests
+from casp.commands import js_unittest
+from casp.commands import lint
+from casp.commands import package
+from casp.commands import py_unittest
+from casp.commands import remote
+from casp.commands import reproduce
+from casp.commands import run
+from casp.commands import run_bot
+from casp.commands import run_server
+from casp.commands import run_task
+from casp.commands import version
+from casp.commands import weights
 import click
-
-from .commands import bootstrap
-from .commands import clean_indexes
-from .commands import create_config
-from .commands import deploy
-from .commands import format as format_command
-from .commands import hi
-from .commands import init
-from .commands import integration_tests
-from .commands import js_unittest
-from .commands import lint
-from .commands import package
-from .commands import py_unittest
-from .commands import remote
-from .commands import reproduce
-from .commands import run
-from .commands import run_bot
-from .commands import run_server
-from .commands import run_task
-from .commands import version
-from .commands import weights
 
 
 @click.group()
