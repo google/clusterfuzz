@@ -13,21 +13,12 @@
 # limitations under the License.
 """Run format command."""
 
-import os
 from pathlib import Path
 import subprocess
 import sys
 
+from casp.utils import path_utils
 import click
-
-
-def _find_butler(start_path: Path) -> Path | None:
-  """Find the butler.py script in the directory tree."""
-  current_path = os.path.abspath(start_path)
-  butler_path = os.path.join(current_path, 'butler.py')
-  if os.path.exists(butler_path):
-    return Path(butler_path)
-  return None
 
 
 @click.command(name='format', help='Run format command')
@@ -44,9 +35,9 @@ def _find_butler(start_path: Path) -> Path | None:
     default=None,
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     show_default=True)
-def cli(path, directory):
+def cli(path: str, directory: str) -> None:
   """Run format command"""
-  butler_py_path = _find_butler(Path.cwd())
+  butler_py_path = path_utils.find_butler(Path.cwd())
   if not butler_py_path:
     click.echo('butler.py not found in this directory.', err=True)
     sys.exit(1)
