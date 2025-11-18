@@ -21,7 +21,13 @@ from casp.utils import docker_utils
 import click
 
 
-@click.command(name='reproduce', help='Reproduces a testcase locally.')
+@click.command(
+    name='reproduce',
+    help=('Reproduces a testcase locally. '
+          ' WARN: This essentially runs untrusted code '
+          'in your local environment. '
+          'Please acknowledge the testcase (mainly input and build) '
+          'before running this command.'))
 @click.option(
     '--project',
     '-p',
