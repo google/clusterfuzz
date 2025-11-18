@@ -7,7 +7,7 @@
 #      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is is "AS IS" BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -20,9 +20,16 @@ from casp.utils import container
 from casp.utils import docker_utils
 import click
 
+from . import reproduce_project
 
-@click.command(
-    name='reproduce',
+
+@click.group(name='reproduce', help='Reproduces a testcase locally')
+def cli():
+  """Reproduces a testcase locally"""
+
+
+@cli.command(
+    name='testcase',
     help=('Reproduces a testcase locally. '
           ' WARN: This essentially runs untrusted code '
           'in your local environment. '
@@ -46,7 +53,7 @@ import click
 )
 @click.option(
     '--testcase-id', required=True, help='The ID of the testcase to reproduce.')
-def cli(project: str, config_dir: str, testcase_id: str) -> None:
+def reproduce_testcase(project: str, config_dir: str, testcase_id: str) -> None:
   """Reproduces a testcase locally by running a Docker container.
 
   Args:
@@ -72,3 +79,6 @@ def cli(project: str, config_dir: str, testcase_id: str) -> None:
       image=docker_utils.PROJECT_TO_IMAGE[project],
   ):
     sys.exit(1)
+
+
+cli.add_command(reproduce_project.cli)
