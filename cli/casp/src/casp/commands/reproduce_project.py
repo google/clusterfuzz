@@ -41,14 +41,16 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
 
     try:
       binds = {
-          os.path.abspath(config_dir): {
-              'bind': '/app/configs/external',
-              'mode': 'ro'
-          },
-          os.path.abspath('.'): {
-              'bind': '/app',
-              'mode': 'rw'
-          },
+          os.path.abspath(config_dir):
+              {
+                  'bind': '/app/configs/external',
+                  'mode': 'ro'
+              },
+          os.path.abspath('.'):
+              {
+                  'bind': '/app',
+                  'mode': 'rw'
+              },
           os.path.expanduser('~/.config/gcloud'): {
               'bind': '/root/.config/gcloud',
               'mode': 'ro'
@@ -105,7 +107,13 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
 @click.option('--non-dry-run', is_flag=True, help='Execute real logic.')
 @click.option(
     '-n', '--parallelism', default=3, type=int, help='Parallel workers.')
-def cli(project_name, config_dir, non_dry_run, parallelism):
+@click.option(
+    '--os-version',
+    type=click.Choice(['legacy', 'ubuntu-20-04', 'ubuntu-24-04'],
+                      case_sensitive=False),
+    default='legacy',
+    help='OS version to use for reproduction.')
+def cli(project_name, config_dir, non_dry_run, parallelism, os_version):
   """
   Reproduces testcases for an OSS-Fuzz project, saving logs to files.
   """
@@ -140,10 +148,11 @@ def cli(project_name, config_dir, non_dry_run, parallelism):
     return
 
   # 4. Docker Image Pre-pull (Silent)
-  docker_image = docker_utils.PROJECT_TO_IMAGE.get('external')
+  docker_image = docker_utils.OS_TO_IMAGE.get(os_version)
   if not docker_image:
     click.secho(
-        'Error: Could not find "external" image in docker_utils.', fg='red')
+        f'Error: Could not find image for OS version "{os_version}" in docker_utils.',
+        fg='red')
     return
 
   click.echo(
@@ -162,7 +171,7 @@ def cli(project_name, config_dir, non_dry_run, parallelism):
         fg='yellow')
 
   click.echo(
-      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers."
+      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers using {os_version} image."
   )
 
   # 5. Parallel Worker Execution

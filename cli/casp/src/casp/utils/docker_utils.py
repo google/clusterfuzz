@@ -32,6 +32,13 @@ PROJECT_TO_IMAGE = {
     'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
                  "20251111191918-utc-b5863ff-640142509185-compute-c5c296c-prod")
 }
+
+OS_TO_IMAGE = {
+    'legacy': PROJECT_TO_IMAGE['external'],
+    'ubuntu-20-04': 'gcr.io/clusterfuzz-images/base:ubuntu-20-04',
+    'ubuntu-24-04': 'gcr.io/clusterfuzz-images/base:ubuntu-24-04'
+}
+
 _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
 
 
