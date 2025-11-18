@@ -13,38 +13,55 @@
 # limitations under the License.
 """Run format command."""
 
-from pathlib import Path
-
 import os
+from pathlib import Path
 import subprocess
 import sys
 
 import click
 
 
-def _find_butler_py(start_path: Path) -> Path | None:
+def _find_butler(start_path: Path) -> Path | None:
   """Find the butler.py script in the directory tree."""
   current_path = os.path.abspath(start_path)
-  butler_py_path = os.path.join(current_path, 'butler.py')
-  if os.path.exists(butler_py_path):
-    return Path(butler_py_path)
+  butler_path = os.path.join(current_path, 'butler.py')
+  if os.path.exists(butler_path):
+    return Path(butler_path)
   return None
 
 
 @click.command(name='format', help='Run format command')
-def cli():
+@click.argument(
+    'path',
+    required=False,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option(
+    '--dir',
+    '--directory',
+    '-d',
+    'directory',
+    help='The directory to run the format command in.',
+    default=None,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    show_default=True)
+def cli(path, directory):
   """Run format command"""
-  butler_py_path = _find_butler_py(Path.cwd())
+  butler_py_path = _find_butler(Path.cwd())
   if not butler_py_path:
     click.echo('butler.py not found in this directory.', err=True)
     sys.exit(1)
 
+  target_dir = directory or path
+
+  command = ['python', str(butler_py_path), 'format']
+  if target_dir:
+    command.extend(['--dir', str(target_dir)])
+
   try:
-    subprocess.run(['python', butler_py_path, 'format'], check=True)
+    subprocess.run(command, check=True)
   except FileNotFoundError:
     click.echo('python not found in PATH.', err=True)
     sys.exit(1)
   except subprocess.CalledProcessError as e:
     click.echo(f'Error running butler.py format: {e}', err=True)
     sys.exit(1)
-  
