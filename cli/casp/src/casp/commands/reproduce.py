@@ -59,7 +59,7 @@ def cli(project: str, config_dir: str, testcase_id: str) -> None:
   volumes, container_config_dir = docker_utils.prepare_docker_volumes(
       cfg, config_dir)
 
-  command = container.build_command(
+  command = container.build_butler_command(
       'reproduce',
       config_dir=str(container_config_dir),
       testcase_id=testcase_id,

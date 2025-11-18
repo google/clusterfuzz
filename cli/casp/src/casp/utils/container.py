@@ -32,7 +32,7 @@ CONTAINER_CREDENTIALS_PATH = Path('/root/.config/gcloud/')
 _COMMAND_PREFIX = 'pipenv run python butler.py --local-logging'
 
 
-def build_command(subcommand: str, **kwargs: str) -> list[str]:
+def build_butler_command(subcommand: str, **kwargs: str) -> list[str]:
   """Builds a butler command to be executed inside the container.
 
   Args:
@@ -46,9 +46,7 @@ def build_command(subcommand: str, **kwargs: str) -> list[str]:
   """
   command = f'{_COMMAND_PREFIX} {subcommand}'
   for key, value in kwargs.items():
-    key = key.replace('_', '-')  # Convert underscores to hyphens
+    key = key.replace('_', '-')
     command += f' --{key}={value}'
 
-  # The command is wrapped in 'bash -c' to ensure that it is interpreted
-  # correctly by the shell within the container.
   return ['bash', '-c', command]

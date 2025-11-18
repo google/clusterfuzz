@@ -48,7 +48,7 @@ class ReproduceCliTest(unittest.TestCase):
             'mode': 'rw'
         }
     }, Path('/container/config/dir'))
-    self.mock_container.build_command.return_value = ['run']
+    self.mock_container.build_butler_command.return_value = ['run']
     self.mock_docker_utils.run_command.return_value = True
 
     result = self.runner.invoke(
@@ -81,7 +81,7 @@ class ReproduceCliTest(unittest.TestCase):
             'mode': 'rw'
         }
     }, Path('/container/custom/config'))
-    self.mock_container.build_command.return_value = ['run']
+    self.mock_container.build_butler_command.return_value = ['run']
     self.mock_docker_utils.run_command.return_value = True
 
     result = self.runner.invoke(
@@ -89,7 +89,7 @@ class ReproduceCliTest(unittest.TestCase):
 
     self.assertEqual(0, result.exit_code, msg=result.output)
     self.mock_docker_utils.run_command.assert_called_once()
-    self.mock_container.build_command.assert_called_once_with(
+    self.mock_container.build_butler_command.assert_called_once_with(
         'reproduce',
         config_dir='/container/custom/config',
         testcase_id='123',
@@ -121,7 +121,7 @@ class ReproduceCliTest(unittest.TestCase):
     self.mock_docker_utils.run_command.return_value = False
     self.mock_docker_utils.prepare_docker_volumes.return_value = (
         {}, Path('/mock/path'))
-    self.mock_container.build_command.return_value = ['fail']
+    self.mock_container.build_butler_command.return_value = ['fail']
 
     result = self.runner.invoke(
         reproduce.cli, ['--testcase-id', '123', '--project', 'internal'])
@@ -136,7 +136,7 @@ class ReproduceCliTest(unittest.TestCase):
     }
     self.mock_docker_utils.prepare_docker_volumes.return_value = (
         {}, Path('/mock/path'))
-    self.mock_container.build_command.return_value = ['false']
+    self.mock_container.build_butler_command.return_value = ['false']
     self.mock_docker_utils.run_command.return_value = True
     self.mock_docker_utils.PROJECT_TO_IMAGE = {'dev': 'dev-image'}
 
