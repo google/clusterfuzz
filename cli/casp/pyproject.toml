@@ -18,7 +18,9 @@ classifiers = [
 ]
 dependencies = [
     "click",
-    "docker"
+    "docker",
+    "google",
+    "google-auth"
 ]
 
 [project.urls]
