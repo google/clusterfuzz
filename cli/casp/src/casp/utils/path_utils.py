@@ -20,6 +20,7 @@ to file and directory path manipulation and discovery.
 import os
 from pathlib import Path
 
+
 def find_butler(start_path: Path) -> Path | None:
   """Find the butler.py script in the directory tree."""
   current_path = os.path.abspath(start_path)
