@@ -43,7 +43,6 @@ RUN apt-get update && \
         build-essential \
         curl \
         gdb \
-        git \
         iproute2 \
         libbz2-dev \
         libcurl4-openssl-dev \
