@@ -98,6 +98,19 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_format_subparser(toplevel_subparsers):
+  """Adds a parser for the `format` command."""
+  parser = toplevel_subparsers.add_parser(
+      'format', help='Format changed code in current branch.')
+  parser.add_argument(
+      '--path',
+      dest='path',
+      default=None,
+      help=
+      'The file or directory to format. Default is to format changed files in '
+      'the current branch.')
+
+
 def _add_integration_tests_subparsers(toplevel_subparsers):
   """Adds a parser for the `integration_tests` command."""
   toplevel_subparsers.add_parser(
@@ -295,8 +308,6 @@ def main():
       help=('Do not close browser when tests '
             'finish. Good for debugging.'))
 
-  subparsers.add_parser('format', help='Format changed code in current branch.')
-
   parser_lint = subparsers.add_parser(
       'lint', help='Lint changed code in current branch.')
   parser_lint.add_argument(
@@ -428,6 +439,7 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_format_subparser(subparsers)
   _add_integration_tests_subparsers(subparsers)
   _add_weights_subparser(subparsers)
   _add_reproduce_subparser(subparsers)
