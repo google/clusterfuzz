@@ -171,7 +171,7 @@ def cli(project_name, config_dir, non_dry_run, parallelism, os_version):
         fg='yellow')
 
   click.echo(
-      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers using {os_version} image."
+      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers using {docker_image}."
   )
 
   # 5. Parallel Worker Execution

@@ -24,19 +24,24 @@ import docker
 
 # TODO: Make this configurable.
 PROJECT_TO_IMAGE = {
-    'dev': ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
-            "20251008165901-utc-893e97e-640142509185-compute-d609115-prod"),
-    'internal': (
-        "gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
-        "20251110132749-utc-363160d-640142509185-compute-c7f2f8c-prod"),
-    'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
-                 "20251111191918-utc-b5863ff-640142509185-compute-c5c296c-prod")
+    'dev':
+        ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
+         "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
+    'internal':
+        ("gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
+         "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
+    'external':
+        ("gcr.io/clusterfuzz-images/base/immutable/external:"
+         "20251119164957-utc-3612e16-640142509185-compute-486869c-prod")
 }
 
 OS_TO_IMAGE = {
-    'legacy': PROJECT_TO_IMAGE['external'],
-    'ubuntu-20-04': 'gcr.io/clusterfuzz-images/base:ubuntu-20-04',
-    'ubuntu-24-04': 'gcr.io/clusterfuzz-images/base:ubuntu-24-04'
+    'legacy':
+        'gcr.io/clusterfuzz-images/base/immutable/external:20251119164957-utc-3612e16-640142509185-compute-486869c-prod',
+    'ubuntu-20-04':
+        'gcr.io/clusterfuzz-images/base/immutable/external:ubuntu-20-04-20251119164957-utc-3612e16-640142509185-compute-486869c-prod',
+    'ubuntu-24-04':
+        'gcr.io/clusterfuzz-images/base/immutable/external:ubuntu-24-04-20251119164957-utc-3612e16-640142509185-compute-486869c-prod'
 }
 
 _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
