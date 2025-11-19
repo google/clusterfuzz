@@ -36,9 +36,9 @@ def cli():
           'Please acknowledge the testcase (mainly input and build) '
           'before running this command.'))
 @click.option(
-    '--project',
-    '-p',
-    help='The ClusterFuzz project to use.',
+    '--environment',
+    '-e',
+    help='The ClusterFuzz environment to use.',
     required=True,
     type=click.Choice(
         docker_utils.PROJECT_TO_IMAGE.keys(), case_sensitive=False),
@@ -53,11 +53,12 @@ def cli():
 )
 @click.option(
     '--testcase-id', required=True, help='The ID of the testcase to reproduce.')
-def reproduce_testcase(project: str, config_dir: str, testcase_id: str) -> None:
+def reproduce_testcase(environment: str, config_dir: str,
+                       testcase_id: str) -> None:
   """Reproduces a testcase locally by running a Docker container.
 
   Args:
-    project: The ClusterFuzz project name.
+    environment: The ClusterFuzz environment name.
     config_dir: The default configuration directory path within the container.
     testcase_id: The ID of the testcase to be reproduced.
   """
@@ -76,7 +77,7 @@ def reproduce_testcase(project: str, config_dir: str, testcase_id: str) -> None:
       command,
       volumes,
       privileged=True,
-      image=docker_utils.PROJECT_TO_IMAGE[project],
+      image=docker_utils.PROJECT_TO_IMAGE[environment],
   ):
     sys.exit(1)
 

@@ -1,12 +1,12 @@
 import click
-import os
 import concurrent.futures
+import os
 import subprocess
-import warnings
-import tempfile
 import sys
+import tempfile
+import warnings
 from datetime import datetime
-from typing import List, Dict
+from typing import Dict, List, Optional
 
 # Imports do contexto
 from clusterfuzz._internal.config import local_config
@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 # --- SIMPLIFIED WORKER ---
-def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: str,
+def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: Optional[str],
                      docker_image: str, log_file_path: str) -> bool:
   """
   Runs the reproduction of a testcase in a Docker container.
@@ -50,9 +50,11 @@ def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: str,
       }
 
       cmd = [
-          'python3.11', '/app/butler.py', 'reproduce', f'--testcase-id={tc_id}',
-          f'--config-dir={container_config_dir}'
+          'python3.11', '/app/butler.py', '--local-logging', 'reproduce', f'--testcase-id={tc_id}'
       ]
+
+      if container_config_dir:
+        cmd.append(f'--config-dir={container_config_dir}')
 
       run_command_success = docker_utils.run_command(
           cmd,
@@ -73,7 +75,7 @@ def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: str,
       except Exception:
         pass
 
-      return run_command_success
+      return False
 
     except Exception as e:
       print(f"CRITICAL EXCEPTION in worker for TC-{tc_id}: {e}")
@@ -100,12 +102,12 @@ def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: str,
     default='legacy',
     help='OS version to use for reproduction.')
 @click.option(
-    '--project',
-    '-p',
+    '--environment',
+    '-e',
     type=click.Choice(['external', 'internal', 'dev'], case_sensitive=False),
     default='external',
-    help='The ClusterFuzz project (instance type).')
-def cli(project_name, config_dir, parallelism, os_version, project):
+    help='The ClusterFuzz environment (instance type).')
+def cli(project_name, config_dir, parallelism, os_version, environment):
   """
   Reproduces testcases for an OSS-Fuzz project, saving logs to files.
   """
@@ -114,7 +116,19 @@ def cli(project_name, config_dir, parallelism, os_version, project):
   cfg = config.load_and_validate_config()
   volumes, container_config_dir_path = docker_utils.prepare_docker_volumes(
       cfg, config_dir)
-  container_config_dir = str(container_config_dir_path)
+  
+  default_container_config_path = str(container.CONTAINER_CONFIG_PATH / 'config')
+  worker_config_dir_arg = None
+
+  if container_config_dir_path != default_container_config_path:
+    # If the resolved config path is not the default, pass it to the worker.
+    worker_config_dir_arg = str(container_config_dir_path)
+
+  # If config_dir is a local path and not the default container path, mount it manually.
+  if os.path.isdir(config_dir) and config_dir != default_container_config_path:
+      mount_point = '/custom_config'
+      volumes[os.path.abspath(config_dir)] = {'bind': mount_point, 'mode': 'ro'}
+      worker_config_dir_arg = mount_point
 
   # Attempt to set local environment for Datastore access
   local_config_dir = None
@@ -153,7 +167,7 @@ def cli(project_name, config_dir, parallelism, os_version, project):
 
   # 4. Docker Image Pre-pull (Silent)
   try:
-    docker_image = docker_utils.get_image_name(project, os_version)
+    docker_image = docker_utils.get_image_name(environment, os_version)
   except ValueError as e:
     click.secho(f'Error: {e}', fg='red')
     return
@@ -173,7 +187,7 @@ def cli(project_name, config_dir, parallelism, os_version, project):
         fg='yellow')
 
   click.echo(
-      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers using {docker_image}."
+      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers using {environment} environment and {os_version}."
   )
 
   # 5. Parallel Worker Execution
@@ -186,7 +200,7 @@ def cli(project_name, config_dir, parallelism, os_version, project):
       with open(log_file, 'w', encoding='utf-8') as f:
         f.write(f"--- Starting reproduction for Testcase ID: {tid} ---\n")
 
-      f = executor.submit(worker_reproduce, tid, volumes, container_config_dir,
+      f = executor.submit(worker_reproduce, tid, volumes, worker_config_dir_arg,
                           docker_image, log_file)
       future_to_tc[f] = tid
 
