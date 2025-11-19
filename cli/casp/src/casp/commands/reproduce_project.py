@@ -94,7 +94,7 @@ def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: Optiona
           'config directory, this argument is not used.'),
 )
 @click.option(
-    '-n', '--parallelism', default=3, type=int, help='Parallel workers.')
+    '-n', '--parallelism', default=10, type=int, help='Parallel workers.')
 @click.option(
     '--os-version',
     type=click.Choice(['legacy', 'ubuntu-20-04', 'ubuntu-24-04'],
@@ -205,25 +205,34 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
       future_to_tc[f] = tid
 
     completed_count = 0
+    success_count = 0
+    failure_count = 0
     for future in concurrent.futures.as_completed(future_to_tc):
       completed_count += 1
       tid = future_to_tc[future]
       try:
         is_success = future.result()
         if is_success:
+          success_count += 1
           click.secho(
               f"✔ TC-{tid} Success ({completed_count}/{len(tc_ids)})",
               fg='green')
         else:
+          failure_count += 1
           click.secho(
               f"✖ TC-{tid} Failed ({completed_count}/{len(tc_ids)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
               fg='red')
       except Exception as exc:
+        failure_count += 1
         click.secho(
             f"! TC-{tid} Error: {exc} ({completed_count}/{len(tc_ids)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
             fg='red')
 
   click.echo("\nAll reproduction tasks completed.")
+  success_rate = (success_count / len(tc_ids)) * 100 if tc_ids else 0.0
+  click.echo(f"Summary: {len(tc_ids)} testcases processed.")
+  click.secho(f"  ✔ Success: {success_count} ({success_rate:.2f}%)", fg='green')
+  click.secho(f"  ✖ Failed:  {failure_count} ({100 - success_rate:.2f}%)", fg='red')
   click.echo(f"Detailed logs are available in: {log_dir}")
 
 
