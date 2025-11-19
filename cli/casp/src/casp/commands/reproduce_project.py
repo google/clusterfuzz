@@ -162,8 +162,28 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
     click.secho(f'No open testcases found for {project_name}.', fg='yellow')
     return
 
-  tc_ids = [str(t.key.id()) for t in testcases]
-  click.echo(f"Found {len(tc_ids)} open testcases.")
+  total_testcases_count = len(testcases)
+  click.echo(f"Found {total_testcases_count} open testcases.")
+
+  to_reproduce = []
+  skipped_unreproducible = []
+
+  for t in testcases:
+    if t.status and t.status.startswith('Unreproducible'):
+      skipped_unreproducible.append(t)
+    else:
+      to_reproduce.append(t)
+
+  if skipped_unreproducible:
+    click.secho(
+        f"ℹ Skipped {len(skipped_unreproducible)} testcases marked as 'Unreproducible'.",
+        fg='yellow')
+
+  tc_ids = [str(t.key.id()) for t in to_reproduce]
+
+  if not tc_ids:
+    click.echo("No reproducible testcases to run.")
+    return
 
   # 4. Docker Image Pre-pull (Silent)
   try:
@@ -229,10 +249,16 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
             fg='red')
 
   click.echo("\nAll reproduction tasks completed.")
-  success_rate = (success_count / len(tc_ids)) * 100 if tc_ids else 0.0
-  click.echo(f"Summary: {len(tc_ids)} testcases processed.")
+
+  skipped_count = len(skipped_unreproducible)
+  success_rate = (success_count / total_testcases_count) * 100 if total_testcases_count else 0.0
+  failure_rate = (failure_count / total_testcases_count) * 100 if total_testcases_count else 0.0
+  skipped_rate = (skipped_count / total_testcases_count) * 100 if total_testcases_count else 0.0
+
+  click.echo(f"Summary: {total_testcases_count} testcases processed.")
   click.secho(f"  ✔ Success: {success_count} ({success_rate:.2f}%)", fg='green')
-  click.secho(f"  ✖ Failed:  {failure_count} ({100 - success_rate:.2f}%)", fg='red')
+  click.secho(f"  ✖ Failed:  {failure_count} ({failure_rate:.2f}%)", fg='red')
+  click.secho(f"  ⚠ Skipped: {skipped_count} ({skipped_rate:.2f}%) - Marked Unreproducible", fg='yellow')
   click.echo(f"Detailed logs are available in: {log_dir}")
 
 
