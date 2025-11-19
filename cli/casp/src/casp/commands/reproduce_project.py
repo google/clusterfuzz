@@ -165,17 +165,22 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   total_testcases_count = len(testcases)
 
   to_reproduce = []
-  skipped_unreproducible = []
+  skipped = []
 
   for t in testcases:
-    if t.status and t.status.startswith('Unreproducible'):
-      skipped_unreproducible.append(t)
+    is_unreproducible = t.status and t.status.startswith('Unreproducible')
+    is_one_time = t.one_time_crasher_flag
+
+    if is_unreproducible or is_one_time:
+      skipped.append(t)
     else:
       to_reproduce.append(t)
 
-  skipped_count = len(skipped_unreproducible)
+  skipped_count = len(skipped)
   if skipped_count > 0:
-    click.echo(f"Found {total_testcases_count} open testcases. {skipped_count} skipped as 'Unreproducible'.")
+    click.echo(
+        f"Found {total_testcases_count} open testcases. {skipped_count} skipped (Unreproducible or One-time crasher)."
+    )
   else:
     click.echo(f"Found {total_testcases_count} open testcases.")
 
@@ -250,7 +255,7 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
 
   click.echo("\nAll reproduction tasks completed.")
 
-  skipped_count = len(skipped_unreproducible)
+  skipped_count = len(skipped)
   success_rate = (success_count / total_testcases_count) * 100 if total_testcases_count else 0.0
   failure_rate = (failure_count / total_testcases_count) * 100 if total_testcases_count else 0.0
   skipped_rate = (skipped_count / total_testcases_count) * 100 if total_testcases_count else 0.0
@@ -258,7 +263,7 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   click.echo(f"Summary: {total_testcases_count} testcases processed.")
   click.secho(f"  ✔ Success: {success_count} ({success_rate:.2f}%)", fg='green')
   click.secho(f"  ✖ Failed:  {failure_count} ({failure_rate:.2f}%)", fg='red')
-  click.secho(f"  ⚠ Skipped: {skipped_count} ({skipped_rate:.2f}%) - Marked Unreproducible", fg='yellow')
+  click.secho(f"  ⚠ Skipped: {skipped_count} ({skipped_rate:.2f}%) - Unreliable (Unreproducible/One-time)", fg='yellow')
   click.echo(f"Detailed logs are available in: {log_dir}")
 
 
