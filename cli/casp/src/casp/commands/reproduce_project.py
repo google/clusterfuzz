@@ -163,7 +163,6 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
     return
 
   total_testcases_count = len(testcases)
-  click.echo(f"Found {total_testcases_count} open testcases.")
 
   to_reproduce = []
   skipped_unreproducible = []
@@ -174,10 +173,11 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
     else:
       to_reproduce.append(t)
 
-  if skipped_unreproducible:
-    click.secho(
-        f"ℹ Skipped {len(skipped_unreproducible)} testcases marked as 'Unreproducible'.",
-        fg='yellow')
+  skipped_count = len(skipped_unreproducible)
+  if skipped_count > 0:
+    click.echo(f"Found {total_testcases_count} open testcases. {skipped_count} skipped as 'Unreproducible'.")
+  else:
+    click.echo(f"Found {total_testcases_count} open testcases.")
 
   tc_ids = [str(t.key.id()) for t in to_reproduce]
 
