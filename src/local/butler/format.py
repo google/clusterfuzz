@@ -30,8 +30,8 @@ ISORT_CMD = ('isort --dont-order-by-type --force-single-line-imports '
 
 def execute(args):
   """Format changed code."""
-  if args.dir:
-    diff_command = f'git ls-files {os.path.abspath(args.dir)}'
+  if args.path:
+    diff_command = f'git ls-files {os.path.abspath(args.path)}'
   elif os.path.exists('.git/FETCH_HEAD'):
     diff_command = 'git diff --name-only FETCH_HEAD'
   else:

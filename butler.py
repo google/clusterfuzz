@@ -103,10 +103,11 @@ def _add_format_subparser(toplevel_subparsers):
   parser = toplevel_subparsers.add_parser(
       'format', help='Format changed code in current branch.')
   parser.add_argument(
-      '--dir',
-      dest='dir',
+      '--path',
+      dest='path',
       default=None,
-      help='The directory to format. Default is to format changed files in '
+      help=
+      'The file or directory to format. Default is to format changed files in '
       'the current branch.')
 
 
