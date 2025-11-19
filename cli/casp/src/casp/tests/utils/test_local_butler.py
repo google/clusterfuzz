@@ -14,7 +14,8 @@
 """Tests for local_butler utility functions.
 
   For running, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -p test_local_butler.py -v
+  python -m unittest discover -s cli/casp/src/casp/tests 
+  -p test_local_butler.py -v
 """
 
 from pathlib import Path
@@ -34,8 +35,8 @@ class BuildCommandTest(unittest.TestCase):
 
     command = local_butler.build_command('format', some_arg='value')
 
-    self.assertEqual(command,
-                     ['python', '/fake/butler.py', 'format', '--some-arg=value'])
+    self.assertEqual(
+        command, ['python', '/fake/butler.py', 'format', '--some-arg=value'])
     mock_get_butler.assert_called_once()
 
   def test_build_command_success_explicit_path(self):
@@ -45,8 +46,8 @@ class BuildCommandTest(unittest.TestCase):
     command = local_butler.build_command(
         'format', butler_path=butler_path, verbose='true')
 
-    self.assertEqual(command,
-                     ['python', '/explicit/butler.py', 'format', '--verbose=true'])
+    self.assertEqual(
+        command, ['python', '/explicit/butler.py', 'format', '--verbose=true'])
 
   @patch('casp.utils.path_utils.get_butler_in_dir', autospec=True)
   def test_butler_not_found(self, mock_get_butler):

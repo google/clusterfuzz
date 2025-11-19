@@ -22,7 +22,7 @@ from pathlib import Path
 
 
 def get_butler_in_dir(start_path: Path) -> Path | None:
-  """Find the butler.py script in the current directory"""
+  """Find and returns the butler.py script in the current directory"""
   current_path = os.path.abspath(start_path)
   butler_path = os.path.join(current_path, 'butler.py')
   if os.path.exists(butler_path):
