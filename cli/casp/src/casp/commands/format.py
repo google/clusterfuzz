@@ -11,12 +11,43 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Format command."""
+"""Run format command."""
 
+import subprocess
+import sys
+
+from casp.utils import local_butler
 import click
 
 
-@click.command(name='format', help='Format changed code in current branch.')
-def cli():
-  """Format changed code in current branch."""
-  click.echo('To be implemented...')
+@click.command(name='format', help='Run format command')
+@click.argument('path', required=False, type=click.Path(exists=True))
+@click.option(
+    '--path',
+    '-p',
+    'path_option',
+    help='The file or directory to run the format command in.',
+    default=None,
+    type=click.Path(exists=True),
+    show_default=True)
+def cli(path: str, path_option: str) -> None:
+  """Run format command"""
+  target_dir = path_option or path
+
+  try:
+    if target_dir:
+      command = local_butler.build_command('format', path=target_dir)
+    else:
+      command = local_butler.build_command('format')
+  except FileNotFoundError:
+    click.echo('butler.py not found in this directory.', err=True)
+    sys.exit(1)
+
+  try:
+    subprocess.run(command, check=True)
+  except FileNotFoundError:
+    click.echo('python not found in PATH.', err=True)
+    sys.exit(1)
+  except subprocess.CalledProcessError as e:
+    click.echo(f'Error running butler.py format: {e}', err=True)
+    sys.exit(1)
