@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Manages the CASP path search and manegement.
+"""Manages the CASP path search and management.
 
 This module provides a set of utilities related 
 to file and directory path manipulation and discovery.
