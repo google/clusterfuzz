@@ -175,8 +175,8 @@ def execute(args):
   third_party_path = os.path.join(module_parent_path, 'third_party')
   os.environ['PYTHONPATH'] = ':'.join(
       [third_party_path, module_parent_path, pythonpath])
-  if args.dir:
-    diff_command = f'git ls-files {os.path.abspath(args.dir)}'
+  if args.path:
+    diff_command = f'git ls-files {os.path.abspath(args.path)}'
   elif 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
     diff_command = 'git diff --name-only master FETCH_HEAD'
