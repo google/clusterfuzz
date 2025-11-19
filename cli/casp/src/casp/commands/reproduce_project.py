@@ -113,7 +113,13 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
                       case_sensitive=False),
     default='legacy',
     help='OS version to use for reproduction.')
-def cli(project_name, config_dir, non_dry_run, parallelism, os_version):
+@click.option(
+    '--project-type',
+    type=click.Choice(['external', 'internal', 'dev'], case_sensitive=False),
+    default='external',
+    help='The project type (external, internal, dev).')
+def cli(project_name, config_dir, non_dry_run, parallelism, os_version,
+        project_type):
   """
   Reproduces testcases for an OSS-Fuzz project, saving logs to files.
   """
@@ -148,11 +154,10 @@ def cli(project_name, config_dir, non_dry_run, parallelism, os_version):
     return
 
   # 4. Docker Image Pre-pull (Silent)
-  docker_image = docker_utils.OS_TO_IMAGE.get(os_version)
-  if not docker_image:
-    click.secho(
-        f'Error: Could not find image for OS version "{os_version}" in docker_utils.',
-        fg='red')
+  try:
+    docker_image = docker_utils.get_image_name(project_type, os_version)
+  except ValueError as e:
+    click.secho(f'Error: {e}', fg='red')
     return
 
   click.echo(

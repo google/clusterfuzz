@@ -22,29 +22,30 @@ import click
 
 import docker
 
-# TODO: Make this configurable.
 PROJECT_TO_IMAGE = {
-    'dev':
-        ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
-         "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
-    'internal':
-        ("gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
-         "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
-    'external':
-        ("gcr.io/clusterfuzz-images/base/immutable/external:"
-         "20251119164957-utc-3612e16-640142509185-compute-486869c-prod")
-}
-
-OS_TO_IMAGE = {
-    'legacy':
-        'gcr.io/clusterfuzz-images/base/immutable/external:20251119164957-utc-3612e16-640142509185-compute-486869c-prod',
-    'ubuntu-20-04':
-        'gcr.io/clusterfuzz-images/base/immutable/external:ubuntu-20-04-20251119164957-utc-3612e16-640142509185-compute-486869c-prod',
-    'ubuntu-24-04':
-        'gcr.io/clusterfuzz-images/base/immutable/external:ubuntu-24-04-20251119164957-utc-3612e16-640142509185-compute-486869c-prod'
+    'dev': ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
+            "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
+    'internal': (
+        "gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
+        "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
+    'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
+                 "20251119164957-utc-3612e16-640142509185-compute-486869c-prod")
 }
 
 _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
+
+
+def get_image_name(project_type: str, os_version: str = 'legacy') -> str:
+  """Gets the Docker image name based on project type and OS version."""
+  base_image = PROJECT_TO_IMAGE.get(project_type)
+  if not base_image:
+    raise ValueError(f'Unknown project type: {project_type}')
+
+  if os_version == 'legacy':
+    return base_image
+
+  repo, tag = base_image.split(':')
+  return f'{repo}:{os_version}-{tag}'
 
 
 def prepare_docker_volumes(cfg: dict[str, Any],
