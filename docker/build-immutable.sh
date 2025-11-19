@@ -44,6 +44,12 @@ if [ -n "$1" ]; then
   cd /workspace/clusterfuzz
 fi
 
+# Default OS version
+OS_VERSION="legacy"
+if [ -n "$4" ]; then
+  OS_VERSION="$4"
+fi
+
 # Deleting the current config that is used for testing purposes.
 # It will be replaced by the project config during the image build.
 rm -rf src/appengine/config
@@ -67,19 +73,32 @@ for image_name in "${IMAGES[@]}"; do
     # image reference.
     full_image_name="$image_name/$(basename "$image_dir")"
 
+    if [ "$OS_VERSION" == "legacy" ]; then
+      dockerfile="$image_dir/Dockerfile"
+      tag="${CURRENT_CLUSTERFUZZ_REVISION}"
+    else
+      dockerfile="$image_dir/${OS_VERSION}.Dockerfile"
+      tag="${OS_VERSION}-${CURRENT_CLUSTERFUZZ_REVISION}"
+    fi
+
+    if [ ! -f "$dockerfile" ]; then
+      echo "Skipping $dockerfile as it does not exist."
+      continue
+    fi
+
     # Build the Docker image.
     # --build-arg CLUSTERFUZZ_SOURCE_DIR=.: Passes the location of the
     #   ClusterFuzz source directory as a build argument.
-    # -t "$full_image_name":${CURRENT_CLUSTERFUZZ_REVISION}: Tags the image with
-    #   its name and the current ClusterFuzz revision.
-    # -f "$image_dir/Dockerfile": Specifies the path to the Dockerfile.
+    # -t "$full_image_name":${tag}: Tags the image with
+    #   its name and the current ClusterFuzz revision (prefixed with OS version if applicable).
+    # -f "$dockerfile": Specifies the path to the Dockerfile.
     # .: Sets the build context to the current directory.
-    docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$full_image_name":${CURRENT_CLUSTERFUZZ_REVISION} -f "$image_dir/Dockerfile" .
+    docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$full_image_name":${tag} -f "$dockerfile" .
 
     # If the second argument to the script is "true", push the newly built
     # image to the container registry.
     if [ "$2" == "true" ]; then
-      docker push "$full_image_name":${CURRENT_CLUSTERFUZZ_REVISION}
+      docker push "$full_image_name":${tag}
     fi
   done
 done
