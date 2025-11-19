@@ -128,8 +128,9 @@ RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11
 COPY setup_19.x /data
 RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
 
-RUN export CLOUDSDK_PYTHON=python3.11 && \
-    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
+ENV CLOUDSDK_PYTHON=python3.11
+
+RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
     | apt-key add - && \
