@@ -138,10 +138,6 @@ RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     apt-get update -y && \
     apt-get install -y google-cloud-sdk
 
-# Disable HTTP/2 for git to avoid 'Error in the HTTP2 framing layer' issues.
-RUN git config --global http.version HTTP/1.1
-
-
 # Common environment variables.
 ENV USER=clusterfuzz
 ENV INSTALL_DIRECTORY /mnt/scratch0
