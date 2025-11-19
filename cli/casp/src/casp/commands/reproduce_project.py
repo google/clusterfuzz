@@ -104,7 +104,7 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
 @click.command('project')
 @click.option('--project-name', required=True, help='OSS-Fuzz project name.')
 @click.option('-c', '--config-dir', required=True, help='Path to config.')
-@click.option('--non-dry-run', is_flag=True, help='Execute real logic.')
+
 @click.option(
     '-n', '--parallelism', default=3, type=int, help='Parallel workers.')
 @click.option(
@@ -118,8 +118,7 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
     type=click.Choice(['external', 'internal', 'dev'], case_sensitive=False),
     default='external',
     help='The project type (external, internal, dev).')
-def cli(project_name, config_dir, non_dry_run, parallelism, os_version,
-        project_type):
+def cli(project_name, config_dir, parallelism, os_version, project_type):
   """
   Reproduces testcases for an OSS-Fuzz project, saving logs to files.
   """
@@ -149,9 +148,7 @@ def cli(project_name, config_dir, non_dry_run, parallelism, os_version,
   tc_ids = [str(t.key.id()) for t in testcases]
   click.echo(f"Found {len(tc_ids)} open testcases.")
 
-  if not non_dry_run:
-    click.secho("DRY RUN MODE: Skipping execution.", fg='yellow')
-    return
+
 
   # 4. Docker Image Pre-pull (Silent)
   try:
