@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package clusterfuzz.grpc;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// The main service for handling test case reproductions.
+service ReproduceService {
+  // Starts a new reproduction job. This is an asynchronous operation.
+  // The call returns immediately with a job identifier.
+  rpc StartReproductionJob(StartReproductionJobRequest) returns (Job);
+
+  // Subscribes to real-time updates for a given job. This is a server-streaming RPC.
+  rpc SubscribeToJobUpdates(SubscribeRequest) returns (stream JobUpdate);
+
+  // Gets the current status of a job. Can be used for polling.
+  rpc GetJobStatus(GetJobStatusRequest) returns (Job);
+
+  // Retrieves the final results and metrics of a completed job.
+  rpc GetJobResults(GetJobResultsRequest) returns (JobResults);
+}
+
+// Request to start a new reproduction job.
+message StartReproductionJobRequest {
+  // A list of test case IDs to be reproduced.
+  repeated int64 testcase_ids = 1;
+
+  // The base image tag to use for the reproduction environment.
+  string image_tag = 2;
+
+  // Maximum time allowed for the entire job to run.
+  google.protobuf.Duration time_limit = 3;
+}
+
+// Represents a single reproduction job.
+message Job {
+  string job_id = 1;
+  JobStatus status = 2;
+  google.protobuf.Timestamp creation_time = 3;
+  google.protobuf.Timestamp completion_time = 4;
+}
+
+// Request for job updates or status.
+message SubscribeRequest {
+  string job_id = 1;
+}
+
+message GetJobStatusRequest {
+  string job_id = 1;
+}
+
+// An update on the progress of a single test case within a job.
+message JobUpdate {
+  string job_id = 1;
+  int64 testcase_id = 2;
+  TestCaseStatus status = 3;
+  string log_snippet = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// Request for final job results.
+message GetJobResultsRequest {
+  string job_id = 1;
+}
+
+// Contains the final metrics and detailed results of a completed job.
+message JobResults {
+  string job_id = 1;
+  float success_percentage = 2;
+  float timeout_percentage = 3;
+  float failure_percentage = 4;
+  repeated TestCaseResult results = 5;
+}
+
+// The result of a single test case reproduction.
+message TestCaseResult {
+  int64 testcase_id = 1;
+  TestCaseStatus final_status = 2;
+  string reproduction_log_url = 3;
+}
+
+// Enum for the overall job status.
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_QUEUED = 1;
+  JOB_STATUS_RUNNING = 2;
+  JOB_STATUS_COMPLETED = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CANCELLED = 5;
+}
+
+// Enum for the status of an individual test case reproduction.
+enum TestCaseStatus {
+  TEST_CASE_STATUS_UNSPECIFIED = 0;
+  TEST_CASE_STATUS_PENDING = 1;
+  TEST_CASE_STATUS_RUNNING = 2;
+  TEST_CASE_STATUS_REPRODUCED = 3;
+  TEST_CASE_STATUS_FAILED_REPRODUCTION = 4;
+  TEST_CASE_STATUS_TIMEOUT = 5;
+}
