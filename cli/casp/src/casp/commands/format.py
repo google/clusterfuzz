@@ -7,46 +7,41 @@
 #      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is is "AS IS" BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Run format command."""
 
-from pathlib import Path
 import subprocess
 import sys
 
-from casp.utils import path_utils
+from casp.utils import local_butler
 import click
 
 
 @click.command(name='format', help='Run format command')
-@click.argument(
-    'path',
-    required=False,
-    type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.argument('path', required=False, type=click.Path(exists=True))
 @click.option(
-    '--dir',
-    '--directory',
-    '-d',
-    'directory',
-    help='The directory to run the format command in.',
+    '--path',
+    '-p',
+    'path_option',
+    help='The file or directory to run the format command in.',
     default=None,
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    type=click.Path(exists=True),
     show_default=True)
-def cli(path: str, directory: str) -> None:
+def cli(path: str, path_option: str) -> None:
   """Run format command"""
-  butler_py_path = path_utils.find_butler(Path.cwd())
-  if not butler_py_path:
+  target_dir = path_option or path
+
+  try:
+    if target_dir:
+      command = local_butler.build_command('format', path=target_dir)
+    else:
+      command = local_butler.build_command('format')
+  except FileNotFoundError:
     click.echo('butler.py not found in this directory.', err=True)
     sys.exit(1)
-
-  target_dir = directory or path
-
-  command = ['python', str(butler_py_path), 'format']
-  if target_dir:
-    command.extend(['--dir', str(target_dir)])
 
   try:
     subprocess.run(command, check=True)
