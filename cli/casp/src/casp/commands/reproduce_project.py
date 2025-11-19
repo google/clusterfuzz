@@ -6,7 +6,7 @@ import warnings
 import tempfile
 import sys
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 
 # Imports do contexto
 from clusterfuzz._internal.config import local_config
@@ -14,6 +14,8 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.datastore import ndb_utils
 from casp.utils import docker_utils
+from casp.utils import config
+from casp.utils import container
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -21,41 +23,23 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 # --- SIMPLIFIED WORKER ---
-def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
-                     log_file_path: str) -> bool:
+def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: str,
+                     docker_image: str, log_file_path: str) -> bool:
   """
   Runs the reproduction of a testcase in a Docker container.
-  Captures all container output and saves it to the specified log file.
-  Returns True if the Docker command was successful, False otherwise.
   """
-  # Redirect stdout and stderr to the log file to capture output from libraries (e.g. gcloud)
   with open(log_file_path, 'a', encoding='utf-8', errors='ignore') as log_f:
     sys.stdout = log_f
     sys.stderr = log_f
 
     def file_logger(line):
-      """Callback to write each log line."""
       if line:
         print(line)
-        sys.stdout.flush()  # Ensure immediate flush
+        sys.stdout.flush()
 
     try:
-      binds = {
-          os.path.abspath(config_dir):
-              {
-                  'bind': '/app/configs/external',
-                  'mode': 'ro'
-              },
-          os.path.abspath('.'):
-              {
-                  'bind': '/app',
-                  'mode': 'rw'
-              },
-          os.path.expanduser('~/.config/gcloud'): {
-              'bind': '/root/.config/gcloud',
-              'mode': 'ro'
-          }
-      }
+      binds = base_binds.copy()
+      binds[os.path.abspath('.')] = {'bind': '/app', 'mode': 'rw'}
 
       env_vars = {
           'CASP_STRUCTURED_LOGGING': '1',
@@ -67,10 +51,9 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
 
       cmd = [
           'python3.11', '/app/butler.py', 'reproduce', f'--testcase-id={tc_id}',
-          '--config-dir=/app/configs/external'
+          f'--config-dir={container_config_dir}'
       ]
 
-      # Execute the Docker command. The log_callback directs all output to the file.
       run_command_success = docker_utils.run_command(
           cmd,
           binds,
@@ -79,8 +62,6 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
           log_callback=file_logger,
           silent=True)
 
-      # Check the log file for success markers. We re-read the file from disk.
-      # Note: Since we are holding it open in 'log_f', we should flush first.
       log_f.flush()
 
       try:
@@ -95,7 +76,6 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
       return run_command_success
 
     except Exception as e:
-      # Captures critical worker exceptions and logs them.
       print(f"CRITICAL EXCEPTION in worker for TC-{tc_id}: {e}")
       return False
 
@@ -103,8 +83,14 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
 # --- MAIN CLI ---
 @click.command('project')
 @click.option('--project-name', required=True, help='OSS-Fuzz project name.')
-@click.option('-c', '--config-dir', required=True, help='Path to config.')
-
+@click.option(
+    '--config-dir',
+    '-c',
+    required=False,
+    default=str(container.CONTAINER_CONFIG_PATH / 'config'),
+    help=('Path to the config directory. If you set a custom '
+          'config directory, this argument is not used.'),
+)
 @click.option(
     '-n', '--parallelism', default=3, type=int, help='Parallel workers.')
 @click.option(
@@ -114,18 +100,32 @@ def worker_reproduce(tc_id: str, config_dir: str, docker_image: str,
     default='legacy',
     help='OS version to use for reproduction.')
 @click.option(
-    '--project-type',
+    '--project',
+    '-p',
     type=click.Choice(['external', 'internal', 'dev'], case_sensitive=False),
     default='external',
-    help='The project type (external, internal, dev).')
-def cli(project_name, config_dir, parallelism, os_version, project_type):
+    help='The ClusterFuzz project (instance type).')
+def cli(project_name, config_dir, parallelism, os_version, project):
   """
   Reproduces testcases for an OSS-Fuzz project, saving logs to files.
   """
 
   # 1. Environment Setup
-  os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(config_dir)
-  local_config.ProjectConfig().set_environment()
+  cfg = config.load_and_validate_config()
+  volumes, container_config_dir_path = docker_utils.prepare_docker_volumes(
+      cfg, config_dir)
+  container_config_dir = str(container_config_dir_path)
+
+  # Attempt to set local environment for Datastore access
+  local_config_dir = None
+  if 'custom_config_path' in cfg:
+    local_config_dir = cfg['custom_config_path']
+  elif config_dir and os.path.isdir(config_dir):
+    local_config_dir = config_dir
+
+  if local_config_dir:
+    os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(local_config_dir)
+    local_config.ProjectConfig().set_environment()
 
   # 2. Prepare Temporary Log Directory
   timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -134,12 +134,15 @@ def cli(project_name, config_dir, parallelism, os_version, project_type):
 
   # 3. Fetch Testcases from Datastore
   click.echo(f"Fetching testcases for {project_name}...")
-  with ndb_init.context():
-    query = data_types.Testcase.query(
-        data_types.Testcase.project_name == project_name,
-        ndb_utils.is_true(data_types.Testcase.open))
-    testcases = list(
-        ndb_utils.get_all_from_query(query))  # Force generator evaluation here
+  try:
+    with ndb_init.context():
+      query = data_types.Testcase.query(
+          data_types.Testcase.project_name == project_name,
+          ndb_utils.is_true(data_types.Testcase.open))
+      testcases = list(ndb_utils.get_all_from_query(query))
+  except Exception as e:
+    click.secho(f"Error fetching testcases: {e}", fg='red')
+    return
 
   if not testcases:
     click.secho(f'No open testcases found for {project_name}.', fg='yellow')
@@ -148,11 +151,9 @@ def cli(project_name, config_dir, parallelism, os_version, project_type):
   tc_ids = [str(t.key.id()) for t in testcases]
   click.echo(f"Found {len(tc_ids)} open testcases.")
 
-
-
   # 4. Docker Image Pre-pull (Silent)
   try:
-    docker_image = docker_utils.get_image_name(project_type, os_version)
+    docker_image = docker_utils.get_image_name(project, os_version)
   except ValueError as e:
     click.secho(f'Error: {e}', fg='red')
     return
@@ -160,7 +161,6 @@ def cli(project_name, config_dir, parallelism, os_version, project_type):
   click.echo(
       f"Checking Docker image: {docker_image} (this may take a moment)...")
   try:
-    # Redirect stdout/stderr to DEVNULL to avoid polluting the terminal
     subprocess.run(
         ["docker", "pull", docker_image],
         check=False,
@@ -183,15 +183,13 @@ def cli(project_name, config_dir, parallelism, os_version, project_type):
 
     for tid in tc_ids:
       log_file = os.path.join(log_dir, f"tc-{tid}.log")
-      # Ensure log file starts clean for each testcase
       with open(log_file, 'w', encoding='utf-8') as f:
         f.write(f"--- Starting reproduction for Testcase ID: {tid} ---\n")
 
-      f = executor.submit(worker_reproduce, tid, config_dir, docker_image,
-                          log_file)
+      f = executor.submit(worker_reproduce, tid, volumes, container_config_dir,
+                          docker_image, log_file)
       future_to_tc[f] = tid
 
-    # Monitor and report task status as they complete
     completed_count = 0
     for future in concurrent.futures.as_completed(future_to_tc):
       completed_count += 1
