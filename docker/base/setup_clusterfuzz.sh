@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export CLOUDSDK_PYTHON=python3.11
+
 if [ -z "$DEPLOYMENT_BUCKET" ]; then
   # Get deployment bucket from project metadata.
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
