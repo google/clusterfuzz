@@ -50,6 +50,24 @@ class BuildCommandTest(unittest.TestCase):
         command, ['python', '/explicit/butler.py', 'format', '--verbose=true'])
 
   @patch('casp.utils.path_utils.get_butler_in_dir', autospec=True)
+  def test_build_command_flags_and_args(self, mock_get_butler):
+    """Tests handling of flags (None value) and args with underscores."""
+    mock_get_butler.return_value = Path('/fake/butler.py')
+
+    command = local_butler.build_command(
+        'lint',
+        path='some/path',
+        type_check=None,
+        another_flag=None,
+        complex_arg='value')
+
+    expected_command = [
+        'python', '/fake/butler.py', 'lint', '--path=some/path', '--type-check',
+        '--another-flag', '--complex-arg=value'
+    ]
+    self.assertEqual(command, expected_command)
+
+  @patch('casp.utils.path_utils.get_butler_in_dir', autospec=True)
   def test_butler_not_found(self, mock_get_butler):
     """Tests validation when butler.py is not found."""
     mock_get_butler.return_value = None
