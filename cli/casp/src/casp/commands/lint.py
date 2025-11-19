@@ -34,17 +34,24 @@ import click
     default=None,
     type=click.Path(exists=True),
     show_default=True)
-def cli(path: str, path_option: str) -> None:
+@click.option(
+    '--type-check',
+    help='Also run the type checker',
+    is_flag=True,
+    default=False)
+def cli(path: str, path_option: str, type_check: bool) -> None:
   """Runs linting checks on the codebase. 
   By default, it lints changed code in the current branch. 
   You can also specify a file or directory to lint."""
   target_dir = path_option or path
 
   try:
+    arguments = {}
+    if type_check:
+      arguments['type_check'] = None
     if target_dir:
-      command = local_butler.build_command('lint', path=target_dir)
-    else:
-      command = local_butler.build_command('lint')
+      arguments['path'] = target_dir
+    command = local_butler.build_command('lint', **arguments)
   except FileNotFoundError:
     click.echo('butler.py not found in this directory.', err=True)
     sys.exit(1)
