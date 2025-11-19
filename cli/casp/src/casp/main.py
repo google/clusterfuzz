@@ -13,13 +13,27 @@
 # limitations under the License.
 """Casp CLI."""
 
+from casp.commands import bootstrap
+from casp.commands import clean_indexes
+from casp.commands import create_config
+from casp.commands import deploy
+from casp.commands import format as format_command
+from casp.commands import hi
+from casp.commands import init
+from casp.commands import integration_tests
+from casp.commands import js_unittest
+from casp.commands import lint
+from casp.commands import package
+from casp.commands import py_unittest
+from casp.commands import remote
+from casp.commands import reproduce
+from casp.commands import run
+from casp.commands import run_bot
+from casp.commands import run_server
+from casp.commands import run_task
+from casp.commands import version
+from casp.commands import weights
 import click
-
-from .commands import hi
-from .commands import init
-from .commands import reproduce
-from .commands import run_task
-from .commands import version
 
 
 @click.group()
@@ -32,6 +46,21 @@ cli.add_command(hi.cli)
 cli.add_command(init.cli)
 cli.add_command(run_task.cli)
 cli.add_command(reproduce.cli)
+cli.add_command(bootstrap.cli)
+cli.add_command(py_unittest.cli)
+cli.add_command(js_unittest.cli)
+cli.add_command(format_command.cli)
+cli.add_command(lint.cli)
+cli.add_command(package.cli)
+cli.add_command(deploy.cli)
+cli.add_command(run_server.cli)
+cli.add_command(run.cli)
+cli.add_command(run_bot.cli)
+cli.add_command(remote.cli)
+cli.add_command(clean_indexes.cli)
+cli.add_command(create_config.cli)
+cli.add_command(integration_tests.cli)
+cli.add_command(weights.cli)
 
 if __name__ == '__main__':
   cli()
