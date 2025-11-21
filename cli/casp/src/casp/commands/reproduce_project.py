@@ -41,8 +41,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 # --- SIMPLIFIED WORKER ---
 def worker_reproduce(tc_id: str, base_binds: Dict,
-                     container_config_dir: Optional[str], docker_image: str,
-                     log_file_path: str) -> bool:
+                     container_config_dir: Optional[str],
+                     docker_image: str, log_file_path: str) -> bool:
   """
   Runs the reproduction of a testcase in a Docker container.
   """
@@ -64,7 +64,7 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
           'PYTHONUNBUFFERED': '1',
           'PYTHONWARNINGS': 'ignore',
           'TEST_BOT_ENVIRONMENT': '1',
-          'PYTHONPATH': '/app/src'
+          'PYTHONPATH': '/app/src',
       }
 
       cmd = [
@@ -79,6 +79,7 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
           cmd,
           binds,
           docker_image,
+          privileged=True,
           environment_vars=env_vars,
           log_callback=file_logger,
           silent=True)
@@ -108,9 +109,9 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
     '--config-dir',
     '-c',
     required=False,
-    default=str(container.CONTAINER_CONFIG_PATH / 'config'),
-    help=('Path to the config directory. If you set a custom '
-          'config directory, this argument is not used.'),
+    default='../clusterfuzz-config',
+    help=('Path to the root of the ClusterFuzz config checkout, e.g., '
+          '../clusterfuzz-config.'),
 )
 @click.option(
     '-n', '--parallelism', default=10, type=int, help='Parallel workers.')
@@ -132,34 +133,25 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   """
 
   # 1. Environment Setup
+  config_path = os.path.join(config_dir, 'configs', environment)
+  if not os.path.isdir(config_path):
+    click.secho(
+        f'Error: Config directory not found: {config_path}\n'
+        f'Please provide the correct path to the root of your '
+        f'clusterfuzz-config checkout using the -c/--config-dir option.',
+        fg='red')
+    sys.exit(1)
+
   cfg = config.load_and_validate_config()
-  volumes, container_config_dir_path = docker_utils.prepare_docker_volumes(
-      cfg, config_dir)
+  volumes, _ = docker_utils.prepare_docker_volumes(cfg, config_path)
 
-  default_container_config_path = str(
-      container.CONTAINER_CONFIG_PATH / 'config')
-  worker_config_dir_arg = None
-
-  if container_config_dir_path != default_container_config_path:
-    # If the resolved config path is not the default, pass it to the worker.
-    worker_config_dir_arg = str(container_config_dir_path)
-
-  # If config_dir is a local path and not the default container path, mount it manually.
-  if os.path.isdir(config_dir) and config_dir != default_container_config_path:
-    mount_point = '/custom_config'
-    volumes[os.path.abspath(config_dir)] = {'bind': mount_point, 'mode': 'ro'}
-    worker_config_dir_arg = mount_point
+  mount_point = '/custom_config'
+  volumes[os.path.abspath(config_path)] = {'bind': mount_point, 'mode': 'ro'}
+  worker_config_dir_arg = mount_point
 
   # Attempt to set local environment for Datastore access
-  local_config_dir = None
-  if 'custom_config_path' in cfg:
-    local_config_dir = cfg['custom_config_path']
-  elif config_dir and os.path.isdir(config_dir):
-    local_config_dir = config_dir
-
-  if local_config_dir:
-    os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(local_config_dir)
-    local_config.ProjectConfig().set_environment()
+  os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(config_path)
+  local_config.ProjectConfig().set_environment()
 
   # 2. Prepare Temporary Log Directory
   timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -190,8 +182,12 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   for t in testcases:
     is_unreproducible = t.status and t.status.startswith('Unreproducible')
     is_one_time = t.one_time_crasher_flag
+    is_timeout = t.crash_type == 'Timeout'
+    is_flaky_stack = t.flaky_stack
+    is_pending_status = t.status == 'Pending'
 
-    if is_unreproducible or is_one_time:
+    if (is_unreproducible or is_one_time or is_timeout or is_flaky_stack or
+        is_pending_status):
       skipped.append(t)
     else:
       to_reproduce.append(t)
@@ -199,14 +195,12 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   skipped_count = len(skipped)
   if skipped_count > 0:
     click.echo(
-        f"Found {total_testcases_count} open testcases. {skipped_count} skipped (Unreproducible or One-time crasher)."
+        f"Found {total_testcases_count} open testcases. {skipped_count} skipped (Unreproducible, Flaky, Pending, etc)."
     )
   else:
     click.echo(f"Found {total_testcases_count} open testcases.")
 
-  tc_ids = [str(t.key.id()) for t in to_reproduce]
-
-  if not tc_ids:
+  if not to_reproduce:
     click.echo("No reproducible testcases to run.")
     return
 
@@ -232,7 +226,7 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
         fg='yellow')
 
   click.echo(
-      f"\nStarting reproduction for {len(tc_ids)} testcases with {parallelism} parallel workers using {environment} environment and {os_version} OS."
+      f"\nStarting reproduction for {len(to_reproduce)} testcases with {parallelism} parallel workers using {environment} environment and {os_version} OS."
   )
 
   # 5. Parallel Worker Execution
@@ -240,7 +234,8 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
       max_workers=parallelism) as executor:
     future_to_tc = {}
 
-    for tid in tc_ids:
+    for t in to_reproduce:
+      tid = str(t.key.id())
       log_file = os.path.join(log_dir, f"tc-{tid}.log")
       with open(log_file, 'w', encoding='utf-8') as f:
         f.write(f"--- Starting reproduction for Testcase ID: {tid} ---\n")
@@ -260,17 +255,17 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
         if is_success:
           success_count += 1
           click.secho(
-              f"✔ TC-{tid} Success ({completed_count}/{len(tc_ids)})",
+              f"✔ TC-{tid} Success ({completed_count}/{len(to_reproduce)})",
               fg='green')
         else:
           failure_count += 1
           click.secho(
-              f"✖ TC-{tid} Failed ({completed_count}/{len(tc_ids)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
+              f"✖ TC-{tid} Failed ({completed_count}/{len(to_reproduce)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
               fg='red')
       except Exception as exc:
         failure_count += 1
         click.secho(
-            f"! TC-{tid} Error: {exc} ({completed_count}/{len(tc_ids)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
+            f"! TC-{tid} Error: {exc} ({completed_count}/{len(to_reproduce)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
             fg='red')
 
   click.echo("\nAll reproduction tasks completed.")
