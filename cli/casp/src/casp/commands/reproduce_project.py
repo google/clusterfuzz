@@ -1,21 +1,38 @@
-import click
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Reproduces testcases for an OSS-Fuzz project locally."""
+
 import concurrent.futures
+from datetime import datetime
 import os
 import subprocess
 import sys
 import tempfile
+from typing import Dict
+from typing import Optional
 import warnings
-from datetime import datetime
-from typing import Dict, List, Optional
+
+from casp.utils import config
+from casp.utils import container
+from casp.utils import docker_utils
+import click
 
 # Imports do contexto
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.datastore import ndb_utils
-from casp.utils import docker_utils
-from casp.utils import config
-from casp.utils import container
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -23,8 +40,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 # --- SIMPLIFIED WORKER ---
-def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: Optional[str],
-                     docker_image: str, log_file_path: str) -> bool:
+def worker_reproduce(tc_id: str, base_binds: Dict,
+                     container_config_dir: Optional[str], docker_image: str,
+                     log_file_path: str) -> bool:
   """
   Runs the reproduction of a testcase in a Docker container.
   """
@@ -50,13 +68,14 @@ def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: Optiona
       }
 
       cmd = [
-          'python3.11', '/app/butler.py', '--local-logging', 'reproduce', f'--testcase-id={tc_id}'
+          'python3.11', '/app/butler.py', '--local-logging', 'reproduce',
+          f'--testcase-id={tc_id}'
       ]
 
       if container_config_dir:
         cmd.append(f'--config-dir={container_config_dir}')
 
-      run_command_success = docker_utils.run_command(
+      docker_utils.run_command(
           cmd,
           binds,
           docker_image,
@@ -97,8 +116,8 @@ def worker_reproduce(tc_id: str, base_binds: Dict, container_config_dir: Optiona
     '-n', '--parallelism', default=10, type=int, help='Parallel workers.')
 @click.option(
     '--os-version',
-    type=click.Choice(['legacy', 'ubuntu-20-04', 'ubuntu-24-04'],
-                      case_sensitive=False),
+    type=click.Choice(
+        ['legacy', 'ubuntu-20-04', 'ubuntu-24-04'], case_sensitive=False),
     default='legacy',
     help='OS version to use for reproduction.')
 @click.option(
@@ -116,8 +135,9 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   cfg = config.load_and_validate_config()
   volumes, container_config_dir_path = docker_utils.prepare_docker_volumes(
       cfg, config_dir)
-  
-  default_container_config_path = str(container.CONTAINER_CONFIG_PATH / 'config')
+
+  default_container_config_path = str(
+      container.CONTAINER_CONFIG_PATH / 'config')
   worker_config_dir_arg = None
 
   if container_config_dir_path != default_container_config_path:
@@ -126,9 +146,9 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
 
   # If config_dir is a local path and not the default container path, mount it manually.
   if os.path.isdir(config_dir) and config_dir != default_container_config_path:
-      mount_point = '/custom_config'
-      volumes[os.path.abspath(config_dir)] = {'bind': mount_point, 'mode': 'ro'}
-      worker_config_dir_arg = mount_point
+    mount_point = '/custom_config'
+    volumes[os.path.abspath(config_dir)] = {'bind': mount_point, 'mode': 'ro'}
+    worker_config_dir_arg = mount_point
 
   # Attempt to set local environment for Datastore access
   local_config_dir = None
@@ -255,15 +275,18 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
 
   click.echo("\nAll reproduction tasks completed.")
 
-  skipped_count = len(skipped)
-  success_rate = (success_count / total_testcases_count) * 100 if total_testcases_count else 0.0
-  failure_rate = (failure_count / total_testcases_count) * 100 if total_testcases_count else 0.0
-  skipped_rate = (skipped_count / total_testcases_count) * 100 if total_testcases_count else 0.0
+  reproducible_count = len(to_reproduce)
+  success_rate = (
+      success_count / reproducible_count) * 100 if reproducible_count else 0.0
+  failure_rate = (
+      failure_count / reproducible_count) * 100 if reproducible_count else 0.0
 
-  click.echo(f"Summary: {total_testcases_count} testcases processed.")
+  click.echo(f"Summary: {reproducible_count} testcases attempted.")
   click.secho(f"  ✔ Success: {success_count} ({success_rate:.2f}%)", fg='green')
   click.secho(f"  ✖ Failed:  {failure_count} ({failure_rate:.2f}%)", fg='red')
-  click.secho(f"  ⚠ Skipped: {skipped_count} ({skipped_rate:.2f}%) - Unreliable (Unreproducible/One-time)", fg='yellow')
+  click.secho(
+      f"  ⚠ Skipped: {len(skipped)} - Unreliable (Unreproducible/One-time)",
+      fg='yellow')
   click.echo(f"Detailed logs are available in: {log_dir}")
 
 
