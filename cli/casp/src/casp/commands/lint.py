@@ -41,6 +41,7 @@ import click
     default=False)
 def cli(path: str, path_option: str, type_check: bool) -> None:
   """Runs linting checks on the codebase. 
+  
   By default, it lints changed code in the current branch. 
   You can also specify a file or directory to lint."""
   target_dir = path_option or path

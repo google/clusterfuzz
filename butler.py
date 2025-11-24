@@ -111,8 +111,8 @@ def _add_lint_subparser(toplevel_subparsers):
       '--path',
       dest='path',
       default=None,
-      help='The file or directory to lint. Default is to lint changed files in '
-  )
+      help=('The file or directory to lint. Default is to lint changed '
+            'files in current branch'))
 
 
 def _add_format_subparser(toplevel_subparsers):
