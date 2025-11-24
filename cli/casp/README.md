@@ -48,9 +48,9 @@ For example, to add a `my-command` command, follow these steps:
 
     import click
 
-    from .commands import hi
-    from .commands import version
-    from .commands import my_command  # Add this line
+    from casp.commands import hi
+    from casp.commands import version
+    from casp.commands import my_command  # Add this line
 
     @click.group()
     def cli():
@@ -69,5 +69,45 @@ Once you have completed these steps, the new command will be available as
 To run all unit tests for the `casp` CLI, use the following command from the root of the project:
 
 ```bash
-python -m unittest discover -s cli/casp/src/casp/tests -v
+python -m unittest discover -s cli/casp/src/casp/tests -p '*_test.py' -v
+```
+
+## Writing Tests
+
+To add tests for a new command or feature, create a new Python file in the
+`cli/casp/src/casp/tests` directory. The file name should follow the pattern
+`<feature_name>_test.py`.
+
+Each test file should contain test classes that inherit from `unittest.TestCase`.
+You can use `click.testing.CliRunner` to invoke your CLI commands in tests.
+
+Here's an example for a `my-command` feature:
+
+```python
+# cli/casp/src/casp/tests/test_my_command.py
+
+import unittest
+from click.testing import CliRunner
+
+from casp.commands import my_command
+
+class MyCommandTest(unittest.TestCase):
+  """Tests for the `my-command` CLI command."""
+
+  def setUp(self):
+    self.runner = CliRunner()
+
+  def test_my_command_no_verbose(self):
+    """Test `my-command` without the --verbose flag."""
+    result = self.runner.invoke(my_command.cli)
+    self.assertEqual(result.exit_code, 0)
+    self.assertIn('This is my new command.', result.output)
+    self.assertNotIn('Verbose logging is enabled.', result.output)
+
+  def test_my_command_verbose(self):
+    """Test `my-command` with the --verbose flag."""
+    result = self.runner.invoke(my_command.cli, ['--verbose'])
+    self.assertEqual(result.exit_code, 0)
+    self.assertIn('Verbose logging is enabled.', result.output)
+    self.assertIn('This is my new command.', result.output)
 ```
