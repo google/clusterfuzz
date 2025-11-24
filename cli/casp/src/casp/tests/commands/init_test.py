@@ -14,7 +14,7 @@
 """Tests for the init command.
 
    For running all the tests, use (from the root of the project):
-   python -m unittest discover -s cli/casp/src/casp/tests -p test_init.py -v
+   python -m unittest discover -s cli/casp/src/casp/tests -p init_test.py -v
 """
 
 import os

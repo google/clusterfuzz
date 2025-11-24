@@ -14,7 +14,7 @@
 """Tests for config utility functions."
 
   For running all the tests, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -p test_config.py -v
+  python -m unittest discover -s cli/casp/src/casp/tests -p config_test.py -v
 """
 
 import json
