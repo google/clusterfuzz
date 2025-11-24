@@ -98,6 +98,23 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_lint_subparser(toplevel_subparsers):
+  """Adds a parser for the `lint` command."""
+  parser = toplevel_subparsers.add_parser(
+      'lint', help='Lint changed code in current branch.')
+  parser.add_argument(
+      '--type-check',
+      help='Also run the type checker on changed files.',
+      action='store_true',
+      default=False)
+  parser.add_argument(
+      '--path',
+      dest='path',
+      default=None,
+      help=('The file or directory to lint. Default is to lint changed '
+            'files in current branch'))
+
+
 def _add_format_subparser(toplevel_subparsers):
   """Adds a parser for the `format` command."""
   parser = toplevel_subparsers.add_parser(
@@ -308,14 +325,6 @@ def main():
       help=('Do not close browser when tests '
             'finish. Good for debugging.'))
 
-  parser_lint = subparsers.add_parser(
-      'lint', help='Lint changed code in current branch.')
-  parser_lint.add_argument(
-      '--type-check',
-      help='Also run the type checker on changed files.',
-      action='store_true',
-      default=False)
-
   parser_package = subparsers.add_parser(
       'package', help='Package clusterfuzz with a staging revision')
   parser_package.add_argument(
@@ -439,6 +448,7 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)
   _add_integration_tests_subparsers(subparsers)
   _add_weights_subparser(subparsers)

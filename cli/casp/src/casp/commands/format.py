@@ -35,10 +35,10 @@ def cli(path: str, path_option: str) -> None:
   target_dir = path_option or path
 
   try:
+    arguments = {}
     if target_dir:
-      command = local_butler.build_command('format', path=target_dir)
-    else:
-      command = local_butler.build_command('format')
+      arguments['path'] = target_dir
+    command = local_butler.build_command('format', **arguments)
   except FileNotFoundError:
     click.echo('butler.py not found in this directory.', err=True)
     sys.exit(1)

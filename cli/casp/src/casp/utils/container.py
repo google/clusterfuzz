@@ -47,6 +47,9 @@ def build_butler_command(subcommand: str, **kwargs: str) -> list[str]:
   command = f'{_COMMAND_PREFIX} {subcommand}'
   for key, value in kwargs.items():
     key = key.replace('_', '-')
-    command += f' --{key}={value}'
+    if value is not None:
+      command += f' --{key}={value}'
+    else:
+      command += f' --{key}'
 
   return ['bash', '-c', command]
