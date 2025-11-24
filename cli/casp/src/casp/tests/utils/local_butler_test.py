@@ -15,7 +15,7 @@
 
   For running, use (from the root of the project):
   python -m unittest discover -s cli/casp/src/casp/tests 
-  -p test_local_butler.py -v
+  -p local_butler_test.py -v
 """
 
 from pathlib import Path

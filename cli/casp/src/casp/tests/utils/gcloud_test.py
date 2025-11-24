@@ -14,7 +14,7 @@
 """Tests for the gcloud utility functions.
 
   For running, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -p test_gcloud.py -v
+  python -m unittest discover -s cli/casp/src/casp/tests -p gcloud_test.py -v
 """
 
 import subprocess
