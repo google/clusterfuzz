@@ -27,9 +27,7 @@ import click
           'run tests in parallel, unsuppress output, '
           'or print verbose logs.'))
 @click.option(
-    '--pattern',
-    '-p',
-    help='Pattern for test files. Default is *_test.py.')
+    '--pattern', '-p', help='Pattern for test files. Default is *_test.py.')
 @click.option(
     '--unsuppress-output',
     '-u',
@@ -55,15 +53,13 @@ import click
     type=click.Choice(['appengine', 'core', 'modules', 'cli']),
     help='The target for the unit tests.')
 @click.option(
-    '--config-dir',
-    '-c',
-    help='Config directory to use for module tests.')
+    '--config-dir', '-c', help='Config directory to use for module tests.')
 def cli(pattern: str, unsuppress_output: bool, parallel: bool, verbose: bool,
         target: str, config_dir: str) -> None:
   """Runs Python unit tests."""
   try:
     arguments = {}
-    arguments['target'] = target 
+    arguments['target'] = target
     if pattern:
       arguments['pattern'] = pattern
     if unsuppress_output:
