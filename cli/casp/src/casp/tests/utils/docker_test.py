@@ -14,7 +14,7 @@
 """Tests for docker utility functions.
 
   For running, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -p test_docker.py -v
+  python -m unittest discover -s cli/casp/src/casp/tests -p docker_test.py -v
 """
 
 import os
