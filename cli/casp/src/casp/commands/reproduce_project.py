@@ -29,6 +29,7 @@ from casp.utils import docker_utils
 import click
 
 # Imports do contexto
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_init
@@ -39,10 +40,37 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
+def _get_build_directory(bucket_path, job_name, builds_dir):
+  """Calculates the build directory hash/path expected by build_manager."""
+  if bucket_path:
+    if '://' in bucket_path:
+      path = bucket_path.split('://')[1].lstrip('/')
+    else:
+      path = bucket_path.lstrip('/')
+
+    bucket_path_clean, file_pattern = path.rsplit('/', 1)
+    bucket_path_clean = bucket_path_clean.replace('/', '_')
+
+    # Various build type mapping strings (from build_manager.py)
+    BUILD_TYPE_SUBSTRINGS = [
+        '-beta', '-stable', '-debug', '-release', '-symbolized',
+        '-extended_stable'
+    ]
+    file_pattern = utils.remove_sub_strings(file_pattern, BUILD_TYPE_SUBSTRINGS)
+    file_pattern_hash = utils.string_hash(file_pattern)
+    job_directory = f'{bucket_path_clean}_{file_pattern_hash}'
+  else:
+    job_directory = job_name
+
+  # RegularBuild uses 'revisions' subdirectory by default
+  return os.path.join(builds_dir, job_directory, 'revisions')
+
+
 # --- SIMPLIFIED WORKER ---
 def worker_reproduce(tc_id: str, base_binds: Dict,
                      container_config_dir: Optional[str],
-                     docker_image: str, log_file_path: str) -> bool:
+                     local_build_dir: Optional[str], docker_image: str,
+                     log_file_path: str, crash_revision: int) -> bool:
   """
   Runs the reproduction of a testcase in a Docker container.
   """
@@ -55,25 +83,78 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
         print(line)
         sys.stdout.flush()
 
+    revision_file_path = None
+
     try:
       binds = base_binds.copy()
       binds[os.path.abspath('.')] = {'bind': '/app', 'mode': 'rw'}
 
-      env_vars = {
-          'CASP_STRUCTURED_LOGGING': '1',
-          'PYTHONUNBUFFERED': '1',
-          'PYTHONWARNINGS': 'ignore',
-          'TEST_BOT_ENVIRONMENT': '1',
-          'PYTHONPATH': '/app/src',
-      }
+      # Need to initialize Datastore context in worker to fetch Job
+      with ndb_init.context():
+        testcase = data_types.Testcase.get_by_id(int(tc_id))
+        job = data_types.Job.query(
+            data_types.Job.name == testcase.job_type).get()
+        # Parse environment to get RELEASE_BUILD_BUCKET_PATH
+        env = {}
+        for line in job.get_environment_string().splitlines():
+          if '=' in line and not line.startswith('#'):
+            k, v = line.split('=', 1)
+            env[k.strip()] = v.strip()
 
-      cmd = [
-          'python3.11', '/app/butler.py', '--local-logging', 'reproduce',
-          f'--testcase-id={tc_id}'
-      ]
+        release_build_bucket_path = env.get('RELEASE_BUILD_BUCKET_PATH')
 
-      if container_config_dir:
-        cmd.append(f'--config-dir={container_config_dir}')
+      # Default BUILDS_DIR in bot environment is usually this:
+      # But let's set it explicitly to be sure
+      target_builds_root = '/data/clusterfuzz/bot/builds'
+
+      if local_build_dir and release_build_bucket_path:
+        target_build_dir = _get_build_directory(release_build_bucket_path,
+                                                job.name, target_builds_root)
+
+        # Mount local build to a neutral location
+        binds[local_build_dir] = {'bind': '/local_build', 'mode': 'rw'}
+        
+        # We will create the symlinks and REVISION file in the shell command
+        setup_cmd = (
+            f'mkdir -p {target_build_dir} && '
+            f'ln -s /local_build/* {target_build_dir}/ && '
+            f'echo {crash_revision} > {target_build_dir}/REVISION'
+        )
+        
+        env_vars = {
+            'CASP_STRUCTURED_LOGGING': '1',
+            'PYTHONUNBUFFERED': '1',
+            'PYTHONWARNINGS': 'ignore',
+            'TEST_BOT_ENVIRONMENT': '1',
+            'PYTHONPATH': '/app/src',
+            'BUILDS_DIR': target_builds_root,
+        }
+        
+        butler_path = '/app/butler.py'
+        cmd_str = f'{setup_cmd} && python3.11 {butler_path} --local-logging reproduce --testcase-id={tc_id}'
+        if container_config_dir:
+          cmd_str += f' --config-dir={container_config_dir}'
+
+        cmd = [
+            'sh', '-c',
+            cmd_str
+        ]
+      else:
+        env_vars = {
+            'CASP_STRUCTURED_LOGGING': '1',
+            'PYTHONUNBUFFERED': '1',
+            'PYTHONWARNINGS': 'ignore',
+            'TEST_BOT_ENVIRONMENT': '1',
+            'PYTHONPATH': '/app/src',
+            'BUILDS_DIR': target_builds_root,
+        }
+        butler_path = '/app/butler.py'
+        cmd = [
+            'python3.11', butler_path, '--local-logging', 'reproduce',
+            f'--testcase-id={tc_id}'
+        ]
+        if container_config_dir:
+          cmd.append(f'--config-dir={container_config_dir}')
 
       docker_utils.run_command(
           cmd,
@@ -100,6 +181,10 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
     except Exception as e:
       print(f"CRITICAL EXCEPTION in worker for TC-{tc_id}: {e}")
       return False
+    finally:
+      # Cleanup temp revision file
+      if revision_file_path and os.path.exists(revision_file_path):
+        os.remove(revision_file_path)
 
 
 # --- MAIN CLI ---
@@ -110,8 +195,8 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
     '-c',
     required=False,
     default='../clusterfuzz-config',
-    help=('Path to the root of the ClusterFuzz config checkout, e.g., '
-          '../clusterfuzz-config.'),
+    help='Path to the root of the ClusterFuzz config checkout, e.g., '
+         '../clusterfuzz-config.',
 )
 @click.option(
     '-n', '--parallelism', default=10, type=int, help='Parallel workers.')
@@ -127,7 +212,15 @@ def worker_reproduce(tc_id: str, base_binds: Dict,
     type=click.Choice(['external', 'internal', 'dev'], case_sensitive=False),
     default='external',
     help='The ClusterFuzz environment (instance type).')
-def cli(project_name, config_dir, parallelism, os_version, environment):
+@click.option(
+    '--local-build-path',
+    required=False,
+    help='Path to a local build directory with fuzzers compiled (e.g. /path/to/build/out). '
+         'If provided, this build is used instead of downloading artifacts.')
+@click.option('--engine', help='Fuzzing engine to filter by (e.g., libfuzzer, afl).')
+@click.option('--sanitizer', help='Sanitizer to filter by (e.g., address, memory).')
+def cli(project_name, config_dir, parallelism, os_version, environment,
+        local_build_path, engine, sanitizer):
   """
   Reproduces testcases for an OSS-Fuzz project, saving logs to files.
   """
@@ -148,6 +241,15 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
   mount_point = '/custom_config'
   volumes[os.path.abspath(config_path)] = {'bind': mount_point, 'mode': 'ro'}
   worker_config_dir_arg = mount_point
+
+
+  abs_local_build_path = None
+  if local_build_path:
+    abs_local_build_path = os.path.abspath(local_build_path)
+    if not os.path.isdir(abs_local_build_path):
+      click.secho(
+          f'Error: Build directory not found: {abs_local_build_path}', fg='red')
+      sys.exit(1)
 
   # Attempt to set local environment for Datastore access
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(config_path)
@@ -178,6 +280,7 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
 
   to_reproduce = []
   skipped = []
+  filtered_out_count = 0
 
   for t in testcases:
     is_unreproducible = t.status and t.status.startswith('Unreproducible')
@@ -185,8 +288,27 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
     is_timeout = t.crash_type == 'Timeout'
     is_flaky_stack = t.flaky_stack
     is_pending_status = t.status == 'Pending'
+    
+    # Filter by engine and sanitizer if provided
+    if engine and t.fuzzer_name and engine.lower() not in t.fuzzer_name.lower():
+        filtered_out_count += 1
+        continue
+    
+    if sanitizer and t.job_type:
+        sanitizer_map = {
+            'address': 'asan',
+            'memory': 'msan',
+            'undefined': 'ubsan',
+            'coverage': 'cov',
+            'dataflow': 'dft'
+        }
+        mapped_sanitizer = sanitizer_map.get(sanitizer.lower(), sanitizer.lower())
+        if mapped_sanitizer not in t.job_type.lower():
+            filtered_out_count += 1
+            continue
 
-    if (is_unreproducible or is_one_time or is_timeout or is_flaky_stack or
+    if (
+        is_unreproducible or is_one_time or is_timeout or is_flaky_stack or
         is_pending_status):
       skipped.append(t)
     else:
@@ -199,6 +321,14 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
     )
   else:
     click.echo(f"Found {total_testcases_count} open testcases.")
+
+  if filtered_out_count > 0:
+    msg = f"Filtered out {filtered_out_count} testcases not matching"
+    if engine:
+        msg += f" engine={engine}"
+    if sanitizer:
+        msg += f" sanitizer={sanitizer}"
+    click.echo(msg)
 
   if not to_reproduce:
     click.echo("No reproducible testcases to run.")
@@ -241,7 +371,8 @@ def cli(project_name, config_dir, parallelism, os_version, environment):
         f.write(f"--- Starting reproduction for Testcase ID: {tid} ---\n")
 
       f = executor.submit(worker_reproduce, tid, volumes, worker_config_dir_arg,
-                          docker_image, log_file)
+                          abs_local_build_path, docker_image, log_file,
+                          t.crash_revision)
       future_to_tc[f] = tid
 
     completed_count = 0
