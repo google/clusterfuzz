@@ -49,7 +49,7 @@ class RunLocalCliTest(unittest.TestCase):
       self.assertEqual(0, result.exit_code, msg=result.output)
       
       self.mock_local_butler.build_command.assert_called_once_with(
-          'run', script_args=None, config_dir='test_config')
+          'run', config_dir='test_config')
       
       expected_cmd = ['cmd', '--config-dir=test_config', 'test_script']
       self.mock_subprocess_run.assert_called_once_with(expected_cmd, check=True)
@@ -59,8 +59,6 @@ class RunLocalCliTest(unittest.TestCase):
     # mock build_command behavior for flags
     self.mock_local_butler.build_command.return_value = [
         'cmd',
-        '--script-args=arg1',
-        '--script-args=arg2',
         '--non-dry-run',
         '--local',
         '--config-dir=test_config'
@@ -81,7 +79,6 @@ class RunLocalCliTest(unittest.TestCase):
       
       self.mock_local_butler.build_command.assert_called_once_with(
           'run',
-          script_args=['arg1', 'arg2'],
           non_dry_run=None,
           local=None,
           config_dir='test_config'
@@ -89,12 +86,12 @@ class RunLocalCliTest(unittest.TestCase):
       
       expected_cmd = [
           'cmd',
-          '--script-args=arg1',
-          '--script-args=arg2',
           '--non-dry-run',
           '--local',
           '--config-dir=test_config',
-          'test_script'
+          'test_script',
+          '--script_args=arg1',
+          '--script_args=arg2'
       ]
       self.mock_subprocess_run.assert_called_once_with(expected_cmd, check=True)
 
@@ -141,11 +138,10 @@ class RunContainerCliTest(unittest.TestCase):
     
     # Expect None for flags (non_dry_run, local)
     self.mock_container.build_butler_command.assert_called_once_with(
-        'run test_script',
+        'run test_script --script_args=arg1 --script_args=arg2',
         non_dry_run=None,
         config_dir='/container/config',
-        local=None,
-        script_args=['arg1', 'arg2']
+        local=None
     )
     self.mock_docker_utils.run_command.assert_called_once_with(
         ['bash', '-c', 'cmd'],

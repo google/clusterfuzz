@@ -124,9 +124,10 @@ def local_cmd(script_name: str, script_args: list[str] | None,
 @click.option(
     '--script-path',
     type=click.Path(exists=True),
+    required=True,
     help='Path to the script in the host machine.')
-def container_cmd(script_name, script_args, non_dry_run, local, project,
-                  script_path):
+def container_cmd(script_name: str, script_args: list[str] | None, non_dry_run: bool, local: bool, project: str,
+                  script_path: Path | None):
   """Run a one-off script inside a container."""
   cfg = config.load_and_validate_config()
 
