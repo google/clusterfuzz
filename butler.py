@@ -98,6 +98,30 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_py_unittest_subparser(toplevel_subparsers):
+  """Adds a parser for the `py_unittest` command."""
+  parser_py_unittest = toplevel_subparsers.add_parser(
+      'py_unittest', help='Run Python unit tests.')
+  parser_py_unittest.add_argument(
+      '-p', '--pattern', help='Pattern for test files. Default is *_test.py.')
+  parser_py_unittest.add_argument(
+      '-u',
+      '--unsuppress-output',
+      action='store_true',
+      help='Unsuppress output from `print`. Good for debugging.')
+  parser_py_unittest.add_argument(
+      '-m', '--parallel', action='store_true', help='Run tests in parallel.')
+  parser_py_unittest.add_argument(
+      '-v', '--verbose', action='store_true', help='Print logs from tests.')
+  parser_py_unittest.add_argument(
+      '-t',
+      '--target',
+      required=True,
+      choices=['appengine', 'core', 'modules', 'cli'])
+  parser_py_unittest.add_argument(
+      '-c', '--config-dir', help='Config dir to use for module tests.')
+
+
 def _add_lint_subparser(toplevel_subparsers):
   """Adds a parser for the `lint` command."""
   parser = toplevel_subparsers.add_parser(
@@ -298,24 +322,6 @@ def main():
       help=('Install all required dependencies for running an appengine, a bot,'
             'and a mapreduce locally.'))
 
-  parser_py_unittest = subparsers.add_parser(
-      'py_unittest', help='Run Python unit tests.')
-  parser_py_unittest.add_argument(
-      '-p', '--pattern', help='Pattern for test files. Default is *_test.py.')
-  parser_py_unittest.add_argument(
-      '-u',
-      '--unsuppress-output',
-      action='store_true',
-      help='Unsuppress output from `print`. Good for debugging.')
-  parser_py_unittest.add_argument(
-      '-m', '--parallel', action='store_true', help='Run tests in parallel.')
-  parser_py_unittest.add_argument(
-      '-v', '--verbose', action='store_true', help='Print logs from tests.')
-  parser_py_unittest.add_argument(
-      '-t', '--target', required=True, choices=['appengine', 'core', 'modules'])
-  parser_py_unittest.add_argument(
-      '-c', '--config-dir', help='Config dir to use for module tests.')
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(
@@ -448,6 +454,7 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_py_unittest_subparser(subparsers)
   _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)
   _add_integration_tests_subparsers(subparsers)
