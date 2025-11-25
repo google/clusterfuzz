@@ -32,9 +32,26 @@ logger = logging.getLogger(__name__)
 # Global list to track active subprocesses for clean termination
 active_processes = []
 
+def force_exit_handler(signum, frame):
+    # Use print to avoid dependency on logger if it's not ready
+    print("\nCtrl+C detected! Force terminating active processes...", flush=True)
+    for p in active_processes:
+        try:
+            # Try to get process group ID
+            pgid = os.getpgid(p.pid)
+            os.killpg(pgid, signal.SIGKILL)
+        except:
+            try:
+                p.terminate()
+            except:
+                pass
+    os._exit(1)
+
+signal.signal(signal.SIGINT, force_exit_handler)
+signal.signal(signal.SIGTERM, force_exit_handler)
+
 def safe_print(message):
-    sys.stdout.write(f"{message}\n")
-    sys.stdout.flush()
+    logger.info(message)
 
 def recursive_chmod(path, mode):
     if not os.path.exists(path):
@@ -67,8 +84,10 @@ async def run_command(cmd, cwd, env=None, capture_output=False, dry_run=False, p
             cwd=cwd,
             env=env,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT
+            stderr=asyncio.subprocess.STDOUT,
+            preexec_fn=os.setsid
         )
+        active_processes.append(process)
         
         output_lines = []
         while True:
@@ -93,6 +112,8 @@ async def run_command(cmd, cwd, env=None, capture_output=False, dry_run=False, p
                     logger.info(decoded_line)
         
         await process.wait()
+        if process in active_processes:
+            active_processes.remove(process)
         if process.returncode != 0:
             raise Exception(f"Command failed with exit code {process.returncode}: {cmd}")
         return "\n".join(output_lines)
@@ -466,8 +487,12 @@ async def main_async():
     temp_base_dir_root = '/usr/local/google/home/matheushunsche/projects/oss-fuzz-temp'
     results_dir = os.path.join(temp_base_dir_root, 'results')
     os.makedirs(results_dir, exist_ok=True)
+    run_id = args.run_id
+    if run_id is None:
+        run_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_filename = f"results_{args.project}_{timestamp}.log"
+    log_filename = f"{args.project}_{run_id}_{timestamp}.log"
     log_filepath = os.path.join(results_dir, log_filename)
     
     safe_print(f"Starting main... Full output on console, results will be saved to {log_filepath}")
@@ -475,15 +500,13 @@ async def main_async():
     results = {}
     temp_oss_fuzz_dir = None
     all_temp_dirs = [] # Initialize all_temp_dirs here
-    run_id = args.run_id # Can be None
+    
     try:
         engines, sanitizers = get_project_config(args.project)
         safe_print(f"Found engines: {engines}")
         safe_print(f"Found sanitizers: {sanitizers}")
         
-        # Generate a unique run ID for this execution if not provided
-        if run_id is None:
-            run_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        # Run ID already generated above
         safe_print(f"Run ID: {run_id}")
         
         safe_print("Starting parallel execution...")
@@ -522,6 +545,9 @@ async def main_async():
         # Wait for all tasks
         results_list = await asyncio.gather(task_gcb, task_remote, task_legacy, task_2404, return_exceptions=True)
         
+        # Give a moment for all subprocess output to flush
+        await asyncio.sleep(1)
+        
         results = {
             'gcb_status': results_list[0] if not isinstance(results_list[0], Exception) else [],
             'remote_legacy': results_list[1] if not isinstance(results_list[1], Exception) else (0, 0, []),
@@ -559,8 +585,7 @@ async def main_async():
         # Open results log file for writing summary and failures
         with open(log_filepath, 'w') as results_log:
             def dual_print(message):
-                sys.stdout.write(f"{message}\n")
-                sys.stdout.flush()
+                logger.info(message)
                 results_log.write(message + '\n')
 
             if all_failures:
