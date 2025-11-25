@@ -178,7 +178,7 @@ class StackParser:
                             state_from_group=None,
                             address_filter=lambda s: s,
                             type_filter=lambda s: s,
-                            reset=False) -> re.Match or None:
+                            reset=False) -> re.Match | None:
     """Update the specified parts of the state if we have a match."""
 
     match = compiled_regex.match(line)
