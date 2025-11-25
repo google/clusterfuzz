@@ -12,6 +12,7 @@ import tempfile
 import logging
 import random
 import string
+import datetime
 from typing import Dict, Optional, Tuple
 
 # Paths (adjust if necessary)
@@ -31,8 +32,32 @@ logger = logging.getLogger(__name__)
 # Global list to track active subprocesses for clean termination
 active_processes = []
 
-def safe_print(msg):
-    logger.info(msg)
+def safe_print(message):
+    sys.stdout.write(f"{message}\n")
+    sys.stdout.flush()
+
+def recursive_chmod(path, mode):
+    if not os.path.exists(path):
+        return
+    try:
+        os.chmod(path, mode)
+    except:
+        pass
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+            try:
+                os.chmod(os.path.join(root, d), mode)
+            except:
+                pass
+        for f in files:
+            full_path = os.path.join(root, f)
+            if not os.path.islink(full_path):
+                try:
+                    os.chmod(full_path, mode)
+                except:
+                    pass
+# Global list to track active subprocesses for clean termination
+active_processes = []
 
 async def run_command(cmd, cwd, env=None, capture_output=False, dry_run=False, prefix=None):    
     safe_print(f"Running command: {cmd} in {cwd}")
@@ -102,7 +127,7 @@ async def run_reproduction(project, local_build_path=None, os_version='legacy', 
     env = os.environ.copy()
     env['PYTHONPATH'] = CASP_PYTHONPATH
     
-    cmd = f"python3.11 -m pipenv run python3 -m casp.main reproduce project --project-name {project} -n 50 -e external --os-version {os_version}"
+    cmd = f"python3.11 -m pipenv run python3 -m casp.main reproduce project --project-name {project} -n 10 -e external --os-version {os_version}"
     if local_build_path:
         cmd += f" --local-build-path {local_build_path}"
     if engine:
@@ -179,18 +204,29 @@ def get_project_contacts(project):
                         contacts.append(email)
     return contacts
 
-async def build_local_combo(project, run_id, engine, sanitizer, os_version, no_rebuild, build_project_name=None, oss_fuzz_dir=None):
-    if build_project_name is None:
-        build_project_name = project
-    if oss_fuzz_dir is None:
+async def build_local_combo(project, run_id, engine, sanitizer, os_version, no_rebuild, build_project_name=None, oss_fuzz_dir=None, dry_run=False):
+    if not oss_fuzz_dir:
         oss_fuzz_dir = OSS_FUZZ_DIR
-
-    # Create a unique, persistent temporary directory for this build combo
+    if not build_project_name:
+        build_project_name = project
+    
+    # Create a unique but stable temporary directory for this combination
+    # If run_id is provided, include it for isolation. Otherwise, use a stable name for reuse.
+    combo_dir_name = f"{project}-{os_version}-{engine}-{sanitizer}"
+    if run_id:
+        combo_dir_name = f"{project}-{run_id}-{os_version}-{engine}-{sanitizer}"
+    
+    safe_print(f"[{os_version}-{engine}-{sanitizer}] Using combo_dir_name: {combo_dir_name}")
+    
     temp_base_dir_root = '/usr/local/google/home/matheushunsche/projects/oss-fuzz-temp'
     os.makedirs(temp_base_dir_root, exist_ok=True)
-    # Format: zlib-runID-os-engine-sanitizer
-    combo_dir_name = f"{project}-{run_id}-{os_version}-{engine}-{sanitizer}"
+    recursive_chmod(temp_base_dir_root, 0o755) # Ensure root dir is accessible
     combo_temp_dir = os.path.join(temp_base_dir_root, combo_dir_name)
+    
+    # If no_rebuild is False, we want a clean build, so remove existing dir if it exists
+    if not no_rebuild and os.path.exists(combo_temp_dir):
+        safe_print(f"[{os_version}-{engine}-{sanitizer}] Removing existing build dir for clean build: {combo_temp_dir}")
+        shutil.rmtree(combo_temp_dir)
     
     # The build output will stay within this directory
     combo_out_dir = os.path.join(combo_temp_dir, 'build', 'out', build_project_name)
@@ -205,19 +241,20 @@ async def build_local_combo(project, run_id, engine, sanitizer, os_version, no_r
 
     if not os.path.exists(combo_temp_dir):
         os.makedirs(combo_temp_dir, exist_ok=True)
+        recursive_chmod(combo_temp_dir, 0o755) # Ensure combo dir is accessible
         safe_print(f"Created persistent isolated build dir: {combo_temp_dir}")
         
         # Set up OSS-Fuzz environment in temp dir
-        os.symlink(os.path.join(OSS_FUZZ_DIR, 'infra'), os.path.join(combo_temp_dir, 'infra'))
-        os.symlink(os.path.join(OSS_FUZZ_DIR, 'base-images'), os.path.join(combo_temp_dir, 'base-images'))
-        os.symlink(os.path.join(OSS_FUZZ_DIR, 'build.py'), os.path.join(combo_temp_dir, 'build.py'))
+        os.symlink(os.path.join(oss_fuzz_dir, 'infra'), os.path.join(combo_temp_dir, 'infra'))
+        os.symlink(os.path.join(oss_fuzz_dir, 'base-images'), os.path.join(combo_temp_dir, 'base-images'))
+        os.symlink(os.path.join(oss_fuzz_dir, 'build.py'), os.path.join(combo_temp_dir, 'build.py'))
         
         project_temp_dir = os.path.join(combo_temp_dir, 'projects', build_project_name)
         os.makedirs(os.path.dirname(project_temp_dir), exist_ok=True)
 
         if os_version == 'ubuntu-24-04':
             # For 24.04, copy and modify
-            shutil.copytree(os.path.join(OSS_FUZZ_DIR, 'projects', build_project_name), project_temp_dir)
+            shutil.copytree(os.path.join(oss_fuzz_dir, 'projects', build_project_name), project_temp_dir)
             
             # Modify Dockerfile
             dockerfile_path = os.path.join(project_temp_dir, 'Dockerfile')
@@ -240,36 +277,61 @@ async def build_local_combo(project, run_id, engine, sanitizer, os_version, no_r
                     content = re.sub(r'base_os_version:.*', 'base_os_version: ubuntu-24-04', content)
                 with open(yaml_path, 'w') as f:
                     f.write(content)
-        else:
-            # For Legacy, just symlink
-            os.symlink(os.path.join(OSS_FUZZ_DIR, 'projects', build_project_name), project_temp_dir)
+        # For Legacy, just symlink
+        if not os.path.exists(project_temp_dir):
+            os.symlink(os.path.join(oss_fuzz_dir, 'projects', build_project_name), project_temp_dir)
     else:
         safe_print(f"Using existing isolated build dir: {combo_temp_dir}")
-
-    safe_print(f"Building for engine: {engine}, sanitizer: {sanitizer} ({os_version}) using {combo_temp_dir}")
-    prefix = f"[{os_version}-{engine}-{sanitizer}]"
-    await run_command(f"python3 infra/helper.py build_image --no-pull {build_project_name}", combo_temp_dir, capture_output=False, prefix=prefix)
-    await run_command(f"python3 infra/helper.py build_fuzzers --engine {engine} --sanitizer {sanitizer} {build_project_name}", combo_temp_dir, capture_output=False, prefix=prefix)
     
-    if os.path.exists(combo_out_dir) and os.listdir(combo_out_dir):
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Build successful. Output in: {combo_out_dir}")
-        # Run reproduction immediately after build
-        repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False)
-    else:
-        # Fallback check in case helper.py still used real OSS_FUZZ_DIR (unlikely now but safe)
-        real_oss_fuzz_out = os.path.join(OSS_FUZZ_DIR, 'build', 'out', build_project_name)
-        if os.path.exists(real_oss_fuzz_out) and os.listdir(real_oss_fuzz_out):
-                safe_print(f"[{os_version}-{engine}-{sanitizer}] Found output in real OSS_FUZZ_DIR, moving to persistent dir.")
-                if os.path.exists(combo_out_dir):
+    # Ensure essential symlinks exist even if directory existed
+    for link_name in ['infra', 'base-images', 'build.py']:
+        link_path = os.path.join(combo_temp_dir, link_name)
+        if os.path.exists(link_path) or os.path.islink(link_path):
+            try:
+                os.remove(link_path)
+            except:
+                pass
+        os.symlink(os.path.join(oss_fuzz_dir, link_name), link_path)
+        safe_print(f"[{os_version}-{engine}-{sanitizer}] Created symlink: {link_path} -> {os.path.join(oss_fuzz_dir, link_name)}")
+
+    # Fallback check in case helper.py still used real OSS_FUZZ_DIR (unlikely now but safe)
+    real_oss_fuzz_out = os.path.join(oss_fuzz_dir, 'build', 'out', build_project_name)
+    if os.path.exists(real_oss_fuzz_out) and os.listdir(real_oss_fuzz_out):
+            safe_print(f"[{os_version}-{engine}-{sanitizer}] Found output in real OSS_FUZZ_DIR, moving to persistent dir.")
+            if os.path.exists(combo_out_dir):
+                if not dry_run:
                     shutil.rmtree(combo_out_dir)
+            if not dry_run:
                 os.makedirs(os.path.dirname(combo_out_dir), exist_ok=True)
                 shutil.move(real_oss_fuzz_out, combo_out_dir)
-                os.makedirs(real_oss_fuzz_out, exist_ok=True)
-                # Run reproduction immediately after build
-                repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False)
-        else:
-            raise Exception(f"Build output not found for {engine}-{sanitizer} ({os_version})")
+                os.makedirs(real_oss_fuzz_out, exist_ok=True) # Recreate empty dir to avoid issues
+            else:
+                safe_print(f"Dry run: Would move {real_oss_fuzz_out} to {combo_out_dir}")
+            # Run reproduction immediately after move
+            repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False)
+            return combo_out_dir, combo_temp_dir, repro_results
 
+    # Run build using helper.py within the isolated environment
+    # We need to run this from within combo_temp_dir to use the local infra and projects
+    cmd = f"python3 infra/helper.py build_image --no-pull {build_project_name}"
+    safe_print(f"[{os_version}-{engine}-{sanitizer}] Running build command: {cmd} in {combo_temp_dir}")
+    await run_command(cmd, combo_temp_dir, capture_output=False, dry_run=False, prefix=f"[{os_version}-{engine}-{sanitizer}]")
+
+    cmd = f"python3 infra/helper.py build_fuzzers --engine {engine} --sanitizer {sanitizer} {build_project_name}"
+    safe_print(f"[{os_version}-{engine}-{sanitizer}] Running build command: {cmd} in {combo_temp_dir}")
+    await run_command(cmd, combo_temp_dir, capture_output=False, dry_run=False, prefix=f"[{os_version}-{engine}-{sanitizer}]")
+    
+    # After build, ensure permissions are correct for Docker access
+    recursive_chmod(combo_temp_dir, 0o755)
+
+    # After build, check if output exists
+    if not os.path.exists(combo_out_dir) or not os.listdir(combo_out_dir):
+        safe_print(f"[{os_version}-{engine}-{sanitizer}] Build failed or no output generated in {combo_out_dir}")
+        return combo_out_dir, combo_temp_dir, (0, 0, [])
+    
+    # Run reproduction
+    repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False)
+    
     return combo_out_dir, combo_temp_dir, repro_results
 
 async def build_local(project, run_id, engines=None, sanitizers=None, dry_run=False, no_rebuild=False, os_version='legacy', build_project_name=None, oss_fuzz_dir=None):
@@ -287,7 +349,7 @@ async def build_local(project, run_id, engines=None, sanitizers=None, dry_run=Fa
     tasks = []
     for engine in engines:
         for sanitizer in sanitizers:
-            tasks.append(build_local_combo(project, run_id, engine, sanitizer, os_version, no_rebuild, build_project_name, oss_fuzz_dir))
+            tasks.append(build_local_combo(project, run_id, engine, sanitizer, os_version, no_rebuild, build_project_name, oss_fuzz_dir, dry_run))
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
@@ -309,31 +371,38 @@ async def build_local(project, run_id, engines=None, sanitizers=None, dry_run=Fa
             all_failures.extend(failures)
     return build_paths, temp_dirs, total_success, total_failed, all_failures
 
-async def modify_files_for_2404(project, dry_run=False):
-    safe_print(f"\n--- Modifying files for Ubuntu 24.04 ---")
-    project_yaml = os.path.join(OSS_FUZZ_DIR, 'projects', project, 'project.yaml')
-    dockerfile = os.path.join(OSS_FUZZ_DIR, 'projects', project, 'Dockerfile')
+async def modify_files_for_2404(project, oss_fuzz_dir, dry_run=False):
+    safe_print(f"\n--- Modifying files for Ubuntu 24.04 in {oss_fuzz_dir} ---")
+    project_yaml = os.path.join(oss_fuzz_dir, 'projects', project, 'project.yaml')
+    dockerfile = os.path.join(oss_fuzz_dir, 'projects', project, 'Dockerfile')
     
-    shutil.copy(project_yaml, project_yaml + '.bak')
-    shutil.copy(dockerfile, dockerfile + '.bak')
+    # Backup original files before modification
+    if not dry_run:
+        shutil.copy(project_yaml, project_yaml + '.bak')
+        shutil.copy(dockerfile, dockerfile + '.bak')
     
-    with open(project_yaml, 'a') as f:
-        f.write("\nbase_os_version: 'ubuntu-24-04'\n")
-    
-    with open(dockerfile, 'r') as f:
-        content = f.read()
-    with open(dockerfile, 'w') as f:
-        f.write(content.replace('FROM gcr.io/oss-fuzz-base/base-builder', 'FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04'))
+        with open(project_yaml, 'a') as f:
+            f.write("\nbase_os_version: 'ubuntu-24-04'\n")
+        
+        with open(dockerfile, 'r') as f:
+            content = f.read()
+        with open(dockerfile, 'w') as f:
+            f.write(content.replace('FROM gcr.io/oss-fuzz-base/base-builder', 'FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04'))
+    else:
+        safe_print(f"Dry run: Would modify {project_yaml} and {dockerfile}")
 
-async def revert_files(project, dry_run=False):
-    safe_print(f"\n--- Reverting files ---")
-    project_yaml = os.path.join(OSS_FUZZ_DIR, 'projects', project, 'project.yaml')
-    dockerfile = os.path.join(OSS_FUZZ_DIR, 'projects', project, 'Dockerfile')
+async def revert_files(project, oss_fuzz_dir, dry_run=False):
+    safe_print(f"\n--- Reverting files in {oss_fuzz_dir} ---")
+    project_yaml = os.path.join(oss_fuzz_dir, 'projects', project, 'project.yaml')
+    dockerfile = os.path.join(oss_fuzz_dir, 'projects', project, 'Dockerfile')
     
-    if os.path.exists(project_yaml + '.bak'):
-        shutil.move(project_yaml + '.bak', project_yaml)
-    if os.path.exists(dockerfile + '.bak'):
-        shutil.move(dockerfile + '.bak', dockerfile)
+    if not dry_run:
+        if os.path.exists(project_yaml + '.bak'):
+            shutil.move(project_yaml + '.bak', project_yaml)
+        if os.path.exists(dockerfile + '.bak'):
+            shutil.move(dockerfile + '.bak', dockerfile)
+    else:
+        safe_print(f"Dry run: Would revert {project_yaml} and {dockerfile}")
 
 async def prepare_pr_branch(project, results, dry_run=False):
     safe_print(f"\n--- Preparing PR Branch for {project} ---")
@@ -344,7 +413,7 @@ async def prepare_pr_branch(project, results, dry_run=False):
     await run_command(f"git branch -D {branch_name}", OSS_FUZZ_DIR, dry_run=dry_run)
     await run_command(f"git checkout -b {branch_name}", OSS_FUZZ_DIR, dry_run=dry_run)
     
-    await modify_files_for_2404(project, dry_run=dry_run)
+    await modify_files_for_2404(project, OSS_FUZZ_DIR, dry_run=dry_run)
     
     await run_command(f"git add projects/{project}/project.yaml projects/{project}/Dockerfile", OSS_FUZZ_DIR, dry_run=dry_run)
     commit_msg = f"Upgrade {project} to Ubuntu 24.04"
@@ -390,19 +459,31 @@ async def main_async():
     parser.add_argument('--dry-run', action='store_true', help='Simulate actions without making changes')
     parser.add_argument('--no-rebuild', action='store_true', help='Skip rebuilding if build directory exists')
     parser.add_argument('--no-cleanup', action='store_true', help='Do not cleanup temporary build directories')
+    parser.add_argument('--run-id', help='Optional run ID for isolated builds')
     args = parser.parse_args()
     
-    safe_print("Starting main...")
+    # Setup persistent log file for results only
+    temp_base_dir_root = '/usr/local/google/home/matheushunsche/projects/oss-fuzz-temp'
+    results_dir = os.path.join(temp_base_dir_root, 'results')
+    os.makedirs(results_dir, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_filename = f"results_{args.project}_{timestamp}.log"
+    log_filepath = os.path.join(results_dir, log_filename)
+    
+    safe_print(f"Starting main... Full output on console, results will be saved to {log_filepath}")
+    safe_print(f"Args: {args}")
     results = {}
     temp_oss_fuzz_dir = None
     all_temp_dirs = [] # Initialize all_temp_dirs here
+    run_id = args.run_id # Can be None
     try:
         engines, sanitizers = get_project_config(args.project)
         safe_print(f"Found engines: {engines}")
         safe_print(f"Found sanitizers: {sanitizers}")
         
-        # Generate a unique run ID for this execution
-        run_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        # Generate a unique run ID for this execution if not provided
+        if run_id is None:
+            run_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
         safe_print(f"Run ID: {run_id}")
         
         safe_print("Starting parallel execution...")
@@ -413,7 +494,30 @@ async def main_async():
         # Legacy builds now handle their own isolation with run_id
         task_legacy = asyncio.create_task(run_full_suite(args.project, run_id, engines, sanitizers, 'legacy', args.no_rebuild, build_project_name=args.project, oss_fuzz_dir=OSS_FUZZ_DIR))
         # 24.04 builds now handle their own isolation and modification with run_id
-        task_2404 = asyncio.create_task(run_full_suite(args.project, run_id, engines, sanitizers, 'ubuntu-24-04', args.no_rebuild, build_project_name=args.project, oss_fuzz_dir=OSS_FUZZ_DIR))
+        # For Ubuntu 24.04, we need a modified OSS-Fuzz dir, but we can reuse the main one for now if we are careful,
+        # or create a temporary one. Given we want isolated builds, we will create a temporary OSS-Fuzz dir for 24.04
+        # to avoid modifying the main one's base images if possible, though build_local_combo handles Dockerfile changes.
+        # To be safe and allow parallel 24.04 builds, we'll use a temp OSS-Fuzz dir.
+        
+        # Create a temporary OSS-Fuzz directory for Ubuntu 24.04 modifications
+        temp_oss_fuzz_dir = tempfile.mkdtemp(prefix=f'oss-fuzz-2404-{args.project}-')
+        # Symlink everything from main OSS-Fuzz dir
+        for item in os.listdir(OSS_FUZZ_DIR):
+            s = os.path.join(OSS_FUZZ_DIR, item)
+            d = os.path.join(temp_oss_fuzz_dir, item)
+            if os.path.islink(s):
+                # Handle symlinks by recreating them in the temp dir
+                target = os.readlink(s)
+                os.symlink(target, d)
+            elif os.path.isdir(s):
+                os.symlink(s, d)
+            else:
+                os.symlink(s, d)
+        
+        # Modify files for 24.04 in the temp dir
+        await modify_files_for_2404(args.project, oss_fuzz_dir=temp_oss_fuzz_dir, dry_run=args.dry_run)
+        
+        task_2404 = asyncio.create_task(run_full_suite(args.project, run_id, engines, sanitizers, 'ubuntu-24-04', args.no_rebuild, build_project_name=args.project, oss_fuzz_dir=temp_oss_fuzz_dir))
         
         # Wait for all tasks
         results_list = await asyncio.gather(task_gcb, task_remote, task_legacy, task_2404, return_exceptions=True)
@@ -452,53 +556,62 @@ async def main_async():
             for d in all_temp_dirs:
                 safe_print(f"Kept: {d}")
         
-        if all_failures:
-            safe_print("\nFAILED TEST CASES")
-            safe_print("-" * 80)
-            safe_print(f"{'TC ID':<16} | {'OS':<12} | {'Engine':<10} | {'Sanitizer':<10} | Log Path")
-            safe_print("-" * 80)
-            for f in all_failures:
-                safe_print(f"{f['tc_id']:<16} | {f['os_version']:<12} | {f['engine']:<10} | {f['sanitizer']:<10} | {f['log_path']}")
-            safe_print("-" * 80)
+        # Open results log file for writing summary and failures
+        with open(log_filepath, 'w') as results_log:
+            def dual_print(message):
+                sys.stdout.write(f"{message}\n")
+                sys.stdout.flush()
+                results_log.write(message + '\n')
 
-        safe_print("\n" + "="*40)
-        safe_print("SUMMARY REPORT")
-        safe_print("="*40)
-        safe_print(f"Project: {args.project}")
-        gcb_status = results.get('gcb_status', [])
-        if gcb_status and isinstance(gcb_status[0], dict):
-            gcb_status_str = ', '.join([b.get('status', 'UNKNOWN') for b in gcb_status])
-        else:
-            gcb_status_str = ', '.join(gcb_status)
-        safe_print(f"GCB Builds (fuzzing): {gcb_status_str}")
-        safe_print("-" * 40)
-        safe_print(f"{'Scenario':<25} | {'Success':<7} | {'Failed':<7}")
-        safe_print("-" * 40)
-        
-        def print_res(name, res):
-            if isinstance(res, tuple) and len(res) >= 2:
-                safe_print(f"{name:<25} | {res[0]:<7} | {res[1]:<7}")
+            if all_failures:
+                dual_print("\nFAILED TEST CASES")
+                dual_print("-" * 80)
+                dual_print(f"{'TC ID':<16} | {'OS':<12} | {'Engine':<10} | {'Sanitizer':<10} | Log Path")
+                dual_print("-" * 80)
+                for f in all_failures:
+                    dual_print(f"{f['tc_id']:<16} | {f['os_version']:<12} | {f['engine']:<10} | {f['sanitizer']:<10} | {f['log_path']}")
+                dual_print("-" * 80)
+
+            dual_print("\n" + "="*40)
+            dual_print("SUMMARY REPORT")
+            dual_print("="*40)
+            dual_print(f"Project: {args.project}")
+            gcb_status = results.get('gcb_status', [])
+            if gcb_status and isinstance(gcb_status[0], dict):
+                gcb_status_str = ', '.join([b.get('status', 'UNKNOWN') for b in gcb_status])
             else:
-                safe_print(f"{name:<25} | Error   | Error")
+                gcb_status_str = ', '.join(gcb_status)
+            dual_print(f"GCB Builds (fuzzing): {gcb_status_str}")
+            dual_print("-" * 40)
+            dual_print(f"{'Scenario':<25} | {'Success':<7} | {'Failed':<7}")
+            dual_print("-" * 40)
+            
+            def print_res_dual(name, res):
+                if isinstance(res, tuple) and len(res) >= 2:
+                    dual_print(f"{name:<25} | {res[0]:<7} | {res[1]:<7}")
+                else:
+                    dual_print(f"{name:<25} | Error   | Error")
 
-        print_res('Remote (Legacy)', results.get('remote_legacy'))
-        print_res('Local (Legacy)', results.get('local_legacy'))
-        print_res('Local (Ubuntu 24.04)', results.get('local_2404'))
-        safe_print("-" * 40)
-        
-        success_remote = results['remote_legacy'][0] if isinstance(results['remote_legacy'], tuple) else 0
-        success_local_legacy = results['local_legacy'][0] if isinstance(results['local_legacy'], tuple) else 0
-        success_local_2404 = results['local_2404'][0] if isinstance(results['local_2404'], tuple) else 0
-        
-        if success_remote == success_local_legacy == success_local_2404 and success_local_2404 > 0:
-            safe_print("\n✅ Success: Remote, Local Legacy, and Local 24.04 results match and are non-zero.")
-            safe_print("Proceeding with PR preparation...")
-            await prepare_pr_branch(args.project, results, dry_run=args.dry_run)
-        else:
-            safe_print("\n❌ Failure: Results do not match or are zero.")
-            safe_print(f"Remote: {success_remote}, Local Legacy: {success_local_legacy}, Local 24.04: {success_local_2404}")
-            safe_print("Skipping PR preparation.")
-        safe_print("="*40)
+            print_res_dual('Remote (Legacy)', results.get('remote_legacy'))
+            print_res_dual('Local (Legacy)', results.get('local_legacy'))
+            print_res_dual('Local (Ubuntu 24.04)', results.get('local_2404'))
+            dual_print("-" * 40)
+            
+            success_remote = results['remote_legacy'][0] if isinstance(results['remote_legacy'], tuple) else 0
+            success_local_legacy = results['local_legacy'][0] if isinstance(results['local_legacy'], tuple) else 0
+            success_local_2404 = results['local_2404'][0] if isinstance(results['local_2404'], tuple) else 0
+            
+            if success_remote == success_local_legacy == success_local_2404 and success_local_2404 > 0:
+                dual_print("\n✅ Success: Remote, Local Legacy, and Local 24.04 results match and are non-zero.")
+                dual_print("Proceeding with PR preparation...")
+                # Note: prepare_pr_branch still uses safe_print, which is fine as it's not part of the results log
+                await prepare_pr_branch(args.project, results, dry_run=args.dry_run)
+            else:
+                dual_print("\n❌ Failure: Results do not match or are zero.")
+                dual_print(f"Remote: {success_remote}, Local Legacy: {success_local_legacy}, Local 24.04: {success_local_2404}")
+                dual_print("Skipping PR preparation.")
+            dual_print("="*40)
+            dual_print(f"\nResults saved to: {log_filepath}")
 
     except Exception as e:
         safe_print(f"An error occurred: {e}")
