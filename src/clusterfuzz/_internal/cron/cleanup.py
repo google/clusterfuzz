@@ -208,11 +208,12 @@ def cleanup_unused_fuzz_targets_and_jobs():
   unused_target_jobs = data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run < last_run_cutoff)
   # The order by last_run DESC filter is from b/418807403
-  valid_target_jobs = data_types.FuzzTargetJob.query(
+  valid_target_jobs = list(data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
-          -data_types.FuzzTargetJob.last_run)
+          -data_types.FuzzTargetJob.last_run))
 
   to_delete = [t.key for t in unused_target_jobs]
+  num_fuzz_target_jobs_to_delete = len(to_delete)
 
   valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
@@ -220,6 +221,10 @@ def cleanup_unused_fuzz_targets_and_jobs():
       to_delete.append(fuzz_target.key)
 
   ndb_utils.delete_multi(to_delete)
+  logs.info(
+      f'Deleted {num_fuzz_target_jobs_to_delete} FuzzTargetJob entities and '
+      f'{len(to_delete) - num_fuzz_target_jobs_to_delete} FuzzTarget entities. '
+      f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
 
 
 def get_jobs_and_platforms_for_project():
