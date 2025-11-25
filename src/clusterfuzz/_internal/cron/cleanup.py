@@ -216,6 +216,10 @@ def cleanup_unused_fuzz_targets_and_jobs():
   to_delete = [t.key for t in unused_target_jobs]
   num_fuzz_target_jobs_to_delete = len(to_delete)
 
+  logs.info(
+      f'{len(to_delete)} FuzzTargetJob entities are marked for deletion and'
+      f'{len(valid_target_jobs)} are considered valid.')
+
   valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
     if fuzz_target.fully_qualified_name() not in valid_fuzz_targets:
