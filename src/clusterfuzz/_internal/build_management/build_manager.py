@@ -1151,7 +1151,7 @@ def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
 
   # Check this so that we handle deleted targets properly.
   targets_list = _get_targets_list(bucket_path)
-  if fuzz_target not in targets_list:
+  if not targets_list or fuzz_target not in targets_list:
     raise errors.BuildNotFoundError(revision, environment.get_value('JOB_NAME'))
 
   fuzz_target_bucket_path = _full_fuzz_target_path(bucket_path, fuzz_target)
