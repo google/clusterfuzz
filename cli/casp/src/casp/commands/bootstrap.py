@@ -11,16 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Bootstrap command."""
+"""Install all required dependencies from Clusterfuzz"""
 
+import subprocess
+import sys
+
+from casp.utils import local_butler
 import click
 
 
 @click.command(
-    name='bootstrap',
-    help=('Install all required dependencies for running an appengine, a bot,'
-          'and a mapreduce locally.'))
-def cli():
-  """Install all required dependencies for running an appengine, a bot,
-  and a mapreduce locally."""
-  click.echo('To be implemented...')
+    name='bootstrap', help='Install all required dependencies from ClusterFuzz')
+def cli() -> None:
+  """Performs the installation of all required dependencies."""
+
+  try:
+    command = local_butler.build_command('bootstrap', None)
+  except FileNotFoundError:
+    click.echo('butler.py not found in this directory.', err=True)
+    sys.exit(1)
+
+  try:
+    subprocess.run(command, check=True)
+  except FileNotFoundError:
+    click.echo('python not found in PATH.', err=True)
+    sys.exit(1)
+  except subprocess.CalledProcessError as e:
+    click.echo(f'Error running butler.py bootstrap: {e}', err=True)
+    sys.exit(1)

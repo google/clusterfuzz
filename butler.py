@@ -98,6 +98,14 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_bootstrap_subparser(toplevel_subparsers):
+  """Adds a parser for the `bootstrap` command."""
+  toplevel_subparsers.add_parser(
+      'bootstrap',
+      help=('Install all required dependencies for running an appengine, a bot,'
+            'and a mapreduce locally.'))
+
+
 def _add_py_unittest_subparser(toplevel_subparsers):
   """Adds a parser for the `py_unittest` command."""
   parser_py_unittest = toplevel_subparsers.add_parser(
@@ -317,11 +325,6 @@ def main():
       help='Force logs to be local-only.')
   subparsers = parser.add_subparsers(dest='command')
 
-  subparsers.add_parser(
-      'bootstrap',
-      help=('Install all required dependencies for running an appengine, a bot,'
-            'and a mapreduce locally.'))
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(
@@ -454,6 +457,7 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_bootstrap_subparser(subparsers)
   _add_py_unittest_subparser(subparsers)
   _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)
