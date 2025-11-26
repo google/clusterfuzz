@@ -21,7 +21,6 @@ from casp.commands import format as format_command
 from casp.commands import hi
 from casp.commands import init
 from casp.commands import integration_tests
-from casp.commands import js_unittest
 from casp.commands import lint
 from casp.commands import package
 from casp.commands import py_unittest
@@ -48,7 +47,6 @@ cli.add_command(run_task.cli)
 cli.add_command(reproduce.cli)
 cli.add_command(bootstrap.cli)
 cli.add_command(py_unittest.cli)
-cli.add_command(js_unittest.cli)
 cli.add_command(format_command.cli)
 cli.add_command(lint.cli)
 cli.add_command(package.cli)
