@@ -97,6 +97,25 @@ def _setup_args_for_remote(parser):
 
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
+def _add_run_subparser(toplevel_subparsers):
+  parser_run = toplevel_subparsers.add_parser(
+      'run', help='Run a one-off script against a datastore (e.g. migration).')
+  parser_run.add_argument(
+      'script_name',
+      help='The script module name under `./local/butler/scripts`.')
+  parser_run.add_argument(
+      '--script_args',
+      action='extend',
+      nargs='+',
+      help='Script specific arguments')
+  parser_run.add_argument(
+      '--non-dry-run',
+      action='store_true',
+      help='Run with actual datastore writes. Default to dry-run.')
+  parser_run.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+  parser_run.add_argument(
+      '--local', action='store_true', help='Run against local server instance.')
 
 def _add_py_unittest_subparser(toplevel_subparsers):
   """Adds a parser for the `py_unittest` command."""
@@ -385,25 +404,6 @@ def main():
   parser_run_server.add_argument(
       '--clean', action='store_true', help='Clear existing database data.')
 
-  parser_run = subparsers.add_parser(
-      'run', help='Run a one-off script against a datastore (e.g. migration).')
-  parser_run.add_argument(
-      'script_name',
-      help='The script module name under `./local/butler/scripts`.')
-  parser_run.add_argument(
-      '--script_args',
-      action='extend',
-      nargs='+',
-      help='Script specific arguments')
-  parser_run.add_argument(
-      '--non-dry-run',
-      action='store_true',
-      help='Run with actual datastore writes. Default to dry-run.')
-  parser_run.add_argument(
-      '-c', '--config-dir', required=True, help='Path to application config.')
-  parser_run.add_argument(
-      '--local', action='store_true', help='Run against local server instance.')
-
   parser_run_bot = subparsers.add_parser(
       'run_bot', help='Run a local clusterfuzz bot.')
   parser_run_bot.add_argument(
@@ -454,6 +454,7 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_run_subparser(subparsers)
   _add_py_unittest_subparser(subparsers)
   _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)
