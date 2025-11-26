@@ -98,6 +98,19 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_package_subparser(toplevel_subparsers):
+  """Adds a parser for the `package` command."""
+  parser_package = toplevel_subparsers.add_parser(
+      'package', help='Package clusterfuzz with a staging revision')
+  parser_package.add_argument(
+      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
+  parser_package.add_argument(
+      '-r',
+      '--release',
+      choices=['prod', 'candidate', 'chrome-tests-syncer'],
+      default='prod')
+
+
 def _add_py_unittest_subparser(toplevel_subparsers):
   """Adds a parser for the `py_unittest` command."""
   parser_py_unittest = toplevel_subparsers.add_parser(
@@ -331,16 +344,6 @@ def main():
       help=('Do not close browser when tests '
             'finish. Good for debugging.'))
 
-  parser_package = subparsers.add_parser(
-      'package', help='Package clusterfuzz with a staging revision')
-  parser_package.add_argument(
-      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
-  parser_package.add_argument(
-      '-r',
-      '--release',
-      choices=['prod', 'candidate', 'chrome-tests-syncer'],
-      default='prod')
-
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
       '-f',
@@ -454,6 +457,7 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_package_subparser(subparsers)
   _add_py_unittest_subparser(subparsers)
   _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)
