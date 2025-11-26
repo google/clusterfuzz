@@ -35,26 +35,30 @@ PROJECT_TO_IMAGE = {
 _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
 
 
+def add_volume(volumes: dict, container_path: str, host_path: str) -> None:
+  """ 
+    Adds a volume in `volumes` dictionary from host to container.
+  """
+  volumes[host_path] = {
+      'bind': container_path,
+      'mode': 'rw',
+  }
+
+
 def prepare_docker_volumes(cfg: dict[str, Any],
                            default_config_dir: str) -> tuple[dict, Path]:
   """Prepares the Docker volume bindings."""
   credentials_path = os.path.dirname(cfg['gcloud_credentials_path'])
   container_config_dir = Path(default_config_dir)
 
-  volumes = {
-      credentials_path: {
-          'bind': str(container.CONTAINER_CREDENTIALS_PATH),
-          'mode': 'rw',
-      },
-  }
+  volumes = {}
+  add_volume(volumes, str(container.CONTAINER_CREDENTIALS_PATH),
+             str(credentials_path))
 
   if 'custom_config_path' in cfg:
     container_config_dir = container.CONTAINER_CONFIG_PATH / 'custom_config'
     custom_config_path = cfg['custom_config_path']
-    volumes[custom_config_path] = {
-        'bind': str(container_config_dir),
-        'mode': 'rw',
-    }
+    add_volume(volumes, str(container_config_dir), str(custom_config_path))
     click.echo(f'Using custom config directory: {custom_config_path}')
 
   return volumes, container_config_dir

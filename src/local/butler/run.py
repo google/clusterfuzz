@@ -26,7 +26,8 @@ from src.clusterfuzz._internal.datastore import ndb_init
 def execute(args):
   """Run Python unit tests under v2. For unittests involved appengine, sys.path
      needs certain modification."""
-  print(args.script_args)
+  if args.script_args is not None:
+    print(f'Script arguments: {args.script_args}')
   sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
   sys.path.insert(
       0, os.path.abspath(os.path.join('src', 'appengine', 'third_party')))

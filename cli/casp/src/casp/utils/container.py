@@ -26,6 +26,9 @@ CONTAINER_CONFIG_PATH = SRC_ROOT / 'appengine'
 # This allows the container to authenticate with Google Cloud services.
 CONTAINER_CREDENTIALS_PATH = Path('/root/.config/gcloud/')
 
+# The path to the directory containing butler scripts inside the container.
+CONTAINER_SCRIPTS_DIR = SRC_ROOT / 'local' / 'butler' / 'scripts'
+
 # The base command prefix for executing ClusterFuzz butler commands.
 # This ensures that commands are run with the correct Python environment
 # and logging settings within the container.
