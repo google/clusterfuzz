@@ -97,7 +97,9 @@ def _setup_args_for_remote(parser):
 
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
+
 def _add_run_subparser(toplevel_subparsers):
+  """Adds a parser for the `run` command."""
   parser_run = toplevel_subparsers.add_parser(
       'run', help='Run a one-off script against a datastore (e.g. migration).')
   parser_run.add_argument(
@@ -116,6 +118,7 @@ def _add_run_subparser(toplevel_subparsers):
       '-c', '--config-dir', required=True, help='Path to application config.')
   parser_run.add_argument(
       '--local', action='store_true', help='Run against local server instance.')
+
 
 def _add_py_unittest_subparser(toplevel_subparsers):
   """Adds a parser for the `py_unittest` command."""
