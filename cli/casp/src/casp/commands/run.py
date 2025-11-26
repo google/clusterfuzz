@@ -13,9 +13,9 @@
 # limitations under the License.
 """Run command."""
 
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 from casp.utils import config
 from casp.utils import container
@@ -72,7 +72,9 @@ def _get_script_args_list(script_args: list[str]) -> list[str]:
 
 @click.group(
     name='run',
-    help='Run a one-off script against a datastore (e.g. migration).')
+    help=('Run a one-off script against a datastore (e.g. migration). '
+          'If running locally, the script must be in path '
+          'clusterfuzz/src/local/butler/scripts.'))
 def cli():
   """Run a one-off script against a datastore (e.g. migration)."""
 
@@ -111,7 +113,10 @@ def local_cmd(script_name: str, script_args: list[str] | None,
     sys.exit(1)
 
 
-@cli.command(name='container', help='Run the script inside a Docker container.')
+@cli.command(
+    name='container',
+    help=('Run the script inside a Docker container. '
+          'The SCRIPT_NAME must be the path to it.'))
 @common_options
 @click.option(
     '--project',
@@ -121,34 +126,33 @@ def local_cmd(script_name: str, script_args: list[str] | None,
     type=click.Choice(
         docker_utils.PROJECT_TO_IMAGE.keys(), case_sensitive=False),
 )
-@click.option(
-    '--script-path',
-    type=click.Path(exists=True),
-    required=True,
-    help='Path to the script in the host machine.')
-def container_cmd(script_name: str, script_args: list[str] | None, non_dry_run: bool, local: bool, project: str,
-                  script_path: Path | None):
+def container_cmd(script_name: str, script_args: list[str] | None,
+                  non_dry_run: bool, local: bool, project: str):
   """Run a one-off script inside a container."""
   cfg = config.load_and_validate_config()
 
   volumes, container_config_dir = docker_utils.prepare_docker_volumes(
       cfg, str(container.CONTAINER_CONFIG_PATH / 'config'))
 
-  if script_path:
-    script_path = Path(script_path).resolve()
-    container_script_path = container.CONTAINER_SCRIPTS_DIR / script_path.name
-    volumes[str(script_path)] = {
-        'bind': str(container_script_path),
-        'mode': 'rw',
-    }
+  if not Path(script_name).exists():
+    click.echo(
+        f'Script {script_name} does not exist. Please provide the path to it',
+        err=True)
+    sys.exit(1)
+
+  host_script_path = Path(script_name).resolve()
+  container_script_path = (
+      container.CONTAINER_SCRIPTS_DIR / host_script_path.name)
+  docker_utils.add_volume(volumes, str(container_script_path),
+                          str(host_script_path))
 
   butler_args = _prepare_butler_run_args(
       non_dry_run, local, config_dir=str(container_config_dir))
 
-  subcommand = f'run {script_name}'
+  subcommand = f'run {host_script_path.stem}'
   if script_args:
-    for arg in script_args:
-      subcommand += f' --script_args={arg}'
+    script_args_list = _get_script_args_list(script_args)
+    subcommand += ' ' + ' '.join(script_args_list)
 
   command = container.build_butler_command(subcommand, **butler_args)
 
