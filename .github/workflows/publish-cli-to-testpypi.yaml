@@ -15,10 +15,11 @@
 name: Publish Casp CLI to TestPyPI
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches: [ master ]
     paths:
       - 'cli/casp/**'
+  
 
 jobs:
   publish-testpypi:
