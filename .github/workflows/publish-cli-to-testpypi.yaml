@@ -46,6 +46,7 @@ jobs:
           TIMESTAMP=$(date +%s)
           
           # Set version to <last_tag>.<timestamp> (e.g., 1.0.0.1701234567)
+          echo "Updating version in pyproject.toml to $VERSION.$TIMESTAMP"
           sed -i "s/^version = \".*\"/version = \"$VERSION.$TIMESTAMP\"/" pyproject.toml
 
       - name: Build package
