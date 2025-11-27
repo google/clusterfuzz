@@ -4,7 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casp"
-version = "0.0.8"
+# This is a placeholder version. The actual version is set
+# in publish-cli-to-pypi.yaml and publish-cli-to-testpypi.yaml
+# If you want to manually publish the CLI, you need to manually
+# set the version here.
+version = "0.0.8" 
 authors = [
   { name="PauloVLB", email="paulovlb@google.com" },
 ]
