@@ -22,6 +22,17 @@ jobs:
       - name: Install build dependencies
         run: python -m pip install build --user
 
+      - name: Bump version for TestPyPI
+        working-directory: cli/casp
+        run: |
+          # Get the latest tag and strip the leading 'v' (e.g., v1.0.0 -> 1.0.0)
+          LAST_TAG=$(git describe --tags --abbrev=0)
+          VERSION=${LAST_TAG#v}
+          TIMESTAMP=$(date +%s)
+          
+          # Set version to <last_tag>.<timestamp> (e.g., 1.0.0.1701234567)
+          sed -i "s/^version = \".*\"/version = \"$VERSION.$TIMESTAMP\"/" pyproject.toml
+
       - name: Build package
         working-directory: cli/casp
         run: python -m build
@@ -31,5 +42,5 @@ jobs:
         with:
           password: ${{ secrets.TEST_CASP_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
-          packages_dir: cli/casp/dist/
-          skip_existing: true
+          packages-dir: cli/casp/dist/
+          skip-existing: true
