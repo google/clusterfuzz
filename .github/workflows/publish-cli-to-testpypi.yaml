@@ -29,7 +29,7 @@ jobs:
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          password: ${{ secrets.TEST_CASP_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
           packages_dir: cli/casp/dist/
           skip_existing: true
