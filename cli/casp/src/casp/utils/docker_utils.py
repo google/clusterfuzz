@@ -22,17 +22,30 @@ import click
 
 import docker
 
-# TODO: Make this configurable.
 PROJECT_TO_IMAGE = {
     'dev': ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
-            "20251008165901-utc-893e97e-640142509185-compute-d609115-prod"),
+            "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
     'internal': (
         "gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
-        "20251110132749-utc-363160d-640142509185-compute-c7f2f8c-prod"),
+        "20251119164957-utc-3612e16-640142509185-compute-486869c-prod"),
     'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
-                 "20251111191918-utc-b5863ff-640142509185-compute-c5c296c-prod")
+                 "20251119164957-utc-3612e16-640142509185-compute-486869c-prod")
 }
+
 _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
+
+
+def get_image_name(project_type: str, os_version: str = 'legacy') -> str:
+  """Gets the Docker image name based on project type and OS version."""
+  base_image = PROJECT_TO_IMAGE.get(project_type)
+  if not base_image:
+    raise ValueError(f'Unknown project type: {project_type}')
+
+  if os_version == 'legacy':
+    return base_image
+
+  repo, tag = base_image.split(':')
+  return f'{repo}:{os_version}-{tag}'
 
 
 def prepare_docker_volumes(cfg: dict[str, Any],
@@ -88,18 +101,20 @@ def check_docker_setup() -> docker.client.DockerClient | None:
     return None
 
 
-def pull_image(image: str) -> bool:
+def pull_image(image: str, silent: bool = False) -> bool:
   """Pulls the docker image."""
   client = check_docker_setup()
   if not client:
     return False
 
   try:
-    click.echo(f'Pulling Docker image: {image}...')
+    if not silent:
+      click.echo(f'Pulling Docker image: {image}...')
     client.images.pull(image)
     return True
   except docker.errors.DockerException:
-    click.secho(f'Error: Docker image {image} not found.', fg='red')
+    if not silent:
+      click.secho(f'Error: Docker image {image} not found.', fg='red')
     return False
 
 
@@ -108,6 +123,9 @@ def run_command(
     volumes: dict,
     image: str,
     privileged: bool = False,
+    environment_vars: dict = None,
+    log_callback=None,
+    silent: bool = False,
 ) -> bool:
   """Runs a command in a docker container and streams logs.
 
@@ -116,6 +134,9 @@ def run_command(
     volumes: A dictionary of volumes to mount.
     image: The docker image to use.
     privileged: Whether to run the container as privileged.
+    environment_vars: A dictionary of environment variables.
+    log_callback: A function to handle log lines.
+    silent: Whether to suppress the initial "Running command" message.
 
   Returns:
     True on success, False otherwise.
@@ -124,23 +145,29 @@ def run_command(
   if not client:
     return False
 
-  if not pull_image(image):
+  if not pull_image(image, silent=silent):
     return False
 
   container_instance = None
   try:
-    click.echo(f'Running command in Docker container: {command}')
+    if not silent:
+      click.echo(f'Running command in Docker container: {command}')
     container_instance = client.containers.run(
         image,
         command,
         volumes=volumes,
         working_dir=_DEFAULT_WORKING_DIR,
         privileged=privileged,
+        environment=environment_vars,
         detach=True,
         remove=False)  # Can't auto-remove if we want to stream logs
 
     for line in container_instance.logs(stream=True, follow=True):
-      click.echo(line.decode('utf-8').strip())
+      decoded_line = line.decode('utf-8').strip()
+      if log_callback:
+        log_callback(decoded_line)
+      else:
+        click.echo(decoded_line)
 
     result = container_instance.wait()
     if result['StatusCode'] != 0:
