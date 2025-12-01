@@ -21,7 +21,10 @@ import click
 
 
 @click.command(
-    name='package', help='Package clusterfuzz with a staging revision')
+    name='package',
+    help=('Package clusterfuzz with a staging revision. '
+          'It creates a zip for each platform chosen in '
+          'the clusterfuzz/deployment directory.'))
 @click.option(
     '--platform',
     '-p',
