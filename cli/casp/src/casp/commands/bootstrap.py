@@ -21,7 +21,9 @@ import click
 
 
 @click.command(
-    name='bootstrap', help='Install all required dependencies from ClusterFuzz')
+    name='bootstrap',
+    help=('Install all required dependencies for running an appengine, a bot,'
+          'and a mapreduce locally.'))
 def cli() -> None:
   """Performs the installation of all required dependencies."""
 
