@@ -479,8 +479,8 @@ class CorpusPrunerBase:
       raise CorpusPruningError(
           'Corpus pruning timed out while minimizing corpus\n' + repr(e))
     except engine.Error as e:
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               repr(e))
+      logs.warning('Corpus pruning failed to minimize corpus\n' + repr(e))
+      raise CorpusPruningError('Corpus pruning failed to minimize corpus')
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
