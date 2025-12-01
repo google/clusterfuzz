@@ -20,7 +20,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.centipede import \
@@ -30,6 +30,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -584,3 +585,35 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
     shutil.rmtree('a')
     shutil.rmtree('c')
     shutil.rmtree(self.temp_dir)
+
+
+class CorpusPruningDedupTest(unittest.TestCase):
+  """Tests for corpus pruning error deduplication."""
+
+  def test_minimize_corpus_error_dedup(self):
+    """Test that corpus minimization errors are deduplicated."""
+    runner = MagicMock()
+    runner.get_fuzzer_flags.return_value = []
+    runner.target_path = '/tmp/target'
+    runner.context = MagicMock()
+
+    # We need a predictable repr for the error
+    err = engine.Error("Variable error content 12345")
+    runner.minimize_corpus.side_effect = err
+
+    pruner = corpus_pruning_task.CorpusPrunerBase(runner)
+
+    with patch('clusterfuzz._internal.system.shell.get_directory_file_count', return_value=1), \
+          patch('clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed'), \
+          patch('clusterfuzz._internal.system.environment.reset_current_memory_tool_options'), \
+          patch('clusterfuzz._internal.metrics.logs.warning') as mock_log_warning, \
+          patch('clusterfuzz._internal.metrics.logs.info'):
+
+      with self.assertRaises(corpus_pruning_task.CorpusPruningError) as cm:
+        pruner.run('/tmp/initial', '/tmp/minimized', '/tmp/bad')
+
+      # This is the expected behavior AFTER fix.
+      self.assertEqual(str(cm.exception), "Corpus pruning failed to minimize corpus")
+
+      # Check detailed log
+      mock_log_warning.assert_called_with("Corpus pruning failed to minimize corpus\n" + repr(err))
