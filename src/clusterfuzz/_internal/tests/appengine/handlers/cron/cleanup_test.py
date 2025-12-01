@@ -1450,7 +1450,7 @@ class UpdateComponentsTest(unittest.TestCase):
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
   def test_component_id_added(self):
-    """Ensure that we a component_id when applicable."""
+    """Ensure that we set a component_id when applicable."""
     self.testcase.set_metadata(
         'predator_result', {
             'result': {
@@ -1463,6 +1463,19 @@ class UpdateComponentsTest(unittest.TestCase):
                                            self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('B>C', self.issue.components)
+    self.assertEqual(123456, self.issue.component_id)
+    self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
+
+  def test_component_id_without_suspected_components(self):
+    """Ensure we set a component_id even when missing suspected components."""
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': 123456
+        }})
+
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
     self.assertEqual(123456, self.issue.component_id)
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
