@@ -1132,7 +1132,7 @@ def update_component_labels_and_id(policy, testcase, issue):
     if not found_component_in_issue:
       filtered_components.append(component)
 
-  if not filtered_components and not component_id:
+  if not (filtered_components or component_id):
     # If there are no new components to add and neither a component ID to
     # update, then we shouldn't make any changes to issue.
     return
