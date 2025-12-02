@@ -1480,7 +1480,7 @@ class UpdateComponentsTest(unittest.TestCase):
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
   def test_component_id_already_set(self):
-    """Ensure we do not set a component_id again."""
+    """Ensure we do not make an API call if the component ID has not changed."""
     helpers.patch(
         self,
         ['clusterfuzz._internal.issue_management.monorail.issue.Issue.save'])
