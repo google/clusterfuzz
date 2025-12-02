@@ -1100,6 +1100,14 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   issue.save(new_comment=update_message, notify=True)
 
 
+def _should_update_component_id(issue, component_id):
+  """Check whether updating the issue component id is needed."""
+  if not hasattr(issue, 'component_id'):
+    return False
+
+  return component_id and issue.component_id != component_id
+
+
 def update_component_labels_and_id(policy, testcase, issue):
   """Add components to the issue if needed."""
   if not issue:
@@ -1132,9 +1140,8 @@ def update_component_labels_and_id(policy, testcase, issue):
     if not found_component_in_issue:
       filtered_components.append(component)
 
-  issue_component_id = getattr(issue, 'component_id', None)
   if not (filtered_components or
-          (component_id and issue_component_id != component_id)):
+          _should_update_component_id(issue, component_id)):
     # If there are no new components to add and neither a component ID to
     # update, then we shouldn't make any changes to issue.
     return
