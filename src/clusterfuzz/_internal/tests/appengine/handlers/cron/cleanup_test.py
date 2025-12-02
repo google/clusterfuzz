@@ -1479,6 +1479,19 @@ class UpdateComponentsTest(unittest.TestCase):
     self.assertEqual('123456', self.issue.component_id)
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
+  def test_component_id_changed(self):
+    """Ensure we update the component_id if it has changed."""
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': '111111'
+        }})
+    setattr(self.issue, 'component_id', '123456')
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertEqual('111111', self.issue.component_id)
+    self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
+
   def test_component_id_already_set(self):
     """Ensure we do not make an API call if the component ID has not changed."""
     helpers.patch(
