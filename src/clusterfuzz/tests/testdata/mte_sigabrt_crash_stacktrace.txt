@@ -1,0 +1,47 @@
+Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 11206 (example_mte_fuz), pid 11206 (example_mte_fuz)
+--------- crash_dump64 (11210):
+obtaining output fd from tombstoned, type: kDebuggerdTombstoneProto
+--------- tombstoned (699):
+received crash request for pid 11206
+--------- crash_dump64 (11210):
+performing dump of process 11206 (target tid = 11206)
+--------- logd (11172):
+logdr: UID=0 GID=0 PID=11210 n tail=500 logMask=8 pid=11206 start=0ns deadline=0ns
+logdr: UID=0 GID=0 PID=11210 n tail=500 logMask=1 pid=11206 start=0ns deadline=0ns
+--------- DEBUG (11210):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'google/shiba_fullmte/shiba:Baklava/ZP1A.251016.003/14277783:userdebug/dev-keys'
+Kernel Release: '6.1.145-android14-11-g4b828d3a3ad9-ab14145256'
+Revision: 'MP1.0'
+ABI: 'arm64'
+Timestamp: 2025-11-19 11:40:15.790441655+0530
+Process uptime: 1s
+Executable: /data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-android_asan_example_mte_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/example_mte_fuzzer
+Cmdline: /data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-android_asan_example_mte_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/example_mte_fuzzer -timeout=25 -rss_limit_mb=2560 -artifact_prefix=/data/fuzz/bot/inputs/fuzzer-testcases/ -max_total_time=6600 -print_final_stats=1 /data/fuzz/bot/inputs/disk/temp-2519948/new /data/fuzz/bot/inputs/data-bundles/example_mte_fuzzer
+pid: 11206, tid: 11206, name: example_mte_fuz  >>> /data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-android_asan_example_mte_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/example_mte_fuzzer <<<
+uid: 0
+tagged_addr_ctrl: 000000000007fff3 (PR_TAGGED_ADDR_ENABLE, PR_MTE_TCF_SYNC, mask 0xfffe)
+pac_enabled_keys: 000000000000000f (PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY)
+signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+    x0  0000000000000000  x1  0000000000002bc6  x2  0000000000000006  x3  0000007fef0263a0
+    x4  0000000000000068  x5  0000000000000068  x6  0000000000000068  x7  0000000000000001
+    x8  00000000000000f0  x9  000001ff00000020  x10 0000000000000001  x11 000000729956a410
+    x12 0000000000000001  x13 0000000000000160  x14 0000006076716c00  x15 0000000000000001
+    x16 00000072995d2138  x17 00000072995b9880  x18 000000729a3dc000  x19 0000000000002bc6
+    x20 0000000000002bc6  x21 00000000ffffffff  x22 0b000070e3c3f150  x23 0000000000000000
+    x24 0000007fef026450  x25 00000060766e4020  x26 00000060766e4000  x27 0000000000000001
+    x28 00000060766e4000  x29 0000007fef026420
+    lr  000000729955225c  sp  0000007fef0263a0  pc  0000007299552280  pst 0000000000001000
+    esr 0000000000000000
+9 total frames
+backtrace:
+    #0 0x0000000000077280 in inline_raise(int, void*) (.__uniq.201323612683705321220686839317194998812) bionic/libc/private/bionic_inline_raise.h:91:14
+    #1 0x0000000000077280 in abort bionic/libc/bionic/abort.cpp:48:3
+    #2 0x0000000000018ab0 in example_mte_fuzzer
+    #3 0x00000000000327ec in example_mte_fuzzer
+    #4 0x0000000000031f60 in example_mte_fuzzer
+    #5 0x0000000000033934 in example_mte_fuzzer
+    #6 0x000000000003462c in example_mte_fuzzer
+    #7 0x0000000000023820 in example_mte_fuzzer
+    #8 0x000000000004c830 in example_mte_fuzzer
+    #9 0x000000000006b36c in __libc_init bionic/libc/bionic/libc_init_dynamic.cpp:173:8
