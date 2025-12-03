@@ -44,6 +44,9 @@ ANDROID_KERNEL_TIME_REGEX = re.compile(r'^\[\s*\d+\.\d+\]\s')
 # Parentheses are optional.
 ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
 ANDROID_SEGV_REGEX = re.compile(r'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
+ANDROID_SIGABRT_REGEX = re.compile(r'.*signal.*\(SIGABRT.*fault addr --------')
+ANDROID_SIGTRAP_REGEX = re.compile(
+    r'.*signal.*\(SIGTRAP.*fault addr ([^ ]*)(.*)')
 ASAN_INVALID_FREE_REGEX = re.compile(
     r'.*AddressSanitizer: '
     r'attempting free on address which was not malloc\(\)-ed: '
