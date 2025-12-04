@@ -809,10 +809,11 @@ class Issue(issue_tracker.Issue):
         self._data['issueComment'] = {
             'comment': self._body,
         }
+      logs.info(f'google_issue_tracker: issue body before create: {self._data}')
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
-      logs.info('google_issue_tracker: result of create: %s' % result)
+      logs.info(f'google_issue_tracker: result of create: {result}')
       self._is_new = False
     else:
       logs.info('google_issue_tracker: Updating issue..')
