@@ -63,6 +63,9 @@ def _prepare_butler_run_args(non_dry_run: bool,
 
 
 def _get_script_args_list(script_args: list[str]) -> list[str]:
+  """Gets the script args list and return it with the correct format.
+  (e.g) [arg1, arg2] -> --script_args=arg1 --script_args=arg2
+  """
   script_args_list = []
   for arg in script_args:
     script_args_list.append(f'--script_args={arg}')
