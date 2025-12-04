@@ -38,8 +38,10 @@ def common_options(func):
       '--non-dry-run',
       is_flag=True,
       default=False,
-      help='Run with actual datastore writes. Default to dry-run.')(
-          func)
+      help=('Run with actual datastore writes. '
+            'Default to dry-run. The dry-run behavior needs to be implemented'
+            ' by the script itself, it is not enforced globally'))(
+                func)
   func = click.option(
       '--script_args', multiple=True, help='Script specific arguments')(
           func)
