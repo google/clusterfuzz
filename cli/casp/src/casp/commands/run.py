@@ -25,8 +25,7 @@ import click
 
 
 def common_options(func):
-  """
-    Decorator to add common options to both 
+  """Decorator to add common options to both 
     local and container modes
   """
   func = click.option(

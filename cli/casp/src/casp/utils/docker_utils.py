@@ -36,9 +36,7 @@ _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
 
 
 def add_volume(volumes: dict, container_path: str, host_path: str) -> None:
-  """ 
-    Adds a volume in `volumes` dictionary from host to container.
-  """
+  """Adds a volume in `volumes` dictionary from host to container."""
   volumes[host_path] = {
       'bind': container_path,
       'mode': 'rw',
