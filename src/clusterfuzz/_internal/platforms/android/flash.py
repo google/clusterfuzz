@@ -19,7 +19,9 @@ import time
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import locks
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
@@ -171,10 +173,17 @@ def flash_to_latest_build_if_needed():
                'branch %s and target %s.' % (branch, target))
     return
 
+  instance_id = None
+  is_candidate = None
   if environment.is_android_cuttlefish():
     download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
     adb.recreate_cuttlefish_device()
     adb.connect_to_cuttlefish_device()
+    if compute_metadata.is_gce():
+      # Get the GCE-assigned VM instance ID for accurate instance tracking.
+      instance_id = compute_metadata.get('instance/id')
+      # Determine if the current instance is a candidate.
+      is_candidate = utils.get_clusterfuzz_release() == 'candidate'
   else:
     download_latest_build(build_info, FLASH_IMAGE_REGEXES, image_directory)
     # We do one device flash at a time on one host, otherwise we run into
@@ -220,6 +229,8 @@ def flash_to_latest_build_if_needed():
       logs.info('Trying to boot cuttlefish instance using stable build.')
       monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
           'build_id': build_info['bid'],
+          'instance_id': instance_id,
+          'is_candidate': is_candidate,
           'is_succeeded': False
       })
       boot_stable_build_cuttlefish(branch, target, image_directory)
@@ -229,9 +240,10 @@ def flash_to_latest_build_if_needed():
     else:
       logs.error('Unable to find device. Reimaging failed.')
       adb.bad_state_reached()
-
   monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
       'build_id': build_info['bid'],
+      'instance_id': instance_id,
+      'is_candidate': is_candidate,
       'is_succeeded': True
   })
   logs.info('Reimaging finished.')
