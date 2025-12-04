@@ -120,6 +120,27 @@ def _add_run_subparser(toplevel_subparsers):
       '--local', action='store_true', help='Run against local server instance.')
 
 
+def _add_package_subparser(toplevel_subparsers):
+  """Adds a parser for the `package` command."""
+  parser_package = toplevel_subparsers.add_parser(
+      'package', help='Package clusterfuzz with a staging revision')
+  parser_package.add_argument(
+      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
+  parser_package.add_argument(
+      '-r',
+      '--release',
+      choices=['prod', 'candidate', 'chrome-tests-syncer'],
+      default='prod')
+
+
+def _add_bootstrap_subparser(toplevel_subparsers):
+  """Adds a parser for the `bootstrap` command."""
+  toplevel_subparsers.add_parser(
+      'bootstrap',
+      help=('Install all required dependencies for running an appengine, a bot,'
+            'and a mapreduce locally.'))
+
+
 def _add_py_unittest_subparser(toplevel_subparsers):
   """Adds a parser for the `py_unittest` command."""
   parser_py_unittest = toplevel_subparsers.add_parser(
@@ -339,11 +360,6 @@ def main():
       help='Force logs to be local-only.')
   subparsers = parser.add_subparsers(dest='command')
 
-  subparsers.add_parser(
-      'bootstrap',
-      help=('Install all required dependencies for running an appengine, a bot,'
-            'and a mapreduce locally.'))
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(
@@ -352,16 +368,6 @@ def main():
       action='store_true',
       help=('Do not close browser when tests '
             'finish. Good for debugging.'))
-
-  parser_package = subparsers.add_parser(
-      'package', help='Package clusterfuzz with a staging revision')
-  parser_package.add_argument(
-      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
-  parser_package.add_argument(
-      '-r',
-      '--release',
-      choices=['prod', 'candidate', 'chrome-tests-syncer'],
-      default='prod')
 
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
@@ -458,6 +464,8 @@ def main():
       help='Location for App Engine.')
 
   _add_run_subparser(subparsers)
+  _add_package_subparser(subparsers)
+  _add_bootstrap_subparser(subparsers)
   _add_py_unittest_subparser(subparsers)
   _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)

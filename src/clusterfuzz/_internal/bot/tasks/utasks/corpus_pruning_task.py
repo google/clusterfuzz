@@ -477,16 +477,21 @@ class CorpusPrunerBase:
           bad_units_path, CORPUS_PRUNING_TIMEOUT)
     except TimeoutError as e:
       raise CorpusPruningError(
-          'Corpus pruning timed out while minimizing corpus\n' + repr(e))
+          'Corpus pruning timed out while minimizing corpus') from e
     except engine.Error as e:
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               repr(e))
+      raise CorpusPruningError(
+          'Corpus pruning failed to minimize corpus due to an engine error'
+      ) from e
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
     if not shell.get_directory_file_count(minimized_corpus_path):
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               symbolized_output)
+      logs.warning(
+          'No files in minimized corpus after merging.',
+          symbolized_output=symbolized_output)
+      raise CorpusPruningError(
+          'Corpus pruning failed to minimize corpus as the output directory '
+          'is empty')
 
     logs.info('Corpus merge finished successfully.', output=symbolized_output)
     return result.stats

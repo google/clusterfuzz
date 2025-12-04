@@ -13,11 +13,47 @@
 # limitations under the License.
 """Package command."""
 
+import subprocess
+import sys
+
+from casp.utils import local_butler
 import click
 
 
 @click.command(
-    name='package', help='Package clusterfuzz with a staging revision')
-def cli():
+    name='package',
+    help=('Package clusterfuzz with a staging revision. '
+          'It creates a zip for each platform chosen in '
+          'the clusterfuzz/deployment directory.'))
+@click.option(
+    '--platform',
+    '-p',
+    type=click.Choice(['linux', 'macos', 'windows', 'all']),
+    help='The platform to package for.')
+@click.option(
+    '--release',
+    '-r',
+    type=click.Choice(['prod', 'candidate', 'chrome-tests-syncer']),
+    default='prod',
+    show_default=True,
+    help='The release channel.')
+def cli(platform, release):
   """Package clusterfuzz with a staging revision"""
-  click.echo('To be implemented...')
+  try:
+    arguments = {'release': release}
+    if platform:
+      arguments['platform'] = platform
+
+    command = local_butler.build_command('package', **arguments)
+  except FileNotFoundError:
+    click.echo('butler.py not found in this directory.', err=True)
+    sys.exit(1)
+
+  try:
+    subprocess.run(command, check=True)
+  except FileNotFoundError:
+    click.echo('python not found in PATH.', err=True)
+    sys.exit(1)
+  except subprocess.CalledProcessError as e:
+    click.echo(f'Error running butler.py package: {e}', err=True)
+    sys.exit(1)

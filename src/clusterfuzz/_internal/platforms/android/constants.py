@@ -62,7 +62,9 @@ AUTOMOTIVE_RELEASE_CONFIGURATION = 'trunk_staging'
 
 AUTOMOTIVE_TARGET_LIST = ['seahawk_hwasan']
 
-NO_RELEASE_CONFIGURATION_TARGET_LIST = ['shiba_fullmte', 'husky_fullmte']
+NO_RELEASE_CONFIGURATION_TARGET_LIST = [
+    'shiba_fullmte', 'husky_fullmte', 'komodo_fullmte'
+]
 
 DEPRECATED_DEVICE_LIST = [
     'sailfish',  # Pixel
