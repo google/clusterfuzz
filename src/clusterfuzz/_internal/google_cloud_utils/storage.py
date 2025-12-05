@@ -306,6 +306,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
+
     except google.cloud.exceptions.GoogleCloudError:
       logs.warning('Failed to copy cloud storage file %s to local file %s.' %
                    (remote_path, local_path))
@@ -361,13 +362,17 @@ class GcsProvider(StorageProvider):
     try:
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
-      return blob.download_as_bytes()
+      try:
+        return blob.download_as_bytes()
+      except AttributeError:
+        return blob.download_as_string()
     except google.cloud.exceptions.GoogleCloudError as e:
       if e.code == 404:
         return None
 
       logs.warning('Failed to read cloud storage file %s.' % remote_path)
       raise
+
 
   def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""

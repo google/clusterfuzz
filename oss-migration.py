@@ -24,6 +24,8 @@ CLUSTERFUZZ_DIR = '/usr/local/google/home/matheushunsche/projects/clusterfuzz'
 CASP_PYTHONPATH = 'cli/casp/src:src'
 BASE_MIGRATION_DIR = '/usr/local/google/home/matheushunsche/projects/oss-migration'
 
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -325,7 +327,7 @@ def get_project_contacts(project):
                         contacts.append(email)
     return contacts
 
-async def build_local_combo(project, combo_temp_dir, engine, sanitizer, os_version, rebuild, build_project_name, oss_fuzz_dir, dry_run, use_batch, gcs_bucket, pull=False, cpu_limit=None, mem_limit=None, limit=None):
+async def build_local_combo(project, combo_temp_dir, engine, sanitizer, os_version, rebuild, build_project_name, oss_fuzz_dir, dry_run, use_batch, gcs_bucket, pull=False, cpu_limit=None, mem_limit=None, limit=None, do_build=True, do_reproduce=True):
     if not oss_fuzz_dir:
         oss_fuzz_dir = OSS_FUZZ_DIR
     if not build_project_name:
@@ -346,190 +348,209 @@ async def build_local_combo(project, combo_temp_dir, engine, sanitizer, os_versi
     os.makedirs(combo_temp_dir, exist_ok=True)
     recursive_chmod(combo_temp_dir, 0o755) # Ensure dir is accessible
     
-    # If rebuild is True, we want a clean build, so remove existing dir if it exists
-    if rebuild and os.path.exists(combo_temp_dir):
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Removing existing build dir for clean build: {combo_temp_dir}")
-        safe_rmtree(combo_temp_dir)
-        os.makedirs(combo_temp_dir, exist_ok=True)
-        recursive_chmod(combo_temp_dir, 0o755)
-    
     # The build output will stay within this directory
     combo_out_dir = os.path.join(combo_temp_dir, 'build', 'out', build_project_name)
 
     repro_results = (0, 0, []) # Default to 0 successes/failures, no failures list
     build_failures = []
 
-    if not rebuild and os.path.exists(combo_out_dir) and os.listdir(combo_out_dir):
-        safe_print(f"Skipping build for {engine}-{sanitizer} ({os_version}) as directory exists and is not empty.")
-        # Still need to run reproduction if skipped build? Yes, usually.
-        repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False, use_batch=use_batch, gcs_bucket=gcs_bucket if use_batch else None, limit=limit)
-        return combo_out_dir, combo_temp_dir, repro_results, build_failures
+    build_performed_or_skipped_successfully = False
 
-    if not os.path.exists(combo_temp_dir):
-        os.makedirs(combo_temp_dir, exist_ok=True)
-        recursive_chmod(combo_temp_dir, 0o755) # Ensure combo dir is accessible
-        safe_print(f"Created persistent isolated build dir: {combo_temp_dir}")
+    if do_build:
+        # If rebuild is True, we want a clean build, so remove existing dir if it exists
+        if rebuild and os.path.exists(combo_temp_dir):
+            safe_print(f"[{os_version}-{engine}-{sanitizer}] Removing existing build dir for clean build: {combo_temp_dir}")
+            safe_rmtree(combo_temp_dir)
+            os.makedirs(combo_temp_dir, exist_ok=True)
+            recursive_chmod(combo_temp_dir, 0o755)
         
-        # Set up OSS-Fuzz environment in temp dir
-        # We need to create infra dir and symlink contents except helper.py
-        infra_dir = os.path.join(combo_temp_dir, 'infra')
-        os.makedirs(infra_dir, exist_ok=True)
-        original_infra_dir = os.path.join(oss_fuzz_dir, 'infra')
-        for item in os.listdir(original_infra_dir):
-            if item == 'helper.py':
-                continue
-            s = os.path.join(original_infra_dir, item)
-            d = os.path.join(infra_dir, item)
-            if os.path.isdir(s):
-                os.symlink(s, d, target_is_directory=True)
-            else:
-                os.symlink(s, d)
-        
-        # Copy modified helper.py
-        shutil.copy2(os.path.join(os.path.dirname(__file__), 'helper_modified.py'), os.path.join(infra_dir, 'helper.py'))
-        os.chmod(os.path.join(infra_dir, 'helper.py'), 0o755)
-
-        os.symlink(os.path.join(oss_fuzz_dir, 'base-images'), os.path.join(combo_temp_dir, 'base-images'))
-        os.symlink(os.path.join(oss_fuzz_dir, 'build.py'), os.path.join(combo_temp_dir, 'build.py'))
-    else:
-        safe_print(f"Using existing isolated build dir: {combo_temp_dir}")
-    
-    # Ensure project directory exists and is correctly linked/copied
-    project_temp_dir = os.path.join(combo_temp_dir, 'projects', build_project_name)
-    if os.path.exists(project_temp_dir) or os.path.islink(project_temp_dir):
-        if os.path.islink(project_temp_dir):
-            os.remove(project_temp_dir)
-        elif os.path.isdir(project_temp_dir):
-            safe_rmtree(project_temp_dir)
+        if not rebuild and os.path.exists(combo_out_dir) and os.listdir(combo_out_dir):
+            safe_print(f"Skipping build for {engine}-{sanitizer} ({os_version}) as directory exists and is not empty.")
+            build_performed_or_skipped_successfully = True
         else:
-            os.remove(project_temp_dir)
-    
-    os.makedirs(os.path.dirname(project_temp_dir), exist_ok=True)
-    if os_version == 'ubuntu-24-04':
-        # For 24.04, copy from the modified OSS-Fuzz dir (which is oss_fuzz_dir here)
-        shutil.copytree(os.path.join(oss_fuzz_dir, 'projects', build_project_name), project_temp_dir)
-    else:
-        # For Legacy, just symlink from original OSS_FUZZ_DIR
-        os.symlink(os.path.join(OSS_FUZZ_DIR, 'projects', build_project_name), project_temp_dir)
+            if not os.path.exists(combo_temp_dir):
+                os.makedirs(combo_temp_dir, exist_ok=True)
+                recursive_chmod(combo_temp_dir, 0o755) # Ensure combo dir is accessible
+                safe_print(f"Created persistent isolated build dir: {combo_temp_dir}")
+                
+                # Set up OSS-Fuzz environment in temp dir
+                # We need to create infra dir and symlink contents except helper.py
+                infra_dir = os.path.join(combo_temp_dir, 'infra')
+                os.makedirs(infra_dir, exist_ok=True)
+                original_infra_dir = os.path.join(oss_fuzz_dir, 'infra')
+                for item in os.listdir(original_infra_dir):
+                    if item == 'helper.py':
+                        continue
+                    s = os.path.join(original_infra_dir, item)
+                    d = os.path.join(infra_dir, item)
+                    if os.path.isdir(s):
+                        os.symlink(s, d, target_is_directory=True)
+                    else:
+                        os.symlink(s, d)
+                
+                # Copy modified helper.py
+                shutil.copy2(os.path.join(os.path.dirname(__file__), 'helper_modified.py'), os.path.join(infra_dir, 'helper.py'))
+                os.chmod(os.path.join(infra_dir, 'helper.py'), 0o755)
 
-    # Ensure essential symlinks exist even if directory existed
-    for link_name in ['base-images', 'build.py']:
-        link_path = os.path.join(combo_temp_dir, link_name)
-        if os.path.exists(link_path) or os.path.islink(link_path):
-            try:
-                if os.path.islink(link_path):
-                    os.remove(link_path)
-                elif os.path.isdir(link_path):
-                    safe_rmtree(link_path)
+                os.symlink(os.path.join(oss_fuzz_dir, 'base-images'), os.path.join(combo_temp_dir, 'base-images'))
+                os.symlink(os.path.join(oss_fuzz_dir, 'build.py'), os.path.join(combo_temp_dir, 'build.py'))
+            else:
+                safe_print(f"Using existing isolated build dir: {combo_temp_dir}")
+            
+            # Ensure project directory exists and is correctly linked/copied
+            project_temp_dir = os.path.join(combo_temp_dir, 'projects', build_project_name)
+            if os.path.exists(project_temp_dir) or os.path.islink(project_temp_dir):
+                if os.path.islink(project_temp_dir):
+                    os.remove(project_temp_dir)
+                elif os.path.isdir(project_temp_dir):
+                    safe_rmtree(project_temp_dir)
                 else:
-                    os.remove(link_path)
-            except:
-                pass
-        os.symlink(os.path.join(oss_fuzz_dir, link_name), link_path)
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Created symlink: {link_path} -> {os.path.join(oss_fuzz_dir, link_name)}")
-    
-    # Handle infra separately to keep modified helper.py
-    infra_link_path = os.path.join(combo_temp_dir, 'infra')
-    if not os.path.exists(infra_link_path):
-        os.makedirs(infra_link_path, exist_ok=True)
-        original_infra_dir = os.path.join(oss_fuzz_dir, 'infra')
-        for item in os.listdir(original_infra_dir):
-            if item == 'helper.py':
-                continue
-            s = os.path.join(original_infra_dir, item)
-            d = os.path.join(infra_link_path, item)
-            if os.path.islink(d) or os.path.exists(d):
-                continue
-            if os.path.isdir(s):
-                os.symlink(s, d, target_is_directory=True)
+                    os.remove(project_temp_dir)
+            
+            os.makedirs(os.path.dirname(project_temp_dir), exist_ok=True)
+            if os_version == 'ubuntu-24-04':
+                # For 24.04, copy from the modified OSS-Fuzz dir (which is oss_fuzz_dir here)
+                shutil.copytree(os.path.join(oss_fuzz_dir, 'projects', build_project_name), project_temp_dir)
             else:
-                os.symlink(s, d)
-        # Copy modified helper.py
-        shutil.copy2(os.path.join(os.path.dirname(__file__), 'helper_modified.py'), os.path.join(infra_link_path, 'helper.py'))
-        os.chmod(os.path.join(infra_link_path, 'helper.py'), 0o755)
+                # For Legacy, just symlink from original OSS_FUZZ_DIR
+                os.symlink(os.path.join(OSS_FUZZ_DIR, 'projects', build_project_name), project_temp_dir)
 
-    # Fallback check in case helper.py still used real OSS_FUZZ_DIR (unlikely now but safe)
-    real_oss_fuzz_out = os.path.join(oss_fuzz_dir, 'build', 'out', build_project_name)
-    if os.path.exists(real_oss_fuzz_out) and os.listdir(real_oss_fuzz_out):
-            safe_print(f"[{os_version}-{engine}-{sanitizer}] Found output in real OSS_FUZZ_DIR, moving to persistent dir.")
-            if os.path.exists(combo_out_dir):
-                if not dry_run:
-                    safe_rmtree(combo_out_dir)
-            if not dry_run:
-                os.makedirs(os.path.dirname(combo_out_dir), exist_ok=True)
-                shutil.move(real_oss_fuzz_out, combo_out_dir)
-                os.makedirs(real_oss_fuzz_out, exist_ok=True) # Recreate empty dir to avoid issues
+            # Ensure essential symlinks exist even if directory existed
+            for link_name in ['base-images', 'build.py']:
+                link_path = os.path.join(combo_temp_dir, link_name)
+                if os.path.exists(link_path) or os.path.islink(link_path):
+                    try:
+                        if os.path.islink(link_path):
+                            os.remove(link_path)
+                        elif os.path.isdir(link_path):
+                            safe_rmtree(link_path)
+                        else:
+                            os.remove(link_path)
+                    except:
+                        pass
+                if not os.path.exists(link_path):
+                    os.symlink(os.path.join(oss_fuzz_dir, link_name), link_path)
+                    safe_print(f"[{os_version}-{engine}-{sanitizer}] Created symlink: {link_path} -> {os.path.join(oss_fuzz_dir, link_name)}")
+            
+            # Handle infra separately to keep modified helper.py
+            infra_link_path = os.path.join(combo_temp_dir, 'infra')
+            if not os.path.exists(infra_link_path):
+                os.makedirs(infra_link_path, exist_ok=True)
+                original_infra_dir = os.path.join(oss_fuzz_dir, 'infra')
+                for item in os.listdir(original_infra_dir):
+                    if item == 'helper.py':
+                        continue
+                    s = os.path.join(original_infra_dir, item)
+                    d = os.path.join(infra_link_path, item)
+                    if os.path.islink(d) or os.path.exists(d):
+                        continue
+                    if os.path.isdir(s):
+                        os.symlink(s, d, target_is_directory=True)
+                    else:
+                        os.symlink(s, d)
+                # Copy modified helper.py
+                shutil.copy2(os.path.join(os.path.dirname(__file__), 'helper_modified.py'), os.path.join(infra_link_path, 'helper.py'))
+                os.chmod(os.path.join(infra_link_path, 'helper.py'), 0o755)
+
+            # Fallback check in case helper.py still used real OSS_FUZZ_DIR (unlikely now but safe)
+            real_oss_fuzz_out = os.path.join(oss_fuzz_dir, 'build', 'out', build_project_name)
+            if os.path.exists(real_oss_fuzz_out) and os.listdir(real_oss_fuzz_out):
+                    safe_print(f"[{os_version}-{engine}-{sanitizer}] Found output in real OSS_FUZZ_DIR, moving to persistent dir.")
+                    if os.path.exists(combo_out_dir):
+                        if not dry_run:
+                            safe_rmtree(combo_out_dir)
+                    if not dry_run:
+                        os.makedirs(os.path.dirname(combo_out_dir), exist_ok=True)
+                        shutil.move(real_oss_fuzz_out, combo_out_dir)
+                        os.makedirs(real_oss_fuzz_out, exist_ok=True) # Recreate empty dir to avoid issues
+                    else:
+                        safe_print(f"Dry run: Would move {real_oss_fuzz_out} to {combo_out_dir}")
+                    # Set flag that build was handled (by move)
+                    build_performed_or_skipped_successfully = True
             else:
-                safe_print(f"Dry run: Would move {real_oss_fuzz_out} to {combo_out_dir}")
-            # Run reproduction immediately after move
-            repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False, use_batch=use_batch, gcs_bucket=gcs_bucket, limit=limit)
-            return combo_out_dir, combo_temp_dir, repro_results, build_failures
+                # Check if we already have a successful build in the isolated directory
+                # combo_out_dir is .../build/out/project
+                if not rebuild and os.path.exists(combo_out_dir) and os.listdir(combo_out_dir):
+                     safe_print(f"[{os_version}-{engine}-{sanitizer}] Using existing build artifacts in {combo_out_dir}")
+                     build_performed_or_skipped_successfully = True
+                else:
+                    # Run build using helper.py within the isolated environment
+                    # We need to run this from within combo_temp_dir to use the local infra and projects
+                    build_log_path = os.path.join(combo_temp_dir, 'build.log')
+                    try:
+                        # 1. Build Image
+                        build_image_cmd = f"python3 infra/helper.py build_image --pull {build_project_name}"
+                        safe_print(f"[{os_version}-{engine}-{sanitizer}] Running build command: {build_image_cmd} in {combo_temp_dir} (Log: {build_log_path})")
+                        # Log build output to file
+                        with open(build_log_path, 'a') as log_file:
+                            await run_command(build_image_cmd, combo_temp_dir, capture_output=False, dry_run=False, prefix=f"[{os_version}-{engine}-{sanitizer}]", stdout=log_file, stderr=log_file)
 
-    # Run build using helper.py within the isolated environment
-    # We need to run this from within combo_temp_dir to use the local infra and projects
-    build_log_path = os.path.join(combo_temp_dir, 'build.log')
-    try:
-        # 1. Build Image
-        build_image_cmd = f"python3 infra/helper.py build_image --pull {build_project_name}"
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Running build command: {build_image_cmd} in {combo_temp_dir} (Log: {build_log_path})")
-        # Log build output to file
-        with open(build_log_path, 'a') as log_file:
-            await run_command(build_image_cmd, combo_temp_dir, capture_output=False, dry_run=False, prefix=f"[{os_version}-{engine}-{sanitizer}]", stdout=log_file, stderr=log_file)
+                        cmd = f"python3 infra/helper.py build_fuzzers --engine {engine} --sanitizer {sanitizer} {build_project_name}"
+                        if cpu_limit:
+                            cmd += f" --docker-arg=\"--cpus={cpu_limit}\""
+                        if mem_limit:
+                            cmd += f" --docker-arg=\"--memory={mem_limit}g\""
+                        
+                        safe_print(f"[{os_version}-{engine}-{sanitizer}] Running build command: {cmd} in {combo_temp_dir} (Log: {build_log_path})")
+                        with open(build_log_path, 'a') as log_file:
+                            await run_command(cmd, combo_temp_dir, capture_output=False, dry_run=False, prefix=f"[{os_version}-{engine}-{sanitizer}]", stdout=log_file, stderr=log_file)
+                        
+                        build_performed_or_skipped_successfully = True # Build command ran without exception
+                    except Exception as e:
+                        safe_print(f"[{os_version}-{engine}-{sanitizer}] Build failed: {e}")
+                        build_failures.append({
+                            'os_version': os_version,
+                            'engine': engine,
+                            'sanitizer': sanitizer,
+                            'error': str(e),
+                            'log_path': build_log_path
+                        })
+                        return combo_out_dir, combo_temp_dir, (0, 0, []), build_failures
 
-        cmd = f"python3 infra/helper.py build_fuzzers --engine {engine} --sanitizer {sanitizer} {build_project_name}"
-        if cpu_limit:
-            cmd += f" --docker-arg=\"--cpus={cpu_limit}\""
-        if mem_limit:
-            cmd += f" --docker-arg=\"--memory={mem_limit}g\""
-        
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Running build command: {cmd} in {combo_temp_dir} (Log: {build_log_path})")
-        with open(build_log_path, 'a') as log_file:
-            await run_command(cmd, combo_temp_dir, capture_output=False, dry_run=False, prefix=f"[{os_version}-{engine}-{sanitizer}]", stdout=log_file, stderr=log_file)
-    except Exception as e:
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Build failed: {e}")
-        build_failures.append({
-            'os_version': os_version,
-            'engine': engine,
-            'sanitizer': sanitizer,
-            'error': str(e),
-            'log_path': build_log_path
-        })
-        return combo_out_dir, combo_temp_dir, (0, 0, []), build_failures
+            # After build, ensure permissions are correct for Docker access
+            # First, fix ownership of the output directory (Docker creates files as root)
+            # Use Docker itself to fix permissions to avoid sudo password prompt on host
+            try:
+                uid = os.getuid()
+                gid = os.getgid()
+                # We need to mount the parent directory to handle the directory itself if needed, 
+                # but mounting the directory directly is simpler for its contents.
+                # Since combo_out_dir is what we want to fix:
+                cmd = f"docker run --rm -v {combo_out_dir}:/out busybox chown -R {uid}:{gid} /out"
+                # Run this command. We don't need to be in combo_temp_dir for this.
+                await run_command(cmd, os.getcwd(), capture_output=False, prefix=f"[{os_version}-{engine}-{sanitizer}]")
+            except Exception as e:
+                safe_print(f"[{os_version}-{engine}-{sanitizer}] Warning: Failed to fix ownership with Docker: {e}")
 
-    # After build, ensure permissions are correct for Docker access
-    # First, fix ownership of the output directory (Docker creates files as root)
-    # Use Docker itself to fix permissions to avoid sudo password prompt on host
-    try:
-        uid = os.getuid()
-        gid = os.getgid()
-        # We need to mount the parent directory to handle the directory itself if needed, 
-        # but mounting the directory directly is simpler for its contents.
-        # Since combo_out_dir is what we want to fix:
-        cmd = f"docker run --rm -v {combo_out_dir}:/out busybox chown -R {uid}:{gid} /out"
-        # Run this command. We don't need to be in combo_temp_dir for this.
-        await run_command(cmd, os.getcwd(), capture_output=False, prefix=f"[{os_version}-{engine}-{sanitizer}]")
-    except Exception as e:
-        safe_print(f"[{os_version}-{engine}-{sanitizer}] Warning: Failed to fix ownership with Docker: {e}")
+            recursive_chmod(combo_temp_dir, 0o755)
+    else:
+        safe_print(f"[{os_version}-{engine}-{sanitizer}] Skipping build phase as requested.")
+        # If build is skipped, we assume combo_out_dir might exist from a previous run
+        # and we'll try to reproduce from it if do_reproduce is true.
+        # So, we set build_performed_or_skipped_successfully to true here.
+        build_performed_or_skipped_successfully = True
 
-    recursive_chmod(combo_temp_dir, 0o755)
-
-    # After build, check if output exists
+    # After build (or skip), check if output exists and proceed to reproduction if requested
     if not os.path.exists(combo_out_dir) or not os.listdir(combo_out_dir):
         safe_print(f"[{os_version}-{engine}-{sanitizer}] Build failed or no output generated in {combo_out_dir}")
-        build_failures.append({
-            'os_version': os_version,
-            'engine': engine,
-            'sanitizer': sanitizer,
-            'error': 'No output generated'
-        })
+        if do_build and build_performed_or_skipped_successfully: # Only add to build_failures if build was attempted
+             build_failures.append({
+                'os_version': os_version,
+                'engine': engine,
+                'sanitizer': sanitizer,
+                'error': 'No output generated'
+            })
         return combo_out_dir, combo_temp_dir, (0, 0, []), build_failures
     
-    # Run reproduction
-    repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False, use_batch=use_batch, gcs_bucket=gcs_bucket, limit=limit)
+    if do_reproduce:
+        # Run reproduction
+        repro_results = await run_reproduction(project, local_build_path=combo_out_dir, os_version=os_version, engine=engine, sanitizer=sanitizer, dry_run=False, use_batch=use_batch, gcs_bucket=gcs_bucket, limit=limit)
+    else:
+        safe_print(f"[{os_version}-{engine}-{sanitizer}] Skipping reproduction phase as requested.")
     
     return combo_out_dir, combo_temp_dir, repro_results, build_failures
 
-async def build_local(project, engines=None, sanitizers=None, dry_run=False, rebuild=False, os_version='legacy', build_project_name=None, oss_fuzz_dir=None, use_batch=False, gcs_bucket=None, pull=False, cpu_limit=None, mem_limit=None, limit=None):
+async def build_local(project, engines=None, sanitizers=None, dry_run=False, rebuild=False, os_version='legacy', build_project_name=None, oss_fuzz_dir=None, use_batch=False, gcs_bucket=None, pull=False, cpu_limit=None, mem_limit=None, limit=None, do_build=True, do_reproduce=True):
     if build_project_name is None:
         build_project_name = project
     if oss_fuzz_dir is None:
@@ -544,7 +565,7 @@ async def build_local(project, engines=None, sanitizers=None, dry_run=False, reb
     tasks = []
     for engine in engines:
         for sanitizer in sanitizers:
-            tasks.append(build_local_combo(project, None, engine, sanitizer, os_version, rebuild, build_project_name, oss_fuzz_dir, dry_run, use_batch, gcs_bucket, pull=pull, cpu_limit=cpu_limit, mem_limit=mem_limit, limit=limit))
+            tasks.append(build_local_combo(project, None, engine, sanitizer, os_version, rebuild, build_project_name, oss_fuzz_dir, dry_run, use_batch, gcs_bucket, pull=pull, cpu_limit=cpu_limit, mem_limit=mem_limit, limit=limit, do_build=do_build, do_reproduce=do_reproduce))
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
@@ -592,7 +613,7 @@ async def modify_files_for_2404(project, oss_fuzz_dir, dry_run=False):
         # Matches 'FROM gcr.io/oss-fuzz-base/base-builder' optionally followed by '-lang' and optionally a tag
         import re
         new_content = re.sub(
-            r'FROM\s+(gcr\.io/oss-fuzz-base/base-builder(?:-[a-z]+)?)(?::\w+)?',
+            r'FROM\s+(gcr\.io/oss-fuzz-base/base-builder(?:-[a-z]+)?)(?::[\w.-]+)?',
             r'FROM \1:ubuntu-24-04',
             content
         )
@@ -602,12 +623,12 @@ async def modify_files_for_2404(project, oss_fuzz_dir, dry_run=False):
     else:
         safe_print(f"Dry run: Would modify {project_yaml} and {dockerfile}")
 
-async def run_full_suite(project, engines, sanitizers, os_version, rebuild, build_project_name=None, oss_fuzz_dir=None, use_batch=False, gcs_bucket=None, cpu_limit=None, mem_limit=None, limit=None):
+async def run_full_suite(project, engines, sanitizers, os_version, rebuild, build_project_name=None, oss_fuzz_dir=None, use_batch=False, gcs_bucket=None, cpu_limit=None, mem_limit=None, limit=None, do_build=True, do_reproduce=True):
     if build_project_name is None:
         build_project_name = project
     
     safe_print(f"\n--- Running Full Suite for {project} on {os_version} ---")
-    build_paths, temp_dirs, total_success, total_failed, failures, build_failures = await build_local(project, engines=engines, sanitizers=sanitizers, dry_run=False, rebuild=rebuild, os_version=os_version, build_project_name=build_project_name, oss_fuzz_dir=oss_fuzz_dir, use_batch=use_batch, gcs_bucket=gcs_bucket, cpu_limit=cpu_limit, mem_limit=mem_limit, limit=limit)
+    build_paths, temp_dirs, total_success, total_failed, failures, build_failures = await build_local(project, engines=engines, sanitizers=sanitizers, dry_run=False, rebuild=rebuild, os_version=os_version, build_project_name=build_project_name, oss_fuzz_dir=oss_fuzz_dir, use_batch=use_batch, gcs_bucket=gcs_bucket, cpu_limit=cpu_limit, mem_limit=mem_limit, limit=limit, do_build=do_build, do_reproduce=do_reproduce)
     
     return total_success, total_failed, temp_dirs, failures, build_failures
 
@@ -621,7 +642,36 @@ async def main_async():
     parser.add_argument('--engine', help='Specific engine to run (e.g., libfuzzer)')
     parser.add_argument('--sanitizer', help='Specific sanitizer to run (e.g., address)')
     parser.add_argument('--limit', type=int, default=None, help='Limit the number of testcases to reproduce')
+    parser.add_argument('--only-ubuntu-24-04', action='store_true', help='Only process projects being migrated to Ubuntu 24.04 in the current PR.')
+    parser.add_argument('--no-gcb-verify', action='store_true', help='Skip GCB build verification.')
+    parser.add_argument('--build', action='store_true', help='Run only the build phase.')
+    parser.add_argument('--reproduce', action='store_true', help='Run only the reproduction phase.')
     args = parser.parse_args()
+
+    # Determine execution mode
+    do_build = args.build
+    do_reproduce = args.reproduce
+    
+    # If neither is specified, run both (default behavior)
+    if not do_build and not do_reproduce:
+        do_build = True
+        do_reproduce = True
+
+    if args.only_ubuntu_24_04:
+        json_path = os.path.join(os.path.dirname(__file__), 'batch_1_projects.json')
+        if not os.path.exists(json_path):
+             safe_print(f"Error: {json_path} not found.")
+             return
+        
+        with open(json_path, 'r') as f:
+            target_projects = json.load(f)
+            
+        if args.project not in target_projects:
+            safe_print(f"Skipping {args.project} as it is not in the Ubuntu 24.04 migration list.")
+            return
+        if args.limit is None:
+            safe_print("Setting limit to 20 for Ubuntu 24.04 migration testing.")
+            args.limit = 20
     
     # Setup persistent log file for results only
     project_migration_dir = os.path.join(BASE_MIGRATION_DIR, args.project)
@@ -657,7 +707,10 @@ async def main_async():
         num_engines = len(engines)
         num_sanitizers = len(sanitizers)
         # We run legacy and 24.04 in parallel, each with engines*sanitizers builds
-        total_build_threads = 2 * num_engines * num_sanitizers
+        if args.only_ubuntu_24_04:
+            total_build_threads = num_engines * num_sanitizers
+        else:
+            total_build_threads = 2 * num_engines * num_sanitizers
         
         if total_build_threads > 0:
             cpu_per_thread = max(1, TOTAL_CPUS // total_build_threads)
@@ -668,56 +721,59 @@ async def main_async():
             mem_per_thread = None
 
         # 1. Check GCB builds first (Pre-requisite)
-        gcb_builds = await get_gcb_builds(args.project)
-        gcb_success = True
-        if not gcb_builds:
-            safe_print("No GCB builds found. Cannot proceed.")
-            gcb_success = False
+        gcb_builds = None
+        if not args.no_gcb_verify:
+            gcb_builds = await get_gcb_builds(args.project)
+            gcb_success = True
+            if not gcb_builds:
+                safe_print("No GCB builds found. Cannot proceed.")
+                gcb_success = False
+            else:
+                for b in gcb_builds:
+                    if b.get('status') != 'SUCCESS':
+                        safe_print(f"GCB build {b.get('id')} is not SUCCESS (status: {b.get('status')}).")
+                        gcb_success = False
+            
+            
+            # Check health based on returned builds
+            is_healthy = False
+            if gcb_builds and len(gcb_builds) >= 3:
+                is_healthy = all(b.get('status') == 'SUCCESS' for b in gcb_builds)
+            
+            if not is_healthy:
+                safe_print("\n❌ GCB builds are not healthy. Skipping migration.")
+                # Still generate summary but with failure
+                with open(log_filepath, 'w') as results_log:
+                    def dual_print(message):
+                        logger.info(message)
+                        results_log.write(message + '\n')
+                    dual_print("\n========================================")
+                    dual_print("SUMMARY REPORT")
+                    dual_print("========================================")
+                    dual_print(f"Project: {args.project}")
+                    dual_print(f"GCB Builds (fuzzing): {', '.join([b.get('status', 'UNKNOWN') for b in gcb_builds]) if gcb_builds else 'None'}")
+                    dual_print("----------------------------------------")
+                    dual_print("")
+                    dual_print("❌ Failure: GCB builds are not healthy.")
+                    dual_print("Skipping PR preparation.")
+                    dual_print("========================================")
+                return
         else:
-            for b in gcb_builds:
-                if b.get('status') != 'SUCCESS':
-                    safe_print(f"GCB build {b.get('id')} is not SUCCESS (status: {b.get('status')}).")
-                    gcb_success = False
-        
-        
-        # Check health based on returned builds
-        is_healthy = False
-        if gcb_builds and len(gcb_builds) >= 3:
-            is_healthy = all(b.get('status') == 'SUCCESS' for b in gcb_builds)
-        
-        if not is_healthy:
-            safe_print("\n❌ GCB builds are not healthy. Skipping migration.")
-            # Still generate summary but with failure
-            with open(log_filepath, 'w') as results_log:
-                def dual_print(message):
-                    logger.info(message)
-                    results_log.write(message + '\n')
-                dual_print("\n========================================")
-                dual_print("SUMMARY REPORT")
-                dual_print("========================================")
-                dual_print(f"Project: {args.project}")
-                if gcb_builds:
-                    dual_print("-" * 40)
-                    dual_print(f"{'Build ID':<36} | {'Status':<10} | {'Link'}")
-                    dual_print("-" * 40)
-                    for b in gcb_builds:
-                        build_id = b.get('id', 'N/A')
-                        status = b.get('status', 'N/A')
-                        link = f"https://console.cloud.google.com/cloud-build/builds/{build_id}?project=oss-fuzz"
-                        dual_print(f"{build_id:<36} | {status:<10} | {link}")
-                else:
-                    dual_print("GCB Builds (fuzzing): None")
-                dual_print("-" * 40)
-                dual_print("\n❌ Failure: GCB builds are not healthy.")
-                dual_print("Skipping PR preparation.")
-                dual_print("========================================")
-                dual_print(f"\nResults saved to: {log_filepath}")
-            return
+            safe_print("Skipping GCB build verification as requested.")
+
 
         # 2. Proceed with other tasks if GCB is healthy
-        task_remote = asyncio.create_task(run_reproduction(args.project, local_build_path=None, os_version='legacy', dry_run=False, use_batch=args.use_batch, gcs_bucket=args.gcs_bucket, limit=args.limit))
-        # Legacy builds now handle their own isolation with run_id
-        task_legacy = asyncio.create_task(run_full_suite(args.project, engines, sanitizers, 'legacy', args.rebuild, build_project_name=args.project, oss_fuzz_dir=OSS_FUZZ_DIR, use_batch=args.use_batch, gcs_bucket=args.gcs_bucket, cpu_limit=cpu_per_thread, mem_limit=mem_per_thread, limit=args.limit))
+        # 2. Proceed with other tasks if GCB is healthy
+        if not args.only_ubuntu_24_04:
+            task_remote = asyncio.create_task(run_reproduction(args.project, local_build_path=None, os_version='legacy', dry_run=False, use_batch=args.use_batch, gcs_bucket=args.gcs_bucket, limit=args.limit))
+            # Legacy builds now handle their own isolation with run_id
+            task_legacy = asyncio.create_task(run_full_suite(args.project, engines, sanitizers, 'legacy', args.rebuild, build_project_name=args.project, oss_fuzz_dir=OSS_FUZZ_DIR, use_batch=args.use_batch, gcs_bucket=args.gcs_bucket, cpu_limit=cpu_per_thread, mem_limit=mem_per_thread, limit=args.limit, do_build=do_build, do_reproduce=do_reproduce))
+        else:
+            # Create dummy tasks that return empty results immediately
+            async def empty_result(): return (0, 0, [])
+            async def empty_suite_result(): return (0, 0, [], [], [])
+            task_remote = asyncio.create_task(empty_result())
+            task_legacy = asyncio.create_task(empty_suite_result())
         # 24.04 builds now handle their own isolation and modification with run_id
         # For Ubuntu 24.04, we need a modified OSS-Fuzz dir, but we can reuse the main one for now if we are careful,
         # or create a temporary one. Given we want isolated builds, we will create a temporary OSS-Fuzz dir for 24.04
@@ -744,9 +800,12 @@ async def main_async():
         shutil.copytree(os.path.join(OSS_FUZZ_DIR, 'projects', args.project), os.path.join(projects_dir, args.project))
         
         # Modify files for 24.04 in the temp dir
-        await modify_files_for_2404(args.project, oss_fuzz_dir=temp_oss_fuzz_dir, dry_run=False)
+        if do_build:
+            await modify_files_for_2404(args.project, oss_fuzz_dir=temp_oss_fuzz_dir, dry_run=False)
+        else:
+            safe_print(f"Skipping file modification for {args.project} as build phase is skipped.")
         
-        task_2404 = asyncio.create_task(run_full_suite(args.project, engines, sanitizers, 'ubuntu-24-04', args.rebuild, build_project_name=args.project, oss_fuzz_dir=temp_oss_fuzz_dir, use_batch=args.use_batch, gcs_bucket=args.gcs_bucket, cpu_limit=cpu_per_thread, mem_limit=mem_per_thread, limit=args.limit))
+        task_2404 = asyncio.create_task(run_full_suite(args.project, engines, sanitizers, 'ubuntu-24-04', args.rebuild, build_project_name=args.project, oss_fuzz_dir=temp_oss_fuzz_dir, use_batch=args.use_batch, gcs_bucket=args.gcs_bucket, cpu_limit=cpu_per_thread, mem_limit=mem_per_thread, limit=args.limit, do_build=do_build, do_reproduce=do_reproduce))
         
         # Wait for all tasks
         results_list = await asyncio.gather(task_remote, task_legacy, task_2404, return_exceptions=True)
@@ -816,15 +875,18 @@ async def main_async():
 
             dual_print("\n" + "="*40)
             dual_print("SUMMARY REPORT")
-            dual_print("="*40)
-            dual_print(f"Project: {args.project}")
-            gcb_status = results.get('gcb_status', [])
-            if gcb_status and isinstance(gcb_status[0], dict):
-                gcb_status_str = ', '.join([b.get('status', 'UNKNOWN') for b in gcb_status])
-            else:
+            if not args.no_gcb_verify and not args.only_ubuntu_24_04:
+                gcb_status = []
+                if gcb_builds:
+                    for b in gcb_builds:
+                        gcb_status.append(b.get('status', 'UNKNOWN'))
+                else:
+                    gcb_status = ['None']
+                
                 gcb_status_str = ', '.join(gcb_status)
-            dual_print(f"GCB Builds (fuzzing): {gcb_status_str}")
-            dual_print("-" * 40)
+                dual_print(f"GCB Builds (fuzzing): {gcb_status_str}")
+                dual_print("-" * 40)
+            
             dual_print(f"{'Scenario':<25} | {'Success':<7} | {'Failed':<7}")
             dual_print("-" * 40)
             
@@ -834,48 +896,80 @@ async def main_async():
                 else:
                     dual_print(f"{name:<25} | Error   | Error")
 
-            print_res_dual('Remote (Legacy)', results.get('remote_legacy'))
-            print_res_dual('Local (Legacy)', results.get('local_legacy'))
+            if not args.only_ubuntu_24_04:
+                print_res_dual('Remote (Legacy)', results.get('remote_legacy'))
+                print_res_dual('Local (Legacy)', results.get('local_legacy'))
+            
             print_res_dual('Local (Ubuntu 24.04)', results.get('local_2404'))
             dual_print("-" * 40)
             
             success_remote = results['remote_legacy'][0] if isinstance(results['remote_legacy'], tuple) else 0
             success_local_legacy = results['local_legacy'][0] if isinstance(results['local_legacy'], tuple) else 0
             success_local_2404 = results['local_2404'][0] if isinstance(results['local_2404'], tuple) else 0
+            failed_local_2404 = results['local_2404'][1] if isinstance(results['local_2404'], tuple) else 0
             
-            # Apply new rules:
-            # 1. Legacy Local >= 70% of Legacy Remote
-            # 2. Ubuntu 24.04 >= 70% of Legacy Local
-            
-            # Calculate 70% of legacy remote
-            threshold_legacy = success_remote * 0.7
-            legacy_match = (success_local_legacy >= threshold_legacy) and (success_remote > 0)
-            
-            # Calculate 70% of legacy local
-            threshold_2404 = success_local_legacy * 0.7
-            ubuntu_2404_acceptable = (success_local_2404 >= threshold_2404)
-            
-            if legacy_match and ubuntu_2404_acceptable and success_local_legacy > 0:
-                dual_print("\n✅ Success: Results meet criteria for PR.")
-                if success_local_2404 < success_local_legacy:
-                    dual_print(f"⚠️ Warning: Ubuntu 24.04 had fewer successes ({success_local_2404}) than Legacy ({success_local_legacy}), but is within 30% tolerance.")
-                if success_local_legacy < success_remote:
-                     dual_print(f"⚠️ Warning: Legacy Local had fewer successes ({success_local_legacy}) than Remote ({success_remote}), but is within 30% tolerance.")
-                if success_local_legacy > success_remote:
-                    dual_print(f"ℹ️ Note: Legacy Local had more successes ({success_local_legacy}) than Remote ({success_remote}).")
+            if args.only_ubuntu_24_04:
+                # Success criteria for Ubuntu 24.04 only mode:
+                # 1. Success rate >= 70% (success / (success + failed))
+                # 2. 0/0 is considered success (100%)
+                total_2404 = success_local_2404 + failed_local_2404
+                if total_2404 == 0:
+                    is_success = True
+                else:
+                    success_rate = success_local_2404 / total_2404
+                    is_success = success_rate >= 0.7
                 
-                dual_print("PR preparation skipped (use separate script to create branch).")
+                if is_success:
+                    dual_print("\n✅ Success: Results meet criteria for PR.")
+                    if total_2404 == 0:
+                         dual_print("  - 0 testcases found (100% success rate implied).")
+                    else:
+                         dual_print(f"  - Success rate: {success_rate:.1%} (Threshold: 70.0%)")
+                    dual_print("PR preparation skipped (use separate script to create branch).")
+                else:
+                    dual_print("\n❌ Failure: Results do not meet criteria for PR.")
+                    dual_print(f"  - Success rate: {success_rate:.1%} (Threshold: 70.0%)")
             else:
-                dual_print("\n❌ Failure: Results do not meet criteria for PR.")
-                if not legacy_match:
-                    if success_remote == 0:
-                        dual_print(f"  - Legacy Remote has 0 successes.")
-                    elif success_local_legacy < threshold_legacy:
-                        dual_print(f"  - Legacy Local ({success_local_legacy}) is below 70% of Remote ({success_remote}). Threshold: {threshold_legacy:.1f}")
-                if not ubuntu_2404_acceptable:
-                    dual_print(f"  - Ubuntu 24.04 ({success_local_2404}) is below 70% of Legacy ({success_local_legacy}). Threshold: {threshold_2404:.1f}")
-                if success_local_legacy == 0:
-                    dual_print("  - Legacy Local has 0 successes.")
+                # Apply legacy rules:
+                # 1. Legacy Local >= 70% of Legacy Remote
+                # 2. Ubuntu 24.04 >= 70% of Legacy Local
+                
+                # Calculate 70% of legacy remote
+                if success_remote > 0:
+                    threshold_legacy = success_remote * 0.7
+                    legacy_match = (success_local_legacy >= threshold_legacy)
+                else:
+                    legacy_match = True # 0/0 is a match
+
+                # Calculate 70% of legacy local
+                if success_local_legacy > 0:
+                    threshold_2404 = success_local_legacy * 0.7
+                    ubuntu_2404_acceptable = (success_local_2404 >= threshold_2404)
+                else:
+                    ubuntu_2404_acceptable = True # 0/0 is acceptable
+                
+                if legacy_match and ubuntu_2404_acceptable:
+                    dual_print("\n✅ Success: Results meet criteria for PR.")
+                    if success_local_2404 < success_local_legacy:
+                        dual_print(f"⚠️ Warning: Ubuntu 24.04 had fewer successes ({success_local_2404}) than Legacy ({success_local_legacy}), but is within 30% tolerance.")
+                    if success_local_legacy < success_remote:
+                         dual_print(f"⚠️ Warning: Legacy Local had fewer successes ({success_local_legacy}) than Remote ({success_remote}), but is within 30% tolerance.")
+                    if success_local_legacy > success_remote:
+                        dual_print(f"ℹ️ Note: Legacy Local had more successes ({success_local_legacy}) than Remote ({success_remote}).")
+                    
+                    dual_print("PR preparation skipped (use separate script to create branch).")
+                else:
+                    dual_print("\n❌ Failure: Results do not meet criteria for PR.")
+                    if not legacy_match:
+                        if success_remote == 0:
+                            dual_print(f"  - Legacy Remote has 0 successes.")
+                        elif success_local_legacy < threshold_legacy:
+                            dual_print(f"  - Legacy Local ({success_local_legacy}) is below 70% of Remote ({success_remote}). Threshold: {threshold_legacy:.1f}")
+                    if not ubuntu_2404_acceptable:
+                        if success_local_legacy == 0:
+                             dual_print(f"  - Legacy Local has 0 successes.")
+                        elif success_local_2404 < threshold_2404:
+                            dual_print(f"  - Ubuntu 24.04 ({success_local_2404}) is below 70% of Legacy Local ({success_local_legacy}). Threshold: {threshold_2404:.1f}")
                 dual_print("Skipping PR preparation.")
             dual_print("="*40)
             dual_print(f"\nResults saved to: {log_filepath}")

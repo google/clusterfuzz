@@ -34,6 +34,7 @@ def main():
     parser = argparse.ArgumentParser(description='Create PR for OSS-Fuzz migration')
     parser.add_argument('project', help='OSS-Fuzz project name')
     parser.add_argument('--recreate', action='store_true', help='Recreate branch and PR if they already exist')
+    parser.add_argument('--force', action='store_true', help='Force PR creation even if summary log indicates failure')
     args = parser.parse_args()
     
     project = args.project
@@ -52,9 +53,12 @@ def main():
     with open(summary_log, 'r') as f:
         content = f.read()
         if "✅ Success: Results meet criteria for PR." not in content:
-            print(f"Error: Summary log indicates failure or criteria not met.")
-            print("Please check the summary log and resolve issues before creating PR.")
-            sys.exit(1)
+            if args.force:
+                print("Warning: Summary log indicates failure, but --force is set. Proceeding anyway.")
+            else:
+                print(f"Error: Summary log indicates failure or criteria not met.")
+                print("Please check the summary log and resolve issues before creating PR.")
+                sys.exit(1)
     print("Verified: Summary log indicates success.")
 
     # 1. Check out master and pull latest

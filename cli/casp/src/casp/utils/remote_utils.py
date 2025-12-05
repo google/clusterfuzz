@@ -303,7 +303,115 @@ def submit_and_monitor_job(job_id: str, job_spec: Dict, project_id: str, locatio
         
         return False, full_log_text
             
+        return False, full_log_text
+            
     finally:
         if log_file:
             log_file.close()
+        os.remove(tmp_path)
+
+def submit_and_monitor_build(project_id: str, cloudbuild_yaml: Dict, tags: List[str], log_file_path: Optional[str] = None, impersonate_service_account: Optional[str] = None, gcs_log_dir: Optional[str] = None) -> Tuple[bool, str]:
+    # Add tags to cloudbuild_yaml if provided
+    if tags:
+        if 'tags' not in cloudbuild_yaml:
+            cloudbuild_yaml['tags'] = []
+        cloudbuild_yaml['tags'].extend(tags)
+        
+    # If gcs_log_dir is provided, we must NOT set logging: CLOUD_LOGGING_ONLY in options
+    if gcs_log_dir and 'options' in cloudbuild_yaml and cloudbuild_yaml['options'].get('logging') == 'CLOUD_LOGGING_ONLY':
+        del cloudbuild_yaml['options']['logging']
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as tmp:
+        import yaml
+        yaml.dump(cloudbuild_yaml, tmp)
+        tmp_path = tmp.name
+
+    try:
+        click.echo(f"Submitting Cloud Build to project {project_id}...", err=True)
+        
+        # Construct gcloud command
+        # Use gcloud beta to support streaming logs from Cloud Logging
+        cmd = [
+            "gcloud", "beta", "builds", "submit",
+            f"--project={project_id}",
+            "--region=us-central1",
+            f"--config={tmp_path}",
+            "--no-source",
+            "--format=json"
+        ]
+        
+        if gcs_log_dir:
+            cmd.append(f"--gcs-log-dir={gcs_log_dir}")
+            # CLOUD_LOGGING_ONLY cannot be used with gcs-log-dir/logs_bucket
+        else:
+            # Default to CLOUD_LOGGING_ONLY if no bucket provided, but user prefers explicit bucket.
+            # We will use the bucket if provided.
+            cmd.append("--logging=CLOUD_LOGGING_ONLY")
+        
+        if impersonate_service_account:
+            cmd.append(f"--impersonate-service-account={impersonate_service_account}")
+
+        click.echo("Build submitted. Streaming logs...", err=True)
+        
+        # Use Popen to stream logs
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        import threading
+        
+        stdout_lines = []
+        stderr_lines = []
+        
+        def read_stream(stream, collector, is_stderr):
+            for line in stream:
+                collector.append(line)
+                # Stream stderr (logs) to console
+                if is_stderr:
+                    click.echo(line, nl=False, err=True)
+                # Write to log file if provided
+                if log_file_path:
+                     try:
+                         with open(log_file_path, 'a', encoding='utf-8', errors='ignore') as f:
+                             f.write(line)
+                     except Exception:
+                         pass
+
+        t_stderr = threading.Thread(target=read_stream, args=(process.stderr, stderr_lines, True))
+        t_stderr.start()
+        
+        t_stdout = threading.Thread(target=read_stream, args=(process.stdout, stdout_lines, False))
+        t_stdout.start()
+        
+        process.wait()
+        t_stderr.join()
+        t_stdout.join()
+        
+        full_logs = "".join(stderr_lines) + "\n" + "".join(stdout_lines)
+        
+        # Check status
+        json_output = "".join(stdout_lines)
+        status = "UNKNOWN"
+        try:
+            # Attempt to find JSON object in stdout
+            # It might be the whole stdout or mixed
+            # gcloud --format=json usually outputs just the JSON to stdout
+            build_info = json.loads(json_output)
+            status = build_info.get("status")
+        except json.JSONDecodeError:
+            # Fallback: check exit code
+            if process.returncode == 0:
+                status = "SUCCESS"
+            else:
+                status = "FAILURE"
+        
+        click.echo(f"Build finished with status: {status}", err=True)
+        
+        if status == "SUCCESS":
+            return True, full_logs
+        else:
+            return False, full_logs
+
+    except Exception as e:
+        click.secho(f"Exception during Cloud Build: {e}", fg="red")
+        return False, str(e)
+    finally:
         os.remove(tmp_path)
