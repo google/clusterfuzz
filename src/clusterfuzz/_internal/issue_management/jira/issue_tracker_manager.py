@@ -79,16 +79,23 @@ class IssueTrackerManager:
     """Add watchers to the ticket. Jira has a separate endpoint to
     add watchers."""
 
+    # return if issue was not created yet
+    if issue.id == -1:
+      return
+
     # Get watchers from LabelStore.
     watchers = set(issue.ccs)
 
     if update_if_different:
-        # Only add the missing watchers
-        watchers = watchers = set(issue.ccs) - set(self.get_watchers(issue))
+      # Only add the missing watchers
+      watchers = watchers - set(self.get_watchers(issue))
 
     # Jira weirdness, update watchers this way.
     for watcher in watchers:
-      self.client.add_watcher(issue.jira_issue, watcher)
+      try:
+        self.client.add_watcher(issue.jira_issue, watcher)
+      except Exception as e:
+        logs.error(f'Error adding watcher {watcher} to issue {issue.id}')
 
   def _get_issue_fields(self, issue):
     """Get issue fields to populate the ticket"""
