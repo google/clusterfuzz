@@ -40,10 +40,7 @@ CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
     field_spec=[
         monitor.StringField('build_id'),
-        # Add 'instance_id' field to get the GCE VM ID
         monitor.StringField('instance_id'),
-        # Add 'is_candidate' field to distinguish between prod and
-        # candidate instances.
         monitor.BooleanField('is_candidate'),
         monitor.BooleanField('is_succeeded'),
     ])
