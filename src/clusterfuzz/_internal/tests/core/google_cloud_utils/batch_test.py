@@ -14,6 +14,7 @@
 """Batch tests."""
 
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
@@ -38,6 +39,53 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         name='east4-network2',
         weight=1,
     )
+    self.mock_open = mock.patch(
+        'builtins.open', mock.mock_open(read_data='dummy_user_data')).start()
+
+    self.mock_batch_config = mock.patch(
+        'clusterfuzz._internal.google_cloud_utils.batch._get_batch_config').start()
+    self.mock_batch_config.return_value.get.side_effect = (
+        lambda key, default=None: {
+            'mapping': {
+                'LINUX-PREEMPTIBLE-UNPRIVILEGED': {
+                    'clusterfuzz_release': 'prod',
+                    'docker_image': 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
+                    'user_data': 'file://linux-init.yaml',
+                    'disk_size_gb': 75,
+                    'disk_type': 'pd-standard',
+                    'service_account_email': 'test-unpriv-clusterfuzz-service-account-email',
+                    'preemptible': True,
+                    'machine_type': 'n1-standard-1',
+                    'retry': False,
+                    'subconfigs': [{'name': 'east4-network2', 'weight': 1}],
+                },
+                'LINUX-NONPREEMPTIBLE-UNPRIVILEGED': {
+                    'clusterfuzz_release': 'prod',
+                    'docker_image': 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
+                    'user_data': 'file://linux-init.yaml',
+                    'disk_size_gb': 110,
+                    'disk_type': 'pd-standard',
+                    'service_account_email': 'test-unpriv-clusterfuzz-service-account-email',
+                    'preemptible': False,
+                    'machine_type': 'n1-standard-1',
+                    'retry': True,
+                    'subconfigs': [{'name': 'east4-network2', 'weight': 1}],
+                },
+            },
+            'subconfigs': {
+                'east4-network2': {
+                    'region': 'us-east4',
+                    'network': 'projects/project_name/global/networks/networkname2',
+                    'subnetwork': 'projects/project_name/regions/us-east4/subnetworks/subnetworkname2',
+                },
+            },
+            'project': 'test-clusterfuzz',
+        }.get(key, default)
+    )
+
+  def tearDown(self):
+    mock.patch.stopall()
+
 
   def test_nonpreemptible(self):
     """Tests that _get_specs_from_config works for non-preemptibles as
@@ -46,7 +94,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     expected_spec = batch.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
-        user_data='file://linux-init.yaml',
+        user_data='dummy_user_data',
         disk_size_gb=110,
         disk_type='pd-standard',
         service_account_email='test-unpriv-clusterfuzz-service-account-email',
@@ -72,7 +120,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     expected_spec = batch.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
-        user_data='file://linux-init.yaml',
+        user_data='dummy_user_data',
         disk_size_gb=75,
         disk_type='pd-standard',
         service_account_email='test-unpriv-clusterfuzz-service-account-email',

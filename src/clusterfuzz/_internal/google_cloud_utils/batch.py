@@ -125,16 +125,13 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
 def _get_task_spec(batch_workload_spec):
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
-  runnable.container = batch.Runnable.Container()
-  runnable.container.image_uri = batch_workload_spec.docker_image
-  clusterfuzz_release = batch_workload_spec.clusterfuzz_release
-  runnable.container.options = (
-      '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
-      '-e HOST_UID=1337 -P --privileged --cap-add=all '
-      f'-e CLUSTERFUZZ_RELEASE={clusterfuzz_release} '
-      '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      '-e UWORKER_INPUT_DOWNLOAD_URL')
-  runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
+  runnable.script = batch.Runnable.Script()
+  runnable.script.text = f"""
+#!/bin/bash
+{batch_workload_spec.user_data}
+docker pull {batch_workload_spec.docker_image}
+docker run --name=clusterfuzz -e CLUSTERFUZZ_RELEASE={batch_workload_spec.clusterfuzz_release} -e UNTRUSTED_WORKER=False -e UWORKER=True -e UWORKER_INPUT_DOWNLOAD_URL --memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 -P --privileged --cap-add=all -v /var/scratch0:/mnt/scratch0 {batch_workload_spec.docker_image}
+"""
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   if batch_workload_spec.retry:
@@ -331,11 +328,13 @@ def _get_specs_from_config(batch_tasks) -> Dict:
 
     disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
     subconfig = subconfig_map[config_name]
+    with open(instance_spec['user_data'].replace('file://', ''), 'r') as f:
+      user_data = f.read()
     spec = BatchWorkloadSpec(
         docker_image=instance_spec['docker_image'],
         disk_size_gb=disk_size_gb,
         disk_type=instance_spec['disk_type'],
-        user_data=instance_spec['user_data'],
+        user_data=user_data,
         service_account_email=instance_spec['service_account_email'],
         preemptible=instance_spec['preemptible'],
         machine_type=instance_spec['machine_type'],
