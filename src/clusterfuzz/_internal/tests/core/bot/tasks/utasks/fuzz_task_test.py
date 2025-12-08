@@ -1518,7 +1518,7 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
-    self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
+    self.assertEqual(fuzz_task_input.corpus_upload_url,
                      self.SIGNED_URL)
 
     self.assertEqual(fuzz_task_input.script_log_upload_url, self.SIGNED_URL)
@@ -1544,9 +1544,9 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
         console_output=console_output,
         generated_testcase_string=generated_testcase_string,
         fuzzer_return_code=fuzzer_return_code)
-    sample_testcase_upload_key = 'sample-key'
+    corpus_upload_key = 'sample-key'
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
-        sample_testcase_upload_key=sample_testcase_upload_key)
+        corpus_upload_key=corpus_upload_key)
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name=fuzzer_name,
         fuzz_task_input=fuzz_task_input,

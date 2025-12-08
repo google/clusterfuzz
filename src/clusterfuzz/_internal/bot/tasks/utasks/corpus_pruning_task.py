@@ -252,8 +252,8 @@ class Context:
         uworker_input.corpus_pruning_task_input.quarantine_corpus)
     self.dated_backup_gcs_url = (
         uworker_input.corpus_pruning_task_input.dated_backup_gcs_url)
-    self.dated_backup_signed_url = (
-        uworker_input.corpus_pruning_task_input.dated_backup_signed_url)
+    self.dated_backup_signed_policy = (
+        uworker_input.corpus_pruning_task_input.dated_backup_signed_policy)
 
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
@@ -726,9 +726,11 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
                                         'regressions')
   if shell.get_directory_file_count(regressions_input_dir):
     shutil.copytree(regressions_input_dir, regressions_output_dir)
-  backup_succeeded = corpus_manager.backup_corpus(
-      context.dated_backup_signed_url, context.corpus,
-      context.minimized_corpus_path)
+    corpus_manager.backup_corpus(
+        context.dated_backup_signed_url,
+        context.corpus,
+        context.corpus_path,
+        dated_backup_signed_policy=context.dated_backup_signed_policy)
   corpus_backup_location = (
       context.dated_backup_gcs_url if backup_succeeded else None)
   shell.remove_directory(regressions_output_dir)
@@ -1142,13 +1144,23 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
       backup_bucket_name, engine_name, fuzz_target.project_qualified_name(),
       corpus_manager.LATEST_BACKUP_TIMESTAMP)
 
-  dated_backup_signed_url = storage.get_signed_upload_url(dated_backup_gcs_url)
-
-  corpus_pruning_task_input.dated_backup_gcs_url = dated_backup_gcs_url
-  corpus_pruning_task_input.latest_backup_gcs_url = latest_backup_gcs_url
-  corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
-
-
+  dated_backup_signed_policy = None
+  if dated_backup_gcs_url:
+      dated_backup_signed_policy = None
+      if dated_backup_gcs_url:
+              dated_backup_signed_policy = None
+              if dated_backup_gcs_url:
+                dated_backup_signed_url, dated_backup_signed_policy = (
+                    storage.get_signed_upload_url_with_policy(dated_backup_gcs_url))
+              else:
+                dated_backup_signed_url = None
+                dated_backup_signed_policy = None
+            
+              corpus_pruning_task_input.dated_backup_gcs_url = dated_backup_gcs_url
+              corpus_pruning_task_input.latest_backup_gcs_url = latest_backup_gcs_url
+              corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
+              corpus_pruning_task_input.dated_backup_signed_policy = (
+                  dated_backup_signed_policy)
 def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
@@ -1199,7 +1211,8 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
       corpus=corpus.proto_corpus,
       quarantine_corpus=quarantine_corpus.proto_corpus,
       corpus_crashes_blob_name=corpus_crashes_blob_name,
-      corpus_crashes_upload_url=corpus_crashes_upload_url)
+      corpus_crashes_upload_url=corpus_crashes_upload_url,
+      dated_backup_signed_policy=dated_backup_signed_policy)
 
   _create_backup_urls(fuzz_target, corpus_pruning_task_input)
 

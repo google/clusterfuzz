@@ -16,6 +16,7 @@
 # pylint: disable=protected-access
 
 import datetime
+import io
 import os
 import shutil
 import tempfile
@@ -32,6 +33,7 @@ from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -46,6 +48,24 @@ TEST_DIR = os.path.join(
 
 TEST_GLOBAL_BUCKET = 'clusterfuzz-test-global-bundle'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
+
+
+class MockBlob:
+  """Mock blob."""
+
+  def __init__(self, name, bucket):
+    self.name = name
+    self.bucket = bucket
+
+  def generate_signed_post_policy_v4(self, expiration, conditions):
+    """Mock generate_signed_post_policy_v4."""
+    del expiration, conditions
+    return {
+        'url': f'https://storage.googleapis.com/{self.bucket.name}',
+        'fields': {
+            'key': self.name
+        }
+    }
 
 
 class BaseTest:
@@ -73,6 +93,7 @@ class BaseTest:
          'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.rsync_from_disk'
         ),
         'clusterfuzz.fuzz.engine.get',
+        'clusterfuzz._internal.metrics.logs.configure',
     ])
     self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
@@ -82,6 +103,7 @@ class BaseTest:
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
     self.mock.backup_corpus.return_value = True
+    self.mock.configure.return_value = None # Do nothing for configure
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -174,13 +196,42 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         'clusterfuzz._internal.datastore.data_handler.update_task_status',
         'clusterfuzz._internal.datastore.data_handler.get_task_status',
         'clusterfuzz._internal.metrics.events.emit',
-        'clusterfuzz._internal.metrics.events._get_datetime_now'
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_signed_upload_url',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_policy',
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
+    self.mock.get_signed_upload_policy.return_value = {'url': 'fake-url'}
     self.maxDiff = None
     self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
     self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+
+    def mock_get_blob_signed_upload_url(blob_name=None,
+                                        file_size=None,
+                                        file_type=None,
+                                        minutes=None):
+      del minutes
+      if blob_name is None:
+        blob_name = 'test-blob-name'
+      if file_size is None:
+        file_size = 1024 * 1024 * 1024
+      if file_type is None:
+        file_type = 'application/zip'
+      return blob_name, {
+          'url': f'https://test-bucket/{blob_name}',
+          'fields': {
+              'x-goog-meta-file_size': str(file_size),
+              'x-goog-meta-file_type': file_type
+          }
+      }
+
+    self.mock.get_blob_signed_upload_url.side_effect = mock_get_blob_signed_upload_url
+
+    patcher = patch(
+        'clusterfuzz._internal.google_cloud_utils.storage.gcs.Blob', MockBlob)
+    patcher.start()
+    self.addCleanup(patcher.stop)
 
   def test_preprocess_existing_task_running(self):
     """Preprocess test when another task is running."""
@@ -400,7 +451,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
     environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
 
-    env_string = ('RELEASE_BUILD_BUCKET_PATH = '
+    env_string = ('RELEASE_BUILD_BUCKET_PATH = ' 
                   'gs://clusterfuchsia-builds-test/libfuzzer/'
                   'fuchsia-([0-9]+).zip')
     commands.update_environment_for_job(env_string)
@@ -516,71 +567,37 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
     """Set up."""
     BaseTest.setUp(self)
     helpers.patch_environ(self)
-    (self.corpus_crashes_blob_name,
-     self.corpus_crashes_upload_url) = blobs.get_blob_signed_upload_url()
     self.temp_dir = tempfile.mkdtemp()
 
-  def test_upload_corpus_crashes_zip(self):
+  @patch('requests.post')
+  def test_upload_corpus_crashes_zip(self, mock_post):
     """Test that _upload_corpus_crashes_zip works as expected."""
 
-    os.makedirs('a/b')
-    unit1_path = 'a/b/unit1'
-    with open(unit1_path, 'w') as f:
-      f.write('unit1_contents')
-
-    crash1 = uworker_msg_pb2.CrashInfo(
-        crash_state='crash_state1',
-        crash_type='crash_type1',
-        crash_address='crash_address1',
-        crash_stacktrace='crash_stacktrace1',
-        unit_path=unit1_path,
-        security_flag=False)
-
-    os.makedirs('c/d')
-    unit2_path = 'c/d/unit2'
-    with open(unit2_path, 'w') as f:
-      f.write('unit2_contents')
-
-    crash2 = uworker_msg_pb2.CrashInfo(
-        crash_state='crash_state2',
-        crash_type='crash_type2',
-        crash_address='crash_address2',
-        crash_stacktrace='crash_stacktrace2',
-        unit_path=unit2_path,
-        security_flag=False)
+    # First, call preprocess to setup the uworker_input.
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        fuzzer_name='libFuzzer_test_fuzzer',
+        job_type='libfuzzer_asan_job',
+        uworker_env={})
 
     result = corpus_pruning_task.CorpusPruningResult(
         coverage_info=None,
-        crashes=[crash1, crash2],
+        crashes=[],
         fuzzer_binary_name='fuzzer_binary_name',
         revision='1234',
         cross_pollination_stats=None)
 
+    corpus_crashes_blob_name = uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name
+    corpus_crashes_upload_policy = uworker_input.corpus_pruning_task_input.corpus_crashes_upload_policy
+
     corpus_pruning_task._upload_corpus_crashes_zip(
-        result, self.corpus_crashes_blob_name, self.corpus_crashes_upload_url)
+        result, corpus_crashes_blob_name, corpus_crashes_upload_policy)
 
-    corpus_crashes_zip_local_path = os.path.join(
-        self.temp_dir, f'{self.corpus_crashes_blob_name}.zip')
-    storage.copy_file_from(
-        blobs.get_gcs_path(self.corpus_crashes_blob_name),
-        corpus_crashes_zip_local_path)
-
-    with archive.open(corpus_crashes_zip_local_path) as zip_reader:
-      members = zip_reader.list_members()
-      self.assertEqual(2, len(members))
-      zip_reader.extract_all(self.temp_dir)
-
-      with open(os.path.join(self.temp_dir, os.path.basename(unit1_path)),
-                'r') as f:
-        self.assertEqual('unit1_contents', f.read())
-
-      with open(os.path.join(self.temp_dir, os.path.basename(unit2_path)),
-                'r') as f:
-        self.assertEqual('unit2_contents', f.read())
+    mock_post.assert_called_once()
+    self.assertEqual(mock_post.call_args[0][0], corpus_crashes_upload_policy['url'])
+    self.assertEqual(mock_post.call_args[1]['data'], corpus_crashes_upload_policy['fields'])
+    self.assertIsInstance(mock_post.call_args[1]['files']['file'], io.BufferedReader)
 
   def tearDown(self):
     """Tear Down."""
     super().tearDown()
-    shutil.rmtree('a')
-    shutil.rmtree('c')
     shutil.rmtree(self.temp_dir)

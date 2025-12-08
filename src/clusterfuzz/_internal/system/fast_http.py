@@ -32,6 +32,17 @@ _HTTP_TIMEOUT_SECONDS = aiohttp.ClientTimeout(total=300)
 def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
   """Downloads multiple urls to filepaths in parallel and asynchronously.
   Tolerates errors. Returns a list of whether each download was successful."""
+  return _batch_and_run(_download_files, urls_and_filepaths)
+
+
+def upload_urls_with_policy(policy_and_filepaths: List[Tuple[dict, str]]) -> List[bool]:
+  """Uploads multiple urls to filepaths in parallel and asynchronously.
+  Tolerates errors. Returns a list of whether each upload was successful."""
+  return _batch_and_run(_upload_files_with_policy, policy_and_filepaths)
+
+
+def _batch_and_run(func, urls_and_filepaths):
+  """Batches |urls_and_filepaths| and runs |func| on them in parallel."""
   utils.python_gc()
   if not urls_and_filepaths:
     # Do this to avoid issues with the range function.
@@ -40,14 +51,14 @@ def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
 
   batch_size = len(urls_and_filepaths) // concurrency.POOL_SIZE
   # Avoid issues with range when urls is less than _POOL_SIZE.
-  batch_size = max(batch_size, len(urls_and_filepaths))
+  batch_size = max(1, batch_size)
 
   for idx in range(0, len(urls_and_filepaths), batch_size):
     batch = urls_and_filepaths[idx:idx + batch_size]
     batches.append(batch)
   with concurrency.make_pool() as pool:
-    download_results = pool.map(_download_files, batches)
-    return list(itertools.chain(*download_results))
+    results = pool.map(func, batches)
+    return list(itertools.chain(*results))
 
 
 def _download_files(urls_and_paths: Sequence[Tuple[str, str]]) -> List[bool]:
@@ -78,6 +89,53 @@ async def _error_tolerant_download_file(session: aiohttp.ClientSession,
   except:
     logs.warning(f'Failed to download {url}.')
     return False
+
+
+def _upload_files_with_policy(
+    policy_and_paths: Sequence[Tuple[dict, str]]) -> List[bool]:
+  """Non-async function that starts an event loop to asynchronously upload
+  files."""
+  policies, paths = list(zip(*policy_and_paths))
+  return asyncio.run(_async_upload_files_with_policy(list(policies), list(paths)))
+
+
+async def _async_upload_files_with_policy(
+  policies: List[dict], paths: List[str]) -> List[bool]:
+  """Asynchronously uploads multiple files."""
+  async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECONDS) as session:
+    tasks = [
+        asyncio.create_task(
+            _error_tolerant_upload_file_with_policy(session, url, path))
+        for url, path in zip(policies, paths)
+    ]
+    return await asyncio.gather(*tasks)
+
+
+async def _error_tolerant_upload_file_with_policy(
+    session: aiohttp.ClientSession, policy: dict, path: str) -> bool:
+  """Uploads a file asynchronosly, returns False on failure."""
+  try:
+    # TODO(metzman): Catch specific exceptions.
+    await _async_upload_file_with_policy(session, policy, path)
+    return True
+  except:
+    logs.warning(f'Failed to upload {path}.')
+    return False
+
+
+async def _async_upload_file_with_policy(session: aiohttp.ClientSession,
+                                         policy: dict, path: str):
+  """Asynchronously uploads |url| and writes it to |path|."""
+  with open(path, 'rb') as file_handle:
+    data = aiohttp.FormData()
+    # GCS requires the key to be the last field.
+    fields = sorted(policy['fields'].items(), key=lambda item: item[0] != 'key')
+    for field, value in fields:
+      data.add_field(field, value)
+    data.add_field('file', file_handle)
+    async with session.post(policy['url'], data=data) as response:
+      response.raise_for_status()
+
 
 
 async def _async_download_file(session: aiohttp.ClientSession, url: str,

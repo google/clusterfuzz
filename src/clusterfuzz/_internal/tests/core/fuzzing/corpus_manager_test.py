@@ -345,10 +345,9 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     libfuzzer_corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
 
     corpus_manager.backup_corpus('signed_upload_url', libfuzzer_corpus, '/dir')
-
-    self.mock.upload_signed_url.assert_has_calls(
-        [mock.call(b'archive contents...', 'signed_upload_url')])
-
+    # Can't assert call on file object, so assert that it was called.
+    self.mock.upload_signed_url.assert_called_with(
+        mock.ANY, 'signed_upload_url')
 
 class FileMixin:
   """Mixin with a setUp implementation and attributes that are useful for test
@@ -435,9 +434,9 @@ class ProtoFuzzTargetCorpusRsyncTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.download_signed_urls',
         'clusterfuzz._internal.google_cloud_utils.storage.delete_signed_urls',
         'clusterfuzz._internal.google_cloud_utils.storage.sign_urls_for_existing_files',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_policy',
         'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
-        'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.upload_files',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_files_with_policy',
     ])
 
     def mock_download_signed_urls(*args, **kwargs):
@@ -458,11 +457,9 @@ class ProtoFuzzTargetCorpusRsyncTest(fake_filesystem_unittest.TestCase):
         ('https://preserved-url', 'https://delete1'),
         ('https://deleted-url', self.DELETED_FILE_DELETION_URL)
     ]
-    self.mock.get_arbitrary_signed_upload_urls.return_value = [
-        'https://new-upload1', 'https://new-upload2', 'https://new-upload3'
-    ]
+    self.mock.get_signed_upload_policy.return_value = {'url': 'fake-url'}
     self.mock.last_updated.return_value = None
-    self.mock.upload_files.return_value = [True, True]
+    self.mock.upload_files_with_policy.return_value = [True, True]
 
   def test_rsync(self):
     """Tests that syncing to and from disk deletes pruned elements, uploads new
@@ -476,8 +473,9 @@ class ProtoFuzzTargetCorpusRsyncTest(fake_filesystem_unittest.TestCase):
     corpus.rsync_from_disk(self.MINIMIZED_CORPUS_PATH)
     # '356a192b7913b04c54574d18c28d46e6395428ab' the hash of the preserved file,
     # should not be included, because it's already in the corpus.
-    self.mock.upload_files.assert_called_with(
-        corpus, ['/tmp/minimized/77de68daecd823babbb58edb1c8e14d7106e83bb'])
+    self.mock.upload_files_with_policy.assert_called_with(
+        {'url': 'fake-url'},
+        ['/tmp/minimized/77de68daecd823babbb58edb1c8e14d7106e83bb'])
     self.mock.delete_signed_urls.assert_called_with(
         [self.DELETED_FILE_DELETION_URL])
 
@@ -488,19 +486,20 @@ class GetProtoCorpusTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.sign_urls_for_existing_files',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_policy',
     ])
-    self.mock.get_arbitrary_signed_upload_urls.return_value = ['url']
     self.mock.sign_urls_for_existing_files.return_value = [[
         'url', 'deletion_url'
     ]]
+    self.mock.get_signed_upload_policy.return_value = {'url': 'fake-url'}
+    self.mock.get_signed_upload_policy.return_value = {'url': 'fake-url'}
 
   def test_no_backup(self):
     """Tests that backup_url is not set when the backup does not exist."""
     bucket_name = 'bucket'
     bucket_path = 'corpus'
-    backup_url = 'backup.zip'
+    backup_url = f'gs://{bucket_name}/backup.zip'
 
-    corpus = corpus_manager.get_proto_corpus(bucket_name, bucket_path,
-                                             backup_url, 5)
+    corpus = corpus_manager.get_proto_corpus(
+        bucket_name, bucket_path, 1000, backup_url=backup_url)
     self.assertFalse(corpus.HasField('backup_url'))

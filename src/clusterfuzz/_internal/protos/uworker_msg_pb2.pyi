@@ -243,16 +243,33 @@ global___BlobUploadUrl = BlobUploadUrl
 class FuzzTaskInput(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    SAMPLE_TESTCASE_UPLOAD_KEY_FIELD_NUMBER: builtins.int
-    SAMPLE_TESTCASE_UPLOAD_URL_FIELD_NUMBER: builtins.int
+    @typing_extensions.final
+    class CorpusUploadPolicyEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        value: builtins.str
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: builtins.str = ...,
+        ) -> None: ...
+        def ClearField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    CORPUS_UPLOAD_KEY_FIELD_NUMBER: builtins.int
+    CORPUS_UPLOAD_URL_FIELD_NUMBER: builtins.int
     SCRIPT_LOG_UPLOAD_URL_FIELD_NUMBER: builtins.int
     FUZZ_TARGET_FIELD_NUMBER: builtins.int
     CORPUS_FIELD_NUMBER: builtins.int
     GLOBAL_BLACKLISTED_FUNCTIONS_FIELD_NUMBER: builtins.int
     CRASH_UPLOAD_URLS_FIELD_NUMBER: builtins.int
     TRIALS_FIELD_NUMBER: builtins.int
-    sample_testcase_upload_key: builtins.str
-    sample_testcase_upload_url: builtins.str
+    CORPUS_UPLOAD_POLICY_FIELD_NUMBER: builtins.int
+    corpus_upload_key: builtins.str
+    corpus_upload_url: builtins.str
     script_log_upload_url: builtins.str
     @property
     def fuzz_target(self) -> google.protobuf.any_pb2.Any:
@@ -265,28 +282,31 @@ class FuzzTaskInput(google.protobuf.message.Message):
     def crash_upload_urls(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BlobUploadUrl]: ...
     @property
     def trials(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[google.protobuf.any_pb2.Any]: ...
+    @property
+    def corpus_upload_policy(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
     def __init__(
         self,
         *,
-        sample_testcase_upload_key: builtins.str | None = ...,
-        sample_testcase_upload_url: builtins.str | None = ...,
+        corpus_upload_key: builtins.str | None = ...,
+        corpus_upload_url: builtins.str | None = ...,
         script_log_upload_url: builtins.str | None = ...,
         fuzz_target: google.protobuf.any_pb2.Any | None = ...,
         corpus: global___FuzzTargetCorpus | None = ...,
         global_blacklisted_functions: collections.abc.Iterable[builtins.str] | None = ...,
         crash_upload_urls: collections.abc.Iterable[global___BlobUploadUrl] | None = ...,
         trials: collections.abc.Iterable[google.protobuf.any_pb2.Any] | None = ...,
+        corpus_upload_policy: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_fuzz_target", b"_fuzz_target", "_sample_testcase_upload_key", b"_sample_testcase_upload_key", "_sample_testcase_upload_url", b"_sample_testcase_upload_url", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "fuzz_target", b"fuzz_target", "sample_testcase_upload_key", b"sample_testcase_upload_key", "sample_testcase_upload_url", b"sample_testcase_upload_url", "script_log_upload_url", b"script_log_upload_url"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_fuzz_target", b"_fuzz_target", "_sample_testcase_upload_key", b"_sample_testcase_upload_key", "_sample_testcase_upload_url", b"_sample_testcase_upload_url", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "crash_upload_urls", b"crash_upload_urls", "fuzz_target", b"fuzz_target", "global_blacklisted_functions", b"global_blacklisted_functions", "sample_testcase_upload_key", b"sample_testcase_upload_key", "sample_testcase_upload_url", b"sample_testcase_upload_url", "script_log_upload_url", b"script_log_upload_url", "trials", b"trials"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_corpus_upload_key", b"_corpus_upload_key", "_corpus_upload_url", b"_corpus_upload_url", "_fuzz_target", b"_fuzz_target", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "corpus_upload_key", b"corpus_upload_key", "corpus_upload_url", b"corpus_upload_url", "fuzz_target", b"fuzz_target", "script_log_upload_url", b"script_log_upload_url"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_corpus", b"_corpus", "_corpus_upload_key", b"_corpus_upload_key", "_corpus_upload_url", b"_corpus_upload_url", "_fuzz_target", b"_fuzz_target", "_script_log_upload_url", b"_script_log_upload_url", "corpus", b"corpus", "corpus_upload_key", b"corpus_upload_key", "corpus_upload_policy", b"corpus_upload_policy", "corpus_upload_url", b"corpus_upload_url", "crash_upload_urls", b"crash_upload_urls", "fuzz_target", b"fuzz_target", "global_blacklisted_functions", b"global_blacklisted_functions", "script_log_upload_url", b"script_log_upload_url", "trials", b"trials"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_corpus", b"_corpus"]) -> typing_extensions.Literal["corpus"] | None: ...
     @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_corpus_upload_key", b"_corpus_upload_key"]) -> typing_extensions.Literal["corpus_upload_key"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_corpus_upload_url", b"_corpus_upload_url"]) -> typing_extensions.Literal["corpus_upload_url"] | None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_fuzz_target", b"_fuzz_target"]) -> typing_extensions.Literal["fuzz_target"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["_sample_testcase_upload_key", b"_sample_testcase_upload_key"]) -> typing_extensions.Literal["sample_testcase_upload_key"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["_sample_testcase_upload_url", b"_sample_testcase_upload_url"]) -> typing_extensions.Literal["sample_testcase_upload_url"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_script_log_upload_url", b"_script_log_upload_url"]) -> typing_extensions.Literal["script_log_upload_url"] | None: ...
 
@@ -376,10 +396,26 @@ class Corpus(google.protobuf.message.Message):
         ) -> None: ...
         def ClearField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> None: ...
 
+    @typing_extensions.final
+    class UploadPolicyEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        value: builtins.str
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: builtins.str = ...,
+        ) -> None: ...
+        def ClearField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> None: ...
+
     CORPUS_URLS_FIELD_NUMBER: builtins.int
     LAST_UPDATED_TIME_FIELD_NUMBER: builtins.int
     GCS_URL_FIELD_NUMBER: builtins.int
-    UPLOAD_URLS_FIELD_NUMBER: builtins.int
+    UPLOAD_POLICY_FIELD_NUMBER: builtins.int
     BACKUP_URL_FIELD_NUMBER: builtins.int
     @property
     def corpus_urls(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]:
@@ -388,7 +424,7 @@ class Corpus(google.protobuf.message.Message):
     def last_updated_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     gcs_url: builtins.str
     @property
-    def upload_urls(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def upload_policy(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
     backup_url: builtins.str
     def __init__(
         self,
@@ -396,11 +432,11 @@ class Corpus(google.protobuf.message.Message):
         corpus_urls: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         last_updated_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         gcs_url: builtins.str | None = ...,
-        upload_urls: collections.abc.Iterable[builtins.str] | None = ...,
+        upload_policy: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         backup_url: builtins.str | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["_backup_url", b"_backup_url", "_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "backup_url", b"backup_url", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_backup_url", b"_backup_url", "_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "backup_url", b"backup_url", "corpus_urls", b"corpus_urls", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time", "upload_urls", b"upload_urls"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_backup_url", b"_backup_url", "_gcs_url", b"_gcs_url", "_last_updated_time", b"_last_updated_time", "backup_url", b"backup_url", "corpus_urls", b"corpus_urls", "gcs_url", b"gcs_url", "last_updated_time", b"last_updated_time", "upload_policy", b"upload_policy"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_backup_url", b"_backup_url"]) -> typing_extensions.Literal["backup_url"] | None: ...
     @typing.overload

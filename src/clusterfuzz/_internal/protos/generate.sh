@@ -17,7 +17,7 @@
 SCRIPT_DIR=$( readlink -f $( dirname ${BASH_SOURCE[0]} ) )
 PARENT_DIR=$( dirname $( dirname $( dirname ${SCRIPT_DIR} ) ) )
 echo "PARENT_DIR $PARENT_DIR"
-python -m grpc_tools.protoc \
+python3 -m grpc_tools.protoc \
   --proto_path=$PARENT_DIR/third_party:$PARENT_DIR \
   --python_out=$PARENT_DIR \
   --grpc_python_out=$PARENT_DIR \

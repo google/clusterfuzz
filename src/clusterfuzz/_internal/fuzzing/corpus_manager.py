@@ -508,24 +508,11 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT) -> bool:
+  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
     del timeout
-    num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
-    if len(file_paths) > num_upload_urls:
-      logs.error(f'Cannot upload {len(file_paths)} filepaths, only have '
-                 f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
-      file_paths = file_paths[:num_upload_urls]
-
     logs.info(f'Uploading {len(file_paths)} corpus files.')
-    results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
-                                         file_paths)
-
-    # Make sure we don't reuse upload_urls.
-    urls_remaining = self.proto_corpus.corpus.upload_urls[len(results):]
-    del self.proto_corpus.corpus.upload_urls[:]
-    self.proto_corpus.corpus.upload_urls.extend(urls_remaining)
-
-    return results
+    return storage.upload_files_with_policy(
+        self.proto_corpus.corpus.upload_policy, file_paths)
 
   def get_gcs_url(self):
     return self.proto_corpus.corpus.gcs_url
@@ -550,13 +537,17 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   return f'{backup_dir.rstrip("/")}/{backup_file}'
 
 
-def backup_corpus(dated_backup_signed_url, corpus, directory):
+def backup_corpus(dated_backup_signed_url,
+                    corpus,
+                    directory,
+                    dated_backup_signed_policy=None):
   """Archive and store corpus as a backup.
 
   Args:
     dated_backup_signed_url: Signed url to upload the backup.
     corpus: uworker_msg.FuzzTargetCorpus.
     directory: Path to directory to be archived and backuped.
+    dated_backup_signed_policy: Signed policy to upload the backup.
 
   Returns:
     The backup GCS url, or None on failure.
@@ -577,8 +568,13 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
     backup_archive_path = shutil.make_archive(backup_archive_path,
                                               BACKUP_ARCHIVE_FORMAT, directory)
     with open(backup_archive_path, 'rb') as fp:
-      data = fp.read()
-      if not storage.upload_signed_url(data, dated_backup_signed_url):
+      if dated_backup_signed_policy:
+        # TODO(metzman): Change all callers to use this and remove the legacy
+        # path.
+        if not storage.upload_signed_url_with_policy(
+            dated_backup_signed_policy, fp):
+          return False
+      elif not storage.upload_signed_url(fp, dated_backup_signed_url):
         return False
   except Exception as ex:
     backup_succeeded = False
@@ -705,12 +701,10 @@ def get_proto_corpus(bucket_name,
     urls = itertools.islice(urls, max_download_urls)
 
   corpus_urls = storage.sign_urls_for_existing_files(urls, include_delete_urls)
-  upload_urls = storage.get_arbitrary_signed_upload_urls(
-      gcs_url, num_uploads=max_upload_urls)
+  upload_policy = storage.get_signed_upload_policy(gcs_url)
 
   # Iterate over imap_unordered results.
-  for upload_url in upload_urls:
-    corpus.upload_urls.append(upload_url)
+  corpus.upload_policy.update(upload_policy)
   for download_url, delete_url in corpus_urls:
     corpus.corpus_urls[download_url] = delete_url
 

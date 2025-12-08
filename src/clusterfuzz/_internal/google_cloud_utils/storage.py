@@ -54,7 +54,7 @@ try:
   from google.cloud import storage as gcs
   import google.cloud.storage.fileio
 except ImportError:
-  # This is expected to fail on AppEngine.
+  # This is expected to fail on App Engine.
   pass
 
 try:
@@ -126,73 +126,88 @@ class StorageProvider:
     raise NotImplementedError
 
   def get_bucket(self, name):
-    """Get a bucket."""
+    """Get a bucket.""" 
     raise NotImplementedError
 
-  def list_blobs(self,
+  def list_blobs(
+                 self, 
                  remote_path,
                  recursive=True,
                  names_only=False,
                  single_file=False):
-    """List the blobs under the remote path."""
+    """List the blobs under the remote path.""" 
     raise NotImplementedError
 
   def copy_file_from(self, remote_path, local_path):
-    """Copy file from a remote path to a local path."""
+    """Copy file from a remote path to a local path.""" 
     raise NotImplementedError
 
   def copy_file_to(self, local_path_or_handle, remote_path, metadata=None):
-    """Copy file from a local path to a remote path."""
+    """Copy file from a local path to a remote path.""" 
     raise NotImplementedError
 
   def copy_blob(self, remote_source, remote_target):
-    """Copy a remote file to another remote location."""
+    """Copy a remote file to another remote location.""" 
     raise NotImplementedError
 
   def read_data(self, remote_path):
-    """Read the data of a remote file."""
+    """Read the data of a remote file.""" 
     raise NotImplementedError
 
   def write_data(self, data_or_fileobj, remote_path, metadata=None):
-    """Write the data of a remote file."""
+    """Write the data of a remote file.""" 
     raise NotImplementedError
 
   def write_stream(self, stream, remote_path, metadata=None):
-    """Write the data of a generator."""
+    """Write the data of a generator.""" 
     raise NotImplementedError
 
   def get(self, remote_path):
-    """Get information about a remote file."""
+    """Get information about a remote file.""" 
     raise NotImplementedError
 
   def delete(self, remote_path):
-    """Delete a remote file."""
+    """Delete a remote file.""" 
     raise NotImplementedError
 
-  def sign_download_url(self,
+  def sign_download_url(
+                        self, 
                         remote_path,
                         minutes=SIGNED_URL_EXPIRATION_MINUTES):
-    """Signs a download URL for a remote file."""
+    """Signs a download URL for a remote file.""" 
     raise NotImplementedError
 
   def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
-    """Signs an upload URL for a remote file."""
+    """Signs an upload URL for a remote file.""" 
+    raise NotImplementedError
+
+  def sign_upload_url_with_policy(
+                                  self, 
+                                  remote_path,
+                                  file_size,
+                                  file_type,
+                                  minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs an upload URL with a policy for a remote file.""" 
     raise NotImplementedError
 
   def download_signed_url(self, signed_url):
-    """Downloads |signed_url|."""
+    """Downloads |signed_url|.""" 
     raise NotImplementedError
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
-    """Uploads |data| to |signed_url|."""
+    """Uploads |data| to |signed_url|.""" 
+    raise NotImplementedError
+
+  def upload_signed_url_with_policy(self, policy: dict, data_or_fileobj) -> bool:
+    """Uploads |data| to |signed_url|.""" 
     raise NotImplementedError
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
-    """Signs a DELETE URL for a remote file."""
+    """Signs a DELETE URL for a remote file.""" 
     raise NotImplementedError
 
   def delete_signed_url(self, signed_url):
-    """Makes a DELETE HTTP request to |signed_url|."""
+    """Makes a DELETE HTTP request to |signed_url|.""" 
     raise NotImplementedError
 
 
@@ -207,7 +222,7 @@ class GcsProvider(StorageProvider):
     return None
 
   def create_bucket(self, name, object_lifecycle, cors, location):
-    """Create a new bucket."""
+    """Create a new bucket.""" 
     project_id = utils.get_application_id()
     request_body = {'name': name}
     if object_lifecycle:
@@ -229,7 +244,7 @@ class GcsProvider(StorageProvider):
     return True
 
   def get_bucket(self, name):
-    """Get a bucket."""
+    """Get a bucket.""" 
     client = create_discovery_storage_client()
     try:
       return client.buckets().get(bucket=name).execute()
@@ -239,12 +254,13 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self,
+  def list_blobs(
+                 self, 
                  remote_path,
                  recursive=True,
                  names_only=False,
                  single_file=False):
-    """List the blobs under the remote path."""
+    """List the blobs under the remote path.""" 
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
     if path and not path.endswith('/') and not single_file:
@@ -298,7 +314,7 @@ class GcsProvider(StorageProvider):
         logs.error('Might be infinite looping.')
 
   def copy_file_from(self, remote_path, local_path):
-    """Copy file from a remote path to a local path."""
+    """Copy file from a remote path to a local path.""" 
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -307,14 +323,14 @@ class GcsProvider(StorageProvider):
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.warning('Failed to copy cloud storage file %s to local file %s.' %
+      logs.warning('Failed to copy cloud storage file %s to local file %s.' % 
                    (remote_path, local_path))
       raise
 
     return True
 
   def copy_file_to(self, local_path_or_handle, remote_path, metadata=None):
-    """Copy file from a local path to a remote path."""
+    """Copy file from a local path to a remote path.""" 
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -329,14 +345,14 @@ class GcsProvider(StorageProvider):
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.warning('Failed to copy local file %s to cloud storage file %s.' %
+      logs.warning('Failed to copy local file %s to cloud storage file %s.' % 
                    (local_path_or_handle, remote_path))
       raise
 
     return True
 
   def copy_blob(self, remote_source, remote_target):
-    """Copy a remote file to another remote location."""
+    """Copy a remote file to another remote location.""" 
     source_bucket_name, source_path = get_bucket_name_and_path(remote_source)
     target_bucket_name, target_path = get_bucket_name_and_path(remote_target)
 
@@ -354,7 +370,7 @@ class GcsProvider(StorageProvider):
     return True
 
   def read_data(self, remote_path):
-    """Read the data of a remote file."""
+    """Read the data of a remote file.""" 
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
     client = _storage_client()
@@ -370,7 +386,7 @@ class GcsProvider(StorageProvider):
       raise
 
   def write_data(self, data_or_fileobj, remote_path, metadata=None):
-    """Write the data of a remote file."""
+    """Write the data of a remote file.""" 
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -391,7 +407,7 @@ class GcsProvider(StorageProvider):
     return True
 
   def write_stream(self, stream, remote_path, metadata=None):
-    """Writes the data from an iterator in chunks to a remote file."""
+    """Writes the data from an iterator in chunks to a remote file.""" 
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -412,7 +428,7 @@ class GcsProvider(StorageProvider):
     return True
 
   def get(self, remote_path):
-    """Get information about a remote file."""
+    """Get information about a remote file.""" 
     client = create_discovery_storage_client()
     bucket, path = get_bucket_name_and_path(remote_path)
 
@@ -425,7 +441,7 @@ class GcsProvider(StorageProvider):
       raise
 
   def delete(self, remote_path):
-    """Delete a remote file."""
+    """Delete a remote file.""" 
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -438,43 +454,77 @@ class GcsProvider(StorageProvider):
 
     return True
 
-  def sign_download_url(self,
+  def sign_download_url(
+                        self, 
                         remote_path: str,
                         minutes=SIGNED_URL_EXPIRATION_MINUTES) -> str:
-    """Signs a download URL for a remote file."""
+    """Signs a download URL for a remote file.""" 
     return _sign_url(remote_path, method='GET', minutes=minutes)
 
-  def sign_upload_url(self,
+  def sign_upload_url(
+                      self, 
                       remote_path: str,
                       minutes=SIGNED_URL_EXPIRATION_MINUTES) -> str:
-    """Signs an upload URL for a remote file."""
+    """Signs an upload URL for a remote file.""" 
     return _sign_url(remote_path, method='PUT', minutes=minutes)
 
+  def sign_upload_url_with_policy(
+                                  self, 
+                                  remote_path,
+                                  file_size,
+                                  file_type,
+                                  minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs an upload URL with a policy for a remote file.""" 
+    bucket_name, path = get_bucket_name_and_path(remote_path)
+
+    client = _storage_client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(path)
+
+    expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
+    policy = blob.generate_signed_post_policy_v4(
+        expiration=expiration,
+        conditions=[
+            {'key': path},
+            ['content-length-range', file_size, file_size],
+            {'content-type': file_type},
+        ],
+    )
+
+    return policy
+
   def download_signed_url(self, signed_url):
-    """Downloads |signed_url|."""
+    """Downloads |signed_url|.""" 
     return _download_url(signed_url)
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
-    """Uploads |data| to |signed_url|."""
+    """Uploads |data| to |signed_url|.""" 
     requests.put(
         signed_url, data=data_or_fileobj,
         timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
     return True
 
+  def upload_signed_url_with_policy(self, policy: dict, data_or_fileobj) -> bool:
+    """Uploads |data| to |signed_url|.""" 
+    response = requests.post(
+        policy['url'], data=policy['fields'], files={'file': data_or_fileobj})
+    response.raise_for_status()
+    return True
+
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
-    """Signs a DELETE URL for a remote file."""
+    """Signs a DELETE URL for a remote file.""" 
     return _sign_url(
         remote_path, method='DELETE', minutes=SIGNED_URL_EXPIRATION_MINUTES)
 
   def delete_signed_url(self, signed_url):
-    """Makes a DELETE HTTP request to |signed_url|."""
+    """Makes a DELETE HTTP request to |signed_url|.""" 
     requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
 
 
 def _sign_url(remote_path: str,
               minutes=SIGNED_URL_EXPIRATION_MINUTES,
               method='GET') -> str:
-  """Returns a signed URL for |remote_path| with |method|."""
+  """Returns a signed URL for |remote_path| with |method|.""" 
   if _integration_test_env_doesnt_support_signed_urls():
     return remote_path
   minutes = datetime.timedelta(minutes=minutes)
@@ -502,7 +552,7 @@ class FileSystemProvider(StorageProvider):
     self.filesystem_dir = os.path.abspath(filesystem_dir)
 
   def _get_object_properties(self, remote_path):
-    """Set local object properties."""
+    """Set local object properties.""" 
     bucket, path = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
@@ -525,7 +575,7 @@ class FileSystemProvider(StorageProvider):
     return data
 
   def _get_metadata(self, bucket, path):
-    """Get the metadata for a given object."""
+    """Get the metadata for a given object.""" 
     fs_metadata_path = self._fs_path(bucket, path, self.METADATA_DIR)
     if os.path.exists(fs_metadata_path):
       with open(fs_metadata_path) as f:
@@ -534,19 +584,19 @@ class FileSystemProvider(StorageProvider):
     return {}
 
   def _fs_bucket_path(self, bucket):
-    """Get the local FS path for the bucket."""
+    """Get the local FS path for the bucket.""" 
     return os.path.join(self.filesystem_dir, bucket)
 
   def _fs_objects_dir(self, bucket):
-    """Get the local FS path for objects in the bucket."""
+    """Get the local FS path for objects in the bucket.""" 
     return os.path.join(self._fs_bucket_path(bucket), self.OBJECTS_DIR)
 
   def _fs_path(self, bucket, path, directory):
-    """Get the local object/metadata FS path."""
+    """Get the local object/metadata FS path.""" 
     return os.path.join(self._fs_bucket_path(bucket), directory, path)
 
   def _write_metadata(self, remote_path, metadata):
-    """Write metadata."""
+    """Write metadata.""" 
     if not metadata:
       return
 
@@ -556,14 +606,14 @@ class FileSystemProvider(StorageProvider):
       json.dump(metadata, f)
 
   def convert_path(self, remote_path, directory=OBJECTS_DIR):
-    """Get the local FS path for the remote path."""
+    """Get the local FS path for the remote path.""" 
     bucket, path = get_bucket_name_and_path(remote_path)
     return self._fs_path(bucket, path, directory)
 
   def convert_path_for_write(self, remote_path, directory=OBJECTS_DIR):
     """Get the local FS path for writing to the remote path. Creates any
     intermediate directories if necessary (except for the parent bucket
-    directory)."""
+    directory).""" 
     bucket, path = get_bucket_name_and_path(remote_path)
     if not os.path.exists(self._fs_bucket_path(bucket)):
       raise RuntimeError(
@@ -575,7 +625,7 @@ class FileSystemProvider(StorageProvider):
     return fs_path
 
   def create_bucket(self, name, object_lifecycle, cors, location):
-    """Create a new bucket."""
+    """Create a new bucket.""" 
     bucket_path = self._fs_bucket_path(name)
     if os.path.exists(bucket_path):
       return False
@@ -584,7 +634,7 @@ class FileSystemProvider(StorageProvider):
     return True
 
   def get_bucket(self, name):
-    """Get a bucket."""
+    """Get a bucket.""" 
     bucket_path = self._fs_bucket_path(name)
     if not os.path.exists(bucket_path):
       return None
@@ -594,22 +644,23 @@ class FileSystemProvider(StorageProvider):
     }
 
   def _list_files_recursive(self, fs_path):
-    """List files recursively."""
+    """List files recursively.""" 
     for root, _, filenames in shell.walk(fs_path):
       for filename in filenames:
         yield os.path.join(root, filename)
 
   def _list_files_nonrecursive(self, fs_path):
-    """List files non-recursively."""
+    """List files non-recursively.""" 
     for filename in os.listdir(fs_path):
       yield os.path.join(fs_path, filename)
 
-  def list_blobs(self,
+  def list_blobs(
+                 self, 
                  remote_path,
                  recursive=True,
                  names_only=False,
                  single_file=False):
-    """List the blobs under the remote path."""
+    """List the blobs under the remote path.""" 
     del names_only
     bucket, _ = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
@@ -626,12 +677,12 @@ class FileSystemProvider(StorageProvider):
           get_cloud_storage_file_path(bucket, path))
 
   def copy_file_from(self, remote_path, local_path):
-    """Copy file from a remote path to a local path."""
+    """Copy file from a remote path to a local path.""" 
     fs_path = self.convert_path(remote_path)
     return shell.copy_file(fs_path, local_path)
 
   def copy_file_to(self, local_path_or_handle, remote_path, metadata=None):
-    """Copy file from a local path to a remote path."""
+    """Copy file from a local path to a remote path.""" 
     fs_path = self.convert_path_for_write(remote_path)
 
     if isinstance(local_path_or_handle, str):
@@ -645,13 +696,13 @@ class FileSystemProvider(StorageProvider):
     return True
 
   def copy_blob(self, remote_source, remote_target):
-    """Copy a remote file to another remote location."""
+    """Copy a remote file to another remote location.""" 
     fs_source_path = self.convert_path(remote_source)
     fs_target_path = self.convert_path_for_write(remote_target)
     return shell.copy_file(fs_source_path, fs_target_path)
 
   def read_data(self, remote_path):
-    """Read the data of a remote file."""
+    """Read the data of a remote file.""" 
     fs_path = self.convert_path(remote_path)
     if not os.path.exists(fs_path):
       return None
@@ -660,7 +711,7 @@ class FileSystemProvider(StorageProvider):
       return f.read()
 
   def write_data(self, data_or_fileobj, remote_path, metadata=None):
-    """Write the data of a remote file."""
+    """Write the data of a remote file.""" 
     fs_path = self.convert_path_for_write(remote_path)
     if isinstance(data_or_fileobj, str):
       data_or_fileobj = data_or_fileobj.encode()
@@ -675,7 +726,7 @@ class FileSystemProvider(StorageProvider):
     return True
 
   def write_stream(self, stream, remote_path, metadata=None):
-    """Write the data of a remote file."""
+    """Write the data of a remote file.""" 
     fs_path = self.convert_path_for_write(remote_path)
 
     with open(fs_path, 'wb') as f:
@@ -688,7 +739,7 @@ class FileSystemProvider(StorageProvider):
     return True
 
   def get(self, remote_path):
-    """Get information about a remote file."""
+    """Get information about a remote file.""" 
     fs_path = self.convert_path(remote_path)
     if not os.path.exists(fs_path):
       return None
@@ -696,7 +747,7 @@ class FileSystemProvider(StorageProvider):
     return self._get_object_properties(remote_path)
 
   def delete(self, remote_path):
-    """Delete a remote file."""
+    """Delete a remote file.""" 
     fs_path = self.convert_path(remote_path)
     shell.remove_file(fs_path)
 
@@ -704,42 +755,66 @@ class FileSystemProvider(StorageProvider):
     shell.remove_file(fs_metadata_path)
     return True
 
-  def sign_download_url(self,
+  def sign_download_url(
+                        self, 
                         remote_path,
                         minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
-    download."""
+    download.""" 
     del minutes
     return remote_path
 
   def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
-    upload."""
+    upload.""" 
     del minutes
     return remote_path
 
+  def sign_upload_url_with_policy(
+                                  self, 
+                                  remote_path,
+                                  file_size,
+                                  file_type,
+                                  minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Returns remote_path since we are pretending to sign a URL for
+    upload.""" 
+    del file_size
+    del file_type
+    del minutes
+    return {
+        'url': remote_path,
+        'fields': {
+            'key': remote_path
+        }
+    }
+
   def download_signed_url(self, signed_url):
-    """Downloads |signed_url|."""
+    """Downloads |signed_url|.""" 
     return self.read_data(signed_url)
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
-    """Uploads |data| to |signed_url|."""
+    """Uploads |data| to |signed_url|.""" 
     return self.write_data(data_or_fileobj, signed_url)
 
+  def upload_signed_url_with_policy(self, policy: dict, data_or_fileobj) -> bool:
+    """Uploads |data| to |signed_url|.""" 
+    return self.write_data(data_or_fileobj, policy['url'])
+
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
-    """Signs a DELETE URL for a remote file."""
+    """Signs a DELETE URL for a remote file.""" 
     del minutes
     return remote_path
 
   def delete_signed_url(self, signed_url):
-    """Makes a DELETE HTTP request to |signed_url|."""
+    """Makes a DELETE HTTP request to |signed_url|.""" 
     self.delete(signed_url)
 
 
 class GcsBlobInfo:
   """GCS blob info."""
 
-  def __init__(self,
+  def __init__(
+               self, 
                bucket,
                object_path,
                filename=None,
@@ -788,7 +863,7 @@ class GcsBlobInfo:
 
 
 def _provider():
-  """Get the current storage provider."""
+  """Get the current storage provider.""" 
   local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
   if local_buckets_path:
     return FileSystemProvider(local_buckets_path)
@@ -797,7 +872,7 @@ def _provider():
 
 
 def _create_storage_client_new():
-  """Create a storage client."""
+  """Create a storage client.""" 
   creds, project = credentials.get_default()
   if not project:
     project = utils.get_application_id()
@@ -806,7 +881,7 @@ def _create_storage_client_new():
 
 
 def _storage_client():
-  """Get the storage client, creating it if it does not exist."""
+  """Get the storage client, creating it if it does not exist.""" 
   if not hasattr(_local, 'client'):
     _local.client = _create_storage_client_new()
   return _local.client
@@ -825,7 +900,7 @@ def _signing_creds():
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
-  """Return bucket name and path given a full cloud storage path."""
+  """Return bucket name and path given a full cloud storage path.""" 
   filtered_path = utils.strip_from_left(cloud_storage_file_path, GS_PREFIX)
   _, bucket_name_and_path = filtered_path.split('/', 1)
 
@@ -839,12 +914,12 @@ def get_bucket_name_and_path(cloud_storage_file_path):
 
 
 def get_cloud_storage_file_path(bucket, path):
-  """Get the full GCS file path."""
+  """Get the full GCS file path.""" 
   return GS_PREFIX + '/' + bucket + '/' + path
 
 
 def _get_error_reason(http_error):
-  """Get error reason from googleapiclient.errors.HttpError."""
+  """Get error reason from googleapiclient.errors.HttpError.""" 
   try:
     data = json.loads(http_error.content.decode('utf-8'))
     return data['error']['message']
@@ -857,7 +932,7 @@ def _get_error_reason(http_error):
 @environment.local_noop
 def add_single_bucket_iam(storage, iam_policy, role, bucket_name, member):
   """Attempt to add a single bucket IAM. Returns the modified iam policy, or
-  None on failure."""
+  None on failure.""" 
   binding = get_bucket_iam_binding(iam_policy, role)
   binding['members'].append(member)
 
@@ -869,7 +944,7 @@ def add_single_bucket_iam(storage, iam_policy, role, bucket_name, member):
 
 @environment.local_noop
 def get_bucket_iam_binding(iam_policy, role):
-  """Get the binding matching a role, or None."""
+  """Get the binding matching a role, or None.""" 
   return next((
       binding for binding in iam_policy['bindings'] if binding['role'] == role),
               None)
@@ -877,7 +952,7 @@ def get_bucket_iam_binding(iam_policy, role):
 
 @environment.local_noop
 def get_or_create_bucket_iam_binding(iam_policy, role):
-  """Get or create the binding matching a role."""
+  """Get or create the binding matching a role.""" 
   binding = get_bucket_iam_binding(iam_policy, role)
   if not binding:
     binding = {'role': role, 'members': []}
@@ -888,7 +963,7 @@ def get_or_create_bucket_iam_binding(iam_policy, role):
 
 @environment.local_noop
 def remove_bucket_iam_binding(iam_policy, role):
-  """Remove existing binding matching the role."""
+  """Remove existing binding matching the role.""" 
   iam_policy['bindings'] = [
       binding for binding in iam_policy['bindings'] if binding['role'] != role
   ]
@@ -896,7 +971,7 @@ def remove_bucket_iam_binding(iam_policy, role):
 
 @environment.local_noop
 def get_bucket_iam_policy(storage, bucket_name):
-  """Get bucket IAM policy."""
+  """Get bucket IAM policy.""" 
   try:
     iam_policy = storage.buckets().getIamPolicy(bucket=bucket_name).execute()
   except HttpError as e:
@@ -908,7 +983,7 @@ def get_bucket_iam_policy(storage, bucket_name):
 
 @environment.local_noop
 def set_bucket_iam_policy(client, bucket_name, iam_policy):
-  """Set bucket IAM policy."""
+  """Set bucket IAM policy.""" 
   filtered_iam_policy = copy.deepcopy(iam_policy)
 
   # Bindings returned by getIamPolicy can have duplicates. Remove them or
@@ -929,10 +1004,10 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
     error_reason = _get_error_reason(e)
     if error_reason == 'Invalid argument':
       # Expected error for non-Google emails or groups. Warn about these.
-      logs.warning('Invalid Google email or group being added to bucket %s.' %
+      logs.warning('Invalid Google email or group being added to bucket %s.' % 
                    bucket_name)
     elif error_reason and 'is of type "group"' in error_reason:
-      logs.warning('Failed to set IAM policy for %s bucket for a group: %s.' %
+      logs.warning('Failed to set IAM policy for %s bucket for a group: %s.' % 
                    (bucket_name, error_reason))
     else:
       logs.error('Failed to set IAM policies for bucket %s.' % bucket_name)
@@ -949,7 +1024,7 @@ def create_bucket_if_needed(bucket_name,
                             object_lifecycle=None,
                             cors=None,
                             location=None):
-  """Creates a GCS bucket."""
+  """Creates a GCS bucket.""" 
   provider = _provider()
   if provider.get_bucket(bucket_name):
     return True
@@ -963,7 +1038,7 @@ def create_bucket_if_needed(bucket_name,
 
 @environment.local_noop
 def create_discovery_storage_client():
-  """Create a storage client using discovery APIs."""
+  """Create a storage client using discovery APIs.""" 
   return build('storage', 'v1', cache_discovery=False)
 
 
@@ -972,7 +1047,7 @@ def generate_life_cycle_config(action, age=None, num_newer_versions=None):
 
   For the reference, see https://cloud.google.com/storage/docs/lifecycle and
   https://cloud.google.com/storage/docs/managing-lifecycles.
-  """
+  """ 
   rule = {}
   rule['action'] = {'type': action}
   rule['condition'] = {}
@@ -991,7 +1066,7 @@ def generate_life_cycle_config(action, age=None, num_newer_versions=None):
     function='google_cloud_utils.storage.copy_file_from',
     exception_types=_TRANSIENT_ERRORS)
 def copy_file_from(cloud_storage_file_path, local_file_path):
-  """Saves a cloud storage file locally."""
+  """Saves a cloud storage file locally.""" 
   if not _provider().copy_file_from(cloud_storage_file_path, local_file_path):
     return False
 
@@ -1006,8 +1081,9 @@ def copy_file_from(cloud_storage_file_path, local_file_path):
 def copy_file_to(local_file_path_or_handle,
                  cloud_storage_file_path,
                  metadata=None):
-  """Copy local file to a cloud storage path."""
-  if (isinstance(local_file_path_or_handle, str) and
+  """Copy local file to a cloud storage path.""" 
+  if (
+      isinstance(local_file_path_or_handle, str) and
       not os.path.exists(local_file_path_or_handle)):
     logs.error('Local file %s not found.' % local_file_path_or_handle)
     return False
@@ -1022,7 +1098,7 @@ def copy_file_to(local_file_path_or_handle,
     function='google_cloud_utils.storage.copy_blob',
     exception_types=_TRANSIENT_ERRORS)
 def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
-  """Copy two blobs on GCS 'in the cloud' without touching local disk."""
+  """Copy two blobs on GCS 'in the cloud' without touching local disk.""" 
   return _provider().copy_blob(cloud_storage_source_path,
                                cloud_storage_target_path)
 
@@ -1033,7 +1109,7 @@ def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
     function='google_cloud_utils.storage.delete',
     exception_types=_TRANSIENT_ERRORS)
 def delete(cloud_storage_file_path):
-  """Delete a cloud storage file given its path."""
+  """Delete a cloud storage file given its path.""" 
   return _provider().delete(cloud_storage_file_path)
 
 
@@ -1042,12 +1118,12 @@ def delete(cloud_storage_file_path):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.exists')
 def exists(cloud_storage_file_path, ignore_errors=False):
-  """Return whether if a cloud storage file exists."""
+  """Return whether if a cloud storage file exists.""" 
   try:
     return bool(_provider().get(cloud_storage_file_path))
   except HttpError:
     if not ignore_errors:
-      logs.error('Failed when trying to find cloud storage file %s.' %
+      logs.error('Failed when trying to find cloud storage file %s.' % 
                  cloud_storage_file_path)
 
     return False
@@ -1060,7 +1136,7 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     exception_types=_TRANSIENT_ERRORS)
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
-  storage path."""
+  storage path.""" 
   last_update = None
   for blob in _provider().list_blobs(cloud_storage_file_path):
     if not last_update or blob['updated'] > last_update:
@@ -1077,7 +1153,7 @@ def last_updated(cloud_storage_file_path):
     function='google_cloud_utils.storage.read_data',
     exception_types=_TRANSIENT_ERRORS)
 def read_data(cloud_storage_file_path):
-  """Return content of a cloud storage file."""
+  """Return content of a cloud storage file.""" 
   return _provider().read_data(cloud_storage_file_path)
 
 
@@ -1087,7 +1163,7 @@ def read_data(cloud_storage_file_path):
     function='google_cloud_utils.storage.write_data',
     exception_types=_TRANSIENT_ERRORS)
 def write_data(data_or_fileobj, cloud_storage_file_path, metadata=None):
-  """Return content of a cloud storage file."""
+  """Return content of a cloud storage file.""" 
   return _provider().write_data(
       data_or_fileobj, cloud_storage_file_path, metadata=metadata)
 
@@ -1098,7 +1174,7 @@ def write_data(data_or_fileobj, cloud_storage_file_path, metadata=None):
     function='google_cloud_utils.storage.write_data',
     exception_types=_TRANSIENT_ERRORS)
 def write_stream(stream, cloud_storage_file_path, metadata=None):
-  """Return content of a cloud storage file."""
+  """Return content of a cloud storage file.""" 
   return _provider().write_stream(
       stream, cloud_storage_file_path, metadata=metadata)
 
@@ -1113,7 +1189,7 @@ def get_blobs(*args, **kwargs):
 
 
 def get_blobs_no_retry(cloud_storage_path, recursive=True):
-  """Return blobs under the given cloud storage path."""
+  """Return blobs under the given cloud storage path.""" 
   yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
 
 
@@ -1123,7 +1199,7 @@ def get_blobs_no_retry(cloud_storage_path, recursive=True):
     function='google_cloud_utils.storage.list_blobs',
     exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
-  """Return blob names under the given cloud storage path."""
+  """Return blob names under the given cloud storage path.""" 
   for blob in _provider().list_blobs(
       cloud_storage_path, recursive=recursive, names_only=True):
     yield blob['name']
@@ -1134,7 +1210,7 @@ def list_blobs(cloud_storage_path, recursive=True):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.get')
 def get(cloud_storage_file_path):
-  """Get GCS object data."""
+  """Get GCS object data.""" 
   return _provider().get(cloud_storage_file_path)
 
 
@@ -1144,7 +1220,7 @@ def get(cloud_storage_file_path):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.get_acl')
 def get_acl(cloud_storage_file_path, entity):
-  """Get the access control for a file."""
+  """Get the access control for a file.""" 
   client = create_discovery_storage_client()
   bucket, path = get_bucket_name_and_path(cloud_storage_file_path)
 
@@ -1164,7 +1240,7 @@ def get_acl(cloud_storage_file_path, entity):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.set_acl')
 def set_acl(cloud_storage_file_path, entity, role='READER'):
-  """Set the access control for a file."""
+  """Set the access control for a file.""" 
   client = create_discovery_storage_client()
   bucket, path = get_bucket_name_and_path(cloud_storage_file_path)
 
@@ -1182,7 +1258,7 @@ def set_acl(cloud_storage_file_path, entity, role='READER'):
 
 
 def get_object_size(cloud_storage_file_path):
-  """Get the metadata for a file."""
+  """Get the metadata for a file.""" 
   gcs_object = get(cloud_storage_file_path)
   if not gcs_object:
     return gcs_object
@@ -1192,7 +1268,7 @@ def get_object_size(cloud_storage_file_path):
 
 @memoize.wrap(memoize.FifoInMemory(1))
 def blobs_bucket():
-  """Get the blobs bucket name."""
+  """Get the blobs bucket name.""" 
   # Allow tests to override blobs bucket name safely.
   test_blobs_bucket = environment.get_value('TEST_BLOBS_BUCKET')
   if test_blobs_bucket:
@@ -1210,7 +1286,7 @@ def use_async_http():
 
 
 def uworker_input_bucket():
-  """Returns the bucket where uworker input is done."""
+  """Returns the bucket where uworker input is done.""" 
   test_uworker_input_bucket = environment.get_value('TEST_UWORKER_INPUT_BUCKET')
   if test_uworker_input_bucket:
     return test_uworker_input_bucket
@@ -1224,7 +1300,7 @@ def uworker_input_bucket():
 
 
 def uworker_output_bucket():
-  """Returns the bucket where uworker I/O is done."""
+  """Returns the bucket where uworker I/O is done.""" 
   test_uworker_output_bucket = environment.get_value(
       'TEST_UWORKER_OUTPUT_BUCKET')
   if test_uworker_output_bucket:
@@ -1244,7 +1320,7 @@ def _integration_test_env_doesnt_support_signed_urls():
 
 
 class ExpiredSignedUrlError(errors.Error):
-  """Expired Signed URL."""
+  """Expired Signed URL.""" 
 
   def __init__(self, message, url=None, response_text=None):
     super().__init__(message)
@@ -1259,7 +1335,7 @@ class ExpiredSignedUrlError(errors.Error):
     function='google_cloud_utils.storage._download_url',
     exception_types=_TRANSIENT_ERRORS)
 def _download_url(url):
-  """Downloads |url| and returns the contents."""
+  """Downloads |url| and returns the contents.""" 
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
   response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
@@ -1274,7 +1350,7 @@ def _download_url(url):
       raise
     except:
       pass
-    raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
+    raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' % 
                        (url, response.status_code, response.text))
   return response.content
 
@@ -1284,12 +1360,18 @@ def _download_url(url):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.upload_signed_url')
 def upload_signed_url(data_or_fileobj, url: str) -> bool:
-  """Uploads data to the |signed_url|."""
+  """Uploads data to the |signed_url|.""" 
   return _provider().upload_signed_url(str_to_bytes(data_or_fileobj), url)
 
 
+def upload_signed_url_with_policy(policy: dict, data_or_fileobj) -> bool:
+  """Uploads data to the |signed_url|.""" 
+  return _provider().upload_signed_url_with_policy(policy,
+                                                  str_to_bytes(data_or_fileobj))
+
+
 def download_signed_url(url):
-  """Returns contents of |url|."""
+  """Returns contents of |url|.""" 
   return _provider().download_signed_url(url)
 
 
@@ -1309,14 +1391,33 @@ def download_signed_url_to_file(url, filepath):
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed upload URL for |remote_path|. Does not download the
-  contents."""
+  contents.""" 
   provider = _provider()
   return provider.sign_upload_url(remote_path, minutes=minutes)
 
 
+def get_signed_upload_url_with_policy(
+    remote_path,
+    minutes=SIGNED_URL_EXPIRATION_MINUTES) -> Tuple[str, dict]:
+  """Returns a signed upload URL for |remote_path|. Does not download the
+  contents.""" 
+  # TODO(metzman): Reconcile this with get_signed_upload_policy, perhaps by
+  # making upload_signed_url_with_policy take a remote_path + policy rather
+  # than just a policy.
+  provider = _provider()
+  # Use default 0 for file_size and application/octet-stream as
+  # file_type since we are just trying to get a signed URL and these parameters
+  # are not relevant. The actual parameters are checked by GCS when the upload
+  # happens.
+  policy = provider.sign_upload_url_with_policy(remote_path, 0,
+                                                'application/octet-stream',
+                                                minutes=minutes)
+  return policy['url'], policy
+
+
 def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed download URL for |remote_path|. Does not download the
-  contents."""
+  contents.""" 
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
 
@@ -1342,7 +1443,7 @@ def _error_tolerant_upload_signed_url(url_and_path) -> bool:
 
 
 def delete_signed_url(url: str):
-  """Makes a DELETE HTTP request to |url|."""
+  """Makes a DELETE HTTP request to |url|.""" 
   _provider().delete_signed_url(url)
 
 
@@ -1354,14 +1455,52 @@ def _error_tolerant_delete_signed_url(url: str):
 
 
 def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
+  """Uploads files to signed urls.""" 
   if not signed_urls:
     return []
   logs.info('Uploading URLs.')
-  with concurrency.make_pool(_POOL_SIZE) as pool:
-    result = list(
-        pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
+  urls_and_filepaths = list(zip(signed_urls, files))
+
+  def synchronous_upload_urls(urls_and_filepaths):
+    with concurrency.make_pool(_POOL_SIZE) as pool:
+      return list(
+          pool.map(_error_tolerant_upload_signed_url, urls_and_filepaths))
+
+  if use_async_http():
+    results = fast_http.upload_urls(urls_and_filepaths)
+  else:
+    results = synchronous_upload_urls(urls_and_filepaths)
+
   logs.info('Done uploading URLs.')
-  return result
+  return results
+
+
+def upload_files_with_policy(policy: dict,
+                             files: List[str]) -> List[bool]:
+  """Uploads files to signed urls.""" 
+  if not files:
+    return []
+  logs.info('Uploading URLs.')
+
+  policy_and_filepaths = [(policy, file_path) for file_path in files]
+
+  if use_async_http():
+    results = fast_http.upload_urls_with_policy(policy_and_filepaths)
+  else:
+    def _upload(policy_and_filepath):
+      upload_policy, file_path = policy_and_filepath
+      try:
+        with open(file_path, 'rb') as f:
+          upload_signed_url_with_policy(upload_policy, f)
+      except:
+        return False
+      return True
+
+    with concurrency.make_pool(_POOL_SIZE) as pool:
+      results = list(pool.map(_upload, policy_and_filepaths))
+
+  logs.info('Done uploading URLs.')
+  return results
 
 
 def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1370,7 +1509,7 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 def download_signed_urls(signed_urls: List[str],
                          directory: str) -> List[SignedUrlDownloadResult]:
-  """Download |signed_urls| to |directory|."""
+  """Download |signed_urls| to |directory|.""" 
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
   if not signed_urls:
@@ -1444,7 +1583,7 @@ def get_arbitrary_signed_upload_url(remote_directory):
 
 def parallel_map(func, argument_list):
   """Wrapper around pool.map so we don't do it on OSS-Fuzz hosts which
-  will OOM."""
+  will OOM.""" 
   max_pool_size = 2
   timeout = 120
   with concurrency.make_pool(max_pool_size=max_pool_size) as pool:
@@ -1464,7 +1603,7 @@ def parallel_map(func, argument_list):
 
 def get_arbitrary_signed_upload_urls(remote_directory: str, num_uploads: int):
   """Returns |num_uploads| number of signed upload URLs to upload files with
-  unique arbitrary names to remote_directory."""
+  unique arbitrary names to remote_directory.""" 
   # We don't verify there are no collisions for uuid4s because it's extremely
   # unlikely, takes time, and it's basically benign if it happens (it
   # won't) since we will just clobber some other corpus uploads from

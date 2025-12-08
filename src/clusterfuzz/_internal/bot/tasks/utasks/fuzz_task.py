@@ -750,9 +750,9 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()  # pylint: disable=no-member
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
-      sample_testcase_file = sample_testcase_file_handle.read()
-      storage.upload_signed_url(sample_testcase_file,
-                                fuzz_task_input.sample_testcase_upload_url)
+      storage.upload_signed_url_with_policy(
+          fuzz_task_input.corpus_upload_policy,
+          sample_testcase_file_handle)
 
   # Store fuzzer console output.
   bot_name = environment.get_value('BOT_NAME')
@@ -776,9 +776,16 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
   URLs to upload a sample testcase and the logs."""
   if environment.is_engine_fuzzer_job():
     return
-  fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
-  fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
-      fuzz_task_input.sample_testcase_upload_key)
+  fuzz_task_input.corpus_upload_key = blobs.generate_new_blob_name()
+
+  # TODO(metzman): Change all callers to use this and remove the legacy path.
+  _, corpus_upload_policy = blobs.get_blob_signed_upload_url(
+      file_size=10 * 1024 * 1024,  # 10MB default
+      file_type='application/octet-stream')
+  fuzz_task_input.corpus_upload_url = corpus_upload_policy[
+      'url']
+  fuzz_task_input.corpus_upload_policy.update(
+      corpus_upload_policy)
   script_log_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.script_log_upload_url = blobs.get_signed_upload_url(
       script_log_upload_key)
@@ -801,7 +808,7 @@ def postprocess_store_fuzzer_run_results(output):
     logs.info('Fuzzer was recently updated, skipping results from old version.')
     return
   fuzzer.sample_testcase = (
-      uworker_input.fuzz_task_input.sample_testcase_upload_key)
+      uworker_input.fuzz_task_input.corpus_upload_key)
   fuzzer.console_output = fuzzer_run_results.console_output
   fuzzer.result = fuzzer_run_results.generated_testcase_string
   fuzzer.result_timestamp = datetime.datetime.utcnow()
