@@ -40,6 +40,8 @@ CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
     field_spec=[
         monitor.StringField('build_id'),
+        monitor.StringField('instance_id'),
+        monitor.BooleanField('is_candidate'),
         monitor.BooleanField('is_succeeded'),
     ])
 
