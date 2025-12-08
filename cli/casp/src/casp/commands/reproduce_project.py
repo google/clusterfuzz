@@ -29,6 +29,7 @@ import subprocess
 import tempfile
 import threading
 import traceback
+import types
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple, Union
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -189,10 +190,16 @@ class LocalReproductionStrategy(ReproductionStrategy):
         
         # Parse environment to get RELEASE_BUILD_BUCKET_PATH
         env = {}
-        for line in job.get_environment_string().splitlines():
-          if '=' in line and not line.startswith('#'):
-            k, v = line.split('=', 1)
-            env[k.strip()] = v.strip()
+        if job:
+            for line in job.get_environment_string().splitlines():
+              if '=' in line and not line.startswith('#'):
+                k, v = line.split('=', 1)
+                env[k.strip()] = v.strip()
+        
+        # If job is None, try to use job_env
+        if not env and job_env:
+            env = job_env.copy()
+            
         release_build_bucket_path = env.get('RELEASE_BUILD_BUCKET_PATH')
         
         if not release_build_bucket_path and self.gcs_build_uri:
@@ -593,7 +600,7 @@ class GCBReproductionStrategy(ReproductionStrategy):
 
     return False
 
-  def generate_build_steps(self, project_name: str, project_yaml: Dict, project_src_uri: Optional[str] = None) -> Tuple[List[Dict], Dict[str, str]]:
+  def generate_build_steps(self, project_name: str, project_yaml: Dict, project_src_uri: Optional[str] = None, workdir: str = None) -> Tuple[List[Dict], Dict[str, str]]:
       """
       Generates Cloud Build steps to build the project for all combinations.
       Returns a list of steps and a mapping of (engine, sanitizer, architecture) -> build_dir.
@@ -611,6 +618,14 @@ class GCBReproductionStrategy(ReproductionStrategy):
           'name': 'gcr.io/cloud-builders/git',
           'args': ['clone', '--depth', '1', 'https://github.com/google/oss-fuzz.git', '/workspace/oss-fuzz'],
           'id': 'clone-oss-fuzz'
+      })
+      
+      # Step 0.1: Clone ClusterFuzz (for reproduction verification)
+      steps.append({
+          'name': 'gcr.io/cloud-builders/git',
+          'args': ['clone', '--depth', '1', 'https://github.com/google/clusterfuzz.git', '/workspace/clusterfuzz'],
+          'waitFor': ['clone-oss-fuzz'], # Run after oss-fuzz clone to avoid concurrency issues on git? No, parallel is fine but let's be safe.
+          'id': 'clone-clusterfuzz'
       })
       
       # Step 0.5: Download and overlay local project source if provided
@@ -664,8 +679,8 @@ class GCBReproductionStrategy(ReproductionStrategy):
             # Standard pattern: FROM gcr.io/oss-fuzz-base/base-builder
             # We want: FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04
             
-            sed -i 's|FROM gcr.io/oss-fuzz-base/base-builder.*|FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04|g' {project_dir}/Dockerfile
-            sed -i 's|FROM gcr.io/oss-fuzz-base/base-runner.*|FROM gcr.io/oss-fuzz-base/base-runner:ubuntu-24-04|g' {project_dir}/Dockerfile
+            sed -i 's|FROM gcr.io/oss-fuzz-base/base-builder\($\|:.*\)|FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04|g' {project_dir}/Dockerfile
+            sed -i 's|FROM gcr.io/oss-fuzz-base/base-runner\($\|:.*\)|FROM gcr.io/oss-fuzz-base/base-runner:ubuntu-24-04|g' {project_dir}/Dockerfile
             
             echo "--- Auto-migrated project.yaml and Dockerfile to Ubuntu 24.04 ---"
             cat {project_dir}/project.yaml
@@ -701,6 +716,7 @@ class GCBReproductionStrategy(ReproductionStrategy):
                   steps.append({
                       'name': 'ubuntu', # Lightweight step to create dir
                       'script': f"mkdir -p {out_dir}",
+                      'waitFor': ['build-image'],
                       'id': f"mkdir-{build_id}"
                   })
                   
@@ -708,9 +724,8 @@ class GCBReproductionStrategy(ReproductionStrategy):
                       'name': f'gcr.io/oss-fuzz/{project_name}',
                       'args': [
                           'bash', '-c',
-                          # We use || true to allow other builds to continue if this one fails
-                          f'cp -r /workspace/oss-fuzz/projects/{project_name} /src/ && (compile || echo "Compilation failed for {engine}-{sanitizer}")'
-                      ],
+                        f'cd {workdir} && compile' if workdir else f'cd /src && if [ -d "{project_name}" ]; then cd "{project_name}"; fi && if [ ! -f "build.sh" ]; then cd $(dirname $(find . -maxdepth 2 -name build.sh | head -n 1)); fi && compile'
+                    ],
                       'env': [
                           f'FUZZING_ENGINE={engine}',
                           f'SANITIZER={sanitizer}',
@@ -727,172 +742,426 @@ class GCBReproductionStrategy(ReproductionStrategy):
                   
       return steps, build_map
 
-  def reproduce_batch(self, testcases_data: List[Dict], log_dir: str) -> Dict[str, bool]:
-      """
-      Submits a single Cloud Build with multiple steps for all testcases.
-      Returns a dict mapping tc_id to success boolean.
-      """
-      if not testcases_data:
-          return {}
+  def get_workdir_from_dockerfile(self, dockerfile_path: str) -> str:
+    """Extracts the last WORKDIR from Dockerfile and resolves $SRC."""
+    workdir = None
+    try:
+      with open(dockerfile_path, 'r') as f:
+        for line in f:
+          line = line.strip()
+          if line.upper().startswith('WORKDIR '):
+            workdir = line[8:].strip()
+    except FileNotFoundError:
+      return None
 
-      # Common setup (build download)
+    if workdir:
+      # Resolve $SRC
+      workdir = workdir.replace('$SRC', '/src')
+      if not workdir.startswith('/'):
+        workdir = f'/src/{workdir}'
+      return workdir
+    return None
+
+  def reproduce_batch(self, testcases_data: List[Dict], log_dir: str, project_name: str = None, tag: str = None, async_mode: bool = False) -> Dict[str, bool]:
+    """
+    Submits a single Cloud Build with multiple steps for all testcases.
+    Returns a dict mapping tc_id to success boolean.
+    """
+    if not testcases_data and not project_name:
+      return {}
+
+    # Common setup (build download)
+    if not project_name:
       first_tc = testcases_data[0]
       project_name = first_tc['project_name'] # We assume all are same project
+    
+    # We need project.yaml to generate build steps.
+    project_yaml_path = f"/usr/local/google/home/matheushunsche/projects/oss-fuzz/projects/{project_name}/project.yaml"
+    if not os.path.exists(project_yaml_path):
+        # Fallback to local path if running from CLI
+        project_yaml_path = os.path.abspath(f"projects/{project_name}/project.yaml")
+    
+    if not os.path.exists(project_yaml_path):
+        print(f"Error: Could not find project.yaml for {project_name}")
+        return {}
+        
+    import yaml
+    with open(project_yaml_path, 'r') as f:
+        project_yaml = yaml.safe_load(f)
+        
+    # Check if we have local source to upload
+    project_local_path = os.path.dirname(project_yaml_path)
+    
+    # Upload project source to GCS
+    # We use a timestamped folder to avoid conflicts
+    timestamp = int(time.time())
+    gcs_path = f"repro-projects/{project_name}-{timestamp}.tar.gz"
+    
+    # Check if we should use upstream or local
+    # For now, we always try to upload local if it exists
+    project_src_uri = None
+    workdir = None
+    
+    if self.gcs_bucket:
+       if os.path.exists(project_local_path):
+         try:
+           print(f"Uploading local project source from {project_local_path}...")
+           project_src_uri = remote_utils.upload_to_gcs(project_local_path, self.gcs_bucket, gcs_path)
+           print(f"Uploaded project source to {project_src_uri}")
+           
+           # Extract WORKDIR
+           dockerfile_path = os.path.join(project_local_path, 'Dockerfile')
+           workdir = self.get_workdir_from_dockerfile(dockerfile_path)
+           if workdir:
+             print(f"Detected WORKDIR from Dockerfile: {workdir}")
+         except Exception as e:
+           print(f"Warning: Failed to upload project source: {e}")
+       else:
+         print(f"Warning: Local project path {project_local_path} not found. Using upstream.")
+    
+    steps, build_map = self.generate_build_steps(project_name, project_yaml, project_src_uri, workdir=workdir)
+    
+    # Embed verify_reproduction.py content
+    verify_reproduction_script = r'''
+import os
+import sys
+import json
+import traceback
+
+# Add ClusterFuzz source to path
+sys.path.append(os.environ.get('ROOT_DIR', '/workspace'))
+sys.path.append(os.path.join(os.environ.get('ROOT_DIR', '/workspace'), 'oss-fuzz/infra')) 
+sys.path.append(os.path.join(os.environ.get('ROOT_DIR', '/workspace'), 'clusterfuzz/src'))
+
+try:
+    from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+    from clusterfuzz._internal.crash_analysis import crash_analyzer
+    from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
+    from clusterfuzz.stacktraces import StackParser
+except ImportError:
+    print("Warning: Could not import ClusterFuzz modules. Fallback to simple check.")
+    stack_analyzer = None
+    CrashComparer = None
+
+def verify_reproduction(fuzzer_output, expected_crash_state, expected_crash_type):
+    """
+    Verifies if the reproduction was successful using ClusterFuzz logic.
+    """
+    if not stack_analyzer:
+        # Fallback: Check for crash state in output
+        print("Fallback: ClusterFuzz modules not found.")
+        return expected_crash_state in fuzzer_output
+
+    # Parse the stack trace
+    crash_info = stack_analyzer.get_crash_data(fuzzer_output, symbolize_flag=False)
+
+    print(f"Parsed Crash Type: {crash_info.crash_type}")
+    print(f"Parsed Crash State: {crash_info.crash_state}")
+
+    # Check if crash type matches (loose check)
+    if expected_crash_type and expected_crash_type not in crash_info.crash_type:
+        print(f"Mismatch: Expected type '{expected_crash_type}', got '{crash_info.crash_type}'")
+    
+    # Check if crash state matches using CrashComparer
+    if expected_crash_state:
+        if CrashComparer:
+            comparer = CrashComparer(crash_info.crash_state, expected_crash_state)
+            if comparer.is_similar():
+                print("CrashComparer: Crash state is similar.")
+                return True
+            else:
+                print("CrashComparer: Crash state is NOT similar.")
+                return False
+        else:
+            # Fallback manual check
+            parsed_state = crash_info.crash_state.strip()
+            expected_state = expected_crash_state.strip()
+            
+            if parsed_state == expected_state:
+                return True
+                
+            if expected_state in parsed_state or parsed_state in expected_state:
+                return True
+                
+            print(f"Mismatch: Expected state '{expected_state}', got '{parsed_state}'")
+            return False
+        
+    return True
+
+if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        print("Usage: verify_reproduction.py <log_file> <expected_state> <expected_type>")
+        sys.exit(1)
+        
+    log_file = sys.argv[1]
+    expected_state = sys.argv[2]
+    expected_type = sys.argv[3]
+    
+    with open(log_file, 'r', errors='replace') as f:
+        content = f.read()
+        
+    if verify_reproduction(content, expected_state, expected_type):
+        print("VERIFICATION_SUCCESS")
+        sys.exit(0)
+    else:
+        print("VERIFICATION_FAILURE")
+        sys.exit(1)
+'''
+
+    # Step 1: Setup (Directories and Scripts)
+    setup_script = []
+    setup_script.append("mkdir -p /workspace/testcases")
+    setup_script.append("mkdir -p /workspace/artifacts") 
+    setup_script.append("mkdir -p /workspace/status") # Directory for status files
+    
+    # Clone ClusterFuzz for verification logic
+    setup_script.append("git clone https://github.com/google/clusterfuzz.git /workspace/clusterfuzz")
+    
+    # Write verify_reproduction.py
+    setup_script.append("cat <<EOF > /workspace/verify_reproduction.py")
+    setup_script.append(verify_reproduction_script)
+    setup_script.append("EOF")
+    
+    steps.append({
+      'name': 'ubuntu',
+      'script': "\n".join(setup_script),
+      'id': 'setup-dirs'
+    })
+    
+    env_vars = {
+      'ROOT_DIR': '/workspace', # Changed to /workspace as we clone there
+      'CASP_STRUCTURED_LOGGING': '1',
+      'PYTHONUNBUFFERED': '1',
+      'TEST_BOT_ENVIRONMENT': '1',
+      'PYTHONPATH': '/workspace/clusterfuzz/src:/workspace/clusterfuzz/src/third_party', # Updated pythonpath
+      'GOOGLE_CLOUD_PROJECT': self.project_id,
+      'BUILDS_DIR': '/workspace/builds'
+    }
+    
+    env_vars['ASAN_OPTIONS'] = 'symbolize=1:external_symbolizer_path=/usr/bin/llvm-symbolizer'
+
+    # Steps for each testcase
+    for tc in testcases_data:
+      tc_id = tc.get('tc_id', tc.get('id'))
+      if tc_id == 'build-only':
+          print("Skipping reproduction steps for build-only job.")
+          continue
+
+      tc_url = tc['testcase_url']
+      target_binary = tc['target_binary']
+      fuzzer_args = tc['fuzzer_args']
+      crash_state = tc.get('crash_state', '')
+      crash_type = tc.get('crash_type', '')
       
-      # We need project.yaml to generate build steps.
-      project_yaml_path = f"/usr/local/google/home/matheushunsche/projects/oss-fuzz/projects/{project_name}/project.yaml"
-      if not os.path.exists(project_yaml_path):
-          print(f"Error: project.yaml not found at {project_yaml_path}")
-          return {}
-          
-      import yaml
-      with open(project_yaml_path, 'r') as f:
-          project_yaml = yaml.safe_load(f)
+      # Determine which build to use
+      job_env = tc.get('job_env', {})
+      engine = job_env.get('FUZZING_ENGINE', 'libfuzzer')
+      sanitizer = job_env.get('SANITIZER', 'address')
+      arch = 'x86_64' # Default
       
-      # Upload local project source to GCS
-      project_src_uri = None
-      if self.gcs_bucket:
-          project_local_path = f"/usr/local/google/home/matheushunsche/projects/oss-fuzz/projects/{project_name}"
-          if os.path.exists(project_local_path):
-              print(f"Uploading local project source from {project_local_path}...")
-              bucket_name = self.gcs_bucket.replace('gs://', '').strip('/')
-              # We use a timestamp to avoid collisions
-              gcs_path = f"repro-projects/{project_name}-{int(time.time())}"
-              try:
-                  # We need to use upload_to_gcs from remote_utils
-                  # But remote_utils might not be imported as such if we are in the same module?
-                  # It is imported as `from casp.utils import remote_utils` usually.
-                  # Let's check imports.
-                  # It is imported as `from casp.utils import remote_utils` in this file?
-                  # No, `from casp.utils import remote_utils` is likely.
-                  # Let's assume `remote_utils` is available.
-                  project_src_uri = remote_utils.upload_to_gcs(project_local_path, bucket_name, gcs_path)
-                  print(f"Uploaded project source to {project_src_uri}")
-              except Exception as e:
-                  print(f"Warning: Failed to upload project source: {e}")
-          else:
-              print(f"Warning: Local project path {project_local_path} not found. Using upstream.")
+      # Find the build dir
+      build_dir = build_map.get((engine, sanitizer, arch))
+      if not build_dir:
+        print(f"Warning: No build found for {engine}/{sanitizer}/{arch}. Skipping TC-{tc_id}.")
+        continue
+        
+      build_id = f"build-{engine}-{sanitizer}"
       
-      steps, build_map = self.generate_build_steps(project_name, project_yaml, project_src_uri)
+      tc_script = []
+      tc_script.append(f"echo '--- Starting reproduction for Testcase ID: {tc_id} ---'")
       
-      # Step 1: Setup (Directories)
-      setup_script = []
-      setup_script.append("mkdir -p /workspace/testcases")
-      setup_script.append("mkdir -p /workspace/artifacts") 
+      # Download Testcase
+      tc_path = f"/workspace/testcases/{tc_id}"
+      tc_script.append(f"curl -L -o {tc_path} '{tc_url}'")
+      tc_script.append("if [ $? -ne 0 ]; then")
+      tc_script.append(f"  echo \"TC-{tc_id} RESULT: DOWNLOAD_FAILED\"")
+      tc_script.append(f"  echo '{{\"result\": \"DOWNLOAD_FAILED\", \"tc_id\": \"{tc_id}\"}}' > /workspace/status/{tc_id}.json")
+      tc_script.append("  exit 1")
+      tc_script.append("fi")
+      
+      # Run Fuzzer
+      fuzzer_path = f"{build_dir}/{target_binary}"
+      
+      # Check if binary exists (Build might have failed)
+      tc_script.append(f"if [ ! -f {fuzzer_path} ]; then")
+      tc_script.append(f"  echo \"TC-{tc_id} RESULT: BUILD_FAILED (Binary not found)\"")
+      tc_script.append(f"  echo '{{\"result\": \"BUILD_FAILED\", \"tc_id\": \"{tc_id}\"}}' > /workspace/status/{tc_id}.json")
+      tc_script.append(f"  exit 1") # Fail step if binary missing
+      tc_script.append(f"fi")
+      
+      tc_script.append(f"chmod +x {fuzzer_path}")
+      
+      # Run Fuzzer
+      tc_script.append("set +e")
+      # Capture output to log file for verification
+      log_file = f"/workspace/artifacts/tc-{tc_id}.log"
+      tc_script.append(f"{fuzzer_path} -rss_limit_mb=2560 -timeout=60 {tc_path} > {log_file} 2>&1")
+      tc_script.append("EXIT_CODE=$?")
+      tc_script.append("set -e")
+      
+      tc_script.append(f"cat {log_file}") # Show log in build output
+      
+      # Verify Reproduction using Python script
+      tc_script.append(f"echo 'Verifying reproduction...'")
+      # Escape quotes for python script args
+      safe_crash_state = crash_state.replace("'", "'\\''")
+      safe_crash_type = crash_type.replace("'", "'\\''")
+      
+      tc_script.append(f"python3 /workspace/verify_reproduction.py {log_file} '{safe_crash_state}' '{safe_crash_type}'")
+      tc_script.append("VERIFY_EXIT_CODE=$?")
+      
+      tc_script.append(f"if [ $VERIFY_EXIT_CODE -eq 0 ]; then")
+      tc_script.append(f"  echo \"TC-{tc_id} RESULT: REPRODUCED\"")
+      tc_script.append(f"  echo '{{\"result\": \"REPRODUCED\", \"tc_id\": \"{tc_id}\"}}' > /workspace/status/{tc_id}.json")
+      tc_script.append(f"else")
+      tc_script.append(f"  echo \"TC-{tc_id} RESULT: FAILED_TO_REPRODUCE\"")
+      tc_script.append(f"  echo '{{\"result\": \"FAILED_TO_REPRODUCE\", \"tc_id\": \"{tc_id}\"}}' > /workspace/status/{tc_id}.json")
+      tc_script.append(f"fi")
       
       steps.append({
-          'name': 'ubuntu',
-          'script': "\n".join(setup_script),
-          'id': 'setup-dirs'
+        'name': f'gcr.io/oss-fuzz/{project_name}',
+        'script': "\n".join(tc_script),
+        'env': [f"{k}={v}" for k, v in env_vars.items()],
+        'waitFor': [build_id, 'setup-dirs'], 
+        'id': f'repro-{tc_id}',
+        'allowFailure': True 
       })
-      
-      env_vars = {
-          'ROOT_DIR': '/data/clusterfuzz',
-          'CASP_STRUCTURED_LOGGING': '1',
-          'PYTHONUNBUFFERED': '1',
-          'PYTHONWARNINGS': 'ignore',
-          'TEST_BOT_ENVIRONMENT': '1',
-          'PYTHONPATH': '/data/clusterfuzz/src:/data/clusterfuzz/src/third_party',
-          'GOOGLE_CLOUD_PROJECT': self.project_id,
-          'BUILDS_DIR': '/workspace/builds'
+
+    # Summary Step
+    summary_script = []
+    summary_script.append("echo '--- REPRODUCTION SUMMARY ---'")
+    summary_script.append("echo '[' > /workspace/artifacts/summary.json")
+    summary_script.append("first=true")
+    summary_script.append("for f in /workspace/status/*.json; do")
+    summary_script.append("  if [ \"$first\" = true ]; then")
+    summary_script.append("    first=false")
+    summary_script.append("  else")
+    summary_script.append("    echo ',' >> /workspace/artifacts/summary.json")
+    summary_script.append("  fi")
+    summary_script.append("  cat $f >> /workspace/artifacts/summary.json")
+    summary_script.append("done")
+    summary_script.append("echo ']' >> /workspace/artifacts/summary.json")
+    summary_script.append("cat /workspace/artifacts/summary.json")
+    
+    # Check failure threshold (30%)
+    summary_script.append("python3 -c '")
+    summary_script.append("import json, sys")
+    summary_script.append("try:")
+    summary_script.append("  with open(\"/workspace/artifacts/summary.json\") as f: data = json.load(f)")
+    summary_script.append("  total = len(data)")
+    summary_script.append("  if total == 0: sys.exit(0)")
+    summary_script.append("  failed = sum(1 for item in data if item[\"result\"] != \"REPRODUCED\")")
+    summary_script.append("  fail_rate = failed / total")
+    summary_script.append("  print(f\"Summary: Total={total}, Failed={failed}, Rate={fail_rate:.2%}\")")
+    summary_script.append("  if fail_rate > 0.3:")
+    summary_script.append("    print(\"Failure rate > 30%. Marking build as FAILED.\")")
+    summary_script.append("    sys.exit(1)")
+    summary_script.append("except Exception as e:")
+    summary_script.append("  print(f\"Error checking threshold: {e}\")")
+    summary_script.append("  sys.exit(1)")
+    summary_script.append("'")
+    
+    steps.append({
+        'name': 'python:3.9-slim',
+        'script': "\n".join(summary_script),
+        'id': 'summary',
+        'waitFor': [f'repro-{tc.get("tc_id", tc.get("id"))}' for tc in testcases_data if tc.get("tc_id", tc.get("id")) != 'build-only'] # Wait for all repro steps
+    })
+
+    cloudbuild_yaml = {
+      'steps': steps,
+      'timeout': '43200s', # 12 hours
+      'queueTtl': '86400s', # 24 hours queue wait time
+      'options': {
+        'logging': 'CLOUD_LOGGING_ONLY',
+        'machineType': 'E2_HIGHCPU_32'
       }
-      
-      env_vars['ASAN_OPTIONS'] = 'symbolize=1:external_symbolizer_path=/usr/bin/llvm-symbolizer'
+    }
+    
+    tags = ['casp-repro-batch', 'private', project_name] + [f"tc-{tc.get('tc_id', tc.get('id'))}" for tc in testcases_data if tc.get('tc_id', tc.get('id')) != 'build-only']
+    if tag:
+        tags.append(tag)
+    
+    if len(tags) > 64:
+      tags = tags[:64]
 
-      # Steps for each testcase
-      for tc in testcases_data:
-          tc_id = tc['tc_id']
-          tc_url = tc['testcase_url']
-          target_binary = tc['target_binary']
-          fuzzer_args = tc['fuzzer_args']
-          
-          # Determine which build to use
-          job_env = tc.get('job_env', {})
-          engine = job_env.get('FUZZING_ENGINE', 'libfuzzer')
-          sanitizer = job_env.get('SANITIZER', 'address')
-          arch = 'x86_64' # Default
-          
-          # Find the build dir
-          build_dir = build_map.get((engine, sanitizer, arch))
-          if not build_dir:
-              print(f"Warning: No build found for {engine}/{sanitizer}/{arch}. Skipping TC-{tc_id}.")
-              continue
-              
-          build_id = f"build-{engine}-{sanitizer}"
-          
-          tc_script = []
-          tc_script.append(f"echo '--- Starting reproduction for Testcase ID: {tc_id} ---'")
-          
-          # Download Testcase
-          tc_path = f"/workspace/testcases/{tc_id}"
-          tc_script.append(f"curl -L -o {tc_path} '{tc_url}'")
-          
-          # Run Fuzzer
-          fuzzer_path = f"{build_dir}/{target_binary}"
-          
-          # Check if binary exists (Build might have failed)
-          tc_script.append(f"if [ ! -f {fuzzer_path} ]; then")
-          tc_script.append(f"  echo \"TC-{tc_id} RESULT: BUILD_FAILED (Binary not found)\"")
-          tc_script.append(f"  exit 0")
-          tc_script.append(f"fi")
-          
-          tc_script.append(f"chmod +x {fuzzer_path}")
-          
-          # Handle Exit Code
-          tc_script.append("set +e")
-          tc_script.append(f"{fuzzer_path} {fuzzer_args} {tc_path}")
-          tc_script.append("EXIT_CODE=$?")
-          tc_script.append("set -e")
-          
-          tc_script.append(f"echo \"TC-{tc_id} Fuzzer exited with code $EXIT_CODE\"")
-          
-          tc_script.append(f"if [ $EXIT_CODE -eq 0 ]; then")
-          tc_script.append(f"  echo \"TC-{tc_id} RESULT: FAILED_TO_REPRODUCE (Exit 0)\"")
-          tc_script.append(f"else")
-          tc_script.append(f"  echo \"TC-{tc_id} RESULT: REPRODUCED (Exit $EXIT_CODE)\"")
-          tc_script.append(f"fi")
-          
-          steps.append({
-              'name': self.docker_image,
-              'script': "\n".join(tc_script),
-              'env': [f"{k}={v}" for k, v in env_vars.items()],
-              'waitFor': [build_id, 'setup-dirs'], # Wait for specific build and dirs
-              'id': f'repro-{tc_id}'
-          })
+    gcs_log_dir = "gs://casp-repro-logs-private-1764897405/logs"
+    
+    print(f"Submitting batch build (with compilation) for {len(testcases_data)} testcases...")
+    success, logs = remote_utils.submit_and_monitor_build(self.project_id, cloudbuild_yaml, tags, gcs_log_dir=gcs_log_dir, async_mode=async_mode)
+    
+    if async_mode:
+        if not success:
+            print(f"Error submitting async build: {logs}")
+            return {}
 
-      cloudbuild_yaml = {
-          'steps': steps,
-          'timeout': '7200s', # Increased timeout for builds
-          'options': {
-              'logging': 'CLOUD_LOGGING_ONLY',
-              'machineType': 'E2_HIGHCPU_32' 
-          }
-      }
-      
-      tags = ['casp-repro-batch', 'private', project_name] + [f"tc-{tc['tc_id']}" for tc in testcases_data]
-      
-      if len(tags) > 64:
-          tags = tags[:64]
-
-      gcs_log_dir = "gs://casp-repro-logs-private-1764897405/logs"
-      
-      print(f"Submitting batch build (with compilation) for {len(testcases_data)} testcases...")
-      success, logs = remote_utils.submit_and_monitor_build(self.project_id, cloudbuild_yaml, tags, gcs_log_dir=gcs_log_dir)
-      
-      results = {}
-      for tc in testcases_data:
-          tc_id = tc['tc_id']
-          if f"TC-{tc_id} RESULT: REPRODUCED" in logs:
-              results[tc_id] = True
-          else:
-              results[tc_id] = False
-              
-      full_log_path = os.path.join(log_dir, f"batch-gcb-{int(time.time())}.log")
-      with open(full_log_path, 'w') as f:
-          f.write(logs)
-      print(f"Full batch log saved to {full_log_path}")
-      
-      return results
+        # logs contains the JSON output of gcloud builds submit
+        try:
+            build_info = json.loads(logs)
+            build_id = build_info.get('id')
+            log_url = build_info.get('logUrl')
+            print(f"Build submitted successfully. ID: {build_id}")
+            print(f"Logs: {log_url}")
+            
+            # Save to JSON file
+            submission_file = os.path.join(log_dir, 'repro_submissions.json')
+            submission_data = {
+                'project': project_name,
+                'build_id': build_id,
+                'log_url': log_url,
+                'tag': tag,
+                'timestamp': int(time.time())
+            }
+            
+            # Append to file (list of objects)
+            existing_data = []
+            if os.path.exists(submission_file):
+                try:
+                    with open(submission_file, 'r') as f:
+                        existing_data = json.load(f)
+                        if not isinstance(existing_data, list):
+                            existing_data = [existing_data]
+                except:
+                    pass
+            
+            existing_data.append(submission_data)
+            
+            with open(submission_file, 'w') as f:
+                json.dump(existing_data, f, indent=2)
+                
+            print(f"Submission recorded in {submission_file}")
+            return {} # Return empty results as we don't have them yet
+            
+        except Exception as e:
+            print(f"Error parsing async build output: {e}")
+            print(f"Raw output: {logs}")
+            return {}
+    
+    import re
+    results = {}
+    for tc in testcases_data:
+      tc_id = tc['tc_id']
+      # We use regex to match the actual output.
+      # Updated to match the new format from verify_reproduction.py
+      if re.search(rf"TC-{tc_id} RESULT: REPRODUCED", logs):
+        results[tc_id] = True
+      elif re.search(rf"TC-{tc_id} RESULT: BUILD_FAILED", logs):
+        # We could mark this as a specific failure type if needed, but for now False is fine.
+        # The user will see "Failed" in the summary.
+        print(f"TC-{tc_id} failed to build (binary not found).")
+        results[tc_id] = False
+      elif re.search(rf"TC-{tc_id} RESULT: DOWNLOAD_FAILED", logs):
+        print(f"TC-{tc_id} failed to download.")
+        results[tc_id] = False
+      else:
+        results[tc_id] = False
+          
+    full_log_path = os.path.join(log_dir, f"batch-gcb-{int(time.time())}.log")
+    with open(full_log_path, 'w') as f:
+        f.write(logs)
+    print(f"Full batch log saved to {full_log_path}")
+    
+    return results
 
 
 class BatchReproductionStrategy(ReproductionStrategy):
@@ -1099,85 +1368,44 @@ def prepare_reproduction_data(tc_id: str, strategy: ReproductionStrategy) -> Opt
     with ndb_init.context():
       testcase = data_types.Testcase.get_by_id(int(tc_id))
       
-      # Download testcase content logic (simplified for now, assuming direct blob read)
+      # Download testcase content logic
       blob_key = testcase.fuzzed_keys or testcase.minimized_keys
       if not blob_key:
           print(f"Error: No blob key found for testcase {tc_id}")
           return None
           
-      try:
-          content = blobs.read_key(blob_key)
-      except Exception as e:
-          print(f"Error reading blob {blob_key}: {e}")
+      # Resolve BlobKey to GCS path
+      gcs_path = blobs.get_gcs_path(blob_key)
+      if not gcs_path:
+          print(f"Error: Could not resolve GCS path for blob key {blob_key}")
           return None
           
-      # Determine bucket for upload
-      bucket_name = None
-      if hasattr(strategy, 'gcs_bucket') and strategy.gcs_bucket:
-          bucket_name = strategy.gcs_bucket.replace('gs://', '').strip('/')
-      elif hasattr(strategy, 'gcs_build_uri') and strategy.gcs_build_uri:
-          parts = strategy.gcs_build_uri.replace('gs://', '').split('/')
-          bucket_name = parts[0]
+      # gcs_path is usually /bucket/object_name
+      if gcs_path.startswith('/'):
+          gcs_path = gcs_path[1:]
+          
+      parts = gcs_path.split('/', 1)
+      if len(parts) != 2:
+          print(f"Error: Invalid GCS path format: {gcs_path}")
+          return None
+          
+      bucket_name, blob_name = parts
+      
+      print(f"DEBUG: TC-{tc_id} resolved bucket={bucket_name}, key={blob_name}")
 
-      if not bucket_name and isinstance(strategy, BatchReproductionStrategy):
-           print("Error: Could not determine GCS bucket for testcase upload.")
-           return None
-           
-      testcase_url = None
-      if bucket_name:
-          blob_name = f"repro-testcases/{tc_id}-{int(time.time())}.bin"
+      # generate_signed_url is defined in this file, not remote_utils
+      testcase_url = generate_signed_url(
+          bucket_name=bucket_name, 
+          blob_name=blob_name,
+          key_file=strategy.key_file,
+          impersonate_service_account=strategy.impersonate_service_account
+      )
+      
+      if not testcase_url:
+          print(f"Error: Failed to generate signed URL for TC-{tc_id}")
+          return None
           
-          # Upload content
-          # We use a lock to prevent race conditions if needed, but for unique blob names it's fine.
-          # However, creating the client might need care in parallel?
-          # gcs.Client() is usually fine.
-          
-          storage_client = gcs.Client()
-          bucket = storage_client.bucket(bucket_name)
-          blob = bucket.blob(blob_name)
-          blob.upload_from_string(content)
-          
-          # Generate Signed URL using Python library (avoid gcloud CLI concurrency issues)
-          try:
-              # We need credentials for signing.
-              # If impersonate_service_account is set, we need to sign using that SA.
-              # This is complex with just the library if we don't have the key file.
-              # If key_file is provided, we can use it.
-              # If neither, we use default creds (which might not be able to sign if they are user creds).
-              
-              # However, we are running in an environment where we might have permissions.
-              # Let's try to use the blob method directly if possible.
-              
-              # Note: blob.generate_signed_url requires service account credentials with signing capability.
-              # If we are impersonating, we might need to use the IAMCredentials API or similar.
-              # But `gcloud storage sign-url` handles that for us.
-              
-              # If we want to stick to gcloud CLI for simplicity of impersonation, we must serialize the calls.
-              # Or retry with backoff.
-              # But the error was "returned non-zero exit status 1".
-              
-              # Let's try to use a lock for the CLI call to ensure it's serial.
-              # It's slower but safer.
-              
-              # Actually, let's use the `generate_signed_url` function but wrap it in a lock?
-              # `generate_signed_url` is imported from somewhere?
-              # I don't see it imported in the snippet. It was used in the code I extracted.
-              # It's likely in `remote_utils` or `batch_utils` (now remote_utils).
-              
-              # Let's check where `generate_signed_url` comes from.
-              # It's likely a local function or imported.
-              # Ah, I see `testcase_url = generate_signed_url(...)` in the code I extracted.
-              # But I don't see the definition in `reproduce_project.py`.
-              # It must be imported or defined in `reproduce_project.py`.
-              
-              pass 
-          except Exception:
-              pass
-              
-          # Revert to using the function but with a lock if it uses CLI.
-          # I need to find where `generate_signed_url` is defined.
-          # It is NOT in `remote_utils.py` (checked above).
-          # It must be in `reproduce_project.py`.
+      print(f"DEBUG: TC-{tc_id} generated url={testcase_url}")
 
       job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
       
@@ -1214,29 +1442,27 @@ def prepare_reproduction_data(tc_id: str, strategy: ReproductionStrategy) -> Opt
     traceback.print_exc()
     return None
 
-def worker_reproduce(tc_id: str, strategy: ReproductionStrategy, log_file_path: str, crash_revision: int) -> bool:
+def worker_reproduce(tc_id: str, strategy: ReproductionStrategy, log_file_path: str, crash_revision: int, data: Optional[Dict] = None) -> bool:
   """
   Runs the reproduction of a testcase using the provided strategy.
   """
-  data = prepare_reproduction_data(tc_id, strategy)
+  if not data:
+      # Fallback if data not provided (should not happen with new flow)
+      data = prepare_reproduction_data(tc_id, strategy)
+  
   if not data:
       return False
       
-  # We need to reconstruct 'job' if it's not usable, or use the one from data.
-  # But execute expects a Job object.
-  # If we passed 'job' in data, let's use it.
-  job = data['job']
+  # We use a simple namespace for job to pass name
+  job_name = data.get('job_name', 'unknown')
+  job = types.SimpleNamespace(name=job_name, get_environment_string=lambda: '')
   
   return strategy.execute(
       tc_id=tc_id,
       job=job,
       log_file_path=log_file_path,
       crash_revision=data['crash_revision'],
-      testcase=None, # execute might use testcase object?
-                     # execute uses testcase.project_name in GCB strategy tags.
-                     # We should pass a mock or simple object if needed, or update execute to take project_name.
-                     # GCB strategy uses testcase.project_name.
-                     # Let's pass a SimpleNamespace or similar.
+      testcase=None, 
       testcase_url=data['testcase_url'],
       target_binary=data['target_binary'],
       fuzzer_args=data['fuzzer_args'],
@@ -1283,13 +1509,136 @@ def worker_reproduce(tc_id: str, strategy: ReproductionStrategy, log_file_path: 
 @click.option('--impersonate-service-account', help='Service account to impersonate for signing URLs (if no key file).')
 @click.option('--limit', type=int, help='Limit the number of testcases to reproduce.')
 @click.option('--log-dir', help='Directory to save logs.')
+@click.option('--tag', help='Custom tag for execution tracking.')
+@click.option('--async', 'async_mode', is_flag=True, help='Submit GCB build and exit immediately.')
+@click.option('--resume', is_flag=True, help='Resume mass reproduction by skipping already processed projects.')
 @click.option('--testcase-id', help='Specific testcase ID to reproduce.')
 def cli(project_name, config_dir, parallelism, os_version, environment,
-        local_build_path, engine, sanitizer, use_batch, use_gcb, gcs_bucket, service_account_key_file, impersonate_service_account, limit, log_dir, testcase_id):
+        local_build_path, engine, sanitizer, use_batch, use_gcb, gcs_bucket, service_account_key_file, impersonate_service_account, limit, log_dir, tag, async_mode, resume, testcase_id):
 
-  """
-  Reproduces testcases for an OSS-Fuzz project, saving logs to files.
-  """
+  """Reproduces testcases for an OSS-Fuzz project locally."""
+  
+  # Handle 'all' projects
+  if project_name == 'all':
+      click.secho("Running reproduction for ALL non-migrated projects...", fg='cyan')
+      
+      # 1. Find all projects
+      # Script is in clusterfuzz/cli/casp/src/casp/commands/reproduce_project.py
+      # We want oss-fuzz/projects which is in ../../../../../../oss-fuzz/projects relative to this file
+      projects_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../../oss-fuzz/projects'))
+      if not os.path.exists(projects_dir):
+           # Fallback to current dir/projects if relative
+           projects_dir = os.path.abspath('projects')
+      
+      if not os.path.exists(projects_dir):
+          click.secho(f"Error: Could not find projects directory at {projects_dir}", fg='red')
+          sys.exit(1)
+          
+      click.echo(f"Scanning projects in {projects_dir}...")
+      
+      # Resume logic
+      processed_projects = set()
+      if resume:
+          scan_dir = log_dir if log_dir else os.path.join(tempfile.gettempdir(), 'casp')
+          click.echo(f"Scanning for processed projects in {scan_dir}...")
+          if os.path.exists(scan_dir):
+              for root, dirs, files in os.walk(scan_dir):
+                  if 'repro_submissions.json' in files:
+                      try:
+                          with open(os.path.join(root, 'repro_submissions.json'), 'r') as f:
+                              data = json.load(f)
+                              if isinstance(data, list):
+                                  for item in data:
+                                      if 'project' in item:
+                                          processed_projects.add(item['project'])
+                              elif isinstance(data, dict) and 'project' in data:
+                                  processed_projects.add(data['project'])
+                      except Exception as e:
+                          pass
+          click.secho(f"Found {len(processed_projects)} processed projects.", fg='green')
+      
+      projects_to_run = []
+      for p in os.listdir(projects_dir):
+          if resume and p in processed_projects:
+              continue
+
+          p_dir = os.path.join(projects_dir, p)
+          if not os.path.isdir(p_dir):
+              continue
+              
+          project_yaml = os.path.join(p_dir, 'project.yaml')
+          if not os.path.exists(project_yaml):
+              continue
+              
+          # Check if migrated
+          is_migrated = False
+          try:
+              with open(project_yaml, 'r') as f:
+                  content = f.read()
+                  if 'ubuntu-24-04' in content:
+                      is_migrated = True
+          except Exception:
+              pass
+              
+          if not is_migrated:
+              projects_to_run.append(p)
+              
+      click.secho(f"Found {len(projects_to_run)} projects to reproduce (not on ubuntu-24-04).", fg='yellow')
+      
+      if not projects_to_run:
+          click.secho("No projects found to reproduce.", fg='green')
+          sys.exit(0)
+          
+      # 2. Run reproduction for each project
+      # We call the main logic for each project.
+      # To avoid recursion issues or complex refactoring, we can just loop here and call a helper function
+      # that contains the main logic, OR we can subprocess call ourselves (safer for cleanup).
+      # Subprocess is better to ensure clean state for each project.
+      
+      submissions = []
+      
+      for p in projects_to_run:
+          click.secho(f"\n=== Starting reproduction for project: {p} ===", fg='magenta')
+          
+          cmd = [sys.executable, sys.argv[0], '--project-name', p]
+          
+          # Pass through all other args
+          if config_dir: cmd.extend(['--config-dir', config_dir])
+          if parallelism: cmd.extend(['--parallelism', str(parallelism)])
+          if os_version: cmd.extend(['--os-version', os_version])
+          if environment: cmd.extend(['--environment', environment])
+          if local_build_path: cmd.extend(['--local-build-path', local_build_path])
+          if engine: cmd.extend(['--engine', engine])
+          if sanitizer: cmd.extend(['--sanitizer', sanitizer])
+          if use_batch: cmd.append('--use-batch')
+          if use_gcb: cmd.append('--use-gcb')
+          if gcs_bucket: cmd.extend(['--gcs-bucket', gcs_bucket])
+          if service_account_key_file: cmd.extend(['--service-account-key-file', service_account_key_file])
+          if impersonate_service_account: cmd.extend(['--impersonate-service-account', impersonate_service_account])
+          if limit: cmd.extend(['--limit', str(limit)])
+          if log_dir: cmd.extend(['--log-dir', log_dir])
+          if tag: cmd.extend(['--tag', tag])
+          if async_mode: cmd.append('--async')
+          if testcase_id: cmd.extend(['--testcase-id', testcase_id])
+          
+          try:
+              # If async, we capture output to get build ID?
+              # But subprocess prints to stdout.
+              # If async_mode is on, the subprocess will print the build ID or save it?
+              # The subprocess (this script running for one project) will handle saving if async.
+              # But we might want to collect them all here.
+              # Let's let the subprocess run and we just wait for it.
+              subprocess.run(cmd, check=True)
+          except subprocess.CalledProcessError:
+              click.secho(f"Error reproducing project {p}", fg='red')
+              # Continue to next project?
+              continue
+              
+      click.secho("\nAll projects processed.", fg='green')
+      sys.exit(0)
+
+  # Normal flow for single project
+  abs_local_build_path = None
 
   # 1. Environment Setup
   print(f"DEBUG: cli called with local_build_path={local_build_path}, gcs_bucket={gcs_bucket}")
@@ -1349,17 +1698,60 @@ def cli(project_name, config_dir, parallelism, os_version, environment,
     with ndb_init.context():
       query = data_types.Testcase.query(
           data_types.Testcase.project_name == project_name,
+          data_types.Testcase.status == 'Processed',
+          ndb_utils.is_false(data_types.Testcase.is_a_duplicate_flag),
+          ndb_utils.is_true(data_types.Testcase.is_leader),
           ndb_utils.is_true(data_types.Testcase.open))
       testcases = list(ndb_utils.get_all_from_query(query))
   except Exception as e:
     click.secho(f"Error fetching testcases: {e}", fg='red')
     return
   
+  dummy_tc = None
   if not testcases:
     click.secho(f'No open testcases found for {project_name}.', fg='yellow')
-    return
-
-  total_testcases_count = len(testcases)
+    # Create dummy testcase for build validation
+    click.secho("Submitting build-only job for validation.", fg='cyan')
+    
+    # Determine job type (sanitizer)
+    job_type = 'libfuzzer_asan' # Default
+    if sanitizer:
+        sanitizer_map = {
+            'address': 'asan',
+            'memory': 'msan',
+            'undefined': 'ubsan',
+            'coverage': 'cov',
+            'dataflow': 'dft'
+        }
+        mapped_sanitizer = sanitizer_map.get(sanitizer.lower(), sanitizer.lower())
+        job_type = f'libfuzzer_{mapped_sanitizer}'
+    
+    dummy_tc = {
+        'id': 'build-only',
+        'crash_type': 'Build Validation',
+        'crash_state': 'N/A',
+        'fuzzer_name': engine if engine else 'libfuzzer',
+        'job_type': job_type,
+        'testcase_url': None,
+        'job_env': {},
+        'fuzzer_args': '',
+        'target_binary': '',
+        'security_flag': False,
+        'gestures': [],
+        'redzone': 128,
+        'additional_metadata': {},
+        'crash_revision': '12345', # Dummy revision
+        'job_name': job_type
+    }
+    
+    # We need to pass this to reproduce_batch.
+    # reproduce_batch expects a list of dicts (testcases_data).
+    # But cli usually converts Testcase objects to dicts later.
+    # We can just skip the filtering loop and directly populate testcases_data.
+    to_reproduce = [] # Empty
+    # We will handle this by checking if to_reproduce is empty AND testcases was empty
+    
+  total_testcases_count = len(testcases) if testcases else 0
 
   to_reproduce = []
   skipped = []
@@ -1418,8 +1810,8 @@ def cli(project_name, config_dir, parallelism, os_version, environment,
     click.echo(msg)
 
   if not to_reproduce:
-    click.echo("No reproducible testcases to run.")
-    return
+    click.echo("No reproducible testcases to run. Proceeding with build verification only.")
+    # return # Removed to allow build verification
 
   if limit and limit > 0:
     click.echo(f"Limiting reproduction to first {limit} testcases (out of {len(to_reproduce)}).")
@@ -1629,51 +2021,58 @@ def cli(project_name, config_dir, parallelism, os_version, environment,
       # Collect data for all testcases
       testcases_data = []
       
-      # We need to prepare data for each testcase (Signed URLs etc)
-      # We can use a thread pool for preparation if it's slow (GCS uploads)
-      # But for now let's do it sequentially or use a small pool.
-      # GCS uploads might take time.
-      
-      with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as preparer:
-          future_to_tc = {preparer.submit(prepare_reproduction_data, str(t.key.id()), strategy): t for t in to_reproduce}
+      if dummy_tc:
+          testcases_data.append(dummy_tc)
+      else:
+          # We need to prepare data for each testcase (Signed URLs etc)
+          # We can use a thread pool for preparation if it's slow (GCS uploads)
+          # But for now let's do it sequentially or use a small pool.
+          # GCS uploads might take time.
           
-          for future in concurrent.futures.as_completed(future_to_tc):
-              t = future_to_tc[future]
-              try:
-                  data = future.result()
-                  if data:
-                      testcases_data.append(data)
-                  else:
-                      click.secho(f"✖ TC-{t.key.id()} Failed to prepare data.", fg='red')
-              except Exception as exc:
-                  click.secho(f"✖ TC-{t.key.id()} Exception during preparation: {exc}", fg='red')
+          with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as preparer:
+              future_to_tc = {preparer.submit(prepare_reproduction_data, str(t.key.id()), strategy): t for t in to_reproduce}
+              
+              for future in concurrent.futures.as_completed(future_to_tc):
+                  t = future_to_tc[future]
+                  try:
+                      data = future.result()
+                      if data:
+                          testcases_data.append(data)
+                      else:
+                          click.secho(f"✖ TC-{t.key.id()} Failed to prepare data.", fg='red')
+                  except Exception as exc:
+                      click.secho(f"✖ TC-{t.key.id()} Exception during preparation: {exc}", fg='red')
       
       if not testcases_data:
-          click.secho("No testcases were successfully prepared. Exiting.", fg='red')
-          return
+          click.secho("No testcases were successfully prepared. Proceeding with build verification only.", fg='yellow')
+          # We continue to reproduce_batch which will generate build steps but no repro steps.
 
       # Submit Batch
-      results = strategy.reproduce_batch(testcases_data, log_dir)
+      results = strategy.reproduce_batch(testcases_data, log_dir, project_name=project_name, tag=tag, async_mode=async_mode)
       
-      # Report Results
-      completed_count = 0
-      success_count = 0
-      failure_count = 0
-      
-      for tc_id, is_success in results.items():
-          completed_count += 1
-          if is_success:
-              success_count += 1
-              click.secho(f"✔ TC-{tc_id} Success ({completed_count}/{len(results)})", fg='green')
-          else:
-              failure_count += 1
-              click.secho(f"✖ TC-{tc_id} Failed ({completed_count}/{len(results)})", fg='red')
+      if async_mode:
+          click.echo("Async mode enabled. Skipping result verification.")
+      else:
+          # Report Results
+          completed_count = 0
+          success_count = 0
+          failure_count = 0
+          
+          for tc_id, is_success in results.items():
+              completed_count += 1
+              if is_success:
+                  success_count += 1
+                  click.secho(f"✔ TC-{tc_id} Success ({completed_count}/{len(results)})", fg='green')
+              else:
+                  failure_count += 1
+                  click.secho(f"✖ TC-{tc_id} Failed ({completed_count}/{len(results)})", fg='red')
               
   else:
       # Local or Batch (Legacy Loop)
       with concurrent.futures.ProcessPoolExecutor(
           max_workers=parallelism) as executor:
         future_to_tc = {}
+        preparation_failures = 0
     
         for t in to_reproduce:
           tid = str(t.key.id())
@@ -1684,16 +2083,23 @@ def cli(project_name, config_dir, parallelism, os_version, environment,
             f.write(f"Engine: {t.fuzzer_name}\n")
             f.write(f"Job Type: {t.job_type}\n")
             f.write("-" * 40 + "\n")
+            
+          # Prepare data in main process to avoid NDB context issues in workers
+          data = prepare_reproduction_data(tid, strategy)
+          if not data:
+              click.secho(f"✖ TC-{tid} Failed to prepare data.", fg='red')
+              preparation_failures += 1
+              continue
     
           if use_batch:
               click.secho(f"➜ TC-{tid} Submitting to Cloud Batch...", fg='cyan')
     
-          f = executor.submit(worker_reproduce, tid, strategy, log_file, t.crash_revision)
+          f = executor.submit(worker_reproduce, tid, strategy, log_file, t.crash_revision, data)
           future_to_tc[f] = tid
     
-        completed_count = 0
+        completed_count = preparation_failures
         success_count = 0
-        failure_count = 0
+        failure_count = preparation_failures
         for future in concurrent.futures.as_completed(future_to_tc):
           completed_count += 1
           tid = future_to_tc[future]
@@ -1714,6 +2120,10 @@ def cli(project_name, config_dir, parallelism, os_version, environment,
             click.secho(
                 f"! TC-{tid} Error: {exc} ({completed_count}/{len(to_reproduce)}) - Check log: {os.path.join(log_dir, f'tc-{tid}.log')}",
                 fg='red')
+
+  if async_mode:
+      click.echo("\nAsync submission completed. Check repro_submissions.json for details.")
+      return
 
   click.echo("\nAll reproduction tasks completed.")
 

@@ -310,7 +310,7 @@ def submit_and_monitor_job(job_id: str, job_spec: Dict, project_id: str, locatio
             log_file.close()
         os.remove(tmp_path)
 
-def submit_and_monitor_build(project_id: str, cloudbuild_yaml: Dict, tags: List[str], log_file_path: Optional[str] = None, impersonate_service_account: Optional[str] = None, gcs_log_dir: Optional[str] = None) -> Tuple[bool, str]:
+def submit_and_monitor_build(project_id: str, cloudbuild_yaml: Dict, tags: List[str], log_file_path: Optional[str] = None, impersonate_service_account: Optional[str] = None, gcs_log_dir: Optional[str] = None, async_mode: bool = False) -> Tuple[bool, str]:
     # Add tags to cloudbuild_yaml if provided
     if tags:
         if 'tags' not in cloudbuild_yaml:
@@ -340,6 +340,9 @@ def submit_and_monitor_build(project_id: str, cloudbuild_yaml: Dict, tags: List[
             "--format=json"
         ]
         
+        if async_mode:
+            cmd.append("--async")
+        
         if gcs_log_dir:
             cmd.append(f"--gcs-log-dir={gcs_log_dir}")
             # CLOUD_LOGGING_ONLY cannot be used with gcs-log-dir/logs_bucket
@@ -351,65 +354,76 @@ def submit_and_monitor_build(project_id: str, cloudbuild_yaml: Dict, tags: List[
         if impersonate_service_account:
             cmd.append(f"--impersonate-service-account={impersonate_service_account}")
 
-        click.echo("Build submitted. Streaming logs...", err=True)
-        
-        # Use Popen to stream logs
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        import threading
-        
-        stdout_lines = []
-        stderr_lines = []
-        
-        def read_stream(stream, collector, is_stderr):
-            for line in stream:
-                collector.append(line)
-                # Stream stderr (logs) to console
-                if is_stderr:
-                    click.echo(line, nl=False, err=True)
-                # Write to log file if provided
-                if log_file_path:
-                     try:
-                         with open(log_file_path, 'a', encoding='utf-8', errors='ignore') as f:
-                             f.write(line)
-                     except Exception:
-                         pass
-
-        t_stderr = threading.Thread(target=read_stream, args=(process.stderr, stderr_lines, True))
-        t_stderr.start()
-        
-        t_stdout = threading.Thread(target=read_stream, args=(process.stdout, stdout_lines, False))
-        t_stdout.start()
-        
-        process.wait()
-        t_stderr.join()
-        t_stdout.join()
-        
-        full_logs = "".join(stderr_lines) + "\n" + "".join(stdout_lines)
-        
-        # Check status
-        json_output = "".join(stdout_lines)
-        status = "UNKNOWN"
-        try:
-            # Attempt to find JSON object in stdout
-            # It might be the whole stdout or mixed
-            # gcloud --format=json usually outputs just the JSON to stdout
-            build_info = json.loads(json_output)
-            status = build_info.get("status")
-        except json.JSONDecodeError:
-            # Fallback: check exit code
-            if process.returncode == 0:
-                status = "SUCCESS"
-            else:
-                status = "FAILURE"
-        
-        click.echo(f"Build finished with status: {status}", err=True)
-        
-        if status == "SUCCESS":
-            return True, full_logs
+        if async_mode:
+            click.echo("Submitting build asynchronously...", err=True)
+            # Use run_command_with_retry to handle quotas/transient errors
+            result = run_command_with_retry(cmd, check=True)
+            return True, result.stdout
         else:
-            return False, full_logs
+            click.echo("Build submitted. Streaming logs...", err=True)
+            
+            # Use Popen to stream logs
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            
+            import threading
+            
+            stdout_lines = []
+            stderr_lines = []
+            
+            def read_stream(stream, collector, is_stderr):
+                for line in stream:
+                    collector.append(line)
+                    # Stream stderr (logs) to console
+                    if is_stderr:
+                        click.echo(line, nl=False, err=True)
+                    # Write to log file if provided
+                    if log_file_path:
+                         try:
+                             with open(log_file_path, 'a', encoding='utf-8', errors='ignore') as f:
+                                 f.write(line)
+                         except Exception:
+                             pass
 
+            t_stderr = threading.Thread(target=read_stream, args=(process.stderr, stderr_lines, True))
+            t_stderr.start()
+            
+            t_stdout = threading.Thread(target=read_stream, args=(process.stdout, stdout_lines, False))
+            t_stdout.start()
+            
+            process.wait()
+            t_stderr.join()
+            t_stdout.join()
+            
+            full_logs = "".join(stderr_lines) + "\n" + "".join(stdout_lines)
+            
+            # Check status
+            json_output = "".join(stdout_lines)
+            status = "UNKNOWN"
+            try:
+                # Attempt to find JSON object in stdout
+                # It might be the whole stdout or mixed
+                # gcloud --format=json usually outputs just the JSON to stdout
+                build_info = json.loads(json_output)
+                status = build_info.get("status")
+            except json.JSONDecodeError:
+                # Fallback: check exit code
+                if process.returncode == 0:
+                    status = "SUCCESS"
+                else:
+                    status = "FAILURE"
+            
+            click.echo(f"Build finished with status: {status}", err=True)
+            
+            if status == "SUCCESS":
+                return True, full_logs
+            else:
+                return False, full_logs
+
+    except subprocess.CalledProcessError as e:
+        click.secho(f"Command failed: {e}", fg="red")
+        if e.stderr:
+            click.secho(f"Stderr: {e.stderr}", fg="red")
+        return False, f"Command failed: {e}\nStderr: {e.stderr}"
     except Exception as e:
         click.secho(f"Exception during Cloud Build: {e}", fg="red")
         return False, str(e)
