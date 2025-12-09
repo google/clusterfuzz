@@ -624,8 +624,12 @@ def _update_fuzzer(
 
   # Copy the archive to local disk and unpack it.
   archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
-  if not storage.download_signed_url_to_file(update_input.fuzzer_download_url,
-                                             archive_path):
+  if not environment.is_uworker():
+    if not blobs.read_blob_to_disk(fuzzer.blobstore_key, archive_path):
+      logs.error('Failed to copy fuzzer archive.')
+      return False
+  elif not storage.download_signed_url_to_file(update_input.fuzzer_download_url,
+                                               archive_path):
     logs.error('Failed to copy fuzzer archive.')
     return False
 
