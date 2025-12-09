@@ -18,6 +18,7 @@ import json
 import jira
 
 from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.metrics import logs
 
 
 class IssueTrackerManager:
@@ -88,7 +89,7 @@ class IssueTrackerManager:
 
     if update_if_different:
       # Only add the missing watchers
-      watchers = watchers - set(self.get_watchers(issue))
+      watchers = watchers - set(self.get_watchers(issue.jira_issue))
 
     # Jira weirdness, update watchers this way.
     for watcher in watchers:
