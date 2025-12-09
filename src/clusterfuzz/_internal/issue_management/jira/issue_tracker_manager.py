@@ -75,16 +75,27 @@ class IssueTrackerManager:
     if not isinstance(issue.status, jira.resources.Resource):
       self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
-  def _add_watchers(self, issue):
+  def _add_watchers(self, issue, update_if_different=False):
     """Add watchers to the ticket. Jira has a separate endpoint to
     add watchers."""
 
+    # return if issue was not created yet
+    if issue.id == -1:
+      return
+
     # Get watchers from LabelStore.
-    watchers = list(issue.ccs)
+    watchers = set(issue.ccs)
+
+    if update_if_different:
+      # Only add the missing watchers
+      watchers = watchers - set(self.get_watchers(issue))
 
     # Jira weirdness, update watchers this way.
     for watcher in watchers:
-      self.client.add_watcher(issue.jira_issue, watcher)
+      try:
+        self.client.add_watcher(issue.jira_issue, watcher)
+      except Exception as e:
+        logs.error(f'Error adding watcher {watcher} to issue {issue.id}')
 
   def _get_issue_fields(self, issue):
     """Get issue fields to populate the ticket"""
@@ -128,7 +139,7 @@ class IssueTrackerManager:
 
     update_fields = self._get_issue_fields(issue)
     self._transition_issue_status_if_updated(issue)
-    self._add_watchers(issue)
+    self._add_watchers(issue, update_if_different=True)
     issue.jira_issue.update(fields=update_fields)
 
   def get_watchers(self, issue):
