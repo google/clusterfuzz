@@ -20,12 +20,13 @@ import jira
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.metrics import logs
 
+UNCREATED_JIRA_ISSUE_ID = -1
 
 class IssueTrackerManager:
   """Issue tracker manager."""
 
   def __init__(self, project_name):
-    """"Construct an issue tracker manager instance based on parameters."""
+    """Construct an issue tracker manager instance based on parameters."""
     self._client = None
     self.project_name = project_name
 
@@ -48,13 +49,13 @@ class IssueTrackerManager:
 
   def save(self, issue):
     """Save an issue."""
-    if issue.id == -1:
+    if issue.id == UNCREATED_JIRA_ISSUE_ID:
       return self._create(issue)
     return self._update(issue)
 
   def create(self):
     """Create an issue object locally."""
-    raw_fields = {'id': '-1', 'fields': {'components': [], 'labels': []}}
+    raw_fields = {'id': f'{UNCREATED_JIRA_ISSUE_ID}', 'fields': {'components': [], 'labels': []}}
     # Create jira issue object
     jira_issue = jira.resources.Issue({},
                                       jira.resilientsession.ResilientSession(),
@@ -81,7 +82,7 @@ class IssueTrackerManager:
     add watchers."""
 
     # return if issue was not created yet
-    if issue.id == -1:
+    if issue.id == UNCREATED_JIRA_ISSUE_ID:
       return
 
     # Get watchers from LabelStore.
@@ -145,7 +146,7 @@ class IssueTrackerManager:
 
   def get_watchers(self, issue):
     """Retrieve list of watchers."""
-    if issue.id == -1:
+    if issue.id == UNCREATED_JIRA_ISSUE_ID:
       return []
     watchlist = self.client.watchers(issue)
     watchers = []
