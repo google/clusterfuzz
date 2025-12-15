@@ -146,6 +146,8 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
         monitor.StringField('is_batch'),
         monitor.StringField('runtime')
     ],
@@ -172,6 +174,8 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
         monitor.StringField('is_batch'),
         monitor.StringField('runtime')
     ],
