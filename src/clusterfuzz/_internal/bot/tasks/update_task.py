@@ -17,6 +17,7 @@ import datetime
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import time
 
@@ -331,8 +332,10 @@ def update_tests_if_needed(tests_url=None):
         storage.copy_file_from(tests_url, temp_archive)
 
       if shutil.which('unzip'):
-        shell.execute_command(
-            'unzip -q -o %s -d %s' % (temp_archive, data_directory))
+        subprocess.run(
+            ['unzip', '-q', '-o', temp_archive, '-d', data_directory],
+            check=True,
+            capture_output=True)
       else:
         with archive.open(temp_archive) as reader:
           reader.extract_all(data_directory, trusted=True)
