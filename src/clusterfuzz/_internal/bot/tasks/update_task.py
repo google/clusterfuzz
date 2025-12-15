@@ -16,6 +16,7 @@
 import datetime
 import os
 import platform
+import shutil
 import sys
 import time
 
@@ -324,20 +325,18 @@ def update_tests_if_needed(tests_url=None):
   for _ in range(retry_limit):
     try:
       shell.remove_directory(data_directory, recreate=True)
-      if tests_url.startswith('http') and archive.HttpZipFile.is_uri_compatible(
-          tests_url):
-        with archive.ZipArchiveReader(archive.HttpZipFile(tests_url)) as reader:
-          reader.extract_all(data_directory, trusted=True)
+      if tests_url.startswith('http'):
+        storage.download_signed_url_to_file(tests_url, temp_archive)
       else:
-        if tests_url.startswith('http'):
-          storage.download_signed_url_to_file(tests_url, temp_archive)
-        else:
-          storage.copy_file_from(tests_url, temp_archive)
+        storage.copy_file_from(tests_url, temp_archive)
 
+      if shutil.which('unzip'):
+        shell.execute_command(
+            'unzip -q -o %s -d %s' % (temp_archive, data_directory))
+      else:
         with archive.open(temp_archive) as reader:
           reader.extract_all(data_directory, trusted=True)
-        shell.remove_file(temp_archive)
-
+      shell.remove_file(temp_archive)
       error_occured = False
       break
     except:

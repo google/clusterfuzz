@@ -2098,7 +2098,7 @@ def _get_fuzz_target(uworker_input):
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
-  if uworker_input.fuzz_task_input.HasField('web_tests_url'):
+  if not engine.get(uworker_input.fuzzer_name):
     update_task.update_tests_if_needed(
         uworker_input.fuzz_task_input.web_tests_url)
 
