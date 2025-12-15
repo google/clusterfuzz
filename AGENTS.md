@@ -92,3 +92,8 @@ python butler.py format
 ```
 
 This will format the changed code in your current branch.
+
+## Running code directly
+
+To run code directly that uses ClusterFuzz library code, after activating the pipenv, cd into src.
+Run all your commands with PYTHONPATH=.:third_party
