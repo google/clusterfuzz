@@ -53,6 +53,7 @@ message FuzzTaskInput {
   repeated string global_blacklisted_functions = 6;
   repeated BlobUploadUrl crash_upload_urls = 7;
   repeated google.protobuf.Any trials = 8;
+  optional string web_tests_url = 9;
 }
 
 message DataBundleCorpus {
