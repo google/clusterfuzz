@@ -64,7 +64,7 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
     rm -rf /tmp/patchelf-*
 
 # Install Ruby, for Ruby fuzzing.
-RUN apt-get install -y binutils xz-utils libyaml-dev libffi-dev zlib1g-dev && \
+RUN apt-get update && apt-get install -y binutils xz-utils libyaml-dev libffi-dev zlib1g-dev && \
     RUBY_VERSION=3.3.1 && \
     curl -O https://cache.ruby-lang.org/pub/ruby/3.3/ruby-$RUBY_VERSION.tar.gz && \
     tar -xvf ruby-$RUBY_VERSION.tar.gz && \
