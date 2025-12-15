@@ -59,3 +59,4 @@ bazel-*
 # Ignore temporary build files.
 docker/base/Pipfile
 docker/base/Pipfile.lock
+google-cloud-sdk/

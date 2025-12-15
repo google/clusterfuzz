@@ -14,6 +14,7 @@
 """Cron job to schedule fuzz tasks that run on batch."""
 
 import collections
+import datetime
 import multiprocessing
 import random
 import time
@@ -377,9 +378,39 @@ def respect_project_max_cpus(num_cpus):
   return min(max_cpus_per_schedule, num_cpus)
 
 
+def _get_representative_job_type():
+  """Returns a representative job type for congestion checks."""
+  # Try to find a linux job.
+  job = data_types.Job.query(data_types.Job.platform == 'LINUX').get()
+  if job:
+    return job.name
+  return 'libfuzzer_asan'  # Default fallback.
+
+
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   multiprocessing.set_start_method('spawn')
+
+  # Check for congestion.
+  one_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+  congestion_jobs = list(
+      data_types.CongestionJob.query(
+          data_types.CongestionJob.timestamp > one_hour_ago))
+
+  representative_job_type = _get_representative_job_type()
+
+  if len(congestion_jobs) >= 3:
+    completed_count = batch.check_congestion_jobs(
+        [job.job_id for job in congestion_jobs])
+    if completed_count < 3:
+      logs.warning(
+          f'Congestion detected: {completed_count}/{len(congestion_jobs)} '
+          'congestion jobs completed in the last hour. Pausing scheduling.')
+      # Still schedule a new congestion job to keep monitoring.
+      job_result = batch.create_congestion_job(representative_job_type)
+      data_types.CongestionJob(job_id=job_result.name).put()
+      return False
+
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
   regions = get_batch_regions(batch_config)
@@ -387,16 +418,27 @@ def schedule_fuzz_tasks() -> bool:
   available_cpus = get_available_cpus(project, regions)
   logs.info(f'{available_cpus} available CPUs.')
   if not available_cpus:
+    # Schedule a congestion job even if no CPUs (though this might fail or queue).
+    # But usually we want to measure Batch system health.
+    job_result = batch.create_congestion_job(representative_job_type)
+    data_types.CongestionJob(job_id=job_result.name).put()
     return False
 
   fuzz_tasks = get_fuzz_tasks(available_cpus)
   if not fuzz_tasks:
     logs.error('No fuzz tasks found to schedule.')
+    # Even if no fuzz tasks, we should check health.
+    job_result = batch.create_congestion_job(representative_job_type)
+    data_types.CongestionJob(job_id=job_result.name).put()
     return False
 
   logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
   tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
   logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+
+  # Schedule a new congestion job.
+  job_result = batch.create_congestion_job(representative_job_type)
+  data_types.CongestionJob(job_id=job_result.name).put()
 
   end = time.time()
   total = end - start

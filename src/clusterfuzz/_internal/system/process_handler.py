@@ -39,7 +39,7 @@ try:
   import mozprocess
   import psutil
 except ImportError:
-  pass
+  import psutil
 
 # On Android, we need to wait a little after a crash occurred to get the full
 # logcat output. This makes sure we get all the stack frames since there is no

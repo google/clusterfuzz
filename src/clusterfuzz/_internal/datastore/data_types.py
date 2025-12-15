@@ -1803,3 +1803,19 @@ class FuzzerTaskEvent(Model):
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.FUZZER_EVENT_TTL)
+
+
+class CongestionJob(Model):
+  """Congestion job."""
+  CONGESTION_JOB_TTL = datetime.timedelta(days=7)
+
+  # The job name (ID) in Batch.
+  job_id = ndb.StringProperty()
+  # Time of creation.
+  timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  # Expiration time for this entity.
+  ttl_expiry_timestamp = ndb.DateTimeProperty()
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.CONGESTION_JOB_TTL)
