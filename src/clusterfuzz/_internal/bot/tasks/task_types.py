@@ -18,8 +18,8 @@ on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.bot.tasks import utasks
-from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -99,7 +99,7 @@ class BaseUTask(BaseTask):
 def is_no_privilege_workload(command, job):
   if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
-  return batch.is_no_privilege_workload(command, job)
+  return batch_service.is_remote_task(command, job)
 
 
 def is_remote_utask(command, job):
@@ -110,8 +110,8 @@ def is_remote_utask(command, job):
     # Return True even if we can't query the db.
     return True
 
-  return batch.is_remote_task(command, job) or swarming.is_swarming_task(
-      command, job)
+  return batch_service.is_remote_task(
+      command, job) or swarming.is_swarming_task(command, job)
 
 
 def task_main_runs_on_uworker():
@@ -160,7 +160,7 @@ class UTask(BaseUTask):
       return
 
     logs.info('Queueing utask for remote execution.', download_url=download_url)
-    if batch.is_remote_task(command, job_type):
+    if batch_service.is_remote_task(command, job_type):
       tasks.add_utask_main(command, download_url, job_type)
     else:
       assert swarming.is_swarming_task(command, job_type)
