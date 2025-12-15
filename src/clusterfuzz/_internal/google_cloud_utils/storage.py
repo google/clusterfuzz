@@ -504,11 +504,22 @@ class GcsProvider(StorageProvider):
         timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
     return True
 
+<<<<<<< Updated upstream
   def upload_signed_url_with_policy(self, policy: dict, data_or_fileobj) -> bool:
     """Uploads |data| to |signed_url|.""" 
     response = requests.post(
         policy['url'], data=policy['fields'], files={'file': data_or_fileobj})
     response.raise_for_status()
+=======
+  def upload_signed_policy(self, data_or_fileobj, policy) -> bool:
+    """Uploads |data| to |policy|."""
+    files = {'file': data_or_fileobj}
+    requests.post(
+        policy.url,
+        data=policy.fields,
+        files=files,
+        timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
+>>>>>>> Stashed changes
     return True
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -796,9 +807,15 @@ class FileSystemProvider(StorageProvider):
     """Uploads |data| to |signed_url|.""" 
     return self.write_data(data_or_fileobj, signed_url)
 
+<<<<<<< Updated upstream
   def upload_signed_url_with_policy(self, policy: dict, data_or_fileobj) -> bool:
     """Uploads |data| to |signed_url|.""" 
     return self.write_data(data_or_fileobj, policy['url'])
+=======
+  def upload_signed_policy(self, data_or_fileobj, policy) -> bool:
+    """Uploads |data| to |policy|."""
+    return self.write_data(data_or_fileobj, policy.url)
+>>>>>>> Stashed changes
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a DELETE URL for a remote file.""" 

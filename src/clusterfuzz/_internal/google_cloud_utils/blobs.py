@@ -70,7 +70,7 @@ class BlobsError(Exception):
 def _is_gcs_key(blob_key):
   """Return whether if the key is a GCS key."""
   gcs_key_pattern = re.compile(
-      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/.*)?$')
 
   return bool(gcs_key_pattern.match(blob_key))
 

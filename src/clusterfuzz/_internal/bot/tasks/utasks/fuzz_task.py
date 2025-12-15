@@ -98,7 +98,8 @@ Context = collections.namedtuple('Context', [
     'project_name', 'bot_name', 'job_type', 'fuzz_target', 'redzone',
     'disable_ubsan', 'platform_id', 'crash_revision', 'fuzzer_name',
     'window_argument', 'fuzzer_metadata', 'testcases_metadata',
-    'timeout_multiplier', 'test_timeout', 'data_directory'
+    'timeout_multiplier', 'test_timeout', 'data_directory',
+    'crash_upload_policy'
 ])
 
 GenerateBlackboxTestcasesResult = collections.namedtuple(
@@ -119,10 +120,21 @@ class NoMoreUploadUrlsError(Exception):
 class UploadUrlCollection:
   """Upload URLs collection."""
 
-  def __init__(self, upload_urls: List[uworker_msg_pb2.BlobUploadUrl]):
+  def __init__(self, upload_urls: List[uworker_msg_pb2.BlobUploadUrl],
+               upload_policy: uworker_msg_pb2.SignedPolicyDocument):
     self.upload_urls = upload_urls
+    self.upload_policy = upload_policy
 
   def get(self) -> uworker_msg_pb2.BlobUploadUrl:
+    if self.upload_policy:
+      # If we have a policy, generate a new key and return a BlobUploadUrl
+      # with the policy.
+      key = blobs.generate_new_blob_name()
+      return uworker_msg_pb2.BlobUploadUrl(
+          key=key,
+          url=self.upload_policy.url,
+          signed_policy=self.upload_policy)
+
     if not self.upload_urls:
       raise NoMoreUploadUrlsError
 
@@ -266,9 +278,10 @@ class Crash:
       # TODO(metzman): Figure out if we need this check and if we can get rid of
       # the archived return value.
       self.fuzzed_key = upload_url.key
+    url_or_policy = upload_url.signed_policy or upload_url.url
     self.archived, self.absolute_path, self.archive_filename = (
         setup.archive_testcase_and_dependencies_in_gcs(
-            self.resource_list, self.file_path, upload_url.url))
+            self.resource_list, self.file_path, url_or_policy))
 
   def is_valid(self):
     """Return true if the crash is valid for processing."""
@@ -1231,7 +1244,7 @@ def process_crashes(crashes: List[Crash], context: Context,
   crashes = filter_crashes(crashes)
   group_of_crashes = itertools.groupby(sorted(crashes, key=key_fn), key_fn)
 
-  upload_urls = UploadUrlCollection(upload_urls)
+  upload_urls = UploadUrlCollection(upload_urls, context.crash_upload_policy)
   for _, grouped_crashes in group_of_crashes:
     try:
       group = CrashGroup(list(grouped_crashes), context, upload_urls)
@@ -1980,7 +1993,9 @@ class FuzzingSession:
             testcases_metadata=testcases_metadata,
             timeout_multiplier=self.timeout_multiplier,
             test_timeout=self.test_timeout,
-            data_directory=self.data_directory),
+            test_timeout=self.test_timeout,
+            data_directory=self.data_directory,
+            crash_upload_policy=self.uworker_input.fuzz_task_input.crash_upload_policy),
         upload_urls=list(self.uworker_input.fuzz_task_input.crash_upload_urls))
 
     # Delete the fuzzed testcases. This was once explicitly needed since some
@@ -2183,10 +2198,20 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             use_backup=True).serialize())
 
   fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
+<<<<<<< Updated upstream
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
     url.key = blobs.generate_new_blob_name()
     url.url = blobs.get_signed_upload_url(url.key)
+=======
+
+  # Generate a signed policy for crash uploads.
+  crash_upload_key = blobs.generate_new_blob_name()
+  fuzz_task_input.crash_upload_policy.CopyFrom(
+      uworker_io.entity_to_protobuf(
+          storage.get_signed_policy_document(
+              blobs.get_gcs_path(crash_upload_key))))
+>>>>>>> Stashed changes
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
 

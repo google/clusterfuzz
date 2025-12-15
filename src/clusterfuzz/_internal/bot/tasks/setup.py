@@ -879,7 +879,11 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  if not storage.upload_signed_url(file_handle, upload_url):
+  if isinstance(upload_url, uworker_msg_pb2.SignedPolicyDocument):
+    if not storage.upload_signed_policy(file_handle, upload_url):
+      logs.error('Failed to upload testcase with signed policy.')
+      return None, None, None
+  elif not storage.upload_signed_url(file_handle, upload_url):
     logs.error('Failed to upload testcase.')
     return None, None, None
 
