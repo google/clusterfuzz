@@ -424,6 +424,7 @@ class _TrackFuzzTime:
             'fuzzer': self.fuzzer_name,
             'timeout': self.timeout,
             'platform': environment.platform(),
+            'is_batch': environment.is_uworker(),
             'runtime': environment.get_runtime().value,
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
@@ -431,6 +432,7 @@ class _TrackFuzzTime:
             'job': self.job_type,
             'timeout': self.timeout,
             'platform': environment.platform(),
+            'is_batch': environment.is_uworker(),
             'runtime': environment.get_runtime().value
         })
 
