@@ -146,6 +146,7 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        monitor.StringField('is_batch'),
         monitor.StringField('runtime')
     ],
 )
@@ -171,6 +172,7 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        monitor.StringField('is_batch'),
         monitor.StringField('runtime')
     ],
 )
