@@ -215,7 +215,7 @@ class TrackFuzzTimeTest(unittest.TestCase):
         'fuzzer': 'fuzzer',
         'timeout': timeout,
         'platform': 'some_platform',
-        'is_batch': environment.is_uworker()
+        'runtime': environment.get_runtime().value
     })
     self.assertEqual(5, fuzzer_total_time)
 
