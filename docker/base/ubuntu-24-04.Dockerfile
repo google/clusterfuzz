@@ -71,7 +71,9 @@ RUN apt-get install -y binutils xz-utils libyaml-dev libffi-dev zlib1g-dev && \
     cd ruby-$RUBY_VERSION && \
     ./configure && \
     make -j$(nproc) && \
-    make install
+    make install && \
+    cd - && \
+    rm -rf ruby-$RUBY_VERSION ruby-$RUBY_VERSION.tar.gz
 
 # Install OpenJDK 17 for Jazzer (Java fuzzer).
 # Copied from gcr.io/oss-fuzz-base/base-runner.
