@@ -14,6 +14,7 @@
 """Environment functions."""
 
 import ast
+import enum
 import functools
 import os
 import re
@@ -54,6 +55,13 @@ COMMON_SANITIZER_OPTIONS = {
     'print_summary': 1,
     'use_sigaltstack': 1,
 }
+
+
+class UtaskMainRuntime(enum.Enum):
+
+  BATCH = 'batch'
+  KATA_CONTAINER = 'kata_container'
+  INSTANCE_GROUP = 'instance_group'
 
 
 def _eval_value(value_string):
@@ -724,6 +732,24 @@ def is_uworker():
   """Return whether or not the current bot is a uworker. This is not the same as
   OSS-Fuzz's untrusted worker."""
   return get_value('UWORKER')
+
+
+def get_runtime() -> UtaskMainRuntime:
+  """
+  Get the current runtime for running the tasks.
+  It can be KATA_CONTAINER, BATCH or INSTANCE_GROUP.
+
+  :return: Enum UtaskMainRuntime with one of KATA_CONTAINER,
+  BATCH or INSTANCE_GROUP
+  :rtype: UtaskMainRuntime
+  """
+  if is_uworker() and is_running_on_k8s():
+    return UtaskMainRuntime.KATA_CONTAINER
+
+  if is_uworker() and not is_running_on_k8s():
+    return UtaskMainRuntime.BATCH
+
+  return UtaskMainRuntime.INSTANCE_GROUP
 
 
 def is_swarming_bot():

@@ -425,13 +425,15 @@ class _TrackFuzzTime:
             'timeout': self.timeout,
             'platform': environment.platform(),
             'is_batch': environment.is_uworker(),
+            'runtime': environment.get_runtime().value,
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'job': self.job_type,
             'timeout': self.timeout,
             'platform': environment.platform(),
-            'is_batch': environment.is_uworker()
+            'is_batch': environment.is_uworker(),
+            'runtime': environment.get_runtime().value
         })
 
 
