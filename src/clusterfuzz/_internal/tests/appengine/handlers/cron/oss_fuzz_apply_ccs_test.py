@@ -37,6 +37,7 @@ class IssueTrackerManager:
 
 
 class MockIssueTracker(issue_tracker.IssueTracker):
+
   def __init__(self, itm):
     self._itm = itm
 

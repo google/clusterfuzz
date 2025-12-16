@@ -284,6 +284,7 @@ class HasAccessTest(unittest.TestCase):
 
 
 class MockIssueTracker:
+
   def __init__(self, itm):
     self.itm = itm
 

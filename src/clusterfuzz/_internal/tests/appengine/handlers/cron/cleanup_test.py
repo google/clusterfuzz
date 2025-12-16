@@ -273,8 +273,7 @@ class CleanupTest(unittest.TestCase):
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
         'https://test-clusterfuzz.appspot.com/revisions'
-        '?job=test_content_shell_drt&range=1:2',
-        self.issue.comment)
+        '?job=test_content_shell_drt&range=1:2', self.issue.comment)
     self._assert_issue_closing_event(testcase,
                                      events.ClosingReason.TESTCASE_FIXED)
 
@@ -321,8 +320,7 @@ class CleanupTest(unittest.TestCase):
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
         'https://test-clusterfuzz.appspot.com/revisions'
-        '?job=test_content_shell_drt&range=1:2',
-        self.issue.comment)
+        '?job=test_content_shell_drt&range=1:2', self.issue.comment)
     self._assert_issue_closing_event(testcase,
                                      events.ClosingReason.TESTCASE_FIXED)
 
@@ -350,8 +348,7 @@ class CleanupTest(unittest.TestCase):
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
         'https://test-clusterfuzz.appspot.com/revisions'
-        '?job=test_content_shell_drt&range=1:2',
-        self.issue.comment)
+        '?job=test_content_shell_drt&range=1:2', self.issue.comment)
     self._assert_issue_closing_event(testcase,
                                      events.ClosingReason.TESTCASE_FIXED)
 
@@ -435,8 +432,7 @@ class CleanupTest(unittest.TestCase):
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
         'https://test-clusterfuzz.appspot.com/revisions'
-        '?job=test_content_shell_drt&range=1:2',
-        self.issue.comment)
+        '?job=test_content_shell_drt&range=1:2', self.issue.comment)
     self.assertEqual(self.issue.status, 'Assigned')
     # Even though we do not close the issue, it is set as verified, so the
     # event should be sent.
@@ -1339,8 +1335,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     self.assertEqual(
         'This crash occurs very frequently on linux platform and is likely '
         'preventing the fuzzer fuzzer1 from making much progress. '
-        'Fixing this will allow more bugs to be found.',
-        self.issue.comment)
+        'Fixing this will allow more bugs to be found.', self.issue.comment)
 
   def test_top_crashes_match_single_platform_oss_fuzz(self):
     """Test label is added if there is a matching top crash for external
@@ -1365,8 +1360,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
         'preventing the fuzzer fuzz_target1 from making much progress. '
         'Fixing this will allow more bugs to be found.'
         '\n\nIf this is incorrect, please file a bug on '
-        'https://github.com/google/oss-fuzz/issues/new',
-        self.issue.comment)
+        'https://github.com/google/oss-fuzz/issues/new', self.issue.comment)
 
   def test_top_crashes_match_multiple_platforms(self):
     """Test label is added if there is a matching top crash."""
@@ -2051,8 +2045,7 @@ class NotifyIssueIfTestcaseIsInvalidTest(unittest.TestCase):
     self.testcase.set_metadata('fuzzer_was_deleted', True)
     cleanup.notify_issue_if_testcase_is_invalid(self.policy, self.testcase,
                                                 self.issue)
-    self.assertIn('is associated with an obsolete fuzzer',
-                  self.issue.comment)
+    self.assertIn('is associated with an obsolete fuzzer', self.issue.comment)
     self.assertIn(ISSUE_INVALID_FUZZER_LABEL, self.issue.labels)
 
   def test_not_notified_if_fuzzer_was_deleted_and_notified(self):

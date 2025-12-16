@@ -698,9 +698,9 @@ class IssueFilerTests(unittest.TestCase):
     """Tests issue filing when issue.save exception"""
     self.mock.get.return_value = CHROMIUM_POLICY_FALLBACK
     original_save = appengine_test_utils.MockIssue.save
-    helpers.patch(
-        self,
-        ['clusterfuzz._internal.tests.test_libs.appengine_test_utils.MockIssue.save'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.tests.test_libs.appengine_test_utils.MockIssue.save'
+    ])
 
     def my_save(*args, **kwargs):
       if getattr(my_save, 'raise_exception', True):
@@ -714,7 +714,8 @@ class IssueFilerTests(unittest.TestCase):
     _, exception = issue_filer.file_issue(self.testcase5, issue_tracker)
     self.assertIsInstance(exception, RuntimeError)
 
-    self.assertIn('fallback>component', issue_tracker._itm.last_issue.components)
+    self.assertIn('fallback>component',
+                  issue_tracker._itm.last_issue.components)
     self.assertNotIn('component1', issue_tracker._itm.last_issue.components)
     self.assertNotIn('component2', issue_tracker._itm.last_issue.components)
     self.assertIn(
@@ -746,7 +747,8 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertFalse(
-        issue_tracker._itm.last_issue.labels.has_with_prefix('Security_Severity-'))
+        issue_tracker._itm.last_issue.labels.has_with_prefix(
+            'Security_Severity-'))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -767,9 +769,10 @@ class IssueFilerTests(unittest.TestCase):
                   issue_tracker._itm.last_issue.labels)
     self.assertEqual(
         1,
-        len(list(
-            issue_tracker._itm.last_issue.labels.get_by_prefix(
-                'Security_Severity-'))))
+        len(
+            list(
+                issue_tracker._itm.last_issue.labels.get_by_prefix(
+                    'Security_Severity-'))))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -795,9 +798,10 @@ class IssueFilerTests(unittest.TestCase):
                   issue_tracker._itm.last_issue.labels)
     self.assertEqual(
         1,
-        len(list(
-            issue_tracker._itm.last_issue.labels.get_by_prefix(
-                'Security_Severity-'))))
+        len(
+            list(
+                issue_tracker._itm.last_issue.labels.get_by_prefix(
+                    'Security_Severity-'))))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -825,9 +829,10 @@ class IssueFilerTests(unittest.TestCase):
       self.assertIn(value, issue_tracker._itm.last_issue.labels)
       self.assertEqual(
           1,
-          len(list(
-              issue_tracker._itm.last_issue.labels.get_by_prefix(
-                  'Security_Severity-'))))
+          len(
+              list(
+                  issue_tracker._itm.last_issue.labels.get_by_prefix(
+                      'Security_Severity-'))))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),

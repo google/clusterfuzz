@@ -44,6 +44,7 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
 
 
 class MockIssueTracker:
+
   def __init__(self, itm):
     self.itm = itm
 
