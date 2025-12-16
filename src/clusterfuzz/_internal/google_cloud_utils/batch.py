@@ -134,13 +134,14 @@ def create_congestion_job(job_type, gce_region=None):
     config_map = _get_config_names(batch_tasks)
     config_name, _, _ = config_map[('fuzz', job_type)]
     instance_spec = batch_config.get('mapping').get(config_name)
-    subconfig = _get_subconfig_for_region(
-        batch_config, instance_spec, gce_region)
+    subconfig = _get_subconfig_for_region(batch_config, instance_spec,
+                                          gce_region)
     spec.gce_region = subconfig['region']
     spec.network = subconfig['network']
     spec.subnetwork = subconfig['subnetwork']
 
   return _create_job(spec, ['CONGESTION'], commands=['echo', 'hello'])
+
 
 def check_congestion_jobs(job_ids):
   """Checks the status of the congestion jobs."""
