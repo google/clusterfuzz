@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
+import dataclasses
 import threading
 from typing import Dict
 from typing import List
@@ -44,23 +45,24 @@ TASK_COUNT_PER_NODE = 1
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
-BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release',
-    'disk_size_gb',
-    'disk_type',
-    'docker_image',
-    'user_data',
-    'service_account_email',
-    'subnetwork',
-    'preemptible',
-    'project',
-    'machine_type',
-    'network',
-    'gce_region',
-    'priority',
-    'max_run_duration',
-    'retry',
-])
+
+@dataclasses.dataclass
+class BatchWorkloadSpec:
+  clusterfuzz_release: str
+  disk_size_gb: int
+  disk_type: str
+  docker_image: str
+  user_data: str
+  service_account_email: str
+  subnetwork: str
+  preemptible: bool
+  project: str
+  machine_type: str
+  network: str
+  gce_region: str
+  priority: int
+  max_run_duration: str
+  retry: bool
 
 
 def _create_batch_client_new():
@@ -122,13 +124,23 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   return jobs
 
 
-def create_congestion_job(job_type):
+def create_congestion_job(job_type, gce_region=None):
   """Creates a congestion job."""
   batch_tasks = [BatchTask('fuzz', job_type, 'CONGESTION')]
   specs = _get_specs_from_config(batch_tasks)
   spec = specs[('fuzz', job_type)]
-  return _create_job(spec, ['CONGESTION'], commands=['echo', 'hello'])
+  if gce_region:
+    batch_config = _get_batch_config()
+    config_map = _get_config_names(batch_tasks)
+    config_name, _, _ = config_map[('fuzz', job_type)]
+    instance_spec = batch_config.get('mapping').get(config_name)
+    subconfig = _get_subconfig_for_region(
+        batch_config, instance_spec, gce_region)
+    spec.gce_region = subconfig['region']
+    spec.network = subconfig['network']
+    spec.subnetwork = subconfig['subnetwork']
 
+  return _create_job(spec, ['CONGESTION'], commands=['echo', 'hello'])
 
 def check_congestion_jobs(job_ids):
   """Checks the status of the congestion jobs."""
@@ -139,7 +151,8 @@ def check_congestion_jobs(job_ids):
       if job.status.state == batch.JobStatus.State.SUCCEEDED:
         completed_count += 1
     except Exception:
-      # If we can't get the job, it might have been deleted or there is an error.
+      # If we can't get the job, it might have been deleted or there is an
+      # error.
       # We don't count it as completed.
       logs.warning(f'Failed to get job {job_id}.')
 
@@ -333,6 +346,16 @@ def _get_subconfig(batch_config, instance_spec):
   ]
   weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
   return all_subconfigs[weighted_subconfig.name]
+
+
+def _get_subconfig_for_region(batch_config, instance_spec, region):
+  all_subconfigs = batch_config.get('subconfigs', {})
+  instance_subconfigs = instance_spec['subconfigs']
+  for subconfig in instance_subconfigs:
+    full_subconfig = all_subconfigs[subconfig['name']]
+    if full_subconfig['region'] == region:
+      return full_subconfig
+  raise ValueError(f'No subconfig for region {region}')
 
 
 def _get_specs_from_config(batch_tasks) -> Dict:

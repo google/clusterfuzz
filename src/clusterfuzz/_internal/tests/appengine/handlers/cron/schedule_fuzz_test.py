@@ -310,19 +310,22 @@ class ScheduleFuzzTasksTest(unittest.TestCase):
     """Tests that scheduling stops when congested."""
     # Create 3 congestion jobs.
     for i in range(3):
-      data_types.CongestionJob(job_id=f'job-{i}').put()
+      data_types.CongestionJob(job_id=f'job-{i}', region='us-central1').put()
 
     # Mock check_congestion_jobs to return 0 completed.
     self.mock.check_congestion_jobs.return_value = 0
+    self.mock.get_available_cpus.return_value = 0
 
-    self.assertFalse(schedule_fuzz.schedule_fuzz_tasks())
-    self.mock.get_available_cpus.assert_not_called()
+    self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
+    self.mock.get_available_cpus.assert_called()
+    # Verify called with empty regions list
+    self.assertEqual(self.mock.get_available_cpus.call_args[0][1], [])
 
   def test_is_congested_false(self):
     """Tests that scheduling proceeds when not congested."""
     # Create 3 congestion jobs.
     for i in range(3):
-      data_types.CongestionJob(job_id=f'job-{i}').put()
+      data_types.CongestionJob(job_id=f'job-{i}', region='us-central1').put()
 
     # Mock check_congestion_jobs to return 3 completed.
     self.mock.check_congestion_jobs.return_value = 3
@@ -339,7 +342,7 @@ class ScheduleFuzzTasksTest(unittest.TestCase):
     self.mock.get_available_cpus.return_value = 10
     self.mock.get_fuzz_tasks.return_value = []
 
-    self.assertFalse(schedule_fuzz.schedule_fuzz_tasks())
+    self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
     self.mock.create_congestion_job.assert_not_called()
 
   def test_congestion_job_scheduled(self):
@@ -350,4 +353,5 @@ class ScheduleFuzzTasksTest(unittest.TestCase):
     self.mock.get_fuzz_tasks.return_value = [mock_task]
 
     self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
-    self.mock.create_congestion_job.assert_called_with('job1')
+    self.mock.create_congestion_job.assert_called_with(
+        'job1', gce_region='us-central1')

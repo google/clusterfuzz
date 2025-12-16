@@ -1811,6 +1811,8 @@ class CongestionJob(Model):
 
   # The job name (ID) in Batch.
   job_id = ndb.StringProperty()
+  # The region the job is running in.
+  region = ndb.StringProperty()
   # Time of creation.
   timestamp = ndb.DateTimeProperty(auto_now_add=True)
   # Expiration time for this entity.

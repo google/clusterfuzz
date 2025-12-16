@@ -63,7 +63,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         max_run_duration='21600s',
     )
 
-    self.assertCountEqual(spec, expected_spec)
+    self.assertEqual(spec, expected_spec)
 
   def test_fuzz_get_specs_from_config(self):
     """Tests that _get_specs_from_config works for fuzz tasks as expected."""
@@ -89,7 +89,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         max_run_duration='21600s',
     )
 
-    self.assertCountEqual(spec, expected_spec)
+    self.assertEqual(spec, expected_spec)
 
   def test_corpus_pruning(self):
     """Tests that corpus pruning uses a spec of 24 hours and a different one

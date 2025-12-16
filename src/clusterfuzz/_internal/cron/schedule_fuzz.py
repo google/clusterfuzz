@@ -378,24 +378,57 @@ def respect_project_max_cpus(num_cpus):
   return min(max_cpus_per_schedule, num_cpus)
 
 
-def is_congested() -> bool:
-  """Returns True if the batch system is congested."""
+def get_congested_regions() -> List[str]:
+  """Returns a list of congested regions."""
   one_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
   congestion_jobs = list(
       data_types.CongestionJob.query(
           data_types.CongestionJob.timestamp > one_hour_ago))
 
-  # TODO(metzman): Don't hardcode this, infer how many should be per hour based
-  # on how long ago was previous schedule.
-  if len(congestion_jobs) >= 3:
+  jobs_by_region = collections.defaultdict(list)
+  for job in congestion_jobs:
+    if job.region:
+      jobs_by_region[job.region].append(job)
+
+  congested_regions = []
+  for region, jobs in jobs_by_region.items():
+    # Sort by timestamp descending.
+    jobs.sort(key=lambda j: j.timestamp, reverse=True)
+    # Check the last 3 jobs.
+    recent_jobs = jobs[:3]
+    if len(recent_jobs) < 3:
+      continue
+
     completed_count = batch.check_congestion_jobs(
-        [job.job_id for job in congestion_jobs])
+        [job.job_id for job in recent_jobs])
     if completed_count < 3:
-      logs.error(
-          f'Congestion detected: {completed_count}/{len(congestion_jobs)} '
-          'congestion jobs completed in the last hour. Pausing scheduling.')
-      return True
-  return False
+      logs.error(f'Congestion detected in {region}: {completed_count}/3 '
+                 'congestion jobs completed in the last hour.')
+      congested_regions.append(region)
+  return congested_regions
+
+
+def schedule_congestion_jobs(fuzz_tasks, all_regions):
+  """Schedules congestion jobs for all regions."""
+  # Run a hello world task that finishes very quickly. We need job, pick any.
+  clusterfuzz_job_type = None
+  if fuzz_tasks:
+    clusterfuzz_job_type = fuzz_tasks[0].job
+  else:
+    # If no tasks scheduled, try to get a job type from DB to run congestion job.
+    job = data_types.Job.query().get()
+    if job:
+      clusterfuzz_job_type = job.name
+
+  if clusterfuzz_job_type:
+    for region in all_regions:
+      try:
+        batch_job_result = batch.create_congestion_job(
+            clusterfuzz_job_type, gce_region=region)
+        data_types.CongestionJob(
+            job_id=batch_job_result.name, region=region).put()
+      except Exception:
+        logs.error(f'Failed to create congestion job in {region}.')
 
 
 def schedule_fuzz_tasks() -> bool:
@@ -405,32 +438,28 @@ def schedule_fuzz_tasks() -> bool:
   except RuntimeError:
     pass
 
-  if is_congested():
-    return False
-
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
-  regions = get_batch_regions(batch_config)
+  all_regions = get_batch_regions(batch_config)
+  congested_regions = get_congested_regions()
+  regions = [r for r in all_regions if r not in congested_regions]
+
   start = time.time()
   available_cpus = get_available_cpus(project, regions)
   logs.info(f'{available_cpus} available CPUs.')
-  if not available_cpus:
-    return False
 
-  fuzz_tasks = get_fuzz_tasks(available_cpus)
-  if not fuzz_tasks:
-    logs.error('No fuzz tasks found to schedule.')
-    return False
+  fuzz_tasks = []
+  if available_cpus > 0:
+    fuzz_tasks = get_fuzz_tasks(available_cpus)
 
-  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
-  tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+  if fuzz_tasks:
+    logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
+    tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)  # pylint: disable=line-too-long
+    logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+  else:
+    logs.info('No fuzz tasks scheduled.')
 
-  # Run a hello world task that finishes very quickly. We need job, pick any.
-  clusterfuzz_job_type = fuzz_tasks[0].job
-
-  batch_job_result = batch.create_congestion_job(clusterfuzz_job_type)
-  data_types.CongestionJob(job_id=batch_job_result.name).put()
+  schedule_congestion_jobs(fuzz_tasks, all_regions)
 
   end = time.time()
   total = end - start
