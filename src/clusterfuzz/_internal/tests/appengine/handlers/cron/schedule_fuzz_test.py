@@ -286,3 +286,68 @@ class TestGetCpuUsage(unittest.TestCase):
     }]
     self.assertEqual(
         schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), (2, 0))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ScheduleFuzzTasksTest(unittest.TestCase):
+  """Tests for schedule_fuzz_tasks."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.cron.schedule_fuzz.get_available_cpus',
+        'clusterfuzz._internal.cron.schedule_fuzz.get_fuzz_tasks',
+        'clusterfuzz._internal.cron.schedule_fuzz.get_batch_regions',
+        'clusterfuzz._internal.google_cloud_utils.batch.check_congestion_jobs',
+        'clusterfuzz._internal.google_cloud_utils.batch.create_congestion_job',
+        'clusterfuzz._internal.base.tasks.bulk_add_tasks',
+    ])
+    self.mock.get_batch_regions.return_value = ['us-central1']
+    mock_job = unittest.mock.Mock()
+    mock_job.name = 'congestion-job'
+    self.mock.create_congestion_job.return_value = mock_job
+
+  def test_is_congested_true(self):
+    """Tests that scheduling stops when congested."""
+    # Create 3 congestion jobs.
+    for i in range(3):
+      data_types.CongestionJob(job_id=f'job-{i}').put()
+
+    # Mock check_congestion_jobs to return 0 completed.
+    self.mock.check_congestion_jobs.return_value = 0
+
+    self.assertFalse(schedule_fuzz.schedule_fuzz_tasks())
+    self.mock.get_available_cpus.assert_not_called()
+
+  def test_is_congested_false(self):
+    """Tests that scheduling proceeds when not congested."""
+    # Create 3 congestion jobs.
+    for i in range(3):
+      data_types.CongestionJob(job_id=f'job-{i}').put()
+
+    # Mock check_congestion_jobs to return 3 completed.
+    self.mock.check_congestion_jobs.return_value = 3
+    self.mock.get_available_cpus.return_value = 10
+    mock_task = unittest.mock.Mock()
+    mock_task.job = 'job1'
+    self.mock.get_fuzz_tasks.return_value = [mock_task]
+
+    self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
+    self.mock.get_available_cpus.assert_called()
+
+  def test_no_congestion_job_if_no_tasks(self):
+    """Tests that no congestion job is scheduled if no fuzz tasks."""
+    self.mock.get_available_cpus.return_value = 10
+    self.mock.get_fuzz_tasks.return_value = []
+
+    self.assertFalse(schedule_fuzz.schedule_fuzz_tasks())
+    self.mock.create_congestion_job.assert_not_called()
+
+  def test_congestion_job_scheduled(self):
+    """Tests that a congestion job is scheduled when fuzz tasks are."""
+    self.mock.get_available_cpus.return_value = 10
+    mock_task = unittest.mock.Mock()
+    mock_task.job = 'job1'
+    self.mock.get_fuzz_tasks.return_value = [mock_task]
+
+    self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
+    self.mock.create_congestion_job.assert_called_with('job1')

@@ -14,6 +14,7 @@
 """Cron job to schedule fuzz tasks that run on batch."""
 
 import collections
+import datetime
 import multiprocessing
 import random
 import time
@@ -377,9 +378,36 @@ def respect_project_max_cpus(num_cpus):
   return min(max_cpus_per_schedule, num_cpus)
 
 
+def is_congested() -> bool:
+  """Returns True if the batch system is congested."""
+  one_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+  congestion_jobs = list(
+      data_types.CongestionJob.query(
+          data_types.CongestionJob.timestamp > one_hour_ago))
+
+  # TODO(metzman): Don't hardcode this, infer how many should be per hour based
+  # on how long ago was previous schedule.
+  if len(congestion_jobs) >= 3:
+    completed_count = batch.check_congestion_jobs(
+        [job.job_id for job in congestion_jobs])
+    if completed_count < 3:
+      logs.error(
+          f'Congestion detected: {completed_count}/{len(congestion_jobs)} '
+          'congestion jobs completed in the last hour. Pausing scheduling.')
+      return True
+  return False
+
+
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
-  multiprocessing.set_start_method('spawn')
+  try:
+    multiprocessing.set_start_method('spawn')
+  except RuntimeError:
+    pass
+
+  if is_congested():
+    return False
+
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
   regions = get_batch_regions(batch_config)
@@ -397,6 +425,12 @@ def schedule_fuzz_tasks() -> bool:
   logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
   tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
   logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+
+  # Run a hello world task that finishes very quickly. We need job, pick any.
+  clusterfuzz_job_type = fuzz_tasks[0].job
+
+  batch_job_result = batch.create_congestion_job(clusterfuzz_job_type)
+  data_types.CongestionJob(job_id=batch_job_result.name).put()
 
   end = time.time()
   total = end - start

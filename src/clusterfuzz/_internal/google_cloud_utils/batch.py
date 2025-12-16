@@ -122,11 +122,38 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   return jobs
 
 
-def _get_task_spec(batch_workload_spec):
+def create_congestion_job(job_type):
+  """Creates a congestion job."""
+  batch_tasks = [BatchTask('fuzz', job_type, 'CONGESTION')]
+  specs = _get_specs_from_config(batch_tasks)
+  spec = specs[('fuzz', job_type)]
+  return _create_job(spec, ['CONGESTION'], commands=['echo', 'hello'])
+
+
+def check_congestion_jobs(job_ids):
+  """Checks the status of the congestion jobs."""
+  completed_count = 0
+  for job_id in job_ids:
+    try:
+      job = _batch_client().get_job(name=job_id)
+      if job.status.state == batch.JobStatus.State.SUCCEEDED:
+        completed_count += 1
+    except Exception:
+      # If we can't get the job, it might have been deleted or there is an error.
+      # We don't count it as completed.
+      logs.warning(f'Failed to get job {job_id}.')
+
+  return completed_count
+
+
+def _get_task_spec(batch_workload_spec, commands=None):
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
   runnable.container.image_uri = batch_workload_spec.docker_image
+  if commands:
+    runnable.container.commands = commands
+
   clusterfuzz_release = batch_workload_spec.clusterfuzz_release
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
@@ -190,7 +217,7 @@ def _get_allocation_policy(spec):
   return allocation_policy
 
 
-def _create_job(spec, input_urls):
+def _create_job(spec, input_urls, commands=None):
   """Creates and starts a batch job from |spec| that executes all tasks."""
   task_group = batch.TaskGroup()
   task_group.task_count = len(input_urls)
@@ -200,7 +227,7 @@ def _create_job(spec, input_urls):
       for input_url in input_urls
   ]
   task_group.task_environments = task_environments
-  task_group.task_spec = _get_task_spec(spec)
+  task_group.task_spec = _get_task_spec(spec, commands=commands)
   task_group.task_count_per_node = TASK_COUNT_PER_NODE
   assert task_group.task_count_per_node == 1, 'This is a security issue'
 
