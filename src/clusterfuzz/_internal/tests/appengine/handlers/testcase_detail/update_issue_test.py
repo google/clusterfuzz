@@ -20,10 +20,7 @@ import webtest
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_policy
-from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.monorail import \
-    issue_tracker_manager
-from clusterfuzz._internal.issue_management.monorail import issue
+from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import update_issue
@@ -44,6 +41,14 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'labels': ['Stability-%SANITIZER%']
     },
 })
+
+
+class MockIssueTracker:
+  def __init__(self, itm):
+    self.itm = itm
+
+  def get_issue(self, issue_id):
+    return self.itm.get_issue(issue_id)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -94,10 +99,10 @@ class HandlerTest(unittest.TestCase):
 
   def test_issue_not_found(self):
     """Issue is not found."""
-    itm = mock.Mock(spec_set=issue_tracker_manager.IssueTrackerManager)
+    itm = mock.Mock()
 
     self.mock.get_issue_tracker_for_testcase.return_value = (
-        monorail.IssueTracker(itm))
+        MockIssueTracker(itm))
     itm.get_issue.return_value = None
 
     resp = self.app.post_json(
@@ -115,12 +120,12 @@ class HandlerTest(unittest.TestCase):
 
   def test_issue_not_open(self):
     """Issue is not open."""
-    itm = mock.Mock(spec_set=issue_tracker_manager.IssueTrackerManager)
-    bug = issue.Issue()
+    itm = mock.Mock()
+    bug = appengine_test_utils.MockIssue()
     bug.open = False
 
     self.mock.get_issue_tracker_for_testcase.return_value = (
-        monorail.IssueTracker(itm))
+        MockIssueTracker(itm))
     itm.get_issue.return_value = bug
 
     resp = self.app.post_json(
@@ -138,13 +143,13 @@ class HandlerTest(unittest.TestCase):
 
   def test_succeed(self):
     """Update an issue."""
-    bug = issue.Issue()
+    bug = appengine_test_utils.MockIssue()
     bug.open = True
     itm = mock.Mock(project_name='chromium')
     itm.get_issue.return_value = bug
 
     self.mock.get_issue_tracker_for_testcase.return_value = (
-        monorail.IssueTracker(itm))
+        MockIssueTracker(itm))
     self.mock.get_issue_description.return_value = 'description'
     self.mock.get_issue_summary.return_value = 'summary'
     self.mock.get_stacktrace.return_value = 'stacktrace'
@@ -164,5 +169,5 @@ class HandlerTest(unittest.TestCase):
 
     self.assertEqual('description', bug.comment)
     self.assertEqual('summary', bug.summary)
-    self.assertListEqual(['Stability-tool'], bug.labels)
+    self.assertListEqual(['Stability-tool'], list(bug.labels))
     self.assertEqual('2', self.testcase.key.get().bug_information)

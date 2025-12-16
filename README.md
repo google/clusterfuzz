@@ -18,7 +18,7 @@ a software project's development process:
   100,000 VMs).
 - Accurate deduplication of crashes.
 - Fully automatic bug filing, triage and closing for various issue trackers
-  (e.g. [Monorail], [Jira]).
+  (e.g. [Jira]).
 - Supports multiple [coverage guided fuzzing engines]
   ([libFuzzer], [AFL], [AFL++] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
@@ -57,7 +57,6 @@ systems, check out [ClusterFuzzLite](http://github.com/google/clusterfuzzlite).
 [28,000]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=status%3AFixed%2CVerified%20Type%3DBug&can=1
 [850]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
-[Monorail]: https://opensource.google.com/projects/monorail
 [Jira]: https://www.atlassian.com/software/jira
 [bisection]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
 [Firebase]: https://firebase.google.com/docs/auth

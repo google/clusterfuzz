@@ -17,8 +17,8 @@ import unittest
 
 from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.monorail.issue import Issue
+from clusterfuzz._internal.issue_management import issue_tracker
+from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -36,23 +36,31 @@ class IssueTrackerManager:
     self.modified_issues[issue.id] = issue
 
 
+class MockIssueTracker(issue_tracker.IssueTracker):
+  def __init__(self, itm):
+    self._itm = itm
+
+  def get_issue(self, issue_id):
+    return self._itm.get_issue(issue_id)
+
+
 def get_original_issue(self, issue_id):
   """Get original issue."""
   issue_id = int(issue_id)
 
-  issue = Issue()
+  issue = appengine_test_utils.MockIssue()
   issue.open = True
   issue.itm = self._itm  # pylint: disable=protected-access
   issue.id = issue_id
 
   if issue_id == 1337:
-    issue.add_cc('user@example.com')
-    issue.add_label('Restrict-View-Commit')
+    issue.ccs.add('user@example.com')
+    issue.labels.add('Restrict-View-Commit')
   elif issue_id == 1338:
-    issue.add_cc('user@example.com')
-    issue.add_cc('user2@example.com')
+    issue.ccs.add('user@example.com')
+    issue.ccs.add('user2@example.com')
 
-  return monorail.Issue(issue)
+  return issue
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -86,7 +94,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
 
     self.itm = IssueTrackerManager('oss-fuzz')
     self.mock.get_issue_tracker_for_testcase.return_value = (
-        monorail.IssueTracker(self.itm))
+        MockIssueTracker(self.itm))
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
     self.mock.get_original_issue.side_effect = get_original_issue
 
@@ -115,7 +123,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(len(self.itm.modified_issues), 3)
 
     issue_1337 = self.itm.modified_issues[1337]
-    self.assertCountEqual(issue_1337.cc, [
+    self.assertCountEqual(issue_1337.ccs, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -123,7 +131,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertNotIn(1338, self.itm.modified_issues)
 
     issue_1339 = self.itm.modified_issues[1339]
-    self.assertCountEqual(issue_1339.cc, [
+    self.assertCountEqual(issue_1339.ccs, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -131,7 +139,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(issue_1339.comment, '')
 
     issue_1340 = self.itm.modified_issues[1340]
-    self.assertCountEqual(issue_1340.cc, [
+    self.assertCountEqual(issue_1340.ccs, [
         'user@example.com',
         'user2@example.com',
     ])

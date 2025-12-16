@@ -314,7 +314,7 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(None, testcase.bug_information)
-    self.assertEqual('', self.issue._monorail_issue.comment)
+    self.assertEqual('', self.issue.comment)
 
     similar_testcase.set_metadata(
         'closed_time',
@@ -348,7 +348,7 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(None, testcase.bug_information)
-    self.assertEqual('', self.issue._monorail_issue.comment)
+    self.assertEqual('', self.issue.comment)
 
   def test_similar_testcase_unreproducible_but_issue_open(self):
     """Tests result is true when there is a similar testcase which is
@@ -370,7 +370,7 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     """Tests result is true when there is a similar testcase with closed issue
     blacklisted with ignore label."""
     self.issue.status = 'WontFix'
-    self.issue._monorail_issue.open = False
+    self.issue.open = False
     self.issue.labels.add('ClusterFuzz-Ignore')
     self.issue.save()
 
@@ -394,8 +394,8 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     """Tests result is true when there is a similar testcase with issue closed
     recently."""
     self.issue.status = 'Fixed'
-    self.issue._monorail_issue.open = False
-    self.issue._monorail_issue.closed = (
+    self.issue.open = False
+    self.issue.closed_time = (
         test_utils.CURRENT_TIME -
         datetime.timedelta(hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED - 1))
     self.issue.save()

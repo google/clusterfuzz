@@ -96,8 +96,8 @@ def execute(args):
     # Backclose issues.
     if issue.state == 'closed':
       continue
-    monorail_issue = issue_tracker.get_original_issue(bug_information)
-    if monorail_issue.is_open:
+    tracker_issue = issue_tracker.get_original_issue(bug_information)
+    if tracker_issue.is_open:
       continue
     print(f'Closing testcase (bug information: {testcase.bug_information}):\n'
           f'  Issue number  {issue.number}\n'

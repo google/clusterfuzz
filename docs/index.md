@@ -24,7 +24,7 @@ a software project's development process:
   30,000 VMs).
 - Accurate deduplication of crashes.
 - Fully automatic bug filing, triage and closing for various issue trackers
-  (e.g. [Monorail], [Jira]).
+  (e.g. [Jira]).
 - Supports multiple [coverage guided fuzzing engines]
   ([libFuzzer], [AFL++] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
@@ -35,8 +35,6 @@ a software project's development process:
 - Easy to use web interface for management and viewing crashes.
 - Support for various authentication providers using [Firebase].
 
-[Monorail]: https://opensource.google.com/projects/monorail
-
 ## Trophies
 As of May 2022, ClusterFuzz has found 25,000+ bugs in Google (e.g. [Chrome])
 and [36,000+] bugs in over [550] open source projects integrated with [OSS-Fuzz].
@@ -45,7 +43,6 @@ and [36,000+] bugs in over [550] open source projects integrated with [OSS-Fuzz]
 [36,000+]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
 [550]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
-[Monorail]: https://opensource.google.com/projects/monorail
 [Jira]: https://www.atlassian.com/software/jira
 [bisection]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
 [Firebase]: https://firebase.google.com/docs/auth

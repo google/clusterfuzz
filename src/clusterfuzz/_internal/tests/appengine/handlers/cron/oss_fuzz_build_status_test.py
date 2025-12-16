@@ -20,9 +20,9 @@ from unittest import mock
 
 from clusterfuzz._internal.cron import oss_fuzz_build_status
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_policy
-from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.monorail.issue import Issue
+from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -107,11 +107,33 @@ class IssueTrackerManager:
 
   def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
     """Save an issue."""
-    if issue.new:
+    if issue.id is None:
       issue.id = self.next_id
       self.next_id += 1
 
     self.issues[issue.id] = issue
+
+
+class MockIssueTracker(issue_tracker.IssueTracker):
+  """Mock issue tracker."""
+
+  def __init__(self, itm):
+    self.itm = itm
+
+  @property
+  def project(self):
+    return self.itm.project_name
+
+  def new_issue(self):
+    issue = appengine_test_utils.MockIssue()
+    issue.itm = self.itm
+    return issue
+
+  def get_issue(self, issue_id):
+    return self.itm.get_issue(issue_id)
+
+  def issue_url(self, issue_id):
+    return f'http://{self.project}/issues/{issue_id}'
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -133,7 +155,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.mock.is_cron.return_value = True
 
     self.itm = IssueTrackerManager('oss-fuzz')
-    self.mock.get_issue_tracker.return_value = monorail.IssueTracker(self.itm)
+    self.mock.get_issue_tracker.return_value = MockIssueTracker(self.itm)
     self.mock.policy_get.return_value = OSS_FUZZ_POLICY
 
     self.maxDiff = None
@@ -487,10 +509,10 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         consecutive_failures=2,
         build_type='fuzzing').put()
 
-    issue = Issue()
+    issue = appengine_test_utils.MockIssue()
     issue.open = True
-    issue.add_label('Type-Build-Failure')
-    issue.summary = 'Build failure in proj2'
+    issue.labels.add('Type-Build-Failure')
+    issue.title = 'Build failure in proj2'
     issue.body = 'Build failure'
 
     self.itm.issues[1] = issue
@@ -651,8 +673,8 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         consecutive_failures=4,
         build_type='fuzzing').put()
 
-    self.itm.issues[1] = Issue()
-    self.itm.issues[2] = Issue()
+    self.itm.issues[1] = appengine_test_utils.MockIssue()
+    self.itm.issues[2] = appengine_test_utils.MockIssue()
 
     oss_fuzz_build_status.main()
     self.assertEqual(

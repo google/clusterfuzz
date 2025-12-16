@@ -27,8 +27,7 @@ GIT_SUFFIX = '.git'
 
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
-MONORAIL_URL = (
-    'https://bugs.chromium.org/p/oss-fuzz/issues/detail?id={bug_information}')
+ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues/{bug_information}'
 
 OSS_FUZZ_ISSUE_URL = 'https://github.com/google/oss-fuzz/issues/new'
 
@@ -41,7 +40,7 @@ ISSUE_CONTENT_TEXT = ('OSS-Fuzz has found a bug in this project. Please see '
                       'for details and reproducers.'
                       '\n\n'
                       'This issue is mirrored from '
-                      f'{MONORAIL_URL} '
+                      f'{ISSUE_TRACKER_URL} '
                       'and will auto-close if the status changes there.'
                       '\n\n'
                       'If you have trouble accessing this report, '
@@ -49,7 +48,7 @@ ISSUE_CONTENT_TEXT = ('OSS-Fuzz has found a bug in this project. Please see '
                       '\n')
 
 ISSUE_ClOSE_COMMENT_TEXT = ('OSS-Fuzz has closed this bug. Please see '
-                            f'{MONORAIL_URL} '
+                            f'{ISSUE_TRACKER_URL} '
                             'for details.')
 
 

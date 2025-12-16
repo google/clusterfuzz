@@ -18,10 +18,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.monorail import \
-    issue_tracker_manager
-from clusterfuzz._internal.issue_management.monorail import issue
+from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -286,6 +283,14 @@ class HasAccessTest(unittest.TestCase):
     self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b')])
 
 
+class MockIssueTracker:
+  def __init__(self, itm):
+    self.itm = itm
+
+  def get_original_issue(self, issue_id):
+    return self.itm.get_issue(issue_id)
+
+
 @test_utils.with_cloud_emulators('datastore')
 class CanUserAccessTestcaseTest(unittest.TestCase):
   """Test can_user_access_testcase."""
@@ -298,22 +303,19 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.issue_management.issue_tracker.IssueTracker.get_original_issue',
         'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
-        'clusterfuzz._internal.issue_management.monorail.issue_tracker_manager.'
-        'IssueTrackerManager',
     ])
-    self.itm = issue_tracker_manager.IssueTrackerManager('test')
-    self.itm.project_name = 'test-project'
+    self.itm = appengine_test_utils.create_issue_tracker_manager()
     self.mock.get_issue_tracker_for_testcase.return_value = (
-        monorail.IssueTracker(self.itm))
+        MockIssueTracker(self.itm))
     self.get_issue = self.itm.get_issue
 
     self.email = 'test@test.com'
     self.mock.get_current_user.return_value = auth.User(self.email)
 
-    self.bug = issue.Issue()
+    self.bug = appengine_test_utils.MockIssue()
     self.bug.id = 1234
     self.bug.itm = self.itm
-    self.original_bug = issue.Issue()
+    self.original_bug = appengine_test_utils.MockIssue()
     self.original_bug.id = 5678
     self.original_bug.itm = self.itm
 
@@ -363,7 +365,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
 
   def test_allowed_because_of_cc(self):
     """Ensure it is allowed because the user is CC."""
-    self.bug.add_cc(self.email.capitalize())
+    self.bug.ccs.add(self.email.capitalize())
     self._test_bug_access()
 
   def test_allowed_because_of_owner(self):
@@ -398,7 +400,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.testcase.security_flag = True
     self.mock.get.return_value = (
         data_types.Config(relax_testcase_restrictions=False))
-    self.bug.add_cc(self.email)
+    self.bug.ccs.add(self.email)
     self._test_bug_access()
 
   def test_allowed_because_of_uploader(self):
@@ -413,8 +415,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.bug.merged_into = 5678
     self.bug.merged_into_project = 'test-project'
     self.original_bug.owner = self.email
-    self.mock.get_original_issue.return_value = monorail.Issue(
-        self.original_bug)
+    self.mock.get_original_issue.return_value = self.original_bug
     self._test_bug_access()
 
     self.mock.get.return_value = (
@@ -450,7 +451,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.testcase.bug_information = '1234'
     self.get_issue.return_value = self.bug
 
-    self.bug.add_cc(self.email)
+    self.bug.ccs.add(self.email)
     self.bug.reporter = self.email
     self.bug.owner = ''
 
@@ -459,7 +460,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
   def test_deny_no_access_and_no_bug_access(self):
     """Ensure it is false when user has no access and no bug access."""
     self.mock._is_domain_allowed.return_value = False
-    test_issue = issue.Issue()
+    test_issue = appengine_test_utils.MockIssue()
     test_issue.itm = self.itm
     self.get_issue.return_value = test_issue
 

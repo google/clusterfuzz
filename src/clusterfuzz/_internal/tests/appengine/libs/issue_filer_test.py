@@ -26,14 +26,13 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management import issue_filer
+from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
-from clusterfuzz._internal.issue_management import monorail
 from clusterfuzz._internal.issue_management.google_issue_tracker.issue_tracker import \
     IssueAccessLevel
 from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
-from clusterfuzz._internal.issue_management.monorail.issue import \
-    Issue as MonorailIssue
+from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -378,6 +377,28 @@ class IssueTrackerManager:
     self.last_issue = issue
 
 
+class MockIssueTracker(issue_tracker.IssueTracker):
+  """Mock issue tracker."""
+
+  def __init__(self, itm):
+    self._itm = itm
+
+  @property
+  def project(self):
+    return self._itm.project_name
+
+  def new_issue(self):
+    issue = appengine_test_utils.MockIssue()
+    issue.itm = self._itm
+    return issue
+
+  def get_issue(self, issue_id):
+    return self._itm.get_issue(issue_id)
+
+  def issue_url(self, issue_id):
+    return f'http://{self.project}/issues/{issue_id}'
+
+
 @test_utils.with_cloud_emulators('datastore')
 class IssueFilerTests(unittest.TestCase):
   """Tests for the issue filer."""
@@ -522,7 +543,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_filed_issues_chromium(self):
     """Tests issue filing for chromium."""
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     _, exception = issue_filer.file_issue(self.testcase4, issue_tracker)
     self.assertIsNone(exception)
     self.assertIn('OS-Chrome', issue_tracker._itm.last_issue.labels)
@@ -533,7 +554,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_filed_issues_chromium_ios(self):
     """Tests issue filing for chromium iOS."""
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase7, issue_tracker)
     self.assertIn('OS-iOS', issue_tracker._itm.last_issue.labels)
 
@@ -542,7 +563,7 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase4.security_flag = True
     self.testcase4.put()
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase4, issue_tracker)
     self.assertIn('OS-Chrome', issue_tracker._itm.last_issue.labels)
     self.assertEqual('Untriaged', issue_tracker._itm.last_issue.status)
@@ -555,7 +576,7 @@ class IssueFilerTests(unittest.TestCase):
     helpers.patch(
         self, ['clusterfuzz._internal.datastore.data_handler.get_stacktrace'])
     self.mock.get_stacktrace.return_value = CHROMIUM_MIRACLEPTR_STACKTRACE_PROTECTED
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('MiraclePtr-Protected', issue_tracker._itm.last_issue.labels)
 
@@ -572,64 +593,58 @@ class IssueFilerTests(unittest.TestCase):
   def test_filed_issues_oss_fuzz(self):
     """Tests issue filing for oss-fuzz."""
     self.mock.get.return_value = OSS_FUZZ_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('oss-fuzz'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('oss-fuzz'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertEqual('New', issue_tracker._itm.last_issue.status)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase1_security, issue_tracker)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2, issue_tracker)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2_security, issue_tracker)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3, issue_tracker)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3_security, issue_tracker)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
@@ -640,14 +655,13 @@ class IssueFilerTests(unittest.TestCase):
     self.job2.put()
 
     self.mock.get.return_value = OSS_FUZZ_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('oss-fuzz'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('oss-fuzz'))
 
     issue_filer.file_issue(self.testcase2_security, issue_tracker)
     self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching(
-            'restrict-view-commit'))
+        'restrict-view-commit' in issue_tracker._itm.last_issue.labels)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+        'reported-2016-01-01' in issue_tracker._itm.last_issue.labels)
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
@@ -655,7 +669,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_testcase_metadata_labels_and_components(self):
     """Tests issue filing with additional labels and components."""
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase5, issue_tracker)
     self.assertCountEqual([
         'ClusterFuzz',
@@ -674,7 +688,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_testcase_metadata_invalid(self):
     """Tests issue filing with invalid metadata."""
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase6, issue_tracker)
     self.assertCountEqual(
         ['ClusterFuzz', 'Reproducible', 'Pri-1', 'Stability-Crash', 'Type-Bug'],
@@ -683,10 +697,10 @@ class IssueFilerTests(unittest.TestCase):
   def test_testcase_save_exception(self):
     """Tests issue filing when issue.save exception"""
     self.mock.get.return_value = CHROMIUM_POLICY_FALLBACK
-    original_save = monorail.issue.Issue.save
+    original_save = appengine_test_utils.MockIssue.save
     helpers.patch(
         self,
-        ['clusterfuzz._internal.issue_management.monorail.issue.Issue.save'])
+        ['clusterfuzz._internal.tests.test_libs.appengine_test_utils.MockIssue.save'])
 
     def my_save(*args, **kwargs):
       if getattr(my_save, 'raise_exception', True):
@@ -696,12 +710,13 @@ class IssueFilerTests(unittest.TestCase):
 
     self.mock.save.side_effect = my_save
 
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     _, exception = issue_filer.file_issue(self.testcase5, issue_tracker)
     self.assertIsInstance(exception, RuntimeError)
 
-    self.assertCountEqual(['fallback>component', '-component1', '-component2'],
-                          issue_tracker._itm.last_issue.components)
+    self.assertIn('fallback>component', issue_tracker._itm.last_issue.components)
+    self.assertNotIn('component1', issue_tracker._itm.last_issue.components)
+    self.assertNotIn('component2', issue_tracker._itm.last_issue.components)
     self.assertIn(
         '**NOTE**: This bug was filed into this component due to permission or '
         'configuration issues with the specified component(s) component1 component2',
@@ -710,7 +725,7 @@ class IssueFilerTests(unittest.TestCase):
     # call without fallback_component in policy
     # Expected result: no issue is added to itm
     setattr(my_save, 'raise_exception', True)
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     self.mock.get.return_value = CHROMIUM_POLICY
     with self.assertRaises(Exception):
       issue_filer.file_issue(self.testcase1, issue_tracker)
@@ -724,14 +739,14 @@ class IssueFilerTests(unittest.TestCase):
   def test_security_severity_functional_bug(self, project_name, policy):
     """Test security severity label is not set for a functional bug."""
     self.mock.get.return_value = policy
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
+    issue_tracker = MockIssueTracker(IssueTrackerManager(project_name))
 
     self.testcase1.security_flag = False
     self.testcase1.security_severity = None
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertFalse(
-        issue_tracker._itm.last_issue.has_label_by_prefix('Security_Severity-'))
+        issue_tracker._itm.last_issue.labels.has_with_prefix('Security_Severity-'))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -742,7 +757,7 @@ class IssueFilerTests(unittest.TestCase):
     """Test security severity label is set when testcase is a security bug and
     no severity can be determined."""
     self.mock.get.return_value = policy
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
+    issue_tracker = MockIssueTracker(IssueTrackerManager(project_name))
 
     self.testcase1.security_flag = True
     self.testcase1.security_severity = None
@@ -752,9 +767,9 @@ class IssueFilerTests(unittest.TestCase):
                   issue_tracker._itm.last_issue.labels)
     self.assertEqual(
         1,
-        len(
-            issue_tracker._itm.last_issue.get_labels_by_prefix(
-                'Security_Severity-')))
+        len(list(
+            issue_tracker._itm.last_issue.labels.get_by_prefix(
+                'Security_Severity-'))))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -765,7 +780,7 @@ class IssueFilerTests(unittest.TestCase):
     """Test security severity label is set correct when testcase has its own
     severity but there is an override provided."""
     self.mock.get.return_value = policy
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
+    issue_tracker = MockIssueTracker(IssueTrackerManager(project_name))
 
     self.testcase1.security_flag = True
     self.testcase1.security_severity = data_types.SecuritySeverity.HIGH
@@ -780,9 +795,9 @@ class IssueFilerTests(unittest.TestCase):
                   issue_tracker._itm.last_issue.labels)
     self.assertEqual(
         1,
-        len(
-            issue_tracker._itm.last_issue.get_labels_by_prefix(
-                'Security_Severity-')))
+        len(list(
+            issue_tracker._itm.last_issue.labels.get_by_prefix(
+                'Security_Severity-'))))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -800,7 +815,7 @@ class IssueFilerTests(unittest.TestCase):
     }
 
     for security_severity, value in security_severity_string_map.items():
-      issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
+      issue_tracker = MockIssueTracker(IssueTrackerManager(project_name))
 
       self.testcase1.security_flag = True
       self.testcase1.security_severity = security_severity
@@ -810,9 +825,9 @@ class IssueFilerTests(unittest.TestCase):
       self.assertIn(value, issue_tracker._itm.last_issue.labels)
       self.assertEqual(
           1,
-          len(
-              issue_tracker._itm.last_issue.get_labels_by_prefix(
-                  'Security_Severity-')))
+          len(list(
+              issue_tracker._itm.last_issue.labels.get_by_prefix(
+                  'Security_Severity-'))))
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
@@ -822,7 +837,7 @@ class IssueFilerTests(unittest.TestCase):
     """Test memory tool label is correctly set."""
     self.mock.get.return_value = policy
     for entry in issue_filer.MEMORY_TOOLS_LABELS:
-      issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
+      issue_tracker = MockIssueTracker(IssueTrackerManager(project_name))
 
       self.testcase1.crash_stacktrace = f'\n\n{entry["token"]}\n'
       self.testcase1.put()
@@ -833,7 +848,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_reproducible_flag(self):
     """Test (un)reproducible flag is correctly set."""
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
 
     self.testcase1.one_time_crasher_flag = True
     self.testcase1.put()
@@ -850,7 +865,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_crash_labels(self):
     """Test crash label setting."""
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
 
     self.testcase1.crash_type = 'UNKNOWN'
     self.testcase1.put()
@@ -886,7 +901,7 @@ class IssueFilerTests(unittest.TestCase):
     })
     self.mock.get.return_value = policy
 
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     self.testcase1.project_name = 'proj'
     self.testcase1.fuzzer_name = 'libFuzzer'
     self.testcase1.overridden_fuzzer_name = 'libFuzzer_proj_target'
@@ -927,7 +942,7 @@ class IssueFilerTests(unittest.TestCase):
     })
     self.mock.get.return_value = policy
 
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Memory corruption', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Resource Exhaustion',
@@ -958,7 +973,7 @@ class IssueFilerTests(unittest.TestCase):
     })
     self.mock.get.return_value = policy
 
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_tracker = MockIssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase8, issue_tracker)
     self.assertIn('Fuzzer-exit', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Resource Exhaustion',
@@ -1045,7 +1060,7 @@ class UpdateImpactTest(unittest.TestCase):
   """Update impact tests."""
 
   def _make_mock_issue(self):
-    mock_issue = mock.Mock(autospec=MonorailIssue)
+    mock_issue = mock.Mock(autospec=appengine_test_utils.MockIssue)
     mock_issue.labels = LabelStore()
 
     return mock_issue
