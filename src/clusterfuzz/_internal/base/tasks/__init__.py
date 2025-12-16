@@ -34,6 +34,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 
 # Task queue prefixes for various job types.
@@ -395,14 +396,20 @@ def get_task():
       return task
 
     if environment.is_android():
-      logs.info(f'Could not get task from {regular_queue()}. Trying from'
-                f'default android queue {default_android_queue()}.')
-      task = get_regular_task(default_android_queue())
-      if task:
-        # Log the task details for debug purposes.
-        logs.info(f'Got task with cmd {task.command} args {task.argument} '
-                  f'job {task.job} from {default_android_queue()} queue.')
-        return task
+      if environment.platform() not in \
+      constants.DEVICES_WITH_NO_FALLBACK_QUEUE_LIST:
+        logs.info(f'Could not get task from {regular_queue()}. Trying from'
+                  f'default android queue {default_android_queue()}.')
+        task = get_regular_task(default_android_queue())
+        if task:
+          # Log the task details for debug purposes.
+          logs.info(f'Got task with cmd {task.command} args {task.argument} '
+                    f'job {task.job} from {default_android_queue()} queue.')
+          return task
+      else:
+        logs.info(f'{environment.platform()} is part of devices with no '
+                  f'fallback list. Hence skipping picking up tasks from '
+                  f'default {default_android_queue()} queue.')
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 
