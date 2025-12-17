@@ -30,5 +30,4 @@ pip install pipenv
 pipenv install --dev
 
 # Run the test.
-export PYTHONPATH=$PYTHONPATH:$(pwd)/src
-pipenv run python3 src/clusterfuzz/_internal/tests/core/platforms/kubernetes/service_e2e_test.py
+pipenv run python butler.py py_unittest -t core -p service_e2e_test.py
