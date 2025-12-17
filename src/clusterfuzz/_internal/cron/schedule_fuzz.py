@@ -416,13 +416,14 @@ def get_congested_regions() -> List[str]:
 
 def schedule_congestion_jobs(fuzz_tasks, all_regions):
   """Schedules congestion jobs for all regions."""
-  # Run a hello world task that finishes very quickly. The job field is ignored,
-  # but we need one, so pick an arbitrary one.
+  # Run a hello world task that finishes very quickly. The job field is
+  # ignored, but we need one, so pick an arbitrary one.
   clusterfuzz_job_type = None
   if fuzz_tasks:
     clusterfuzz_job_type = fuzz_tasks[0].job
   else:
-    # If no tasks scheduled, try to get a job type from DB to run congestion job.
+    # If no tasks scheduled, try to get a job type from DB to run congestion
+    # job.
     job = data_types.Job.query().get()
     if job:
       clusterfuzz_job_type = job.name
@@ -442,7 +443,7 @@ def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   try:
     multiprocessing.set_start_method('spawn')
-  except RuntimeError: # Ignore if this was done previously.
+  except RuntimeError:  # Ignore if this was done previously.
     pass
 
   batch_config = local_config.BatchConfig()
