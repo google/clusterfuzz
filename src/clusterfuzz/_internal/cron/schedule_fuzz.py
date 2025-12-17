@@ -379,7 +379,12 @@ def respect_project_max_cpus(num_cpus):
 
 
 def get_congested_regions() -> List[str]:
-  """Returns a list of congested regions."""
+  """Returns a list of congested regions. The strategy used is as follows:
+  Run congestion jobs every time this cron is run in each region.
+  Assuming we run this cron more than 3 times an hour, if there aren't
+  3 completed jobs in the last hour, they either failed (unlikely, they are
+  trivial) or never ran because of congestion.
+  """
   one_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
   congestion_jobs = list(
       data_types.CongestionJob.query(
@@ -402,6 +407,7 @@ def get_congested_regions() -> List[str]:
     completed_count = batch.check_congestion_jobs(
         [job.job_id for job in recent_jobs])
     if completed_count < 3:
+      # TODO(metzman): Add some monitoring here.
       logs.error(f'Congestion detected in {region}: {completed_count}/3 '
                  'congestion jobs completed in the last hour.')
       congested_regions.append(region)
@@ -410,7 +416,8 @@ def get_congested_regions() -> List[str]:
 
 def schedule_congestion_jobs(fuzz_tasks, all_regions):
   """Schedules congestion jobs for all regions."""
-  # Run a hello world task that finishes very quickly. We need job, pick any.
+  # Run a hello world task that finishes very quickly. The job field is ignored,
+  # but we need one, so pick an arbitrary one.
   clusterfuzz_job_type = None
   if fuzz_tasks:
     clusterfuzz_job_type = fuzz_tasks[0].job
@@ -435,7 +442,7 @@ def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
   try:
     multiprocessing.set_start_method('spawn')
-  except RuntimeError:
+  except RuntimeError: # Ignore if this was done previously.
     pass
 
   batch_config = local_config.BatchConfig()
