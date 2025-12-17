@@ -154,6 +154,29 @@ def count_queued_or_scheduled_tasks(project: str,
   return (queued, scheduled)
 
 
+def check_congestion_jobs(job_ids: List[str]) -> int:
+  """Checks the status of the congestion jobs."""
+  completed_count = 0
+  for job_id in job_ids:
+    try:
+      job = _batch_client().get_job(name=job_id)
+      # We count SUCCEEDED, RUNNING, and FAILED as completed (i.e. not
+      # congested). If the job is in any of these states, it means it was
+      # successfully scheduled and started running. If it is QUEUED, it means
+      # it is still waiting to be scheduled, which implies congestion.
+      if job.status.state in (batch.JobStatus.State.SUCCEEDED,
+                              batch.JobStatus.State.RUNNING,
+                              batch.JobStatus.State.FAILED):
+        completed_count += 1
+    except Exception:
+      # If we can't get the job, it might have been deleted or there is an
+      # error.
+      # We don't count it as completed.
+      logs.warning(f'Failed to get job {job_id}.')
+
+  return completed_count
+
+
 class GcpBatchClient(RemoteTaskInterface):
   """A client for creating and managing jobs on the GCP Batch service.
   

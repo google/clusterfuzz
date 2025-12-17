@@ -39,8 +39,8 @@ def create_congestion_job(job_type, gce_region=None):
 
 def check_congestion_jobs(job_ids):
   """Checks the status of the congestion jobs."""
-  service = BatchService()
-  return service.check_congestion_jobs(job_ids)
+  from clusterfuzz._internal.batch import gcp
+  return gcp.check_congestion_jobs(job_ids)
 
 
 def count_queued_or_scheduled_tasks(project: str, region: str):

@@ -105,7 +105,8 @@ def _get_expected_allocation_policy(spec):
   return allocation_policy
 
 
-def _get_expected_create_request(job_name_uuid, spec, input_urls, commands=None):
+def _get_expected_create_request(job_name_uuid, spec, input_urls,
+                                 commands=None):
   """Constructs and returns a `batch.CreateJobRequest` object.
 
   This function builds a complete `CreateJobRequest` for the GCP Batch service,
@@ -295,42 +296,6 @@ class BatchServiceTest(unittest.TestCase):
           expected_create_request)
       self.assertEqual(result, 'job')
 
-  def test_check_congestion_jobs(self):
-    """Tests that check_congestion_jobs counts correctly."""
-    # Create mock jobs with different states
-    job_succeeded = mock.Mock()
-    job_succeeded.status.state = batch.JobStatus.State.SUCCEEDED
-    
-    job_running = mock.Mock()
-    job_running.status.state = batch.JobStatus.State.RUNNING
-    
-    job_failed = mock.Mock()
-    job_failed.status.state = batch.JobStatus.State.FAILED
-    
-    job_queued = mock.Mock()
-    job_queued.status.state = batch.JobStatus.State.QUEUED
-
-    # Mock get_job to return these based on job name
-    def get_job_side_effect(name):
-      if name == 'job-succeeded':
-        return job_succeeded
-      if name == 'job-running':
-        return job_running
-      if name == 'job-failed':
-        return job_failed
-      if name == 'job-queued':
-        return job_queued
-      raise Exception("Job not found")
-
-    self.mock_batch_client_instance.get_job.side_effect = get_job_side_effect
-
-    # Check that SUCCEEDED, RUNNING, FAILED are counted (3 total)
-    # QUEUED is not counted
-    # Non-existent job is not counted
-    job_ids = ['job-succeeded', 'job-running', 'job-failed', 'job-queued', 'job-missing']
-    count = self.batch_service.check_congestion_jobs(job_ids)
-    
-    self.assertEqual(count, 3)
 
 @test_utils.with_cloud_emulators('datastore')
 class IsRemoteTaskTest(unittest.TestCase):

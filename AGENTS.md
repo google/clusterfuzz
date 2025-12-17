@@ -93,3 +93,11 @@ python butler.py format
 
 This will format the changed code in your current branch.
 It's possible to get into a state where linting and formatting contradict each other. In this case, STOP, the human will fix it.
+
+## Codebase Notes
+
+### Batch Logic
+
+- `src/clusterfuzz/_internal/batch/gcp.py` contains low-level GCP Batch client logic. `check_congestion_jobs` is placed here as it directly queries job status using the client.
+- `src/clusterfuzz/_internal/batch/service.py` contains high-level batch service logic, including configuration management. `create_congestion_job` is placed here because it depends on configuration logic (`_get_specs_from_config`, etc.).
+- `src/clusterfuzz/_internal/google_cloud_utils/batch.py` acts as a facade/wrapper for backward compatibility or convenience, delegating to `gcp.py` and `service.py`.
