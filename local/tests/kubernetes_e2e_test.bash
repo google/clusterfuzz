@@ -17,9 +17,11 @@
 # This script is for running the Kubernetes end-to-end test in CI.
 
 # Install kind.
+mkdir -p "$HOME/.local/bin"
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
 chmod +x ./kind
-sudo mv ./kind /usr/local/bin/kind
+mv ./kind "$HOME/.local/bin/kind"
+export PATH=$PATH:$HOME/.local/bin
 
 # Install pipenv.
 pip install pipenv
