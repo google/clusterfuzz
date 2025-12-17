@@ -25,8 +25,7 @@ export PATH=$PATH:$HOME/.local/bin
 
 # Install pipenv.
 pip install pipenv
-
-# Install dependencies.
+pipenv --python 3.11
 pipenv install --dev
 
 # Run the test.
