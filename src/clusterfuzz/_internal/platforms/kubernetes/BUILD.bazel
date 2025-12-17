@@ -15,18 +15,10 @@
 package(default_visibility = ["//src:__subpackages__"])
 
 py_library(
-    name = "job",
-    srcs = ["job.py"],
-    deps = [
-        "//src/clusterfuzz/_internal/k8s:service",
-        "//src/clusterfuzz/_internal/metrics",
-    ],
-)
-
-py_library(
     name = "service",
     srcs = ["service.py"],
     deps = [
-        ":job",
+        "//src/clusterfuzz/_internal/k8s:service",
+        "//src/clusterfuzz/_internal/metrics",
     ],
 )

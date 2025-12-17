@@ -15,7 +15,8 @@
 
 from typing import List
 
-from clusterfuzz._internal.platforms.kubernetes import job
+from clusterfuzz._internal.k8s.service import KubernetesJobClient
+from clusterfuzz._internal.metrics import logs
 
 
 def create_job(job_name: str, container_image: str, job_spec_file: str,
@@ -29,4 +30,6 @@ def create_job(job_name: str, container_image: str, job_spec_file: str,
     input_urls: A list of URLs to be passed as environment variables to the
       job's container.
   """
-  job.create_job(job_name, container_image, job_spec_file, input_urls)
+  client = KubernetesJobClient(job_name, container_image, job_spec_file)
+  client.create_job(None, input_urls)
+  logs.info(f'Created Kubernetes job id={job_name}.')

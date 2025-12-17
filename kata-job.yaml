@@ -1,0 +1,90 @@
+# This manifest creates a Kubernetes Job that runs a single container within
+# a Kata-enabled pod. It is designed for one-off tasks and will not be
+# restarted automatically if it completes successfully.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # The name of the job. This must be unique within the namespace.
+  name: clusterfuzz-kata-job-2
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clusterfuzz-kata-job-2
+    spec:
+      # Use the 'kata' runtime class to ensure the pod is run in a lightweight VM.
+      runtimeClassName: kata
+      # Use the host's network namespace.
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: clusterfuzz-worker-2
+          # Using a sample image from values.yaml. Replace with your desired image.
+          image: "gcr.io/clusterfuzz-images/chromium/base:2d18693-202510291356"
+          imagePullPolicy: IfNotPresent
+          # The command and arguments to run in the container.
+          # The entrypoint of the image is expected to handle these arguments.
+          # For example, it might be a script that sources the environment variables
+          # and then executes the main process.
+
+          env:
+            - name: IS_K8S_ENV
+              value: "True"
+            - name: DISABLE_MOUNTS
+              value: "true"
+            - name: HOST_UID
+              value: "1337"
+            # CLUSTERFUZZ_RELEASE would typically be set here.
+            # - name: CLUSTERFUZZ_RELEASE
+            #   value: "your-release-version"
+            - name: UNTRUSTED_WORKER
+              value: "False"
+            - name: UWORKER
+              value: "True"
+            - name: USE_GCLOUD_STORAGE_RSYNC
+              value: "1"
+            # This environment variable will be populated by the value you pass
+            # when you create the job. See the command example below.
+            - name: UWORKER_INPUT_DOWNLOAD_URL
+              value: "https://storage.googleapis.com/clusterfuzz-uworker-input/2142e62f-5187-42a2-a241-6217a6b4dc64?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcs-signer%40cluster-fuzz.iam.gserviceaccount.com%2F20251212%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20251212T175657Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&X-Goog-Signature=427077d071975ea9c6cf3e9ef2fd7ca6db236bec80399fa21b170706af545d8f74fc8f3db178514b459d59601a1b139b35b0066918d740ca0d8e606d04bed4df9f4d6075d85d269e13980c56431afd2afed043b106fcef331cc635dd11a2713a9d5800c42e2ee7b43b15fa9d16cb9cde43b25fce8e85619820a0aadde93dbc0117c87db1c24f02301e63564aef139c9bdf1d1ea8b80d216fbb6d313846e71ceca32623210c99fb5148aee07e20611f9e0f2bace06d85d42b7599881bddd2247dd76338617d31305d2fbe47014109f98542be2beef8f8fbcd0276d28635237dd9e12b00d764b357eca95dd058e38e48c0012393e80bacc681a26489deb3c11d6a"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - "mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix"
+          # Mount a memory-backed directory for shared memory.
+          # Grant the container elevated privileges within its own VM.
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          # Define resource requests and limits.
+          resources:
+            requests:
+              cpu: "1"
+              memory: "3.75Gi"
+            limits:
+              cpu: "1"
+              memory: "3.75Gi"
+      # The restart policy for the pod. 'Never' means the pod will not be
+      # restarted once it has finished its execution. 'OnFailure' would
+      # restart the container if it exits with a non-zero exit code.
+      restartPolicy: Never
+      # Define the shared memory volume.
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1.9G
+      # Ensure the job is scheduled on a node with Kata Containers enabled.
+      nodeSelector:
+        cloud.google.com/gke-nodepool: kata-enabled-pool
+  # Optional: defines how long the job can run for.
+  # activeDeadlineSeconds: 600
+  # Optional: cleans up the job after it finishes.
+  # ttlSecondsAfterFinished: 100
+  # The number of times a job should be retried before failing.
+  backoffLimit: 0
