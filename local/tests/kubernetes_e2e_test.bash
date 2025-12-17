@@ -16,6 +16,8 @@
 
 # This script is for running the Kubernetes end-to-end test in CI.
 
+pip install pipenv
+
 # Install dependencies.
 pipenv --python 3.11
 pipenv install --dev
