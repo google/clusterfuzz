@@ -296,7 +296,13 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
     return fuzz_tasks
 
 
-def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
+def get_fuzz_tasks(project, regions) -> [tasks.Task]:
+  available_cpus = get_available_cpus(project, regions)
+  logs.info(f'{available_cpus} available CPUs.')
+
+  if not available_cpus:
+    return []
+
   if utils.is_oss_fuzz():
     scheduler = OssfuzzFuzzTaskScheduler(available_cpus)
   else:
@@ -453,12 +459,7 @@ def schedule_fuzz_tasks() -> bool:
   regions = [r for r in all_regions if r not in congested_regions]
 
   start = time.time()
-  available_cpus = get_available_cpus(project, regions)
-  logs.info(f'{available_cpus} available CPUs.')
-
-  fuzz_tasks = []
-  if available_cpus > 0:
-    fuzz_tasks = get_fuzz_tasks(available_cpus)
+  fuzz_tasks = get_fuzz_tasks(project, regions)
 
   if fuzz_tasks:
     logs.info(f'Adding {fuzz_tasks} to preprocess queue.')

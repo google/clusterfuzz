@@ -150,7 +150,13 @@ def check_congestion_jobs(job_ids):
   for job_id in job_ids:
     try:
       job = _batch_client().get_job(name=job_id)
-      if job.status.state == batch.JobStatus.State.SUCCEEDED:
+      # We count SUCCEEDED, RUNNING, and FAILED as completed (i.e. not
+      # congested). If the job is in any of these states, it means it was
+      # successfully scheduled and started running. If it is QUEUED, it means
+      # it is still waiting to be scheduled, which implies congestion.
+      if job.status.state in (batch.JobStatus.State.SUCCEEDED,
+                              batch.JobStatus.State.RUNNING,
+                              batch.JobStatus.State.FAILED):
         completed_count += 1
     except Exception:
       # If we can't get the job, it might have been deleted or there is an

@@ -314,12 +314,16 @@ class ScheduleFuzzTasksTest(unittest.TestCase):
 
     # Mock check_congestion_jobs to return 0 completed.
     self.mock.check_congestion_jobs.return_value = 0
-    self.mock.get_available_cpus.return_value = 0
+    # Mock get_fuzz_tasks to return empty list (simulating no CPUs or other issues)
+    self.mock.get_fuzz_tasks.return_value = []
 
     self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
-    self.mock.get_available_cpus.assert_called()
-    # Verify called with empty regions list
-    self.assertEqual(self.mock.get_available_cpus.call_args[0][1], [])
+
+    self.mock.get_fuzz_tasks.assert_called()
+    # Verify called with empty regions list (2nd argument)
+    # Args are (project, regions)
+    call_args = self.mock.get_fuzz_tasks.call_args[0]
+    self.assertEqual(call_args[1], [])
 
   def test_is_congested_false(self):
     """Tests that scheduling proceeds when not congested."""
@@ -329,17 +333,15 @@ class ScheduleFuzzTasksTest(unittest.TestCase):
 
     # Mock check_congestion_jobs to return 3 completed.
     self.mock.check_congestion_jobs.return_value = 3
-    self.mock.get_available_cpus.return_value = 10
     mock_task = unittest.mock.Mock()
     mock_task.job = 'job1'
     self.mock.get_fuzz_tasks.return_value = [mock_task]
 
     self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
-    self.mock.get_available_cpus.assert_called()
+    self.mock.get_fuzz_tasks.assert_called()
 
   def test_no_congestion_job_if_no_tasks(self):
     """Tests that no congestion job is scheduled if no fuzz tasks."""
-    self.mock.get_available_cpus.return_value = 10
     self.mock.get_fuzz_tasks.return_value = []
 
     self.assertTrue(schedule_fuzz.schedule_fuzz_tasks())
@@ -347,7 +349,6 @@ class ScheduleFuzzTasksTest(unittest.TestCase):
 
   def test_congestion_job_scheduled(self):
     """Tests that a congestion job is scheduled when fuzz tasks are."""
-    self.mock.get_available_cpus.return_value = 10
     mock_task = unittest.mock.Mock()
     mock_task.job = 'job1'
     self.mock.get_fuzz_tasks.return_value = [mock_task]
