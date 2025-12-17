@@ -48,6 +48,7 @@ MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 @dataclasses.dataclass
 class BatchWorkloadSpec:
+  """Batch specification chosen from the configs and subconfigs."""
   clusterfuzz_release: str
   disk_size_gb: int
   disk_type: str
