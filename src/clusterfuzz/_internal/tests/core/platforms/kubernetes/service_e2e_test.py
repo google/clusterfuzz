@@ -13,6 +13,7 @@
 # limitations under the License.
 """End-to-end tests for the Kubernetes service."""
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -46,16 +47,14 @@ class KubernetesServiceE2ETest(unittest.TestCase):
                         'image': cls.image,
                         'command': ['echo', 'hello world']
                     }],
-                    'restartPolicy':
-                        'Never'
+                    'restartPolicy': 'Never'
                 }
             },
             'backoffLimit': 0
         }
     }
 
-    home_dir = os.getenv('HOME')
-    cls.kind_path = os.path.join(home_dir, '.local', 'bin', 'kind')
+    cls.kind_path = shutil.which('kind')
 
     # Ensure no old cluster exists.
     subprocess.run(
