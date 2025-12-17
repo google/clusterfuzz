@@ -68,9 +68,11 @@ class KubernetesJobClient(RemoteTaskInterface):
 
     # See https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Job.md
     job_body['metadata']['name'] = self._job_name
-    job_body['spec']['template']['spec']['containers'][0][
-        'image'] = self._container_image
-    job_body['spec']['template']['spec']['containers'][0]['env'].extend([{
+    container = job_body['spec']['template']['spec']['containers'][0]
+    if 'env' not in container:
+      container['env'] = []
+    container['image'] = self._container_image
+    container['env'].extend([{
         'name': f'UWORKER_INPUT_DOWNLOAD_URL_{i}',
         'value': url
     } for i, url in enumerate(input_urls)])
