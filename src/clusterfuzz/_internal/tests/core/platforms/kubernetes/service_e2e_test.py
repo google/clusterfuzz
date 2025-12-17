@@ -20,7 +20,6 @@ import unittest
 
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
-import yaml
 
 from clusterfuzz._internal.platforms.kubernetes import service
 
@@ -89,13 +88,9 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
   def test_create_job(self):
     """Tests creating a job."""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
-      yaml.dump(self.job_spec, f)
-      job_spec_file = f.name
-
     job_name = 'test-job'
     input_urls = []
-    service.create_job(job_name, self.image, job_spec_file, input_urls)
+    service.create_job(job_name, self.image, self.job_spec, input_urls)
 
     # Wait for the job to be created.
     time.sleep(5)
@@ -118,7 +113,6 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         name=job_name,
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
-    os.remove(job_spec_file)
 
 
 if __name__ == '__main__':

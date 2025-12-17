@@ -17,7 +17,6 @@ import time
 
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
-import yaml
 
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
 
@@ -28,10 +27,10 @@ DELETION_WAIT_TIMEOUT = 10
 class KubernetesJobClient(RemoteTaskInterface):
   """A remote task execution client for Kubernetes."""
 
-  def __init__(self, job_name, container_image, job_spec_file):
+  def __init__(self, job_name, container_image, job_spec):
     self._job_name = job_name
     self._container_image = container_image
-    self._job_spec_file = job_spec_file
+    self._job_spec = job_spec
     k8s_config.load_kube_config()
     self._core_api = k8s_client.CoreV1Api()
     self._batch_api = k8s_client.BatchV1Api()
@@ -63,8 +62,7 @@ class KubernetesJobClient(RemoteTaskInterface):
   def create_job(self, spec, input_urls):
     """Creates a Kubernetes job."""
     self._delete_job(self._job_name)
-    with open(self._job_spec_file) as f:
-      job_body = yaml.safe_load(f)
+    job_body = self._job_spec
 
     # See https://github.com/kubernetes-client/python/blob/master/kubernetes/
     # docs/V1Job.md

@@ -16,8 +16,6 @@
 import unittest
 from unittest import mock
 
-import yaml
-
 from clusterfuzz._internal.k8s import service as kubernetes_service
 from clusterfuzz._internal.tests.test_libs import helpers
 
@@ -31,12 +29,7 @@ class KubernetesJobClientTest(unittest.TestCase):
         'kubernetes.client.CoreV1Api',
         'kubernetes.client.BatchV1Api',
     ])
-    self.k8s_client = kubernetes_service.KubernetesJobClient(
-        'test-job', 'test-image', 'test-spec.yaml')
-
-  def test_create_job(self):
-    """Tests that create_job works as expected."""
-    job_spec = {
+    self.job_spec = {
         'metadata': {
             'name': 'test-job'
         },
@@ -52,29 +45,32 @@ class KubernetesJobClientTest(unittest.TestCase):
             }
         }
     }
+    self.k8s_client = kubernetes_service.KubernetesJobClient(
+        'test-job', 'test-image', self.job_spec)
+
+  def test_create_job(self):
+    """Tests that create_job works as expected."""
     input_urls = ['url1', 'url2']
 
-    with mock.patch(
-        'builtins.open', mock.mock_open(read_data=yaml.dump(job_spec))):
-      with mock.patch.object(self.k8s_client, '_delete_job') as mock_delete:
-        self.k8s_client.create_job(None, input_urls)
-        mock_delete.assert_called_once_with('test-job')
-        self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
-        called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
-        self.assertEqual(called_args, ())
-        job_body = called_kwargs['body']
-        self.assertEqual(job_body['metadata']['name'], 'test-job')
-        self.assertEqual(
-            job_body['spec']['template']['spec']['containers'][0]['image'],
-            'test-image')
-        self.assertIn({
-            'name': 'UWORKER_INPUT_DOWNLOAD_URL_0',
-            'value': 'url1'
-        }, job_body['spec']['template']['spec']['containers'][0]['env'])
-        self.assertIn({
-            'name': 'UWORKER_INPUT_DOWNLOAD_URL_1',
-            'value': 'url2'
-        }, job_body['spec']['template']['spec']['containers'][0]['env'])
+    with mock.patch.object(self.k8s_client, '_delete_job') as mock_delete:
+      self.k8s_client.create_job(None, input_urls)
+      mock_delete.assert_called_once_with('test-job')
+      self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
+      called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
+      self.assertEqual(called_args, ())
+      job_body = called_kwargs['body']
+      self.assertEqual(job_body['metadata']['name'], 'test-job')
+      self.assertEqual(
+          job_body['spec']['template']['spec']['containers'][0]['image'],
+          'test-image')
+      self.assertIn({
+          'name': 'UWORKER_INPUT_DOWNLOAD_URL_0',
+          'value': 'url1'
+      }, job_body['spec']['template']['spec']['containers'][0]['env'])
+      self.assertIn({
+          'name': 'UWORKER_INPUT_DOWNLOAD_URL_1',
+          'value': 'url2'
+      }, job_body['spec']['template']['spec']['containers'][0]['env'])
 
   def test_delete_job(self):
     """Tests that _delete_job works as expected."""
