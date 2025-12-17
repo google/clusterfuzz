@@ -32,5 +32,12 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Install Kind
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -Lo "$HOME/.local/bin/kind" https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x "$HOME/.local/bin/kind"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Run basic tests
         run: ./local/tests/ci_tests.bash
