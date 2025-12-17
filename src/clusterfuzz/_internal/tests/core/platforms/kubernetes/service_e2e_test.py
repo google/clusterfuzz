@@ -55,7 +55,15 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         }
     }
 
-    cls.kind_path = shutil.which('kind')
+    # First, try to find `kind` in the user's local bin directory.
+    home_dir = os.path.expanduser('~')
+    local_kind_path = os.path.join(home_dir, '.local', 'bin', 'kind')
+
+    if os.path.exists(local_kind_path):
+      cls.kind_path = local_kind_path
+    else:
+      # Fallback to searching the PATH.
+      cls.kind_path = shutil.which('kind')
 
     # Ensure no old cluster exists.
     subprocess.run(
