@@ -47,7 +47,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
                         'image': cls.image,
                         'command': ['echo', 'hello world']
                     }],
-                    'restartPolicy': 'Never'
+                    'restartPolicy':
+                        'Never'
                 }
             },
             'backoffLimit': 0
