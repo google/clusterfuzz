@@ -18,7 +18,7 @@ py_library(
     name = "job",
     srcs = ["job.py"],
     deps = [
-        "//src/clusterfuzz/_internal/batch:kubernetes",
+        "//src/clusterfuzz/_internal/k8s:service",
         "//src/clusterfuzz/_internal/metrics",
     ],
 )

@@ -66,7 +66,8 @@ class KubernetesJobClient(RemoteTaskInterface):
     with open(self._job_spec_file) as f:
       job_body = yaml.safe_load(f)
 
-    # See https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Job.md
+    # See https://github.com/kubernetes-client/python/blob/master/kubernetes/
+    # docs/V1Job.md
     job_body['metadata']['name'] = self._job_name
     container = job_body['spec']['template']['spec']['containers'][0]
     if 'env' not in container:

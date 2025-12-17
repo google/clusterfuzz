@@ -15,7 +15,7 @@
 
 from typing import List
 
-from clusterfuzz._internal.batch.kubernetes import KubernetesJobClient
+from clusterfuzz._internal.k8s.service import KubernetesJobClient
 from clusterfuzz._internal.metrics import logs
 
 

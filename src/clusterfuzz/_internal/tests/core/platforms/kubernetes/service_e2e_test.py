@@ -47,7 +47,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
                         'image': cls.image,
                         'command': ['echo', 'hello world']
                     }],
-                    'restartPolicy': 'Never'
+                    'restartPolicy':
+                        'Never'
                 }
             },
             'backoffLimit': 0
@@ -59,16 +60,17 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
     # Ensure no old cluster exists.
     subprocess.run(
-        [cls.kind_path, 'delete', 'cluster', '--name', cls.cluster_name])
+        [cls.kind_path, 'delete', 'cluster', '--name', cls.cluster_name],
+        check=False)
 
     subprocess.run(
         [cls.kind_path, 'create', 'cluster', '--name', cls.cluster_name],
         check=True)
 
     # Explicitly get the kubeconfig from the kind cluster.
-    kubeconfig = subprocess.check_output([
-        cls.kind_path, 'get', 'kubeconfig', '--name', cls.cluster_name
-    ]).decode('utf-8')
+    kubeconfig = subprocess.check_output(
+        [cls.kind_path, 'get', 'kubeconfig', '--name',
+         cls.cluster_name]).decode('utf-8')
 
     # Write the kubeconfig to a temporary file and load it.
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
@@ -117,6 +119,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
     os.remove(job_spec_file)
+
 
 if __name__ == '__main__':
   unittest.main()

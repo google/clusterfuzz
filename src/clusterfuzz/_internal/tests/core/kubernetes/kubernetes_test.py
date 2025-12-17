@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +18,7 @@ from unittest import mock
 
 import yaml
 
-from clusterfuzz._internal.batch import kubernetes
+from clusterfuzz._internal.k8s import service as kubernetes_service
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -30,7 +31,7 @@ class KubernetesJobClientTest(unittest.TestCase):
         'kubernetes.client.CoreV1Api',
         'kubernetes.client.BatchV1Api',
     ])
-    self.k8s_client = kubernetes.KubernetesJobClient(
+    self.k8s_client = kubernetes_service.KubernetesJobClient(
         'test-job', 'test-image', 'test-spec.yaml')
 
   def test_create_job(self):
@@ -53,8 +54,8 @@ class KubernetesJobClientTest(unittest.TestCase):
     }
     input_urls = ['url1', 'url2']
 
-    with mock.patch('builtins.open',
-                    mock.mock_open(read_data=yaml.dump(job_spec))):
+    with mock.patch(
+        'builtins.open', mock.mock_open(read_data=yaml.dump(job_spec))):
       with mock.patch.object(self.k8s_client, '_delete_job') as mock_delete:
         self.k8s_client.create_job(None, input_urls)
         mock_delete.assert_called_once_with('test-job')
@@ -79,13 +80,11 @@ class KubernetesJobClientTest(unittest.TestCase):
     """Tests that _delete_job works as expected."""
     self.k8s_client._delete_job('test-job')
     self.k8s_client._batch_api.delete_namespaced_job.assert_called_once_with(
-        name='test-job',
-        namespace='default',
-        body=mock.ANY)
+        name='test-job', namespace='default', body=mock.ANY)
 
   def test_delete_job_not_found(self):
     """Tests that _delete_job handles not found errors."""
     self.k8s_client._batch_api.delete_namespaced_job.side_effect = (
-        kubernetes.k8s_client.ApiException(status=404))
+        kubernetes_service.k8s_client.ApiException(status=404))
     self.k8s_client._delete_job('test-job')
     self.k8s_client._batch_api.read_namespaced_job.assert_not_called()
