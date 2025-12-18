@@ -22,7 +22,8 @@ import unittest
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from clusterfuzz._internal.platforms.kubernetes import service
+from clusterfuzz._internal.k8s import service as kubernetes_service
+from clusterfuzz._internal.remote_task import RemoteTask
 
 
 class KubernetesServiceE2ETest(unittest.TestCase):
@@ -33,27 +34,9 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     """Set up the test environment."""
     cls.cluster_name = 'test-cluster-for-e2e-test'
     cls.image = 'gcr.io/clusterfuzz-images/base:000dc1f-202511191429'
-    cls.job_spec = {
-        'apiVersion': 'batch/v1',
-        'kind': 'Job',
-        'metadata': {
-            'name': 'test-job'
-        },
-        'spec': {
-            'template': {
-                'spec': {
-                    'containers': [{
-                        'name': 'test-container',
-                        'image': cls.image,
-                        'command': ['echo', 'hello world']
-                    }],
-                    'restartPolicy':
-                        'Never'
-                }
-            },
-            'backoffLimit': 0
-        }
-    }
+    # Use a mock RemoteTask object for the spec.
+    cls.remote_task = RemoteTask(None, 'test-job', None)
+    cls.remote_task.docker_image = cls.image
 
     # First, try to find `kind` in the user's local bin directory.
     home_dir = os.path.expanduser('~')
@@ -97,7 +80,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
   def test_create_job(self):
     """Tests creating a job."""
     input_urls = []
-    actual_job_name = service.create_job(self.image, self.job_spec, input_urls)
+    kubernetes_client = kubernetes_service.KubernetesService()
+    actual_job_name = kubernetes_client.create_job(self.remote_task, input_urls)
 
     # Wait for the job to be created.
     time.sleep(5)

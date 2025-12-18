@@ -20,6 +20,12 @@ from clusterfuzz._internal.k8s import service as kubernetes_service
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
+class MockRemoteTask():
+  """Mock RemoteTask for testing."""
+  job_type = 'test-job'
+  docker_image = 'test-image'
+
+
 class KubernetesJobClientTest(unittest.TestCase):
   """Tests for KubernetesJobClient."""
 
@@ -48,14 +54,13 @@ class KubernetesJobClientTest(unittest.TestCase):
             }
         }
     }
-    self.k8s_client = kubernetes_service.KubernetesJobClient(
-        'test-image', self.job_spec)
+    self.k8s_client = kubernetes_service.KubernetesService()
 
   def test_create_job(self):
     """Tests that create_job works as expected."""
     input_urls = ['url1', 'url2']
 
-    self.k8s_client.create_job(None, input_urls)
+    self.k8s_client.create_job(MockRemoteTask(), input_urls)
     self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
     called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
     self.assertEqual(called_args, ())

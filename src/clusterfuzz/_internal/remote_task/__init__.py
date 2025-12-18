@@ -19,6 +19,21 @@ environments, such as GCP Batch and Kubernetes, without tightly coupling
 the task creation logic to a specific implementation.
 """
 import abc
+from typing import List
+
+
+class RemoteTask:
+  """Represents a single ClusterFuzz task to be executed on a remote worker.
+  
+  This class holds the necessary information to execute a ClusterFuzz command,
+  such as 'fuzz' or 'progression', in a remote environment like GCP Batch. It
+  is used to enqueue tasks and track their state.
+  """
+
+  def __init__(self, command, job_type, input_download_url):
+    self.command = command
+    self.job_type = job_type
+    self.input_download_url = input_download_url
 
 
 class RemoteTaskInterface(abc.ABC):
@@ -30,7 +45,7 @@ class RemoteTaskInterface(abc.ABC):
   """
 
   @abc.abstractmethod
-  def create_job(self, spec, input_urls):
+  def create_job(self, remote_task: RemoteTask, input_urls: List[str]):
     """Creates a remote job.
     
     This method is responsible for creating a new job in the remote execution

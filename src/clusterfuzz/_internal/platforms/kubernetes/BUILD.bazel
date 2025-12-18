@@ -13,12 +13,3 @@
 # limitations under the License.
 
 package(default_visibility = ["//src:__subpackages__"])
-
-py_library(
-    name = "service",
-    srcs = ["service.py"],
-    deps = [
-        "//src/clusterfuzz/_internal/k8s:service",
-        "//src/clusterfuzz/_internal/metrics",
-    ],
-)

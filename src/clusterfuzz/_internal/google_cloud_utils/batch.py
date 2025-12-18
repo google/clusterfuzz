@@ -14,18 +14,18 @@
 """Cloud Batch helpers."""
 from typing import List
 
-from clusterfuzz._internal.batch.data_structures import BatchTask
-from clusterfuzz._internal.batch.service import BatchService
+from clusterfuzz._internal.batch.service import GcpBatchService
+from clusterfuzz._internal.remote_task import RemoteTask
 
 
 def create_uworker_main_batch_job(module, job_type, input_download_url):
   """Creates a batch job."""
-  service = BatchService()
+  service = GcpBatchService()
   return service.create_uworker_main_batch_job(module, job_type,
                                                input_download_url)
 
 
-def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
+def create_uworker_main_batch_jobs(batch_tasks: List[RemoteTask]):
   """Creates batch jobs."""
-  service = BatchService()
+  service = GcpBatchService()
   return service.create_uworker_main_batch_jobs(batch_tasks)

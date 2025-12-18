@@ -47,7 +47,7 @@ def schedule_utask_mains():
 
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        batch.BatchTask(task.command, task.job, task.argument)
+        batch.RemoteTask(task.command, task.job, task.argument)
         for task in utask_mains
     ]
     return batch.create_uworker_main_batch_jobs(batch_tasks)
