@@ -30,7 +30,6 @@ from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
-from clusterfuzz._internal.batch.data_structures import BatchWorkloadSpec
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -39,6 +38,27 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
 from clusterfuzz._internal.system import environment
+
+# A named tuple that defines the execution environment for a batch workload.
+# This includes details about the machine, disk, network, and container image,
+# as well as ClusterFuzz-specific settings.
+BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
+    'clusterfuzz_release',
+    'disk_size_gb',
+    'disk_type',
+    'docker_image',
+    'user_data',
+    'service_account_email',
+    'subnetwork',
+    'preemptible',
+    'project',
+    'machine_type',
+    'network',
+    'gce_region',
+    'priority',
+    'max_run_duration',
+    'retry',
+])
 
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
