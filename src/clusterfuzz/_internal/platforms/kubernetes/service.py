@@ -19,8 +19,7 @@ from clusterfuzz._internal.k8s.service import KubernetesJobClient
 from clusterfuzz._internal.metrics import logs
 
 
-def create_job(job_name: str, container_image: str, job_spec: dict,
-               input_urls: List[str]):
+def create_job(container_image: str, job_spec: dict, input_urls: List[str]):
   """Creates a Kubernetes job.
 
   Args:
@@ -30,13 +29,13 @@ def create_job(job_name: str, container_image: str, job_spec: dict,
     input_urls: A list of URLs to be passed as environment variables to the
       job's container.
   """
-  client = KubernetesJobClient(job_name, container_image, job_spec)
-  client.create_job(None, input_urls)
-  logs.info(f'Created Kubernetes job id={job_name}.')
+  client = KubernetesJobClient(container_image, job_spec)
+  actual_job_name = client.create_job(None, input_urls)
+  logs.info(f'Created Kubernetes job id={actual_job_name}.')
+  return actual_job_name
 
 
-def create_kata_container_job(job_name: str, container_image: str,
-                              input_urls: List[str]):
+def create_kata_container_job(container_image: str, input_urls: List[str]):
   """Creates a Kubernetes job that runs in a Kata container."""
   job_spec = {
       'apiVersion': 'batch/v1',
@@ -104,4 +103,4 @@ def create_kata_container_job(job_name: str, container_image: str,
           'backoffLimit': 0
       }
   }
-  create_job(job_name, container_image, job_spec, input_urls)
+  create_job(container_image, job_spec, input_urls)

@@ -96,20 +96,19 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
   def test_create_job(self):
     """Tests creating a job."""
-    job_name = 'test-job'
     input_urls = []
-    service.create_job(job_name, self.image, self.job_spec, input_urls)
+    actual_job_name = service.create_job(self.image, self.job_spec, input_urls)
 
     # Wait for the job to be created.
     time.sleep(5)
 
-    job = self.api_client.read_namespaced_job(job_name, 'default')
+    job = self.api_client.read_namespaced_job(actual_job_name, 'default')
     self.assertIsNotNone(job)
-    self.assertEqual(job.metadata.name, job_name)
+    self.assertEqual(job.metadata.name, actual_job_name)
 
     # Wait for the job to complete.
     for _ in range(180):
-      job = self.api_client.read_namespaced_job(job_name, 'default')
+      job = self.api_client.read_namespaced_job(actual_job_name, 'default')
       if job.status.succeeded:
         break
       time.sleep(1)
@@ -118,7 +117,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.assertEqual(job.status.succeeded, 1)
 
     self.api_client.delete_namespaced_job(
-        name=job_name,
+        name=actual_job_name,
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
 

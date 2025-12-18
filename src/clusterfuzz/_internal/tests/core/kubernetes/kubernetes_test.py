@@ -14,7 +14,7 @@
 # limitations under the License.
 """Tests for the Kubernetes batch client."""
 import unittest
-from unittest import mock
+import uuid
 
 from clusterfuzz._internal.k8s import service as kubernetes_service
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -28,7 +28,10 @@ class KubernetesJobClientTest(unittest.TestCase):
         'kubernetes.config.load_kube_config',
         'kubernetes.client.CoreV1Api',
         'kubernetes.client.BatchV1Api',
+        'uuid.uuid4',
     ])
+    self.mock.uuid4.return_value = uuid.UUID(
+        'a0b1c2d3-e4f5-6789-0123-456789abcdef')
     self.job_spec = {
         'metadata': {
             'name': 'test-job'
@@ -46,41 +49,26 @@ class KubernetesJobClientTest(unittest.TestCase):
         }
     }
     self.k8s_client = kubernetes_service.KubernetesJobClient(
-        'test-job', 'test-image', self.job_spec)
+        'test-image', self.job_spec)
 
   def test_create_job(self):
     """Tests that create_job works as expected."""
     input_urls = ['url1', 'url2']
 
-    with mock.patch.object(self.k8s_client, '_delete_job') as mock_delete:
-      self.k8s_client.create_job(None, input_urls)
-      mock_delete.assert_called_once_with('test-job')
-      self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
-      called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
-      self.assertEqual(called_args, ())
-      job_body = called_kwargs['body']
-      self.assertEqual(job_body['metadata']['name'], 'test-job')
-      self.assertEqual(
-          job_body['spec']['template']['spec']['containers'][0]['image'],
-          'test-image')
-      self.assertIn({
-          'name': 'UWORKER_INPUT_DOWNLOAD_URL_0',
-          'value': 'url1'
-      }, job_body['spec']['template']['spec']['containers'][0]['env'])
-      self.assertIn({
-          'name': 'UWORKER_INPUT_DOWNLOAD_URL_1',
-          'value': 'url2'
-      }, job_body['spec']['template']['spec']['containers'][0]['env'])
-
-  def test_delete_job(self):
-    """Tests that _delete_job works as expected."""
-    self.k8s_client._delete_job('test-job')
-    self.k8s_client._batch_api.delete_namespaced_job.assert_called_once_with(
-        name='test-job', namespace='default', body=mock.ANY)
-
-  def test_delete_job_not_found(self):
-    """Tests that _delete_job handles not found errors."""
-    self.k8s_client._batch_api.delete_namespaced_job.side_effect = (
-        kubernetes_service.k8s_client.ApiException(status=404))
-    self.k8s_client._delete_job('test-job')
-    self.k8s_client._batch_api.read_namespaced_job.assert_not_called()
+    self.k8s_client.create_job(None, input_urls)
+    self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
+    called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
+    self.assertEqual(called_args, ())
+    job_body = called_kwargs['body']
+    self.assertEqual(job_body['metadata']['name'], 'test-job-a0b1c2d3')
+    self.assertEqual(
+        job_body['spec']['template']['spec']['containers'][0]['image'],
+        'test-image')
+    self.assertIn({
+        'name': 'UWORKER_INPUT_DOWNLOAD_URL_0',
+        'value': 'url1'
+    }, job_body['spec']['template']['spec']['containers'][0]['env'])
+    self.assertIn({
+        'name': 'UWORKER_INPUT_DOWNLOAD_URL_1',
+        'value': 'url2'
+    }, job_body['spec']['template']['spec']['containers'][0]['env'])
