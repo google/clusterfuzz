@@ -118,6 +118,22 @@ SignedUrlDownloadResult = collections.namedtuple('SignedUrlDownloadResult',
                                                  ['url', 'filepath'])
 
 
+class SignedPolicyDocument:
+  """Signed policy document."""
+
+  def __init__(self, bucket, policy, x_goog_algorithm, x_goog_date,
+               x_goog_credential, x_goog_signature):
+    self.bucket = bucket
+    self.policy = policy
+    self.x_goog_algorithm = x_goog_algorithm
+    self.x_goog_date = x_goog_date
+    self.x_goog_credential = x_goog_credential
+    self.x_goog_signature = x_goog_signature
+
+  def to_json(self):
+    return json.dumps(self.__dict__)
+
+
 class StorageProvider:
   """Core storage provider interface."""
 
@@ -1312,6 +1328,36 @@ def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   contents."""
   provider = _provider()
   return provider.sign_upload_url(remote_path, minutes=minutes)
+
+
+def get_signed_policy_document(remote_path,
+                               minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  """Returns a signed policy document for |remote_path|."""
+  if _integration_test_env_doesnt_support_signed_urls():
+    return None
+
+  minutes = datetime.timedelta(minutes=minutes)
+  bucket_name, object_path = get_bucket_name_and_path(remote_path)
+  signing_creds, access_token = _signing_creds()
+  client = _storage_client()
+  bucket = client.bucket(bucket_name)
+  conditions = [['starts-with', '$key', object_path]]
+  policy = bucket.generate_signed_post_policy_v4(
+      object_path,
+      expiration=minutes,
+      conditions=conditions,
+      credentials=signing_creds,
+      access_token=access_token,
+      service_account_email=signing_creds.service_account_email)
+
+  fields = policy['fields']
+  return SignedPolicyDocument(
+      bucket=bucket_name,
+      policy=fields['policy'],
+      x_goog_algorithm=fields['x-goog-algorithm'],
+      x_goog_date=fields['x-goog-date'],
+      x_goog_credential=fields['x-goog-credential'],
+      x_goog_signature=fields['x-goog-signature'])
 
 
 def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):

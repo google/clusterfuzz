@@ -14,6 +14,7 @@
 """Tools for fast HTTP operations."""
 import asyncio
 import itertools
+import os
 from typing import List
 from typing import Sequence
 from typing import Tuple
@@ -90,6 +91,24 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
       async for chunk in response.content.iter_any():
         # TODO(metzman): Consider using aiofiles for async writes.
         file_handle.write(chunk)
+
+
+async def upload_using_signed_policy_document(local_path, upload_path, doc):
+  """Uploads a file using a signed policy document."""
+  url = f'https://storage.googleapis.com/{doc.bucket}'
+  data = aiohttp.FormData()
+  data.add_field('key', upload_path)
+  data.add_field('policy', doc.policy)
+  data.add_field('x-goog-algorithm', doc.x_goog_algorithm)
+  data.add_field('x-goog-date', doc.x_goog_date)
+  data.add_field('x-goog-credential', doc.x_goog_credential)
+  data.add_field('x-goog-signature', doc.x_goog_signature)
+
+  with open(local_path, 'rb') as f:
+    data.add_field('file', f, filename=os.path.basename(local_path))
+    async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECONDS) as session:
+      async with session.post(url, data=data) as response:
+        response.raise_for_status()
 
 
 def _get_blob_url(bucket_name, blob_name):
