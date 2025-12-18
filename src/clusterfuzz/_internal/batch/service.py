@@ -335,7 +335,7 @@ class GcpBatchService(RemoteTaskInterface):
   provides a way to check if a task is configured to run remotely.
   """
 
-  def create_job(self, spec, input_urls: List[str]):
+  def create_job(self, spec: BatchWorkloadSpec, input_urls: List[str]):
     """Creates and starts a batch job from |spec| that executes all tasks.
     
     This method creates a new GCP Batch job with a single task group. The

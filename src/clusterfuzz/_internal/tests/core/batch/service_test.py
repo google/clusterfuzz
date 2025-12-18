@@ -146,7 +146,7 @@ class GcpBatchServiceTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.batch.batch_service._batch_client',
+        'clusterfuzz._internal.batch.service._batch_client',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'uuid.uuid4',
     ])
@@ -190,9 +190,8 @@ class GcpBatchServiceTest(unittest.TestCase):
         priority=0,
         max_run_duration='2s',
         retry=True)
-    with mock.patch(
-        'clusterfuzz._internal.batch.batch_service._get_specs_from_config'
-    ) as mock_get_specs_from_config:
+    with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
+                   ) as mock_get_specs_from_config:
       mock_get_specs_from_config.return_value = {
           ('command1', 'job1'): spec1,
           ('command2', 'job2'): spec2,
@@ -235,9 +234,8 @@ class GcpBatchServiceTest(unittest.TestCase):
         priority=1,
         max_run_duration='1s',
         retry=False)
-    with mock.patch(
-        'clusterfuzz._internal.batch.batch_service._get_specs_from_config'
-    ) as mock_get_specs_from_config:
+    with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
+                   ) as mock_get_specs_from_config:
       mock_get_specs_from_config.return_value = {
           ('fuzz', 'job1'): spec1,
       }
@@ -262,7 +260,7 @@ class IsRemoteTaskTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.batch.batch_service._get_specs_from_config',
+        'clusterfuzz._internal.batch.service._get_specs_from_config',
     ])
     data_types.Job(name='job', platform='LINUX').put()
 
@@ -408,7 +406,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         [batch_service.RemoteTask('fuzz', job_name, None)])
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
 
-  @mock.patch('clusterfuzz._internal.batch.batch_service.utils.is_oss_fuzz')
+  @mock.patch('clusterfuzz._internal.batch.service.utils.is_oss_fuzz')
   @mock.patch('clusterfuzz._internal.datastore.data_types.OssFuzzProject.query')
   @mock.patch('clusterfuzz._internal.datastore.ndb_utils.get_all_from_query')
   def test_get_config_names_os_version(self, mock_get_all_from_query,

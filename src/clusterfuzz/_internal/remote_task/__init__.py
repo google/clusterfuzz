@@ -53,3 +53,69 @@ class RemoteTaskInterface(abc.ABC):
     and returns a representation of the created job.
     """
     raise NotImplementedError
+
+
+import random
+
+from clusterfuzz._internal.remote_task import job_frequency
+
+
+class RemoteTaskGate:
+  """A gatekeeper for remote task execution.
+  
+  This class is responsible for choosing the remote execution backend (GCP Batch
+  or Kubernetes) for a given task, based on the configured frequencies in the
+  `job_frequency` module.
+  """
+
+  def __init__(self):
+    from clusterfuzz._internal.batch.service import GcpBatchService
+    from clusterfuzz._internal.k8s.service import KubernetesService
+    self._gcp_batch_service = GcpBatchService()
+    self._kubernetes_service = KubernetesService()
+
+  def _should_use_kubernetes(self, job_type: str) -> bool:
+    """Determines whether to use the Kubernetes backend for a given job.
+    
+    The decision is made based on a random roll and the configured frequency
+    for the given job type.
+    """
+    frequencies = job_frequency.get_job_frequency(job_type)
+    return random.random() < frequencies['kubernetes']
+
+  def create_uworker_main_batch_job(self, module: str, job_type: str,
+                                    input_download_url: str):
+    """Creates a batch job on either GCP Batch or Kubernetes.
+    
+    The choice of backend is determined by the `_should_use_kubernetes` method.
+    """
+    if self._should_use_kubernetes(job_type):
+      return self._kubernetes_service.create_uworker_main_batch_job(
+          module, job_type, input_download_url)
+    return self._gcp_batch_service.create_uworker_main_batch_job(
+        module, job_type, input_download_url)
+
+  def create_uworker_main_batch_jobs(self, batch_tasks: List[RemoteTask]):
+    """Creates batch jobs on either GCP Batch or Kubernetes.
+    
+    The tasks are grouped by their target backend (GCP Batch or Kubernetes) and
+    then created in separate batches.
+    """
+    gcp_batch_tasks = []
+    kubernetes_tasks = []
+    for task in batch_tasks:
+      if self._should_use_kubernetes(task.job_type):
+        kubernetes_tasks.append(task)
+      else:
+        gcp_batch_tasks.append(task)
+
+    results = []
+    if gcp_batch_tasks:
+      results.extend(
+          self._gcp_batch_service.create_uworker_main_batch_jobs(
+              gcp_batch_tasks))
+    if kubernetes_tasks:
+      results.extend(
+          self._kubernetes_service.create_uworker_main_batch_jobs(
+              kubernetes_tasks))
+    return results

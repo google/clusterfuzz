@@ -12,12 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Kubernetes batch client."""
+import collections
 from typing import List
 import uuid
 
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.batch.service import _get_specs_from_config
+from clusterfuzz._internal.batch.service import MAX_CONCURRENT_VMS_PER_JOB
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
 
 
@@ -87,6 +94,41 @@ class KubernetesService(RemoteTaskInterface):
     }
     return self._create_job_client_wrapper(remote_task.docker_image, job_spec,
                                            input_urls)
+
+  def create_uworker_main_batch_job(self, module: str, job_type: str,
+                                    input_download_url: str):
+    """Creates a single batch job for a uworker main task."""
+    command = task_utils.get_command_from_module(module)
+    batch_tasks = [RemoteTask(command, job_type, input_download_url)]
+    result = self.create_uworker_main_batch_jobs(batch_tasks)
+    if result is None:
+      return result
+    return result[0]
+
+  def create_uworker_main_batch_jobs(self, batch_tasks: List[RemoteTask]):
+    """Creates a batch job for a list of uworker main tasks.
+    
+    This method groups the tasks by their workload specification and creates a
+    separate batch job for each group. This allows tasks with similar
+    requirements to be processed together, which can improve efficiency.
+    """
+    job_specs = collections.defaultdict(list)
+    specs = _get_specs_from_config(batch_tasks)
+    for batch_task in batch_tasks:
+      logs.info(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
+      spec = specs[(batch_task.command, batch_task.job_type)]
+      job_specs[spec].append(batch_task.input_download_url)
+
+    logs.info('Creating batch jobs.')
+    jobs = []
+
+    logs.info('Batching utask_mains.')
+    for spec, input_urls in job_specs.items():
+      for input_urls_portion in utils.batched(input_urls,
+                                              MAX_CONCURRENT_VMS_PER_JOB - 1):
+        jobs.append(self.create_job(spec, input_urls_portion))
+
+    return jobs
 
   def create_kata_container_job(self, container_image: str,
                                 input_urls: List[str]) -> str:
