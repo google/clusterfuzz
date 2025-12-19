@@ -52,9 +52,9 @@ fi
 # set up mounts in this case.
 if [[ -z "$DISABLE_MOUNTS" ]]; then
   # Setup Tmpfs dirs for frequently accessed files to save disk I/O.
-  mount -t tmpfs -o size=250M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases/
+  mount -t tmpfs -o size=1280M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases/
   mount -t tmpfs -o size=10M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/logs/
-  mount -t tmpfs -o size=1G,mode=777 tmpfs $BOT_TMPDIR
+  mount -t tmpfs -o size=90M,mode=777 tmpfs $BOT_TMPDIR
 
   # Setup mount to limit disk space for fuzzer testcases disk directory.
   FUZZER_TESTCASES_DISK_FILE=$INSTALL_DIRECTORY/fuzzer-testcases.mnt
