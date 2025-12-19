@@ -366,7 +366,6 @@ def get_llvm_symbolizer_path():
         stderr=subprocess.DEVNULL)
     if return_code == 0:
       # llvm-symbolize works, return it.
-      logs.info(f'Environment Symbolizer Path :- {llvm_symbolizer_path}')
       return llvm_symbolizer_path
 
   # Either
@@ -377,12 +376,10 @@ def get_llvm_symbolizer_path():
 
   # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
-    logs.info(f'None Symbolizer Path :- {llvm_symbolizer_path}')
     return None
 
   # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
-  logs.info(f'Default Symbolizer Path :- {llvm_symbolizer_path}')
   return llvm_symbolizer_path
 
 
