@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/base
+FROM gcr.io/clusterfuzz-images/base:000dc1f-202511191429
 
 ENV UPDATE_WEB_TESTS False
 
