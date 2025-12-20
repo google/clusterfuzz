@@ -19,7 +19,10 @@ environments, such as GCP Batch and Kubernetes, without tightly coupling
 the task creation logic to a specific implementation.
 """
 import abc
+import random
 from typing import List
+
+from clusterfuzz._internal.remote_task import job_frequency
 
 
 class RemoteTask:
@@ -45,22 +48,18 @@ class RemoteTaskInterface(abc.ABC):
   """
 
   @abc.abstractmethod
-  def create_job(self, remote_task: RemoteTask, input_urls: List[str]):
-    """Creates a remote job.
-    
-    This method is responsible for creating a new job in the remote execution
-    environment. It takes a workload specification and a list of input URLs,
-    and returns a representation of the created job.
-    """
+  def create_uworker_main_batch_job(self, module: str, job_type: str,
+                                    input_download_url: str):
+    """Creates a single remote task for a uworker main task."""
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
+    """Creates a many remote tasks for uworker main tasks."""
     raise NotImplementedError
 
 
-import random
-
-from clusterfuzz._internal.remote_task import job_frequency
-
-
-class RemoteTaskGate:
+class RemoteTaskGate(RemoteTaskInterface):
   """A gatekeeper for remote task execution.
   
   This class is responsible for choosing the remote execution backend (GCP Batch
@@ -95,7 +94,7 @@ class RemoteTaskGate:
     return self._gcp_batch_service.create_uworker_main_batch_job(
         module, job_type, input_download_url)
 
-  def create_uworker_main_batch_jobs(self, batch_tasks: List[RemoteTask]):
+  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates batch jobs on either GCP Batch or Kubernetes.
     
     The tasks are grouped by their target backend (GCP Batch or Kubernetes) and
@@ -103,7 +102,7 @@ class RemoteTaskGate:
     """
     gcp_batch_tasks = []
     kubernetes_tasks = []
-    for task in batch_tasks:
+    for task in remote_tasks:
       if self._should_use_kubernetes(task.job_type):
         kubernetes_tasks.append(task)
       else:

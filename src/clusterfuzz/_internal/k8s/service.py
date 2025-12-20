@@ -59,13 +59,14 @@ class KubernetesService(RemoteTaskInterface):
     return job_name
 
   def create_job(self, remote_task: RemoteTaskInterface,
-                 input_urls: List[str]) -> str:
+                 input_urls: List[str], docker_image: str) -> str:
     """Creates a Kubernetes job.
 
     Args:
       remote_task: The remote task specification.
       input_urls: A list of URLs to be passed as environment variables to the
         job's container.
+      docker_image: The Docker image to use for the job.
     Returns:
       The name of the created Kubernetes job.
     """
@@ -75,7 +76,8 @@ class KubernetesService(RemoteTaskInterface):
         'kind': 'Job',
         'metadata': {
             'name':
-                remote_task.job_type  # Use job_type as base name
+                getattr(remote_task, 'job_type',
+                        'clusterfuzz-job')  # Use job_type as base name
         },
         'spec': {
             'template': {
@@ -92,7 +94,7 @@ class KubernetesService(RemoteTaskInterface):
             'backoffLimit': 0
         }
     }
-    return self._create_job_client_wrapper(remote_task.docker_image, job_spec,
+    return self._create_job_client_wrapper(docker_image, job_spec,
                                            input_urls)
 
   def create_uworker_main_batch_job(self, module: str, job_type: str,
@@ -105,7 +107,7 @@ class KubernetesService(RemoteTaskInterface):
       return result
     return result[0]
 
-  def create_uworker_main_batch_jobs(self, batch_tasks: List[RemoteTask]):
+  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
     
     This method groups the tasks by their workload specification and creates a
@@ -113,11 +115,11 @@ class KubernetesService(RemoteTaskInterface):
     requirements to be processed together, which can improve efficiency.
     """
     job_specs = collections.defaultdict(list)
-    specs = _get_specs_from_config(batch_tasks)
-    for batch_task in batch_tasks:
-      logs.info(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
-      spec = specs[(batch_task.command, batch_task.job_type)]
-      job_specs[spec].append(batch_task.input_download_url)
+    specs = _get_specs_from_config(remote_tasks)
+    for remote_task in remote_tasks:
+      logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
+      spec = specs[(remote_task.command, remote_task.job_type)]
+      job_specs[spec].append(remote_task.input_download_url)
 
     logs.info('Creating batch jobs.')
     jobs = []
@@ -126,7 +128,7 @@ class KubernetesService(RemoteTaskInterface):
     for spec, input_urls in job_specs.items():
       for input_urls_portion in utils.batched(input_urls,
                                               MAX_CONCURRENT_VMS_PER_JOB - 1):
-        jobs.append(self.create_job(spec, input_urls_portion))
+        jobs.append(self.create_job(spec, input_urls_portion, spec.docker_image))
 
     return jobs
 

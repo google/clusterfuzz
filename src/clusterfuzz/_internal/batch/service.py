@@ -259,7 +259,7 @@ def _get_subconfig(batch_config, instance_spec):
   return all_subconfigs[weighted_subconfig.name]
 
 
-def _get_specs_from_config(batch_tasks) -> Dict:
+def _get_specs_from_config(batch_tasks: List[RemoteTask]) -> Dict:
   """Gets the configured specifications for a batch workload."""
   if not batch_tasks:
     return {}
@@ -383,7 +383,7 @@ class GcpBatchService(RemoteTaskInterface):
       return result
     return result[0]
 
-  def create_uworker_main_batch_jobs(self, batch_tasks: List[RemoteTask]):
+  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
     
     This method groups the tasks by their workload specification and creates a
@@ -391,11 +391,11 @@ class GcpBatchService(RemoteTaskInterface):
     requirements to be processed together, which can improve efficiency.
     """
     job_specs = collections.defaultdict(list)
-    specs = _get_specs_from_config(batch_tasks)
-    for batch_task in batch_tasks:
-      logs.info(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
-      spec = specs[(batch_task.command, batch_task.job_type)]
-      job_specs[spec].append(batch_task.input_download_url)
+    specs = _get_specs_from_config(remote_tasks)
+    for remote_task in remote_tasks:
+      logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
+      spec = specs[(remote_task.command, remote_task.job_type)]
+      job_specs[spec].append(remote_task.input_download_url)
 
     logs.info('Creating batch jobs.')
     jobs = []
