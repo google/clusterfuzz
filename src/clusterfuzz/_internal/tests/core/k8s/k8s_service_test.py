@@ -29,8 +29,7 @@ class KubernetesServiceTest(unittest.TestCase):
   def setUp(self):
     data_types.Job(name='job1', platform='LINUX').put()
     data_types.Job(
-        name='job2',
-        platform='LINUX',
+        name='job2', platform='LINUX',
         environment_string='CUSTOM_VAR = value').put()
 
   @mock.patch.object(service.KubernetesService, 'create_job')
@@ -56,9 +55,9 @@ class KubernetesServiceTest(unittest.TestCase):
       self.assertEqual(['url1', 'url2'], args1[1])
 
   @mock.patch(
-      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module'
-  )
-  @mock.patch.object(service.KubernetesService, 'create_uworker_main_batch_jobs')
+      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
+  @mock.patch.object(service.KubernetesService,
+                     'create_uworker_main_batch_jobs')
   def test_create_uworker_main_batch_job(self, mock_create_batch_jobs,
                                          mock_get_command, _):
     """Tests the creation of a single uworker main batch job."""

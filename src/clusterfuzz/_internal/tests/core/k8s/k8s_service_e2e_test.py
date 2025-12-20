@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """End-to-end tests for the Kubernetes service."""
+
+# pylint: disable=unused-argument
+
 import os
 import shutil
 import subprocess
@@ -23,11 +26,12 @@ from unittest import mock
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from clusterfuzz._internal.k8s import service as kubernetes_service
-from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.batch.service import BatchWorkloadSpec
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.k8s import service as kubernetes_service
+from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.tests.test_libs import test_utils
+
 
 @mock.patch(
     'clusterfuzz._internal.metrics.logs.get_logging_config_dict',
@@ -36,8 +40,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
         'disable_existing_loggers': False,
         'formatters': {
             'simpleFormatter': {
-                'format':
-                    '%(levelname)s:%(module)s:%(lineno)d:%(message)s'
+                'format': '%(levelname)s:%(module)s:%(lineno)d:%(message)s'
             }
         },
         'handlers': {
@@ -62,41 +65,50 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     """Set up the test environment."""
     cls.mock_batch_config = mock.Mock()
     cls.mock_batch_config.get.return_value = 'test-project'
-    cls.mock_batch_config.get.side_effect = \
-        lambda key: {
-            'project': 'test-project',
-            'mapping': {
-                'LINUX-PREEMPTIBLE-UNPRIVILEGED': {
-                    'clusterfuzz_release': 'prod',
-                    'docker_image': cls.image,
-                    'user_data': 'file://linux-init.yaml',
-                    'disk_size_gb': 10,
-                    'disk_type': 'pd-standard',
-                    'service_account_email': 'test-email',
-                    'preemptible': True,
-                    'machine_type': 'machine-type',
-                    'subconfigs': [{'name': 'subconfig1', 'weight': 1}]
-                },
-                'LINUX-NONPREEMPTIBLE-UNPRIVILEGED': {
-                    'clusterfuzz_release': 'prod',
-                    'docker_image': cls.image,
-                    'user_data': 'file://linux-init.yaml',
-                    'disk_size_gb': 20,
-                    'disk_type': 'pd-standard',
-                    'service_account_email': 'test-email',
-                    'preemptible': False,
-                    'machine_type': 'machine-type',
-                    'subconfigs': [{'name': 'subconfig1', 'weight': 1}]
-                }
-            },
-            'subconfigs': {
-                'subconfig1': {
-                    'region': 'region',
-                    'network': 'network',
-                    'subnetwork': 'subnetwork'
-                }
-            }
-        }.get(key)
+
+    def get_batch_config(key):
+      return {
+          'project': 'test-project',
+          'mapping': {
+              'LINUX-PREEMPTIBLE-UNPRIVILEGED': {
+                  'clusterfuzz_release': 'prod',
+                  'docker_image': cls.image,
+                  'user_data': 'file://linux-init.yaml',
+                  'disk_size_gb': 10,
+                  'disk_type': 'pd-standard',
+                  'service_account_email': 'test-email',
+                  'preemptible': True,
+                  'machine_type': 'machine-type',
+                  'subconfigs': [{
+                      'name': 'subconfig1',
+                      'weight': 1
+                  }]
+              },
+              'LINUX-NONPREEMPTIBLE-UNPRIVILEGED': {
+                  'clusterfuzz_release': 'prod',
+                  'docker_image': cls.image,
+                  'user_data': 'file://linux-init.yaml',
+                  'disk_size_gb': 20,
+                  'disk_type': 'pd-standard',
+                  'service_account_email': 'test-email',
+                  'preemptible': False,
+                  'machine_type': 'machine-type',
+                  'subconfigs': [{
+                      'name': 'subconfig1',
+                      'weight': 1
+                  }]
+              }
+          },
+          'subconfigs': {
+              'subconfig1': {
+                  'region': 'region',
+                  'network': 'network',
+                  'subnetwork': 'subnetwork'
+              }
+          }
+      }.get(key)
+
+    cls.mock_batch_config.get.side_effect = get_batch_config
 
     cls.mock_local_config = mock.Mock()
     cls.mock_local_config.BatchConfig.return_value = cls.mock_batch_config
@@ -142,11 +154,13 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     data_types.Job(name='test-job1', platform='LINUX').put()
     data_types.Job(name='test-job2', platform='LINUX').put()
 
-    cls.mock_get_config_names = mock.Mock(return_value={
-        ('fuzz', 'test-job'): ('LINUX-PREEMPTIBLE-UNPRIVILEGED', 10, None),
-        ('fuzz', 'test-job1'): ('LINUX-PREEMPTIBLE-UNPRIVILEGED', 10, None),
-        ('fuzz', 'test-job2'): ('LINUX-NONPREEMPTIBLE-UNPRIVILEGED', 20, None),
-    })
+    cls.mock_get_config_names = mock.Mock(
+        return_value={
+            ('fuzz', 'test-job'): ('LINUX-PREEMPTIBLE-UNPRIVILEGED', 10, None),
+            ('fuzz', 'test-job1'): ('LINUX-PREEMPTIBLE-UNPRIVILEGED', 10, None),
+            ('fuzz', 'test-job2'): ('LINUX-NONPREEMPTIBLE-UNPRIVILEGED', 20,
+                                    None),
+        })
     cls.mock_get_config_names_patcher = mock.patch(
         'clusterfuzz._internal.batch.service._get_config_names',
         new=cls.mock_get_config_names)
@@ -166,8 +180,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     input_urls = []
     remote_task = RemoteTask(None, 'test-job', None)
     remote_task.docker_image = self.image
-    actual_job_name = self.kubernetes_client.create_job(
-        remote_task, input_urls, self.image)
+    actual_job_name = self.kubernetes_client.create_job(remote_task, input_urls,
+                                                        self.image)
 
     # Wait for the job to be created.
     time.sleep(5)
@@ -350,6 +364,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
           name=job_name,
           namespace='default',
           body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
+
 
 if __name__ == '__main__':
   unittest.main()

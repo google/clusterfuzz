@@ -13,12 +13,14 @@
 # limitations under the License.
 """Tests for the RemoteTaskGate class."""
 
+# pylint: disable=protected-access, unused-argument
+
 import unittest
 from unittest import mock
 
 from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskGate
-from clusterfuzz._internal.tests.test_libs import test_utils
+
 
 @mock.patch('clusterfuzz._internal.k8s.service.KubernetesService')
 @mock.patch('clusterfuzz._internal.batch.service.GcpBatchService')
@@ -44,7 +46,8 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate.create_uworker_main_batch_job('module', 'job', 'url')
     mock_kubernetes_service.return_value.create_uworker_main_batch_job.assert_called_once_with(
         'module', 'job', 'url')
-    mock_gcp_batch_service.return_value.create_uworker_main_batch_job.assert_not_called()
+    mock_gcp_batch_service.return_value.create_uworker_main_batch_job.assert_not_called(
+    )
 
   @mock.patch.object(RemoteTaskGate, '_should_use_kubernetes')
   def test_create_uworker_main_batch_job_gcp_batch(
@@ -59,13 +62,15 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate.create_uworker_main_batch_job('module', 'job', 'url')
     mock_gcp_batch_service.return_value.create_uworker_main_batch_job.assert_called_once_with(
         'module', 'job', 'url')
-    mock_kubernetes_service.return_value.create_uworker_main_batch_job.assert_not_called()
+    mock_kubernetes_service.return_value.create_uworker_main_batch_job.assert_not_called(
+    )
 
-  @mock.patch('clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
+  @mock.patch(
+      'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
   @mock.patch('random.random')
-  def test_should_use_kubernetes(
-      self, mock_random, mock_get_job_frequency, mock_gcp_batch_service,
-      mock_kubernetes_service):
+  def test_should_use_kubernetes(self, mock_random, mock_get_job_frequency,
+                                 mock_gcp_batch_service,
+                                 mock_kubernetes_service):
     """
     Tests that _should_use_kubernetes returns the correct value based on
     the configured frequency and a random roll.

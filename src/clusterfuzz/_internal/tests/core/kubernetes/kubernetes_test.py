@@ -59,8 +59,10 @@ class KubernetesJobClientTest(unittest.TestCase):
   def test_create_job(self):
     """Tests that create_job works as expected."""
     input_urls = ['url1', 'url2']
+    remote_task = MockRemoteTask()
 
-    self.k8s_client.create_job(MockRemoteTask(), input_urls)
+    self.k8s_client.create_job(remote_task, input_urls,
+                               remote_task.docker_image)
     self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
     called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
     self.assertEqual(called_args, ())

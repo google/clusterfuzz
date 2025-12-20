@@ -58,8 +58,8 @@ class KubernetesService(RemoteTaskInterface):
     self._batch_api.create_namespaced_job(body=job_body, namespace='default')
     return job_name
 
-  def create_job(self, remote_task: RemoteTaskInterface,
-                 input_urls: List[str], docker_image: str) -> str:
+  def create_job(self, remote_task: RemoteTaskInterface, input_urls: List[str],
+                 docker_image: str) -> str:
     """Creates a Kubernetes job.
 
     Args:
@@ -94,8 +94,7 @@ class KubernetesService(RemoteTaskInterface):
             'backoffLimit': 0
         }
     }
-    return self._create_job_client_wrapper(docker_image, job_spec,
-                                           input_urls)
+    return self._create_job_client_wrapper(docker_image, job_spec, input_urls)
 
   def create_uworker_main_batch_job(self, module: str, job_type: str,
                                     input_download_url: str):
@@ -128,7 +127,8 @@ class KubernetesService(RemoteTaskInterface):
     for spec, input_urls in job_specs.items():
       for input_urls_portion in utils.batched(input_urls,
                                               MAX_CONCURRENT_VMS_PER_JOB - 1):
-        jobs.append(self.create_job(spec, input_urls_portion, spec.docker_image))
+        jobs.append(
+            self.create_job(spec, input_urls_portion, spec.docker_image))
 
     return jobs
 
