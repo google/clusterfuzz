@@ -33,6 +33,7 @@ from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+@unittest.skipUnless(os.getenv('K8S_E2E'), 'Skipping Kubernetes E2E tests')
 @mock.patch(
     'clusterfuzz._internal.metrics.logs.get_logging_config_dict',
     return_value={
