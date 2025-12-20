@@ -23,7 +23,6 @@ IMAGES=(
   gcr.io/clusterfuzz-images/base/immutable
   gcr.io/clusterfuzz-images/chromium/base/immutable
   gcr.io/clusterfuzz-images/chromium/builder/immutable
-  gcr.io/clusterfuzz-images/chromium/tester/immutable
   gcr.io/clusterfuzz-images/tworker/immutable
   gcr.io/clusterfuzz-images/utask-main-scheduler/immutable
   gcr.io/clusterfuzz-images/fuchsia/immutable
