@@ -68,7 +68,8 @@ class KubernetesJobClientTest(unittest.TestCase):
         command=remote_task.command,
         disk_size_gb=10,
         service_account_email='test-email',
-        clusterfuzz_release='prod')
+        clusterfuzz_release='prod',
+        is_kata=False)
 
     self.k8s_client.create_job(config, input_url)
     self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
