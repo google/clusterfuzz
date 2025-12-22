@@ -402,7 +402,6 @@ def get_task():
                   f'default android queue {default_android_queue()}.')
         task = get_regular_task(default_android_queue())
         if task:
-          # Log the task details for debug purposes.
           logs.info(f'Got task with cmd {task.command} args {task.argument} '
                     f'job {task.job} from {default_android_queue()} queue.')
           return task
