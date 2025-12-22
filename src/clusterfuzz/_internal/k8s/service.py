@@ -13,6 +13,7 @@
 # limitations under the License.
 """Kubernetes batch client."""
 import collections
+from typing import Dict
 from typing import List
 import uuid
 
@@ -21,11 +22,179 @@ from kubernetes import config as k8s_config
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
-from clusterfuzz._internal.batch.service import _get_specs_from_config
-from clusterfuzz._internal.batch.service import MAX_CONCURRENT_VMS_PER_JOB
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
+from clusterfuzz._internal.system import environment
+
+# See https://cloud.google.com/batch/quotas#job_limits
+MAX_CONCURRENT_VMS_PER_JOB = 1000
+
+KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
+    'job_type',
+    'docker_image',
+    'command',
+    'disk_size_gb',
+    'service_account_email',
+    'clusterfuzz_release',
+])
+
+
+def _get_config_names(remote_tasks: List[RemoteTask]):
+  """"Gets the name of the configs for each batch_task. Returns a dict
+
+  that is indexed by command and job_type for efficient lookup."""
+
+  job_names = {task.job_type for task in remote_tasks}
+  query = data_types.Job.query(data_types.Job.name.IN(list(job_names)))
+  jobs = ndb_utils.get_all_from_query(query)
+  job_map = {job.name: job for job in jobs}
+  config_map = {}
+  for task in remote_tasks:
+    if task.job_type not in job_map:
+      logs.error(f"{task.job_type} doesn't exist.")
+      continue
+    if task.command == 'fuzz':
+      suffix = '-PREEMPTIBLE-UNPRIVILEGED'
+    else:
+      suffix = '-NONPREEMPTIBLE-UNPRIVILEGED'
+    job = job_map[task.job_type]
+    platform = job.platform if not utils.is_oss_fuzz() else 'LINUX'
+    disk_size_gb = environment.get_value(
+        'DISK_SIZE_GB', env=job.get_environment())
+    # Get the OS version from the job, this is the least specific version.
+    base_os_version = job.base_os_version
+    # If we are running in the oss-fuzz context, the project-specific config
+    # is more specific and overrides the job-level one.
+    if utils.is_oss_fuzz():
+      oss_fuzz_project = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name == job.project).get()
+      if oss_fuzz_project and oss_fuzz_project.base_os_version:
+        base_os_version = oss_fuzz_project.base_os_version
+    config_map[(task.command, task.job_type)] = (f'{platform}{suffix}',
+                                                 disk_size_gb, base_os_version)
+
+  return config_map
+
+
+def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
+  """Gets the configured specifications for a batch workload."""
+
+  if not remote_tasks:
+    return {}
+  batch_config = local_config.BatchConfig()
+  config_map = _get_config_names(remote_tasks)
+  configs = {}
+  for task in remote_tasks:
+    if (task.command, task.job_type) in configs:
+      # Don't repeat work for no reason.
+      continue
+    config_name, disk_size_gb, base_os_version = config_map[(task.command,
+                                                             task.job_type)]
+    instance_spec = batch_config.get('mapping').get(config_name)
+    if instance_spec is None:
+      raise ValueError(f'No mapping for {config_name}')
+    # Decide which docker image to use.
+    versioned_images_map = instance_spec.get('versioned_docker_images')
+    if (base_os_version and versioned_images_map and
+        base_os_version in versioned_images_map):
+      # New path: Use the versioned image if specified and available.
+      docker_image_uri = versioned_images_map[base_os_version]
+    else:
+      # Fallback/legacy path: Use the original docker_image key.
+      docker_image_uri = instance_spec['docker_image']
+    disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
+    clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
+    config = KubernetesJobConfig(
+        job_type=task.job_type,
+        docker_image=docker_image_uri,
+        command=task.command,
+        disk_size_gb=disk_size_gb,
+        service_account_email=instance_spec['service_account_email'],
+        clusterfuzz_release=clusterfuzz_release,
+    )
+    configs[(task.command, task.job_type)] = config
+
+  return configs
+
+
+def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
+  """Creates the body of a Kubernetes job."""
+
+  job_name = config.job_type + '-' + str(uuid.uuid4()).split('-', maxsplit=1)[0]
+  # Default job spec for non-kata containers (needs to be defined).
+  return {
+      'apiVersion': 'batch/v1',
+      'kind': 'Job',
+      'metadata': {
+          'name': job_name
+      },
+      'spec': {
+          'template': {
+              'spec': {
+                  'hostNetwork':
+                      True,
+                  'containers': [{
+                      'name':
+                          'clusterfuzz-worker',
+                      'image':
+                          config.docker_image,
+                      'imagePullPolicy':
+                          'IfNotPresent',
+                      'env': [
+                          {
+                              'name': 'HOST_UID',
+                              'value': '1337'
+                          },
+                          {
+                              'name': 'CLUSTERFUZZ_RELEASE',
+                              'value': config.clusterfuzz_release
+                          },
+                          {
+                              'name': 'UNTRUSTED_WORKER',
+                              'value': 'False'
+                          },
+                          {
+                              'name': 'UWORKER',
+                              'value': 'True'
+                          },
+                          {
+                              'name': 'USE_GCLOUD_STORAGE_RSYNC',
+                              'value': '1'
+                          },
+                          {
+                              'name': 'UWORKER_INPUT_DOWNLOAD_URL',
+                              'value': input_url
+                          },
+                      ],
+                      'securityContext': {
+                          'privileged': True,
+                          'capabilities': {
+                              'add': ['ALL']
+                          }
+                      },
+                      'volumeMounts': [{
+                          'mountPath': '/dev/shm',
+                          'name': 'dshm'
+                      }]
+                  }],
+                  'volumes': [{
+                      'name': 'dshm',
+                      'emptyDir': {
+                          'medium': 'Memory',
+                          'sizeLimit': '1.9Gi'
+                      }
+                  }],
+                  'restartPolicy':
+                      'Never'
+              }
+          },
+          'backoffLimit': 0
+      }
+  }
 
 
 class KubernetesService(RemoteTaskInterface):
@@ -36,110 +205,73 @@ class KubernetesService(RemoteTaskInterface):
     self._core_api = k8s_client.CoreV1Api()
     self._batch_api = k8s_client.BatchV1Api()
 
-  def _create_job_client_wrapper(self, container_image: str, job_spec: dict,
-                                 input_urls: List[str]) -> str:
-    """Creates a Kubernetes job using the internal client."""
-    job_body = job_spec
-
-    # See https://github.com/kubernetes-client/python/blob/master/kubernetes/
-    # docs/V1Job.md
-    job_name = job_body['metadata']['name'] + '-' + str(uuid.uuid4()).split(
-        '-', maxsplit=1)[0]
-    job_body['metadata']['name'] = job_name
-    container = job_body['spec']['template']['spec']['containers'][0]
-    if 'env' not in container:
-      container['env'] = []
-    container['image'] = container_image
-    container['env'].extend([{
-        'name': f'UWORKER_INPUT_DOWNLOAD_URL_{i}',
-        'value': url
-    } for i, url in enumerate(input_urls)])
-
-    self._batch_api.create_namespaced_job(body=job_body, namespace='default')
-    return job_name
-
-  def create_job(self, remote_task: RemoteTaskInterface, input_urls: List[str],
-                 docker_image: str) -> str:
+  def create_job(self, config: KubernetesJobConfig, input_url: str) -> str:
     """Creates a Kubernetes job.
 
     Args:
-      remote_task: The remote task specification.
-      input_urls: A list of URLs to be passed as environment variables to the
-        job's container.
-      docker_image: The Docker image to use for the job.
+
+      config: The Kubernetes job configuration.
+
+      input_url: The URL to be passed as an environment variable to the
+
+        job\'s container.
+
     Returns:
+
       The name of the created Kubernetes job.
+
     """
-    # Default job spec for non-kata containers (needs to be defined).
-    job_spec = {
-        'apiVersion': 'batch/v1',
-        'kind': 'Job',
-        'metadata': {
-            'name':
-                getattr(remote_task, 'job_type',
-                        'clusterfuzz-job')  # Use job_type as base name
-        },
-        'spec': {
-            'template': {
-                'spec': {
-                    'containers': [{
-                        'name': 'clusterfuzz-worker',
-                        'imagePullPolicy': 'IfNotPresent',
-                        'command': ['echo', 'hello world']  # Default command
-                    }],
-                    'restartPolicy':
-                        'Never'
-                }
-            },
-            'backoffLimit': 0
-        }
-    }
-    return self._create_job_client_wrapper(docker_image, job_spec, input_urls)
+
+    job_body = _create_job_body(config, input_url)
+    self._batch_api.create_namespaced_job(body=job_body, namespace='default')
+    return job_body['metadata']['name']
 
   def create_uworker_main_batch_job(self, module: str, job_type: str,
                                     input_download_url: str):
     """Creates a single batch job for a uworker main task."""
+
     command = task_utils.get_command_from_module(module)
     batch_tasks = [RemoteTask(command, job_type, input_download_url)]
     result = self.create_uworker_main_batch_jobs(batch_tasks)
+
     if result is None:
       return result
     return result[0]
 
   def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
-    
+
     This method groups the tasks by their workload specification and creates a
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
     job_specs = collections.defaultdict(list)
-    specs = _get_specs_from_config(remote_tasks)
+    configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
       logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
-      spec = specs[(remote_task.command, remote_task.job_type)]
-      job_specs[spec].append(remote_task.input_download_url)
-
+      config = configs[(remote_task.command, remote_task.job_type)]
+      job_specs[config].append(remote_task.input_download_url)
     logs.info('Creating batch jobs.')
     jobs = []
-
     logs.info('Batching utask_mains.')
-    for spec, input_urls in job_specs.items():
-      for input_urls_portion in utils.batched(input_urls,
-                                              MAX_CONCURRENT_VMS_PER_JOB - 1):
-        jobs.append(
-            self.create_job(spec, input_urls_portion, spec.docker_image))
+    for config, input_urls in job_specs.items():
+      # TODO(javanlacerda): Batch multiple tasks into a single job.
+      for input_url in input_urls:
+        jobs.append(self.create_job(config, input_url))
 
     return jobs
 
   def create_kata_container_job(self, container_image: str,
                                 input_urls: List[str]) -> str:
     """Creates a Kubernetes job that runs in a Kata container."""
+    job_name = 'clusterfuzz-kata-job-' + str(uuid.uuid4()).split(
+        '-', maxsplit=1)[0]
+
     job_spec = {
         'apiVersion': 'batch/v1',
         'kind': 'Job',
         'metadata': {
-            'name': 'clusterfuzz-kata-job'
+            'name': job_name
         },
         'spec': {
             'template': {
@@ -154,8 +286,12 @@ class KubernetesService(RemoteTaskInterface):
                     'dnsPolicy':
                         'ClusterFirstWithHostNet',
                     'containers': [{
-                        'name': 'clusterfuzz-worker',
-                        'imagePullPolicy': 'IfNotPresent',
+                        'name':
+                            'clusterfuzz-worker',
+                        'image':
+                            container_image,
+                        'imagePullPolicy':
+                            'IfNotPresent',
                         'lifecycle': {
                             'postStart': {
                                 'exec': {
@@ -182,7 +318,11 @@ class KubernetesService(RemoteTaskInterface):
                                 'cpu': '1',
                                 'memory': '3.75Gi'
                             }
-                        }
+                        },
+                        'env': [{
+                            'name': f'UWORKER_INPUT_DOWNLOAD_URL_{i}',
+                            'value': url
+                        } for i, url in enumerate(input_urls)]
                     }],
                     'restartPolicy':
                         'Never',
@@ -201,5 +341,6 @@ class KubernetesService(RemoteTaskInterface):
             'backoffLimit': 0
         }
     }
-    return self._create_job_client_wrapper(container_image, job_spec,
-                                           input_urls)
+
+    self._batch_api.create_namespaced_job(body=job_spec, namespace='default')
+    return job_name

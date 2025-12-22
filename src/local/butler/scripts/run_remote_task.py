@@ -17,6 +17,7 @@ import contextlib
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.batch.service import GcpBatchService
+from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.system import environment
@@ -51,7 +52,8 @@ def schedule_utask_mains():
         RemoteTask(task.command, task.job, task.argument)
         for task in utask_mains
     ]
-    return GcpBatchService().create_uworker_main_batch_jobs(batch_tasks)
+    KubernetesService().create_uworker_main_batch_jobs(batch_tasks)
+    GcpBatchService().create_uworker_main_batch_jobs(batch_tasks)
 
 
 def execute(*args, **kwargs):  # pylint: disable=unused-argument

@@ -24,6 +24,7 @@ class MockRemoteTask():
   """Mock RemoteTask for testing."""
   job_type = 'test-job'
   docker_image = 'test-image'
+  command = 'fuzz'
 
 
 class KubernetesJobClientTest(unittest.TestCase):
@@ -58,11 +59,18 @@ class KubernetesJobClientTest(unittest.TestCase):
 
   def test_create_job(self):
     """Tests that create_job works as expected."""
-    input_urls = ['url1', 'url2']
+    input_url = 'url1'
     remote_task = MockRemoteTask()
 
-    self.k8s_client.create_job(remote_task, input_urls,
-                               remote_task.docker_image)
+    config = kubernetes_service.KubernetesJobConfig(
+        job_type=remote_task.job_type,
+        docker_image=remote_task.docker_image,
+        command=remote_task.command,
+        disk_size_gb=10,
+        service_account_email='test-email',
+        clusterfuzz_release='prod')
+
+    self.k8s_client.create_job(config, input_url)
     self.k8s_client._batch_api.create_namespaced_job.assert_called_once()
     called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
     self.assertEqual(called_args, ())
@@ -72,10 +80,10 @@ class KubernetesJobClientTest(unittest.TestCase):
         job_body['spec']['template']['spec']['containers'][0]['image'],
         'test-image')
     self.assertIn({
-        'name': 'UWORKER_INPUT_DOWNLOAD_URL_0',
+        'name': 'UWORKER_INPUT_DOWNLOAD_URL',
         'value': 'url1'
     }, job_body['spec']['template']['spec']['containers'][0]['env'])
     self.assertIn({
-        'name': 'UWORKER_INPUT_DOWNLOAD_URL_1',
-        'value': 'url2'
+        'name': 'CLUSTERFUZZ_RELEASE',
+        'value': 'prod'
     }, job_body['spec']['template']['spec']['containers'][0]['env'])

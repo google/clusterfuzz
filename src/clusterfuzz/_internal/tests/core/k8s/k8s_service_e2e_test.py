@@ -26,14 +26,13 @@ from unittest import mock
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from clusterfuzz._internal.batch.service import BatchWorkloadSpec
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.k8s import service as kubernetes_service
+from clusterfuzz._internal.k8s.service import KubernetesJobConfig
 from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-@unittest.skipUnless(os.getenv('K8S_E2E'), 'Skipping Kubernetes E2E tests')
 @mock.patch(
     'clusterfuzz._internal.metrics.logs.get_logging_config_dict',
     return_value={
@@ -178,11 +177,18 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
   def test_create_job(self, mock_get_logging_config_dict):
     """Tests creating a job."""
-    input_urls = []
+    input_url = 'url'
     remote_task = RemoteTask(None, 'test-job', None)
     remote_task.docker_image = self.image
-    actual_job_name = self.kubernetes_client.create_job(remote_task, input_urls,
-                                                        self.image)
+
+    config = KubernetesJobConfig(
+        job_type='test-job',
+        docker_image=self.image,
+        command=remote_task.command,
+        disk_size_gb=10,
+        service_account_email='test-email',
+        clusterfuzz_release='prod')
+    actual_job_name = self.kubernetes_client.create_job(config, input_url)
 
     # Wait for the job to be created.
     time.sleep(5)
@@ -236,31 +242,22 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
 
-  @mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config')
+  @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
   def test_create_uworker_main_batch_job(self, mock_get_command_from_module,
-                                         mock_get_specs_from_config,
+                                         mock_get_k8s_job_configs,
                                          mock_get_logging_config_dict):
     """Tests creating a single uworker main batch job."""
     mock_get_command_from_module.return_value = 'fuzz'
-    spec = BatchWorkloadSpec(
-        clusterfuzz_release='prod',
-        disk_size_gb=10,
-        disk_type='pd-standard',
+    config = KubernetesJobConfig(
+        job_type='test-job',
         docker_image=self.image,
-        user_data='file://linux-init.yaml',
+        command='fuzz',
+        disk_size_gb=10,
         service_account_email='test-email',
-        subnetwork='subnetwork',
-        preemptible=True,
-        project='test-project',
-        machine_type='machine-type',
-        network='network',
-        gce_region='region',
-        priority=0,
-        max_run_duration='3600s',
-        retry=False)
-    mock_get_specs_from_config.return_value = {('fuzz', 'test-job'): spec}
+        clusterfuzz_release='prod')
+    mock_get_k8s_job_configs.return_value = {('fuzz', 'test-job'): config}
 
     actual_job_name = \
         self.kubernetes_client.create_uworker_main_batch_job(
@@ -288,50 +285,32 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
 
-  @mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config')
+  @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
   def test_create_uworker_main_batch_jobs(self, mock_get_command_from_module,
-                                          mock_get_specs_from_config,
+                                          mock_get_k8s_job_configs,
                                           mock_get_logging_config_dict):
     """Tests creating multiple uworker main batch jobs."""
     mock_get_command_from_module.return_value = 'fuzz'
-    spec1 = BatchWorkloadSpec(
-        clusterfuzz_release='prod',
-        disk_size_gb=10,
-        disk_type='pd-standard',
+    config1 = KubernetesJobConfig(
+        job_type='test-job1',
         docker_image=self.image,
-        user_data='file://linux-init.yaml',
+        command='fuzz',
+        disk_size_gb=10,
         service_account_email='test-email',
-        subnetwork='subnetwork',
-        preemptible=True,
-        project='test-project',
-        machine_type='machine-type',
-        network='network',
-        gce_region='region',
-        priority=0,
-        max_run_duration='3600s',
-        retry=False)
-    spec2 = BatchWorkloadSpec(
-        clusterfuzz_release='prod',
-        disk_size_gb=20,
-        disk_type='pd-standard',
+        clusterfuzz_release='prod')
+    config2 = KubernetesJobConfig(
+        job_type='test-job2',
         docker_image='different-image',
-        user_data='file://linux-init.yaml',
+        command='fuzz',
+        disk_size_gb=20,
         service_account_email='test-email',
-        subnetwork='subnetwork',
-        preemptible=False,
-        project='test-project',
-        machine_type='machine-type',
-        network='network',
-        gce_region='region',
-        priority=1,
-        max_run_duration='3600s',
-        retry=False)
+        clusterfuzz_release='prod')
 
-    mock_get_specs_from_config.return_value = {
-        ('fuzz', 'test-job1'): spec1,
-        ('fuzz', 'test-job2'): spec2
+    mock_get_k8s_job_configs.return_value = {
+        ('fuzz', 'test-job1'): config1,
+        ('fuzz', 'test-job2'): config2
     }
 
     tasks = [

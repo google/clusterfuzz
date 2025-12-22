@@ -21,13 +21,6 @@ docker run -i --rm \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \
   $IMAGE \
-  bash -c "curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind"
-
-docker run -i --rm \
-  -e PIPENV_VENV_IN_PROJECT=1 \
-  -e IS_GITHUB_ACTIONS=true \
-  -v $(pwd):/workspace \
-  $IMAGE \
   pipenv sync --dev --python=python3.11
 docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
