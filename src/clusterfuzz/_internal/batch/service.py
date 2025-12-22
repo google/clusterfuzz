@@ -404,6 +404,6 @@ class GcpBatchService(RemoteTaskInterface):
     for spec, input_urls in job_specs.items():
       for input_urls_portion in utils.batched(input_urls,
                                               MAX_CONCURRENT_VMS_PER_JOB - 1):
-        jobs.append(self.create_job(spec, input_urls_portion))
+        jobs.append(self.create_job(spec, input_urls_portion).name)
 
     return jobs

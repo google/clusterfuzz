@@ -19,6 +19,7 @@ environments, such as GCP Batch and Kubernetes, without tightly coupling
 the task creation logic to a specific implementation.
 """
 import abc
+import collections
 import random
 from typing import List
 
@@ -102,11 +103,32 @@ class RemoteTaskGate(RemoteTaskInterface):
     """
     gcp_batch_tasks = []
     kubernetes_tasks = []
+
+    # Group tasks by job_type to respect per-job frequencies
+    tasks_by_job = collections.defaultdict(list)
     for task in remote_tasks:
-      if self._should_use_kubernetes(task.job_type):
-        kubernetes_tasks.append(task)
-      else:
-        gcp_batch_tasks.append(task)
+      tasks_by_job[task.job_type].append(task)
+
+    for job_type, tasks in tasks_by_job.items():
+      # Use random distribution if there is only one task
+      if len(tasks) == 1:
+        if self._should_use_kubernetes(job_type):
+          kubernetes_tasks.extend(tasks)
+        else:
+          gcp_batch_tasks.extend(tasks)
+        continue
+
+      # Use deterministic slicing for multiple tasks
+      frequencies = job_frequency.get_job_frequency(job_type)
+      k8s_ratio = frequencies['kubernetes']
+      k8s_count = int(len(tasks) * k8s_ratio)
+
+      # We take the first chunk for Kubernetes
+      kubernetes_tasks.extend(tasks[:k8s_count])
+      gcp_batch_tasks.extend(tasks[k8s_count:])
+
+    print(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
+    print(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
 
     results = []
     if gcp_batch_tasks:

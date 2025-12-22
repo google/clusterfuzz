@@ -90,17 +90,79 @@ class RemoteTaskGateTest(unittest.TestCase):
                                           mock_kubernetes_service):
     """
     Tests that create_uworker_main_batch_jobs correctly routes tasks to
-    the appropriate service.
+    the appropriate service when they have different job types (random distribution).
     """
     tasks = [
         RemoteTask('command1', 'job1', 'url1'),
         RemoteTask('command2', 'job2', 'url2'),
         RemoteTask('command3', 'job3', 'url3'),
     ]
+    # different job types -> loop calls _should_use_kubernetes for each
     mock_should_use_kubernetes.side_effect = [True, False, True]
     gate = RemoteTaskGate()
     gate.create_uworker_main_batch_jobs(tasks)
-    mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.assert_called_once_with(
-        [tasks[0], tasks[2]])
-    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_called_once_with(
-        [tasks[1]])
+
+    # tasks[0] (job1) -> k8s
+    # tasks[1] (job2) -> batch
+    # tasks[2] (job3) -> k8s
+
+    # K8s gets tasks[0] and tasks[2]
+    # Since call order depends on dict iteration order which is insertion ordered in Py3.7+,
+    # job1, job2, job3.
+
+    # However, create_uworker_main_batch_jobs aggregates them into lists and calls service once.
+
+    mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.assert_called_once(
+    )
+    k8s_call_args = mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.call_args[
+        0][0]
+    self.assertEqual(len(k8s_call_args), 2)
+    self.assertIn(tasks[0], k8s_call_args)
+    self.assertIn(tasks[2], k8s_call_args)
+
+    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_called_once(
+    )
+    batch_call_args = mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.call_args[
+        0][0]
+    self.assertEqual(len(batch_call_args), 1)
+    self.assertIn(tasks[1], batch_call_args)
+
+  @mock.patch(
+      'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
+  def test_create_uworker_main_batch_jobs_slicing(self, mock_get_job_frequency,
+                                                  mock_gcp_batch_service,
+                                                  mock_kubernetes_service):
+    """
+    Tests that create_uworker_main_batch_jobs correctly routes tasks using
+    deterministic slicing when tasks share the same job type.
+    """
+    # 4 tasks with same job type
+    tasks = [
+        RemoteTask('command', 'job1', 'url1'),
+        RemoteTask('command', 'job1', 'url2'),
+        RemoteTask('command', 'job1', 'url3'),
+        RemoteTask('command', 'job1', 'url4'),
+    ]
+
+    # 50% split
+    mock_get_job_frequency.return_value = {'kubernetes': 0.5, 'gcp_batch': 0.5}
+
+    gate = RemoteTaskGate()
+    gate.create_uworker_main_batch_jobs(tasks)
+
+    # 4 * 0.5 = 2 tasks for k8s.
+    # The code takes the first chunk for k8s.
+
+    mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.assert_called_once(
+    )
+    k8s_call_args = mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.call_args[
+        0][0]
+    self.assertEqual(len(k8s_call_args), 2)
+    self.assertEqual(k8s_call_args, tasks[:2])
+
+    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_called_once(
+    )
+    batch_call_args = mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.call_args[
+        0][0]
+    self.assertEqual(len(batch_call_args), 2)
+    self.assertEqual(batch_call_args, tasks[2:])

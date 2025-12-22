@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Kubernetes batch client."""
+import base64
 import collections
+import os
+import tempfile
 from typing import Dict
 from typing import List
 import uuid
 
+import google.auth
+from google.auth.transport import requests as google_requests
+from googleapiclient import discovery
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
@@ -32,6 +38,7 @@ from clusterfuzz._internal.system import environment
 
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
+CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
     'job_type',
@@ -40,6 +47,7 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
     'disk_size_gb',
     'service_account_email',
     'clusterfuzz_release',
+    'is_kata',
 ])
 
 
@@ -115,6 +123,7 @@ def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
         disk_size_gb=disk_size_gb,
         service_account_email=instance_spec['service_account_email'],
         clusterfuzz_release=clusterfuzz_release,
+        is_kata=instance_spec.get('is_kata', True),
     )
     configs[(task.command, task.job_type)] = config
 
@@ -124,7 +133,9 @@ def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
 def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
   """Creates the body of a Kubernetes job."""
 
-  job_name = config.job_type + '-' + str(uuid.uuid4()).split('-', maxsplit=1)[0]
+  job_name = config.job_type.replace('_', '-') + '-' + str(uuid.uuid4()).split(
+      '-', maxsplit=1)[0]
+  job_name = job_name.lower()
   # Default job spec for non-kata containers (needs to be defined).
   return {
       'apiVersion': 'batch/v1',
@@ -169,6 +180,14 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
                               'name': 'UWORKER_INPUT_DOWNLOAD_URL',
                               'value': input_url
                           },
+                          {
+                              'name': 'IS_K8S_ENV',
+                              'value': 'True'
+                          },
+                          {
+                              'name': 'DISABLE_MOUNTS',
+                              'value': 'true'
+                          },
                       ],
                       'securityContext': {
                           'privileged': True,
@@ -201,25 +220,71 @@ class KubernetesService(RemoteTaskInterface):
   """A remote task execution client for Kubernetes."""
 
   def __init__(self):
-    k8s_config.load_kube_config()
+    try:
+      k8s_config.load_kube_config()
+    except (k8s_config.ConfigException, TypeError):
+      self._load_gke_credentials()
+
     self._core_api = k8s_client.CoreV1Api()
     self._batch_api = k8s_client.BatchV1Api()
 
+  def _load_gke_credentials(self):
+    """Loads GKE credentials and configures the Kubernetes client."""
+    credentials, project = google.auth.default()
+    service = discovery.build('container', 'v1', credentials=credentials)
+    parent = f'projects/{project}/locations/-'
+    # pylint: disable=no-member
+    response = service.projects().locations().clusters().list(
+        parent=parent).execute()
+
+    cluster = None
+    for c in response.get('clusters', []):
+      if c['name'] == CLUSTER_NAME:
+        cluster = c
+        break
+
+    if not cluster:
+      logs.error(f'Cluster {CLUSTER_NAME} not found.')
+      return
+
+    endpoint = cluster['endpoint']
+    # ca_cert is base64 encoded.
+    ca_cert = base64.b64decode(cluster['masterAuth']['clusterCaCertificate'])
+
+    # Write CA cert to a temporary file.
+    # Note: This file persists for the lifetime of the process/container.
+    # Ideally it should be cleaned up, but standard k8s client usage involves
+    # file paths.
+    fd, ca_cert_path = tempfile.mkstemp()
+    with os.fdopen(fd, 'wb') as f:
+      f.write(ca_cert)
+
+    configuration = k8s_client.Configuration()
+    configuration.host = f'https://{endpoint}'
+    configuration.ssl_ca_cert = ca_cert_path
+    configuration.verify_ssl = True
+
+    def get_token(creds):
+      if not creds.valid:
+        request = google_requests.Request()
+        creds.refresh(request)
+      return creds.token
+
+    # Hook to refresh token on API calls.
+    configuration.refresh_api_key_hook = lambda _: {
+        "authorization": "Bearer " + get_token(credentials)
+    }
+
+    k8s_client.Configuration.set_default(configuration)
+
   def create_job(self, config: KubernetesJobConfig, input_url: str) -> str:
     """Creates a Kubernetes job.
-
     Args:
-
       config: The Kubernetes job configuration.
-
       input_url: The URL to be passed as an environment variable to the
-
-        job\'s container.
-
+        job's container.
     Returns:
-
       The name of the created Kubernetes job.
-
     """
 
     job_body = _create_job_body(config, input_url)
@@ -257,12 +322,15 @@ class KubernetesService(RemoteTaskInterface):
     for config, input_urls in job_specs.items():
       # TODO(javanlacerda): Batch multiple tasks into a single job.
       for input_url in input_urls:
-        jobs.append(self.create_job(config, input_url))
+        if config.is_kata:
+          jobs.append(self.create_kata_container_job(config, input_url))
+        else:
+          jobs.append(self.create_job(config, input_url))
 
     return jobs
 
-  def create_kata_container_job(self, container_image: str,
-                                input_urls: List[str]) -> str:
+  def create_kata_container_job(self, config: KubernetesJobConfig,
+                                input_url: str) -> str:
     """Creates a Kubernetes job that runs in a Kata container."""
     job_name = 'clusterfuzz-kata-job-' + str(uuid.uuid4()).split(
         '-', maxsplit=1)[0]
@@ -289,7 +357,7 @@ class KubernetesService(RemoteTaskInterface):
                         'name':
                             'clusterfuzz-worker',
                         'image':
-                            container_image,
+                            config.docker_image,
                         'imagePullPolicy':
                             'IfNotPresent',
                         'lifecycle': {
@@ -311,18 +379,44 @@ class KubernetesService(RemoteTaskInterface):
                         },
                         'resources': {
                             'requests': {
-                                'cpu': '1',
+                                'cpu': '2',
                                 'memory': '3.75Gi'
                             },
                             'limits': {
-                                'cpu': '1',
+                                'cpu': '2',
                                 'memory': '3.75Gi'
                             }
                         },
-                        'env': [{
-                            'name': f'UWORKER_INPUT_DOWNLOAD_URL_{i}',
-                            'value': url
-                        } for i, url in enumerate(input_urls)]
+                        'env': [
+                            {
+                                'name': 'CLUSTERFUZZ_RELEASE',
+                                'value': config.clusterfuzz_release
+                            },
+                            {
+                                'name': 'UNTRUSTED_WORKER',
+                                'value': 'False'
+                            },
+                            {
+                                'name': 'UWORKER',
+                                'value': 'True'
+                            },
+                            {
+                                'name': 'USE_GCLOUD_STORAGE_RSYNC',
+                                'value': '1'
+                            },
+                            {
+                                'name': 'UWORKER_INPUT_DOWNLOAD_URL',
+                                'value': input_url
+                            },
+                            {
+                                'name': 'IS_K8S_ENV',
+                                'value': 'True'
+                            },
+                            {
+                                'name': 'DISABLE_MOUNTS',
+                                'value': 'true'
+                            },
+                        ]
                     }],
                     'restartPolicy':
                         'Never',
