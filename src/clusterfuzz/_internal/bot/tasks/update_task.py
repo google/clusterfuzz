@@ -16,6 +16,8 @@
 import datetime
 import os
 import platform
+import shutil
+import subprocess
 import sys
 import time
 
@@ -288,14 +290,15 @@ def update_source_code():
             f'(release = {utils.get_clusterfuzz_release()}).')
 
 
-def update_tests_if_needed():
+def update_tests_if_needed(tests_url=None):
   """Updates layout tests every day."""
   data_directory = environment.get_value('FUZZ_DATA')
   error_occured = False
   expected_task_duration = 60 * 60  # 1 hour.
   retry_limit = environment.get_value('FAIL_RETRIES')
   temp_archive = os.path.join(data_directory, 'temp.zip')
-  tests_url = environment.get_value('WEB_TESTS_URL')
+  if not tests_url:
+    tests_url = environment.get_value('WEB_TESTS_URL')
 
   # Check if we have a valid tests url.
   if not tests_url:
@@ -323,9 +326,19 @@ def update_tests_if_needed():
   for _ in range(retry_limit):
     try:
       shell.remove_directory(data_directory, recreate=True)
-      storage.copy_file_from(tests_url, temp_archive)
-      with archive.open(temp_archive) as reader:
-        reader.extract_all(data_directory, trusted=True)
+      if tests_url.startswith('http'):
+        storage.download_signed_url_to_file(tests_url, temp_archive)
+      else:
+        storage.copy_file_from(tests_url, temp_archive)
+
+      if shutil.which('unzip'):
+        subprocess.run(
+            ['unzip', '-q', '-o', temp_archive, '-d', data_directory],
+            check=True,
+            capture_output=True)
+      else:
+        with archive.open(temp_archive) as reader:
+          reader.extract_all(data_directory, trusted=True)
       shell.remove_file(temp_archive)
       error_occured = False
       break
