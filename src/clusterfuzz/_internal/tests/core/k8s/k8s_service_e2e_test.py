@@ -188,7 +188,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         disk_size_gb=10,
         service_account_email='test-email',
         clusterfuzz_release='prod',
-        is_kata=False)
+        is_kata=True)
     actual_job_name = self.kubernetes_client.create_job(config, input_url)
 
     # Wait for the job to be created.
@@ -258,7 +258,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         disk_size_gb=10,
         service_account_email='test-email',
         clusterfuzz_release='prod',
-        is_kata=False)
+        is_kata=True)
     mock_get_k8s_job_configs.return_value = {('fuzz', 'test-job'): config}
 
     actual_job_name = \
@@ -302,7 +302,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         disk_size_gb=10,
         service_account_email='test-email',
         clusterfuzz_release='prod',
-        is_kata=False)
+        is_kata=True)
     config2 = KubernetesJobConfig(
         job_type='test-job2',
         docker_image='different-image',
@@ -310,7 +310,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         disk_size_gb=20,
         service_account_email='test-email',
         clusterfuzz_release='prod',
-        is_kata=False)
+        is_kata=True)
 
     mock_get_k8s_job_configs.return_value = {
         ('fuzz', 'test-job1'): config1,
