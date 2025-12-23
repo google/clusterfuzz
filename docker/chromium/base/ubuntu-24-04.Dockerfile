@@ -12,7 +12,7 @@ ENV UPDATE_WEB_TESTS True
 
 # Note: snapcraft installation seems to always fail.
 RUN ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
-RUN apt-get update && echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections &&     curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py &&     sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py &&     sed -i "s/if requires_pinned_linux_libc():/if False:/" /tmp/install-build-deps.py &&     chmod u+x /tmp/install-build-deps.py &&     /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
+RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections &&     curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py &&     sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py &&     sed -i "s/if requires_pinned_linux_libc():/if False:/" /tmp/install-build-deps.py &&     chmod u+x /tmp/install-build-deps.py &&     /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
 
 
 RUN dpkg --add-architecture i386 && \
