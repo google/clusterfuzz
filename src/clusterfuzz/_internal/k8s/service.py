@@ -150,7 +150,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
                       True,
                   'containers': [{
                       'name':
-                          'clusterfuzz-worker',
+                          job_name,
                       'image':
                           config.docker_image,
                       'imagePullPolicy':
@@ -220,10 +220,12 @@ class KubernetesService(RemoteTaskInterface):
   """A remote task execution client for Kubernetes."""
 
   def __init__(self):
-    try:
-      k8s_config.load_kube_config()
-    except (k8s_config.ConfigException, TypeError):
-      self._load_gke_credentials()
+    # In e2e tests, the kubeconfig is already loaded by the test setup.
+    if not os.getenv('K8S_E2E'):
+      try:
+        k8s_config.load_kube_config()
+      except (k8s_config.ConfigException, TypeError):
+        self._load_gke_credentials()
 
     self._core_api = k8s_client.CoreV1Api()
     self._batch_api = k8s_client.BatchV1Api()
@@ -351,11 +353,13 @@ class KubernetesService(RemoteTaskInterface):
                 'spec': {
                     'runtimeClassName':
                         'kata',
+                    'hostNetwork':
+                        True,
                     'dnsPolicy':
                         'ClusterFirstWithHostNet',
                     'containers': [{
                         'name':
-                            'clusterfuzz-worker',
+                            job_name,
                         'image':
                             config.docker_image,
                         'imagePullPolicy':
@@ -374,7 +378,7 @@ class KubernetesService(RemoteTaskInterface):
                         'securityContext': {
                             'privileged': True,
                             'capabilities': {
-                                'add': ['SYS_ADMIN']
+                                'add': ['ALL']
                             }
                         },
                         'resources': {
@@ -388,6 +392,10 @@ class KubernetesService(RemoteTaskInterface):
                             }
                         },
                         'env': [
+                            {
+                                'name': 'HOST_UID',
+                                'value': '1337'
+                            },
                             {
                                 'name': 'CLUSTERFUZZ_RELEASE',
                                 'value': config.clusterfuzz_release
@@ -424,7 +432,7 @@ class KubernetesService(RemoteTaskInterface):
                         'name': 'dshm',
                         'emptyDir': {
                             'medium': 'Memory',
-                            'sizeLimit': '1.9G'
+                            'sizeLimit': '1.9Gi'
                         }
                     }],
                     'nodeSelector': {

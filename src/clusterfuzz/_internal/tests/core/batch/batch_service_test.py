@@ -18,6 +18,7 @@ from unittest import mock
 import uuid
 
 from google.cloud import batch_v1 as batch
+from google.cloud.batch_v1.types import job as gcb_job
 
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.datastore import data_types
@@ -239,7 +240,9 @@ class GcpBatchServiceTest(unittest.TestCase):
       mock_get_specs_from_config.return_value = {
           ('fuzz', 'job1'): spec1,
       }
-      self.mock_batch_client_instance.create_job.return_value = 'job'
+
+      self.mock_batch_client_instance.create_job.return_value = gcb_job.Job(
+          name='job')
       self.mock.get_command_from_module.return_value = 'fuzz'
 
       # Call the function.

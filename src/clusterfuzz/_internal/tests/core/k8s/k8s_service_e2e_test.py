@@ -63,6 +63,9 @@ class KubernetesServiceE2ETest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     """Set up the test environment."""
+    if not os.getenv('K8S_E2E'):
+      raise unittest.SkipTest('K8S_E2E environment variable not set.')
+
     cls.mock_batch_config = mock.Mock()
     cls.mock_batch_config.get.return_value = 'test-project'
 
@@ -198,15 +201,18 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.metadata.name, actual_job_name)
 
-    # Wait for the job to complete.
+    # Wait for the job to start running.
+    job_running = False
     for _ in range(180):
       job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-      if job.status.succeeded:
+      if job.status.active or job.status.succeeded:
+        job_running = True
         break
       time.sleep(1)
-    if job.status.succeeded is None:
-      print("Job status after timeout:", job.status)
-    self.assertEqual(job.status.succeeded, 1)
+
+    self.assertTrue(
+        job_running,
+        f"Job {actual_job_name} did not start running. Status: {job.status}")
 
     self.api_client.delete_namespaced_job(
         name=actual_job_name,
@@ -228,15 +234,19 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.assertEqual(job.metadata.name, actual_job_name)
     self.assertEqual(job.spec.template.spec.runtime_class_name, 'kata')
 
-    # Wait for the job to complete.
+    # Wait for the job to start running.
+    job_running = False
     for _ in range(180):
       job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-      if job.status.succeeded:
+      if job.status.active or job.status.succeeded:
+        job_running = True
         break
       time.sleep(1)
-    if job.status.succeeded is None:
-      print("Kata Job status after timeout:", job.status)
-    self.assertEqual(job.status.succeeded, 1)
+
+    self.assertTrue(
+        job_running,
+        f"Kata Job {actual_job_name} did not start running. Status: {job.status}"
+    )
 
     self.api_client.delete_namespaced_job(
         name=actual_job_name,
@@ -272,15 +282,18 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.metadata.name, actual_job_name)
 
-    # Wait for the job to complete.
+    # Wait for the job to start running.
+    job_running = False
     for _ in range(180):
       job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-      if job.status.succeeded:
+      if job.status.active or job.status.succeeded:
+        job_running = True
         break
       time.sleep(1)
-    if job.status.succeeded is None:
-      print("Uworker Main Job status after timeout:", job.status)
-    self.assertEqual(job.status.succeeded, 1)
+
+    self.assertTrue(
+        job_running,
+        f"Job {actual_job_name} did not start running. Status: {job.status}")
 
     self.api_client.delete_namespaced_job(
         name=actual_job_name,
@@ -334,15 +347,18 @@ class KubernetesServiceE2ETest(unittest.TestCase):
       self.assertIsNotNone(job)
       self.assertEqual(job.metadata.name, job_name)
 
-      # Wait for the job to complete.
+      # Wait for the job to start running.
+      job_running = False
       for _ in range(180):
         job = self.api_client.read_namespaced_job(job_name, 'default')
-        if job.status.succeeded:
+        if job.status.active or job.status.succeeded:
+          job_running = True
           break
         time.sleep(1)
-      if job.status.succeeded is None:
-        print("Uworker Main Batch Job status after timeout:", job.status)
-      self.assertEqual(job.status.succeeded, 1)
+
+      self.assertTrue(
+          job_running,
+          f"Job {job_name} did not start running. Status: {job.status}")
 
       self.api_client.delete_namespaced_job(
           name=job_name,

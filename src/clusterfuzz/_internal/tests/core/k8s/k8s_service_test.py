@@ -32,8 +32,10 @@ class KubernetesServiceTest(unittest.TestCase):
         name='job2', platform='LINUX',
         environment_string='CUSTOM_VAR = value').put()
 
+  @mock.patch.object(service.KubernetesService, 'create_kata_container_job')
   @mock.patch.object(service.KubernetesService, 'create_job')
-  def test_create_uworker_main_batch_jobs(self, mock_create_job, _):
+  def test_create_uworker_main_batch_jobs(self, mock_create_job,
+                                          mock_create_kata_job, _):
     """Tests the creation of uworker main batch jobs."""
     tasks = [
         service.RemoteTask('fuzz', 'job1', 'url1'),
@@ -44,15 +46,56 @@ class KubernetesServiceTest(unittest.TestCase):
     kube_service = service.KubernetesService()
     kube_service.create_uworker_main_batch_jobs(tasks)
 
-    self.assertEqual(2, mock_create_job.call_count)
-    # The order of calls is not guaranteed.
-    args0 = mock_create_job.call_args_list[0].args
-    args1 = mock_create_job.call_args_list[1].args
-    if args0[1] == ['url1', 'url2']:
-      self.assertEqual(['url3'], args1[1])
-    else:
-      self.assertEqual(['url3'], args0[1])
-      self.assertEqual(['url1', 'url2'], args1[1])
+    # Assuming default config implies Kata, and no batching of URLs.
+    # Total 3 tasks, so 3 calls.
+    self.assertEqual(3, mock_create_kata_job.call_count)
+    self.assertEqual(0, mock_create_job.call_count)
+
+    urls = sorted(
+        [call.args[1] for call in mock_create_kata_job.call_args_list])
+    self.assertEqual(urls, ['url1', 'url2', 'url3'])
+
+  @mock.patch('kubernetes.client.BatchV1Api')
+  def test_create_kata_container_job_spec(self, mock_batch_api_cls, _):
+    """Tests that create_kata_container_job generates the correct spec."""
+    mock_batch_api = mock_batch_api_cls.return_value
+    kube_service = service.KubernetesService()
+    # Force _batch_api to be our mock (though init usually does it if we patched class before init)
+    # The patch is applied for this method, so init inside will use the mock class.
+
+    config = service.KubernetesJobConfig(
+        job_type='test-job',
+        docker_image='test-image',
+        command='fuzz',
+        disk_size_gb=10,
+        service_account_email='email',
+        clusterfuzz_release='prod',
+        is_kata=True)
+
+    kube_service.create_kata_container_job(config, 'input_url')
+
+    self.assertTrue(mock_batch_api.create_namespaced_job.called)
+    call_args = mock_batch_api.create_namespaced_job.call_args
+    job_body = call_args.kwargs['body']
+
+    # Check Spec
+    pod_spec = job_body['spec']['template']['spec']
+    container = pod_spec['containers'][0]
+
+    # Check hostNetwork
+    self.assertTrue(pod_spec['hostNetwork'])
+
+    # Check capabilities
+    self.assertEqual(['ALL'],
+                     container['securityContext']['capabilities']['add'])
+
+    # Check HOST_UID env var
+    env_names = {e['name']: e['value'] for e in container['env']}
+    self.assertEqual('1337', env_names['HOST_UID'])
+
+    # Check shm size
+    volumes = {v['name']: v for v in pod_spec['volumes']}
+    self.assertEqual('1.9Gi', volumes['dshm']['emptyDir']['sizeLimit'])
 
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
