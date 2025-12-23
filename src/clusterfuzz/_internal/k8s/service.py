@@ -24,7 +24,6 @@ import google.auth
 from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
 from kubernetes import client as k8s_client
-from kubernetes import config as k8s_config
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils

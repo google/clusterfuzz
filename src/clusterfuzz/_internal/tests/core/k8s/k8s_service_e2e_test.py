@@ -152,7 +152,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
       k8s_config.load_kube_config(config_file=cls.kubeconfig_path)
       cls.api_client = k8s_client.BatchV1Api()
 
-    cls.kubernetes_client = kubernetes_service.KubernetesService(k8s_config_loaded=True)
+    cls.kubernetes_client = kubernetes_service.KubernetesService(
+        k8s_config_loaded=True)
     data_types.Job(name='test-job', platform='LINUX').put()
     data_types.Job(name='test-job1', platform='LINUX').put()
     data_types.Job(name='test-job2', platform='LINUX').put()
