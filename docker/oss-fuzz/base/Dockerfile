@@ -13,6 +13,7 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
+# luarocks is needed for running lua projects in oss-fuzz.
 RUN apt-get update && apt-get install -y luarocks
 
 ENV UPDATE_WEB_TESTS False
