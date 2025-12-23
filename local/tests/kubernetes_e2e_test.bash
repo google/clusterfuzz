@@ -20,7 +20,7 @@ pip install pipenv
 
 # Install dependencies.
 pipenv --python 3.11
-pipenv install --dev
+pipenv install
 
 # Run the test.
 export K8S_E2E=1
