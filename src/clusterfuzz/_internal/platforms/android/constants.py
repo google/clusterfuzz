@@ -82,3 +82,7 @@ DEPRECATED_DEVICE_LIST = [
     'redfin',  # Pixel 5
     'barbet',  # Pixel 5a
 ]
+
+# Restrict pixel6 from picking up generic Android jobs to avoid
+# Binary Mismatch: Hence, 'ANDROID:PIXEL6' is added to the list.
+DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
