@@ -11,6 +11,9 @@ protobuf = "==4.23.4"
 psutil = "==5.9.4"
 google-cloud-ndb = "==2.3.4"
 kubernetes = "==34.1.0"
+google-api-python-client = "==2.93.0"
+aiohttp = "==3.10.5"
+google-cloud-storage = "==2.10.0"
 
 [dev-packages]
 Fabric = "==1.14.1"
