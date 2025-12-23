@@ -22,6 +22,7 @@ from clusterfuzz._internal.metrics import logs
 
 UNCREATED_JIRA_ISSUE_ID = -1
 
+
 class IssueTrackerManager:
   """Issue tracker manager."""
 
@@ -55,7 +56,13 @@ class IssueTrackerManager:
 
   def create(self):
     """Create an issue object locally."""
-    raw_fields = {'id': f'{UNCREATED_JIRA_ISSUE_ID}', 'fields': {'components': [], 'labels': []}}
+    raw_fields = {
+        'id': f'{UNCREATED_JIRA_ISSUE_ID}',
+        'fields': {
+            'components': [],
+            'labels': []
+        }
+    }
     # Create jira issue object
     jira_issue = jira.resources.Issue({},
                                       jira.resilientsession.ResilientSession(),
