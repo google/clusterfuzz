@@ -27,6 +27,12 @@ class KubernetesServiceTest(unittest.TestCase):
   """Tests for the KubernetesService class."""
 
   def setUp(self):
+    patcher = mock.patch(
+        'clusterfuzz._internal.k8s.service.KubernetesService._load_gke_credentials'
+    )
+    self.addCleanup(patcher.stop)
+    self.mock_load_gke = patcher.start()
+
     data_types.Job(name='job1', platform='LINUX').put()
     data_types.Job(
         name='job2', platform='LINUX',

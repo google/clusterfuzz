@@ -32,6 +32,7 @@ class KubernetesJobClientTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.k8s.service.KubernetesService._load_gke_credentials',
         'kubernetes.config.load_kube_config',
         'kubernetes.client.CoreV1Api',
         'kubernetes.client.BatchV1Api',
