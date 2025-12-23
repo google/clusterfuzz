@@ -103,7 +103,7 @@ class IssueTrackerManager:
     for watcher in watchers:
       try:
         self.client.add_watcher(issue.jira_issue, watcher)
-      except Exception as e:
+      except Exception:
         logs.error(f'Error adding watcher {watcher} to issue {issue.id}')
 
   def _get_issue_fields(self, issue):
