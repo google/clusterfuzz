@@ -32,5 +32,11 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       - name: Run Kubernetes e2e tests
         run: ./local/tests/kubernetes_e2e_test.bash

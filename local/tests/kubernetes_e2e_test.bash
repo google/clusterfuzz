@@ -22,6 +22,8 @@ pip install pipenv
 pipenv --python 3.11
 pipenv install
 
+./local/install_deps.bash
+
 # Run the test.
 export K8S_E2E=1
 pipenv run python butler.py py_unittest -t core -p k8s_service_e2e_test.py
