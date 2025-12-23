@@ -61,11 +61,13 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def _get_task_spec(batch_workload_spec):
+def _get_task_spec(batch_workload_spec, commands=None):
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
   runnable.container.image_uri = batch_workload_spec.docker_image
+  if commands:
+    runnable.container.commands = commands
   clusterfuzz_release = batch_workload_spec.clusterfuzz_release
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
@@ -152,6 +154,29 @@ def count_queued_or_scheduled_tasks(project: str,
   return (queued, scheduled)
 
 
+def check_congestion_jobs(job_ids: List[str]) -> int:
+  """Checks the status of the congestion jobs."""
+  completed_count = 0
+  for job_id in job_ids:
+    try:
+      job = _batch_client().get_job(name=job_id)
+      # We count SUCCEEDED, RUNNING, and FAILED as completed (i.e. not
+      # congested). If the job is in any of these states, it means it was
+      # successfully scheduled and started running. If it is QUEUED, it means
+      # it is still waiting to be scheduled, which implies congestion.
+      if job.status.state in (batch.JobStatus.State.SUCCEEDED,
+                              batch.JobStatus.State.RUNNING,
+                              batch.JobStatus.State.FAILED):
+        completed_count += 1
+    except Exception:
+      # If we can't get the job, it might have been deleted or there is an
+      # error.
+      # We don't count it as completed.
+      logs.warning(f'Failed to get job {job_id}.')
+
+  return completed_count
+
+
 class GcpBatchClient(RemoteTaskInterface):
   """A client for creating and managing jobs on the GCP Batch service.
   
@@ -161,7 +186,7 @@ class GcpBatchClient(RemoteTaskInterface):
   specification, which defines the container image and command to run.
   """
 
-  def create_job(self, spec, input_urls: List[str]):
+  def create_job(self, spec, input_urls: List[str], commands=None):
     """Creates and starts a batch job from |spec| that executes all tasks.
     
     This method creates a new GCP Batch job with a single task group. The
@@ -177,7 +202,7 @@ class GcpBatchClient(RemoteTaskInterface):
         for input_url in input_urls
     ]
     task_group.task_environments = task_environments
-    task_group.task_spec = _get_task_spec(spec)
+    task_group.task_spec = _get_task_spec(spec, commands=commands)
     task_group.task_count_per_node = TASK_COUNT_PER_NODE
     assert task_group.task_count_per_node == 1, 'This is a security issue'
 
@@ -198,3 +223,7 @@ class GcpBatchClient(RemoteTaskInterface):
     job_result = _send_create_job_request(create_request)
     logs.info(f'Created batch job id={job_name}.', spec=spec)
     return job_result
+
+  def get_job(self, name):
+    """Gets a batch job."""
+    return _batch_client().get_job(name=name)
