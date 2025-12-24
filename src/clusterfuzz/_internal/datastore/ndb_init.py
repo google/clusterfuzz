@@ -51,16 +51,21 @@ def context():
     # multiprocessing.set_start_method to not fork.
     context_module._state.context = None  # pylint: disable=protected-access
 
-  with _client().context() as ndb_context:
-    # Disable NDB caching, as NDB on GCE VMs do not use memcache and therefore
-    # can't invalidate the memcache cache.
-    ndb_context.set_memcache_policy(False)
+  current_context = context_module.get_context(False)
+  if current_context:
+    yield current_context
 
-    # Disable the in-context cache, as it can use up a lot of memory for
-    # longer running tasks such as cron jobs.
-    ndb_context.set_cache_policy(False)
+  else:
+    with _client().context() as ndb_context:
+      # Disable NDB caching, as NDB on GCE VMs do not use memcache and therefore
+      # can't invalidate the memcache cache.
+      ndb_context.set_memcache_policy(False)
 
-    yield ndb_context
+      # Disable the in-context cache, as it can use up a lot of memory for
+      # longer running tasks such as cron jobs.
+      ndb_context.set_cache_policy(False)
+
+      yield ndb_context
 
 
 def thread_wrapper(func):

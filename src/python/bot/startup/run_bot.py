@@ -17,6 +17,8 @@
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
 from clusterfuzz._internal.base import modules
+from clusterfuzz._internal.remote_task import RemoteTask
+from clusterfuzz._internal.remote_task import RemoteTaskGate
 
 modules.fix_module_search_paths()
 
@@ -86,7 +88,6 @@ def lease_all_tasks(task_list):
 
 def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
-  from clusterfuzz._internal.google_cloud_utils import batch
 
   logs.info('Attempting to combine batch tasks.')
   utask_mains = tasks.get_utask_mains()
@@ -98,10 +99,10 @@ def schedule_utask_mains():
 
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        batch.BatchTask(task.command, task.job, task.argument)
+        RemoteTask(task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    batch.create_uworker_main_batch_jobs(batch_tasks)
+    RemoteTaskGate().create_uworker_main_batch_jobs(batch_tasks)
 
 
 def task_loop():
