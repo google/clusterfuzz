@@ -11,17 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Kubernetes batch client."""
-from clusterfuzz._internal.remote_task import RemoteTaskInterface
+"""Configurable job frequencies for remote task execution.
+
+This module provides a way to define how frequently certain jobs are executed
+on different remote backends, such as GCP Batch and Kubernetes. This allows for
+A/B testing and performance comparisons between the two platforms.
+"""
+
+DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.0}
 
 
-class KubernetesJobClient(RemoteTaskInterface):
-  """A remote task execution client for Kubernetes.
+def get_job_frequency():
+  """Returns the frequency for a given job.
   
-  This class is a placeholder for a future implementation of a remote task
-  execution client that uses Kubernetes. It is not yet implemented.
+  If the frequency is not explicitly defined in the `K8S_JOBS_FREQUENCY`
+  environment variable, the default frequency is returned.
   """
-
-  def create_job(self, spec, input_urls):
-    """Creates a Kubernetes job."""
-    raise NotImplementedError('Kubernetes batch client is not implemented yet.')
+  return DEFAULT_FREQUENCY

@@ -429,42 +429,60 @@ def configure_appengine():
 
 
 def configure_k8s():
-  """Configure logging for K8S and reporting errors."""
+  """Configure logging for K8S."""
   import google.cloud.logging
+  from google.cloud.logging.handlers import CloudLoggingHandler
+  from google.cloud.logging.handlers.transports import BackgroundThreadTransport
+
   client = google.cloud.logging.Client()
-  client.setup_logging()
-  old_factory = logging.getLogRecordFactory()
+  labels = {
+      'k8s-pod/app': os.getenv('BOT_NAME', 'unknown'),
+      'bot_name': os.getenv('BOT_NAME', 'unknown'),
+  }
 
-  def record_factory(*args, **kwargs):
-    """Insert jsonPayload fields to all logs."""
+  class FlushIntervalTransport(BackgroundThreadTransport):
 
-    record = old_factory(*args, **kwargs)
-    if not hasattr(record, 'json_fields'):
-      record.json_fields = {}
+    def __init__(self, client, name, **kwargs):
+      super().__init__(
+          client,
+          name,
+          grace_period=int(os.getenv('LOGGING_CLOUD_GRACE_PERIOD', '15')),
+          max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '10')),
+          **kwargs)
 
-    # Add jsonPayload fields to logs that don't contain stack traces to enable
-    # capturing and grouping by error reporting.
-    # https://cloud.google.com/error-reporting/docs/formatting-error-messages#log-text
-    if record.levelno >= logging.ERROR and not record.exc_info:
-      record.json_fields.update({
-          '@type':
-              'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',  # pylint: disable=line-too-long
-          'serviceContext': {
-              'service': 'k8s',
-          },
-          'context': {
-              'reportLocation': {
-                  'filePath': record.pathname,
-                  'lineNumber': record.lineno,
-                  'functionName': record.funcName,
-              }
-          },
-      })
+  handler = CloudLoggingHandler(
+      client=client,
+      name='k8s-logs',
+      labels=labels,
+      transport=FlushIntervalTransport)
 
-    return record
+  def k8s_label_filter(record):
+    handler.labels.update({
+        'task_payload':
+            os.getenv('TASK_PAYLOAD', 'null'),
+        'fuzz_target':
+            os.getenv('FUZZ_TARGET', 'null'),
+        'worker_bot_name':
+            os.getenv('WORKER_BOT_NAME', 'null'),
+        'extra':
+            truncate(
+                json.dumps(
+                    getattr(record, 'extras', {}),
+                    default=_handle_unserializable),
+                STACKDRIVER_LOG_MESSAGE_LIMIT),
+        'location':
+            json.dumps(
+                getattr(record, 'location', {'Error': True}),
+                default=_handle_unserializable),
+    })
+    return True
 
-  logging.setLogRecordFactory(record_factory)
-  logging.getLogger().addFilter(json_fields_filter)
+  handler.addFilter(k8s_label_filter)
+  handler.setLevel(logging.INFO)
+  formatter = JsonFormatter()
+  handler.setFormatter(formatter)
+
+  logging.getLogger().addHandler(handler)
   logging.getLogger().setLevel(logging.INFO)
 
 
