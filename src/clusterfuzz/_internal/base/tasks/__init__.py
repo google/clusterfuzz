@@ -88,7 +88,7 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAIN_QUEUE = 'utask_main'
+UTASK_MAIN_QUEUE = 'test-utask-main'
 PREPROCESS_QUEUE = 'preprocess'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
