@@ -23,6 +23,7 @@ import collections
 import random
 from typing import List
 
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import job_frequency
 
 
@@ -127,8 +128,8 @@ class RemoteTaskGate(RemoteTaskInterface):
       kubernetes_tasks.extend(tasks[:k8s_count])
       gcp_batch_tasks.extend(tasks[k8s_count:])
 
-    print(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
-    print(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
+    logs.info(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
+    logs.info(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
 
     results = []
     if gcp_batch_tasks:

@@ -92,6 +92,7 @@ def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
 
   if not remote_tasks:
     return {}
+  #TODO(javanlacerda): Create remote task config
   batch_config = local_config.BatchConfig()
   config_map = _get_config_names(remote_tasks)
   configs = {}
