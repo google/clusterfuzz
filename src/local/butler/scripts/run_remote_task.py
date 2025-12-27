@@ -45,7 +45,7 @@ def schedule_utask_mains():
     return []
 
   print(f'Combining {len(utask_mains)} batch tasks.')
-  utask_mains = utask_mains[:5]
+  # utask_mains = utask_mains[:5]
   results = []
   with lease_all_tasks(utask_mains):
     batch_tasks = [

@@ -24,6 +24,7 @@ import google.auth
 from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
 from kubernetes import client as k8s_client
+from kubernetes import config as k8s_config
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -229,6 +230,21 @@ class KubernetesService(RemoteTaskInterface):
 
   def _load_gke_credentials(self):
     """Loads GKE credentials and configures the Kubernetes client."""
+    try:
+      k8s_config.load_kube_config()
+      logs.info("Authenticated using kubeconfig.")
+      return
+    except Exception:
+      pass
+
+    try:
+      k8s_config.load_incluster_config()
+      logs.info("Authenticated using in-cluster config.")
+      return
+    except Exception:
+      pass
+
+    logs.info("Falling back to ADC and manual GKE discovery.")
     credentials, project = google.auth.default()
     service = discovery.build('container', 'v1', credentials=credentials)
     parent = f'projects/{project}/locations/-'
@@ -277,6 +293,11 @@ class KubernetesService(RemoteTaskInterface):
     configuration.refresh_api_key_hook = lambda _: {
         "authorization": "Bearer " + get_token(credentials)
     }
+
+    # Initialize api_key with a dummy value so that the client's auth_settings logic
+    # (which checks 'if key in self.api_key') sees it and triggers the hook via
+    # get_api_key_with_prefix.
+    configuration.api_key = {"authorization": "Bearer token"}
 
     k8s_client.Configuration.set_default(configuration)
 
