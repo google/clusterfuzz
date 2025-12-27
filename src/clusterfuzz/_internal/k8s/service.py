@@ -264,9 +264,13 @@ class KubernetesService(RemoteTaskInterface):
     configuration.verify_ssl = True
 
     def get_token(creds):
-      if not creds.valid:
-        request = google_requests.Request()
+      request = google_requests.Request()
+      if not creds.valid or creds.expired:
         creds.refresh(request)
+      
+      if not creds.token:
+        creds.refresh(request)
+      
       return creds.token
 
     # Hook to refresh token on API calls.
