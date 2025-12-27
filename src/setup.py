@@ -45,6 +45,7 @@ setuptools.setup(
         'google-cloud-storage',
         'grpcio',
         'httplib2',
+        'kubernetes==34.1.0',
         'mozprocess',
         'oauth2client',
         'protobuf',
