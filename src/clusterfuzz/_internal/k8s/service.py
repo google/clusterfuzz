@@ -147,8 +147,6 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
       'spec': {
           'template': {
               'spec': {
-                  'hostNetwork':
-                      True,
                   'containers': [{
                       'name':
                           job_name,
@@ -230,36 +228,26 @@ class KubernetesService(RemoteTaskInterface):
 
   def _load_gke_credentials(self):
     """Loads GKE credentials and configures the Kubernetes client."""
-    try:
-      k8s_config.load_kube_config()
-      logs.info("Authenticated using kubeconfig.")
-      return
-    except Exception:
-      pass
-
-    try:
-      k8s_config.load_incluster_config()
-      logs.info("Authenticated using in-cluster config.")
-      return
-    except Exception:
-      pass
-
-    logs.info("Falling back to ADC and manual GKE discovery.")
-    credentials, project = google.auth.default()
+    credentials, _ = google.auth.default()
+    project = utils.get_application_id()
+    print(f"DEBUG: project from utils.get_application_id(): {project}")
     service = discovery.build('container', 'v1', credentials=credentials)
-    parent = f'projects/{project}/locations/-'
-    # pylint: disable=no-member
-    response = service.projects().locations().clusters().list(
-        parent=parent).execute()
+    parent = f"projects/{project}/locations/-"
 
-    cluster = None
-    for c in response.get('clusters', []):
-      if c['name'] == CLUSTER_NAME:
-        cluster = c
-        break
+    try:
+      response = service.projects().locations().clusters().list(
+          parent=parent).execute()
+      clusters = response.get('clusters', [])
+      cluster = next((c for c in clusters if c['name'] == CLUSTER_NAME), None)
 
-    if not cluster:
-      logs.error(f'Cluster {CLUSTER_NAME} not found.')
+      if not cluster:
+        logs.error(f"Cluster {CLUSTER_NAME} not found in project {project}.")
+        print(f"DEBUG: Cluster {CLUSTER_NAME} not found in project {project}.")
+        return
+
+    except Exception as e:
+      logs.error(f"Failed to list clusters in {project}: {e}")
+      print(f"DEBUG: Failed to list clusters in {project}: {e}")
       return
 
     endpoint = cluster['endpoint']
@@ -267,9 +255,6 @@ class KubernetesService(RemoteTaskInterface):
     ca_cert = base64.b64decode(cluster['masterAuth']['clusterCaCertificate'])
 
     # Write CA cert to a temporary file.
-    # Note: This file persists for the lifetime of the process/container.
-    # Ideally it should be cleaned up, but standard k8s client usage involves
-    # file paths.
     fd, ca_cert_path = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
       f.write(ca_cert)
@@ -283,23 +268,13 @@ class KubernetesService(RemoteTaskInterface):
       request = google_requests.Request()
       if not creds.valid or creds.expired:
         creds.refresh(request)
-      
-      if not creds.token:
-        creds.refresh(request)
-      
-      return creds.token
+      return {"authorization": "Bearer " + creds.token}
 
-    # Hook to refresh token on API calls.
-    configuration.refresh_api_key_hook = lambda _: {
-        "authorization": "Bearer " + get_token(credentials)
-    }
-
-    # Initialize api_key with a dummy value so that the client's auth_settings logic
-    # (which checks 'if key in self.api_key') sees it and triggers the hook via
-    # get_api_key_with_prefix.
-    configuration.api_key = {"authorization": "Bearer token"}
+    configuration.refresh_api_key_hook = lambda _: get_token(credentials)
+    configuration.api_key = get_token(credentials)
 
     k8s_client.Configuration.set_default(configuration)
+    logs.info("GKE credentials loaded successfully.")
 
   def create_job(self, config: KubernetesJobConfig, input_url: str) -> str:
     """Creates a Kubernetes job.
@@ -375,8 +350,6 @@ class KubernetesService(RemoteTaskInterface):
                 'spec': {
                     'runtimeClassName':
                         'kata',
-                    'hostNetwork':
-                        True,
                     'dnsPolicy':
                         'ClusterFirstWithHostNet',
                     'containers': [{
