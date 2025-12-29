@@ -181,7 +181,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
                           },
                           {
                               'name': 'IS_K8S_ENV',
-                              'value': 'True'
+                              'value': 'true'
                           },
                           {
                               'name': 'DISABLE_MOUNTS',
@@ -413,7 +413,7 @@ class KubernetesService(RemoteTaskInterface):
                             },
                             {
                                 'name': 'IS_K8S_ENV',
-                                'value': 'True'
+                                'value': 'true'
                             },
                             {
                                 'name': 'DISABLE_MOUNTS',
