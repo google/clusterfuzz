@@ -784,18 +784,34 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
   fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
       fuzz_task_input.sample_testcase_upload_key)
-  script_log_upload_key = blobs.generate_new_blob_name()
+  fuzz_task_input.script_log_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.script_log_upload_url = blobs.get_signed_upload_url(
-      script_log_upload_key)
+      fuzz_task_input.script_log_upload_key)
 
 
 def postprocess_store_fuzzer_run_results(output):
   """Postprocess store_fuzzer_run_results."""
   if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
     return
+  uworker_input = output.uworker_input
+
+  # Copy fuzzer logs to the structured bucket.
+  if uworker_input.fuzz_task_input.script_log_upload_key:
+    logs_blob_bucket = blobs.get_gcs_path(
+        uworker_input.fuzz_task_input.script_log_upload_key)
+    fuzzer_logs_bucket = fuzzer_logs.get_logs_gcs_path()
+    try:
+      if not storage.copy_blob(logs_blob_bucket, fuzzer_logs_bucket):
+        logs.warning(
+            f'Failed copying fuzzer logs from {logs_blob_bucket} to the'
+            f'structured bucket {fuzzer_logs_bucket}.')
+    except:
+      logs.warning(
+          f'Failed copying fuzzer logs from blobs {logs_blob_bucket} to the'
+          f'structured bucket {fuzzer_logs_bucket}.')
+
   if not output.fuzz_task_output.fuzzer_run_results:
     return
-  uworker_input = output.uworker_input
   fuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == output.uworker_input.fuzzer_name).get()
   if not fuzzer:

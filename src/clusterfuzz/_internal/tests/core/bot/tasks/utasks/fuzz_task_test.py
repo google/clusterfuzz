@@ -1505,15 +1505,18 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   """Tests for preprocess_store_fuzzer_run_results."""
 
   SIGNED_URL = 'https://signed'
+  BLOB_KEY = 'blob_key'
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
         'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name'
     ])
     self.mock._sign_url.side_effect = (
         lambda remote_path, method, minutes: remote_path)
     self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
+    self.mock.generate_new_blob_name.return_value = self.BLOB_KEY
     helpers.patch_environ(self)
     os.environ['JOB_NAME'] = 'linux_chrome_asan'
 
@@ -1522,8 +1525,9 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
     self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
                      self.SIGNED_URL)
-
+    self.assertEqual(fuzz_task_input.sample_testcase_upload_key, self.BLOB_KEY)
     self.assertEqual(fuzz_task_input.script_log_upload_url, self.SIGNED_URL)
+    self.assertEqual(fuzz_task_input.script_log_upload_key, self.BLOB_KEY)
 
 
 @test_utils.with_cloud_emulators('datastore')
