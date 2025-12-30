@@ -136,14 +136,21 @@ class GSUtilRunner:
     """Run GSUtil or gcloud storage."""
     runner, additional_args = self._get_runner_and_args(use_gcloud_storage,
                                                         quiet)
+    cmd = arguments[0] if arguments else 'unknown'
     arguments = additional_args + arguments
 
     tool_name = 'gcloud storage' if use_gcloud_storage else 'gsutil'
+    arg_str = ' '.join(arguments)
+    try:
+      cwd = os.getcwd()
+    except OSError:
+      cwd = 'unknown'
     logs.info(
-        f'Running {tool_name}.',
+        f'Running {cmd} with {tool_name}.',
         tool_name=tool_name,
-        cwd=os.getcwd(),
-        cmd=arguments)
+        cmd=cmd,
+        cwd=cwd,
+        arguments=arg_str)
 
     env = os.environ.copy()
     if not use_gcloud_storage and 'PYTHONPATH' in env:
@@ -154,18 +161,22 @@ class GSUtilRunner:
     try:
       result = runner.run_and_wait(arguments, env=env, **kwargs)
       logs.info(
-          f'Finished running {tool_name}.',
+          f'Finished running {cmd} with {tool_name}.',
           tool_name=tool_name,
+          cmd=cmd,
+          cwd=cwd,
+          arguments=arg_str,
           return_code=result.return_code,
           timed_out=result.timed_out,
           output=result.output)
       return result
-    except Exception as e:
+    except Exception:
       logs.error(
-          f'Failed to run {tool_name}.',
+          f'Failed to run {cmd} with {tool_name}.',
           tool_name=tool_name,
-          cmd=arguments,
-          error=str(e))
+          cmd=cmd,
+          cwd=cwd,
+          arguments=arg_str)
       raise
 
   def rsync(self,
