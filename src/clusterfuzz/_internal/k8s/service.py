@@ -51,6 +51,10 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
 ])
 
 
+class JobLimitReachedError(Exception):
+  """Raised when the job limit is reached."""
+
+
 def _get_config_names(remote_tasks: List[RemoteTask]):
   """"Gets the name of the configs for each batch_task. Returns a dict
 
@@ -290,6 +294,22 @@ class KubernetesService(RemoteTaskInterface):
     self._batch_api.create_namespaced_job(body=job_body, namespace='default')
     return job_body['metadata']['name']
 
+  def _get_pending_jobs_count(self) -> int:
+    """Returns the number of pending jobs."""
+    try:
+      # List all jobs in the default namespace
+      jobs = self._batch_api.list_namespaced_job(namespace='default')
+      count = 0
+      for job in jobs.items:
+        status = job.status
+        # If not succeeded and not failed, assume it is pending/running
+        if not (status.succeeded or status.failed):
+          count += 1
+      return count
+    except Exception as e:
+      logs.error(f"Failed to list jobs: {e}")
+      return 0
+
   def create_uworker_main_batch_job(self, module: str, job_type: str,
                                     input_download_url: str):
     """Creates a single batch job for a uworker main task."""
@@ -309,6 +329,9 @@ class KubernetesService(RemoteTaskInterface):
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
+    if self._get_pending_jobs_count() >= 100:
+      raise JobLimitReachedError('Limit of 100 pending jobs reached.')
+
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:

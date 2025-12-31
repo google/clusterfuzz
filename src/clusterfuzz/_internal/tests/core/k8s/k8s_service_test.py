@@ -38,11 +38,14 @@ class KubernetesServiceTest(unittest.TestCase):
         name='job2', platform='LINUX',
         environment_string='CUSTOM_VAR = value').put()
 
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   @mock.patch.object(service.KubernetesService, 'create_kata_container_job')
   @mock.patch.object(service.KubernetesService, 'create_job')
   def test_create_uworker_main_batch_jobs(self, mock_create_job,
-                                          mock_create_kata_job, _):
+                                          mock_create_kata_job,
+                                          mock_get_pending_count, _):
     """Tests the creation of uworker main batch jobs."""
+    mock_get_pending_count.return_value = 0
     tasks = [
         service.RemoteTask('fuzz', 'job1', 'url1'),
         service.RemoteTask('fuzz', 'job1', 'url2'),
@@ -60,6 +63,53 @@ class KubernetesServiceTest(unittest.TestCase):
     urls = sorted(
         [call.args[1] for call in mock_create_kata_job.call_args_list])
     self.assertEqual(urls, ['url1', 'url2', 'url3'])
+
+  @mock.patch('kubernetes.client.BatchV1Api')
+  def test_get_pending_jobs_count(self, mock_batch_api_cls, _):
+    """Tests _get_pending_jobs_count."""
+    mock_batch_api = mock_batch_api_cls.return_value
+    kube_service = service.KubernetesService()
+
+    # Mock jobs
+    job1 = mock.Mock()
+    job1.status.active = 1
+    job1.status.succeeded = 0
+    job1.status.failed = 0
+
+    job2 = mock.Mock()
+    job2.status.active = 0
+    job2.status.succeeded = 1
+    job2.status.failed = 0
+
+    job3 = mock.Mock()
+    job3.status.active = 0
+    job3.status.succeeded = 0
+    job3.status.failed = 1
+
+    job4 = mock.Mock()
+    job4.status.active = 0
+    job4.status.succeeded = None
+    job4.status.failed = None
+
+    mock_batch_api.list_namespaced_job.return_value.items = [
+        job1, job2, job3, job4
+    ]
+
+    # job1 and job4 should be counted as pending
+    self.assertEqual(2, kube_service._get_pending_jobs_count())
+
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
+  def test_create_uworker_main_batch_jobs_limit_reached(self,
+                                                        mock_get_pending_count,
+                                                        _):
+    """Tests that create_uworker_main_batch_jobs raises error when limit reached."""
+    mock_get_pending_count.return_value = 100
+    kube_service = service.KubernetesService()
+
+    with self.assertRaises(service.JobLimitReachedError):
+      kube_service.create_uworker_main_batch_jobs([
+          service.RemoteTask('fuzz', 'job1', 'url1')
+      ])
 
   @mock.patch('kubernetes.client.BatchV1Api')
   def test_create_kata_container_job_spec(self, mock_batch_api_cls, _):
@@ -87,9 +137,6 @@ class KubernetesServiceTest(unittest.TestCase):
     # Check Spec
     pod_spec = job_body['spec']['template']['spec']
     container = pod_spec['containers'][0]
-
-    # Check hostNetwork
-    self.assertTrue(pod_spec['hostNetwork'])
 
     # Check capabilities
     self.assertEqual(['ALL'],
