@@ -134,16 +134,9 @@ class RemoteTaskGate(RemoteTaskInterface):
 
     results = []
     if kubernetes_tasks:
-      from clusterfuzz._internal.k8s.service import JobLimitReachedError
-      try:
-        results.extend(
-            self._kubernetes_service.create_uworker_main_batch_jobs(
-                kubernetes_tasks))
-      except JobLimitReachedError:
-        logs.warning('Kubernetes job limit reached. Not acking tasks.')
-        for task in kubernetes_tasks:
-          if task.pubsub_task:
-            task.pubsub_task.do_not_ack = True
+      results.extend(
+          self._kubernetes_service.create_uworker_main_batch_jobs(
+              kubernetes_tasks))
 
     if gcp_batch_tasks:
       results.extend(
