@@ -35,10 +35,11 @@ class RemoteTask:
   is used to enqueue tasks and track their state.
   """
 
-  def __init__(self, command, job_type, input_download_url):
+  def __init__(self, command, job_type, input_download_url, pubsub_task=None):
     self.command = command
     self.job_type = job_type
     self.input_download_url = input_download_url
+    self.pubsub_task = pubsub_task
 
 
 class RemoteTaskInterface(abc.ABC):
@@ -132,12 +133,20 @@ class RemoteTaskGate(RemoteTaskInterface):
     logs.info(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
 
     results = []
+    if kubernetes_tasks:
+      from clusterfuzz._internal.k8s.service import JobLimitReachedError
+      try:
+        results.extend(
+            self._kubernetes_service.create_uworker_main_batch_jobs(
+                kubernetes_tasks))
+      except JobLimitReachedError:
+        logs.warning('Kubernetes job limit reached. Not acking tasks.')
+        for task in kubernetes_tasks:
+          if task.pubsub_task:
+            task.pubsub_task.do_not_ack = True
+
     if gcp_batch_tasks:
       results.extend(
           self._gcp_batch_service.create_uworker_main_batch_jobs(
               gcp_batch_tasks))
-    if kubernetes_tasks:
-      results.extend(
-          self._kubernetes_service.create_uworker_main_batch_jobs(
-              kubernetes_tasks))
     return results

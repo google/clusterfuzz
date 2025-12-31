@@ -503,6 +503,7 @@ class PubSubTask(Task):
     }
 
     self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
+    self.do_not_ack = False
 
   def attribute(self, key):
     """Return attribute value."""
@@ -550,7 +551,8 @@ class PubSubTask(Task):
       leaser_thread.join()
 
     # If we get here the task succeeded in running. Acknowledge the message.
-    self._pubsub_message.ack()
+    if not self.do_not_ack:
+      self._pubsub_message.ack()
     track_task_end()
 
   def dont_retry(self):
@@ -587,7 +589,8 @@ class PubSubTTask(PubSubTask):
       leaser_thread.join()
 
     # If we get here the task succeeded in running. Acknowledge the message.
-    self._pubsub_message.ack()
+    if not self.do_not_ack:
+      self._pubsub_message.ack()
     track_task_end()
 
 
