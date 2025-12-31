@@ -29,37 +29,42 @@ class RemoteTaskGateTest(unittest.TestCase):
   def setUp(self):
     self.gate = RemoteTaskGate()
 
-  @mock.patch('clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
-  @mock.patch.object(k8s_service.KubernetesService, 'create_uworker_main_batch_jobs')
-  @mock.patch('clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs')
+  @mock.patch(
+      'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
+  @mock.patch.object(k8s_service.KubernetesService,
+                     'create_uworker_main_batch_jobs')
+  @mock.patch(
+      'clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs'
+  )
   def test_create_uworker_main_batch_jobs_k8s_limit_reached(
       self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
-    """Test that we fallback to NACKing when K8s limit is reached."""
+    """Test delegation when K8s limit is reached (handled by service)."""
     # Setup tasks to go to Kubernetes
     mock_get_frequency.return_value = {'kubernetes': 1.0}
-    
-    mock_pubsub_task = mock.Mock()
-    mock_pubsub_task.do_not_ack = False
-    
-    task = RemoteTask('fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
-    
-    # Simulate K8s limit reached
-    mock_k8s_create.side_effect = k8s_service.JobLimitReachedError()
-    
-    self.gate.create_uworker_main_batch_jobs([task])
-    
+
+    task = RemoteTask('fuzz', 'job1', 'url1')
+
+    # Simulate K8s service returning empty list (limit reached)
+    mock_k8s_create.return_value = []
+
+    result = self.gate.create_uworker_main_batch_jobs([task])
+
     # Verify K8s was attempted
     self.assertTrue(mock_k8s_create.called)
-    
-    # Verify GCP was NOT attempted for these tasks (because we nack instead of fallback)
-    self.assertFalse(mock_gcp_create.called)
-    
-    # Verify do_not_ack was set
-    self.assertTrue(mock_pubsub_task.do_not_ack)
 
-  @mock.patch('clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
-  @mock.patch.object(k8s_service.KubernetesService, 'create_uworker_main_batch_jobs')
-  @mock.patch('clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs')
+    # Verify GCP was NOT attempted
+    self.assertFalse(mock_gcp_create.called)
+
+    # Verify result is empty list
+    self.assertEqual(result, [])
+
+  @mock.patch(
+      'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
+  @mock.patch.object(k8s_service.KubernetesService,
+                     'create_uworker_main_batch_jobs')
+  @mock.patch(
+      'clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs'
+  )
   def test_create_uworker_main_batch_jobs_success(
       self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
     """Test successful creation."""
@@ -67,8 +72,8 @@ class RemoteTaskGateTest(unittest.TestCase):
     mock_pubsub_task = mock.Mock()
     mock_pubsub_task.do_not_ack = False
     task = RemoteTask('fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
-    
+
     self.gate.create_uworker_main_batch_jobs([task])
-    
+
     self.assertTrue(mock_k8s_create.called)
     self.assertFalse(mock_pubsub_task.do_not_ack)

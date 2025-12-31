@@ -41,9 +41,8 @@ class KubernetesServiceTest(unittest.TestCase):
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   @mock.patch.object(service.KubernetesService, 'create_kata_container_job')
   @mock.patch.object(service.KubernetesService, 'create_job')
-  def test_create_uworker_main_batch_jobs(self, mock_create_job,
-                                          mock_create_kata_job,
-                                          mock_get_pending_count, _):
+  def test_create_uworker_main_batch_jobs(
+      self, mock_create_job, mock_create_kata_job, mock_get_pending_count, _):
     """Tests the creation of uworker main batch jobs."""
     mock_get_pending_count.return_value = 0
     tasks = [
@@ -99,17 +98,20 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertEqual(2, kube_service._get_pending_jobs_count())
 
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
-  def test_create_uworker_main_batch_jobs_limit_reached(self,
-                                                        mock_get_pending_count,
-                                                        _):
-    """Tests that create_uworker_main_batch_jobs raises error when limit reached."""
+  def test_create_uworker_main_batch_jobs_limit_reached(
+      self, mock_get_pending_count, _):
+    """Tests that create_uworker_main_batch_jobs nacks when limit reached."""
     mock_get_pending_count.return_value = 100
     kube_service = service.KubernetesService()
 
-    with self.assertRaises(service.JobLimitReachedError):
-      kube_service.create_uworker_main_batch_jobs([
-          service.RemoteTask('fuzz', 'job1', 'url1')
-      ])
+    mock_pubsub_task = mock.Mock()
+    mock_pubsub_task.do_not_ack = False
+    task = service.RemoteTask(
+        'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
+
+    result = kube_service.create_uworker_main_batch_jobs([task])
+    self.assertEqual(result, [])
+    self.assertTrue(mock_pubsub_task.do_not_ack)
 
   @mock.patch('kubernetes.client.BatchV1Api')
   def test_create_kata_container_job_spec(self, mock_batch_api_cls, _):

@@ -51,10 +51,6 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
 ])
 
 
-class JobLimitReachedError(Exception):
-  """Raised when the job limit is reached."""
-
-
 def _get_config_names(remote_tasks: List[RemoteTask]):
   """"Gets the name of the configs for each batch_task. Returns a dict
 
@@ -330,7 +326,13 @@ class KubernetesService(RemoteTaskInterface):
     requirements to be processed together, which can improve efficiency.
     """
     if self._get_pending_jobs_count() >= 100:
-      raise JobLimitReachedError('Limit of 100 pending jobs reached.')
+      logs.warning(
+          f'Kubernetes job limit reached. Not acking {len(remote_tasks)} tasks.'
+      )
+      for task in remote_tasks:
+        if task.pubsub_task:
+          task.pubsub_task.do_not_ack = True
+      return []
 
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
