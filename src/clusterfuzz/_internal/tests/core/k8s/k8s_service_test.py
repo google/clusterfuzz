@@ -101,15 +101,17 @@ class KubernetesServiceTest(unittest.TestCase):
     """Tests that create_kata_container_job generates the correct spec."""
     mock_batch_api = mock_batch_api_cls.return_value
     kube_service = service.KubernetesService()
-    # Force _batch_api to be our mock (though init usually does it if we patched class before init)
-    # The patch is applied for this method, so init inside will use the mock class.
+    # Mock _create_service_account_if_needed
+    kube_service._create_service_account_if_needed = mock.Mock(
+        return_value='untrusted-worker')
 
     config = service.KubernetesJobConfig(
         job_type='test-job',
         docker_image='test-image',
         command='fuzz',
         disk_size_gb=10,
-        service_account_email='email',
+        service_account_email=
+        'untrusted-worker@clusterfuzz-development.iam.gserviceaccount.com',
         clusterfuzz_release='prod',
         is_kata=True)
 
@@ -134,6 +136,40 @@ class KubernetesServiceTest(unittest.TestCase):
     # Check shm size
     volumes = {v['name']: v for v in pod_spec['volumes']}
     self.assertEqual('1.9Gi', volumes['dshm']['emptyDir']['sizeLimit'])
+
+    # Check Service Account
+    self.assertEqual('untrusted-worker', pod_spec['serviceAccountName'])
+    kube_service._create_service_account_if_needed.assert_called_with(
+        'untrusted-worker@clusterfuzz-development.iam.gserviceaccount.com')
+
+  @mock.patch('kubernetes.client.BatchV1Api')
+  def test_create_job(self, mock_batch_api_cls, _):
+    """Tests create_job."""
+    mock_batch_api = mock_batch_api_cls.return_value
+    kube_service = service.KubernetesService()
+    kube_service._create_service_account_if_needed = mock.Mock(
+        return_value='test-sa')
+
+    config = service.KubernetesJobConfig(
+        job_type='test-job',
+        docker_image='test-image',
+        command='fuzz',
+        disk_size_gb=10,
+        service_account_email='test-email',
+        clusterfuzz_release='prod',
+        is_kata=False)
+
+    kube_service.create_job(config, 'input_url')
+
+    self.assertTrue(mock_batch_api.create_namespaced_job.called)
+    call_args = mock_batch_api.create_namespaced_job.call_args
+    job_body = call_args.kwargs['body']
+
+    # Check Service Account
+    self.assertEqual('test-sa',
+                     job_body['spec']['template']['spec']['serviceAccountName'])
+    kube_service._create_service_account_if_needed.assert_called_with(
+        'test-email')
 
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
