@@ -187,6 +187,10 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
                               'name': 'DISABLE_MOUNTS',
                               'value': 'true'
                           },
+                          {
+                              'name': 'UPDATE_WEB_TESTS',
+                              'value': 'False'
+                          },
                       ],
                       'securityContext': {
                           'privileged': True,
@@ -443,6 +447,10 @@ class KubernetesService(RemoteTaskInterface):
                             {
                                 'name': 'DISABLE_MOUNTS',
                                 'value': 'true'
+                            },
+                            {
+                                'name': 'UPDATE_WEB_TESTS',
+                                'value': 'False'
                             },
                         ]
                     }],
