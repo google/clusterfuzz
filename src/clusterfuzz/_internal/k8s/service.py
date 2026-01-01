@@ -131,7 +131,8 @@ def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
   return configs
 
 
-def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
+def _create_job_body(config: KubernetesJobConfig, input_url: str,
+                     service_account_name: str) -> dict:
   """Creates the body of a Kubernetes job."""
 
   job_name = config.job_type.replace('_', '-') + '-' + str(uuid.uuid4()).split(
@@ -147,6 +148,8 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
       'spec': {
           'template': {
               'spec': {
+                  'serviceAccountName':
+                      service_account_name,
                   'containers': [{
                       'name':
                           job_name,
@@ -280,6 +283,28 @@ class KubernetesService(RemoteTaskInterface):
     k8s_client.Configuration.set_default(configuration)
     logs.info("GKE credentials loaded successfully.")
 
+  def _create_service_account_if_needed(self,
+                                        service_account_email: str) -> str:
+    """Creates a Kubernetes Service Account if it doesn't exist."""
+    service_account_name = service_account_email.split('@')[0]
+    namespace = 'default'
+    try:
+      self._core_api.read_namespaced_service_account(service_account_name,
+                                                     namespace)
+      return service_account_name
+    except k8s_client.rest.ApiException as e:
+      if e.status != 404:
+        raise
+
+    logs.info(f'Creating Service Account {service_account_name} for '
+              f'{service_account_email}.')
+    metadata = k8s_client.V1ObjectMeta(
+        name=service_account_name,
+        annotations={'iam.gke.io/gcp-service-account': service_account_email})
+    body = k8s_client.V1ServiceAccount(metadata=metadata)
+    self._core_api.create_namespaced_service_account(namespace, body)
+    return service_account_name
+
   def create_job(self, config: KubernetesJobConfig, input_url: str) -> str:
     """Creates a Kubernetes job.
     Args:
@@ -289,8 +314,9 @@ class KubernetesService(RemoteTaskInterface):
     Returns:
       The name of the created Kubernetes job.
     """
-
-    job_body = _create_job_body(config, input_url)
+    service_account_name = self._create_service_account_if_needed(
+        config.service_account_email)
+    job_body = _create_job_body(config, input_url, service_account_name)
     self._batch_api.create_namespaced_job(body=job_body, namespace='default')
     return job_body['metadata']['name']
 
@@ -357,6 +383,8 @@ class KubernetesService(RemoteTaskInterface):
   def create_kata_container_job(self, config: KubernetesJobConfig,
                                 input_url: str) -> str:
     """Creates a Kubernetes job that runs in a Kata container."""
+    service_account_name = self._create_service_account_if_needed(
+        config.service_account_email)
     job_name = 'clusterfuzz-kata-job-' + str(uuid.uuid4()).split(
         '-', maxsplit=1)[0]
 
@@ -376,6 +404,8 @@ class KubernetesService(RemoteTaskInterface):
                 'spec': {
                     'runtimeClassName':
                         'kata',
+                    'serviceAccountName':
+                        service_account_name,
                     'dnsPolicy':
                         'ClusterFirstWithHostNet',
                     'containers': [{
