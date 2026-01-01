@@ -297,17 +297,14 @@ class KubernetesService(RemoteTaskInterface):
   def _get_pending_jobs_count(self) -> int:
     """Returns the number of pending jobs."""
     try:
-      # List all jobs in the default namespace
-      jobs = self._batch_api.list_namespaced_job(namespace='default')
-      count = 0
-      for job in jobs.items:
-        status = job.status
-        # If not succeeded and not failed, assume it is pending/running
-        if not (status.succeeded or status.failed):
-          count += 1
-      return count
+      pods = self._core_api.list_namespaced_pod(
+          namespace='default',
+          label_selector='app.kubernetes.io/name=clusterfuzz-kata-job',
+          field_selector='status.phase=Pending')
+      logs.info(f"Found {len(pods.items)} pending jobs.")
+      return len(pods.items)
     except Exception as e:
-      logs.error(f"Failed to list jobs: {e}")
+      logs.error(f"Failed to list pods: {e}")
       return 0
 
   def create_uworker_main_batch_job(self, module: str, job_type: str,
