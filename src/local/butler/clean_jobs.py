@@ -48,7 +48,9 @@ def execute(args):
       job_list = list(set([j.strip() for j in jobs.split('\n') if j.strip()]))
 
     # Get running pods older than 6 hours
-    print(f'Listing running jobs older than 6 hours in namespace \'{namespace}\'...')
+    print(
+        f'Listing running jobs older than 6 hours in namespace \'{namespace}\'...'
+    )
     running_cmd = (
         "kubectl get pods -n {namespace} "
         "--field-selector=status.phase=Running "
@@ -64,11 +66,11 @@ def execute(args):
     if running_pods:
       now = datetime.datetime.utcnow()
       cutoff_time = now - datetime.timedelta(hours=6)
-      
+
       for line in running_pods.split('\n'):
         if not line.strip():
           continue
-        
+
         parts = line.strip().split(',')
         if len(parts) != 2:
           continue
@@ -76,14 +78,15 @@ def execute(args):
         creation_timestamp_str, job_name = parts
         # Format from kubernetes: 2023-10-27T10:00:00Z
         try:
-            creation_time = datetime.datetime.strptime(creation_timestamp_str, "%Y-%m-%dT%H:%M:%SZ")
+          creation_time = datetime.datetime.strptime(creation_timestamp_str,
+                                                     "%Y-%m-%dT%H:%M:%SZ")
         except ValueError:
-            print(f"Error parsing date: {creation_timestamp_str}")
-            continue
+          print(f"Error parsing date: {creation_timestamp_str}")
+          continue
 
         if creation_time < cutoff_time:
-             if job_name:
-                job_list.append(job_name)
+          if job_name:
+            job_list.append(job_name)
 
     # Deduplicate combined list
     job_list = list(set(job_list))

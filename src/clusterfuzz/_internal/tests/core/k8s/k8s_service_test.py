@@ -124,6 +124,7 @@ class KubernetesServiceTest(unittest.TestCase):
     # Check Spec
     pod_spec = job_body['spec']['template']['spec']
     container = pod_spec['containers'][0]
+    self.assertEqual(21600, job_body['spec']['activeDeadlineSeconds'])
 
     # Check capabilities
     self.assertEqual(['ALL'],
@@ -164,6 +165,7 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertTrue(mock_batch_api.create_namespaced_job.called)
     call_args = mock_batch_api.create_namespaced_job.call_args
     job_body = call_args.kwargs['body']
+    self.assertEqual(21600, job_body['spec']['activeDeadlineSeconds'])
 
     # Check Service Account
     self.assertEqual('test-sa',
