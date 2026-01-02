@@ -37,7 +37,7 @@ from clusterfuzz._internal.remote_task import RemoteTaskInterface
 from clusterfuzz._internal.system import environment
 
 # See https://cloud.google.com/batch/quotas#job_limits
-MAX_CONCURRENT_VMS_PER_JOB = 1000
+MAX_PENDING_JOBS = 1000
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
@@ -353,7 +353,7 @@ class KubernetesService(RemoteTaskInterface):
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
-    if self._get_pending_jobs_count() >= 100:
+    if self._get_pending_jobs_count() >= MAX_PENDING_JOBS:
       logs.warning(
           f'Kubernetes job limit reached. Not acking {len(remote_tasks)} tasks.'
       )
