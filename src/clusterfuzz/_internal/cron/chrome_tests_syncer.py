@@ -44,6 +44,7 @@ TESTCASES_REPORT_INTERVAL = 2500
 STORED_TESTCASES_LIST = []
 
 NUMBER_OF_FUZZILLI_ARCHIVES = 9
+NUMBER_OF_FUZZILLI_IMPORT_ARCHIVES = 9
 NUMBER_OF_FUZZILLI_DIFF_FUZZ_ARCHIVES = 5
 
 
@@ -220,6 +221,8 @@ def create_fuzzilli_tests_directory(tests_directory):
 
   for i in range(1, NUMBER_OF_FUZZILLI_ARCHIVES + 1):
     process_fuzzilli_archive(fuzzilli_tests_directory, i)
+  for i in range(1, NUMBER_OF_FUZZILLI_IMPORT_ARCHIVES + 1):
+    process_fuzzilli_archive(fuzzilli_tests_directory, f'x64-importing-{i}')
   for i in range(1, NUMBER_OF_FUZZILLI_DIFF_FUZZ_ARCHIVES + 1):
     process_fuzzilli_archive(fuzzilli_tests_directory, f'diff-fuzz-{i}')
 
