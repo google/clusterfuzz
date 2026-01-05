@@ -14,14 +14,13 @@
 """Local butler command utilities."""
 
 from pathlib import Path
-from typing import Optional
 
 from casp.utils import path_utils
 
 
 def build_command(subcommand: str,
-                  butler_path: Optional[Path] = None,
-                  **kwargs: str) -> list[str]:
+                  butler_path: Path | None = None,
+                  **kwargs: str | None) -> list[str]:
   """Builds a butler command for local execution.
 
   Args:
@@ -47,6 +46,9 @@ def build_command(subcommand: str,
   command = ['python', str(butler_path), subcommand]
   for key, value in kwargs.items():
     key = key.replace('_', '-')
-    command.append(f'--{key}={value}')
+    if value is not None:
+      command.append(f'--{key}={value}')
+    else:
+      command.append(f'--{key}')
 
   return command

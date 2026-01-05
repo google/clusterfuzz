@@ -62,7 +62,9 @@ AUTOMOTIVE_RELEASE_CONFIGURATION = 'trunk_staging'
 
 AUTOMOTIVE_TARGET_LIST = ['seahawk_hwasan']
 
-NO_RELEASE_CONFIGURATION_TARGET_LIST = ['shiba_fullmte', 'husky_fullmte']
+NO_RELEASE_CONFIGURATION_TARGET_LIST = [
+    'shiba_fullmte', 'husky_fullmte', 'komodo_fullmte'
+]
 
 DEPRECATED_DEVICE_LIST = [
     'sailfish',  # Pixel
@@ -80,3 +82,7 @@ DEPRECATED_DEVICE_LIST = [
     'redfin',  # Pixel 5
     'barbet',  # Pixel 5a
 ]
+
+# Restrict pixel6 from picking up generic Android jobs to avoid
+# Binary Mismatch: Hence, 'ANDROID:PIXEL6' is added to the list.
+DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']

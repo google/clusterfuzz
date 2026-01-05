@@ -40,6 +40,8 @@ CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
     field_spec=[
         monitor.StringField('build_id'),
+        monitor.StringField('instance_id'),
+        monitor.BooleanField('is_candidate'),
         monitor.BooleanField('is_succeeded'),
     ])
 
@@ -144,7 +146,10 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
-        monitor.StringField('is_batch')
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -169,7 +174,10 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
-        monitor.StringField('is_batch')
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
     ],
 )
 

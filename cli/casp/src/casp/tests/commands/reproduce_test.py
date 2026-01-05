@@ -14,7 +14,7 @@
 """Tests for the reproduce command.
 
   For running all the tests, use (from the root of the project):
-  python -m unittest discover -s cli/casp/src/casp/tests -p test_reproduce.py -v
+  python -m unittest discover -s cli/casp/src/casp/tests -p reproduce_test.py -v
 """
 
 from pathlib import Path

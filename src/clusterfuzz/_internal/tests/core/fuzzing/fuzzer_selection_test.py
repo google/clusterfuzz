@@ -292,6 +292,39 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     argument, job = fuzzer_selection.get_fuzz_task_payload('linux')
     self.assertEqual(('right_fuzzer_1', 'job_2'), (argument, job))
 
+    android_mapping = data_types.FuzzerJob()
+    android_mapping.fuzzer = 'android_fuzzer'
+    android_mapping.job = 'job_android'
+    android_mapping.platform = 'ANDROID'
+    android_mapping.put()
+
+    pixel_mapping = data_types.FuzzerJob()
+    pixel_mapping.fuzzer = 'pixel_fuzzer'
+    pixel_mapping.job = 'job_pixel6'
+    pixel_mapping.platform = 'ANDROID:PIXEL6'
+    pixel_mapping.put()
+
+    data_types.FuzzerJobs(
+        platform='ANDROID', fuzzer_jobs=[android_mapping]).put()
+    data_types.FuzzerJobs(platform='ANDROID:PIXEL6', fuzzer_jobs=[]).put()
+
+    # Production Environment
+    if local_development == 'False':
+      argument, job = fuzzer_selection.get_fuzz_task_payload('ANDROID')
+      self.assertEqual(('android_fuzzer', 'job_android'), (argument, job))
+
+      # PIXEL6 bots must ignore jobs that are not explicitly marked as
+      # Pixel6-compatible.
+      argument, job = fuzzer_selection.get_fuzz_task_payload('ANDROID:PIXEL6')
+      self.assertEqual((None, None), (argument, job))
+    # Local Enviroment
+    else:
+      argument, job = fuzzer_selection.get_fuzz_task_payload('ANDROID')
+      self.assertEqual(('android_fuzzer', 'job_android'), (argument, job))
+
+      argument, job = fuzzer_selection.get_fuzz_task_payload('ANDROID:PIXEL6')
+      self.assertEqual(('pixel_fuzzer', 'job_pixel6'), (argument, job))
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdatePlatformForJobTest(unittest.TestCase):

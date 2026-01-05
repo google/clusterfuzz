@@ -11,12 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Js unittest command."""
+"""Kubernetes batch client."""
+from clusterfuzz._internal.remote_task import RemoteTaskInterface
 
-import click
 
+class KubernetesJobClient(RemoteTaskInterface):
+  """A remote task execution client for Kubernetes.
+  
+  This class is a placeholder for a future implementation of a remote task
+  execution client that uses Kubernetes. It is not yet implemented.
+  """
 
-@click.command(name='js_unittest', help='Run Javascript unit tests.')
-def cli():
-  """Run Javascript unit tests."""
-  click.echo('To be implemented...')
+  def create_job(self, spec, input_urls):
+    """Creates a Kubernetes job."""
+    raise NotImplementedError('Kubernetes batch client is not implemented yet.')

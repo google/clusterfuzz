@@ -208,11 +208,17 @@ def cleanup_unused_fuzz_targets_and_jobs():
   unused_target_jobs = data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run < last_run_cutoff)
   # The order by last_run DESC filter is from b/418807403
-  valid_target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
-          -data_types.FuzzTargetJob.last_run)
+  valid_target_jobs = list(
+      data_types.FuzzTargetJob.query(
+          data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
+              -data_types.FuzzTargetJob.last_run))
 
   to_delete = [t.key for t in unused_target_jobs]
+  num_fuzz_target_jobs_to_delete = len(to_delete)
+
+  logs.info(
+      f'{len(to_delete)} FuzzTargetJob entities are marked for deletion and'
+      f'{len(valid_target_jobs)} are considered valid.')
 
   valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
@@ -220,6 +226,10 @@ def cleanup_unused_fuzz_targets_and_jobs():
       to_delete.append(fuzz_target.key)
 
   ndb_utils.delete_multi(to_delete)
+  logs.info(
+      f'Deleted {num_fuzz_target_jobs_to_delete} FuzzTargetJob entities and '
+      f'{len(to_delete) - num_fuzz_target_jobs_to_delete} FuzzTarget entities. '
+      f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
 
 
 def get_jobs_and_platforms_for_project():
@@ -1090,6 +1100,14 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   issue.save(new_comment=update_message, notify=True)
 
 
+def _should_update_component_id(issue, component_id):
+  """Check whether updating the issue component id is needed."""
+  if not hasattr(issue, 'component_id'):
+    return False
+
+  return component_id and issue.component_id != component_id
+
+
 def update_component_labels_and_id(policy, testcase, issue):
   """Add components to the issue if needed."""
   if not issue:
@@ -1122,9 +1140,10 @@ def update_component_labels_and_id(policy, testcase, issue):
     if not found_component_in_issue:
       filtered_components.append(component)
 
-  if not filtered_components:
-    # If there are no new components to add, then we shouldn't make any changes
-    # to issue.
+  if not (filtered_components or
+          _should_update_component_id(issue, component_id)):
+    # If there are no new components to add and neither a component ID to
+    # update, then we shouldn't make any changes to issue.
     return
 
   # Don't run on issues we've already applied automatic components to in case

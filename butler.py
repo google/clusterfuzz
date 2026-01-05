@@ -98,6 +98,90 @@ def _setup_args_for_remote(parser):
   subparsers.add_parser('reboot', help='Reboot with `sudo reboot`.')
 
 
+def _add_run_subparser(toplevel_subparsers):
+  """Adds a parser for the `run` command."""
+  parser_run = toplevel_subparsers.add_parser(
+      'run', help='Run a one-off script against a datastore (e.g. migration).')
+  parser_run.add_argument(
+      'script_name',
+      help='The script module name under `./local/butler/scripts`.')
+  parser_run.add_argument(
+      '--script_args',
+      action='extend',
+      nargs='+',
+      help='Script specific arguments')
+  parser_run.add_argument(
+      '--non-dry-run',
+      action='store_true',
+      help='Run with actual datastore writes. Default to dry-run.')
+  parser_run.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+  parser_run.add_argument(
+      '--local', action='store_true', help='Run against local server instance.')
+
+
+def _add_package_subparser(toplevel_subparsers):
+  """Adds a parser for the `package` command."""
+  parser_package = toplevel_subparsers.add_parser(
+      'package', help='Package clusterfuzz with a staging revision')
+  parser_package.add_argument(
+      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
+  parser_package.add_argument(
+      '-r',
+      '--release',
+      choices=['prod', 'candidate', 'chrome-tests-syncer'],
+      default='prod')
+
+
+def _add_bootstrap_subparser(toplevel_subparsers):
+  """Adds a parser for the `bootstrap` command."""
+  toplevel_subparsers.add_parser(
+      'bootstrap',
+      help=('Install all required dependencies for running an appengine, a bot,'
+            'and a mapreduce locally.'))
+
+
+def _add_py_unittest_subparser(toplevel_subparsers):
+  """Adds a parser for the `py_unittest` command."""
+  parser_py_unittest = toplevel_subparsers.add_parser(
+      'py_unittest', help='Run Python unit tests.')
+  parser_py_unittest.add_argument(
+      '-p', '--pattern', help='Pattern for test files. Default is *_test.py.')
+  parser_py_unittest.add_argument(
+      '-u',
+      '--unsuppress-output',
+      action='store_true',
+      help='Unsuppress output from `print`. Good for debugging.')
+  parser_py_unittest.add_argument(
+      '-m', '--parallel', action='store_true', help='Run tests in parallel.')
+  parser_py_unittest.add_argument(
+      '-v', '--verbose', action='store_true', help='Print logs from tests.')
+  parser_py_unittest.add_argument(
+      '-t',
+      '--target',
+      required=True,
+      choices=['appengine', 'core', 'modules', 'cli'])
+  parser_py_unittest.add_argument(
+      '-c', '--config-dir', help='Config dir to use for module tests.')
+
+
+def _add_lint_subparser(toplevel_subparsers):
+  """Adds a parser for the `lint` command."""
+  parser = toplevel_subparsers.add_parser(
+      'lint', help='Lint changed code in current branch.')
+  parser.add_argument(
+      '--type-check',
+      help='Also run the type checker on changed files.',
+      action='store_true',
+      default=False)
+  parser.add_argument(
+      '--path',
+      dest='path',
+      default=None,
+      help=('The file or directory to lint. Default is to lint changed '
+            'files in current branch'))
+
+
 def _add_format_subparser(toplevel_subparsers):
   """Adds a parser for the `format` command."""
   parser = toplevel_subparsers.add_parser(
@@ -291,29 +375,6 @@ def main():
       help='Force logs to be local-only.')
   subparsers = parser.add_subparsers(dest='command')
 
-  subparsers.add_parser(
-      'bootstrap',
-      help=('Install all required dependencies for running an appengine, a bot,'
-            'and a mapreduce locally.'))
-
-  parser_py_unittest = subparsers.add_parser(
-      'py_unittest', help='Run Python unit tests.')
-  parser_py_unittest.add_argument(
-      '-p', '--pattern', help='Pattern for test files. Default is *_test.py.')
-  parser_py_unittest.add_argument(
-      '-u',
-      '--unsuppress-output',
-      action='store_true',
-      help='Unsuppress output from `print`. Good for debugging.')
-  parser_py_unittest.add_argument(
-      '-m', '--parallel', action='store_true', help='Run tests in parallel.')
-  parser_py_unittest.add_argument(
-      '-v', '--verbose', action='store_true', help='Print logs from tests.')
-  parser_py_unittest.add_argument(
-      '-t', '--target', required=True, choices=['appengine', 'core', 'modules'])
-  parser_py_unittest.add_argument(
-      '-c', '--config-dir', help='Config dir to use for module tests.')
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(
@@ -322,24 +383,6 @@ def main():
       action='store_true',
       help=('Do not close browser when tests '
             'finish. Good for debugging.'))
-
-  parser_lint = subparsers.add_parser(
-      'lint', help='Lint changed code in current branch.')
-  parser_lint.add_argument(
-      '--type-check',
-      help='Also run the type checker on changed files.',
-      action='store_true',
-      default=False)
-
-  parser_package = subparsers.add_parser(
-      'package', help='Package clusterfuzz with a staging revision')
-  parser_package.add_argument(
-      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
-  parser_package.add_argument(
-      '-r',
-      '--release',
-      choices=['prod', 'candidate', 'chrome-tests-syncer'],
-      default='prod')
 
   parser_deploy = subparsers.add_parser('deploy', help='Deploy to Appengine')
   parser_deploy.add_argument(
@@ -384,25 +427,6 @@ def main():
       '--log-level', default='info', help='Logging level')
   parser_run_server.add_argument(
       '--clean', action='store_true', help='Clear existing database data.')
-
-  parser_run = subparsers.add_parser(
-      'run', help='Run a one-off script against a datastore (e.g. migration).')
-  parser_run.add_argument(
-      'script_name',
-      help='The script module name under `./local/butler/scripts`.')
-  parser_run.add_argument(
-      '--script_args',
-      action='extend',
-      nargs='+',
-      help='Script specific arguments')
-  parser_run.add_argument(
-      '--non-dry-run',
-      action='store_true',
-      help='Run with actual datastore writes. Default to dry-run.')
-  parser_run.add_argument(
-      '-c', '--config-dir', required=True, help='Path to application config.')
-  parser_run.add_argument(
-      '--local', action='store_true', help='Run against local server instance.')
 
   parser_run_bot = subparsers.add_parser(
       'run_bot', help='Run a local clusterfuzz bot.')
@@ -454,6 +478,11 @@ def main():
       default='us-central',
       help='Location for App Engine.')
 
+  _add_run_subparser(subparsers)
+  _add_package_subparser(subparsers)
+  _add_bootstrap_subparser(subparsers)
+  _add_py_unittest_subparser(subparsers)
+  _add_lint_subparser(subparsers)
   _add_format_subparser(subparsers)
   _add_integration_tests_subparsers(subparsers)
   _add_weights_subparser(subparsers)

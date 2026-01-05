@@ -38,6 +38,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task_knobs
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
@@ -425,13 +426,15 @@ class _TrackFuzzTime:
             'timeout': self.timeout,
             'platform': environment.platform(),
             'is_batch': environment.is_uworker(),
+            'runtime': environment.get_runtime().value,
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'job': self.job_type,
             'timeout': self.timeout,
             'platform': environment.platform(),
-            'is_batch': environment.is_uworker()
+            'is_batch': environment.is_uworker(),
+            'runtime': environment.get_runtime().value
         })
 
 
@@ -2095,6 +2098,10 @@ def _get_fuzz_target(uworker_input):
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
+  if not engine.get(uworker_input.fuzzer_name):
+    update_task.update_tests_if_needed(
+        uworker_input.fuzz_task_input.web_tests_url)
+
   # Sets fuzzing logs context before running the fuzzer.
   fuzz_target = _get_fuzz_target(uworker_input)
   with logs.fuzzer_log_context(uworker_input.fuzzer_name,
@@ -2189,6 +2196,11 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
             use_backup=True).serialize())
 
   fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
+  web_tests_url = environment.get_value('WEB_TESTS_URL')
+  if web_tests_url:
+    fuzz_task_input.web_tests_url = storage.get_signed_download_url(
+        web_tests_url)
+
   for _ in range(MAX_CRASHES_UPLOADED):
     url = fuzz_task_input.crash_upload_urls.add()
     url.key = blobs.generate_new_blob_name()
