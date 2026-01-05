@@ -261,8 +261,23 @@ def _add_reproduce_subparser(toplevel_subparsers):
   parser.add_argument(
       '-t',
       '--testcase-id',
-      required=True,
       help='The testcase ID to reproduce.')
+  parser.add_argument(
+      '--testcase-path',
+      help='Path to the testcase file (for local reproduction without ID).')
+  parser.add_argument(
+      '--target-name',
+      help='Fuzz target name (required if testcase-id is not provided).')
+  parser.add_argument(
+      '--job-name',
+      help='Job name (required if testcase-id is not provided).')
+  parser.add_argument(
+      '--revision',
+      type=int,
+      help='Revision (required if testcase-id is not provided).')
+  parser.add_argument(
+      '--build-dir',
+      help='Path to the build directory (optional override).')
 
 
 def main():

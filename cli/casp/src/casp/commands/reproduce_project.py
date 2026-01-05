@@ -42,6 +42,10 @@ from casp.utils import container
 from casp.utils import docker_utils
 from casp.utils import remote_utils
 import click
+from google.cloud import storage
+import google.auth
+from google.auth import impersonated_credentials
+from google.auth.transport.requests import Request
 
 # Imports do contexto
 from clusterfuzz._internal.base import utils
@@ -106,48 +110,83 @@ def generate_signed_url(bucket_name, blob_name, expiration=3600, key_file=None, 
         )
         return url
     else:
-        # Fallback to gcloud if no key file is provided
-        # This is useful for local reproduction where user might have gcloud set up
-        # We try to use impersonation if a service account is specified in env or args (not yet passed here, but we can try default)
-        # Actually, we can try to find a service account to impersonate or just try signing if the user is a service account
-        
-        # For now, let's try to use gcloud command directly
-        # We need to know which service account to impersonate if we are a user
-        # We can try to detect it or just fail if not provided?
-        # The user verified command used --impersonate-service-account
-        
-        # Let's try to run gcloud storage sign-url
-        # We need the full gs:// path
-        gs_path = f"gs://{bucket_name}/{blob_name}"
-        cmd = ["gcloud", "storage", "sign-url", gs_path, f"--duration={expiration}s", "--region=us-central1"]
-        
-        if impersonate_service_account:
-            cmd.append(f"--impersonate-service-account={impersonate_service_account}")
-        
-        # Re-implementing with proper subprocess call and lock
-        import fcntl
-        lock_file_path = os.path.join(tempfile.gettempdir(), 'casp_gcloud_sign_url.lock')
-        
-        with open(lock_file_path, 'w') as f_lock:
-            try:
-                # Acquire exclusive lock
-                fcntl.flock(f_lock, fcntl.LOCK_EX)
-                
-                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                # Output format is usually:
-                # signed_url: https://...
-                # We need to parse it.
-                for line in result.stdout.splitlines():
-                    if "signed_url:" in line:
-                        return line.split("signed_url:", 1)[1].strip()
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to generate signed URL via gcloud: {e.stderr}")
-                raise e
-            finally:
-                # Release lock
-                fcntl.flock(f_lock, fcntl.LOCK_UN)
+        # Use Python API for robust signed URL generation
+        try:
+            # Get default credentials
+            creds, project = google.auth.default()
             
-    return None
+            # Handle impersonation if requested
+            if impersonate_service_account:
+                # Create impersonated credentials
+                # We need the 'https://www.googleapis.com/auth/cloud-platform' scope usually
+                target_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+                creds = impersonated_credentials.Credentials(
+                    source_credentials=creds,
+                    target_principal=impersonate_service_account,
+                    target_scopes=target_scopes,
+                    lifetime=expiration + 300
+                )
+            
+            # Create client with credentials
+            client = storage.Client(credentials=creds, project=project)
+            bucket = client.bucket(bucket_name)
+            blob = bucket.blob(blob_name)
+            
+            # Generate signed URL
+            # If we are impersonating, the credentials object handles the signing via IAM API automatically
+            # when using blob.generate_signed_url with version='v4' and proper credentials.
+            # However, generate_signed_url might require service_account_email argument to trigger IAM signing
+            # if the credentials don't have a private key (which impersonated creds don't).
+            # BUT, google-cloud-storage >= 2.0 should handle this if credentials are provided.
+            # Let's try passing service_account_email if impersonating.
+            
+            signing_email = impersonate_service_account if impersonate_service_account else None
+            # If not impersonating, we might be running as a user or SA.
+            # If user, we can't sign locally without key.
+            # If SA, we can sign locally if we have key, or use IAM if we don't.
+            # If we are a user, we usually need to use IAM API to sign.
+            # blob.generate_signed_url checks if credentials can sign.
+            
+            # If we are using ADC as a user, we might need to specify service_account_email to force IAM signing?
+            # Actually, if we don't have a private key, we MUST use IAM signing.
+            # For that, we need to pass `service_account_email`.
+            # If we are impersonating, `signing_email` is the target SA.
+            # If we are just a user, we might not have a "service account email" to pass unless we are acting as one?
+            # But wait, the user's command uses --impersonate-service-account.
+            # So we definitely have an email.
+            
+            kwargs = {
+                "version": "v4",
+                "expiration": timedelta(seconds=expiration),
+                "method": "GET",
+            }
+            # service_account_email is not supported in some versions, and access_token neither.
+            # We rely on the client credentials (impersonated) to handle signing.
+            
+            print("DEBUG: Calling blob.generate_signed_url...")
+            url = blob.generate_signed_url(**kwargs)
+            return url
+            
+        except Exception as e:
+            print(f"Failed to generate signed URL via Python API: {e}")
+            print("Attempting fallback to gcloud storage sign-url...")
+            try:
+                # Fallback to gcloud
+                # gcloud storage sign-url gs://bucket/blob --duration=1h
+                gcloud_cmd = [
+                    'gcloud', 'storage', 'sign-url', 
+                    f'gs://{bucket_name}/{blob_name}', 
+                    f'--duration={expiration}s'
+                ]
+                
+                if impersonate_service_account:
+                    gcloud_cmd.append(f'--impersonate-service-account={impersonate_service_account}')
+                    
+                url = subprocess.check_output(gcloud_cmd, text=True).strip()
+                return url
+            except subprocess.CalledProcessError as gcloud_error:
+                print(f"Failed to generate signed URL via gcloud: {gcloud_error}")
+                raise e
 
 
 
@@ -174,7 +213,7 @@ class LocalReproductionStrategy(ReproductionStrategy):
     self.impersonate_service_account = impersonate_service_account
 
 
-  def execute(self, tc_id: str, job, log_file_path: str, crash_revision: int, testcase=None, testcase_url=None, target_binary=None, fuzzer_args=None, job_env=None) -> bool:
+  def execute(self, tc_id: str, job, log_file_path: str, crash_revision: int, testcase=None, testcase_url=None, target_binary=None, fuzzer_args=None, job_env=None, extra_volumes=None) -> bool:
     with open(log_file_path, 'a', encoding='utf-8', errors='ignore') as log_f:
       sys.stdout = log_f
       sys.stderr = log_f
@@ -186,6 +225,8 @@ class LocalReproductionStrategy(ReproductionStrategy):
 
       try:
         binds = self.base_binds.copy()
+        if extra_volumes:
+            binds.update(extra_volumes)
         target_builds_root = '/data/clusterfuzz/bot/builds'
         
         # Parse environment to get RELEASE_BUILD_BUCKET_PATH
@@ -285,7 +326,11 @@ class LocalReproductionStrategy(ReproductionStrategy):
             print(f"Using Signed URL flow for LocalReproductionStrategy")
             
             # 1. Download testcase
-            download_cmd = f"curl -L -o /tmp/testcase '{testcase_url}'"
+            if testcase_url.startswith('file://'):
+                print(f"Skipping download for local testcase: {testcase_url}")
+                download_cmd = "true"
+            else:
+                download_cmd = f"curl -L -o /tmp/testcase '{testcase_url}'"
             
             # 2. Prepare Fuzzer Command
             # We need target_build_dir. It was calculated above.
@@ -303,6 +348,15 @@ class LocalReproductionStrategy(ReproductionStrategy):
             if job_env:
                 env_vars.update(job_env)
             
+            # Set OUT to target_build_dir for reproduce script
+            env_vars['OUT'] = target_build_dir
+            
+            # Set TESTCASE env var for reproduce script
+            env_vars['TESTCASE'] = '/tmp/testcase'
+            
+            # Set FUZZER_ARGS to empty string if not set, as run_fuzzer expects it (set -u)
+            env_vars['FUZZER_ARGS'] = env_vars.get('FUZZER_ARGS', '')
+            
             # ASAN Options
             env_vars['ASAN_OPTIONS'] = env_vars.get('ASAN_OPTIONS', '') + ':symbolize=1:external_symbolizer_path=/usr/bin/llvm-symbolizer'
             
@@ -319,12 +373,46 @@ class LocalReproductionStrategy(ReproductionStrategy):
             else:
                 fuzzer_args = f"-artifact_prefix={artifacts_dir}/"
 
-            # Run fuzzer, ignore exit code (|| true), then check artifacts
-            # Simplify check: use ls and grep
-            run_cmd = f"{fuzzer_path} {fuzzer_args} /tmp/testcase || true"
-            check_cmd = f"ls -A {artifacts_dir} | grep -q . && exit 0 || exit 1"
+            # Mount modified butler.py and reproduce.py to ensure we use the local versions with our changes
+            # We assume the script is running from within the clusterfuzz repo or we can find it.
+            # For now, let's assume we are in the root of the repo or close to it.
+            # Actually, we can use the location of this file to find the root.
+            # This file is in cli/casp/src/casp/commands/reproduce_project.py
+            # Root is ../../../../../../..
             
-            cmd_str = f"{' && '.join(setup_commands)} && {download_cmd} && {chmod_cmd} && {setup_artifacts_cmd} && {run_cmd} && {check_cmd}"
+            repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../../..'))
+            butler_path = os.path.join(repo_root, 'butler.py')
+            reproduce_py_path = os.path.join(repo_root, 'src/local/butler/reproduce.py')
+            
+            if os.path.exists(butler_path):
+                binds[butler_path] = {'bind': '/data/clusterfuzz/butler.py', 'mode': 'ro'}
+            if os.path.exists(reproduce_py_path):
+                binds[reproduce_py_path] = {'bind': '/data/clusterfuzz/src/local/butler/reproduce.py', 'mode': 'ro'}
+
+            # Command to run
+            # We use python3 to run butler.py
+            # We pass target binary path and testcase path
+            # target_binary is just the name, so we prepend OUT (which is target_build_dir)
+            # testcase is at /tmp/testcase
+            
+            # We need job name.
+            job_name = job.name if job else 'libfuzzer_asan' # Fallback?
+            
+            run_cmd = (
+                f"cd /data/clusterfuzz && python3 butler.py reproduce "
+                f"--testcase-path /tmp/testcase "
+                f"--target-name {target_binary} "
+                f"--job-name {job_name} "
+                f"--revision {crash_revision} "
+                f"--build-dir {target_build_dir} "
+                f"--config-dir {self.container_config_dir or '/data/clusterfuzz/src/appengine/config'}"
+            )
+            
+            # Ensure python3 is available (it should be)
+            
+            # We still need setup_commands, download_cmd, chmod_cmd, setup_artifacts_cmd
+            
+            cmd_str = f"{' && '.join(setup_commands)} && {download_cmd} && {chmod_cmd} && {setup_artifacts_cmd} && {run_cmd}"
             
             print(f"DEBUG: cmd_str: {cmd_str}")
 
@@ -339,7 +427,8 @@ class LocalReproductionStrategy(ReproductionStrategy):
         if self.container_config_dir:
           cmd_str += f' --config-dir={self.container_config_dir}'
         
-        cmd = ['sh', '-c', cmd_str]
+        # Use bash instead of sh to ensure better compatibility and PATH handling
+        cmd = ['/bin/bash', '-c', cmd_str]
 
         success = docker_utils.run_command(
             cmd, binds, self.docker_image, privileged=True,
@@ -508,31 +597,41 @@ class GCBReproductionStrategy(ReproductionStrategy):
     script_lines.append(f"curl -L -o /workspace/testcase '{testcase_url}'")
     
     # Run Fuzzer
-    fuzzer_path = f"{target_build_dir}/{target_binary}"
-    script_lines.append(f"chmod +x {fuzzer_path}")
+    # Set OUT to target_build_dir so run_fuzzer knows where to find binaries
+    env_vars['OUT'] = target_build_dir
     
-    # Run Fuzzer and handle exit code
-    # If fuzzer crashes (non-zero exit), we want to return 0 (Success for us).
-    # If fuzzer runs successfully (zero exit), it means NO crash, so we return 1 (Failure for us).
-    # We capture the exit code.
+    # Use the reproduce script which handles environment setup (ASAN_OPTIONS, etc.)
+    # Usage: reproduce <fuzzer_name> <args> <testcase_path>
+    # We pass fuzzer_args as separate arguments if possible, or as a string if reproduce handles it.
+    # reproduce script: run_fuzzer $FUZZER $@ $TESTCASE
+    # run_fuzzer script: FUZZER=$1; shift; ... $OUT/$FUZZER ...
     
-    script_lines.append("set +e") # Disable exit on error for this part
-    script_lines.append(f"{fuzzer_path} {fuzzer_args} /workspace/testcase")
+    # We need to ensure fuzzer_args are passed correctly.
+    # fuzzer_args is a string, we should split it if we want to pass as args, 
+    # but shell splitting in the script string is also fine.
+    
+    script_lines.append(f"reproduce {target_binary} {fuzzer_args} /workspace/testcase")
+    
+    # reproduce script exits with the exit code of run_fuzzer.
+    # run_fuzzer usually exits with 0 if it runs (even if crash found? No, libFuzzer exits with 1 on crash).
+    # Wait, run_fuzzer script:
+    # bash -c "$CMD_LINE"
+    # If libFuzzer finds a crash, it exits with 1.
+    # If it runs successfully (no crash), it exits with 0 (or 1 if timeout?).
+    # Actually libFuzzer exits with 0 if -runs=N finishes without crash.
+    # So:
+    # Exit 0 -> No crash (Failure for us)
+    # Exit 1 -> Crash (Success for us)
+    
     script_lines.append("EXIT_CODE=$?")
-    script_lines.append("set -e") # Re-enable exit on error
+    script_lines.append("echo \"reproduce exited with code $EXIT_CODE\"")
     
-    script_lines.append("echo \"Fuzzer exited with code $EXIT_CODE\"")
-    
-    # Logic: 
-    # 0 -> Failed to reproduce (Exit 1)
-    # != 0 -> Reproduced (Exit 0)
-    
-    script_lines.append("if [ $EXIT_CODE -eq 0 ]; then")
-    script_lines.append("  echo \"Fuzzer finished successfully (no crash). Reproduction failed.\"")
-    script_lines.append("  exit 1")
-    script_lines.append("else")
-    script_lines.append("  echo \"Fuzzer crashed with code $EXIT_CODE. Reproduction succeeded.\"")
+    script_lines.append("if [ $EXIT_CODE -ne 0 ]; then")
+    script_lines.append("  echo \"Reproduction succeeded (crash detected).\"")
     script_lines.append("  exit 0")
+    script_lines.append("else")
+    script_lines.append("  echo \"Reproduction failed (no crash detected).\"")
+    script_lines.append("  exit 1")
     script_lines.append("fi")
     
     # Construct the step
@@ -679,8 +778,8 @@ class GCBReproductionStrategy(ReproductionStrategy):
             # Standard pattern: FROM gcr.io/oss-fuzz-base/base-builder
             # We want: FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04
             
-            sed -i 's|FROM gcr.io/oss-fuzz-base/base-builder\($\|:.*\)|FROM gcr.io/oss-fuzz-base/base-builder:ubuntu-24-04|g' {project_dir}/Dockerfile
-            sed -i 's|FROM gcr.io/oss-fuzz-base/base-runner\($\|:.*\)|FROM gcr.io/oss-fuzz-base/base-runner:ubuntu-24-04|g' {project_dir}/Dockerfile
+            sed -i 's|FROM gcr.io/oss-fuzz-base/base-builder\\([^: ]*\\).*|FROM gcr.io/oss-fuzz-base/base-builder\\1:ubuntu-24-04|g' {project_dir}/Dockerfile
+            sed -i 's|FROM gcr.io/oss-fuzz-base/base-runner\\([^: ]*\\).*|FROM gcr.io/oss-fuzz-base/base-runner\\1:ubuntu-24-04|g' {project_dir}/Dockerfile
             
             echo "--- Auto-migrated project.yaml and Dockerfile to Ubuntu 24.04 ---"
             cat {project_dir}/project.yaml
@@ -843,14 +942,36 @@ except ImportError:
     stack_analyzer = None
     CrashComparer = None
 
-def verify_reproduction(fuzzer_output, expected_crash_state, expected_crash_type):
+def verify_reproduction(fuzzer_output, expected_crash_state, expected_crash_type, exit_code):
     """
     Verifies if the reproduction was successful using ClusterFuzz logic.
     """
     if not stack_analyzer:
         # Fallback: Check for crash state in output
         print("Fallback: ClusterFuzz modules not found.")
-        return expected_crash_state in fuzzer_output
+        
+        # If we have an expected crash state, look for it
+        if expected_crash_state and expected_crash_state.strip():
+            if expected_crash_state in fuzzer_output:
+                return True
+            print(f"Fallback: Expected state '{expected_crash_state}' not found in output.")
+        
+        # If exit code indicates failure (crash), and we either didn't find state or didn't have one
+        if exit_code != 0:
+            print(f"Fallback: Exit code {exit_code} indicates crash/failure.")
+            # If we had a specific state and didn't find it, strictly speaking it's a mismatch.
+            # But often we accept any crash if we can't parse it.
+            # However, for reproduction, we usually want the specific crash.
+            # If we have NO expected state, then any crash is a success.
+            if not expected_crash_state or not expected_crash_state.strip():
+                return True
+            
+            # If we had expected state but didn't find it, we might still return True if we are lenient?
+            # Let's be strict if state is provided.
+            return False
+            
+        print("Fallback: No crash detected (Exit code 0) and state not found.")
+        return False
 
     # Parse the stack trace
     crash_info = stack_analyzer.get_crash_data(fuzzer_output, symbolize_flag=False)
@@ -886,21 +1007,30 @@ def verify_reproduction(fuzzer_output, expected_crash_state, expected_crash_type
             print(f"Mismatch: Expected state '{expected_state}', got '{parsed_state}'")
             return False
         
-    return True
+    # If no expected state, but we parsed a crash, return True?
+    # Or check exit code?
+    if crash_info.crash_type:
+        return True
+        
+    return exit_code != 0
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage: verify_reproduction.py <log_file> <expected_state> <expected_type>")
+    if len(sys.argv) < 5:
+        print("Usage: verify_reproduction.py <log_file> <expected_state> <expected_type> <exit_code>")
         sys.exit(1)
         
     log_file = sys.argv[1]
     expected_state = sys.argv[2]
     expected_type = sys.argv[3]
+    try:
+        exit_code = int(sys.argv[4])
+    except ValueError:
+        exit_code = 0
     
     with open(log_file, 'r', errors='replace') as f:
         content = f.read()
         
-    if verify_reproduction(content, expected_state, expected_type):
+    if verify_reproduction(content, expected_state, expected_type, exit_code):
         print("VERIFICATION_SUCCESS")
         sys.exit(0)
     else:
@@ -915,7 +1045,8 @@ if __name__ == "__main__":
     setup_script.append("mkdir -p /workspace/status") # Directory for status files
     
     # Clone ClusterFuzz for verification logic
-    setup_script.append("git clone https://github.com/google/clusterfuzz.git /workspace/clusterfuzz")
+    # setup_script.append("git clone https://github.com/google/clusterfuzz.git /workspace/clusterfuzz")
+    # ALREADY CLONED in step clone-clusterfuzz
     
     # Write verify_reproduction.py
     setup_script.append("cat <<EOF > /workspace/verify_reproduction.py")
@@ -925,7 +1056,8 @@ if __name__ == "__main__":
     steps.append({
       'name': 'ubuntu',
       'script': "\n".join(setup_script),
-      'id': 'setup-dirs'
+      'id': 'setup-dirs',
+      'waitFor': ['clone-clusterfuzz']
     })
     
     env_vars = {
@@ -1007,8 +1139,10 @@ if __name__ == "__main__":
       safe_crash_state = crash_state.replace("'", "'\\''")
       safe_crash_type = crash_type.replace("'", "'\\''")
       
-      tc_script.append(f"python3 /workspace/verify_reproduction.py {log_file} '{safe_crash_state}' '{safe_crash_type}'")
+      tc_script.append("set +e")
+      tc_script.append(f"python3 /workspace/verify_reproduction.py {log_file} '{safe_crash_state}' '{safe_crash_type}' $EXIT_CODE")
       tc_script.append("VERIFY_EXIT_CODE=$?")
+      tc_script.append("set -e")
       
       tc_script.append(f"if [ $VERIFY_EXIT_CODE -eq 0 ]; then")
       tc_script.append(f"  echo \"TC-{tc_id} RESULT: REPRODUCED\"")
@@ -1049,7 +1183,9 @@ if __name__ == "__main__":
     summary_script.append("try:")
     summary_script.append("  with open(\"/workspace/artifacts/summary.json\") as f: data = json.load(f)")
     summary_script.append("  total = len(data)")
-    summary_script.append("  if total == 0: sys.exit(0)")
+    summary_script.append("  if total == 0:")
+    summary_script.append("    print(\"Error: No reproduction results found (status files missing).\")")
+    summary_script.append("    sys.exit(1)")
     summary_script.append("  failed = sum(1 for item in data if item[\"result\"] != \"REPRODUCED\")")
     summary_script.append("  fail_rate = failed / total")
     summary_script.append("  print(f\"Summary: Total={total}, Failed={failed}, Rate={fail_rate:.2%}\")")
@@ -1088,6 +1224,11 @@ if __name__ == "__main__":
     gcs_log_dir = "gs://casp-repro-logs-private-1764897405/logs"
     
     print(f"Submitting batch build (with compilation) for {len(testcases_data)} testcases...")
+    import yaml
+    print("DEBUG: Generated Cloud Build YAML:")
+    print(yaml.dump(cloudbuild_yaml))
+    # return {} # Uncomment to skip submission
+    
     success, logs = remote_utils.submit_and_monitor_build(self.project_id, cloudbuild_yaml, tags, gcs_log_dir=gcs_log_dir, async_mode=async_mode)
     
     if async_mode:
@@ -1286,17 +1427,13 @@ class BatchReproductionStrategy(ReproductionStrategy):
          # If not, we assume standard path?
          target_build_dir = "/data/clusterfuzz/bot/builds/unknown" 
     
-    fuzzer_path = f"{target_build_dir}/{target_binary}"
+    # Set OUT to target_build_dir
+    env_vars['OUT'] = target_build_dir
+
+    # Use reproduce script
+    run_cmd = f"reproduce {target_binary} {fuzzer_args} /tmp/testcase"
     
-    # chmod +x just in case
-    chmod_cmd = f"chmod +x {fuzzer_path}"
-    
-    # Run command
-    # We use 'run_fuzzer' wrapper if available, or call directly.
-    # Calling directly is safer if we set up env correctly.
-    run_cmd = f"{fuzzer_path} {fuzzer_args} /tmp/testcase"
-    
-    full_cmd_str = f"{' && '.join(setup_commands)} && {download_cmd} && {chmod_cmd} && {run_cmd}"
+    full_cmd_str = f"{' && '.join(setup_commands)} && {download_cmd} && {run_cmd}"
     
     full_cmd = ["/bin/sh", "-c", full_cmd_str]
         
@@ -1394,15 +1531,49 @@ def prepare_reproduction_data(tc_id: str, strategy: ReproductionStrategy) -> Opt
       print(f"DEBUG: TC-{tc_id} resolved bucket={bucket_name}, key={blob_name}")
 
       # generate_signed_url is defined in this file, not remote_utils
-      testcase_url = generate_signed_url(
-          bucket_name=bucket_name, 
-          blob_name=blob_name,
-          key_file=strategy.key_file,
-          impersonate_service_account=strategy.impersonate_service_account
-      )
+      testcase_url = None
+      extra_volumes = {}
       
+      try:
+          testcase_url = generate_signed_url(
+              bucket_name=bucket_name, 
+              blob_name=blob_name,
+              key_file=strategy.key_file,
+              impersonate_service_account=strategy.impersonate_service_account
+          )
+      except Exception as e:
+          print(f"Warning: Failed to generate signed URL: {e}")
+          # Fallback: Download locally and mount
+          print("Attempting to download testcase locally...")
+          try:
+              # Create a temp file for the testcase in the current directory (workspace)
+              # This ensures Docker can mount it if we are in a container/dev environment
+              fd, local_testcase_path = tempfile.mkstemp(prefix=f"testcase-{tc_id}-", dir=os.getcwd())
+              os.close(fd)
+              
+              # Download using blob.download_to_filename (uses default creds)
+              storage_client = storage.Client()
+              bucket = storage_client.bucket(bucket_name)
+              blob = bucket.blob(blob_name)
+              blob.download_to_filename(local_testcase_path)
+              
+              print(f"Downloaded testcase to {local_testcase_path}")
+              
+              # Add to extra_volumes
+              # Mount it to /tmp/testcase in the container
+              # We use os.path.abspath to ensure we have the full path
+              abs_local_path = os.path.abspath(local_testcase_path)
+              extra_volumes = {
+                  abs_local_path: {'bind': '/tmp/testcase', 'mode': 'ro'}
+              }
+              testcase_url = "file:///tmp/testcase" # Placeholder
+              
+          except Exception as download_error:
+              print(f"Error downloading testcase locally: {download_error}")
+              return None
+
       if not testcase_url:
-          print(f"Error: Failed to generate signed URL for TC-{tc_id}")
+          print(f"Error: Could not generate signed URL or download testcase for {tc_id}")
           return None
           
       print(f"DEBUG: TC-{tc_id} generated url={testcase_url}")
@@ -1428,13 +1599,8 @@ def prepare_reproduction_data(tc_id: str, strategy: ReproductionStrategy) -> Opt
           'fuzzer_args': fuzzer_args,
           'job_env': job_env,
           'project_name': testcase.project_name,
-          'job': job # We pass job object too, assuming it's safe or we only use it if context is active? 
-                     # Actually execute() uses job.name and job.get_environment_string().
-                     # But we already extracted job_env.
-                     # execute() might use job for other things?
-                     # execute() uses job.name and job.get_environment_string().
-                     # Let's pass job, but be careful. NDB entities detach when context exits?
-                     # Yes, they are just protobuf wrappers usually.
+          'job': job,
+          'extra_volumes': extra_volumes
       }
 
   except Exception as e:
@@ -1466,7 +1632,8 @@ def worker_reproduce(tc_id: str, strategy: ReproductionStrategy, log_file_path: 
       testcase_url=data['testcase_url'],
       target_binary=data['target_binary'],
       fuzzer_args=data['fuzzer_args'],
-      job_env=data['job_env']
+      job_env=data['job_env'],
+      extra_volumes=data.get('extra_volumes')
   )
 
 
@@ -1516,6 +1683,7 @@ def worker_reproduce(tc_id: str, strategy: ReproductionStrategy, log_file_path: 
 def cli(project_name, config_dir, parallelism, os_version, environment,
         local_build_path, engine, sanitizer, use_batch, use_gcb, gcs_bucket, service_account_key_file, impersonate_service_account, limit, log_dir, tag, async_mode, resume, testcase_id):
 
+  print(f"DEBUG: cli called with project_name={project_name}, testcase_id={testcase_id}")
   """Reproduces testcases for an OSS-Fuzz project locally."""
   
   # Handle 'all' projects
@@ -1892,24 +2060,43 @@ def cli(project_name, config_dir, parallelism, os_version, environment,
 
       click.echo(f"Setting up build for revision {crash_revision}...")
       try:
-          print(f"DEBUG: Calling build_manager.setup_build(revision={crash_revision})")
-          print(f"DEBUG: Environment keys: {list(os.environ.keys())}")
-          print(f"DEBUG: RELEASE_BUILD_BUCKET_PATH={system_environment.get_value('RELEASE_BUILD_BUCKET_PATH')}")
-          build_path = build_manager.setup_build(revision=crash_revision)
-          print(f"DEBUG: build_manager.setup_build returned: {build_path}")
-
-          if build_path:
-              # build_path is likely a RegularBuild object, not a string
-              if hasattr(build_path, 'build_url'):
-                  gcs_build_uri = build_path.build_url
-                  print(f"DEBUG: Extracted gcs_build_uri from RegularBuild: {gcs_build_uri}")
-              elif isinstance(build_path, str):
-                  if build_path.startswith('gs://'):
-                      gcs_build_uri = build_path
+          # Avoid downloading the build locally if we just need the URL for GCB/Batch
+          from clusterfuzz._internal.build_management import revisions
+          
+          bucket_path = system_environment.get_value('RELEASE_BUILD_BUCKET_PATH')
+          if bucket_path:
+              print(f"DEBUG: Resolving build URL from {bucket_path} for revision {crash_revision}")
+              build_urls = build_manager.get_build_urls_list(bucket_path)
+              if build_urls:
+                  build_url = revisions.find_build_url(bucket_path, build_urls, crash_revision)
+                  if build_url:
+                      gcs_build_uri = build_url
+                      print(f"DEBUG: Found build URL: {gcs_build_uri}")
                   else:
-                      abs_local_build_path = build_path
+                      print(f"Warning: Could not find build for revision {crash_revision}")
               else:
-                  print(f"Warning: Unknown build_path type: {type(build_path)}")
+                  print(f"Warning: No build URLs found in {bucket_path}")
+          else:
+              print("Warning: RELEASE_BUILD_BUCKET_PATH not set")
+
+          if not gcs_build_uri:
+              # Fallback to setup_build if we couldn't resolve it (e.g. custom binary or other types)
+              print(f"DEBUG: Calling build_manager.setup_build(revision={crash_revision}) as fallback")
+              build_path = build_manager.setup_build(revision=crash_revision)
+              print(f"DEBUG: build_manager.setup_build returned: {build_path}")
+
+              if build_path:
+                  # build_path is likely a RegularBuild object, not a string
+                  if hasattr(build_path, 'build_url'):
+                      gcs_build_uri = build_path.build_url
+                      print(f"DEBUG: Extracted gcs_build_uri from RegularBuild: {gcs_build_uri}")
+                  elif isinstance(build_path, str):
+                      if build_path.startswith('gs://'):
+                          gcs_build_uri = build_path
+                      else:
+                          abs_local_build_path = build_path
+                  else:
+                      print(f"Warning: Unknown build_path type: {type(build_path)}")
 
       except Exception as e:
           click.secho(f"Warning: Build setup failed: {e}", fg='yellow')

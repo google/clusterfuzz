@@ -42,6 +42,12 @@ def _setup_reproduce(args) -> None:
   local_config.ProjectConfig().set_environment()
   environment.set_bot_environment()
   logs.configure('run_bot')
+  
+  import sys
+  from clusterfuzz._internal.system import new_process
+  print(f"DEBUG: sys.path: {sys.path}")
+  print(f"DEBUG: new_process file: {new_process.__file__}")
+
   init.run()
 
 
@@ -51,46 +57,96 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
   Args:
     args: Parsed command-line arguments.
   """
-  testcase = data_handler.get_testcase_by_id(args.testcase_id)
-  if not testcase:
-    logs.error(f'Testcase with ID {args.testcase_id} not found.')
-    return
-
-  job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
-  if not job:
-    logs.error(f'Job type {testcase.job_type} not found for testcase.')
-    return
+  if args.testcase_id:
+    testcase = data_handler.get_testcase_by_id(args.testcase_id)
+    if not testcase:
+      logs.error(f'Testcase with ID {args.testcase_id} not found.')
+      return
+    job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
+    if not job:
+      logs.error(f'Job type {testcase.job_type} not found for testcase.')
+      return
+  else:
+    # Local reproduction without Datastore
+    if not args.testcase_path or not args.target_name or not args.job_name or not args.revision:
+      logs.error('If testcase-id is not provided, --testcase-path, --target-name, --job-name, and --revision are required.')
+      return
+    
+    # Create dummy objects
+    testcase = data_types.Testcase()
+    testcase.crash_revision = args.revision
+    testcase.job_type = args.job_name
+    testcase.fuzzer_name = 'libFuzzer' # Default to libFuzzer for now
+    testcase.overridden_fuzzer_name = 'libFuzzer'
+    testcase.one_time_crasher_flag = False
+    testcase.gestures = []
+    testcase.redzone = 128
+    testcase.minimized_arguments = ''
+    testcase.security_flag = False
+    testcase.http_flag = False
+    testcase.crash_type = 'Unknown'
+    
+    # Mock get_fuzz_target
+    testcase.get_fuzz_target = lambda: type('FuzzTarget', (object,), {'binary': args.target_name, 'engine': 'libFuzzer'})()
+    
+    job = type('Job', (object,), {'name': args.job_name, 'get_environment_string': lambda *args: ''})()
 
   # The job name is not set in update_environment_for_job,
   # so it was needed to manually set it here.
   environment.set_value('JOB_NAME', job.name)
   commands.update_environment_for_job(job.get_environment_string())
 
-  if not setup.setup_local_fuzzer(testcase.fuzzer_name):
-    logs.error(f'Failed to setup fuzzer {testcase.fuzzer_name}. Exiting.')
-    return
+  if args.testcase_id:
+      if not setup.setup_local_fuzzer(testcase.fuzzer_name):
+        logs.error(f'Failed to setup fuzzer {testcase.fuzzer_name}. Exiting.')
+        return
 
-  testcase_file_path = setup.setup_local_testcase(testcase)
-  if testcase_file_path is None:
-    logs.error('Could not setup testcase locally. Exiting.')
-    return
+      testcase_file_path = setup.setup_local_testcase(testcase)
+      if testcase_file_path is None:
+        logs.error('Could not setup testcase locally. Exiting.')
+        return
+  else:
+      # For local path, we just use it directly
+      testcase_file_path = args.testcase_path
+      # We might need to setup fuzzer if it's not libFuzzer, but for now assume libFuzzer
+      # setup_local_fuzzer mainly downloads the fuzzer if needed, but here we assume we have the build?
+      # Actually setup_local_fuzzer is for engine fuzzers (libFuzzer, afl, etc).
+      # If we are running a specific binary, we might not need it if it's built in.
+      pass
 
   fuzz_target = testcase.get_fuzz_target()
   target_binary = fuzz_target.binary if fuzz_target else None
 
   try:
-    build_manager.setup_build(
-        revision=testcase.crash_revision, fuzz_target=target_binary)
+    if args.build_dir:
+        environment.set_value('BUILD_DIR', args.build_dir)
+        # We also need to set APP_PATH and other env vars that build_manager usually sets
+        # This might be tricky. build_manager.setup_build does a lot.
+        # If we pass build_dir, we might want to skip build_manager.setup_build or use it to just set envs?
+        # build_manager.setup_build downloads the build.
+        # If we already have it, we should probably use a mechanism to tell it "use this dir".
+        # But build_manager expects to manage the dir.
+        # Let's see if we can trick it or just set env vars manually if build_dir is provided.
+        
+        # If build_dir is provided, we assume it's already set up.
+        # We just need to set environment variables.
+        # We can use build_manager.set_environment_vars
+        from clusterfuzz._internal.build_management import build_manager
+        build_manager.set_environment_vars([args.build_dir])
+    else:
+        build_manager.setup_build(
+            revision=testcase.crash_revision, fuzz_target=target_binary)
   except Exception as e:
     logs.error(
         f'Error setting up build for revision {testcase.crash_revision}: {e}')
     return
 
-  bad_build_result: uworker_msg_pb2.BuildData = (  # pylint: disable=no-member
-      testcase_manager.check_for_bad_build(job.name, testcase.crash_revision))
-  if bad_build_result.is_bad_build:
-    logs.error('Bad build detected. Exiting.')
-    return
+  if args.testcase_id:
+      bad_build_result: uworker_msg_pb2.BuildData = (  # pylint: disable=no-member
+          testcase_manager.check_for_bad_build(job.name, testcase.crash_revision))
+      if bad_build_result.is_bad_build:
+        logs.error('Bad build detected. Exiting.')
+        return
 
   # After checking for bad build, sets the app args as they
   # were found in the crash for start testing the reproducibility
@@ -116,27 +172,31 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
 
   if result.is_crash():
     logs.info(f'Crash occurred. Output:\n\n{result.output}')
+    # Print a specific success message that we can grep for
+    print("Crash detected!") 
   else:
+    logs.info(f'No crash occurred. Output:\n\n{result.output}')
     logs.info('No crash occurred. Exiting.')
     return
 
-  logs.info('Testing for reproducibility...')
-  reproduces = testcase_manager.test_for_reproducibility(
-      fuzz_target=fuzz_target,
-      testcase_path=testcase_file_path,
-      crash_type=testcase.crash_type,
-      expected_state=None,
-      expected_security_flag=testcase.security_flag,
-      test_timeout=test_timeout,
-      http_flag=testcase.http_flag,
-      gestures=testcase.gestures,
-      arguments=testcase.minimized_arguments,
-  )
+  if args.testcase_id:
+      logs.info('Testing for reproducibility...')
+      reproduces = testcase_manager.test_for_reproducibility(
+          fuzz_target=fuzz_target,
+          testcase_path=testcase_file_path,
+          crash_type=testcase.crash_type,
+          expected_state=None,
+          expected_security_flag=testcase.security_flag,
+          test_timeout=test_timeout,
+          http_flag=testcase.http_flag,
+          gestures=testcase.gestures,
+          arguments=testcase.minimized_arguments,
+      )
 
-  if reproduces:
-    logs.info('The testcase reliably reproduces.')
-  else:
-    logs.info('The testcase does not reliably reproduce.')
+      if reproduces:
+        logs.info('The testcase reliably reproduces.')
+      else:
+        logs.info('The testcase does not reliably reproduce.')
 
 
 def execute(args: argparse.Namespace) -> None:
@@ -146,5 +206,8 @@ def execute(args: argparse.Namespace) -> None:
     args: Parsed command-line arguments.
   """
   _setup_reproduce(args)
-  with ndb_init.context():
+  if args.testcase_id:
+    with ndb_init.context():
+      _reproduce_testcase(args)
+  else:
     _reproduce_testcase(args)

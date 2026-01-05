@@ -22,7 +22,6 @@ import click
 
 from . import reproduce_project
 
-
 @click.group(name='reproduce', help='Reproduces a testcase locally')
 def cli():
   """Reproduces a testcase locally"""
@@ -83,3 +82,6 @@ def reproduce_testcase(environment: str, config_dir: str,
 
 
 cli.add_command(reproduce_project.cli)
+
+if __name__ == "__main__":
+  cli()

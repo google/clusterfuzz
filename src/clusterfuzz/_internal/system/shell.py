@@ -151,7 +151,7 @@ def clear_fuzzers_directories():
 
 
 def clear_temp_directory(clear_user_profile_directories=True):
-  """Clear the temporary directories."""
+  """Clears the temp directory."""
   temp_directory = environment.get_value('BOT_TMPDIR')
   remove_directory(temp_directory, recreate=True)
 

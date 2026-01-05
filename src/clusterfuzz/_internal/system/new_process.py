@@ -397,8 +397,11 @@ class ProcessRunner:
 
     if not timeout:
       output = process.communicate(input_data)[0]
-      return ProcessResult(process.command, process.poll(), output,
+      print(f"DEBUG: Command: {process.command}")
+      print(f"DEBUG: Return code: {process.popen.returncode}")
+      result = ProcessResult(process.command, process.popen.returncode, output,
                            time.time() - start_time, False)
+      return result
 
     result = wait_process(
         process,
@@ -407,6 +410,8 @@ class ProcessRunner:
         terminate_before_kill=terminate_before_kill,
         terminate_wait_time=terminate_wait_time)
     result.command = process.command
+    print(f"DEBUG: wait_process result.return_code: {result.return_code}")
+    print(f"DEBUG: wait_process result.output length: {len(result.output) if result.output else 0}")
 
     return result
 
