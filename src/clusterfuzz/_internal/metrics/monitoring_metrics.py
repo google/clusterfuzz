@@ -97,6 +97,7 @@ FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -106,6 +107,7 @@ FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
@@ -115,6 +117,7 @@ JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -124,6 +127,7 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
@@ -135,6 +139,7 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
         monitor.IntegerField('return_code'),
         monitor.StringField('platform'),
         monitor.StringField('job'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -163,6 +168,7 @@ FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ],
 )
 
