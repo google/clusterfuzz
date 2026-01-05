@@ -1680,6 +1680,12 @@ class GetLibrariesTest(unittest.TestCase):
             }
         })])
 
+  def test_get_oss_fuzz_projects_api_error(self):
+    """Tests get_oss_fuzz_projects() with API error."""
+    self.mock.get.side_effect = Exception('API Error')
+    libraries = project_setup.get_oss_fuzz_projects()
+    self.assertListEqual(libraries, [])
+
 
 def _mock_read_data(path):
   """Mock read_data."""

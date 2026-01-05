@@ -247,34 +247,53 @@ def find_github_item_url(github_json, name):
 def get_oss_fuzz_projects():
   """Return list of projects for oss-fuzz."""
   ossfuzz_tree_url = ('https://api.github.com/repos/google/oss-fuzz/'
-                      'git/trees/master')
-  tree = get_github_url(ossfuzz_tree_url)
-  projects = []
-
-  projects_url = find_github_item_url(tree, 'projects')
-  if not projects_url:
-    logs.error('No projects found.')
+                      'git/trees/master?recursive=1')
+  try:
+    tree = get_github_url(ossfuzz_tree_url)
+  except Exception as e:
+    logs.error(f'Failed to get oss-fuzz tree: {e}')
     return []
 
-  tree = get_github_url(projects_url)
+  projects = []
+  project_map = {}
+
   for item in tree['tree']:
-    if item['type'] != 'tree':
+    path = item['path']
+    if not path.startswith('projects/'):
       continue
 
-    item_json = get_github_url(item['url'])
-    project_yaml_url = find_github_item_url(item_json, 'project.yaml')
-    if not project_yaml_url:
+    parts = path.split('/')
+    if len(parts) != 3:
       continue
 
-    projects_yaml = get_github_url(project_yaml_url)
-    info = yaml.safe_load(base64.b64decode(projects_yaml['content']))
+    project_name = parts[1]
+    filename = parts[2]
 
-    has_dockerfile = (
-        find_github_item_url(item_json, 'Dockerfile') or 'dockerfile' in info)
+    if project_name not in project_map:
+      project_map[project_name] = {'yaml_url': None, 'has_dockerfile': False}
+
+    if filename == 'project.yaml':
+      project_map[project_name]['yaml_url'] = item['url']
+    elif filename == 'Dockerfile':
+      project_map[project_name]['has_dockerfile'] = True
+
+  for project_name, details in project_map.items():
+    if not details['yaml_url']:
+      continue
+
+    try:
+      projects_yaml = get_github_url(details['yaml_url'])
+      content = base64.b64decode(projects_yaml['content'])
+      info = yaml.safe_load(content)
+    except Exception as e:
+      logs.error(f'Failed to parse project.yaml for {project_name}: {e}')
+      continue
+
+    has_dockerfile = (details['has_dockerfile'] or 'dockerfile' in info)
     if not has_dockerfile:
       continue
 
-    projects.append((item['path'], info))
+    projects.append((project_name, info))
 
   return projects
 
