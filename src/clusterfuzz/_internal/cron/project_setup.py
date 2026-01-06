@@ -23,6 +23,7 @@ from google.cloud import ndb
 import requests
 import yaml
 
+from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
@@ -32,7 +33,6 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
-from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -219,10 +219,7 @@ def _to_experimental_job(job_info):
   return job_info
 
 
-@retry.wrap(
-    retries=3,
-    delay=2,
-    function='cron.project_setup.get_github_url')
+@retry.wrap(retries=3, delay=2, function='cron.project_setup.get_github_url')
 def get_github_url(url):
   """Return contents of URL."""
   github_credentials = db_config.get_value('github_credentials')
