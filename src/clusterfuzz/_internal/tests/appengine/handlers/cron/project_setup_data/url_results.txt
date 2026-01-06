@@ -240,5 +240,76 @@
   "content": "aG9tZXBhZ2U6ICJodHRwczovL3d3dy5mcmVldHlwZS5vcmcvIgo=\\n",
   "encoding": "base64"
 }
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/master?recursive=1': """
+{
+  "sha": "recursive_sha",
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/master?recursive=1",
+  "tree": [
+    {
+      "path": "projects/boringssl/project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e57f1846ff0fdbb0fe08e98ca38b6235008b41be",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/e57f1846ff0fdbb0fe08e98ca38b6235008b41be"
+    },
+    {
+      "path": "projects/boringssl/Dockerfile",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0368f8166f92043678183473f6cc225a5b316e75",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/0368f8166f92043678183473f6cc225a5b316e75"
+    },
+    {
+      "path": "projects/curl/project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "30580bab5896f92de90e904cda76ecdb41c6397a",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/30580bab5896f92de90e904cda76ecdb41c6397a"
+    },
+    {
+      "path": "projects/freetype2/project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46400ddfc8f2db662f70d6f09190dadc31244a58",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/46400ddfc8f2db662f70d6f09190dadc31244a58"
+    },
+    {
+      "path": "projects/bad_yaml/project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bad_yaml_sha",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/bad_yaml_sha"
+    },
+    {
+      "path": "projects/nested/subdir/file",
+      "mode": "100644",
+      "type": "blob",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/nested_sha"
+    },
+    {
+      "path": "projects/root_file",
+      "mode": "100644",
+      "type": "blob",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/root_sha"
+    },
+    {
+      "path": "projects/only_docker/Dockerfile",
+      "mode": "100644",
+      "type": "blob",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/docker_sha"
+    }
+  ],
+  "truncated": false
+}
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/blobs/bad_yaml_sha': """
+{
+  "sha": "bad_yaml_sha",
+  "size": 10,
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/bad_yaml_sha",
+  "content": "aW52YWxpZCB5YW1sOiA6OiB3aGF0Cg==\\n",
+  "encoding": "base64"
+}
 """
 }
