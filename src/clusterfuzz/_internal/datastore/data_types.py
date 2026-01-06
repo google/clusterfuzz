@@ -1476,6 +1476,9 @@ class OssFuzzProject(Model):
   # Base OS version for the project.
   base_os_version = ndb.StringProperty()
 
+  # SHA of the project.yaml file.
+  project_yaml_sha = ndb.StringProperty()
+
 
 class OssFuzzProjectInfo(Model):
   """Set up information for a project (cpu allocation, instance groups, service
