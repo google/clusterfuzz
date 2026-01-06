@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Functions for running gsutil."""
+"""Functions for running gcloud storage."""
 
 import os
 import shutil
@@ -22,7 +22,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 
-# Default timeout for a GSUtil sync.
+# Default timeout for a rsync.
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 
@@ -37,12 +37,16 @@ def get_gcloud_path():
   if environment.platform() == 'WINDOWS':
     gcloud_executable += '.cmd'
 
+  gcloud_storage_dir = environment.get_value('GCLOUD_STORAGE_PATH')
+  if gcloud_storage_dir:
+    return os.path.join(gcloud_storage_dir, gcloud_executable)
+
   # Try searching the binary in path.
   gcloud_absolute_path = shutil.which(gcloud_executable)
   if gcloud_absolute_path:
     return gcloud_absolute_path
 
-  logs.error('Cannot locate gcloud in PATH.')
+  logs.error('Cannot locate gcloud in PATH, set GCLOUD_STORAGE_PATH to directory containing gcloud storage binary.')
   return None
 
 
