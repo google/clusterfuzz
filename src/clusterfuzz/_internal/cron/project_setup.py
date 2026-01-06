@@ -235,15 +235,6 @@ def get_github_url(url):
   return json.loads(response.text)
 
 
-def find_github_item_url(github_json, name):
-  """Get url of a blob/tree from a github json response."""
-  for item in github_json['tree']:
-    if item['path'] == name:
-      return item['url']
-
-  return None
-
-
 def get_oss_fuzz_projects():
   """Return list of projects for oss-fuzz."""
   ossfuzz_tree_url = ('https://api.github.com/repos/google/oss-fuzz/'
