@@ -23,7 +23,6 @@ from google.cloud import ndb
 import requests
 import yaml
 
-from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
@@ -79,14 +78,6 @@ PROJECTS_USING_SUBQUEUES = {'android'}
 
 class ProjectSetupError(Exception):
   """Exception."""
-
-
-class GitHubGenericError(Exception):
-  """GitHub generic error."""
-
-
-class GitHubRateLimitError(Exception):
-  """GitHub rate limit error."""
 
 
 class JobInfo:
@@ -227,11 +218,6 @@ def _to_experimental_job(job_info):
   return job_info
 
 
-@retry.wrap(
-    retries=3,
-    delay=2,
-    function='cron.project_setup.get_github_url',
-    exception_types=[GitHubGenericError])
 def get_github_url(url):
   """Return contents of URL."""
   github_credentials = db_config.get_value('github_credentials')
@@ -241,79 +227,54 @@ def get_github_url(url):
   client_id, client_secret = github_credentials.strip().split(';')
   response = requests.get(
       url, auth=(client_id, client_secret), timeout=HTTP_TIMEOUT_SECONDS)
-
-  if response.status_code == 403:
-    raise GitHubRateLimitError(f'GitHub rate limit exceeded for {url}.')
-
   if response.status_code != 200:
     logs.error(
         f'Failed to get github url: {url}.', status_code=response.status_code)
-    raise GitHubGenericError(f'Failed to get github url: {url}.')
+    response.raise_for_status()
 
   return json.loads(response.text)
+
+
+def find_github_item_url(github_json, name):
+  """Get url of a blob/tree from a github json response."""
+  for item in github_json['tree']:
+    if item['path'] == name:
+      return item['url']
+
+  return None
 
 
 def get_oss_fuzz_projects():
   """Return list of projects for oss-fuzz."""
   ossfuzz_tree_url = ('https://api.github.com/repos/google/oss-fuzz/'
-                      'git/trees/master?recursive=1')
+                      'git/trees/master')
   tree = get_github_url(ossfuzz_tree_url)
-
   projects = []
-  project_map = {}
 
+  projects_url = find_github_item_url(tree, 'projects')
+  if not projects_url:
+    logs.error('No projects found.')
+    return []
+
+  tree = get_github_url(projects_url)
   for item in tree['tree']:
-    path = item['path']
-    if not path.startswith('projects/'):
+    if item['type'] != 'tree':
       continue
 
-    parts = path.split('/')
-    if len(parts) != 3:
+    item_json = get_github_url(item['url'])
+    project_yaml_url = find_github_item_url(item_json, 'project.yaml')
+    if not project_yaml_url:
       continue
 
-    project_name = parts[1]
-    filename = parts[2]
+    projects_yaml = get_github_url(project_yaml_url)
+    info = yaml.safe_load(base64.b64decode(projects_yaml['content']))
 
-    if project_name not in project_map:
-      project_map[project_name] = {
-          'yaml_url': None,
-          'has_dockerfile': False,
-          'yaml_sha': None
-      }
-
-    if filename == 'project.yaml':
-      project_map[project_name]['yaml_url'] = item['url']
-      project_map[project_name]['yaml_sha'] = item['sha']
-    elif filename == 'Dockerfile':
-      project_map[project_name]['has_dockerfile'] = True
-
-  # Get all existing projects to check for cache hits.
-  existing_projects = {p.name: p for p in data_types.OssFuzzProject.query()}
-
-  for project_name, details in project_map.items():
-    if not details['yaml_url']:
-      continue
-
-    # Check if we have a cached version of project.yaml.
-    existing_project = existing_projects.get(project_name)
-    if (existing_project and existing_project.project_yaml_sha and
-        existing_project.project_yaml_sha == details['yaml_sha']):
-      # Cache hit.
-      continue
-
-    try:
-      projects_yaml = get_github_url(details['yaml_url'])
-      content = base64.b64decode(projects_yaml['content'])
-      info = yaml.safe_load(content)
-    except Exception as e:
-      logs.error(f'Failed to parse project.yaml for {project_name}: {e}')
-      continue
-
-    has_dockerfile = (details['has_dockerfile'] or 'dockerfile' in info)
+    has_dockerfile = (
+        find_github_item_url(item_json, 'Dockerfile') or 'dockerfile' in info)
     if not has_dockerfile:
       continue
 
-    projects.append((project_name, info, details['yaml_sha']))
+    projects.append((item['path'], info))
 
   return projects
 
@@ -325,7 +286,7 @@ def get_projects_from_gcs(gcs_url):
   except json.decoder.JSONDecodeError as e:
     raise ProjectSetupError(f'Error loading json file from {gcs_url}: {e}')
 
-  return [(project['name'], project, None) for project in data['projects']]
+  return [(project['name'], project) for project in data['projects']]
 
 
 def _process_sanitizers_field(sanitizers):
@@ -572,7 +533,7 @@ def cleanup_old_projects_settings(project_names):
     ndb_utils.delete_multi(to_delete)
 
 
-def create_project_settings(project, info, project_yaml_sha, service_account):
+def create_project_settings(project, info, service_account):
   """Setup settings for ClusterFuzz (such as CPU distribution)."""
   key = ndb.Key(data_types.OssFuzzProject, project)
   oss_fuzz_project = key.get()
@@ -600,10 +561,6 @@ def create_project_settings(project, info, project_yaml_sha, service_account):
     if oss_fuzz_project.base_os_version != base_os_version:
       oss_fuzz_project.base_os_version = base_os_version
       oss_fuzz_project.put()
-
-    if oss_fuzz_project.project_yaml_sha != project_yaml_sha:
-      oss_fuzz_project.project_yaml_sha = project_yaml_sha
-      oss_fuzz_project.put()
   else:
     if language in MEMORY_SAFE_LANGUAGES:
       cpu_weight = OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT
@@ -617,8 +574,7 @@ def create_project_settings(project, info, project_yaml_sha, service_account):
         cpu_weight=cpu_weight,
         service_account=service_account['email'],
         ccs=ccs,
-        base_os_version=base_os_version,
-        project_yaml_sha=project_yaml_sha).put()
+        base_os_version=base_os_version).put()
 
 
 def _create_pubsub_topic(name, client):
@@ -1054,7 +1010,7 @@ class ProjectSetup:
     """Do project setup. Return a list of all the project names that were set
     up."""
     job_names = []
-    for project, info, project_yaml_sha in projects:
+    for project, info in projects:
       logs.info(f'Syncing configs for {project}.')
 
       backup_bucket_name = None
@@ -1082,12 +1038,11 @@ class ProjectSetup:
 
         # Set up projects settings (such as CPU distribution settings).
         if not info.get('disabled', False):
-          create_project_settings(project, info, project_yaml_sha,
-                                  service_account)
+          create_project_settings(project, info, service_account)
 
     # Delete old/disabled project settings.
     enabled_projects = [
-        project for project, info, _ in projects
+        project for project, info in projects
         if not info.get('disabled', False)
     ]
     return SetupResult(enabled_projects, job_names)

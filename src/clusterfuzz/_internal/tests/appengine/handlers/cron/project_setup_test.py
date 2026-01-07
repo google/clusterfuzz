@@ -244,12 +244,12 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 'user2@googlemail.com',
             ],
             'vendor_ccs': None,
-        }, 'sha1'),
+        }),
         ('lib2', {
             'homepage': 'http://example2.com',
             'disabled': True,
             'fuzzing_engines': ['libfuzzer',],
-        }, 'sha2'),
+        }),
         ('lib3', {
             'homepage':
                 'http://example3.com',
@@ -270,7 +270,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'view_restrictions':
                 'none',
             'architectures': ['i386', 'x86_64'],
-        }, 'sha3'),
+        }),
         ('lib4', {
             'homepage': 'http://example4.com',
             'language': 'go',
@@ -278,7 +278,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'auto_ccs': 'User@example.com',
             'fuzzing_engines': ['none'],
             'blackbox': True,
-        }, 'sha4'),
+        }),
         ('lib5', {
             'homepage': 'http://example5.com',
             'sanitizers': ['address'],
@@ -286,14 +286,14 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'experimental': True,
             'selective_unpack': True,
             'main_repo': 'https://github.com/google/main-repo',
-        }, 'sha5'),
+        }),
         ('lib6', {
             'homepage': 'http://example6.com',
             'sanitizers': ['address', 'memory', 'undefined'],
             'fuzzing_engines': ['libfuzzer', 'afl'],
             'auto_ccs': 'User@example.com',
             'vendor_ccs': ['vendor1@example.com', 'vendor2@example.com'],
-        }, 'sha6'),
+        }),
         ('lib7', {
             'homepage': 'http://example.com',
             'primary_contact': 'primary@example.com',
@@ -304,7 +304,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 '*': ['custom'],
                 'per-target': ['ignore']
             },
-        }, 'sha7'),
+        }),
         ('lib8', {
             'homepage': 'http://example.com',
             'primary_contact': 'primary@example.com',
@@ -312,7 +312,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'fuzzing_engines': ['libfuzzer',],
             'sanitizers': ['none'],
             'architectures': ['i386', 'x86_64'],
-        }, 'sha8'),
+        }),
         ('lib9', {
             'homepage:': 'http://example.com',
             'primary_contact': 'primary@example.com',
@@ -321,7 +321,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'fuzzing_engines': ['centipede',],
             'sanitizers:': ['address',],
             'architectures': ['x86_64',],
-        }, 'sha9'),
+        }),
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
@@ -632,8 +632,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ],
         'base_os_version':
             None,
-        'project_yaml_sha':
-            'sha1',
     }, lib1_settings.to_dict())
 
     lib2_settings = ndb.Key(data_types.OssFuzzProject, 'lib2').get()
@@ -649,7 +647,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'high_end': False,
         'ccs': ['user@example.com'],
         'base_os_version': None,
-        'project_yaml_sha': 'sha3',
     }, lib3_settings.to_dict())
 
     lib4_settings = ndb.Key(data_types.OssFuzzProject, 'lib4').get()
@@ -662,7 +659,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'high_end': True,
         'ccs': ['user@example.com'],
         'base_os_version': None,
-        'project_yaml_sha': 'sha4',
     }, lib4_settings.to_dict())
 
     old_lib_settings = ndb.Key(data_types.OssFuzzProject, 'old_lib').get()
@@ -1667,7 +1663,6 @@ class GetLibrariesTest(unittest.TestCase):
   def setUp(self):
     data_types.Config(github_credentials='client_id;client_secret').put()
 
-    helpers.patch_environ(self)
     helpers.patch(self, ['requests.get'])
     self.mock.get.side_effect = MockRequestsGet
 
@@ -1677,19 +1672,13 @@ class GetLibrariesTest(unittest.TestCase):
     self.assertListEqual(
         sorted(libraries), [('boringssl', {
             'homepage': 'https://boringssl.googlesource.com/boringssl/'
-        }, 'e57f1846ff0fdbb0fe08e98ca38b6235008b41be'), ('curl', {
+        }), ('curl', {
             'homepage': 'https://curl.haxx.se/',
             'dockerfile': {
                 'git': 'fake',
                 'path': 'path/Dockerfile',
             }
-        }, '30580bab5896f92de90e904cda76ecdb41c6397a')])
-
-  def test_get_oss_fuzz_projects_api_error(self):
-    """Tests get_oss_fuzz_projects() with API error."""
-    self.mock.get.side_effect = Exception('API Error')
-    with self.assertRaises(Exception):
-      project_setup.get_oss_fuzz_projects()
+        })])
 
 
 def _mock_read_data(path):
