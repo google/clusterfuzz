@@ -803,9 +803,7 @@ def postprocess_store_fuzzer_run_results(output):
         fuzzer_name=output.fuzz_task_output.fully_qualified_fuzzer_name)
     try:
       if not storage.copy_blob(logs_blob_bucket, fuzzer_logs_bucket):
-        logs.warning(
-            f'Failed copying fuzzer logs from {logs_blob_bucket} to the'
-            f'structured bucket {fuzzer_logs_bucket}.')
+        raise FuzzTaskError('Copying fuzzer logs returned false.')
     except:
       logs.warning(
           f'Failed copying fuzzer logs from blobs {logs_blob_bucket} to the'
