@@ -1020,6 +1020,12 @@ def set_bot_environment():
   from clusterfuzz._internal.config import local_config
   local_config.ProjectConfig().set_environment()
 
+  # Tmp: set gcloud_storage flag for android/MAC bots
+  # to validate the gsutil migration on these platforms.
+  if is_android() or platform() == 'MAC':
+    os.environ['USE_GCLOUD_STORAGE_CP'] = 'True'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1'
+
   # Success.
   return True
 
