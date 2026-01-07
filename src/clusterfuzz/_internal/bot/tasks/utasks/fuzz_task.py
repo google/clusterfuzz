@@ -799,7 +799,8 @@ def postprocess_store_fuzzer_run_results(output):
   if uworker_input.fuzz_task_input.script_log_upload_key:
     logs_blob_bucket = blobs.get_gcs_path(
         uworker_input.fuzz_task_input.script_log_upload_key)
-    fuzzer_logs_bucket = fuzzer_logs.get_logs_gcs_path()
+    fuzzer_logs_bucket = fuzzer_logs.get_logs_gcs_path(
+        fuzzer_name=output.fuzz_task_output.fully_qualified_fuzzer_name)
     try:
       if not storage.copy_blob(logs_blob_bucket, fuzzer_logs_bucket):
         logs.warning(
