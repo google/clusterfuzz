@@ -32,10 +32,6 @@ on a number of services:
 - BigQuery
 - Stackdriver Logging and Monitoring
 
-**Note**: The only bug tracker we currently support is the Chromium-hosted
-[Monorail](https://opensource.google.com/projects/monorail). Support for custom
-bug trackers will be added in the future.
-
 ### Local instance
 It's possible to run ClusterFuzz locally without these dependencies by using
 local Google Cloud emulators. If you do, some features that depend on BigQuery and
