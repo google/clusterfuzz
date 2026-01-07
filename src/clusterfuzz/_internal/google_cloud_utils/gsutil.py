@@ -50,39 +50,39 @@ def get_gcloud_path():
   return None
 
 
-def get_gsutil_path():
-  """Get path to gsutil executable.
+# def get_gsutil_path():
+#   """Get path to gsutil executable.
 
-  Returns:
-    Path to gsutil executable on the system.
-  """
-  gsutil_executable = 'gsutil'
-  if environment.platform() == 'WINDOWS':
-    gsutil_executable += '.cmd'
+#   Returns:
+#     Path to gsutil executable on the system.
+#   """
+#   gsutil_executable = 'gsutil'
+#   if environment.platform() == 'WINDOWS':
+#     gsutil_executable += '.cmd'
 
-  gsutil_directory = environment.get_value('GSUTIL_PATH')
-  if not gsutil_directory:
-    # Try searching the binary in path.
-    gsutil_absolute_path = shutil.which(gsutil_executable)
-    if gsutil_absolute_path:
-      return gsutil_absolute_path
+#   gsutil_directory = environment.get_value('GSUTIL_PATH')
+#   if not gsutil_directory:
+#     # Try searching the binary in path.
+#     gsutil_absolute_path = shutil.which(gsutil_executable)
+#     if gsutil_absolute_path:
+#       return gsutil_absolute_path
 
-    logs.error('Cannot locate gsutil in PATH, set GSUTIL_PATH to directory '
-               'containing gsutil binary.')
-    return None
+#     logs.error('Cannot locate gsutil in PATH, set GSUTIL_PATH to directory '
+#                'containing gsutil binary.')
+#     return None
 
-  gsutil_absolute_path = os.path.join(gsutil_directory, gsutil_executable)
-  return gsutil_absolute_path
+#   gsutil_absolute_path = os.path.join(gsutil_directory, gsutil_executable)
+#   return gsutil_absolute_path
 
 
-def _multiprocessing_args():
-  """Get multiprocessing args for gsutil."""
-  if utils.cpu_count() == 1:
-    # GSUtil's default thread count is 5 as it assumes the common configuration
-    # is many CPUs (GSUtil uses num_cpu processes).
-    return ['-o', 'GSUtil:parallel_thread_count=16']
+# def _multiprocessing_args():
+#   """Get multiprocessing args for gsutil."""
+#   if utils.cpu_count() == 1:
+#     # GSUtil's default thread count is 5 as it assumes the common configuration
+#     # is many CPUs (GSUtil uses num_cpu processes).
+#     return ['-o', 'GSUtil:parallel_thread_count=16']
 
-  return []
+#   return []
 
 
 def _filter_path(path, write=False):
@@ -108,31 +108,29 @@ def _filter_path(path, write=False):
   return local_path
 
 
-class GSUtilRunner:
+class GCloudStorageRunner:
   """GSUtil/gcloud storage runner."""
 
   def __init__(self, process_runner=new_process.ProcessRunner):
     self._process_runner = process_runner
 
-  def _get_runner_and_args(self, use_gcloud_storage, quiet=False):
+  def _get_runner_and_args(self, use_gcloud_storage, quiet=False, verbose=True):
     """Get the process runner and default arguments."""
-    if use_gcloud_storage:
-      executable_path = get_gcloud_path()
-      default_args = ['storage']
-      runner = self._process_runner(
-          executable_path=executable_path, default_args=default_args)
-      additional_args = []
-    else:
-      executable_path = get_gsutil_path()
-      default_args = ['-m']
-      default_args.extend(_multiprocessing_args())
-      runner = self._process_runner(
-          executable_path=executable_path, default_args=default_args)
+    executable_path = get_gcloud_path()
+    default_args = ['storage']
+    # For gcloud storage, all operations run in parallel by default, so no need to add -m.
+    # Also, as gcloud storage handles the distribution of processes and threads dynamically,
+    # it is probably smart enough to not underwhelm the thread pool, we won't likelly need to
+    # set the thread count when cpu is 1.
 
-      # gcloud storage does not have a -q flag, it is a global gcloud flag
-      # --quiet, but that suppresses all output, which is not what we want.
-      # gsutil's -q suppresses the "Copying..." summary, which is desired.
-      additional_args = ['-q'] if quiet else []
+    runner = self._process_runner(
+        executable_path=executable_path, default_args=default_args)
+
+    # Enable user intended output from console. Useful since this is stored
+    # at result.output from subprocess.
+    additional_args = ['--user-output-enabled'] if verbose else ['--no-user-output-enabled']
+    # Disable all interactive prompts (https://docs.cloud.google.com/sdk/gcloud/reference#--quiet)
+    additional_args += ['-q'] if quiet else []
 
     return runner, additional_args
 
