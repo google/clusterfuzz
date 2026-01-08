@@ -18,6 +18,12 @@ on different remote backends, such as GCP Batch and Kubernetes. This allows for
 A/B testing and performance comparisons between the two platforms.
 """
 
+from clusterfuzz._internal.datastore import feature_flags
+from clusterfuzz._internal.metrics import logs
+
+# By default, all jobs are sent to the GCP Batch backend. This can be
+# overridden on a per-job basis by setting the `K8S_JOBS_FREQUENCY`
+# feature flag.
 DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.0}
 
 
@@ -27,4 +33,24 @@ def get_job_frequency():
   If the frequency is not explicitly defined in the `K8S_JOBS_FREQUENCY`
   environment variable, the default frequency is returned.
   """
-  return DEFAULT_FREQUENCY
+  frequency = DEFAULT_FREQUENCY
+
+  kubernetes_frequency = feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY.content
+  if not isinstance(
+      kubernetes_frequency,
+      float) or kubernetes_frequency < 0 or kubernetes_frequency > 1:
+    logs.warning(
+        "Kubernetes frequency inconsistent",
+        kubernetes_frequency=kubernetes_frequency)
+    kubernetes_frequency = None
+
+  elif not feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY.enabled:
+    kubernetes_frequency = None
+
+  if kubernetes_frequency:
+    frequency = {
+        'gcp_batch': 1.0 - kubernetes_frequency,
+        'kubernetes': kubernetes_frequency
+    }
+  logs.info("Job frequency", frequency=frequency)
+  return frequency

@@ -122,8 +122,8 @@ class RemoteTaskGate(RemoteTaskInterface):
       kubernetes_tasks.extend(remote_tasks[:k8s_count])
       gcp_batch_tasks.extend(remote_tasks[k8s_count:])
 
-    logs.info(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
-    logs.info(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
+      logs.info(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
+      logs.info(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
 
     results = []
     if kubernetes_tasks:
