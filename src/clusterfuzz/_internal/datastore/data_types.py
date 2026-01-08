@@ -1803,3 +1803,10 @@ class FuzzerTaskEvent(Model):
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.FUZZER_EVENT_TTL)
+
+
+class FeatureFlag(Model):
+  """Feature flag."""
+  description = ndb.StringProperty(default='')
+  enabled = ndb.BooleanProperty(default=False)
+  value = ndb.FloatProperty()
