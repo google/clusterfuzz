@@ -34,8 +34,8 @@ def get_job_frequency():
   If the frequency is not explicitly defined in the `K8S_JOBS_FREQUENCY`
   environment variable, the default frequency is returned.
   """
-
   frequency = DEFAULT_FREQUENCY
+
   kubernetes_frequency = feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY.content
   if not isinstance(
       kubernetes_frequency,

@@ -76,7 +76,7 @@ class RemoteTaskGate(RemoteTaskInterface):
     self._gcp_batch_service = GcpBatchService()
     self._kubernetes_service = KubernetesService()
 
-  def _should_use_kubernetes(self, job_type: str) -> bool:
+  def _should_use_kubernetes(self) -> bool:
     """Determines whether to use the Kubernetes backend for a given job.
     
     The decision is made based on a random roll and the configured frequency
@@ -106,31 +106,24 @@ class RemoteTaskGate(RemoteTaskInterface):
     gcp_batch_tasks = []
     kubernetes_tasks = []
 
-    # Group tasks by job_type to respect per-job frequencies
-    tasks_by_job = collections.defaultdict(list)
-    for task in remote_tasks:
-      tasks_by_job[task.job_type].append(task)
-
-    for job_type, tasks in tasks_by_job.items():
-      # Use random distribution if there is only one task
-      if len(tasks) == 1:
-        if self._should_use_kubernetes(job_type):
-          kubernetes_tasks.extend(tasks)
-        else:
-          gcp_batch_tasks.extend(tasks)
-        continue
-
+    # Use random distribution if there is only one task
+    if len(remote_tasks) == 1:
+      if self._should_use_kubernetes():
+        kubernetes_tasks.extend(remote_tasks)
+      else:
+        gcp_batch_tasks.extend(remote_tasks)
+    else:
       # Use deterministic slicing for multiple tasks
       frequencies = job_frequency.get_job_frequency()
       k8s_ratio = frequencies['kubernetes']
-      k8s_count = int(len(tasks) * k8s_ratio)
+      k8s_count = int(len(remote_tasks) * k8s_ratio)
 
       # We take the first chunk for Kubernetes
-      kubernetes_tasks.extend(tasks[:k8s_count])
-      gcp_batch_tasks.extend(tasks[k8s_count:])
+      kubernetes_tasks.extend(remote_tasks[:k8s_count])
+      gcp_batch_tasks.extend(remote_tasks[k8s_count:])
 
-    logs.info(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
-    logs.info(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
+      logs.info(f'Sending {len(gcp_batch_tasks)} tasks to GCP Batch.')
+      logs.info(f'Sending {len(kubernetes_tasks)} tasks to Kubernetes.')
 
     results = []
     if kubernetes_tasks:
