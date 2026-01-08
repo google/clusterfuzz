@@ -67,6 +67,7 @@ def get_gsutil_path():
                'containing gsutil binary.')
     return None
 
+  logs.info(f'Using gsutil executable from GSUTIL_PATH: {gsutil_directory}')
   gsutil_absolute_path = os.path.join(gsutil_directory, gsutil_executable)
   return gsutil_absolute_path
 
