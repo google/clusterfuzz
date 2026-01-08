@@ -56,7 +56,9 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
   # Ensure that gcloud is installed.
   subprocess.check_call([GCLOUD_STORAGE_CMD[0], '-v'])
 
-  source_urls_fetch_command = GCLOUD_STORAGE_CMD + ['ls', f'gs://{source_bucket}/*/']
+  source_urls_fetch_command = GCLOUD_STORAGE_CMD + [
+      'ls', f'gs://{source_bucket}/*/'
+  ]
   source_urls = _run_command(source_urls_fetch_command).splitlines()
   filtered_source_urls = [
       s.rstrip('/') for s in source_urls if s.strip() and not s.endswith(':')
@@ -77,7 +79,10 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
                                 'gs://%s' % target_bucket)
     target_url = '%s/%s' % (url_part, fuzz_target)
 
-    rsync_cmd = GCLOUD_STORAGE_CMD + ['rsync', source_url, target_url, '--recursive', '--delete-unmatched-destination-objects']
+    rsync_cmd = GCLOUD_STORAGE_CMD + [
+        'rsync', source_url, target_url, '--recursive',
+        '--delete-unmatched-destination-objects'
+    ]
     _run_command(rsync_cmd)
 
   print('Copy corpus finished successfully.')
