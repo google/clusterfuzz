@@ -45,6 +45,9 @@ def get_job_frequency():
         kubernetes_frequency=kubernetes_frequency)
     kubernetes_frequency = None
 
+  elif not feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY.enabled:
+    kubernetes_frequency = None
+
   if kubernetes_frequency:
     frequency = {
         'gcp_batch': 1.0 - kubernetes_frequency,

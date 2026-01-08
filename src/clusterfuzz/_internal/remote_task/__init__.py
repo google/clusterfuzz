@@ -82,7 +82,7 @@ class RemoteTaskGate(RemoteTaskInterface):
     The decision is made based on a random roll and the configured frequency
     for the given job type.
     """
-    frequencies = job_frequency.get_job_frequency(job_type)
+    frequencies = job_frequency.get_job_frequency()
     return random.random() < frequencies['kubernetes']
 
   def create_uworker_main_batch_job(self, module: str, job_type: str,
