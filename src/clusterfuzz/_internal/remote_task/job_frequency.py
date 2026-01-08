@@ -25,7 +25,7 @@ from clusterfuzz._internal.system import environment
 # By default, all jobs are sent to the GCP Batch backend. This can be
 # overridden on a per-job basis by setting the `K8S_JOBS_FREQUENCY`
 # feature flag.
-DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.5}
+DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.0}
 
 
 def get_job_frequency():
