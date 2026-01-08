@@ -121,7 +121,7 @@ class RemoteTaskGate(RemoteTaskInterface):
         continue
 
       # Use deterministic slicing for multiple tasks
-      frequencies = job_frequency.get_job_frequency(job_type)
+      frequencies = job_frequency.get_job_frequency()
       k8s_ratio = frequencies['kubernetes']
       k8s_count = int(len(tasks) * k8s_ratio)
 

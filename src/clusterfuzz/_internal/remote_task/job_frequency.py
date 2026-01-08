@@ -18,43 +18,37 @@ on different remote backends, such as GCP Batch and Kubernetes. This allows for
 A/B testing and performance comparisons between the two platforms.
 """
 
+from clusterfuzz._internal.datastore import feature_flags
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 # By default, all jobs are sent to the GCP Batch backend. This can be
 # overridden on a per-job basis by setting the `K8S_JOBS_FREQUENCY`
-# environment variable.
+# feature flag.
 DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.5}
 
 
-def _get_job_frequencies_from_env():
-  """Parses the `K8S_JOBS_FREQUENCY` environment variable.
-  
-  The variable should be a comma-separated list of key-value pairs, where the
-  key is the job name and the value is the frequency (a float between 0 and 1).
-  For example: `libfuzzer_asan_chrome=0.5,libfuzzer_msan_chrome=0.2`.
-  """
-  job_frequencies = {}
-  frequency_string = environment.get_value('K8S_JOBS_FREQUENCY')
-  if not frequency_string:
-    return {}
-
-  for item in frequency_string.split(','):
-    key, value = item.split('=')
-    job_frequencies[key] = float(value)
-  return job_frequencies
-
-
-def get_job_frequency(job_name):
+def get_job_frequency():
   """Returns the frequency for a given job.
   
   If the frequency is not explicitly defined in the `K8S_JOBS_FREQUENCY`
   environment variable, the default frequency is returned.
   """
-  job_frequencies = _get_job_frequencies_from_env()
-  if job_name in job_frequencies:
-    kubernetes_frequency = job_frequencies[job_name]
-    return {
+
+  frequency = DEFAULT_FREQUENCY
+  kubernetes_frequency = feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY.content
+  if not isinstance(
+      kubernetes_frequency,
+      float) or kubernetes_frequency < 0 or kubernetes_frequency > 1:
+    logs.warning(
+        "Kubernetes frequency inconsistent",
+        kubernetes_frequency=kubernetes_frequency)
+    kubernetes_frequency = None
+
+  if kubernetes_frequency:
+    frequency = {
         'gcp_batch': 1.0 - kubernetes_frequency,
         'kubernetes': kubernetes_frequency
     }
-  return DEFAULT_FREQUENCY
+  logs.info("Job frequency", frequency=frequency)
+  return frequency
