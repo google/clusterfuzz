@@ -31,11 +31,13 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 UUIDS = [f'00000000-0000-0000-0000-{str(i).zfill(12)}' for i in range(100)]
 
 
-def _get_expected_task_spec(batch_workload_spec):
+def _get_expected_task_spec(batch_workload_spec, commands=None):
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
   runnable.container.image_uri = batch_workload_spec.docker_image
+  if commands:
+    runnable.container.commands = commands
   clusterfuzz_release = batch_workload_spec.clusterfuzz_release
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
@@ -103,7 +105,8 @@ def _get_expected_allocation_policy(spec):
   return allocation_policy
 
 
-def _get_expected_create_request(job_name_uuid, spec, input_urls):
+def _get_expected_create_request(job_name_uuid, spec, input_urls,
+                                 commands=None):
   """Constructs and returns a `batch.CreateJobRequest` object.
 
   This function builds a complete `CreateJobRequest` for the GCP Batch service,
@@ -115,7 +118,7 @@ def _get_expected_create_request(job_name_uuid, spec, input_urls):
   project_id = spec.project
   parent = f'projects/{project_id}/locations/{spec.gce_region}'
 
-  task_spec = _get_expected_task_spec(spec)
+  task_spec = _get_expected_task_spec(spec, commands=commands)
 
   task_environments = [
       batch.Environment(variables={'UWORKER_INPUT_DOWNLOAD_URL': url})
@@ -253,6 +256,42 @@ class BatchServiceTest(unittest.TestCase):
       # Assert that create_job was called with the correct arguments.
       expected_create_request = _get_expected_create_request(
           UUIDS[0], spec1, ['url1'])
+      self.mock_batch_client_instance.create_job.assert_called_with(
+          expected_create_request)
+      self.assertEqual(result, 'job')
+
+  def test_create_congestion_job(self):
+    """Tests that create_congestion_job works as expected."""
+    # Create mock data.
+    spec1 = service.BatchWorkloadSpec(
+        clusterfuzz_release='release1',
+        disk_size_gb=10,
+        disk_type='type1',
+        docker_image='image1',
+        user_data='user_data1',
+        service_account_email='email1',
+        subnetwork='subnetwork1',
+        preemptible=True,
+        project='project1',
+        machine_type='machine1',
+        network='network1',
+        gce_region='region1',
+        priority=0,
+        max_run_duration='1s',
+        retry=False)
+    with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
+                   ) as mock_get_specs_from_config:
+      mock_get_specs_from_config.return_value = {
+          ('fuzz', 'job1'): spec1,
+      }
+      self.mock_batch_client_instance.create_job.return_value = 'job'
+
+      # Call the function.
+      result = self.batch_service.create_congestion_job('job1')
+
+      # Assert that create_job was called with the correct arguments.
+      expected_create_request = _get_expected_create_request(
+          UUIDS[0], spec1, ['CONGESTION'], commands=['echo', 'hello'])
       self.mock_batch_client_instance.create_job.assert_called_with(
           expected_create_request)
       self.assertEqual(result, 'job')
