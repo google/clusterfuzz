@@ -37,6 +37,7 @@ from clusterfuzz._internal.system import environment
 
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
+# TODO(javanlacerda): Use feature flag for setting it.
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
