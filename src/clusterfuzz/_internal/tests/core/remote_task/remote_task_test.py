@@ -65,8 +65,8 @@ class RemoteTaskGateTest(unittest.TestCase):
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs'
   )
-  def test_create_uworker_main_batch_jobs_success(
-      self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
+  def test_create_uworker_main_batch_jobs_success(self, _, mock_k8s_create,
+                                                  mock_get_frequency):
     """Test successful creation."""
     mock_get_frequency.return_value = {'kubernetes': 1.0}
     mock_pubsub_task = mock.Mock()

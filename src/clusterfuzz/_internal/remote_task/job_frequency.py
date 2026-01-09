@@ -18,11 +18,6 @@ on different remote backends, such as GCP Batch and Kubernetes. This allows for
 A/B testing and performance comparisons between the two platforms.
 """
 
-from clusterfuzz._internal.system import environment
-
-# By default, all jobs are sent to the GCP Batch backend. This can be
-# overridden on a per-job basis by setting the `K8S_JOBS_FREQUENCY`
-# environment variable.
 DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.0}
 
 

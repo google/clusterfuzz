@@ -106,7 +106,8 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.assertEqual(len(k8s_call_args), 1)
     self.assertIn(tasks[0], k8s_call_args)
 
-    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_not_called()
+    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_not_called(
+    )
 
   @mock.patch(
       'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')

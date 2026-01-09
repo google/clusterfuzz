@@ -26,6 +26,8 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 class KubernetesServiceTest(unittest.TestCase):
   """Tests for the KubernetesService class."""
 
+  # pylint: disable=protected-access
+
   def setUp(self):
     patcher = mock.patch(
         'clusterfuzz._internal.k8s.service.KubernetesService._load_gke_credentials'
@@ -110,8 +112,7 @@ class KubernetesServiceTest(unittest.TestCase):
         docker_image='test-image',
         command='fuzz',
         disk_size_gb=10,
-        service_account_email=
-        'test@clusterfuzz-test.iam.gserviceaccount.com',
+        service_account_email='test@clusterfuzz-test.iam.gserviceaccount.com',
         clusterfuzz_release='prod',
         is_kata=True)
 
