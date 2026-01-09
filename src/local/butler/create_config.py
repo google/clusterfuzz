@@ -233,13 +233,15 @@ def deploy_zips(config_dir):
 
 def create_buckets(project_id, buckets):
   """Create buckets."""
-  gsutil = common.Gsutil()
+  gcloud_storage = common.Gcloud(storage=True)
   for bucket in buckets:
     try:
-      gsutil.run('defstorageclass', 'get', 'gs://' + bucket)
-    except common.GsutilError:
+      gcloud_storage.run('buckets', 'describe', f'gs://{bucket}',
+                         '--format="value(name)"')
+    except common.GcloudError:
       # Create the bucket if it does not exist.
-      gsutil.run('mb', '-p', project_id, 'gs://' + bucket)
+      gcloud_storage.run('buckets', 'create', f'gs://{bucket}',
+                         f'--project={project_id}')
 
 
 def create_pubsub_notification_from_storage_bucket(gcloud, bucket, topic):
@@ -256,10 +258,12 @@ def create_pubsub_notification_from_storage_bucket(gcloud, bucket, topic):
 
 def set_cors(config_dir, buckets):
   """Sets cors settings."""
-  gsutil = common.Gsutil()
+  gcloud_storage = common.Gcloud(storage=True)
   cors_file_path = os.path.join(config_dir, 'gae', 'cors.json')
   for bucket in buckets:
-    gsutil.run('cors', 'set', cors_file_path, 'gs://' + bucket)
+    # gcloud_storage.run('cors', 'set', cors_file_path, 'gs://' + bucket)
+    gcloud_storage.run('buckets', 'update', f'gs://{bucket}',
+                       f'--cors-file={cors_file_path}')
 
 
 def create_secret(gcloud, secret_name, secret_contents):
