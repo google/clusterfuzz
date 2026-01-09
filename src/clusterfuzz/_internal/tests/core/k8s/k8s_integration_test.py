@@ -27,8 +27,11 @@ class KubernetesIntegrationTest(unittest.TestCase):
   """Integration tests for KubernetesService."""
   # pylint: disable=protected-access
 
+  @mock.patch('clusterfuzz._internal.base.utils.get_application_id')
+  @mock.patch('google.auth.default')
   @mock.patch('googleapiclient.discovery.build')
-  def test_load_credentials(self, mock_discovery_build):
+  def test_load_credentials(self, mock_discovery_build, mock_auth_default,
+                            mock_get_application_id):
     """Test that credentials can be loaded manually using the fallback logic."""
     # Ensure no kubeconfig interferes to force manual path (if local kubeconfig exists)
     # Note: os.environ changes are process-local.
@@ -38,6 +41,13 @@ class KubernetesIntegrationTest(unittest.TestCase):
     # Mock GKE response
     mock_service = mock.Mock()
     mock_discovery_build.return_value = mock_service
+    mock_get_application_id.return_value = 'test-project'
+
+    mock_creds = mock.Mock()
+    mock_creds.valid = True
+    mock_creds.expired = False
+    mock_creds.token = 'fake-token'
+    mock_auth_default.return_value = (mock_creds, 'test-project')
 
     mock_clusters_list = mock_service.projects().locations().clusters().list(
     ).execute
