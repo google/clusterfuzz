@@ -25,6 +25,7 @@ from clusterfuzz._internal.k8s import service
 
 class KubernetesIntegrationTest(unittest.TestCase):
   """Integration tests for KubernetesService."""
+  # pylint: disable=protected-access
 
   @mock.patch('googleapiclient.discovery.build')
   def test_load_credentials(self, mock_discovery_build):

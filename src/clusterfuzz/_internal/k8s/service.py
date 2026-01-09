@@ -24,7 +24,6 @@ import google.auth
 from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
 from kubernetes import client as k8s_client
-from kubernetes import config as k8s_config
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -242,6 +241,7 @@ class KubernetesService(RemoteTaskInterface):
     parent = f"projects/{project}/locations/-"
 
     try:
+      # pylint: disable=no-member
       response = service.projects().locations().clusters().list(
           parent=parent).execute()
       clusters = response.get('clusters', [])
