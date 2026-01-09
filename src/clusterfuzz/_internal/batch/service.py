@@ -238,11 +238,6 @@ def _get_config_names(batch_tasks: List[RemoteTask]):
   return config_map
 
 
-def _get_task_duration(command):
-  return tasks.TASK_LEASE_SECONDS_BY_COMMAND.get(command,
-                                                 tasks.TASK_LEASE_SECONDS)
-
-
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
                                            ['name', 'weight'])
 
@@ -293,7 +288,7 @@ def _get_specs_from_config(batch_tasks: List[RemoteTask]) -> Dict:
     # Lower numbers are a lower priority, meaning less likely to run From:
     # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
     priority = 0 if task.command == 'fuzz' else 1
-    max_run_duration = f'{_get_task_duration(task.command)}s'
+    max_run_duration = f'{tasks.get_task_duration(task.command)}s'
     # This saves us time and reduces fragementation, e.g. every linux fuzz task
     # run in this call will run in the same zone.
     if config_name not in subconfig_map:

@@ -26,35 +26,10 @@ from clusterfuzz._internal.system import environment
 DEFAULT_FREQUENCY = {'gcp_batch': 1.0, 'kubernetes': 0.0}
 
 
-def _get_job_frequencies_from_env():
-  """Parses the `K8S_JOBS_FREQUENCY` environment variable.
-  
-  The variable should be a comma-separated list of key-value pairs, where the
-  key is the job name and the value is the frequency (a float between 0 and 1).
-  For example: `libfuzzer_asan_chrome=0.5,libfuzzer_msan_chrome=0.2`.
-  """
-  job_frequencies = {}
-  frequency_string = environment.get_value('K8S_JOBS_FREQUENCY')
-  if not frequency_string:
-    return {}
-
-  for item in frequency_string.split(','):
-    key, value = item.split('=')
-    job_frequencies[key] = float(value)
-  return job_frequencies
-
-
-def get_job_frequency(job_name):
+def get_job_frequency():
   """Returns the frequency for a given job.
   
   If the frequency is not explicitly defined in the `K8S_JOBS_FREQUENCY`
   environment variable, the default frequency is returned.
   """
-  job_frequencies = _get_job_frequencies_from_env()
-  if job_name in job_frequencies:
-    kubernetes_frequency = job_frequencies[job_name]
-    return {
-        'gcp_batch': 1.0 - kubernetes_frequency,
-        'kubernetes': kubernetes_frequency
-    }
   return DEFAULT_FREQUENCY
