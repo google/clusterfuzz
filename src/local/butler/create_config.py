@@ -261,7 +261,6 @@ def set_cors(config_dir, buckets):
   gcloud_storage = common.Gcloud(storage=True)
   cors_file_path = os.path.join(config_dir, 'gae', 'cors.json')
   for bucket in buckets:
-    # gcloud_storage.run('cors', 'set', cors_file_path, 'gs://' + bucket)
     gcloud_storage.run('buckets', 'update', f'gs://{bucket}',
                        f'--cors-file={cors_file_path}')
 
