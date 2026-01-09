@@ -79,53 +79,34 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate = RemoteTaskGate()
 
     mock_random.return_value = 0.4
-    self.assertTrue(gate._should_use_kubernetes('job'))
+    self.assertTrue(gate._should_use_kubernetes())
 
     mock_random.return_value = 0.6
-    self.assertFalse(gate._should_use_kubernetes('job'))
+    self.assertFalse(gate._should_use_kubernetes())
 
   @mock.patch.object(RemoteTaskGate, '_should_use_kubernetes')
   def test_create_uworker_main_batch_jobs(self, mock_should_use_kubernetes,
                                           mock_gcp_batch_service,
                                           mock_kubernetes_service):
     """
-    Tests that create_uworker_main_batch_jobs correctly routes tasks to
-    the appropriate service when they have different job types (random distribution).
+    Tests that create_uworker_main_batch_jobs correctly routes a single task
+    based on _should_use_kubernetes.
     """
     tasks = [
         RemoteTask('command1', 'job1', 'url1'),
-        RemoteTask('command2', 'job2', 'url2'),
-        RemoteTask('command3', 'job3', 'url3'),
     ]
-    # different job types -> loop calls _should_use_kubernetes for each
-    mock_should_use_kubernetes.side_effect = [True, False, True]
+    mock_should_use_kubernetes.return_value = True
     gate = RemoteTaskGate()
     gate.create_uworker_main_batch_jobs(tasks)
-
-    # tasks[0] (job1) -> k8s
-    # tasks[1] (job2) -> batch
-    # tasks[2] (job3) -> k8s
-
-    # K8s gets tasks[0] and tasks[2]
-    # Since call order depends on dict iteration order which is insertion ordered in Py3.7+,
-    # job1, job2, job3.
-
-    # However, create_uworker_main_batch_jobs aggregates them into lists and calls service once.
 
     mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.assert_called_once(
     )
     k8s_call_args = mock_kubernetes_service.return_value.create_uworker_main_batch_jobs.call_args[
         0][0]
-    self.assertEqual(len(k8s_call_args), 2)
+    self.assertEqual(len(k8s_call_args), 1)
     self.assertIn(tasks[0], k8s_call_args)
-    self.assertIn(tasks[2], k8s_call_args)
 
-    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_called_once(
-    )
-    batch_call_args = mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.call_args[
-        0][0]
-    self.assertEqual(len(batch_call_args), 1)
-    self.assertIn(tasks[1], batch_call_args)
+    mock_gcp_batch_service.return_value.create_uworker_main_batch_jobs.assert_not_called()
 
   @mock.patch(
       'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
