@@ -84,7 +84,7 @@ class KubernetesServiceTest(unittest.TestCase):
   def test_create_uworker_main_batch_jobs_limit_reached(
       self, mock_get_pending_count, _):
     """Tests that create_uworker_main_batch_jobs nacks when limit reached."""
-    mock_get_pending_count.return_value = 100
+    mock_get_pending_count.return_value = service.MAX_PENDING_JOBS
     kube_service = service.KubernetesService()
 
     mock_pubsub_task = mock.Mock()
@@ -103,7 +103,7 @@ class KubernetesServiceTest(unittest.TestCase):
     kube_service = service.KubernetesService()
     # Mock _create_service_account_if_needed
     kube_service._create_service_account_if_needed = mock.Mock(
-        return_value='untrusted-worker')
+        return_value='test')
 
     config = service.KubernetesJobConfig(
         job_type='test-job',
@@ -111,7 +111,7 @@ class KubernetesServiceTest(unittest.TestCase):
         command='fuzz',
         disk_size_gb=10,
         service_account_email=
-        'untrusted-worker@clusterfuzz-development.iam.gserviceaccount.com',
+        'test@clusterfuzz-test.iam.gserviceaccount.com',
         clusterfuzz_release='prod',
         is_kata=True)
 
@@ -138,9 +138,9 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertEqual('1.9Gi', volumes['dshm']['emptyDir']['sizeLimit'])
 
     # Check Service Account
-    self.assertEqual('untrusted-worker', pod_spec['serviceAccountName'])
+    self.assertEqual('test', pod_spec['serviceAccountName'])
     kube_service._create_service_account_if_needed.assert_called_with(
-        'untrusted-worker@clusterfuzz-development.iam.gserviceaccount.com')
+        'test@clusterfuzz-test.iam.gserviceaccount.com')
 
   @mock.patch('kubernetes.client.BatchV1Api')
   def test_create_job(self, mock_batch_api_cls, _):

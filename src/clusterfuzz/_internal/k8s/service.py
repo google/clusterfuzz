@@ -37,7 +37,6 @@ from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
 from clusterfuzz._internal.system import environment
 
-# See https://cloud.google.com/batch/quotas#job_limits
 MAX_PENDING_JOBS = 1000
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
 
@@ -239,7 +238,6 @@ class KubernetesService(RemoteTaskInterface):
     """Loads GKE credentials and configures the Kubernetes client."""
     credentials, _ = google.auth.default()
     project = utils.get_application_id()
-    print(f"DEBUG: project from utils.get_application_id(): {project}")
     service = discovery.build('container', 'v1', credentials=credentials)
     parent = f"projects/{project}/locations/-"
 
@@ -256,7 +254,6 @@ class KubernetesService(RemoteTaskInterface):
 
     except Exception as e:
       logs.error(f"Failed to list clusters in {project}: {e}")
-      print(f"DEBUG: Failed to list clusters in {project}: {e}")
       return
 
     endpoint = cluster['endpoint']
