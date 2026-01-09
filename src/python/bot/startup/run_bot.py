@@ -99,7 +99,7 @@ def schedule_utask_mains():
 
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        RemoteTask(task.command, task.job, task.argument)
+        RemoteTask(task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
     RemoteTaskGate().create_uworker_main_batch_jobs(batch_tasks)
