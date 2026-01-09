@@ -27,6 +27,38 @@ class RemoteTaskGateTest(unittest.TestCase):
   """Tests for RemoteTaskGate."""
 
   def setUp(self):
+    patcher = mock.patch('clusterfuzz._internal.base.utils.get_application_id')
+    self.addCleanup(patcher.stop)
+    self.mock_get_application_id = patcher.start()
+    self.mock_get_application_id.return_value = 'test-project'
+
+    patcher = mock.patch('google.auth.default')
+    self.addCleanup(patcher.stop)
+    self.mock_auth_default = patcher.start()
+    mock_creds = mock.Mock()
+    mock_creds.valid = True
+    mock_creds.expired = False
+    mock_creds.token = 'fake-token'
+    self.mock_auth_default.return_value = (mock_creds, 'test-project')
+
+    # Mock discovery.build to avoid network calls during KubernetesService init
+    patcher = mock.patch('googleapiclient.discovery.build')
+    self.addCleanup(patcher.stop)
+    self.mock_discovery_build = patcher.start()
+    mock_service = mock.Mock()
+    self.mock_discovery_build.return_value = mock_service
+    mock_service.projects().locations().clusters().list(
+    ).execute.return_value = {
+        'clusters': [{
+            'name': 'clusterfuzz-cronjobs-gke',
+            'endpoint': '1.2.3.4',
+            'masterAuth': {
+                'clusterCaCertificate':
+                    'ZmFrZS1jZXJ0'  # base64 encoded 'fake-cert'
+            }
+        }]
+    }
+
     self.gate = RemoteTaskGate()
 
   @mock.patch(
