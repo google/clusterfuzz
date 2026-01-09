@@ -54,7 +54,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
   def test_create_uworker_main_batch_jobs_limit_reached(
       self, mock_get_pending_count, _):
     """Tests that create_uworker_main_batch_jobs nacks tasks when limit reached."""
-    mock_get_pending_count.return_value = 100
+    mock_get_pending_count.return_value = service.MAX_PENDING_JOBS
     kube_service = service.KubernetesService()
 
     mock_pubsub_task = mock.Mock()
@@ -71,7 +71,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
   def test_create_uworker_main_batch_jobs_limit_exceeded(
       self, mock_get_pending_count, _):
     """Tests that create_uworker_main_batch_jobs nacks tasks when limit exceeded."""
-    mock_get_pending_count.return_value = 101
+    mock_get_pending_count.return_value = service.MAX_PENDING_JOBS + 1
     kube_service = service.KubernetesService()
 
     mock_pubsub_task = mock.Mock()
