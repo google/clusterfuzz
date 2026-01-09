@@ -24,7 +24,9 @@ import google.auth
 from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
 from kubernetes import client as k8s_client
+from kubernetes import config as k8s_config
 
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
@@ -35,8 +37,7 @@ from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
 from clusterfuzz._internal.system import environment
 
-# See https://cloud.google.com/batch/quotas#job_limits
-MAX_CONCURRENT_VMS_PER_JOB = 1000
+MAX_PENDING_JOBS = 1000
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
@@ -92,6 +93,7 @@ def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
 
   if not remote_tasks:
     return {}
+  #TODO(javanlacerda): Create remote task config
   batch_config = local_config.BatchConfig()
   config_map = _get_config_names(remote_tasks)
   configs = {}
@@ -129,7 +131,8 @@ def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
   return configs
 
 
-def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
+def _create_job_body(config: KubernetesJobConfig, input_url: str,
+                     service_account_name: str) -> dict:
   """Creates the body of a Kubernetes job."""
 
   job_name = config.job_type.replace('_', '-') + '-' + str(uuid.uuid4()).split(
@@ -143,10 +146,11 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
           'name': job_name
       },
       'spec': {
+          'activeDeadlineSeconds': tasks.get_task_duration(config.command),
           'template': {
               'spec': {
-                  'hostNetwork':
-                      True,
+                  'serviceAccountName':
+                      service_account_name,
                   'containers': [{
                       'name':
                           job_name,
@@ -181,11 +185,15 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str) -> dict:
                           },
                           {
                               'name': 'IS_K8S_ENV',
-                              'value': 'True'
+                              'value': 'true'
                           },
                           {
                               'name': 'DISABLE_MOUNTS',
                               'value': 'true'
+                          },
+                          {
+                              'name': 'UPDATE_WEB_TESTS',
+                              'value': 'False'
                           },
                       ],
                       'securityContext': {
@@ -228,21 +236,24 @@ class KubernetesService(RemoteTaskInterface):
 
   def _load_gke_credentials(self):
     """Loads GKE credentials and configures the Kubernetes client."""
-    credentials, project = google.auth.default()
+    credentials, _ = google.auth.default()
+    project = utils.get_application_id()
     service = discovery.build('container', 'v1', credentials=credentials)
-    parent = f'projects/{project}/locations/-'
-    # pylint: disable=no-member
-    response = service.projects().locations().clusters().list(
-        parent=parent).execute()
+    parent = f"projects/{project}/locations/-"
 
-    cluster = None
-    for c in response.get('clusters', []):
-      if c['name'] == CLUSTER_NAME:
-        cluster = c
-        break
+    try:
+      response = service.projects().locations().clusters().list(
+          parent=parent).execute()
+      clusters = response.get('clusters', [])
+      cluster = next((c for c in clusters if c['name'] == CLUSTER_NAME), None)
 
-    if not cluster:
-      logs.error(f'Cluster {CLUSTER_NAME} not found.')
+      if not cluster:
+        logs.error(f"Cluster {CLUSTER_NAME} not found in project {project}.")
+        print(f"DEBUG: Cluster {CLUSTER_NAME} not found in project {project}.")
+        return
+
+    except Exception as e:
+      logs.error(f"Failed to list clusters in {project}: {e}")
       return
 
     endpoint = cluster['endpoint']
@@ -250,9 +261,6 @@ class KubernetesService(RemoteTaskInterface):
     ca_cert = base64.b64decode(cluster['masterAuth']['clusterCaCertificate'])
 
     # Write CA cert to a temporary file.
-    # Note: This file persists for the lifetime of the process/container.
-    # Ideally it should be cleaned up, but standard k8s client usage involves
-    # file paths.
     fd, ca_cert_path = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
       f.write(ca_cert)
@@ -263,17 +271,38 @@ class KubernetesService(RemoteTaskInterface):
     configuration.verify_ssl = True
 
     def get_token(creds):
-      if not creds.valid:
-        request = google_requests.Request()
+      request = google_requests.Request()
+      if not creds.valid or creds.expired:
         creds.refresh(request)
-      return creds.token
+      return {"authorization": "Bearer " + creds.token}
 
-    # Hook to refresh token on API calls.
-    configuration.refresh_api_key_hook = lambda _: {
-        "authorization": "Bearer " + get_token(credentials)
-    }
+    configuration.refresh_api_key_hook = lambda _: get_token(credentials)
+    configuration.api_key = get_token(credentials)
 
     k8s_client.Configuration.set_default(configuration)
+    logs.info("GKE credentials loaded successfully.")
+
+  def _create_service_account_if_needed(self,
+                                        service_account_email: str) -> str:
+    """Creates a Kubernetes Service Account if it doesn't exist."""
+    service_account_name = service_account_email.split('@')[0]
+    namespace = 'default'
+    try:
+      self._core_api.read_namespaced_service_account(service_account_name,
+                                                     namespace)
+      return service_account_name
+    except k8s_client.rest.ApiException as e:
+      if e.status != 404:
+        raise
+
+    logs.info(f'Creating Service Account {service_account_name} for '
+              f'{service_account_email}.')
+    metadata = k8s_client.V1ObjectMeta(
+        name=service_account_name,
+        annotations={'iam.gke.io/gcp-service-account': service_account_email})
+    body = k8s_client.V1ServiceAccount(metadata=metadata)
+    self._core_api.create_namespaced_service_account(namespace, body)
+    return service_account_name
 
   def create_job(self, config: KubernetesJobConfig, input_url: str) -> str:
     """Creates a Kubernetes job.
@@ -284,10 +313,24 @@ class KubernetesService(RemoteTaskInterface):
     Returns:
       The name of the created Kubernetes job.
     """
-
-    job_body = _create_job_body(config, input_url)
+    service_account_name = self._create_service_account_if_needed(
+        config.service_account_email)
+    job_body = _create_job_body(config, input_url, service_account_name)
     self._batch_api.create_namespaced_job(body=job_body, namespace='default')
     return job_body['metadata']['name']
+
+  def _get_pending_jobs_count(self) -> int:
+    """Returns the number of pending jobs."""
+    try:
+      pods = self._core_api.list_namespaced_pod(
+          namespace='default',
+          label_selector='app.kubernetes.io/name=clusterfuzz-kata-job',
+          field_selector='status.phase=Pending')
+      logs.info(f"Found {len(pods.items)} pending jobs.")
+      return len(pods.items)
+    except Exception as e:
+      logs.error(f"Failed to list pods: {e}")
+      return 0
 
   def create_uworker_main_batch_job(self, module: str, job_type: str,
                                     input_download_url: str):
@@ -308,6 +351,15 @@ class KubernetesService(RemoteTaskInterface):
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
+    if self._get_pending_jobs_count() >= MAX_PENDING_JOBS:
+      logs.warning(
+          f'Kubernetes job limit reached. Not acking {len(remote_tasks)} tasks.'
+      )
+      for task in remote_tasks:
+        if task.pubsub_task:
+          task.pubsub_task.do_not_ack = True
+      return []
+
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
@@ -330,6 +382,8 @@ class KubernetesService(RemoteTaskInterface):
   def create_kata_container_job(self, config: KubernetesJobConfig,
                                 input_url: str) -> str:
     """Creates a Kubernetes job that runs in a Kata container."""
+    service_account_name = self._create_service_account_if_needed(
+        config.service_account_email)
     job_name = 'clusterfuzz-kata-job-' + str(uuid.uuid4()).split(
         '-', maxsplit=1)[0]
 
@@ -340,6 +394,7 @@ class KubernetesService(RemoteTaskInterface):
             'name': job_name
         },
         'spec': {
+            'activeDeadlineSeconds': tasks.get_task_duration(config.command),
             'template': {
                 'metadata': {
                     'labels': {
@@ -349,8 +404,8 @@ class KubernetesService(RemoteTaskInterface):
                 'spec': {
                     'runtimeClassName':
                         'kata',
-                    'hostNetwork':
-                        True,
+                    'serviceAccountName':
+                        service_account_name,
                     'dnsPolicy':
                         'ClusterFirstWithHostNet',
                     'containers': [{
@@ -414,11 +469,15 @@ class KubernetesService(RemoteTaskInterface):
                             },
                             {
                                 'name': 'IS_K8S_ENV',
-                                'value': 'True'
+                                'value': 'true'
                             },
                             {
                                 'name': 'DISABLE_MOUNTS',
                                 'value': 'true'
+                            },
+                            {
+                                'name': 'UPDATE_WEB_TESTS',
+                                'value': 'False'
                             },
                         ]
                     }],
