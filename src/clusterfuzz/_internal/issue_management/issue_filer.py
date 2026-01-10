@@ -326,6 +326,8 @@ def file_issue(testcase,
       is_security=testcase.security_flag, is_crash=is_crash)
 
   issue = issue_tracker.new_issue()
+  if issue_tracker.project == "google-buganizer":
+    logs.info(f"New issue's default component id = {issue.component_id}")
   issue.title = data_handler.get_issue_summary(testcase)
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)
@@ -465,10 +467,19 @@ def file_issue(testcase,
     issue.labels.add(policy.substitution_mapping(label))
 
   metadata_components = _get_from_metadata(testcase, 'issue_components')
+
+  if issue_tracker.project == "google-buganizer" and metadata_components:
+    # Clear the automatic component to prioritize the metadata component.
+    logs.info(
+        "Removed the automatic component to emphasize the metadata component.")
+    issue.components.clear()
+
   for component in metadata_components:
     issue.components.add(component)
 
-  if testcase.one_time_crasher_flag and policy.unreproducible_component:
+  if issue_tracker.project != "google-buganizer" and \
+  testcase.one_time_crasher_flag and \
+  policy.unreproducible_component:
     issue.components.add(policy.unreproducible_component)
 
   issue.reporter = user_email
@@ -479,8 +490,16 @@ def file_issue(testcase,
 
   recovered_exception = None
   try:
+    if issue_tracker.project == "google-buganizer":
+      logs.info("The values of Component IDs:")
+      logs.info(f"1. Backing: {list(issue.components)}")
+      logs.info(f"2. Removed: {list(issue.components.removed)}")
+      logs.info(f"3. Added: {list(issue.components.added)}")
+    logs.info("Primary attempt to the save the issue.")
     issue.save()
   except Exception as e:
+    logs.info("Exception occurred while saving the issue.")
+    logs.info(f"Error: {type(e).__name__}\nMessage: {e}")
     if policy.fallback_component:
       # If a fallback component is set, try clearing the existing components
       # and filing again.
@@ -493,6 +512,7 @@ def file_issue(testcase,
         message = policy.fallback_policy_message.replace(
             '%COMPONENTS%', ' '.join(metadata_components))
         issue.body += '\n\n' + message
+      logs.info("Secondary attempt to the save the issue.")
       issue.save()
     else:
       raise
