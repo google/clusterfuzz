@@ -39,21 +39,21 @@ class KubernetesServiceLimitTest(unittest.TestCase):
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   def test_create_uworker_main_batch_jobs_limit_not_reached(
       self, mock_get_pending_count, _):
-    """Tests that create_uworker_main_batch_jobs proceeds when limit not reached."""
+    """Tests that create_utask_main_jobs proceeds when limit not reached."""
     mock_get_pending_count.return_value = 99
     kube_service = service.KubernetesService()
 
     # We expect this to proceed to job creation logic (which we mock to avoid actual creation)
     with mock.patch.object(service.KubernetesService,
                            'create_kata_container_job') as mock_create:
-      kube_service.create_uworker_main_batch_jobs(
+      kube_service.create_utask_main_jobs(
           [service.RemoteTask('fuzz', 'job1', 'url1')])
       self.assertTrue(mock_create.called)
 
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   def test_create_uworker_main_batch_jobs_limit_reached(
       self, mock_get_pending_count, _):
-    """Tests that create_uworker_main_batch_jobs nacks tasks when limit reached."""
+    """Tests that create_utask_main_jobs nacks tasks when limit reached."""
     mock_get_pending_count.return_value = service.MAX_PENDING_JOBS
     kube_service = service.KubernetesService()
 
@@ -62,7 +62,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
     task = service.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
-    result = kube_service.create_uworker_main_batch_jobs([task])
+    result = kube_service.create_utask_main_jobs([task])
 
     self.assertEqual(result, [])
     self.assertTrue(mock_pubsub_task.do_not_ack)
@@ -70,7 +70,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   def test_create_uworker_main_batch_jobs_limit_exceeded(
       self, mock_get_pending_count, _):
-    """Tests that create_uworker_main_batch_jobs nacks tasks when limit exceeded."""
+    """Tests that create_utask_main_jobs nacks tasks when limit exceeded."""
     mock_get_pending_count.return_value = service.MAX_PENDING_JOBS + 1
     kube_service = service.KubernetesService()
 
@@ -79,7 +79,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
     task = service.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
-    result = kube_service.create_uworker_main_batch_jobs([task])
+    result = kube_service.create_utask_main_jobs([task])
 
     self.assertEqual(result, [])
     self.assertTrue(mock_pubsub_task.do_not_ack)

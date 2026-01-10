@@ -54,7 +54,7 @@ class KubernetesServiceTest(unittest.TestCase):
     ]
 
     kube_service = service.KubernetesService()
-    kube_service.create_uworker_main_batch_jobs(tasks)
+    kube_service.create_utask_main_jobs(tasks)
 
     # Assuming default config implies Kata, and no batching of URLs.
     # Total 3 tasks, so 3 calls.
@@ -85,7 +85,7 @@ class KubernetesServiceTest(unittest.TestCase):
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   def test_create_uworker_main_batch_jobs_limit_reached(
       self, mock_get_pending_count, _):
-    """Tests that create_uworker_main_batch_jobs nacks when limit reached."""
+    """Tests that create_utask_main_jobs nacks when limit reached."""
     mock_get_pending_count.return_value = service.MAX_PENDING_JOBS
     kube_service = service.KubernetesService()
 
@@ -94,7 +94,7 @@ class KubernetesServiceTest(unittest.TestCase):
     task = service.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
-    result = kube_service.create_uworker_main_batch_jobs([task])
+    result = kube_service.create_utask_main_jobs([task])
     self.assertEqual(result, [])
     self.assertTrue(mock_pubsub_task.do_not_ack)
 
@@ -174,14 +174,13 @@ class KubernetesServiceTest(unittest.TestCase):
 
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
-  @mock.patch.object(service.KubernetesService,
-                     'create_uworker_main_batch_jobs')
+  @mock.patch.object(service.KubernetesService, 'create_utask_main_jobs')
   def test_create_uworker_main_batch_job(self, mock_create_batch_jobs,
                                          mock_get_command, _):
     """Tests the creation of a single uworker main batch job."""
     mock_get_command.return_value = 'command'
     kube_service = service.KubernetesService()
-    kube_service.create_uworker_main_batch_job('module', 'job', 'url')
+    kube_service.create_utask_main_job('module', 'job', 'url')
 
     self.assertEqual(1, mock_create_batch_jobs.call_count)
     tasks = mock_create_batch_jobs.call_args[0][0]
