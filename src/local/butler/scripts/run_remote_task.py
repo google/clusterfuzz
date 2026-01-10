@@ -52,7 +52,7 @@ def schedule_utask_mains():
         for task in utask_mains
     ]
 
-    results = RemoteTaskGate().create_uworker_main_batch_jobs(batch_tasks)
+    results = RemoteTaskGate().create_utask_main_jobs(batch_tasks)
   print('Created jobs:', results)
   return results
 

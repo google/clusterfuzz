@@ -157,7 +157,7 @@ class GcpBatchServiceTest(unittest.TestCase):
     self.mock.uuid4.side_effect = [uuid.UUID(u) for u in UUIDS]
 
   def test_create_uworker_main_batch_jobs(self):
-    """Tests that create_uworker_main_batch_jobs works as expected."""
+    """Tests that create_utask_main_jobs works as expected."""
     # Create mock data.
     spec1 = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='release1',
@@ -204,7 +204,7 @@ class GcpBatchServiceTest(unittest.TestCase):
       ]
 
       # Call the function.
-      self.batch_service.create_uworker_main_batch_jobs(tasks)
+      self.batch_service.create_utask_main_jobs(tasks)
 
       # Assert that create_job was called with the correct arguments.
       expected_create_request_1 = _get_expected_create_request(
@@ -217,7 +217,7 @@ class GcpBatchServiceTest(unittest.TestCase):
       ])
 
   def test_create_uworker_main_batch_job(self):
-    """Tests that create_uworker_main_batch_job works as expected."""
+    """Tests that create_utask_main_job works as expected."""
     # Create mock data.
     spec1 = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='release1',
@@ -246,7 +246,7 @@ class GcpBatchServiceTest(unittest.TestCase):
       self.mock.get_command_from_module.return_value = 'fuzz'
 
       # Call the function.
-      result = self.batch_service.create_uworker_main_batch_job(
+      result = self.batch_service.create_utask_main_job(
           'fuzz', 'job1', 'url1')
 
       # Assert that create_job was called with the correct arguments.

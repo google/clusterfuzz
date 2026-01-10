@@ -63,10 +63,9 @@ class RemoteTaskGateTest(unittest.TestCase):
 
   @mock.patch(
       'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
-  @mock.patch.object(k8s_service.KubernetesService,
-                     'create_uworker_main_batch_jobs')
+  @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
-      'clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs'
+      'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
   def test_create_uworker_main_batch_jobs_k8s_limit_reached(
       self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
@@ -79,7 +78,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     # Simulate K8s service returning empty list (limit reached)
     mock_k8s_create.return_value = []
 
-    result = self.gate.create_uworker_main_batch_jobs([task])
+    result = self.gate.create_utask_main_jobs([task])
 
     # Verify K8s was attempted
     self.assertTrue(mock_k8s_create.called)
@@ -92,10 +91,9 @@ class RemoteTaskGateTest(unittest.TestCase):
 
   @mock.patch(
       'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
-  @mock.patch.object(k8s_service.KubernetesService,
-                     'create_uworker_main_batch_jobs')
+  @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
-      'clusterfuzz._internal.batch.service.GcpBatchService.create_uworker_main_batch_jobs'
+      'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
   def test_create_uworker_main_batch_jobs_success(self, _, mock_k8s_create,
                                                   mock_get_frequency):
@@ -105,7 +103,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     mock_pubsub_task.do_not_ack = False
     task = RemoteTask('fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
-    self.gate.create_uworker_main_batch_jobs([task])
+    self.gate.create_utask_main_jobs([task])
 
     self.assertTrue(mock_k8s_create.called)
     self.assertFalse(mock_pubsub_task.do_not_ack)

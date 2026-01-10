@@ -273,7 +273,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     mock_get_k8s_job_configs.return_value = {('fuzz', 'test-job'): config}
 
     actual_job_name = \
-        self.kubernetes_client.create_uworker_main_batch_job(
+        self.kubernetes_client.create_utask_main_job(
             'module', 'test-job', 'url1')
 
     # Wait for the job to be created.
@@ -337,7 +337,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     ]
 
     actual_job_names = \
-        self.kubernetes_client.create_uworker_main_batch_jobs(tasks)
+        self.kubernetes_client.create_utask_main_jobs(tasks)
     self.assertEqual(len(actual_job_names), 2)
 
     for job_name in actual_job_names:

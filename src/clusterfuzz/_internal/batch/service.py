@@ -368,17 +368,17 @@ class GcpBatchService(RemoteTaskInterface):
     logs.info(f'Created batch job id={job_name}.', spec=spec)
     return job_result
 
-  def create_uworker_main_batch_job(self, module: str, job_type: str,
+  def create_utask_main_job(self, module: str, job_type: str,
                                     input_download_url: str):
     """Creates a single batch job for a uworker main task."""
     command = task_utils.get_command_from_module(module)
     batch_tasks = [RemoteTask(command, job_type, input_download_url)]
-    result = self.create_uworker_main_batch_jobs(batch_tasks)
+    result = self.create_utask_main_jobs(batch_tasks)
     if result is None:
       return result
     return result[0]
 
-  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
+  def create_utask_main_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
     
     This method groups the tasks by their workload specification and creates a

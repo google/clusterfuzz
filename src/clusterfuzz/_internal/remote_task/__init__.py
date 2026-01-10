@@ -51,13 +51,13 @@ class RemoteTaskInterface(abc.ABC):
   """
 
   @abc.abstractmethod
-  def create_uworker_main_batch_job(self, module: str, job_type: str,
+  def create_utask_main_job(self, module: str, job_type: str,
                                     input_download_url: str):
     """Creates a single remote task for a uworker main task."""
     raise NotImplementedError
 
   @abc.abstractmethod
-  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
+  def create_utask_main_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates a many remote tasks for uworker main tasks."""
     raise NotImplementedError
 
@@ -85,19 +85,19 @@ class RemoteTaskGate(RemoteTaskInterface):
     frequencies = job_frequency.get_job_frequency()
     return random.random() < frequencies['kubernetes']
 
-  def create_uworker_main_batch_job(self, module: str, job_type: str,
+  def create_utask_main_job(self, module: str, job_type: str,
                                     input_download_url: str):
     """Creates a batch job on either GCP Batch or Kubernetes.
     
     The choice of backend is determined by the `_should_use_kubernetes` method.
     """
     if self._should_use_kubernetes():
-      return self._kubernetes_service.create_uworker_main_batch_job(
+      return self._kubernetes_service.create_utask_main_job(
           module, job_type, input_download_url)
-    return self._gcp_batch_service.create_uworker_main_batch_job(
+    return self._gcp_batch_service.create_utask_main_job(
         module, job_type, input_download_url)
 
-  def create_uworker_main_batch_jobs(self, remote_tasks: List[RemoteTask]):
+  def create_utask_main_jobs(self, remote_tasks: List[RemoteTask]):
     """Creates batch jobs on either GCP Batch or Kubernetes.
     
     The tasks are grouped by their target backend (GCP Batch or Kubernetes) and
@@ -128,11 +128,9 @@ class RemoteTaskGate(RemoteTaskInterface):
     results = []
     if kubernetes_tasks:
       results.extend(
-          self._kubernetes_service.create_uworker_main_batch_jobs(
-              kubernetes_tasks))
+          self._kubernetes_service.create_utask_main_jobs(kubernetes_tasks))
 
     if gcp_batch_tasks:
       results.extend(
-          self._gcp_batch_service.create_uworker_main_batch_jobs(
-              gcp_batch_tasks))
+          self._gcp_batch_service.create_utask_main_jobs(gcp_batch_tasks))
     return results

@@ -102,7 +102,7 @@ def schedule_utask_mains():
         RemoteTask(task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    RemoteTaskGate().create_uworker_main_batch_jobs(batch_tasks)
+    RemoteTaskGate().create_utask_main_jobs(batch_tasks)
 
 
 def task_loop():
