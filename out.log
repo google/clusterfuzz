@@ -1,7 +1,0 @@
-Running in dry-run mode, no datastore writes are committed. For permanent modifications, re-run with --non-dry-run.
-Attempting to combine batch tasks.
-Combining 2901 batch tasks.
-K8s result: ['libfuzzer-chrome-asan-debug-7ca9c46f']
-
-Please remember to run the migration individually on all projects.
-
