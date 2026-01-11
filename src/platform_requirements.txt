@@ -1,3 +1,4 @@
 grpcio==1.62.2
+kubernetes==34.1.0
 protobuf==4.23.4
 psutil==5.9.4

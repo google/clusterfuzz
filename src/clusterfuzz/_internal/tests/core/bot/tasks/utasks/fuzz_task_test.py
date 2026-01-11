@@ -60,6 +60,9 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
     self.mock.platform.return_value = 'some_platform'
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.get_runtime'])
+    self.mock.get_runtime.return_value = environment.UtaskMainRuntime.KATA_CONTAINER
 
   def test_fuzzer_run_result(self):
     """Ensure _track_fuzzer_run_result set the right metrics."""
@@ -77,6 +80,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': 2,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
     self.assertEqual(
         1,
@@ -85,6 +89,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': 0,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
     self.assertEqual(
         1,
@@ -93,6 +98,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': -1,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
 
     testcase_count_ratio = (
@@ -143,6 +149,9 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
     self.mock.platform.return_value = 'some_platform'
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.get_runtime'])
+    self.mock.get_runtime.return_value = environment.UtaskMainRuntime.KATA_CONTAINER
 
   def test_testcase_run_result(self):
     """Ensure _track_testcase_run_result sets the right metrics."""
@@ -154,24 +163,28 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
         monitoring_metrics.JOB_NEW_CRASH_COUNT.get({
             'job': 'job',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         15,
         monitoring_metrics.JOB_KNOWN_CRASH_COUNT.get({
             'job': 'job',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         7,
         monitoring_metrics.FUZZER_NEW_CRASH_COUNT.get({
             'fuzzer': 'fuzzer',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         15,
         monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.get({
             'fuzzer': 'fuzzer',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
 
 
