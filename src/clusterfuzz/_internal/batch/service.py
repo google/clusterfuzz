@@ -369,7 +369,7 @@ class GcpBatchService(RemoteTaskInterface):
     return job_result
 
   def create_utask_main_job(self, module: str, job_type: str,
-                                    input_download_url: str):
+                            input_download_url: str):
     """Creates a single batch job for a uworker main task."""
     command = task_utils.get_command_from_module(module)
     batch_tasks = [RemoteTask(command, job_type, input_download_url)]

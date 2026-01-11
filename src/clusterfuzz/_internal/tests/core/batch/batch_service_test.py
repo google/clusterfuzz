@@ -246,8 +246,7 @@ class GcpBatchServiceTest(unittest.TestCase):
       self.mock.get_command_from_module.return_value = 'fuzz'
 
       # Call the function.
-      result = self.batch_service.create_utask_main_job(
-          'fuzz', 'job1', 'url1')
+      result = self.batch_service.create_utask_main_job('fuzz', 'job1', 'url1')
 
       # Assert that create_job was called with the correct arguments.
       expected_create_request = _get_expected_create_request(

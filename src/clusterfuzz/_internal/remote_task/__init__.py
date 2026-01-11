@@ -52,7 +52,7 @@ class RemoteTaskInterface(abc.ABC):
 
   @abc.abstractmethod
   def create_utask_main_job(self, module: str, job_type: str,
-                                    input_download_url: str):
+                            input_download_url: str):
     """Creates a single remote task for a uworker main task."""
     raise NotImplementedError
 
@@ -86,7 +86,7 @@ class RemoteTaskGate(RemoteTaskInterface):
     return random.random() < frequencies['kubernetes']
 
   def create_utask_main_job(self, module: str, job_type: str,
-                                    input_download_url: str):
+                            input_download_url: str):
     """Creates a batch job on either GCP Batch or Kubernetes.
     
     The choice of backend is determined by the `_should_use_kubernetes` method.
