@@ -739,6 +739,7 @@ class PostprocessPubSubTask(PubSubTask):
     grandparent_class.__init__(command, output_url_argument, job_type, eta,
                                is_command_override, high_end)
     self._pubsub_message = pubsub_message
+    self.do_not_ack = False
 
   def ack(self):
     self._pubsub_message.ack()
