@@ -18,7 +18,6 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import gsutil
 from handlers import base_handler
 from libs import form
 from libs import handler
@@ -87,11 +86,10 @@ class CreateHandler(base_handler.Handler):
         'title':
             'Success',
         'message': (
-            'Upload data to the corpus using: ' +
-            ('gcloud storage rsync -r <local_corpus_directory> {bucket_url}'
-             if gsutil.use_gcloud_for_command('rsync') else
-             'gsutil -d -m rsync -r <local_corpus_directory> {bucket_url}'
-            ).format(bucket_url=bucket_url)),
+            'Upload data to the corpus using: gcloud storage rsync '
+            '<local_corpus_directory> {bucket_url} --recursive (add '
+            '`--delete-unmatched-destination-objects` to mirror the exact '
+            'state of the local corpus).'.format(bucket_url=bucket_url)),
     }
     return self.render('message.html', template_values)
 
