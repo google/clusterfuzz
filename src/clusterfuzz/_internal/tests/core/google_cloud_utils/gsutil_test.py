@@ -17,7 +17,7 @@ import os
 
 from pyfakefs import fake_filesystem_unittest
 
-from clusterfuzz._internal.google_cloud_utils import gcloud_storage
+from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -32,7 +32,7 @@ class GCloudStorageRunnerTest(fake_filesystem_unittest.TestCase):
         self,
         ['clusterfuzz._internal.system.new_process.ProcessRunner.run_and_wait'])
     test_utils.set_up_pyfakefs(self)
-    self.gcloud_runner_obj = gcloud_storage.GCloudStorageRunner()
+    self.gcloud_runner_obj = gsutil.GCloudStorageRunner()
 
   def _default_args(self, verbose=True, quiet=True):
     additional_args = ['--user-output-enabled'] if verbose else [
