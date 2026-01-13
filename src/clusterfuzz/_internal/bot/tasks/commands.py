@@ -194,11 +194,12 @@ def start_web_server_if_needed():
 
 def get_command_object(task_name):
   """Returns the command object that execute can be called on."""
+  logs.info(f'tworker: {environment.is_tworker()}, task: {task_name}')
   task = COMMAND_MAP.get(task_name)
   if not environment.is_tworker():
     return task
 
-  if task_name in {'postprocess', 'uworker_main'}:
+  if task_name in {'postprocess', 'uworker_main', 'fuzz'}:
     return task
 
   if isinstance(task, task_types.TrustedTask):
