@@ -30,13 +30,13 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import RemoteTask
 from clusterfuzz._internal.remote_task import RemoteTaskInterface
 from clusterfuzz._internal.system import environment
 
-MAX_PENDING_JOBS = 1000
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
@@ -351,7 +351,11 @@ class KubernetesService(RemoteTaskInterface):
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
-    if self._get_pending_jobs_count() >= MAX_PENDING_JOBS:
+    if feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.enabled and \
+    feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.content is not None\
+    and self._get_pending_jobs_count() >= int(feature_flags
+                                              .FeatureFlags.
+                                              K8S_PENDING_JOBS_LIMITER.content):
       logs.warning(
           f'Kubernetes job limit reached. Not acking {len(remote_tasks)} tasks.'
       )
