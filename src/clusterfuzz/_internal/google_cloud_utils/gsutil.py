@@ -16,7 +16,6 @@
 import os
 import shutil
 
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -26,18 +25,13 @@ from clusterfuzz._internal.system import new_process
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 
-def use_gcloud_for_command(command):
-  """Returns whether to use gcloud storage for the given command."""
-  return bool(environment.get_value(f'USE_GCLOUD_STORAGE_{command.upper()}'))
-
-
 def get_gcloud_path():
   """Get path to gcloud executable."""
   gcloud_executable = 'gcloud'
   if environment.platform() == 'WINDOWS':
     gcloud_executable += '.cmd'
 
-  gcloud_storage_dir = environment.get_value('GCLOUD_STORAGE_PATH')
+  gcloud_storage_dir = environment.get_value('GCLOUD_PATH')
   if gcloud_storage_dir:
     return os.path.join(gcloud_storage_dir, gcloud_executable)
 
@@ -46,43 +40,13 @@ def get_gcloud_path():
   if gcloud_absolute_path:
     return gcloud_absolute_path
 
-  logs.error('Cannot locate gcloud in PATH, set GCLOUD_STORAGE_PATH to directory containing gcloud storage binary.')
+  # Fallback to older GSUTIL_PATH.
+  gcloud_storage_dir = environment.get_value('GSUTIL_PATH')
+  if gcloud_storage_dir:
+    return os.path.join(gcloud_storage_dir, gcloud_executable)
+
+  logs.error('Cannot locate gcloud in PATH, set GCLOUD_PATH to directory containing gcloud storage binary.')
   return None
-
-
-# def get_gsutil_path():
-#   """Get path to gsutil executable.
-
-#   Returns:
-#     Path to gsutil executable on the system.
-#   """
-#   gsutil_executable = 'gsutil'
-#   if environment.platform() == 'WINDOWS':
-#     gsutil_executable += '.cmd'
-
-#   gsutil_directory = environment.get_value('GSUTIL_PATH')
-#   if not gsutil_directory:
-#     # Try searching the binary in path.
-#     gsutil_absolute_path = shutil.which(gsutil_executable)
-#     if gsutil_absolute_path:
-#       return gsutil_absolute_path
-
-#     logs.error('Cannot locate gsutil in PATH, set GSUTIL_PATH to directory '
-#                'containing gsutil binary.')
-#     return None
-
-#   gsutil_absolute_path = os.path.join(gsutil_directory, gsutil_executable)
-#   return gsutil_absolute_path
-
-
-# def _multiprocessing_args():
-#   """Get multiprocessing args for gsutil."""
-#   if utils.cpu_count() == 1:
-#     # GSUtil's default thread count is 5 as it assumes the common configuration
-#     # is many CPUs (GSUtil uses num_cpu processes).
-#     return ['-o', 'GSUtil:parallel_thread_count=16']
-
-#   return []
 
 
 def _filter_path(path, write=False):
@@ -109,44 +73,38 @@ def _filter_path(path, write=False):
 
 
 class GCloudStorageRunner:
-  """GSUtil/gcloud storage runner."""
+  """Gcloud storage runner."""
 
   def __init__(self, process_runner=new_process.ProcessRunner):
-    self._process_runner = process_runner
+    """Initialize a gcloud process runner.
 
-  def _get_runner_and_args(self, use_gcloud_storage, quiet=False, verbose=True):
-    """Get the process runner and default arguments."""
-    executable_path = get_gcloud_path()
-    default_args = ['storage']
-    # For gcloud storage, all operations run in parallel by default, so no need to add -m.
-    # Also, as gcloud storage handles the distribution of processes and threads dynamically,
-    # it is probably smart enough to not underwhelm the thread pool, we won't likelly need to
-    # set the thread count when cpu is 1.
+    For gcloud storage, all operations run in parallel by default, so no need
+    to add -m. Also, as gcloud storage handles the distribution of threads
+    dynamically, it is smart enough to not underwhelm the thread pool,
+    so we don't need to set the thread count for a single cpu.
+    """
+    self.gcloud_runner = process_runner(executable_path=get_gcloud_path(),
+                                        default_args=['storage'])
 
-    runner = self._process_runner(
-        executable_path=executable_path, default_args=default_args)
+  def run_gcloud_storage(self, arguments, quiet=True, verbose=True, **kwargs):
+    """Run a gcloud storage command."""
 
-    # Enable user intended output from console. Useful since this is stored
-    # at result.output from subprocess.
+    # Enable output from console. Might be useful since this is stored at result.output from subprocess.
     additional_args = ['--user-output-enabled'] if verbose else ['--no-user-output-enabled']
     # Disable all interactive prompts (https://docs.cloud.google.com/sdk/gcloud/reference#--quiet)
     additional_args += ['-q'] if quiet else []
 
-    return runner, additional_args
-
-  def run_gsutil(self, arguments, use_gcloud_storage, quiet=False, **kwargs):
-    """Run GSUtil or gcloud storage."""
-    runner, additional_args = self._get_runner_and_args(use_gcloud_storage,
-                                                        quiet)
     cmd = arguments[0] if arguments else 'unknown'
     arguments = additional_args + arguments
 
-    tool_name = 'gcloud storage' if use_gcloud_storage else 'gsutil'
+    # Get some info for logging.
+    tool_name = 'gcloud storage'
     arg_str = ' '.join(arguments)
     try:
       cwd = os.getcwd()
     except OSError:
       cwd = 'unknown'
+
     logs.info(
         f'Running {cmd} with {tool_name}.',
         tool_name=tool_name,
@@ -154,14 +112,8 @@ class GCloudStorageRunner:
         cwd=cwd,
         arguments=arg_str)
 
-    env = os.environ.copy()
-    if not use_gcloud_storage and 'PYTHONPATH' in env:
-      # GSUtil may be on Python 3, and our PYTHONPATH breaks it because we're on
-      # Python 2.
-      env.pop('PYTHONPATH')
-
     try:
-      result = runner.run_and_wait(arguments, env=env, **kwargs)
+      result = self.gcloud_runner.run_and_wait(arguments, **kwargs)
       logs.info(
           f'Finished running {cmd} with {tool_name}.',
           tool_name=tool_name,
@@ -186,39 +138,42 @@ class GCloudStorageRunner:
             destination,
             timeout=FILES_SYNC_TIMEOUT,
             delete=True,
-            exclusion_pattern=None):
-    """Rsync with gsutil or gcloud storage."""
-    use_gcloud = use_gcloud_for_command('rsync')
-    if use_gcloud:
-      command = ['rsync']
-      # gcloud storage rsync is recursive by default.
-      if delete:
-        command.append('--delete-unmatched-destination-objects')
-      if exclusion_pattern:
-        command.extend(['--exclude', exclusion_pattern])
-    else:
-      command = ['rsync', '-r']
-      if delete:
-        command.append('-d')
-      if exclusion_pattern:
-        command.extend(['-x', exclusion_pattern])
+            exclusion_pattern=None,
+            recursive=True):
+    """Synchronize content of two buckets/dirs using gcloud rsync.
+    
+    For instance, to download corpus files from a GCS url.
 
-    command.extend([
-        _filter_path(source, write=True),
-        _filter_path(destination, write=True),
-    ])
+    Args:
+      source: Source to rsync from.
+      destination: Destination to rsync to.
+      timeout: Timeout for gcloud storage.
+      delete: Whether to delete files on destination that don't exist in source.
+      exclusion_pattern: Regex for objects to no be included in rsync.
+      recursive: Whether to recursevely sync the content from the directories.
 
-    return self.run_gsutil(command, use_gcloud, timeout=timeout, quiet=True)
+    Returns:
+      Result from the process that executed the gcloud command.
+    """
+    rsync_command = ['rsync', _filter_path(source, write=True), _filter_path(destination, write=True)]
+
+    if recursive:
+      rsync_command.append('--recursive')
+    if delete:
+      rsync_command.append('--delete-unmatched-destination-objects')
+    if exclusion_pattern:
+      rsync_command.extend(['--exclude', exclusion_pattern])
+
+    return self.run_gcloud_storage(rsync_command, timeout=timeout, verbose=False)
 
   def download_file(self, gcs_url, file_path, timeout=None):
     """Download a file from GCS."""
-    use_gcloud = use_gcloud_for_command('cp')
     command = ['cp', _filter_path(gcs_url), file_path]
-    result = self.run_gsutil(command, use_gcloud, timeout=timeout)
+    result = self.run_gcloud_storage(command, timeout=timeout)
     if result.return_code:
-      logs.error('GSUtilRunner.download_file failed:\nCommand: %s\n'
-                 'Url: %s\n'
-                 'Output %s' % (result.command, gcs_url, result.output))
+      logs.error(f'GCloudStorageRunner.download_file failed:\nCommand: {result.command}\n'
+                 f'Url: {gcs_url}\n'
+                 f'Output {result.output}')
 
     return result.return_code == 0
 
@@ -227,100 +182,74 @@ class GCloudStorageRunner:
                   gcs_url,
                   timeout=None,
                   gzip=False,
-                  metadata=None):
-    """Upload a single file to a given GCS url."""
+                  metadata=None,
+                  custom_metadata=None):
+    """Upload a single file to a GCS url and updates its metadata if needed."""
     if not file_path or not gcs_url:
       return False
 
-    use_gcloud = use_gcloud_for_command('cp')
-    if use_gcloud:
-      # For gcloud, setting metadata is a separate step after uploading.
-      cp_command = ['cp']
-      if gzip:
-        cp_command.append('--gzip-in-flight-all')
-
-      cp_command.extend([file_path, _filter_path(gcs_url, write=True)])
-      result = self.run_gsutil(cp_command, use_gcloud, timeout=timeout)
-
-      if result.return_code != 0:
-        logs.error('GSUtilRunner.upload_file (cp step) failed:\nCommand: %s\n'
-                   'Filename: %s\n'
-                   'Output: %s' % (result.command, file_path, result.output))
-        return False
-
-      if metadata:
-        update_command = [
-            'objects', 'update',
-            _filter_path(gcs_url, write=True)
-        ]
-        # The metadata dict is assumed to contain only custom metadata keys,
-        # not standard headers like 'Content-Type'.
-        metadata_args = [f'{k}={v}' for k, v in metadata.items()]
-        update_command.append('--update-custom-metadata')
-        # pylint: disable=line-too-long
-        update_command.append(','.join(metadata_args))
-
-        result = self.run_gsutil(update_command, use_gcloud, timeout=timeout)
-        if result.return_code != 0:
-          logs.error(
-              'GSUtilRunner.upload_file (update metadata step) failed:\nCommand: %s\n'
-              'Filename: %s\n'
-              'Output: %s' % (result.command, file_path, result.output))
-          return False
-
-      return True
-
-    # gsutil can set metadata during cp.
-    command = []
-    if metadata:
-      for key, value in metadata.items():
-        # gsutil uses headers for metadata. For custom metadata, the
-        # convention is 'x-goog-meta-'. The caller is responsible for this.
-        # pylint: disable=line-too-long
-        command.extend(['-h', f'{key}:{value}'])
-
-    command.append('cp')
+    cp_command = ['cp']
     if gzip:
-      command.append('-Z')
+      cp_command.append('--gzip-local-all')
+    cp_command.extend([file_path, _filter_path(gcs_url, write=True)])
 
-    command.extend([file_path, _filter_path(gcs_url, write=True)])
-    result = self.run_gsutil(command, use_gcloud, timeout=timeout)
-
-    if result.return_code:
-      logs.error('GSUtilRunner.upload_file failed:\nCommand: %s\n'
-                 'Filename: %s\n'
-                 'Output: %s' % (result.command, file_path, result.output))
+    result = self.run_gcloud_storage(cp_command, timeout=timeout)
+    if result.return_code != 0:
+      logs.error(f'GCloudStorageRunner.upload_file (cp step) failed:\nCommand: {result.command}\n'
+                 f'Filename: {file_path}\n'
+                 f'Output: {result.output}')
       return False
+
+    # For gcloud, setting metadata is a separate step after uploading.
+    metadata_args = []
+    if metadata:
+      # Metadata dict assumes only standard headers like 'content-type'.
+      metadata_args.extend([f'--{k}={v}' for k, v in metadata.items()])
+
+    if custom_metadata:
+      # Custom metadata dict is assumed to contain only custom metadata keys.
+      custom_metadata_args = ','.join([f'{k}={v}' for k,v in custom_metadata.items()])
+      metadata_args.append(f'--update-custom-metadata={custom_metadata_args}')
+
+    if metadata_args:
+      update_command = [
+          'objects', 'update',
+          _filter_path(gcs_url, write=True)
+      ]
+      update_command.extend(metadata_args)
+      result = self.run_gcloud_storage(update_command, timeout=timeout)
+      if result.return_code != 0:
+        logs.error(
+            f'GCloudStorageRunner.upload_file (update metadata step) failed:\nCommand: {result.command}\n'
+            f'Filename: {file_path}\n'
+            f'Output: {result.output}')
+        return False
 
     return True
 
   def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
-    """Upload files to the given GCS url."""
+    """Upload files to the given GCS url.
+
+    Args:
+      file_paths: A sequence of file paths to upload.
+      gcs_url: GCS URL to upload files to.
+      timeout: Timeout for gcloud storage.
+
+    Returns:
+      Result from the process that executed the gcloud command.
+    """
     if not file_paths or not gcs_url:
       return False
 
-    use_gcloud = use_gcloud_for_command('cp')
-    if use_gcloud:
-      command = [
-          'cp', '--read-paths-from-stdin',
-          _filter_path(gcs_url, write=True)
-      ]
-    else:
-      command = ['cp', '-I', _filter_path(gcs_url, write=True)]
-
+    command = ['cp', '--read-paths-from-stdin', _filter_path(gcs_url, write=True)]
     filenames_buffer = '\n'.join(file_paths)
 
-    result = self.run_gsutil(
-        command,
-        use_gcloud,
-        input_data=filenames_buffer.encode('utf-8'),
-        timeout=timeout)
-
+    result = self.run_gcloud_storage(command, input_data=filenames_buffer.encode('utf-8'), timeout=timeout)
     # Check result of command execution, log output if command failed.
     if result.return_code:
       logs.error(
-          'GSUtilRunner.upload_files_to_url failed:\nCommand: %s\n'
-          'Filenames:%s\n'
-          'Output: %s' % (result.command, filenames_buffer, result.output))
+          f'GCloudStorageRunner.upload_files_to_url failed:\nCommand: {result.command}\n'
+          f'Filenames: {filenames_buffer}\n'
+          f'Output: {result.output}')
 
     return result.return_code == 0
