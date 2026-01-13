@@ -436,6 +436,11 @@ def main():
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
 
+  parser_clean_jobs = subparsers.add_parser(
+      'clean_jobs', help='Clean up pending kubernetes jobs.')
+  parser_clean_jobs.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+
   parser_create_config = subparsers.add_parser(
       'create_config', help='Create a new deployment config.')
   parser_create_config.add_argument(
