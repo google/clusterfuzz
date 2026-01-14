@@ -266,3 +266,7 @@ class GCloudStorageRunner:
                  f'Output: {result.output}')
 
     return result.return_code == 0
+
+
+class GSUtilRunner(GCloudStorageRunner):
+  """Temporarily to avoid many changes in a singe PR."""
