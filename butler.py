@@ -435,6 +435,7 @@ def main():
       'clean_indexes', help='Clean up undefined indexes (in index.yaml).')
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
+
   parser_create_config = subparsers.add_parser(
       'create_config', help='Create a new deployment config.')
   parser_create_config.add_argument(

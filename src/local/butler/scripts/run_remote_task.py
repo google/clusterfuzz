@@ -15,10 +15,9 @@
 
 import contextlib
 
+from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.remote_task import RemoteTask
-from clusterfuzz._internal.remote_task import RemoteTaskGate
 from clusterfuzz._internal.system import environment
 
 
@@ -48,11 +47,11 @@ def schedule_utask_mains():
   results = []
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        RemoteTask(task.command, task.job, task.argument)
+        remote_task.RemoteTask(task.command, task.job, task.argument)
         for task in utask_mains
     ]
 
-    results = RemoteTaskGate().create_utask_main_jobs(batch_tasks)
+    results = remote_task.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
   print('Created jobs:', results)
   return results
 
