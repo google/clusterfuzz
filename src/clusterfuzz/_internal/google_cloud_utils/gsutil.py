@@ -265,7 +265,3 @@ class GCloudStorageRunner:
                  f'Output: {result.output}')
 
     return result.return_code == 0
-
-
-class GSUtilRunner(GCloudStorageRunner):
-  """Temporarily for backward-compatibility before migrating all files."""
