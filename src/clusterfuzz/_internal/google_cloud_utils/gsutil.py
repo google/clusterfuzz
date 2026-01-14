@@ -32,6 +32,10 @@ def get_gcloud_path():
     gcloud_executable += '.cmd'
 
   gcloud_storage_dir = environment.get_value('GCLOUD_PATH')
+  if not gcloud_storage_dir:
+    # Fallback to older GSUTIL_PATH, if needed.
+    gcloud_storage_dir = environment.get_value('GSUTIL_PATH')
+
   if gcloud_storage_dir:
     return os.path.join(gcloud_storage_dir, gcloud_executable)
 
@@ -39,11 +43,6 @@ def get_gcloud_path():
   gcloud_absolute_path = shutil.which(gcloud_executable)
   if gcloud_absolute_path:
     return gcloud_absolute_path
-
-  # Fallback to older GSUTIL_PATH.
-  gcloud_storage_dir = environment.get_value('GSUTIL_PATH')
-  if gcloud_storage_dir:
-    return os.path.join(gcloud_storage_dir, gcloud_executable)
 
   logs.error('Cannot locate gcloud in PATH, set GCLOUD_PATH to directory '
              'containing gcloud binary.')
