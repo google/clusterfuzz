@@ -16,6 +16,7 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal import remote_task as remote_task_module
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.k8s import service
@@ -54,9 +55,9 @@ class KubernetesServiceTest(unittest.TestCase):
     """Tests the creation of uworker main batch jobs."""
     mock_get_pending_count.return_value = 0
     tasks = [
-        service.RemoteTask('fuzz', 'job1', 'url1'),
-        service.RemoteTask('fuzz', 'job1', 'url2'),
-        service.RemoteTask('command2', 'job2', 'url3'),
+        remote_task_module.RemoteTask('fuzz', 'job1', 'url1'),
+        remote_task_module.RemoteTask('fuzz', 'job1', 'url2'),
+        remote_task_module.RemoteTask('command2', 'job2', 'url3'),
     ]
 
     kube_service = service.KubernetesService()
@@ -97,7 +98,7 @@ class KubernetesServiceTest(unittest.TestCase):
 
     mock_pubsub_task = mock.Mock()
     mock_pubsub_task.do_not_ack = False
-    task = service.RemoteTask(
+    task = remote_task_module.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
     result = kube_service.create_utask_main_jobs([task])

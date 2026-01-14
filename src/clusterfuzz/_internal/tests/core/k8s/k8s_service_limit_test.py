@@ -66,7 +66,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
 
     mock_pubsub_task = mock.Mock()
     mock_pubsub_task.do_not_ack = False
-    task = service.RemoteTask(
+    task = remote_task.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
     result = kube_service.create_utask_main_jobs([task])
@@ -83,7 +83,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
 
     mock_pubsub_task = mock.Mock()
     mock_pubsub_task.do_not_ack = False
-    task = service.RemoteTask(
+    task = remote_task.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
     result = kube_service.create_utask_main_jobs([task])
