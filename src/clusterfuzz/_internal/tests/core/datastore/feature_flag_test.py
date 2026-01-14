@@ -37,6 +37,7 @@ class FeatureFlagTest(unittest.TestCase):
     flag_float.description = 'A test float flag'
     flag_float.enabled = True
     flag_float.value = 1.23
+    flag_float.string_value = 'checker'
     flag_float.put()
 
     # Retrieve and verify.
@@ -50,3 +51,5 @@ class FeatureFlagTest(unittest.TestCase):
     self.assertIsNotNone(retrieved_flag_float)
     self.assertTrue(feature_flags.FeatureFlags.TEST_FLOAT_FLAG.enabled)
     self.assertEqual(feature_flags.FeatureFlags.TEST_FLOAT_FLAG.content, 1.23)
+    self.assertEqual(feature_flags.FeatureFlags.TEST_FLOAT_FLAG.string_value,
+                     'checker')

@@ -1810,3 +1810,4 @@ class FeatureFlag(Model):
   description = ndb.StringProperty(default='')
   enabled = ndb.BooleanProperty(default=False)
   value = ndb.FloatProperty()
+  string_value = ndb.StringProperty()
