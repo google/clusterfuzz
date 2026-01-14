@@ -269,4 +269,4 @@ class GCloudStorageRunner:
 
 
 class GSUtilRunner(GCloudStorageRunner):
-  """Temporarily to avoid many changes in a singe PR."""
+  """Temporarily for backward-compatibility before migrating all files."""
