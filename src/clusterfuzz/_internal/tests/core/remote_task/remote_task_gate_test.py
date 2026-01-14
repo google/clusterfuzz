@@ -18,8 +18,7 @@
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal.remote_task import RemoteTask
-from clusterfuzz._internal.remote_task import RemoteTaskGate
+from clusterfuzz._internal import remote_task
 
 
 @mock.patch('clusterfuzz._internal.k8s.service.KubernetesService')
@@ -29,11 +28,11 @@ class RemoteTaskGateTest(unittest.TestCase):
 
   def test_init(self, mock_gcp_batch_service, mock_kubernetes_service):
     """Tests that the RemoteTaskGate initializes correctly."""
-    RemoteTaskGate()
+    remote_task.RemoteTaskGate()
     mock_gcp_batch_service.assert_called_once()
     mock_kubernetes_service.assert_called_once()
 
-  @mock.patch.object(RemoteTaskGate, '_should_use_kubernetes')
+  @mock.patch.object(remote_task.RemoteTaskGate, '_should_use_kubernetes')
   def test_create_uworker_main_batch_job_kubernetes(
       self, mock_should_use_kubernetes, mock_gcp_batch_service,
       mock_kubernetes_service):
@@ -42,14 +41,14 @@ class RemoteTaskGateTest(unittest.TestCase):
     when _should_use_kubernetes returns True.
     """
     mock_should_use_kubernetes.return_value = True
-    gate = RemoteTaskGate()
+    gate = remote_task.RemoteTaskGate()
     gate.create_utask_main_job('module', 'job', 'url')
     mock_kubernetes_service.return_value.create_utask_main_job.assert_called_once_with(
         'module', 'job', 'url')
     mock_gcp_batch_service.return_value.create_utask_main_job.assert_not_called(
     )
 
-  @mock.patch.object(RemoteTaskGate, '_should_use_kubernetes')
+  @mock.patch.object(remote_task.RemoteTaskGate, '_should_use_kubernetes')
   def test_create_uworker_main_batch_job_gcp_batch(
       self, mock_should_use_kubernetes, mock_gcp_batch_service,
       mock_kubernetes_service):
@@ -58,7 +57,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     when _should_use_kubernetes returns False.
     """
     mock_should_use_kubernetes.return_value = False
-    gate = RemoteTaskGate()
+    gate = remote_task.RemoteTaskGate()
     gate.create_utask_main_job('module', 'job', 'url')
     mock_gcp_batch_service.return_value.create_utask_main_job.assert_called_once_with(
         'module', 'job', 'url')
@@ -76,7 +75,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     the configured frequency and a random roll.
     """
     mock_get_job_frequency.return_value = {'kubernetes': 0.5}
-    gate = RemoteTaskGate()
+    gate = remote_task.RemoteTaskGate()
 
     mock_random.return_value = 0.4
     self.assertTrue(gate._should_use_kubernetes())
@@ -84,7 +83,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     mock_random.return_value = 0.6
     self.assertFalse(gate._should_use_kubernetes())
 
-  @mock.patch.object(RemoteTaskGate, '_should_use_kubernetes')
+  @mock.patch.object(remote_task.RemoteTaskGate, '_should_use_kubernetes')
   def test_create_uworker_main_batch_jobs(self, mock_should_use_kubernetes,
                                           mock_gcp_batch_service,
                                           mock_kubernetes_service):
@@ -93,10 +92,10 @@ class RemoteTaskGateTest(unittest.TestCase):
     based on _should_use_kubernetes.
     """
     tasks = [
-        RemoteTask('command1', 'job1', 'url1'),
+        remote_task.RemoteTask('command1', 'job1', 'url1'),
     ]
     mock_should_use_kubernetes.return_value = True
-    gate = RemoteTaskGate()
+    gate = remote_task.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
 
     mock_kubernetes_service.return_value.create_utask_main_jobs.assert_called_once(
@@ -120,16 +119,16 @@ class RemoteTaskGateTest(unittest.TestCase):
     """
     # 4 tasks with same job type
     tasks = [
-        RemoteTask('command', 'job1', 'url1'),
-        RemoteTask('command', 'job1', 'url2'),
-        RemoteTask('command', 'job1', 'url3'),
-        RemoteTask('command', 'job1', 'url4'),
+        remote_task.RemoteTask('command', 'job1', 'url1'),
+        remote_task.RemoteTask('command', 'job1', 'url2'),
+        remote_task.RemoteTask('command', 'job1', 'url3'),
+        remote_task.RemoteTask('command', 'job1', 'url4'),
     ]
 
     # 50% split
     mock_get_job_frequency.return_value = {'kubernetes': 0.5, 'gcp_batch': 0.5}
 
-    gate = RemoteTaskGate()
+    gate = remote_task.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
 
     # 4 * 0.5 = 2 tasks for k8s.

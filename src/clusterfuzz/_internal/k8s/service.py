@@ -25,6 +25,7 @@ from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
 from kubernetes import client as k8s_client
 
+from clusterfuzz._internal import remote_task as remote_task_module
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -33,8 +34,6 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.remote_task import RemoteTask
-from clusterfuzz._internal.remote_task import RemoteTaskInterface
 from clusterfuzz._internal.system import environment
 
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
@@ -50,7 +49,7 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
 ])
 
 
-def _get_config_names(remote_tasks: List[RemoteTask]):
+def _get_config_names(remote_tasks: List[remote_task_module.RemoteTask]):
   """"Gets the name of the configs for each batch_task. Returns a dict
 
   that is indexed by command and job_type for efficient lookup."""
@@ -87,7 +86,8 @@ def _get_config_names(remote_tasks: List[RemoteTask]):
   return config_map
 
 
-def _get_k8s_job_configs(remote_tasks: List[RemoteTask]) -> Dict:
+def _get_k8s_job_configs(
+    remote_tasks: List[remote_task_module.RemoteTask]) -> Dict:
   """Gets the configured specifications for a batch workload."""
 
   if not remote_tasks:
@@ -222,7 +222,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
   }
 
 
-class KubernetesService(RemoteTaskInterface):
+class KubernetesService(remote_task_module.RemoteTaskInterface):
   """A remote task execution client for Kubernetes."""
 
   def __init__(self, k8s_config_loaded: bool = False):
@@ -337,14 +337,17 @@ class KubernetesService(RemoteTaskInterface):
     """Creates a single batch job for a uworker main task."""
 
     command = task_utils.get_command_from_module(module)
-    batch_tasks = [RemoteTask(command, job_type, input_download_url)]
+    batch_tasks = [
+        remote_task_module.RemoteTask(command, job_type, input_download_url)
+    ]
     result = self.create_utask_main_jobs(batch_tasks)
 
     if result is None:
       return result
     return result[0]
 
-  def create_utask_main_jobs(self, remote_tasks: List[RemoteTask]):
+  def create_utask_main_jobs(self,
+                             remote_tasks: List[remote_task_module.RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
 
     This method groups the tasks by their workload specification and creates a
