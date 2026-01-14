@@ -204,7 +204,7 @@ class GcsCorpus:
     corpus_gcs_url = self.get_gcs_url()
     legalize_corpus_files(directory)
     result = self._gcloud_storage_runner.rsync(
-        directory, corpus_gcs_url, timeout, delete=delete)
+        directory, corpus_gcs_url, timeout=timeout, delete=delete)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
@@ -226,8 +226,8 @@ class GcsCorpus:
     shell.create_directory(directory, create_intermediates=True)
 
     corpus_gcs_url = self.get_gcs_url()
-    result = self._gcloud_storage_runner.rsync(corpus_gcs_url, directory, timeout,
-                                       delete)
+    result = self._gcloud_storage_runner.rsync(corpus_gcs_url, directory, timeout=timeout,
+                                       delete=delete)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
