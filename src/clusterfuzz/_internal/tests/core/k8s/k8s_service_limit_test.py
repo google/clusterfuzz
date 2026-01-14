@@ -16,6 +16,7 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.k8s import service
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -36,6 +37,11 @@ class KubernetesServiceLimitTest(unittest.TestCase):
     from clusterfuzz._internal.datastore import data_types
     data_types.Job(name='job1', platform='LINUX').put()
 
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.value,
+        enabled=True,
+        value=100.0).put()
+
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   def test_create_uworker_main_batch_jobs_limit_not_reached(
       self, mock_get_pending_count, _):
@@ -54,7 +60,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
   def test_create_uworker_main_batch_jobs_limit_reached(
       self, mock_get_pending_count, _):
     """Tests that create_utask_main_jobs nacks tasks when limit reached."""
-    mock_get_pending_count.return_value = service.MAX_PENDING_JOBS
+    mock_get_pending_count.return_value = 100
     kube_service = service.KubernetesService()
 
     mock_pubsub_task = mock.Mock()
@@ -71,7 +77,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
   def test_create_uworker_main_batch_jobs_limit_exceeded(
       self, mock_get_pending_count, _):
     """Tests that create_utask_main_jobs nacks tasks when limit exceeded."""
-    mock_get_pending_count.return_value = service.MAX_PENDING_JOBS + 1
+    mock_get_pending_count.return_value = 101
     kube_service = service.KubernetesService()
 
     mock_pubsub_task = mock.Mock()
