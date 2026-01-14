@@ -60,3 +60,11 @@ class FeatureFlags(Enum):
     if not flag or flag.description is None:
       return ""
     return flag.description
+
+  @property
+  def string_value(self):
+    """Get a feature flag value."""
+    flag = self.flag
+    if not flag or flag.string_value is None:
+      return ""
+    return flag.string_value
