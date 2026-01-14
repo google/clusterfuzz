@@ -54,6 +54,7 @@ message FuzzTaskInput {
   repeated BlobUploadUrl crash_upload_urls = 7;
   repeated google.protobuf.Any trials = 8;
   optional string web_tests_url = 9;
+  optional string script_log_upload_key = 10;
 }
 
 message DataBundleCorpus {
