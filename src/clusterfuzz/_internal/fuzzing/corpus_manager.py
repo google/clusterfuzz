@@ -226,8 +226,8 @@ class GcsCorpus:
     shell.create_directory(directory, create_intermediates=True)
 
     corpus_gcs_url = self.get_gcs_url()
-    result = self._gcloud_storage_runner.rsync(corpus_gcs_url, directory, timeout=timeout,
-                                       delete=delete)
+    result = self._gcloud_storage_runner.rsync(
+        corpus_gcs_url, directory, timeout=timeout, delete=delete)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
@@ -261,7 +261,7 @@ class FuzzTargetCorpus(GcsCorpus):
                quarantine=False,
                log_results=True,
                include_regressions=False,
-               gcloud_storage_runner_func=DEFAULT_gcloud_storage_runner):
+               gcloud_storage_runner_func=DEFAULT_GCLOUD_STORAGE_RUNNER):
     """Inits the FuzzTargetCorpus.
 
     Args:
@@ -300,7 +300,8 @@ class FuzzTargetCorpus(GcsCorpus):
         f'/{self._engine}/{self._project_qualified_target_name}'
         f'{REGRESSIONS_GCS_PATH_SUFFIX}',
         log_results=log_results,
-        gcloud_storage_runner_func=gcloud_storage_runner_func) if include_regressions else None
+        gcloud_storage_runner_func=gcloud_storage_runner_func
+    ) if include_regressions else None
 
   @property
   def engine(self):

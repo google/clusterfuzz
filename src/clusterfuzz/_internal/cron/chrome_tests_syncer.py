@@ -333,7 +333,8 @@ def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
           '*.svn*',
       ],
       cwd=tests_directory)
-  gsutil.GCloudStorageRunner().upload_file(tests_archive_local, tests_archive_remote)
+  gsutil.GCloudStorageRunner().upload_file(tests_archive_local,
+                                           tests_archive_remote)
 
   logs.info('Sync complete.')
   monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
