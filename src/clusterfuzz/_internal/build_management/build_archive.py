@@ -14,15 +14,13 @@
 """Build Archive manager."""
 
 import abc
+import json
 import os
-from typing import BinaryIO
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import BinaryIO, Callable, List, Optional, Union
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import archive
+
 
 # Extensions to exclude when unarchiving a fuzz target. Note that fuzz target
 # own files like seed corpus, options, etc are covered by its own regex.
@@ -224,12 +222,24 @@ class ChromeBuildArchive(DefaultBuildArchive):
   In case something goes wrong, this defaults to using the default unpacker.
   """
 
+  def __init__(self, reader: archive.ArchiveReader):
+    super().__init__(reader)
+    manifest_path = os.path.join(self.root_dir(), 'clusterfuzz_manifest.json')
+    """The manifest may not exist for earlier versions of archives. In this
+    case, default to schema version 0.
+    """
+    if self.file_exists(manifest_path):
+      archive_schema_json = json.loads(self.open(manifest_path).read().decode())
+      self._archive_schema_version = archive_schema_json.get('version', 0)
+    else:
+      self._archive_schema_version = 0
+
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
       self._root_dir = super().root_dir()  # pylint: disable=attribute-defined-outside-init
     return self._root_dir
 
-  def to_archive_path(self, path: str) -> str:
+  def to_archive_path(self, path: str, archive_schema_version: int = 0) -> str:
     """Deps are relative to the Chrome root directory. However, there might be
     a common root directory in the archive, which means we need to make sure
     the file path is correct.
@@ -242,8 +252,18 @@ class ChromeBuildArchive(DefaultBuildArchive):
     """
     path = os.path.normpath(path)
 
-    if path.startswith('../../'):
+    if archive_schema_version == 0 and path.startswith('../../'):
       path = path.replace('../../', 'src_root/')
+    elif archive_schema_version > 0:
+      if path.startswith('../../'):
+        """For newer archive versions, runtime_deps that were formerly stored
+        under {self.root_dir()}/src_root/ are now stored in the root directory,
+        while the build artifacts formerly stored in the root directory are now
+        stored under {self.root_dir()}/out/msan/.
+        """
+        path = path.replace('../../', '')
+      elif path.startswith('./'):
+        path = path.replace('./', 'out/msan/')
 
     return os.path.join(self.root_dir(), path)
 
@@ -253,8 +273,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
   def _get_filename_matcher(self, file: str) -> Callable[[str], bool]:
     return lambda f: os.path.basename(f) == file
 
-  def _match_files(self, matchers: List[Callable[[str], bool]]
-                  ) -> List[archive.ArchiveMemberInfo]:
+  def _match_files(
+      self, matchers: List[Callable[[str],
+                                    bool]]) -> List[archive.ArchiveMemberInfo]:
     res = []
     for member in self.list_members():
       if any(matcher(member.name) for matcher in matchers):
@@ -271,7 +292,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   def get_target_dependencies(
       self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
-    target_path = self.to_archive_path(fuzz_target)
+    target_path = self.to_archive_path(fuzz_target,
+                                       self._archive_schema_version)
     deps_file = f'{target_path}.runtime_deps'
     if not self.file_exists(deps_file):
       logs.warning(f'runtime_deps file not found for {target_path}')
@@ -280,7 +302,10 @@ class ChromeBuildArchive(DefaultBuildArchive):
     res = []
     matchers = []
     with self.open(deps_file) as f:
-      deps = [self.to_archive_path(l.decode()) for l in f.read().splitlines()]
+      deps = [
+          self.to_archive_path(l.decode(), self._archive_schema_version)
+          for l in f.read().splitlines()
+      ]
       for dep in deps:
         # We need to match the file prefixes here, because some of the deps are
         # globering the whole directory. Same for files, on mac platform, we
