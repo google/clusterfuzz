@@ -51,7 +51,7 @@ _LICENSE_CHECK_STRING = 'http://www.apache.org/licenses/LICENSE-2.0'
 _LICENSE_CHECK_IGNORE = 'LICENSE_CHECK_IGNORE'
 _PY_TEST_SUFFIX = '_test.py'
 _PY_INIT_FILENAME = '__init__.py'
-_YAML_EXCEPTIONS = ['bad.yaml']
+_YAML_EXCEPTIONS = ['bad.yaml', 'job_template.yaml', 'kata_job_template.yaml']
 
 _error_occurred = False
 

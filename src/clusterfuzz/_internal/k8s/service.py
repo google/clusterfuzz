@@ -23,7 +23,10 @@ import uuid
 import google.auth
 from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
+from jinja2 import Environment
+from jinja2 import FileSystemLoader
 from kubernetes import client as k8s_client
+import yaml
 
 from clusterfuzz._internal import remote_task as remote_task_module
 from clusterfuzz._internal.base import tasks
@@ -137,89 +140,25 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
   job_name = config.job_type.replace('_', '-') + '-' + str(uuid.uuid4()).split(
       '-', maxsplit=1)[0]
   job_name = job_name.lower()
-  # Default job spec for non-kata containers (needs to be defined).
-  return {
-      'apiVersion': 'batch/v1',
-      'kind': 'Job',
-      'metadata': {
-          'name': job_name
-      },
-      'spec': {
-          'activeDeadlineSeconds': tasks.get_task_duration(config.command),
-          'template': {
-              'spec': {
-                  'serviceAccountName':
-                      service_account_name,
-                  'containers': [{
-                      'name':
-                          job_name,
-                      'image':
-                          config.docker_image,
-                      'imagePullPolicy':
-                          'IfNotPresent',
-                      'env': [
-                          {
-                              'name': 'HOST_UID',
-                              'value': '1337'
-                          },
-                          {
-                              'name': 'CLUSTERFUZZ_RELEASE',
-                              'value': config.clusterfuzz_release
-                          },
-                          {
-                              'name': 'UNTRUSTED_WORKER',
-                              'value': 'False'
-                          },
-                          {
-                              'name': 'UWORKER',
-                              'value': 'True'
-                          },
-                          {
-                              'name': 'USE_GCLOUD_STORAGE_RSYNC',
-                              'value': '1'
-                          },
-                          {
-                              'name': 'UWORKER_INPUT_DOWNLOAD_URL',
-                              'value': input_url
-                          },
-                          {
-                              'name': 'IS_K8S_ENV',
-                              'value': 'true'
-                          },
-                          {
-                              'name': 'DISABLE_MOUNTS',
-                              'value': 'true'
-                          },
-                          {
-                              'name': 'UPDATE_WEB_TESTS',
-                              'value': 'False'
-                          },
-                      ],
-                      'securityContext': {
-                          'privileged': True,
-                          'capabilities': {
-                              'add': ['ALL']
-                          }
-                      },
-                      'volumeMounts': [{
-                          'mountPath': '/dev/shm',
-                          'name': 'dshm'
-                      }]
-                  }],
-                  'volumes': [{
-                      'name': 'dshm',
-                      'emptyDir': {
-                          'medium': 'Memory',
-                          'sizeLimit': '1.9Gi'
-                      }
-                  }],
-                  'restartPolicy':
-                      'Never'
-              }
-          },
-          'backoffLimit': 0
-      }
+
+  # Set up Jinja2 environment and load the template.
+  template_dir = os.path.dirname(__file__)
+  jinja_env = Environment(loader=FileSystemLoader(template_dir))
+  template = jinja_env.get_template('job_template.yaml')
+
+  # Define the context with all the dynamic values.
+  context = {
+      'job_name': job_name,
+      'active_deadline_seconds': tasks.get_task_duration(config.command),
+      'service_account_name': service_account_name,
+      'docker_image': config.docker_image,
+      'clusterfuzz_release': config.clusterfuzz_release,
+      'input_url': input_url,
   }
+
+  # Render the template and load as YAML.
+  rendered_spec = template.render(context)
+  return yaml.safe_load(rendered_spec)
 
 
 class KubernetesService(remote_task_module.RemoteTaskInterface):
@@ -394,117 +333,24 @@ class KubernetesService(remote_task_module.RemoteTaskInterface):
     job_name = 'clusterfuzz-kata-job-' + str(uuid.uuid4()).split(
         '-', maxsplit=1)[0]
 
-    job_spec = {
-        'apiVersion': 'batch/v1',
-        'kind': 'Job',
-        'metadata': {
-            'name': job_name
-        },
-        'spec': {
-            'activeDeadlineSeconds': tasks.get_task_duration(config.command),
-            'template': {
-                'metadata': {
-                    'labels': {
-                        'app.kubernetes.io/name': 'clusterfuzz-kata-job'
-                    }
-                },
-                'spec': {
-                    'runtimeClassName':
-                        'kata',
-                    'serviceAccountName':
-                        service_account_name,
-                    'dnsPolicy':
-                        'ClusterFirstWithHostNet',
-                    'containers': [{
-                        'name':
-                            job_name,
-                        'image':
-                            config.docker_image,
-                        'imagePullPolicy':
-                            'IfNotPresent',
-                        'lifecycle': {
-                            'postStart': {
-                                'exec': {
-                                    'command': [
-                                        '/bin/sh', '-c',
-                                        'mkdir -p /tmp/.X11-unix && '
-                                        'chmod 1777 /tmp/.X11-unix'
-                                    ]
-                                }
-                            }
-                        },
-                        'securityContext': {
-                            'privileged': True,
-                            'capabilities': {
-                                'add': ['ALL']
-                            }
-                        },
-                        'resources': {
-                            'requests': {
-                                'cpu': '2',
-                                'memory': '3.75Gi'
-                            },
-                            'limits': {
-                                'cpu': '2',
-                                'memory': '3.75Gi'
-                            }
-                        },
-                        'env': [
-                            {
-                                'name': 'HOST_UID',
-                                'value': '1337'
-                            },
-                            {
-                                'name': 'CLUSTERFUZZ_RELEASE',
-                                'value': config.clusterfuzz_release
-                            },
-                            {
-                                'name': 'UNTRUSTED_WORKER',
-                                'value': 'False'
-                            },
-                            {
-                                'name': 'UWORKER',
-                                'value': 'True'
-                            },
-                            {
-                                'name': 'USE_GCLOUD_STORAGE_RSYNC',
-                                'value': '1'
-                            },
-                            {
-                                'name': 'UWORKER_INPUT_DOWNLOAD_URL',
-                                'value': input_url
-                            },
-                            {
-                                'name': 'IS_K8S_ENV',
-                                'value': 'true'
-                            },
-                            {
-                                'name': 'DISABLE_MOUNTS',
-                                'value': 'true'
-                            },
-                            {
-                                'name': 'UPDATE_WEB_TESTS',
-                                'value': 'False'
-                            },
-                        ]
-                    }],
-                    'restartPolicy':
-                        'Never',
-                    'volumes': [{
-                        'name': 'dshm',
-                        'emptyDir': {
-                            'medium': 'Memory',
-                            'sizeLimit': '1.9Gi'
-                        }
-                    }],
-                    'nodeSelector': {
-                        'cloud.google.com/gke-nodepool': 'kata-enabled-pool'
-                    }
-                }
-            },
-            'backoffLimit': 0
-        }
+    # Set up Jinja2 environment and load the template.
+    template_dir = os.path.dirname(__file__)
+    jinja_env = Environment(loader=FileSystemLoader(template_dir))
+    template = jinja_env.get_template('kata_job_template.yaml')
+
+    # Define the context with all the dynamic values.
+    context = {
+        'job_name': job_name,
+        'active_deadline_seconds': tasks.get_task_duration(config.command),
+        'service_account_name': service_account_name,
+        'docker_image': config.docker_image,
+        'clusterfuzz_release': config.clusterfuzz_release,
+        'input_url': input_url,
     }
+
+    # Render the template and load as YAML.
+    rendered_spec = template.render(context)
+    job_spec = yaml.safe_load(rendered_spec)
 
     self._batch_api.create_namespaced_job(body=job_spec, namespace='default')
     return job_name
