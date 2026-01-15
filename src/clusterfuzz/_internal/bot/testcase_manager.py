@@ -437,6 +437,9 @@ def upload_testcase(testcase_path, testcase_data, log_time):
     with open(testcase_path, 'rb') as file_handle:
       testcase_data = file_handle.read()
 
+  if not testcase_data:
+    return
+
   fuzzer_logs.upload_to_logs(
       fuzz_logs_bucket,
       testcase_data,
