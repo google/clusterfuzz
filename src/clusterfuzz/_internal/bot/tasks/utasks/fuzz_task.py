@@ -2295,11 +2295,15 @@ def _add_build_metadata_to_output(
   fuzz_task_output.gn_args = data_handler.get_filtered_gn_args() or ''
 
 
-def _upload_engine_output(engine_output):
+def _upload_engine_output(engine_output, fuzzer_name):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
-  testcase_manager.upload_log(engine_output.output.decode(),
-                              engine_output.return_code, timestamp)
-  testcase_manager.upload_testcase(None, engine_output.testcase, timestamp)
+  testcase_manager.upload_log(
+      engine_output.output.decode(),
+      engine_output.return_code,
+      timestamp,
+      fuzzer_name=fuzzer_name)
+  testcase_manager.upload_testcase(
+      None, engine_output.testcase, timestamp, fuzzer_name=fuzzer_name)
 
 
 def _utask_postprocess(output):
@@ -2316,8 +2320,9 @@ def _utask_postprocess(output):
   session.postprocess(output)
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
+  fuzzer_name = output.fuzz_task_output.fully_qualified_fuzzer_name
   for engine_output in output.fuzz_task_output.engine_outputs:
-    _upload_engine_output(engine_output)
+    _upload_engine_output(engine_output, fuzzer_name)
 
 
 def utask_postprocess(output):

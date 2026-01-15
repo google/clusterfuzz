@@ -424,7 +424,7 @@ def _get_testcase_time(testcase_path):
   return None
 
 
-def upload_testcase(testcase_path, testcase_data, log_time):
+def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
@@ -441,6 +441,7 @@ def upload_testcase(testcase_path, testcase_data, log_time):
       fuzz_logs_bucket,
       testcase_data,
       time=log_time,
+      fuzzer_name=fuzzer_name,
       file_extension='.testcase')
 
 
@@ -873,14 +874,19 @@ def _prepare_log_for_upload(symbolized_output, return_code, app_revision):
   return result.encode('utf-8')
 
 
-def upload_log(symbolized_output, return_code, log_time, app_revision=None):
+def upload_log(symbolized_output,
+               return_code,
+               log_time,
+               app_revision=None,
+               fuzzer_name=None):
   """Upload the output into corresponding GCS logs bucket."""
   log = _prepare_log_for_upload(symbolized_output, return_code, app_revision)
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
     return
 
-  fuzzer_logs.upload_to_logs(fuzz_logs_bucket, log, time=log_time)
+  fuzzer_logs.upload_to_logs(
+      fuzz_logs_bucket, log, time=log_time, fuzzer_name=fuzzer_name)
 
 
 def get_user_profile_directory(user_profile_index):
