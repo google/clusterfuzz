@@ -18,6 +18,7 @@ from clusterfuzz._internal import remote_task
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
 from clusterfuzz._internal.base import modules
+from clusterfuzz._internal.remote_task import types
 
 modules.fix_module_search_paths()
 
@@ -98,7 +99,7 @@ def schedule_utask_mains():
 
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        remote_task.RemoteTask(
+        types.RemoteTask(
             task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]

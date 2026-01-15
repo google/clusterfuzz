@@ -18,6 +18,7 @@ from unittest import mock
 
 from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.k8s import service as k8s_service
+from clusterfuzz._internal.remote_task import types
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
@@ -60,8 +61,7 @@ class RemoteTaskGateTest(unittest.TestCase):
 
     self.gate = remote_task.RemoteTaskGate()
 
-  @mock.patch(
-      'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
+  @mock.patch.object(remote_task.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
@@ -72,7 +72,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     # Setup tasks to go to Kubernetes
     mock_get_frequency.return_value = {'kubernetes': 1.0}
 
-    task = remote_task.RemoteTask('fuzz', 'job1', 'url1')
+    task = types.RemoteTask('fuzz', 'job1', 'url1')
 
     # Simulate K8s service returning empty list (limit reached)
     mock_k8s_create.return_value = []
@@ -88,8 +88,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     # Verify result is empty list
     self.assertEqual(result, [])
 
-  @mock.patch(
-      'clusterfuzz._internal.remote_task.job_frequency.get_job_frequency')
+  @mock.patch.object(remote_task.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
@@ -100,7 +99,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     mock_get_frequency.return_value = {'kubernetes': 1.0}
     mock_pubsub_task = mock.Mock()
     mock_pubsub_task.do_not_ack = False
-    task = remote_task.RemoteTask(
+    task = types.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
     self.gate.create_utask_main_jobs([task])
