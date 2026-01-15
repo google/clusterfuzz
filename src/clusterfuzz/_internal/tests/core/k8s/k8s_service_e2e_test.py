@@ -26,10 +26,10 @@ from unittest import mock
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.k8s import service as kubernetes_service
 from clusterfuzz._internal.k8s.service import KubernetesJobConfig
+from clusterfuzz._internal.remote_task import types
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
@@ -182,7 +182,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
   def test_create_job(self, mock_get_logging_config_dict):
     """Tests creating a job."""
     input_url = 'url'
-    task = remote_task.RemoteTask(None, 'test-job', None)
+    task = types.RemoteTask(None, 'test-job', None)
     task.docker_image = self.image
 
     config = KubernetesJobConfig(
@@ -332,8 +332,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     }
 
     tasks = [
-        remote_task.RemoteTask('fuzz', 'test-job1', 'url1'),
-        remote_task.RemoteTask('fuzz', 'test-job2', 'url2'),
+        types.RemoteTask('fuzz', 'test-job1', 'url1'),
+        types.RemoteTask('fuzz', 'test-job2', 'url2'),
     ]
 
     actual_job_names = \

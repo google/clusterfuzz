@@ -20,9 +20,9 @@ import uuid
 from google.cloud import batch_v1 as batch
 from google.cloud.batch_v1.types import job as gcb_job
 
-from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.remote_task import types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -199,9 +199,9 @@ class GcpBatchServiceTest(unittest.TestCase):
           ('command2', 'job2'): spec2,
       }
       tasks = [
-          remote_task.RemoteTask('command1', 'job1', 'url1'),
-          remote_task.RemoteTask('command1', 'job1', 'url2'),
-          remote_task.RemoteTask('command2', 'job2', 'url3'),
+          types.RemoteTask('command1', 'job1', 'url1'),
+          types.RemoteTask('command1', 'job1', 'url2'),
+          types.RemoteTask('command2', 'job2', 'url3'),
       ]
 
       # Call the function.
@@ -374,14 +374,14 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         name='libfuzzer_asan_test').put()
 
     spec = batch_service._get_specs_from_config(
-        [remote_task.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
+        [types.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
     self.assertEqual(spec['fuzz', 'libfuzzer_asan_test'].disk_size_gb, size)
 
   def test_get_specs_from_config_no_disk_size(self):
     """Test that disk_size_gb isn't mandatory."""
     data_types.Job(platform='LINUX', name='libfuzzer_asan_test').put()
     spec = batch_service._get_specs_from_config(
-        [remote_task.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
+        [types.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
     conf = batch_service._get_batch_config()
     expected_size = (
         conf.get('mapping')['LINUX-PREEMPTIBLE-UNPRIVILEGED']['disk_size_gb'])
@@ -406,7 +406,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         name=job_name).put()
 
     spec = batch_service._get_specs_from_config(
-        [remote_task.RemoteTask('fuzz', job_name, None)])
+        [types.RemoteTask('fuzz', job_name, None)])
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
 
   @mock.patch('clusterfuzz._internal.batch.service.utils.is_oss_fuzz')
@@ -422,7 +422,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         name='job1', platform='LINUX', base_os_version='job-os-ubuntu-20')
     mock_get_all_from_query.return_value = [job1]
     config_map = batch_service._get_config_names(
-        [remote_task.RemoteTask('fuzz', 'job1', None)])
+        [types.RemoteTask('fuzz', 'job1', None)])
     self.assertEqual(config_map[('fuzz', 'job1')][2], 'job-os-ubuntu-20')
 
     # Test Case 2: OSS-Fuzz project, project-level version overrides job-level.
@@ -437,7 +437,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     mock_get_all_from_query.return_value = [job2]
     mock_oss_fuzz_project_query.return_value.get.return_value = project
     config_map = batch_service._get_config_names(
-        [remote_task.RemoteTask('fuzz', 'job2', None)])
+        [types.RemoteTask('fuzz', 'job2', None)])
     self.assertEqual(config_map[('fuzz', 'job2')][2], 'project-os-ubuntu-24')
 
     # Test Case 3: OSS-Fuzz project, only project-level version exists.
@@ -445,7 +445,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     mock_get_all_from_query.return_value = [job3]
     mock_oss_fuzz_project_query.return_value.get.return_value = project
     config_map = batch_service._get_config_names(
-        [remote_task.RemoteTask('fuzz', 'job3', None)])
+        [types.RemoteTask('fuzz', 'job3', None)])
     self.assertEqual(config_map[('fuzz', 'job3')][2], 'project-os-ubuntu-24')
 
     # Test Case 4: Internal project, no version is set, should be None.
@@ -453,7 +453,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     job4 = data_types.Job(name='job4', platform='LINUX')
     mock_get_all_from_query.return_value = [job4]
     config_map = batch_service._get_config_names(
-        [remote_task.RemoteTask('fuzz', 'job4', None)])
+        [types.RemoteTask('fuzz', 'job4', None)])
     self.assertIsNone(config_map[('fuzz', 'job4')][2])
 
     # Test Case 5: OSS-Fuzz project, but no versions are set anywhere.
@@ -464,11 +464,11 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     mock_get_all_from_query.return_value = [job5]
     mock_oss_fuzz_project_query.return_value.get.return_value = project_no_version
     config_map = batch_service._get_config_names(
-        [remote_task.RemoteTask('fuzz', 'job5', None)])
+        [types.RemoteTask('fuzz', 'job5', None)])
     self.assertIsNone(config_map[('fuzz', 'job5')][2])
 
 
 def _get_spec_from_config(command, job_name):
   return list(
       batch_service._get_specs_from_config(
-          [remote_task.RemoteTask(command, job_name, None)]).values())[0]
+          [types.RemoteTask(command, job_name, None)]).values())[0]
