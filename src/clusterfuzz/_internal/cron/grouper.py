@@ -606,11 +606,16 @@ def group_testcases():
   # No longer needed. Free up some memory.
   cached_issue_map.clear()
 
-  _group_testcases_with_similar_states(testcase_map)
-  _group_testcases_with_same_issues(testcase_map)
-  _group_testcases_based_on_variants(testcase_map)
-  _shrink_large_groups_if_needed(testcase_map)
-  group_leader.choose(testcase_map)
+  testcases_by_project = collections.defaultdict(dict)
+  for testcase_id, testcase in testcase_map.items():
+    testcases_by_project[testcase.project_name][testcase_id] = testcase
+
+  for project_testcase_map in testcases_by_project.values():
+    _group_testcases_with_similar_states(project_testcase_map)
+    _group_testcases_with_same_issues(project_testcase_map)
+    _group_testcases_based_on_variants(project_testcase_map)
+    _shrink_large_groups_if_needed(project_testcase_map)
+    group_leader.choose(project_testcase_map)
 
   # TODO(aarya): Replace with an optimized implementation using dirty flag.
   # Update the group mapping in testcase object.
