@@ -9,7 +9,7 @@
 FROM gcr.io/clusterfuzz-images/base:ubuntu-24-04
 
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
-RUN apt-get update &&     apt-get install -y         gettext-base         git         golang-go         google-cloud-sdk-app-engine-go         google-cloud-sdk-app-engine-python         google-cloud-sdk-app-engine-python-extras         google-cloud-sdk-datastore-emulator         google-cloud-sdk-gke-gcloud-auth-plugin         google-cloud-sdk-pubsub-emulator         kubectl         liblzma-dev         openjdk-17-jdk
+RUN apt-get update &&     apt-get install -y         gettext-base         git         golang-go         google-cloud-sdk-app-engine-go         google-cloud-sdk-app-engine-python         google-cloud-sdk-app-engine-python-extras         google-cloud-sdk-datastore-emulator         google-cloud-sdk-gke-gcloud-auth-plugin         google-cloud-sdk-pubsub-emulator         kubectl         liblzma-dev         openjdk-21-jdk
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list &&     curl https://bazel.build/bazel-release.pub.gpg | apt-key add - &&     apt-get update &&     apt-get install -y bazel

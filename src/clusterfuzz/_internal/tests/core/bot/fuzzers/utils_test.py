@@ -49,6 +49,10 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
         'jazzer_driver', contents=b'LLVMFuzzerTestOneInput')
     self.assertFalse(utils.is_fuzz_target(path))
 
+  def test_not_a_fuzzer_jazzerjs(self):
+    path = self._create_file('jazzerjs', contents=b'LLVMFuzzerTestOneInput')
+    self.assertFalse(utils.is_fuzz_target(path))
+
   def test_not_a_fuzzer_without_extension(self):
     path = self._create_file('abc', contents=b'anything')
     self.assertFalse(utils.is_fuzz_target(path))
