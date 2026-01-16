@@ -32,7 +32,10 @@ def execute(args):
   """Format changed code."""
   if args.path:
     diff_command = f'git ls-files {os.path.abspath(args.path)}'
+  elif os.path.exists('.git/FETCH_HEAD'):
+    diff_command = 'git diff --name-only FETCH_HEAD'
   else:
+    # If not, fall back to diffing against HEAD.
     diff_command = 'git diff --name-only HEAD'
 
   _, output = common.execute(diff_command)

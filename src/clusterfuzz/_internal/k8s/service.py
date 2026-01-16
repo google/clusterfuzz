@@ -16,15 +16,13 @@ import base64
 import collections
 import os
 import tempfile
-from typing import Dict
-from typing import List
+import typing
 import uuid
 
 import google.auth
 from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
-from jinja2 import Environment
-from jinja2 import FileSystemLoader
+import jinja2
 from kubernetes import client as k8s_client
 import yaml
 
@@ -52,7 +50,7 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
 ])
 
 
-def _get_config_names(remote_tasks: List[types.RemoteTask]):
+def _get_config_names(remote_tasks: typing.List[types.RemoteTask]):
   """"Gets the name of the configs for each batch_task. Returns a dict
 
   that is indexed by command and job_type for efficient lookup."""
@@ -89,7 +87,9 @@ def _get_config_names(remote_tasks: List[types.RemoteTask]):
   return config_map
 
 
-def _get_k8s_job_configs(remote_tasks: List[types.RemoteTask]) -> Dict:
+def _get_k8s_job_configs(
+    remote_tasks: typing.List[types.RemoteTask]
+) -> typing.Dict[typing.Tuple[str, str], KubernetesJobConfig]:
   """Gets the configured specifications for a batch workload."""
 
   if not remote_tasks:
@@ -142,7 +142,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
 
   # Set up Jinja2 environment and load the template.
   template_dir = os.path.dirname(__file__)
-  jinja_env = Environment(loader=FileSystemLoader(template_dir))
+  jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
   template = jinja_env.get_template('job_template.yaml')
 
   # Define the context with all the dynamic values.
@@ -282,7 +282,7 @@ class KubernetesService(types.RemoteTaskInterface):
       return result
     return result[0]
 
-  def create_utask_main_jobs(self, remote_tasks: List[types.RemoteTask]):
+  def create_utask_main_jobs(self, remote_tasks: typing.List[types.RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
 
     This method groups the tasks by their workload specification and creates a
@@ -331,7 +331,7 @@ class KubernetesService(types.RemoteTaskInterface):
 
     # Set up Jinja2 environment and load the template.
     template_dir = os.path.dirname(__file__)
-    jinja_env = Environment(loader=FileSystemLoader(template_dir))
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
     template = jinja_env.get_template('kata_job_template.yaml')
 
     # Define the context with all the dynamic values.
