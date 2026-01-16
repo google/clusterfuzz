@@ -508,7 +508,7 @@ def update_data_bundle(
 
       file_host.create_directory(
           worker_data_bundle_directory, create_intermediates=True)
-      result = untrusted_corpus_manager.RemoteGSUtilRunner().rsync(
+      result = untrusted_corpus_manager.RemoteGCloudStorageRunner().rsync(
           data_bundle_corpus.gcs_url,
           worker_data_bundle_directory,
           delete=False)

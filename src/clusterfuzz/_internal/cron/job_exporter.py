@@ -52,12 +52,12 @@ class GCloudCLIRSync(RSyncClient):
     Unsuitable for unit testing."""
 
   def __init__(self):
-    self._runner = gsutil.GSUtilRunner()
+    self._runner = gsutil.GCloudStorageRunner()
 
   def rsync(self, source: str, target: str):
     """Rsyncs a source to a target destination. Returns True if
     successful, False if there was any failure. Considers successful
-     any gsutil execution with a 0 return code."""
+     any gcloud execution with a 0 return code."""
     rsync_process_output = self._runner.rsync(source, target)
     return_code = rsync_process_output.return_code
     return return_code == 0

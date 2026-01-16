@@ -19,8 +19,8 @@ from clusterfuzz._internal.google_cloud_utils import gsutil
 from . import remote_process_host
 
 
-class RemoteGSUtilRunner(gsutil.GSUtilRunner):
-  """Remote GSUtil runner."""
+class RemoteGCloudStorageRunner(gsutil.GCloudStorageRunner):
+  """Remote GCloud Storage runner."""
 
   def __init__(self):
     super().__init__(process_runner=remote_process_host.RemoteProcessRunner)
@@ -36,4 +36,4 @@ class RemoteFuzzTargetCorpus(corpus_manager.FuzzTargetCorpus):
         quarantine,
         # Never log results for remote corpora since the state is on the worker.
         log_results=False,
-        gsutil_runner_func=RemoteGSUtilRunner)
+        gcloud_storage_runner_func=RemoteGCloudStorageRunner)

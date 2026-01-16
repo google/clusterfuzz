@@ -111,8 +111,8 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
   def test_upload_with_timestamp_from_stats(self):
     """Log name should be generated using timestamp value from the stats."""
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
 
     self.fs.create_file(
         self.testcase_path + '.stats2',
@@ -138,8 +138,8 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
   def test_upload_with_hostname(self):
     """Log name should be generated using current (mocked) timestamp value."""
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
     environment.set_value('BOT_NAME', 'hostname.company.com')
 
     self.fs.create_file(
@@ -160,8 +160,8 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
   def test_upload_with_hostname_and_serial(self):
     """Log name should be generated using current (mocked) timestamp value."""
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
     environment.set_value('BOT_NAME', 'hostname.company.com')
     environment.set_value('OS_OVERRIDE', 'ANDROID_KERNEL')
     environment.set_value('ANDROID_SERIAL', '123456789')
@@ -185,8 +185,8 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
   def test_upload_without_timestamp(self):
     """Log name should be generated using current (mocked) timestamp value."""
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
 
     self.fs.create_file(
         self.testcase_path + '.stats2',
@@ -209,8 +209,8 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     """Log should contain message on empty component revisions."""
     self.mock.get_component_range_list.return_value = []
 
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
 
     self.fs.create_file(
         self.testcase_path + '.stats2',

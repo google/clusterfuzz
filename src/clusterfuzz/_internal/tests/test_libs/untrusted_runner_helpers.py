@@ -195,6 +195,7 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     worker_fuzz_inputs = file_host.rebase_to_worker_root(fuzz_inputs)
     shell.remove_directory(worker_fuzz_inputs, recreate=True)
 
+    environment.set_value('GCLOUD_PATH', os.path.dirname(_which('gcloud')))
     environment.set_value('GSUTIL_PATH', os.path.dirname(_which('gsutil')))
 
     test_utils.setup_pubsub('test-clusterfuzz')

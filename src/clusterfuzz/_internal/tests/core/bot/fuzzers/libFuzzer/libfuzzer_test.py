@@ -30,7 +30,7 @@ TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'libfuzzer_test_data')
 BOT_NAME = 'test-bot'
 BUILD_DIR = '/fake/build_dir'
 FUZZ_INPUTS_DISK = '/fake/inputs-disk'
-GSUTIL_PATH = '/fake/gsutil_path'
+GCLOUD_PATH = '/fake/gcloud_path'
 FAKE_ROOT_DIR = '/fake_root'
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))

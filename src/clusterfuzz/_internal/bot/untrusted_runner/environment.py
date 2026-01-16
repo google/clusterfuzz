@@ -39,6 +39,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^FUZZ_TARGET$',
         r'^FUZZ_TEST_TIMEOUT$',
         r'^GSUTIL_PATH$',
+        r'^GCLOUD_PATH$',
         r'^JOB_NAME$',
         r'^LOCAL_DEVELOPMENT$',
         r'^MSAN_OPTIONS$',
