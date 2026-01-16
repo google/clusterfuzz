@@ -146,62 +146,80 @@ class IssueTrackerPolicy:
     """Get the fallback policy message, if it exists."""
     return self._data.get('fallback_policy_message')
 
-  def get_new_issue_properties(self, is_security, is_crash):
+  def get_new_issue_properties(self, is_security, is_crash, crash_type):
     """Get the properties to apply to a new issue."""
     policy = NewIssuePolicy()
 
-    if 'all' in self._data:
-      self._apply_new_issue_properties(policy, self._data['all'], is_crash)
+    properties = {
+        'is_security': is_security,
+        'is_crash': is_crash,
+        'is_dcheck': 'DCHECK failure' in crash_type
+    }
 
+    self._apply_new_issue_properties(policy, self._data.get('all'),
+                                     **properties)
+
+    # Legacy support: support top-level 'security' and 'non_security' keys. New
+    # configs should use the 'all' section and add 'security' and
+    # 'non_security' subsections within that.
     if is_security:
-      if 'security' in self._data:
-        self._apply_new_issue_properties(policy, self._data['security'],
-                                         is_crash)
+      self._apply_new_issue_properties(policy, self._data.get('security'),
+                                       **properties)
     else:
-      if 'non_security' in self._data:
-        self._apply_new_issue_properties(policy, self._data['non_security'],
-                                         is_crash)
+      self._apply_new_issue_properties(policy, self._data.get('non_security'),
+                                       **properties)
 
     return policy
 
-  def _apply_new_issue_properties(self, policy, issue_type, is_crash):
+  def _apply_new_issue_properties(self, policy, data, **properties):
     """Apply issue policies."""
-    if not issue_type:
+    if not data:
       return
 
-    if 'status' in issue_type:
-      policy.status = self._data['status'][issue_type['status']]
+    if 'status' in data:
+      policy.status = self._data['status'][data['status']]
 
-    if 'ccs' in issue_type:
-      policy.ccs.extend(issue_type['ccs'])
+    if 'ccs' in data:
+      policy.ccs.extend(data['ccs'])
 
-    labels = issue_type.get('labels')
+    labels = data.get('labels')
     if labels:
       policy.labels.extend(_to_str_list(labels))
 
-    issue_body_footer = issue_type.get('issue_body_footer')
+    issue_body_footer = data.get('issue_body_footer')
     if issue_body_footer:
       policy.issue_body_footer = issue_body_footer
 
-    if is_crash:
-      crash_labels = issue_type.get('crash_labels')
-      if crash_labels:
-        policy.labels.extend(_to_str_list(crash_labels))
-    else:
-      non_crash_labels = issue_type.get('non_crash_labels')
-      if non_crash_labels:
-        policy.labels.extend(_to_str_list(non_crash_labels))
-
-    for k, v in self.get_extension_fields(issue_type).items():
+    for k, v in self.get_extension_fields(data).items():
       policy.extension_fields[k] = v
+
+    # Handle conditions recursively:
+    children_conditions = {
+        'security': properties.get('is_security', None) is True,
+        'non_security': properties.get('is_security', None) is False,
+        'crash': properties.get('is_crash', None) is True,
+        'non_crash': properties.get('is_crash', None) is False,
+        'dcheck': properties.get('is_dcheck', None) is True,
+        'non_dcheck': properties.get('is_dcheck', None) is False,
+    }
+    for child, condition in children_conditions.items():
+      if condition:
+        self._apply_new_issue_properties(policy, data.get(child), **properties)
+
+    # Legacy support: support "crash_label" and "non_crash_label" keys.
+    # New configs should use the "crash" and "non_crash" sections instead and
+    # a "labels" list within those sections.
+    if properties.get('is_crash', None) is False and 'crash_label' in data:
+      policy.labels.append(str(data['crash_label']))
+    if properties.get('is_crash', None) is True and 'non_crash_label' in data:
+      policy.labels.append(str(data['non_crash_label']))
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""
     policy = NewIssuePolicy()
-
-    if 'existing' in self._data:
-      self._apply_new_issue_properties(policy, self._data['existing'], False)
-
+    properties = {}  # No recursive properties for existing issues.
+    self._apply_new_issue_properties(policy, self._data['existing'],
+                                     **properties)
     return policy
 
 

@@ -49,12 +49,28 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     },
     'all': {
         'status': 'new',
-        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%']
-    },
-    'non_security': {
-        'labels': ['Type-Bug'],
-        'crash_labels': ['Stability-Crash', 'Pri-1'],
-        'non_crash_labels': ['Pri-2']
+        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%'],
+        'non_security': {
+            'labels': ['Type-Bug'],
+            'non_crash': {
+                'labels': ['Pri-2'],
+            },
+            'crash': {
+                'labels': ['Stability-Crash', 'Pri-1'],
+                'dcheck': {
+                    '_ext_issue_access_limit': {
+                        'access_limit': IssueAccessLevel.LIMIT_VIEW_TRUSTED
+                    }
+                },
+            },
+        },
+        'security': {
+            'labels': ['Type-Bug-Security'],
+            '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
+            '_ext_issue_access_limit': {
+                'access_limit': IssueAccessLevel.LIMIT_VIEW
+            }
+        },
     },
     'labels': {
         'ignore': 'ClusterFuzz-Ignore',
@@ -70,13 +86,6 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'os': 'OS-%PLATFORM%',
         'unreproducible': 'Unreproducible',
         'restrict_view': 'Restrict-View-SecurityTeam'
-    },
-    'security': {
-        'labels': ['Type-Bug-Security'],
-        '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
-        '_ext_issue_access_limit': {
-            'access_limit': IssueAccessLevel.LIMIT_VIEW
-        }
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%']
@@ -95,12 +104,19 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
     },
     'all': {
         'status': 'new',
-        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%']
-    },
-    'non_security': {
-        'labels': ['Type-Bug'],
-        'crash_labels': ['Stability-Crash', 'Pri-1'],
-        'non_crash_labels': ['Pri-2']
+        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%'],
+        'non_security': {
+            'labels': ['Type-Bug'],
+            'crash_labels': ['Stability-Crash', 'Pri-1'],
+            'non_crash_labels': ['Pri-2']
+        },
+        'security': {
+            'labels': ['Type-Bug-Security'],
+            '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
+            '_ext_issue_access_limit': {
+                'access_limit': IssueAccessLevel.LIMIT_VIEW
+            }
+        },
     },
     'labels': {
         'ignore': 'ClusterFuzz-Ignore',
@@ -116,13 +132,6 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
         'os': 'OS-%PLATFORM%',
         'unreproducible': 'Unreproducible',
         'restrict_view': 'Restrict-View-SecurityTeam'
-    },
-    'security': {
-        'labels': ['Type-Bug-Security'],
-        '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
-        '_ext_issue_access_limit': {
-            'access_limit': IssueAccessLevel.LIMIT_VIEW
-        }
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%']
@@ -145,12 +154,23 @@ CHROMIUM_GIT_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     },
     'all': {
         'status': 'new',
-        'labels': ['1679217', 'Stability-%SANITIZER%']
-    },
-    'non_security': {
-        'labels': ['Type-Bug'],
-        'crash_labels': ['Stability-Crash', 'Pri-1'],
-        'non_crash_labels': ['Pri-2']
+        'labels': ['1679217', 'Stability-%SANITIZER%'],
+        'non_security': {
+            'labels': ['Type-Bug'],
+            'non_crash': {
+                'labels': ['Pri-2'],
+            },
+            'crash': {
+                'labels': ['Stability-Crash', 'Pri-1'],
+            }
+        },
+        'security': {
+            'labels': ['Type-Bug-Security'],
+            '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
+            '_ext_issue_access_limit': {
+                'access_limit': IssueAccessLevel.LIMIT_VIEW
+            }
+        },
     },
     'labels': {
         'ignore': '1',
@@ -166,13 +186,6 @@ CHROMIUM_GIT_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'os': '10',
         'unreproducible': '11',
         'restrict_view': '12'
-    },
-    'security': {
-        'labels': ['Type-Bug-Security'],
-        '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
-        '_ext_issue_access_limit': {
-            'access_limit': IssueAccessLevel.LIMIT_VIEW
-        }
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%'],
@@ -315,10 +328,13 @@ OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
             'This information can help downstream consumers.\n\n'
             'If you need to contact the OSS-Fuzz team with a question, '
             'concern, or any other feedback, please file an issue at '
-            'https://github.com/google/oss-fuzz/issues.'
-    },
-    'non_security': {
-        'labels': ['Type-Bug']
+            'https://github.com/google/oss-fuzz/issues.',
+        'non_security': {
+            'labels': ['Type-Bug']
+        },
+        'security': {
+            'labels': ['Type-Bug-Security']
+        },
     },
     'labels': {
         'ignore': 'ClusterFuzz-Ignore',
@@ -334,9 +350,6 @@ OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'os': 'OS-%PLATFORM%',
         'unreproducible': 'Unreproducible',
         'restrict_view': 'Restrict-View-Commit'
-    },
-    'security': {
-        'labels': ['Type-Bug-Security']
     },
     'deadline_policy_message':
         'This bug is subject to a 90 day disclosure deadline. If 90 days '
@@ -962,6 +975,117 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(self.testcase8, issue_tracker)
     self.assertIn('Fuzzer-exit', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Resource Exhaustion',
+                     issue_tracker._itm.last_issue.labels)
+
+  def test_filed_issues_nesting(self):
+    """Tests issue filing for dchecks."""
+    self.mock.get.return_value = issue_tracker_policy.IssueTrackerPolicy({
+        'all': {
+            'status': 'new',
+            'labels': ['ClusterFuzz'],
+            'dcheck': {
+                'labels': ['Is-DCHECK'],
+                'security': {
+                    'labels': ['Is-Security-DCHECK'],
+                },
+                'non_security': {
+                    'labels': ['Is-Non-Security-DCHECK'],
+                }
+            },
+            'non_dcheck': {
+                'labels': ['Is-Non-DCHECK'],
+                'security': {
+                    'labels': ['Is-Security-Non-DCHECK'],
+                },
+                'non_security': {
+                    'labels': ['Is-Non-Security-Non-DCHECK'],
+                }
+            }
+        },
+        'status': {
+            'assigned': 'Assigned',
+            'duplicate': 'Duplicate',
+            'verified': 'Verified',
+            'new': 'Untriaged',
+            'wontfix': 'WontFix',
+            'fixed': 'Fixed'
+        },
+        'labels': {
+            'ignore': 'ClusterFuzz-Ignore',
+            'verified': 'ClusterFuzz-Verified',
+            'security_severity': 'Security_Severity-%SEVERITY%',
+            'needs_feedback': 'Needs-Feedback',
+            'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+            'reported': None,
+            'wrong': 'ClusterFuzz-Wrong',
+            'fuzz_blocker': 'Fuzz-Blocker',
+            'reproducible': 'Reproducible',
+            'auto_cc_from_owners': 'ClusterFuzz-Auto-CC',
+            'os': 'OS-%PLATFORM%',
+            'unreproducible': 'Unreproducible',
+            'restrict_view': 'Restrict-View-SecurityTeam'
+        },
+    })
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+
+    # +DCHECK +SECURITY
+    self.testcase1.crash_type = 'DCHECK failure'
+    self.testcase1.security_flag = True
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Is-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertIn('Is-Security-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Security-Non-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-Security-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-Security-Non-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+
+    # +DCHECK -SECURITY
+    self.testcase1.crash_type = 'DCHECK failure'
+    self.testcase1.security_flag = False
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Is-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Security-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Security-Non-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+    self.assertIn('Is-Non-Security-DCHECK',
+                  issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-Security-Non-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+
+    # -DCHECK +SECURITY
+    self.testcase1.crash_type = 'Heap-use-after-free'
+    self.testcase1.security_flag = True
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertNotIn('Is-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertIn('Is-Non-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertIn('Is-Security-Non-DCHECK',
+                  issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Security-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-Security-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-Security-Non-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+
+    # -DCHECK -SECURITY
+    self.testcase1.crash_type = 'Heap-use-after-free'
+    self.testcase1.security_flag = False
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertNotIn('Is-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertIn('Is-Non-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Security-DCHECK', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Security-Non-DCHECK',
+                     issue_tracker._itm.last_issue.labels)
+    self.assertIn('Is-Non-Security-Non-DCHECK',
+                  issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Is-Non-Security-DCHECK',
                      issue_tracker._itm.last_issue.labels)
 
 
