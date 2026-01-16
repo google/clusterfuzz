@@ -29,3 +29,28 @@ def create_uworker_main_batch_jobs(batch_tasks: List[BatchTask]):
   """Creates batch jobs."""
   service = BatchService()
   return service.create_uworker_main_batch_jobs(batch_tasks)
+
+
+def create_congestion_job(job_type, gce_region=None):
+  """Creates a congestion job."""
+  service = BatchService()
+  return service.create_congestion_job(job_type, gce_region)
+
+
+def check_congestion_jobs(job_ids):
+  """Checks the status of the congestion jobs."""
+  from clusterfuzz._internal.batch import gcp
+  return gcp.check_congestion_jobs(job_ids)
+
+
+def count_queued_or_scheduled_tasks(project: str, region: str):
+  # TODO(metzman): Move this to BatchService too if needed, but for now
+  # we can import it or reimplement.
+  # The master branch version of batch.py didn't seem to have this?
+  # Let's check if it was removed or if I should keep it.
+  # It was in my HEAD version.
+  # It uses `_batch_client` which is removed from here.
+  # It should probably be in BatchService or GcpBatchClient.
+  # I'll check gcp.py, it has it.
+  from clusterfuzz._internal.batch import gcp
+  return gcp.count_queued_or_scheduled_tasks(project, region)

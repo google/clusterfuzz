@@ -21,6 +21,8 @@ import collections
 from typing import Dict
 from typing import List
 
+from google.cloud import batch_v1 as batch
+
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -112,6 +114,16 @@ def _get_subconfig(batch_config, instance_spec):
   ]
   weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
   return all_subconfigs[weighted_subconfig.name]
+
+
+def _get_subconfig_for_region(batch_config, instance_spec, region):
+  all_subconfigs = batch_config.get('subconfigs', {})
+  instance_subconfigs = instance_spec['subconfigs']
+  for subconfig in instance_subconfigs:
+    full_subconfig = all_subconfigs[subconfig['name']]
+    if full_subconfig['region'] == region:
+      return full_subconfig
+  raise ValueError(f'No subconfig for region {region}')
 
 
 def _get_specs_from_config(batch_tasks) -> Dict:
@@ -227,3 +239,21 @@ class BatchService:
         jobs.append(self._client.create_job(spec, input_urls_portion))
 
     return jobs
+
+  def create_congestion_job(self, job_type, gce_region=None):
+    """Creates a congestion job."""
+    batch_tasks = [BatchTask('fuzz', job_type, 'CONGESTION')]
+    specs = _get_specs_from_config(batch_tasks)
+    spec = specs[('fuzz', job_type)]
+    if gce_region:
+      batch_config = _get_batch_config()
+      config_map = _get_config_names(batch_tasks)
+      config_name, _, _ = config_map[('fuzz', job_type)]
+      instance_spec = batch_config.get('mapping').get(config_name)
+      subconfig = _get_subconfig_for_region(batch_config, instance_spec,
+                                            gce_region)
+      spec.gce_region = subconfig['region']
+      spec.network = subconfig['network']
+      spec.subnetwork = subconfig['subnetwork']
+
+    return self._client.create_job(spec, ['CONGESTION'], commands=['echo', 'hello'])
