@@ -269,7 +269,7 @@ def _clear_blame_result_and_set_pending_flag(testcase):
   testcase.put()
 
 
-def execute_task(testcase_id, _):
+def _execute_task(testcase_id):
   """Attempt to find the CL introducing the bug associated with testcase_id."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -301,3 +301,10 @@ def execute_task(testcase_id, _):
   logs.info('Successfully published testcase %s to Predator. Message IDs: %s.' %
             (testcase_id, message_ids))
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
+
+
+def execute_task(testcase_id, _):
+  """Set logs context and execute blame task."""
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+    return _execute_task(testcase_id)

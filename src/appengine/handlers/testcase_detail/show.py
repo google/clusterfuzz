@@ -34,6 +34,7 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
+from handlers.testcase_detail import testcase_status_events
 from libs import access
 from libs import auth
 from libs import form
@@ -483,10 +484,11 @@ def get_testcase_detail(testcase):
   memory_tool_display_label = memory_tool_display_string.split(':')[0]
   memory_tool_display_value = memory_tool_display_string.split(':')[1].strip()
 
-  helpers.log('Testcase %s' % testcase.key.id(), helpers.VIEW_OPERATION)
+  testcase_id = testcase.key.id()
+  helpers.log('Testcase %s' % testcase_id, helpers.VIEW_OPERATION)
   return {
       'id':
-          testcase.key.id(),
+          testcase_id,
       'crash_type':
           crash_type,
       'crash_address':
@@ -557,6 +559,10 @@ def get_testcase_detail(testcase):
           _parse_suspected_cls(metadata.get('predator_result')),
       'testcase':
           testcase,
+      'testcase_event_history':
+          testcase_status_events.get_testcase_event_history(testcase_id),
+      'testcase_status_info':
+          testcase_status_events.get_testcase_status_info(testcase_id),
       'timestamp':
           utils.utc_datetime_to_timestamp(testcase.timestamp),
       'show_blame':
@@ -626,3 +632,22 @@ class RefreshHandler(base_handler.Handler):
     """Serve the testcase detail JSON."""
     testcase_id = flask.request.get('testcaseId')
     return self.render_json(get_testcase_detail_by_id(testcase_id))
+
+
+class TaskLogHandler(base_handler.Handler):
+  """Handler for downloading a task's log."""
+
+  @handler.get(handler.TEXT)
+  def get(self):
+    """Serve the task log."""
+    task_id = flask.request.args.get('task_id')
+    task_name = flask.request.args.get('task_name')
+    testcase_id = flask.request.args.get('testcase_id')
+    log_content = testcase_status_events.get_task_log(testcase_id, task_id,
+                                                      task_name)
+
+    response = flask.make_response(log_content)
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename="task_{task_id}_log.txt"')
+    return response

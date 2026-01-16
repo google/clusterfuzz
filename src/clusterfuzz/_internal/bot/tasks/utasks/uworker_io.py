@@ -17,6 +17,7 @@ from typing import Tuple
 from typing import Type
 from typing import TypeVar
 import uuid
+import zlib
 
 from google.cloud import ndb
 from google.cloud.datastore_v1.types import entity as entity_pb2
@@ -113,7 +114,7 @@ def serialize_and_upload_uworker_input(
   assert not uworker_input.HasField('uworker_output_upload_url')
   uworker_input.uworker_output_upload_url = signed_output_upload_url
 
-  serialized_uworker_input = uworker_input.SerializeToString()
+  serialized_uworker_input = zlib.compress(uworker_input.SerializeToString())
   upload_uworker_input(serialized_uworker_input, input_gcs_url)
 
   return signed_input_download_url, output_gcs_url
@@ -124,6 +125,13 @@ def download_and_deserialize_uworker_input(
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
+  try:
+    data = zlib.decompress(data)
+  except zlib.error:
+    # This is for backward compatiblity during the merge.
+    # TOOD(metzman): Remove backward compatibility efforts when every
+    # deployment of ClusterFuzz is running the latest code.
+    pass
   return deserialize_uworker_input(data)
 
 
@@ -148,14 +156,21 @@ def serialize_and_upload_uworker_output(
     uworker_output: uworker_msg_pb2.Output,  # pylint: disable=no-member
     upload_url: str):
   """Serializes |uworker_output| and uploads it to |upload_url."""
-  serialized_uworker_output = uworker_output.SerializeToString()
+  serialized_uworker_output = zlib.compress(uworker_output.SerializeToString())
   storage.upload_signed_url(serialized_uworker_output, upload_url)
 
 
 def download_input_based_on_output_url(
     output_url: str) -> uworker_msg_pb2.Input:  # pylint: disable=no-member
+  """Safely (as in the output can't tamper with the input or it's
+    location) downloads the input based on the output_url."""
   input_url = uworker_output_path_to_input_path(output_url)
-  serialized_uworker_input = storage.read_data(input_url)
+  data = storage.read_data(input_url)
+  try:
+    serialized_uworker_input = zlib.decompress(data)
+  except zlib.error:
+    # For backwards compatability support uncompressed.
+    serialized_uworker_input = data
   if serialized_uworker_input is None:
     logs.error(f'No corresponding input for output: {output_url}.')
   return deserialize_uworker_input(serialized_uworker_input)
@@ -164,7 +179,12 @@ def download_input_based_on_output_url(
 def download_and_deserialize_uworker_output(
     output_url: str) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
   """Downloads and deserializes uworker output."""
-  serialized_uworker_output = storage.read_data(output_url)
+  data = storage.read_data(output_url)
+  try:
+    serialized_uworker_output = zlib.decompress(data)
+  except zlib.error:
+    # For backwards compatability support uncompressed.
+    serialized_uworker_output = data
 
   uworker_output = deserialize_uworker_output(serialized_uworker_output)
 

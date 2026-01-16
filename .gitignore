@@ -22,6 +22,7 @@
 /bot/*
 /coverage
 /deployment
+/clusterfuzz-config
 /local/bin/android-sdk/*
 /local/storage
 /paramiko.log
@@ -54,3 +55,7 @@ bazel-*
 *.tfstate*
 *.lock.hcl
 **/.terraform/*
+
+# Ignore temporary build files.
+docker/base/Pipfile
+docker/base/Pipfile.lock

@@ -14,13 +14,16 @@
 """Environment functions."""
 
 import ast
+import enum
 import functools
 import os
 import re
 import socket
 import subprocess
 import sys
+import uuid
 
+import requests
 import yaml
 
 from clusterfuzz._internal import fuzzing
@@ -52,6 +55,13 @@ COMMON_SANITIZER_OPTIONS = {
     'print_summary': 1,
     'use_sigaltstack': 1,
 }
+
+
+class UtaskMainRuntime(enum.Enum):
+
+  BATCH = 'batch'
+  KATA_CONTAINER = 'kata_container'
+  INSTANCE_GROUP = 'instance_group'
 
 
 def _eval_value(value_string):
@@ -356,7 +366,6 @@ def get_llvm_symbolizer_path():
         stderr=subprocess.DEVNULL)
     if return_code == 0:
       # llvm-symbolize works, return it.
-      logs.info(f'Environment Symbolizer Path :- {llvm_symbolizer_path}')
       return llvm_symbolizer_path
 
   # Either
@@ -367,12 +376,10 @@ def get_llvm_symbolizer_path():
 
   # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
-    logs.info(f'None Symbolizer Path :- {llvm_symbolizer_path}')
     return None
 
   # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
-  logs.info(f'Default Symbolizer Path :- {llvm_symbolizer_path}')
   return llvm_symbolizer_path
 
 
@@ -724,6 +731,24 @@ def is_uworker():
   return get_value('UWORKER')
 
 
+def get_runtime() -> UtaskMainRuntime:
+  """
+  Get the current runtime for running the tasks.
+  It can be KATA_CONTAINER, BATCH or INSTANCE_GROUP.
+
+  :return: Enum UtaskMainRuntime with one of KATA_CONTAINER,
+  BATCH or INSTANCE_GROUP
+  :rtype: UtaskMainRuntime
+  """
+  if is_uworker() and is_running_on_k8s():
+    return UtaskMainRuntime.KATA_CONTAINER
+
+  if is_uworker() and not is_running_on_k8s():
+    return UtaskMainRuntime.BATCH
+
+  return UtaskMainRuntime.INSTANCE_GROUP
+
+
 def is_swarming_bot():
   """Return whether or not the current bot is a swarming bot."""
   return get_value('SWARMING_BOT')
@@ -999,6 +1024,16 @@ def set_bot_environment():
   return True
 
 
+def set_local_log_only():
+  """Force logs to be local-only."""
+
+  # We set this to an empty string because currently the logs
+  # module does not correctly evaluate env vars
+  # (i.e., 'false' is evaluated to true).
+  set_value('LOG_TO_GCP', '')
+  set_value('LOG_TO_CONSOLE', 'True')
+
+
 def set_tsan_max_history_size():
   """Sets maximum history size for TSAN tool."""
   tsan_options = get_value('TSAN_OPTIONS')
@@ -1012,6 +1047,14 @@ def set_tsan_max_history_size():
                              'history_size=%d' % tsan_max_history_size))
 
   set_value('TSAN_OPTIONS', tsan_options)
+
+
+def set_task_id_vars(task_name, task_id=None):
+  """Sets environment vars for task name and ID."""
+  if not task_id:
+    task_id = uuid.uuid4()
+  set_value('CF_TASK_ID', task_id)
+  set_value('CF_TASK_NAME', task_name)
 
 
 def set_value(environment_variable, value, env=None):
@@ -1110,6 +1153,11 @@ def is_android(plt=None):
   return 'ANDROID' in (plt or platform())
 
 
+def is_android_auto(plt=None):
+  """Return True if we are on automotive platform."""
+  return 'ANDROID_AUTO' in (plt or platform())
+
+
 def is_android_cuttlefish(plt=None):
   """Return True if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
@@ -1183,3 +1231,44 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
 
 def is_tworker():
   return get_value('TWORKER', False)
+
+
+def update_task_enabled() -> bool:
+  """ It uses the GCE VM metadata server `update_task_enabled` flag.
+
+      This flag will be used to rollout the update_task deprecation
+      by disabling it progressively for each instance group through
+      the instance template metadata 
+  """
+  metadata_url = ("http://metadata.google.internal/computeMetadata/v1/" +
+                  "instance/attributes/")
+  metadata_header = {"Metadata-Flavor": "Google"}
+  metadata_key = "update_task_enabled"
+
+  running_on_batch = bool(is_uworker())
+
+  try:
+    # Construct the full URL for your specific metadata key
+    response = requests.get(
+        f"{metadata_url}{metadata_key}", headers=metadata_header, timeout=10)
+
+    # Raise an exception for bad status codes (4xx or 5xx)
+    response.raise_for_status()
+
+    # The metadata value is in the response text
+    metadata_value = response.text
+    logs.info(f"The value for '{metadata_key}' is: {metadata_value}")
+    is_update_task_enabled = metadata_value.lower() != 'false'
+
+    # The flag is_uworker is true for Batch environment
+    # The update task should run if it's not a Batch environment
+    # and the flag is enabled on the VM template metadata
+    return not running_on_batch and is_update_task_enabled
+
+  except requests.exceptions.HTTPError as http_error:
+    logs.warning(f"Http error fetching metadata: {http_error}")
+
+  except Exception as ex:
+    logs.error(f"Unknown exception fetching metadata: {ex}")
+
+  return not running_on_batch

@@ -173,11 +173,14 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         'clusterfuzz._internal.base.utils.get_application_id',
         'clusterfuzz._internal.datastore.data_handler.update_task_status',
         'clusterfuzz._internal.datastore.data_handler.get_task_status',
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now'
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
     self.maxDiff = None
     self.backup_bucket = os.environ['BACKUP_BUCKET'] or ''
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
 
   def test_preprocess_existing_task_running(self):
     """Preprocess test when another task is running."""
@@ -236,14 +239,20 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '6fa8c57336628a7d733f684dc9404fbd09020543',
     ], corpus)
 
-    testcases = list(data_types.Testcase.query())
-    self.assertEqual(1, len(testcases))
-    self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
-    self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
-    self.assertEqual(1337, testcases[0].crash_revision)
-    self.assertEqual('test_fuzzer',
-                     testcases[0].get_metadata('fuzzer_binary_name'))
-    self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
+    # TODO(metzman): Re-enable this when we re-enable corpus crash reporting.
+    # testcases = list(data_types.Testcase.query())
+    # self.assertEqual(1, len(testcases))
+    # self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
+    # self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
+    # self.assertEqual(1337, testcases[0].crash_revision)
+    # self.assertEqual('test_fuzzer',
+    #                  testcases[0].get_metadata('fuzzer_binary_name'))
+    # self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
+    # self.mock.emit.assert_called_once_with(
+    #     events.TestcaseCreationEvent(
+    #         testcase=testcases[0],
+    #         creation_origin=events.TestcaseOrigin.CORPUS_PRUNING,
+    #         uploader=None))
 
     today = datetime.datetime.utcnow().date()
     # get_coverage_information on test_fuzzer rather than libFuzzer_test_fuzzer
@@ -548,8 +557,7 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
         cross_pollination_stats=None)
 
     corpus_pruning_task._upload_corpus_crashes_zip(
-        None, result, self.corpus_crashes_blob_name,
-        self.corpus_crashes_upload_url)
+        result, self.corpus_crashes_blob_name, self.corpus_crashes_upload_url)
 
     corpus_crashes_zip_local_path = os.path.join(
         self.temp_dir, f'{self.corpus_crashes_blob_name}.zip')

@@ -57,9 +57,8 @@ firebase:
   - google.com
   # - github.com
 
-uworker_tasks:
-  - analyze
-
+full_utask_model:
+  enabled: false
 
 stacktrace:
   # Stack frames to ignore when determining the crash signature.
@@ -74,6 +73,9 @@ stacktrace:
 env:
   # Application ID for the Google Cloud Project. In production, this will have a s~ prefix.
   APPLICATION_ID: test-clusterfuzz
+
+  # GCP project where the GKE cluster running cronjobs will be.
+  K8S_PROJECT: test-clusterfuzz
 
   # Default project name unless overridden in a job definition.
   PROJECT_NAME: test-project
@@ -100,6 +102,10 @@ env:
   # above which logs the fuzzer run that generates the testcases, whereas this one logs the run of
   # the testcases against the target application.
   FUZZ_LOGS_BUCKET: test-fuzz-logs-bucket
+
+  # Buckets for utask main to consume input from, and write output to
+  UWORKER_INPUT_BUCKET: test-uworker-input
+  UWORKER_OUTPUT_BUCKET: test-uworker-output
 
   # Specify either a HELP_URL or HELP_FORMAT for guiding developers on how to fix bugs.
   # HELP_URL: help-page-for-reproducing-bugs
@@ -133,3 +139,6 @@ env:
 # Pub/Sub topic for receiving issue updates.
 #issue_updates:
   #pubsub_topic: projects/test-project/topics/issue-updates
+
+schedule_fuzz:
+  cpu_limit: 100000

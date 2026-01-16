@@ -87,6 +87,7 @@ def _create_time_series(name: str, time_series: List[_TimeSeries]):
     _monitoring_v3_client.create_time_series(name=name, time_series=time_series)
   except Exception as e:
     logs.warning(f'Error uploading time series: {e}')
+    logs.warning(f'Time series - {name} - contents: {time_series}')
 
 
 class _MockMetric:

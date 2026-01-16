@@ -54,7 +54,7 @@ fi
 # Check if the distro is supported.
 distro_codename=$(lsb_release --codename --short)
 distro_id=$(lsb_release --id --short)
-supported_codenames="(xenial|artful|bionic|cosmic|focal)"
+supported_codenames="(xenial|artful|bionic|cosmic|focal|noble)"
 supported_ids="(Debian)"
 if [[ ! $distro_codename =~ $supported_codenames &&
       ! $distro_id =~ $supported_ids ]]; then
@@ -81,6 +81,7 @@ sudo apt-get install -y \
     curl \
     libpython3-all-dev \
     pipenv \
+    python3-dev \
     python3-pip \
     unzip \
     xvfb

@@ -1,0 +1,147 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+- name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # First, clone the repository
+    git config --global credential.helper gcloud.sh
+    git clone https://clusterfuzz-config-472119376969-git.us-central1.sourcemanager.dev/clusterfuzz-testing/clusterfuzz-config.git /workspace/clusterfuzz-config
+    
+    # Move into the repository directory
+    cd /workspace/clusterfuzz-config
+    
+    # Enforcing that the clusterfuzz and config are using the same branch
+    # It makes sure that for dev deployments the deployment overrides the
+    # current version with dev
+    echo "Checking out Clusterfuzz config to the branch $REF_NAME"
+    git checkout $REF_NAME
+
+    # Conditionally run 'git checkout' to a given revision
+    if [ -n "${_CLUSTERFUZZ_CONFIG_REVISION}" ]; then
+      echo "✅ _CLUSTERFUZZ_CONFIG_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_CONFIG_REVISION}"
+      git checkout "${_CLUSTERFUZZ_CONFIG_REVISION}"
+    else
+      echo "☑️ _CLUSTERFUZZ_CONFIG_REVISION is not set. Using the latest commit."
+    fi
+
+- name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # Conditionally clone the upstream clusterfuzz and 'git checkout' if the revision is provided
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      echo "✅ _CLUSTERFUZZ_REVISION is set. Checking out to commit: ${_CLUSTERFUZZ_REVISION}"
+      git clone https://github.com/google/clusterfuzz.git
+      cd clusterfuzz
+      git checkout "${_CLUSTERFUZZ_REVISION}"
+    else
+      echo "☑️ _CLUSTERFUZZ_REVISION is not set. Using the latest commit."
+    fi
+
+- name: gcr.io/clusterfuzz-images/base:091c6c2-202409251610
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    # Conditionally run go into the cloned clusterfuzz
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      cd clusterfuzz
+    fi
+    
+    # Install required deps for performing butler deploy
+    bash ./local/install_deps.bash
+    
+    # Get into the venv
+    source "$$(python3.11 -m pipenv --venv)/bin/activate"
+
+    # Check if the _PROJECT substitution was provided.
+    if [ -z "${_PROJECT}" ]; then
+      echo "❌ Error: The _PROJECT substitution variable must be provided."
+      exit 1
+    fi
+
+    # Construct the full path using the substitution variable.
+    configpath="/workspace/clusterfuzz-config/configs/${_PROJECT}"
+
+    # Verify that the configuration directory actually exists.
+    if [ ! -d "$configpath" ]; then
+      echo "❌ Error: Configuration directory not found at $configpath"
+      exit 1
+    fi
+
+    echo "✅ Running deploy for project config: $configpath"
+    python3.11 butler.py deploy -c $configpath --prod --targets zips appengine --force
+
+- id: update project metadata with revision
+  name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
+      cd clusterfuzz
+    fi
+
+    METADATA_KEY="clusterfuzz-revision"
+    MAX_RETRIES=10
+    WAIT_SECONDS=10
+
+    CURRENT_CLUSTERFUZZ_REVISION="$(cat src/appengine/resources/clusterfuzz-source.manifest)"
+    echo "Starting asynchronous metadata update..."
+
+    # Step 1: Run the update command in the background
+    gcloud compute project-info add-metadata --metadata="$${METADATA_KEY}=$${CURRENT_CLUSTERFUZZ_REVISION}" --project "${PROJECT_ID}" > /dev/null 2>&1 &
+
+    # Step 2: Poll for the updated metadata value
+    for ((i=1; i<=$$MAX_RETRIES; i++)); do
+      echo "Attempt $$i of $$MAX_RETRIES: Checking project metadata..."
+      # Check if the metadata value has been updated
+      if gcloud compute project-info describe --project "${PROJECT_ID}" --format="value(commonInstanceMetadata.items.$${METADATA_KEY})" | grep -q "$${CURRENT_CLUSTERFUZZ_REVISION}"; then
+        echo "Metadata updated successfully!"
+        exit 0
+      fi
+      echo "Metadata not yet updated. Waiting $$WAIT_SECONDS seconds..."
+      sleep $$WAIT_SECONDS
+    done
+    echo "Operation timed out with failure"
+    exit 1
+
+- id: 'tf init'
+  name: 'hashicorp/terraform:1.8.2'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    cd /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
+    terraform init || exit 1
+
+- id: 'tf run'
+  name: 'hashicorp/terraform:1.8.2'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    cd /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
+    terraform apply -target=module.compute -auto-approve || exit 1
+
+timeout: 3000s
+options:
+  machineType: E2_HIGHCPU_32
+  diskSizeGb: 500
+  logging: CLOUD_LOGGING_ONLY

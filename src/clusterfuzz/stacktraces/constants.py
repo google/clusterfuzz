@@ -44,6 +44,9 @@ ANDROID_KERNEL_TIME_REGEX = re.compile(r'^\[\s*\d+\.\d+\]\s')
 # Parentheses are optional.
 ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
 ANDROID_SEGV_REGEX = re.compile(r'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
+ANDROID_SIGABRT_REGEX = re.compile(r'.*signal.*\(SIGABRT.*fault addr --------')
+ANDROID_SIGTRAP_REGEX = re.compile(
+    r'.*signal.*\(SIGTRAP.*fault addr ([^ ]*)(.*)')
 ASAN_INVALID_FREE_REGEX = re.compile(
     r'.*AddressSanitizer: '
     r'attempting free on address which was not malloc\(\)-ed: '
@@ -76,6 +79,8 @@ CENTIPEDE_TIMEOUT_REGEX = re.compile(r'(?:%s)' % '|'.join([
     r'========= Timeout of \d+ seconds exceeded; exiting',
     r'========= Per-input timeout exceeded:'
 ]))
+CENTIPEDE_STACK_LIMIT_REGEX = re.compile(
+    r'^========= Stack limit exceeded: \d+ > \d+ \(byte\); aborting$')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
     r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
@@ -85,7 +90,7 @@ CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
-    r'\s*\[[^\]]*[:]([^\](]*).*\].*(?:Check failed:|DCHECK failed:|NOTREACHED hit.)\s*(.*)'  # pylint: disable=line-too-long
+    r'\s*\[[^\]]*[:]([^\](]*\([0-9]+\)|[^\]:]*[:][0-9]+).*\].*(?:Check failed:|DCHECK failed:|NOTREACHED hit.)\s*(.*)'  # pylint: disable=line-too-long
 )
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
@@ -435,6 +440,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^_L_unlock_',
     r'^_\$LT\$',
     r'^__GI_',
+    r'^___interceptor_backtrace',
     r'^__asan::',
     r'^__asan_',
     r'^__assert_',
@@ -509,11 +515,13 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^rust_panic',
     r'^scanf',
     r'^show_stack',
+    r'^core::panic',
     r'^std::__terminate',
     r'^std::io::Write::write_fmt',
     r'^std::panic',
     r'^std::process::abort',
     r'^std::sys::unix::abort',
+    r'^std::sys::backtrace',
     r'^std::sys_common::backtrace',
     r'^__rust_start_panic',
     r'^__scrt_common_main_seh',
@@ -555,7 +563,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*logger',
     r'.*logging::CheckError',
     r'.*logging::.*LogMessage',
-    r'.*logging::.*NoReturnError',
+    r'.*logging::.*NoreturnError',
     r'.*stdext::exception::what',
     r'.*v8::base::OS::Abort',
     r'.*Runtime_AbortCSADcheck',
@@ -582,6 +590,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*libc\+\+/',
     # Clusterfuzz file paths on Windows to ignore.
     r'c:/clusterfuzz/bot/build',
+    # Fuzztest internals.
+    r'.*third_party/fuzztest/',
 
     # Wrappers from honggfuzz/libhfuzz/memorycmp.c.
     r'.*/memorycmp\.c',
@@ -649,6 +659,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Stack-overflow',
     'Out-of-memory',
     'Timeout',
     'Unreachable code',

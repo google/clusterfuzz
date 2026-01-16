@@ -16,6 +16,7 @@ import unittest
 
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
 class GetCommandFromModuleTest(unittest.TestCase):
@@ -33,3 +34,58 @@ class GetCommandFromModuleTest(unittest.TestCase):
       task_utils.get_command_from_module('postprocess')
     with self.assertRaises(ValueError):
       task_utils.get_command_from_module('uworker_main')
+
+
+class GetTaskEventDataTest(unittest.TestCase):
+  # pylint: disable=protected-access
+  """Tests the helper methods for task execution event data."""
+
+  def test_task_based_lists(self):
+    """Asserts that the task names defined in type-based sets are correct."""
+    all_task_commands = set(commands._COMMAND_MODULE_MAP.keys())
+    self.assertTrue(
+        task_utils._TESTCASE_BASED_TASKS.issubset(all_task_commands))
+    self.assertTrue(task_utils._FUZZER_BASED_TASKS.issubset(all_task_commands))
+
+  def test_get_task_event_data_preprocess(self):
+    """Tests retrieving event data directly from task argument."""
+    # Get one example of each task type.
+    testcase_based = commands._COMMAND_MODULE_MAP.get('minimize')
+    task_command = task_utils.get_command_from_module(testcase_based.__name__)
+    self.assertEqual(
+        task_utils.get_task_execution_event_data(task_command, '1', 'job'), {
+            'task_job': 'job',
+            'testcase_id': 1
+        })
+
+    fuzzer_based = commands._COMMAND_MODULE_MAP.get('fuzz')
+    task_command = task_utils.get_command_from_module(fuzzer_based.__name__)
+    self.assertEqual(
+        task_utils.get_task_execution_event_data(task_command, 'fuzzer', 'job'),
+        {
+            'task_job': 'job',
+            'task_fuzzer': 'fuzzer'
+        })
+
+  def test_get_task_event_data_postprocess(self):
+    """Tests retrieving event data from uworker input."""
+    # Get one example of each task type.
+    testcase_based = commands._COMMAND_MODULE_MAP.get('minimize')
+    task_command = task_utils.get_command_from_module(testcase_based.__name__)
+    task_argument = uworker_msg_pb2.Input(testcase_id='1', job_type='job')
+    self.assertEqual(
+        task_utils.get_task_execution_event_data(task_command, task_argument,
+                                                 'job'), {
+                                                     'task_job': 'job',
+                                                     'testcase_id': 1
+                                                 })
+
+    fuzzer_based = commands._COMMAND_MODULE_MAP.get('fuzz')
+    task_command = task_utils.get_command_from_module(fuzzer_based.__name__)
+    task_argument = uworker_msg_pb2.Input(fuzzer_name='fuzzer', job_type='job')
+    self.assertEqual(
+        task_utils.get_task_execution_event_data(task_command, task_argument,
+                                                 'job'), {
+                                                     'task_job': 'job',
+                                                     'task_fuzzer': 'fuzzer'
+                                                 })

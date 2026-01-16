@@ -86,8 +86,10 @@ class CreateHandler(base_handler.Handler):
         'title':
             'Success',
         'message': (
-            'Upload data to the corpus using: '
-            f'gsutil -d -m rsync -r <local_corpus_directory> {bucket_url}'),
+            'Upload data to the corpus using: gcloud storage rsync '
+            '<local_corpus_directory> {bucket_url} --recursive (add '
+            '`--delete-unmatched-destination-objects` to mirror the exact '
+            'state of the local corpus).'.format(bucket_url=bucket_url)),
     }
     return self.render('message.html', template_values)
 

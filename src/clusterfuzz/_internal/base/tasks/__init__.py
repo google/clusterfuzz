@@ -15,6 +15,7 @@
 
 import contextlib
 import datetime
+import functools
 import json
 import random
 import threading
@@ -33,6 +34,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 
 # Task queue prefixes for various job types.
@@ -48,7 +50,9 @@ HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
 
-MAX_PUBSUB_MESSAGES_PER_REQ = 1000
+# The stated limit is 1000, but in reality meassages do not get delivered
+# around this limit. We should probably switch to the real client library.
+MAX_PUBSUB_MESSAGES_PER_REQ = 250
 
 # Various variables for task leasing and completion times (in seconds).
 TASK_COMPLETION_BUFFER = 90 * 60
@@ -84,17 +88,17 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAINS_QUEUE = 'utask_main'
+UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_QUEUE_PULL_SECONDS = 60
+UTASK_QUEUE_PULL_SECONDS = 150
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 150
+MAX_UTASKS = 3000
 
 
 class Error(Exception):
@@ -120,13 +124,22 @@ def default_queue_suffix():
   logs.info(f'QUEUE_OVERRIDE is [{queue_override}]. '
             f'Platform is {environment.platform()}')
   if queue_override:
-    return queue_suffix_for_platform(queue_override)
+    platform = queue_override
+  else:
+    platform = environment.platform()
 
-  return queue_suffix_for_platform(environment.platform())
+  platform_suffix = queue_suffix_for_platform(platform)
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version and 'LINUX' in platform.upper():
+    platform_suffix = f'{platform_suffix}-{base_os_version}'
+
+  return platform_suffix
 
 
 def regular_queue(prefix=JOBS_PREFIX):
   """Get the regular jobs queue."""
+  if full_utask_task_model():
+    return PREPROCESS_QUEUE
   return prefix + default_queue_suffix()
 
 
@@ -197,7 +210,7 @@ def get_regular_task(queue=None):
     if not messages:
       return None
 
-    task = get_task_from_message(messages[0])
+    task = get_task_from_message(messages[0], queue)
     if task:
       return task
 
@@ -291,39 +304,64 @@ def get_postprocess_task():
   # wasting our precious non-linux bots on generic postprocess tasks.
   if not environment.platform().lower() == 'linux':
     return None
-  pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
+
+  queue_name = POSTPROCESS_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   logs.info('Pulling from postprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0])
+  task = get_task_from_message(messages[0], POSTPROCESS_QUEUE)
   if task:
     logs.info('Pulled from postprocess queue.')
   return task
 
 
 def allow_all_tasks():
+  """Returns True if the bot should be allowed to execute any task.
+
+  Preemptible bots are not allowed to execute all tasks, because some tasks
+  are not safe to be preempted.
+  """
   return not environment.get_value('PREEMPTIBLE')
 
 
 def get_preprocess_task():
-  pubsub_puller = PubSubPuller(PREPROCESS_QUEUE)
+  """Get a preprocess task."""
+  queue_name = PREPROCESS_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = get_task_from_message(messages[0])
+  task = get_task_from_message(
+      messages[0], PREPROCESS_QUEUE, task_cls=PubSubTTask)
   if task:
     logs.info('Pulled from preprocess queue.')
   return task
 
 
 def tworker_get_task():
+  """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
   # preprocessing. It's too expensive to pull twice (once from the postproces
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
+  if random.random() < .5:
+    # Pick either one with equal probability so we don't hurt the
+    # throughput of one compared to the other.
+    # TODO(metzman): We may want to combine these queues to save time reading
+    # from queues.
+    return get_postprocess_task()
   return get_preprocess_task()
 
 
@@ -358,14 +396,19 @@ def get_task():
       return task
 
     if environment.is_android():
-      logs.info(f'Could not get task from {regular_queue()}. Trying from'
-                f'default android queue {default_android_queue()}.')
-      task = get_regular_task(default_android_queue())
-      if task:
-        # Log the task details for debug purposes.
-        logs.info(f'Got task with cmd {task.command} args {task.argument} '
-                  f'job {task.job} from {default_android_queue()} queue.')
-        return task
+      if environment.platform() not in \
+      constants.DEVICES_WITH_NO_FALLBACK_QUEUE_LIST:
+        logs.info(f'Could not get task from {regular_queue()}. Trying from'
+                  f'default android queue {default_android_queue()}.')
+        task = get_regular_task(default_android_queue())
+        if task:
+          logs.info(f'Got task with cmd {task.command} args {task.argument} '
+                    f'job {task.job} from {default_android_queue()} queue.')
+          return task
+      else:
+        logs.info(f'{environment.platform()} is part of devices with no '
+                  f'fallback list. Hence skipping picking up tasks from '
+                  f'default {default_android_queue()} queue.')
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 
@@ -377,9 +420,9 @@ def get_task():
   return task
 
 
-def construct_payload(command, argument, job):
+def construct_payload(command, argument, job, queue=None):
   """Constructs payload for task, a standard description of tasks."""
-  return ' '.join([command, str(argument), str(job)])
+  return ' '.join([command, str(argument), str(job), str(queue)])
 
 
 class Task:
@@ -392,7 +435,8 @@ class Task:
                eta=None,
                is_command_override=False,
                high_end=False,
-               extra_info=None):
+               extra_info=None,
+               queue=None):
     self.command = command
     self.argument = argument
     self.job = job
@@ -400,16 +444,17 @@ class Task:
     self.is_command_override = is_command_override
     self.high_end = high_end
     self.extra_info = extra_info
+    self.queue = queue
 
   def __repr__(self):
-    return f'Task: {self.command} {self.argument} {self.job}'
+    return f'Task: {self.command} {self.argument} {self.job} {self.queue}'
 
   def attribute(self, _):
     return None
 
   def payload(self):
     """Get the payload."""
-    return construct_payload(self.command, self.argument, self.job)
+    return construct_payload(self.command, self.argument, self.job, self.queue)
 
   def to_pubsub_message(self):
     """Convert the task to a pubsub message."""
@@ -437,6 +482,10 @@ class Task:
     yield
     track_task_end()
 
+  def set_queue(self, queue):
+    self.queue = queue
+    return self
+
 
 class PubSubTask(Task):
   """A Pub/Sub task."""
@@ -457,7 +506,12 @@ class PubSubTask(Task):
 
   def attribute(self, key):
     """Return attribute value."""
-    return self._pubsub_message.attributes[key]
+    try:
+      return self._pubsub_message.attributes[key]
+    except KeyError:
+      logs.error((f'KeyError: Missing key {key} in message: '
+                  f'{self._pubsub_message.attributes}'))
+      raise
 
   def defer(self):
     """Defer a task until its ETA. Returns whether or not we deferred."""
@@ -503,20 +557,102 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
 
 
-def get_task_from_message(message) -> Optional[PubSubTask]:
+class PubSubTTask(PubSubTask):
+  """TTask from pubsub."""
+  TTASK_TIMEOUT = 30 * 60
+
+  @contextlib.contextmanager
+  def lease(self, _event=None):  # pylint: disable=arguments-differ
+    """Maintain a lease for the task."""
+    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
+        self.command, get_task_lease_timeout())
+
+    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
+    track_task_start(self, task_lease_timeout)
+    if _event is None:
+      _event = threading.Event()
+    # We won't repeat fuzz task if we timeout, there's nothing
+    # important about any particular fuzz task.
+    if self.command != 'fuzz':
+      leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
+                                          task_lease_timeout)
+    else:
+      leaser_thread = _PubSubLeaserThread(
+          self._pubsub_message, _event, self.TTASK_TIMEOUT, ack_on_timeout=True)
+    leaser_thread.start()
+    try:
+      yield leaser_thread
+    finally:
+      _event.set()
+      leaser_thread.join()
+
+    # If we get here the task succeeded in running. Acknowledge the message.
+    self._pubsub_message.ack()
+    track_task_end()
+
+
+def _filter_task_for_os_mismatch(message, queue) -> bool:
+  """Filters a Pub/Sub message if its OS version mismatches the bot's OS.
+
+  This function compares the `base_os_version` attribute from the message
+  against the bot's `BASE_OS_VERSION` environment variable.
+
+  A task is skipped (and the message is acknowledged) if the message specifies
+  an OS version, and the bot's OS is different. This includes the legacy
+  scenario where a bot does not have `BASE_OS_VERSION` set (evaluating to
+  `None`), preventing it from processing tasks meant for newer OS versions.
+
+  If the message does not specify an OS version, it can be processed by any
+  bot. If the versions match, it is also processed.
+
+  Args:
+    message (pubsub.Message): The message object to check.
+    queue (str): The name of the queue from which the message was pulled.
+
+  Returns:
+    bool: True if the message had a mismatch and was acknowledged, otherwise
+    False.
+  """
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  message_base_os_version = message.attributes.get('base_os_version')
+
+  if not message_base_os_version:
+    return False
+
+  if message_base_os_version != base_os_version:
+    logs.warning(
+        'Skipping task for different OS.',
+        queue=queue,
+        message_os_version=message_base_os_version,
+        base_os_version=base_os_version)
+    message.ack()
+    return True
+
+  return False
+
+
+def get_task_from_message(message, queue=None, can_defer=True,
+                          task_cls=None) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
+
+  if _filter_task_for_os_mismatch(message, queue):
+    return None
+
   try:
-    task = initialize_task(message)
+    task = initialize_task(message, task_cls=task_cls)
+    if task is None:
+      return None
   except KeyError:
     logs.error('Received an invalid task, discarding...')
     message.ack()
     return None
 
+  task = task.set_queue(queue)
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
-  if task.defer():
+  if can_defer and task.defer():
     return None
 
   return task
@@ -525,18 +661,24 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  queue_name = UTASK_MAIN_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  pubsub_puller = PubSubPuller(queue_name)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_utask_main_messages(messages)
+  return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
 
 
-def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
+def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   """Merges tasks specified in |messages| into a list for processing on this
   bot."""
   tasks = []
   for message in messages:
-    task = get_task_from_message(message)
+    # We shouldn't defer as that was done for the preprocess part of this ttask.
+    task = get_task_from_message(message, queue, can_defer=False)
     if task is None:
       continue
     tasks.append(task)
@@ -547,11 +689,15 @@ def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   return tasks
 
 
-def initialize_task(message) -> PubSubTask:
+def initialize_task(message, task_cls=None) -> PubSubTask:
   """Creates a task from |messages|."""
+  if task_cls is None:
+    task_cls = PubSubTask
 
-  if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
-    return PubSubTask(message)
+  if message.attributes.get('eventType') not in {
+      'OBJECT_FINALIZE', 'OBJECT_DELETE'
+  }:
+    return task_cls(message)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
@@ -560,7 +706,13 @@ def initialize_task(message) -> PubSubTask:
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message)
+  task = PostprocessPubSubTask(output_url_argument, message)
+  if message.attributes.get('eventType') == 'OBJECT_DELETE':
+    # These may be from maintainer action to reduce the size of the buckets,
+    # just ignore these.
+    task.ack()
+    return None
+  return task
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -579,19 +731,27 @@ class PostprocessPubSubTask(PubSubTask):
                                is_command_override, high_end)
     self._pubsub_message = pubsub_message
 
+  def ack(self):
+    self._pubsub_message.ack()
+
 
 class _PubSubLeaserThread(threading.Thread):
   """Thread that continuously renews the lease for a message."""
 
   EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
 
-  def __init__(self, message, done_event, max_lease_seconds):
+  def __init__(self,
+               message,
+               done_event,
+               max_lease_seconds,
+               ack_on_timeout=False):
     super().__init__()
 
     self.daemon = True
     self._message = message
     self._done_event = done_event
     self._max_lease_seconds = max_lease_seconds
+    self._ack_on_timeout = ack_on_timeout
 
   def run(self):
     """Run the leaser thread."""
@@ -603,6 +763,9 @@ class _PubSubLeaserThread(threading.Thread):
         if time_left <= 0:
           logs.info('Lease reached maximum lease time of {} seconds, '
                     'stopping renewal.'.format(self._max_lease_seconds))
+          if self._ack_on_timeout:
+            logs.info('Acking on timeout')
+            self._message.ack()
           break
 
         extension_seconds = min(self.EXTENSION_TIME_SECONDS, time_left)
@@ -631,14 +794,13 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       command,
       input_url,
       job_type,
-      queue=UTASK_MAINS_QUEUE,
+      queue=UTASK_MAIN_QUEUE,
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 
 
 def bulk_add_tasks(tasks, queue=None, eta_now=False):
   """Adds |tasks| in bulk to |queue|."""
-
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
@@ -670,10 +832,22 @@ def add_task(command,
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
+  base_os_version = None
   if job_type != 'none':
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
       raise Error(f'Job {job_type} not found.')
+
+    if utils.is_oss_fuzz():
+      project = data_types.OssFuzzProject.query(
+          data_types.OssFuzzProject.name == job.project).get()
+      if project and project.base_os_version:
+        base_os_version = project.base_os_version
+      elif job.base_os_version:
+        base_os_version = job.base_os_version
+    else:
+      if job.base_os_version:
+        base_os_version = job.base_os_version
 
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)
@@ -681,6 +855,9 @@ def add_task(command,
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
+  extra_info = extra_info or {}
+  if base_os_version:
+    extra_info['base_os_version'] = base_os_version
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
 
   bulk_add_tasks([task], queue=queue)
@@ -699,8 +876,15 @@ def get_task_completion_deadline():
   return start_time + task_lease_timeout - TASK_COMPLETION_BUFFER
 
 
+@functools.lru_cache
+def full_utask_task_model() -> bool:
+  return local_config.ProjectConfig().get('full_utask_model.enabled', False)
+
+
 def queue_for_platform(platform, is_high_end=False):
   """Return the queue for the platform."""
+  if full_utask_task_model():
+    return PREPROCESS_QUEUE
   prefix = HIGH_END_JOBS_PREFIX if is_high_end else JOBS_PREFIX
   return prefix + queue_suffix_for_platform(platform)
 

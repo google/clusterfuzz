@@ -29,11 +29,33 @@ def _is_privileged_user(email):
   if local_config.AuthConfig().get('all_users_privileged'):
     return True
 
+  # Check privileged access from direct user emails.
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
-  return any(
+  if any(
       utils.emails_equal(email, privileged_user_email)
-      for privileged_user_email in privileged_user_emails)
+      for privileged_user_email in privileged_user_emails):
+    return True
+
+  # Check privileged access from google groups.
+  privileged_groups = (db_config.get_value('privileged_groups') or
+                       '').splitlines()
+  identity_service = auth.get_identity_api()
+  for privileged_group in privileged_groups:
+    # Filter for non-group patterns.
+    if ('@' not in privileged_group or
+        utils.is_service_account(privileged_group)):
+      continue
+
+    group_id = auth.get_google_group_id(privileged_group, identity_service)
+    if not group_id:
+      continue
+
+    if auth.check_transitive_group_membership(group_id, email,
+                                              identity_service):
+      return True
+
+  return False
 
 
 def _is_blacklisted_user(email):

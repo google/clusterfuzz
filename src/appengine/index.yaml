@@ -589,3 +589,39 @@ indexes:
   properties:
     - name: keywords
     - name: bot_name
+
+- kind: WindowRateLimitTask
+  properties:
+    - name: job_name
+    - name: task_argument
+    - name: task_name
+    - name: timestamp
+
+- kind: Testcase
+  properties:
+  - name: one_time_crasher_flag
+  - name: open
+  - name: status
+  - name: fixed
+  - name: timestamp
+
+- kind: TestcaseLifecycleEvent
+  properties:
+  - name: testcase_id
+  - name: event_type
+  - name: task_name
+  - name: timestamp
+    direction: desc
+
+- kind: TestcaseLifecycleEvent
+  properties:
+  - name: testcase_id
+  - name: event_type
+  - name: timestamp
+    direction: desc
+
+- kind: TestcaseLifecycleEvent
+  properties:
+  - name: testcase_id
+  - name: timestamp
+    direction: desc

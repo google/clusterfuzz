@@ -25,6 +25,8 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -72,11 +74,16 @@ def _get_execution_mode(utask_module, job_type):
 class _MetricRecorder(contextlib.AbstractContextManager):
   """Records task execution metrics, even in case of error and exceptions.
 
+  Also responsible for emitting task execution events within the context.
+
   Members:
     start_time_ns (int): The time at which this recorder was constructed, in
       nanoseconds since the Unix epoch.
     utask_main_failure: this class stores the uworker_output.ErrorType 
       object returned by utask_main, and uses it to emmit a metric.
+    post_utask_main_failue: this also stores the uworker_output.ErrorType, but
+      during postprocess stage, where it will be handled.
+    preprocess_returned: Indicates if preprocess returned the uworker_input.
   """
 
   def __init__(self, subtask: _Subtask):
@@ -101,15 +108,26 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     else:
       self._preprocess_start_time_ns = None
 
-  def set_task_details(self,
-                       utask_module,
-                       job_type: str,
-                       execution_mode: Mode,
-                       platform: str,
-                       preprocess_start_time: Optional[Timestamp] = None):
+    # Events-related metadata.
+    self._event_data = None
+    # Error type from utask main handled in postprocess.
+    self.post_utask_main_failure = None
+    # Whether preprocess returned the uworker input.
+    self.preprocess_returned: bool | None = None
+
+  def set_task_details(
+      self,
+      utask_module,
+      job_type: str,
+      execution_mode: Mode,
+      platform: str,
+      preprocess_start_time: Optional[Timestamp] = None,
+      task_argument: Optional[str | uworker_msg_pb2.Input] = None):  # pylint: disable=no-member
     """Sets task details that might not be known at instantation time.
 
     Must be called once for metrics to be recorded when exiting the context.
+    In addition, it sets the events metadata to enable emitting task execution
+    events within the context.
 
     Args:
       utask_module: The Python module corresponding to the task being executed.
@@ -119,14 +137,20 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       preprocess_start_time: Timestamp at which the preprocess subtask for
         this task started executing, possibly in a different process. Must be
         specified iff the subtask is not `Subtask.PREPROCESS`.
+      task_argument: Task argument, which for preprocess is usually the
+      `testcase_id` or `fuzzer_name`, and for main/postprocess is the uworker
+      input proto.
     """
+    task_command = task_utils.get_command_from_module(utask_module.__name__)
     self._labels = {
-        'task': task_utils.get_command_from_module(utask_module.__name__),
+        'task': task_command,
         'job': job_type,
         'subtask': self._subtask.value,
         'mode': execution_mode.value,
         'platform': platform,
     }
+    self._event_data = task_utils.get_task_execution_event_data(
+        task_command, task_argument, job_type)
 
     if preprocess_start_time is not None:
       # We already know the start time if the subtask is preprocess.
@@ -136,11 +160,64 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
 
+  def emit_utask_events(self, task_status: str,
+                        task_outcome: str | None = None) -> None:
+    """Helper to emit task execution events during the recorder context."""
+    if environment.is_uworker():
+      # Events can't be sent from untrusted workers for now.
+      logs.warning(
+          'Attempted emit of task execution event from untrusted worker.')
+      return
+
+    if self._event_data is None:
+      # Missing `_event_data`, which is set during `set_task_details`.
+      logs.warning('Missing event data for emitting utask execution event.')
+      return
+
+    task_name = (self._labels or {}).get('task', '')
+    events.emit_task_event(
+        task_command=task_name,
+        event_data=self._event_data,
+        task_status=task_status,
+        task_stage=self._subtask.value,
+        task_outcome=task_outcome)
+
   def _infer_uworker_main_outcome(self, exc_type, uworker_error) -> bool:
     """Returns True if task succeeded, False otherwise."""
     if exc_type or uworker_error not in self._utask_success_conditions:
       return False
     return True
+
+  def _emit_event_on_exit(self, exc_type):
+    """Resolves sending task execution events after a utask stage."""
+    if self._subtask == _Subtask.UWORKER_MAIN:
+      # TODO(vtcosta): Currently, events can't be sent from uworkers main due
+      # to denied permissions. We should try some workarounds to enable it.
+      return
+
+    if exc_type is not None:
+      self.emit_utask_events(events.TaskStatus.EXCEPTION,
+                             events.TaskOutcome.UNHANDLED_EXCEPTION)
+      return
+
+    if self._subtask == _Subtask.PREPROCESS:
+      if self.preprocess_returned is None:
+        # Info about whether preprocess returned is missing.
+        return
+      if not self.preprocess_returned:
+        self.emit_utask_events(events.TaskStatus.EXCEPTION,
+                               events.TaskOutcome.PREPROCESS_NO_RETURN)
+        return
+      self.emit_utask_events(events.TaskStatus.STARTED)
+      return
+
+    if self._subtask == _Subtask.POSTPROCESS:
+      task_outcome = None
+      if self.post_utask_main_failure is not None:
+        task_outcome = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+            self.post_utask_main_failure)
+      self.emit_utask_events(events.TaskStatus.POST_COMPLETED, task_outcome)
+      return
 
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
@@ -174,6 +251,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     else:
       error_condition = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
           self.utask_main_failure)
+    self._emit_event_on_exit(_exc_type)
     # Get rid of job as a label, so we can have another metric to make
     # error conditions more explicit, respecting the 30k distinct
     # labels limit recommended by gcp.
@@ -205,17 +283,23 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env,
   tworker_preprocess."""
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
+  task_utils.reset_task_stage_env()
 
-  recorder.set_task_details(utask_module, job_type, execution_mode,
-                            environment.platform())
+  recorder.set_task_details(
+      utask_module,
+      job_type,
+      execution_mode,
+      environment.platform(),
+      task_argument=task_argument)
 
   logs.info('Starting utask_preprocess: %s.' % utask_module)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
+    recorder.preprocess_returned = False
     logs.error('No uworker_input returned from preprocess')
     return None
-
+  recorder.preprocess_returned = True
   logs.info('Preprocess finished.')
 
   task_payload = environment.get_value('TASK_PAYLOAD')
@@ -265,6 +349,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+    task_utils.reset_task_stage_env()
 
     recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
                               environment.platform(),
@@ -298,14 +383,28 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
     uworker_output.uworker_input.CopyFrom(uworker_input)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
+    task_utils.reset_task_stage_env()
 
-    recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
-                              environment.platform(),
-                              uworker_input.preprocess_start_time)
+    recorder.set_task_details(
+        utask_module,
+        uworker_input.job_type,
+        Mode.QUEUE,
+        environment.platform(),
+        uworker_input.preprocess_start_time,
+        task_argument=uworker_input)
+    recorder.post_utask_main_failure = uworker_output.error_type
+
+    # This emit is needed because we are not sending events from utask main.
+    # Thus, this confirms that main finished and postprocess will start.
+    recorder.emit_utask_events(
+        events.TaskStatus.POST_STARTED,
+        uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+            uworker_output.error_type))
 
     utask_module.utask_postprocess(uworker_output)
 
 
+@logs.task_stage_context(logs.Stage.PREPROCESS)
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
@@ -338,13 +437,19 @@ def uworker_main(input_download_url) -> None:
   """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
   with _MetricRecorder(_Subtask.UWORKER_MAIN) as recorder:
-    uworker_input = uworker_io.download_and_deserialize_uworker_input(
-        input_download_url)
+    try:
+      uworker_input = uworker_io.download_and_deserialize_uworker_input(
+          input_download_url)
+    except storage.ExpiredSignedUrlError as e:
+      raise storage.ExpiredSignedUrlError(
+          'Expired token, failed to download uworker_input: '
+          f'{e.url}. {e.response_text}', e.url, e.response_text)
     uworker_output_upload_url = uworker_input.uworker_output_upload_url
     uworker_input.ClearField('uworker_output_upload_url')
 
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
+    task_utils.reset_task_stage_env()
 
     logs.info('Starting HTTP server.')
     _start_web_server_if_needed(uworker_input.job_type)
@@ -393,13 +498,25 @@ def tworker_postprocess(output_download_url) -> None:
         output_download_url)
 
     set_uworker_env(uworker_output.uworker_input.uworker_env)
+    task_utils.reset_task_stage_env()
 
     utask_module = get_utask_module(uworker_output.uworker_input.module_name)
     execution_mode = _get_execution_mode(utask_module,
                                          uworker_output.uworker_input.job_type)
     recorder.set_task_details(
-        utask_module, uworker_output.uworker_input.job_type, execution_mode,
+        utask_module,
+        uworker_output.uworker_input.job_type,
+        execution_mode,
         environment.platform(),
-        uworker_output.uworker_input.preprocess_start_time)
+        uworker_output.uworker_input.preprocess_start_time,
+        task_argument=uworker_output.uworker_input)
+    recorder.post_utask_main_failure = uworker_output.error_type
+
+    # This emit is needed because we are not sending events from utask main.
+    # Thus, this confirms that main finished and postprocess will start.
+    recorder.emit_utask_events(
+        events.TaskStatus.POST_STARTED,
+        uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+            uworker_output.error_type))
 
     utask_module.utask_postprocess(uworker_output)

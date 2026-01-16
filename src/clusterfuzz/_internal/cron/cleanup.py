@@ -23,7 +23,6 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.chrome import build_info
 from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_comparer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
@@ -36,6 +35,7 @@ from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -82,6 +82,17 @@ def _append_generic_incorrect_comment(comment, policy, issue, suffix):
       label_text=issue.issue_tracker.label_text(wrong_label)) + suffix
 
 
+def _emit_issue_closing_event(testcase, issue, closing_reason):
+  """Helper function to emit issue closing events."""
+  issue_tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
+  events.emit(
+      events.IssueClosingEvent(
+          testcase=testcase,
+          issue_tracker_project=issue_tracker_name,
+          issue_id=str(issue.id) if issue.id else None,
+          closing_reason=closing_reason))
+
+
 def job_platform_to_real_platform(job_platform):
   """Get real platform from job platform."""
   for platform in data_types.PLATFORMS:
@@ -98,6 +109,60 @@ def cleanup_reports_metadata():
           ndb_utils.is_true(data_types.ReportMetadata.is_uploaded)),
       keys_only=True)
   ndb_utils.delete_multi(uploaded_reports)
+
+
+def _cleanup_testcases_and_issues(testcase, jobs,
+                                  top_crashes_by_project_and_platform_map,
+                                  empty_issue_tracker_policy):
+  """Clean up unneeded open testcase and its associated issues."""
+  testcase_id = testcase.key.id()
+  logs.info(f'Processing testcase {testcase_id}.')
+
+  try:
+    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+    policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
+    if not policy:
+      logs.info('No policy')
+      policy = empty_issue_tracker_policy
+
+    # Issue updates.
+    update_os_labels(policy, testcase, issue)
+    logs.info('maybe updated os')
+    update_fuzz_blocker_label(policy, testcase, issue,
+                              top_crashes_by_project_and_platform_map)
+    logs.info('maybe updated fuzz blocker')
+    update_component_labels_and_id(policy, testcase, issue)
+    logs.info('maybe updated component labels and component id')
+    update_issue_ccs_from_owners_file(policy, testcase, issue)
+    logs.info('maybe updated issueccs')
+    update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
+    logs.info('maybe updated update_issue_owner_and_ccs_from_predator_results')
+    update_issue_labels_for_flaky_testcase(policy, testcase, issue)
+
+    # Testcase marking rules.
+    mark_duplicate_testcase_as_closed_with_no_issue(testcase)
+    mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue)
+    mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue)
+    mark_testcase_as_closed_if_job_is_invalid(testcase, jobs)
+    mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
+    mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
+        policy, testcase, issue)
+    mark_na_testcase_issues_as_wontfix(policy, testcase, issue)
+
+    # Notification, to be done at end after testcase state is updated from
+    # previous rules.
+    notify_closed_issue_if_testcase_is_open(policy, testcase, issue)
+    notify_issue_if_testcase_is_invalid(policy, testcase, issue)
+    notify_uploader_when_testcase_is_processed(policy, testcase, issue)
+
+    # Mark testcase as triage complete if both testcase and associated issue
+    # are closed. This also need to be done before the deletion rules.
+    mark_testcase_as_triaged_if_needed(testcase, issue)
+
+    # Testcase deletion rules.
+    delete_unreproducible_testcase_with_no_issue(testcase)
+  except Exception:
+    logs.error(f'Failed to process testcase {testcase_id}.')
 
 
 def cleanup_testcases_and_issues():
@@ -125,55 +190,10 @@ def cleanup_testcases_and_issues():
       # Already deleted.
       continue
 
-    logs.info(f'Processing testcase {testcase_id}.')
-
-    try:
-      issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-      policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(
-          testcase)
-      if not policy:
-        logs.info('No policy')
-        policy = empty_issue_tracker_policy
-
-      # Issue updates.
-      update_os_labels(policy, testcase, issue)
-      logs.info('maybe updated os')
-      update_fuzz_blocker_label(policy, testcase, issue,
-                                top_crashes_by_project_and_platform_map)
-      logs.info('maybe updated fuzz blocker')
-      update_component_labels_and_id(policy, testcase, issue)
-      logs.info('maybe updated component labels and component id')
-      update_issue_ccs_from_owners_file(policy, testcase, issue)
-      logs.info('maybe updated issueccs')
-      update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
-      logs.info(
-          'maybe updated update_issue_owner_and_ccs_from_predator_results')
-      update_issue_labels_for_flaky_testcase(policy, testcase, issue)
-
-      # Testcase marking rules.
-      mark_duplicate_testcase_as_closed_with_no_issue(testcase)
-      mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue)
-      mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue)
-      mark_testcase_as_closed_if_job_is_invalid(testcase, jobs)
-      mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
-      mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-          policy, testcase, issue)
-      mark_na_testcase_issues_as_wontfix(policy, testcase, issue)
-
-      # Notification, to be done at end after testcase state is updated from
-      # previous rules.
-      notify_closed_issue_if_testcase_is_open(policy, testcase, issue)
-      notify_issue_if_testcase_is_invalid(policy, testcase, issue)
-      notify_uploader_when_testcase_is_processed(policy, testcase, issue)
-
-      # Mark testcase as triage complete if both testcase and associated issue
-      # are closed. This also need to be done before the deletion rules.
-      mark_testcase_as_triaged_if_needed(testcase, issue)
-
-      # Testcase deletion rules.
-      delete_unreproducible_testcase_with_no_issue(testcase)
-    except Exception:
-      logs.error(f'Failed to process testcase {testcase_id}.')
+    with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+      _cleanup_testcases_and_issues(testcase, jobs,
+                                    top_crashes_by_project_and_platform_map,
+                                    empty_issue_tracker_policy)
 
     testcases_processed += 1
     if testcases_processed % 100 == 0:
@@ -187,10 +207,18 @@ def cleanup_unused_fuzz_targets_and_jobs():
 
   unused_target_jobs = data_types.FuzzTargetJob.query(
       data_types.FuzzTargetJob.last_run < last_run_cutoff)
-  valid_target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTargetJob.last_run >= last_run_cutoff)
+  # The order by last_run DESC filter is from b/418807403
+  valid_target_jobs = list(
+      data_types.FuzzTargetJob.query(
+          data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
+              -data_types.FuzzTargetJob.last_run))
 
   to_delete = [t.key for t in unused_target_jobs]
+  num_fuzz_target_jobs_to_delete = len(to_delete)
+
+  logs.info(
+      f'{len(to_delete)} FuzzTargetJob entities are marked for deletion and'
+      f'{len(valid_target_jobs)} are considered valid.')
 
   valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
@@ -198,6 +226,10 @@ def cleanup_unused_fuzz_targets_and_jobs():
       to_delete.append(fuzz_target.key)
 
   ndb_utils.delete_multi(to_delete)
+  logs.info(
+      f'Deleted {num_fuzz_target_jobs_to_delete} FuzzTargetJob entities and '
+      f'{len(to_delete) - num_fuzz_target_jobs_to_delete} FuzzTarget entities. '
+      f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
 
 
 def get_jobs_and_platforms_for_project():
@@ -384,6 +416,11 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
   testcase.key.delete()
   logs.info(
       f'Deleted unreproducible testcase {testcase.key.id()} with no issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_NO_ISSUE))
 
 
 def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
@@ -407,6 +444,10 @@ def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
   testcase.open = False
   testcase.put()
   logs.info(f'Closed duplicate testcase {testcase.key.id()} with no issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE))
 
 
 def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
@@ -497,6 +538,8 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
         'fuzzer_name': testcase.fuzzer_name,
         'status': 'success',
     })
+    _emit_issue_closing_event(testcase, issue,
+                              events.ClosingReason.TESTCASE_FIXED)
   except Exception as e:
     logs.error(
         f'Failed to mark issue {issue.id} as verified for '
@@ -533,6 +576,11 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
   testcase.put()
   logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
             'with issue closed.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
@@ -624,6 +672,13 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
 
   logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
             'and associated issue.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.
+          CLEANUP_UNREPRODUCIBLE_WITH_ISSUE))
+  _emit_issue_closing_event(testcase, issue,
+                            events.ClosingReason.TESTCASE_UNREPRO)
 
 
 def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
@@ -669,6 +724,8 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
 
   logs.info(
       f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
+  _emit_issue_closing_event(testcase, issue,
+                            events.ClosingReason.TESTCASE_INVALID)
 
 
 def mark_testcase_as_triaged_if_needed(testcase, issue):
@@ -718,6 +775,10 @@ def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
   testcase.fixed = 'NA'
   testcase.put()
   logs.info(f'Closed testcase {testcase.key.id()} with issue closed.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
 
 
 def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
@@ -734,6 +795,10 @@ def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
   testcase.fixed = 'NA'
   testcase.put()
   logs.info(f'Closed testcase {testcase.key.id()} with invalid job.')
+  events.emit(
+      events.TestcaseRejectionEvent(
+          testcase=testcase,
+          rejection_reason=events.RejectionReason.CLEANUP_INVALID_JOB))
 
 
 def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
@@ -1029,24 +1094,18 @@ def update_fuzz_blocker_label(policy, testcase, issue,
       'to be found.')
   if utils.is_oss_fuzz():
     update_message += OSS_FUZZ_INCORRECT_COMMENT
-  elif utils.is_chromium():
-    label_text = issue.issue_tracker.label_text(
-        data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
-    update_message += '\n\nMarking this bug as a blocker for next Beta release.'
-    update_message = _append_generic_incorrect_comment(
-        update_message, policy, issue, f' and remove the {label_text}.')
-    issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
-
-    # Update with the next beta for trunk, and remove existing milestone label.
-    beta_milestone_label = (
-        f'M-{build_info.get_release_milestone("head", testcase.platform)}')
-    if beta_milestone_label not in issue.labels:
-      issue.labels.remove_by_prefix('M-')
-      issue.labels.add(beta_milestone_label)
 
   logs.info(update_message)
   issue.labels.add(fuzz_blocker_label)
   issue.save(new_comment=update_message, notify=True)
+
+
+def _should_update_component_id(issue, component_id):
+  """Check whether updating the issue component id is needed."""
+  if not hasattr(issue, 'component_id'):
+    return False
+
+  return component_id and issue.component_id != component_id
 
 
 def update_component_labels_and_id(policy, testcase, issue):
@@ -1081,9 +1140,10 @@ def update_component_labels_and_id(policy, testcase, issue):
     if not found_component_in_issue:
       filtered_components.append(component)
 
-  if not filtered_components:
-    # If there are no new components to add, then we shouldn't make any changes
-    # to issue.
+  if not (filtered_components or
+          _should_update_component_id(issue, component_id)):
+    # If there are no new components to add and neither a component ID to
+    # update, then we shouldn't make any changes to issue.
     return
 
   # Don't run on issues we've already applied automatic components to in case
@@ -1406,6 +1466,7 @@ def cleanup_unused_heartbeats():
   ndb_utils.delete_multi(unused_heartbeats)
 
 
+@logs.cron_log_context()
 def main():
   """Cleaning up unneeded testcases"""
   cleanup_testcases_and_issues()

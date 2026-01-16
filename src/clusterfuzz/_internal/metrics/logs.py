@@ -14,6 +14,7 @@
 """Logging functions."""
 
 import contextlib
+import dataclasses
 import datetime
 import enum
 import functools
@@ -33,6 +34,7 @@ from typing import TYPE_CHECKING
 
 # This is needed to avoid circular import
 if TYPE_CHECKING:
+  from clusterfuzz._internal.cron.grouper import TestcaseAttributes
   from clusterfuzz._internal.datastore.data_types import FuzzTarget
   from clusterfuzz._internal.datastore.data_types import Testcase
 
@@ -42,6 +44,7 @@ if TYPE_CHECKING:
 # This reserves roughly up to 200 KB for message content, leaving sufficient
 # space for structured logging metadata within the 256 KB total limit.
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000
+NON_TRUNCATABLE_TYPES = (int, float, bool, type(None))
 LOCAL_LOG_MESSAGE_LIMIT = 100000
 LOCAL_LOG_LIMIT = 500000
 _logger = None
@@ -181,16 +184,75 @@ def get_logging_config_dict(name):
   }
 
 
-def truncate(msg, limit):
-  """We need to truncate the message in the middle if it gets too long."""
-  if not isinstance(msg, str) or len(msg) <= limit:
+def truncate(
+    msg: Any,
+    limit: int,
+) -> Any:
+  """We need to truncate the message in the middle if it gets too long.
+
+  If the message is a string and exceeds the character `limit`, it is truncated
+  in the middle, with a notice indicating how many characters were removed.
+
+  For dictionaries, lists, and tuples, the function recurses over their
+  values/items. For dataclasses, it first converts them to dictionaries before
+  recursing.
+
+  Certain types defined in `NON_TRUNCATABLE_TYPES` are returned as-is. All other
+  types are coerced to strings before truncation.
+
+  While basic types like strings, lists, and dictionaries retain their type, be
+  aware that dataclasses are converted to dictionaries, and other unhandled
+  objects are converted to strings. This function should only be used in the
+  logs module.
+
+  Args:
+    msg: The message or collection to truncate.
+    limit: The maximum character length for strings.
+
+  Returns:
+    The truncated message. 
+  """
+  if isinstance(msg, NON_TRUNCATABLE_TYPES):
+    return msg
+
+  exc_msg = ""
+
+  # Adding try catch to avoid crashing the actual flow
+  try:
+    # Handle collections and objects by recursing
+    if dataclasses.is_dataclass(msg) and not isinstance(msg, type):
+      msg = dataclasses.asdict(msg)
+
+    # Check if it's a NamedTuple
+    if isinstance(msg, tuple) and hasattr(msg, '_fields'):
+      msg = msg._asdict()  # type: ignore
+
+    if isinstance(msg, dict):
+      return {k: truncate(v, limit) for k, v in msg.items()}
+
+    if isinstance(msg, (list, tuple)):
+      return type(msg)(truncate(item, limit) for item in msg)
+
+  except Exception as ex:
+    exc_msg = str(ex)
+
+  # Coerce all other types to a string
+  if not isinstance(msg, str):
+    msg = str(msg)
+
+  if len(msg) <= limit:
     return msg
 
   half = limit // 2
-  return '\n'.join([
+  message = '\n'.join([
       msg[:half],
       '...%d characters truncated...' % (len(msg) - limit), msg[-half:]
   ])
+
+  if exc_msg:
+    return f'Exception during truncate: {exc_msg[:limit]}. Message: {message}'
+
+  return message
 
 
 class JsonFormatter(logging.Formatter):
@@ -260,6 +322,15 @@ def _handle_unserializable(unserializable: Any) -> str:
     return str(unserializable)
 
 
+def _is_json_serializable(obj: Any) -> bool:
+  """Check if an object is json serializable, using the default encoder."""
+  try:
+    json.dumps(obj)
+    return True
+  except TypeError:
+    return False
+
+
 def update_entry_with_exc(entry, exc_info):
   """Update the dict `entry` with exc_info."""
   if not exc_info:
@@ -325,6 +396,24 @@ def uncaught_exception_handler(exception_type, exception_value,
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
 
+def json_fields_filter(record):
+  """Add logs `extras` argument to `json_fields` metadata for cloud logging."""
+  # TODO(vtcosta): This is a workaround to allow structured logs for
+  # cleanup/triage cronjobs in GKE/GAE. We should try to refactor and
+  # centralize the logs configurations for all environments.
+  if not hasattr(record, 'json_fields'):
+    record.json_fields = {}
+
+  json_extras = {}
+  for key, val in getattr(record, 'extras', {}).items():
+    valid_value = (
+        val if _is_json_serializable(val) else _handle_unserializable(val))
+    json_extras[key] = truncate(valid_value, STACKDRIVER_LOG_MESSAGE_LIMIT)
+
+  record.json_fields.update({'extras': json_extras})
+  return True
+
+
 def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
@@ -335,45 +424,65 @@ def configure_appengine():
   import google.cloud.logging
   client = google.cloud.logging.Client()
   handler = client.get_default_handler()
+  handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
 
 
 def configure_k8s():
-  """Configure logging for K8S and reporting errors."""
+  """Configure logging for K8S."""
   import google.cloud.logging
+  from google.cloud.logging.handlers import CloudLoggingHandler
+  from google.cloud.logging.handlers.transports import BackgroundThreadTransport
+
   client = google.cloud.logging.Client()
-  client.setup_logging()
-  old_factory = logging.getLogRecordFactory()
+  labels = {
+      'k8s-pod/app': os.getenv('BOT_NAME', 'unknown'),
+      'bot_name': os.getenv('BOT_NAME', 'unknown'),
+  }
 
-  def record_factory(*args, **kwargs):
-    """Insert jsonPayload fields to all logs."""
+  class FlushIntervalTransport(BackgroundThreadTransport):
 
-    record = old_factory(*args, **kwargs)
-    if not hasattr(record, 'json_fields'):
-      record.json_fields = {}
+    def __init__(self, client, name, **kwargs):
+      super().__init__(
+          client,
+          name,
+          grace_period=int(os.getenv('LOGGING_CLOUD_GRACE_PERIOD', '15')),
+          max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '10')),
+          **kwargs)
 
-    # Add jsonPayload fields to logs that don't contain stack traces to enable
-    # capturing and grouping by error reporting.
-    # https://cloud.google.com/error-reporting/docs/formatting-error-messages#log-text
-    if record.levelno >= logging.ERROR and not record.exc_info:
-      record.json_fields.update({
-          '@type':
-              'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',  # pylint: disable=line-too-long
-          'serviceContext': {
-              'service': 'k8s',
-          },
-          'context': {
-              'reportLocation': {
-                  'filePath': record.pathname,
-                  'lineNumber': record.lineno,
-                  'functionName': record.funcName,
-              }
-          },
-      })
+  handler = CloudLoggingHandler(
+      client=client,
+      name='k8s-logs',
+      labels=labels,
+      transport=FlushIntervalTransport)
 
-    return record
+  def k8s_label_filter(record):
+    handler.labels.update({
+        'task_payload':
+            os.getenv('TASK_PAYLOAD', 'null'),
+        'fuzz_target':
+            os.getenv('FUZZ_TARGET', 'null'),
+        'worker_bot_name':
+            os.getenv('WORKER_BOT_NAME', 'null'),
+        'extra':
+            truncate(
+                json.dumps(
+                    getattr(record, 'extras', {}),
+                    default=_handle_unserializable),
+                STACKDRIVER_LOG_MESSAGE_LIMIT),
+        'location':
+            json.dumps(
+                getattr(record, 'location', {'Error': True}),
+                default=_handle_unserializable),
+    })
+    return True
 
-  logging.setLogRecordFactory(record_factory)
+  handler.addFilter(k8s_label_filter)
+  handler.setLevel(logging.INFO)
+  formatter = JsonFormatter()
+  handler.setFormatter(formatter)
+
+  logging.getLogger().addHandler(handler)
   logging.getLogger().setLevel(logging.INFO)
 
 
@@ -425,8 +534,11 @@ def configure_cloud_logging():
         'worker_bot_name':
             os.getenv('WORKER_BOT_NAME', 'null'),
         'extra':
-            json.dumps(
-                getattr(record, 'extras', {}), default=_handle_unserializable),
+            truncate(
+                json.dumps(
+                    getattr(record, 'extras', {}),
+                    default=_handle_unserializable),
+                STACKDRIVER_LOG_MESSAGE_LIMIT),
         'location':
             json.dumps(
                 getattr(record, 'location', {'Error': True}),
@@ -548,6 +660,7 @@ def intercept_log_context(func):
   def wrapper(*args, **kwargs):
     if not kwargs.get('ignore_context'):
       for context in log_contexts.contexts:
+        context.setup()
         kwargs.update(context.get_extras()._asdict())
     else:
       # This is needed to avoid logging the label 'ingore_context: True'.
@@ -555,6 +668,28 @@ def intercept_log_context(func):
     return func(*args, **kwargs)
 
   return wrapper
+
+
+def _parse_symmetric_logs(extras):
+  """Return a list containing the fields of each symmetrics log entry.
+
+  Checks if the symmetric logs label was passed and formatted as expected,
+  i.e., a label called `symmetric_logs` containing a list of dicts, which
+  represent the fields used for each log entry. Then, removes this label from
+  extras and return it. Otherwise, return None.
+  """
+  symmetric_logs = extras.pop('symmetric_logs', None)
+  if not symmetric_logs:
+    return None
+
+  if not isinstance(symmetric_logs, list):
+    return None
+
+  for sl in symmetric_logs:
+    if not isinstance(sl, dict):
+      return None
+
+  return symmetric_logs
 
 
 @intercept_log_context
@@ -591,21 +726,32 @@ def emit(level, message, exc_info=None, **extras):
   log_limit = STACKDRIVER_LOG_MESSAGE_LIMIT if _cloud_logging_enabled(
   ) else LOCAL_LOG_MESSAGE_LIMIT
 
-  # We need to make a dict out of it because member of the dict becomes the
-  # first class attributes of LogEntry. It is very tricky to identify the extra
-  # attributes. Therefore, we wrap extra fields under the attribute 'extras'.
-  logger.log(
-      level,
-      truncate(message, log_limit),
-      exc_info=exc_info,
-      extra={
-          'extras': all_extras,
-          'location': {
-              'path': path_name,
-              'line': line_number,
-              'method': method_name
-          }
-      })
+  # Enable symmetric logs, i.e., multiple log entries from the same emit call
+  # setting distinc values for labels in each entry.
+  symmetric_logs = _parse_symmetric_logs(all_extras)
+  symmetric_logs = [{}] if symmetric_logs is None else symmetric_logs
+  for sym_extras in symmetric_logs:
+    # Make a copy of the mutable params that can change in the logger call.
+    all_extras_local = all_extras.copy()
+    all_extras_local.update(sym_extras)
+    message_truncated = truncate(message, log_limit)
+
+    # We need to make a dict out of it because member of the dict becomes the
+    # first class attributes of LogEntry. It is very tricky to identify the
+    # extra attributes. Therefore, we wrap extra fields under the attribute
+    # 'extras'.
+    logger.log(
+        level,
+        message_truncated,
+        exc_info=exc_info,
+        extra={
+            'extras': all_extras_local,
+            'location': {
+                'path': path_name,
+                'line': line_number,
+                'method': method_name
+            }
+        })
 
 
 def info(message, **extras):
@@ -644,6 +790,7 @@ def log_fatal_and_exit(message, **extras):
 
 def get_common_log_context() -> dict[str, str]:
   """Return common context to be propagated by logs."""
+  # Avoid circular imports on the top level.
   from clusterfuzz._internal.base import utils
   from clusterfuzz._internal.system import environment
 
@@ -675,6 +822,18 @@ def get_common_log_context() -> dict[str, str]:
     return {}
 
 
+def get_testcase_id(
+    testcase: 'Testcase | TestcaseAttributes') -> int | str | None:
+  """Return the ID for a testcase or testcase attributes object."""
+  # Importing here as 3P libs becomes accessible during runtime, after modules
+  # path search is resolved (and logs may be imported before that).
+  from google.cloud import ndb
+
+  if isinstance(testcase, ndb.Model):
+    return testcase.key.id()  # type: ignore
+  return getattr(testcase, 'id', None)
+
+
 class GenericLogStruct(NamedTuple):
   pass
 
@@ -695,25 +854,46 @@ class TaskLogStruct(NamedTuple):
   stage: str
 
 
-class TestcaseLogStruct(NamedTuple):
-  testcase_id: str
+class CronLogStruct(NamedTuple):
+  task_id: str
+  task_name: str
+
+
+class FuzzerLogStruct(NamedTuple):
   fuzz_target: str
   job: str
   fuzzer: str
 
 
+class TestcaseLogStruct(NamedTuple):
+  testcase_id: str
+  testcase_group: str | int
+  crash_state: str
+  crash_type: str
+  security_flag: bool
+  one_time_crasher_flag: bool
+
+
+class GrouperStruct(NamedTuple):
+  # Represents the TestcaseLogStruct for each testcase being grouped.
+  symmetric_logs: list[dict]
+
+
 class LogContextType(enum.Enum):
-  """Log context types
-     This is the way to define the context for a given entrypoint
-     and this context is used for define the adicional labels
-     to be added to the log.
+  """Log context types.
+  
+  This is the way to define the context for a given entrypoint and this
+  context is used for define the adicional labels to be added to the log.
   """
   COMMON = 'common'
   TASK = 'task'
+  FUZZER = 'fuzzer'
   TESTCASE = 'testcase'
+  CRON = 'cron'
+  GROUPER = 'grouper'
 
-  def get_extras(self) -> NamedTuple:
-    """Get the structured log for a given context"""
+  def setup(self) -> None:
+    """Setup metadata needed for the context."""
     if self == LogContextType.COMMON:
       common_ctx = log_contexts.meta.get('common_ctx')
       if common_ctx is None:
@@ -723,6 +903,10 @@ class LogContextType(enum.Enum):
         common_ctx = get_common_log_context()
         log_contexts.add_metadata('common_ctx', common_ctx)
 
+  def get_extras(self) -> NamedTuple:
+    """Get the structured log fields for a given context."""
+    if self == LogContextType.COMMON:
+      common_ctx = log_contexts.meta.get('common_ctx', {})
       return CommonLogStruct(
           clusterfuzz_version=common_ctx.get('clusterfuzz_version', 'null'),
           clusterfuzz_config_version=common_ctx.get(
@@ -750,31 +934,74 @@ class LogContextType(enum.Enum):
         error('Error retrieving context for task logs.', ignore_context=True)
         return GenericLogStruct()
 
+    if self == LogContextType.FUZZER:
+      try:
+        return FuzzerLogStruct(
+            fuzzer=log_contexts.meta.get('fuzzer_name', 'null'),
+            job=log_contexts.meta.get('job_type', 'null'),
+            fuzz_target=log_contexts.meta.get('fuzz_target', 'null'))
+      except:
+        error(
+            'Error retrieving context for fuzzer-based logs.',
+            ignore_context=True)
+        return GenericLogStruct()
+
     if self == LogContextType.TESTCASE:
       try:
-        testcase: 'Testcase | None' = log_contexts.meta.get('testcase')
-        if not testcase:
-          error(
-              'Testcase not found in log context metadata.',
-              ignore_context=True)
-          return GenericLogStruct()
-
-        fuzz_target: 'FuzzTarget | None' = log_contexts.meta.get('fuzz_target')
-        if fuzz_target and fuzz_target.binary:
-          fuzz_target_bin = fuzz_target.binary
-        else:
-          fuzz_target_bin = testcase.get_metadata('fuzzer_binary_name',
-                                                  'unknown')
-
         return TestcaseLogStruct(
-            testcase_id=testcase.key.id(),  # type: ignore
-            fuzz_target=fuzz_target_bin,  # type: ignore
-            job=testcase.job_type,  # type: ignore
-            fuzzer=testcase.fuzzer_name  # type: ignore
-        )
+            testcase_id=log_contexts.meta.get('testcase_id', 'null'),
+            testcase_group=log_contexts.meta.get('testcase_group', 'null'),
+            crash_state=log_contexts.meta.get('crash_state', 'null'),
+            crash_type=log_contexts.meta.get('crash_type', 'null'),
+            security_flag=log_contexts.meta.get('security_flag', 'null'),
+            one_time_crasher_flag=log_contexts.meta.get('one_time_crasher_flag',
+                                                        'null'))
       except:
         error(
             'Error retrieving context for testcase-based logs.',
+            ignore_context=True)
+        return GenericLogStruct()
+
+    if self == LogContextType.CRON:
+      try:
+        return CronLogStruct(
+            task_name=os.getenv('CF_TASK_NAME', 'null'),
+            task_id=os.getenv('CF_TASK_ID', 'null'))
+      except:
+        error(
+            'Error retrieving context for cron-based logs.',
+            ignore_context=True)
+        return GenericLogStruct()
+
+    if self == LogContextType.GROUPER:
+      try:
+        symmetric_logs = []
+        testcases_per_grouping = 2
+        for i in range(1, testcases_per_grouping + 1):
+          testcase_struct = TestcaseLogStruct(
+              testcase_id=log_contexts.meta.get(f'testcase_{i}_id', 'null'),
+              testcase_group=log_contexts.meta.get(f'testcase_{i}_group',
+                                                   'null'),
+              crash_type=log_contexts.meta.get(f'testcase_{i}_crash_type',
+                                               'null'),
+              crash_state=log_contexts.meta.get(f'testcase_{i}_crash_state',
+                                                'null'),
+              one_time_crasher_flag=log_contexts.meta.get(
+                  f'testcase_{i}_one_time_crasher_flag', 'null'),
+              security_flag=log_contexts.meta.get(f'testcase_{i}_security_flag',
+                                                  'null'))
+          fuzzer_struct = FuzzerLogStruct(
+              job=log_contexts.meta.get(f'testcase_{i}_job_type', 'null'),
+              fuzzer=log_contexts.meta.get(f'testcase_{i}_fuzzer_name', 'null'),
+              fuzz_target='unknown')
+
+          log_dict = testcase_struct._asdict()
+          log_dict.update(fuzzer_struct._asdict())
+          symmetric_logs.append(log_dict)
+        return GrouperStruct(symmetric_logs=symmetric_logs)
+      except:
+        error(
+            'Error retrieving context for grouper-based logs.',
             ignore_context=True)
         return GenericLogStruct()
 
@@ -786,6 +1013,7 @@ class Stage(enum.Enum):
   MAIN = 'main'
   POSTPROCESS = 'postprocess'
   UNKNOWN = 'unknown'
+  NA = 'n/a'
 
 
 class Singleton(type):
@@ -800,7 +1028,7 @@ class Singleton(type):
 
 
 class LogContexts(metaclass=Singleton):
-  """Class to keep the log contexts and metadata"""
+  """Class to keep the log contexts and metadata."""
 
   def __init__(self):
     self.contexts: list[LogContextType] = [LogContextType.COMMON]
@@ -844,7 +1072,7 @@ def wrap_log_context(contexts: list[LogContextType]):
 
 @contextlib.contextmanager
 def task_stage_context(stage: Stage):
-  """Creates a task context for a given stage"""
+  """Creates a task context for a given stage."""
   with wrap_log_context(contexts=[LogContextType.TASK]):
     try:
       log_contexts.add_metadata('stage', stage)
@@ -853,14 +1081,37 @@ def task_stage_context(stage: Stage):
       # TODO(vtcosta): This warning logs the location (line number/function) of
       # the contextlib module. Maybe we should have a better way to retrieve
       # the location in this case.
-      warning(message='Error during task.')
+      warning(message='Error during task context.')
       raise e
     finally:
       log_contexts.delete_metadata('stage')
 
 
 @contextlib.contextmanager
-def testcase_log_context(testcase: 'Testcase',
+def fuzzer_log_context(fuzzer_name: str, job_type: str,
+                       fuzz_target: 'FuzzTarget | None'):
+  """Creates a fuzzer context for a given fuzzer, job, and target (optional)."""
+  with wrap_log_context(contexts=[LogContextType.FUZZER]):
+    try:
+      if fuzz_target and fuzz_target.binary:
+        fuzz_target_bin = fuzz_target.binary
+      else:
+        fuzz_target_bin = 'unknown'
+      log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
+      log_contexts.add_metadata('fuzzer_name', fuzzer_name)
+      log_contexts.add_metadata('job_type', job_type)
+      yield
+    except Exception as e:
+      warning(message='Error during fuzzer context.')
+      raise e
+    finally:
+      log_contexts.delete_metadata('fuzz_target')
+      log_contexts.delete_metadata('fuzzer_name')
+      log_contexts.delete_metadata('job_type')
+
+
+@contextlib.contextmanager
+def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
                          fuzz_target: 'FuzzTarget | None'):
   """Creates a testcase-based context for a given testcase.
 
@@ -868,10 +1119,24 @@ def testcase_log_context(testcase: 'Testcase',
   the task's stage. In trusted part, it can be retrieved by querying the DB,
   while in untrusted part is only accessible through the protobuf.
   """
-  with wrap_log_context(contexts=[LogContextType.TESTCASE]):
+  with wrap_log_context(
+      contexts=[LogContextType.FUZZER, LogContextType.TESTCASE]):
     try:
-      log_contexts.add_metadata('testcase', testcase)
-      log_contexts.add_metadata('fuzz_target', fuzz_target)
+      for field in TestcaseLogStruct._fields + ('job_type', 'fuzzer_name'):
+        if field == 'testcase_id':
+          log_contexts.add_metadata('testcase_id', get_testcase_id(testcase))
+        elif field == 'testcase_group':
+          log_contexts.add_metadata('testcase_group',
+                                    getattr(testcase, 'group_id', None))
+        else:
+          log_contexts.add_metadata(field, getattr(testcase, field, None))
+
+      if fuzz_target and fuzz_target.binary:
+        fuzz_target_bin = fuzz_target.binary
+      else:
+        fuzz_target_bin = 'unknown' if not testcase else testcase.get_metadata(
+            'fuzzer_binary_name', 'unknown')
+      log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
       yield
     except Exception as e:
       # Logging as a warning because this error will be handled
@@ -880,5 +1145,59 @@ def testcase_log_context(testcase: 'Testcase',
       warning(message='Error during testcase context.')
       raise e
     finally:
-      log_contexts.delete_metadata('testcase')
+      for field in TestcaseLogStruct._fields:
+        log_contexts.delete_metadata(field)
+      log_contexts.delete_metadata('fuzzer_name')
+      log_contexts.delete_metadata('job_type')
       log_contexts.delete_metadata('fuzz_target')
+
+
+@contextlib.contextmanager
+def cron_log_context():
+  """Creates a cronjob log context, mainly for triage/cleanup tasks."""
+  with wrap_log_context(contexts=[LogContextType.CRON]):
+    try:
+      yield
+    except Exception as e:
+      warning(message='Error during cronjob context.')
+      raise e
+
+
+@contextlib.contextmanager
+def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
+                        testcase_2: 'Testcase | TestcaseAttributes'):
+  """Creates a grouper context for a given pair of testcases."""
+  with wrap_log_context(contexts=[LogContextType.GROUPER]):
+    try:
+      for field in TestcaseLogStruct._fields + ('job_type', 'fuzzer_name'):
+        if field == 'testcase_id':
+          log_contexts.add_metadata('testcase_1_id',
+                                    get_testcase_id(testcase_1))
+          log_contexts.add_metadata('testcase_2_id',
+                                    get_testcase_id(testcase_2))
+        elif field == 'testcase_group':
+          log_contexts.add_metadata('testcase_1_group',
+                                    getattr(testcase_1, 'group_id', None))
+          log_contexts.add_metadata('testcase_2_group',
+                                    getattr(testcase_2, 'group_id', None))
+        else:
+          log_contexts.add_metadata(f'testcase_1_{field}',
+                                    getattr(testcase_1, field, None))
+          log_contexts.add_metadata(f'testcase_2_{field}',
+                                    getattr(testcase_2, field, None))
+
+      yield
+    except Exception as e:
+      warning(message='Error during grouper context.')
+      raise e
+    finally:
+      for field in TestcaseLogStruct._fields + ('job_type', 'fuzzer_name'):
+        if field == 'testcase_id':
+          log_contexts.delete_metadata('testcase_1_id')
+          log_contexts.delete_metadata('testcase_2_id')
+        elif field == 'testcase_group':
+          log_contexts.delete_metadata('testcase_1_group')
+          log_contexts.delete_metadata('testcase_2_group')
+        else:
+          log_contexts.delete_metadata(f'testcase_1_{field}')
+          log_contexts.delete_metadata(f'testcase_2_{field}')

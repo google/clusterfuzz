@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for task_types."""
+
+import datetime
+import os
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -55,3 +60,77 @@ class IsRemoteUtaskTest(unittest.TestCase):
         return_value=True):
       data_types.Job(name=job_name, platform='LINUX').put()
       self.assertFalse(task_types.is_remote_utask('impact', job_name))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TrustedTaskEventTest(unittest.TestCase):
+  # pylint: disable=protected-access
+  """Tests for emitting task execution events in trusted tasks."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+    ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
+    os.environ['CF_TASK_NAME'] = 'mock_task'
+
+  def tearDown(self):
+    task_utils._TESTCASE_BASED_TASKS.discard('mock')
+
+  def test_task_event_emit(self):
+    """Tests that task events are emitted during a successfull execution."""
+    module = mock.MagicMock(__name__='mock_task')
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
+
+    task = task_types.TrustedTask(module)
+    task.execute(task_argument='1', job_type='job1', uworker_env={})
+    module.execute_task.assert_called_once_with('1', 'job1')
+
+    # Asserts for task execution events emitted.
+    event_data = {
+        'task_job': 'job1',
+        'testcase_id': 1,
+        'task_stage': events.TaskStage.NA
+    }
+    event_started = events.TaskExecutionEvent(
+        **event_data, task_status=events.TaskStatus.STARTED)
+    event_finished = events.TaskExecutionEvent(
+        **event_data, task_status=events.TaskStatus.FINISHED)
+
+    self.assertTrue(self.mock.emit.call_count, 2)
+    self.mock.emit.assert_any_call(event_started)
+    self.mock.emit.assert_any_call(event_finished)
+
+  def test_event_emit_during_exception(self):
+    """Tests that task events are emitted during a unhandled exception."""
+    module = mock.MagicMock(__name__='mock_task')
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
+
+    module.execute_task.side_effect = ValueError
+    task = task_types.TrustedTask(module)
+    try:
+      task.execute(task_argument='1', job_type='job1', uworker_env={})
+    except:
+      pass
+
+    module.execute_task.assert_called_once_with('1', 'job1')
+
+    # Asserts for task execution events emitted.
+    event_data = {
+        'task_job': 'job1',
+        'testcase_id': 1,
+        'task_stage': events.TaskStage.NA
+    }
+    event_started = events.TaskExecutionEvent(
+        **event_data, task_status=events.TaskStatus.STARTED)
+    event_finished = events.TaskExecutionEvent(
+        **event_data,
+        task_status=events.TaskStatus.EXCEPTION,
+        task_outcome=events.TaskOutcome.UNHANDLED_EXCEPTION)
+
+    self.assertTrue(self.mock.emit.call_count, 2)
+    self.mock.emit.assert_any_call(event_started)
+    self.mock.emit.assert_any_call(event_finished)

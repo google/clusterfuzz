@@ -24,22 +24,23 @@ steps:
     # the repository to grab the .git directory.
     git clone 'https://github.com/google/clusterfuzz' tmp
     git -C tmp fetch origin "$COMMIT_SHA"
+    git -C tmp fetch origin master
     git -C tmp checkout -qf FETCH_HEAD
     mv tmp/.git .git
     rm -rf tmp
-- name: 'gcr.io/clusterfuzz-images/ci:vguidi_py311_testing_v1'
+- name: 'gcr.io/clusterfuzz-images/ci:d41d82f-202601161634'
   args: ['pipenv', 'sync', '--dev', '--python=3.11']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-- name: 'gcr.io/clusterfuzz-images/ci:vguidi_py311_testing_v1'
+- name: 'gcr.io/clusterfuzz-images/ci:d41d82f-202601161634'
   args: ['pipenv', 'run', 'setup']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-- name: 'gcr.io/clusterfuzz-images/ci:vguidi_py311_testing_v1'
+- name: 'gcr.io/clusterfuzz-images/ci:d41d82f-202601161634'
   args: ['pipenv', 'run', 'python', 'butler.py', 'lint']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-- name: 'gcr.io/clusterfuzz-images/ci:vguidi_py311_testing_v1'
+- name: 'gcr.io/clusterfuzz-images/ci:d41d82f-202601161634'
   args: ['pipenv', 'run', 'local/tests/run_all_tests']
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs

@@ -48,7 +48,8 @@ QUARANTINE_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=90)
 JOB_TEMPLATE = ('{build_type} = {build_bucket_path}\n'
                 'PROJECT_NAME = {project_name}\n'
                 'SUMMARY_PREFIX = {project_name}\n'
-                'MANAGED = True\n')
+                'MANAGED = True\n'
+                'DISK_SIZE_GB = {disk_size_gb}\n')
 
 OBJECT_VIEWER_IAM_ROLE = 'roles/storage.objectViewer'
 OBJECT_ADMIN_IAM_ROLE = 'roles/storage.objectAdmin'
@@ -542,6 +543,7 @@ def create_project_settings(project, info, service_account):
 
   ccs = ccs_from_info(info)
   language = info.get('language')
+  base_os_version = info.get('base_os_version')
 
   if oss_fuzz_project:
     if oss_fuzz_project.service_account != service_account['email']:
@@ -555,6 +557,10 @@ def create_project_settings(project, info, service_account):
     if oss_fuzz_project.ccs != ccs:
       oss_fuzz_project.ccs = ccs
       oss_fuzz_project.put()
+
+    if oss_fuzz_project.base_os_version != base_os_version:
+      oss_fuzz_project.base_os_version = base_os_version
+      oss_fuzz_project.put()
   else:
     if language in MEMORY_SAFE_LANGUAGES:
       cpu_weight = OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT
@@ -567,7 +573,8 @@ def create_project_settings(project, info, service_account):
         high_end=is_high_end,
         cpu_weight=cpu_weight,
         service_account=service_account['email'],
-        ccs=ccs).put()
+        ccs=ccs,
+        base_os_version=base_os_version).put()
 
 
 def _create_pubsub_topic(name, client):
@@ -840,11 +847,16 @@ class ProjectSetup:
             project, info, template.engine, template.memory_tool,
             template.architecture)
       base_project_name = self._get_base_project_name(project)
+      oss_fuzz_project = ndb.Key(data_types.OssFuzzProject, project).get()
+      oss_fuzz_gb = oss_fuzz_project.disk_size_gb if oss_fuzz_project else None
       job.environment_string = JOB_TEMPLATE.format(
           build_type=self._build_type,
           build_bucket_path=build_bucket_path,
           engine=template.engine,
-          project_name=base_project_name)
+          project_name=base_project_name,
+          disk_size_gb=oss_fuzz_gb)
+      if oss_fuzz_gb is not None:
+        job.environment_string += 'ALLOW_UNPACK_OVER_HTTP = True\n'
 
       # Centipede requires a separate build of the sanitized binary.
       if template.engine == 'centipede':

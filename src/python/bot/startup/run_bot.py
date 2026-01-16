@@ -117,11 +117,20 @@ def task_loop():
     # This caches the current environment on first run. Don't move this.
     environment.reset_environment()
     try:
-      # Run regular updates.
-      # TODO(metzman): Move this after utask_main execution so that utasks can't
-      # be updated on subsequent attempts.
-      update_task.run()
-      update_task.track_revision()
+      if environment.update_task_enabled():
+        logs.info("Running update task.")
+        # Run regular updates.
+        # TODO(metzman): Move this after utask_main execution
+        # so that utasks can't be updated on subsequent attempts.
+        update_task.run()
+        update_task.track_revision()
+      else:
+        logs.info(
+            "Update task not enabled. Running environment cleanup and platform "
+            "init scripts.")
+        update_task.prepare_environment_for_new_task()
+        update_task.run_platform_init_scripts()
+
       if environment.is_uworker():
         # Batch/Swarming tasks only run one at a time.
         sys.exit(utasks.uworker_bot_main())
@@ -194,9 +203,6 @@ def main():
     sys.exit(-1)
 
   fuzzers_init.run()
-
-  logs.info(f'PID is {os.getpid()}')
-
   if environment.is_trusted_host(ensure_connected=False):
     from clusterfuzz._internal.bot.untrusted_runner import host
     host.init()
@@ -226,6 +232,7 @@ def main():
         clean_exit or errors.error_in_list(error_stacktrace,
                                            errors.BOT_ERROR_TERMINATION_LIST))
     if should_terminate:
+      logs.info('Not retrying.')
       return
 
     logs.error(

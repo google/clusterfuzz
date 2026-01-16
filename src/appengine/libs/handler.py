@@ -22,8 +22,6 @@ from flask import g
 from flask import make_response
 from flask import request
 import google.auth
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 import requests
 
 from clusterfuzz._internal.base import utils
@@ -96,6 +94,9 @@ def cron():
       """Wrapper."""
       if not self.is_cron():
         raise helpers.AccessDeniedError('You are not a cron.')
+
+      # Add env vars used by logs context for cleanup/triage.
+      environment.set_task_id_vars(self.__module__)
 
       with monitor.wrap_with_monitoring():
         result = func(self)
@@ -275,17 +276,11 @@ def pubsub_push(func):
   def wrapper(self):
     """Wrapper."""
     try:
-      bearer_token = request.headers.get('Authorization', '')
-      if not bearer_token.startswith(BEARER_PREFIX):
-        raise helpers.UnauthorizedError('Missing or invalid bearer token.')
-
-      token = bearer_token.split(' ')[1]
-      claim = id_token.verify_oauth2_token(token, google_requests.Request())
+      email = auth.get_email_from_bearer_token(request)
     except google.auth.exceptions.GoogleAuthError as e:
       raise helpers.UnauthorizedError('Invalid ID token.') from e
 
-    if (not claim.get('email_verified') or
-        claim.get('email') != utils.service_account_email()):
+    if (not email or email != utils.service_account_email()):
       raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))

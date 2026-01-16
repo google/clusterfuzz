@@ -33,13 +33,16 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
+from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -57,6 +60,9 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
     self.mock.platform.return_value = 'some_platform'
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.get_runtime'])
+    self.mock.get_runtime.return_value = environment.UtaskMainRuntime.KATA_CONTAINER
 
   def test_fuzzer_run_result(self):
     """Ensure _track_fuzzer_run_result set the right metrics."""
@@ -74,6 +80,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': 2,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
     self.assertEqual(
         1,
@@ -82,6 +89,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': 0,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
     self.assertEqual(
         1,
@@ -90,6 +98,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': -1,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
 
     testcase_count_ratio = (
@@ -140,6 +149,9 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
     self.mock.platform.return_value = 'some_platform'
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.get_runtime'])
+    self.mock.get_runtime.return_value = environment.UtaskMainRuntime.KATA_CONTAINER
 
   def test_testcase_run_result(self):
     """Ensure _track_testcase_run_result sets the right metrics."""
@@ -151,24 +163,28 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
         monitoring_metrics.JOB_NEW_CRASH_COUNT.get({
             'job': 'job',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         15,
         monitoring_metrics.JOB_KNOWN_CRASH_COUNT.get({
             'job': 'job',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         7,
         monitoring_metrics.FUZZER_NEW_CRASH_COUNT.get({
             'fuzzer': 'fuzzer',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         15,
         monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.get({
             'fuzzer': 'fuzzer',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
 
 
@@ -212,6 +228,8 @@ class TrackFuzzTimeTest(unittest.TestCase):
         'fuzzer': 'fuzzer',
         'timeout': timeout,
         'platform': 'some_platform',
+        'is_batch': environment.is_uworker(),
+        'runtime': environment.get_runtime().value,
     })
     self.assertEqual(5, fuzzer_total_time)
 
@@ -1216,8 +1234,12 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     data_types.Trial(app_name='app_1', probability=0.5, app_args='-y').put()
     data_types.Trial(app_name='app_1', probability=0.2, app_args='-z').put()
 
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
     uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name='fantasy_fuzz', job_type='asan_test')
+        fuzzer_name='fantasy_fuzz',
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input)
 
     session = fuzz_task.FuzzingSession(uworker_input, 10)
     self.assertEqual(20, session.test_timeout)
@@ -1496,15 +1518,18 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   """Tests for preprocess_store_fuzzer_run_results."""
 
   SIGNED_URL = 'https://signed'
+  BLOB_KEY = 'blob_key'
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
         'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name'
     ])
     self.mock._sign_url.side_effect = (
         lambda remote_path, method, minutes: remote_path)
     self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
+    self.mock.generate_new_blob_name.return_value = self.BLOB_KEY
     helpers.patch_environ(self)
     os.environ['JOB_NAME'] = 'linux_chrome_asan'
 
@@ -1513,8 +1538,9 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
     self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
                      self.SIGNED_URL)
-
+    self.assertEqual(fuzz_task_input.sample_testcase_upload_key, self.BLOB_KEY)
     self.assertEqual(fuzz_task_input.script_log_upload_url, self.SIGNED_URL)
+    self.assertEqual(fuzz_task_input.script_log_upload_key, self.BLOB_KEY)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1592,6 +1618,67 @@ class PickFuzzTargetTest(unittest.TestCase):
     self.assertEqual(fuzz_task._pick_fuzz_target(), 'target')
 
 
+@test_utils.with_cloud_emulators('datastore')
+class EmitTestcaseCreationEventTest(unittest.TestCase):
+  """Test testcase creation event is emitted when created during fuzz task."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.events.emit',
+        'clusterfuzz._internal.metrics.events._get_datetime_now',
+        'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
+        'clusterfuzz._internal.datastore.data_handler.get_project_name',
+        'clusterfuzz._internal.datastore.data_handler.store_testcase'
+    ])
+    self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock.get_project_name.return_value = 'project'
+
+    # Needed mocks for calling create_testcase in fuzz task postprocess.
+    context = mock.MagicMock(
+        timeout_multiplier=1,
+        test_timeout=99,
+        fuzzer_name='engine',
+        fuzz_target=None)
+    crash = mock.MagicMock(
+        crash_type='type',
+        crash_state='state',
+        security_flag=True,
+        file_path='file_path',
+        http_flag=True,
+        gestures='g1')
+    self.group = mock.MagicMock(
+        context=context,
+        main_crash=crash,
+        crashes=[crash],
+        one_time_crasher_flag=False,
+    )
+    self.uworker_input = _create_uworker_input()
+    self.uworker_output = uworker_msg_pb2.Output(
+        fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(crash_revision='1'))
+
+  def test_create_testcase_event_emit(self):
+    """Test that the create_testcase method emits the expected event."""
+    self.mock.store_testcase.side_effect = _store_generic_testcase
+    fuzz_task.create_testcase(
+        group=self.group,
+        uworker_input=self.uworker_input,
+        uworker_output=self.uworker_output,
+        fully_qualified_fuzzer_name='engine')
+
+    testcase = data_handler.get_testcase_by_id(1)
+    self.mock.emit.assert_called_once_with(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.FUZZ_TASK,
+            uploader=None))
+
+
+def _store_generic_testcase(*args, **kwargs):  # pylint: disable=unused-argument
+  """Store a generic testcase and return its id."""
+  testcase = test_utils.create_generic_testcase()
+  return testcase.key.id()
+
+
 def _create_uworker_input(job='job',
                           project_name='some_project',
                           fuzzer_name='engine'):
@@ -1606,3 +1693,82 @@ def _get_upload_urls():
 
 def _get_upload_urls_from_proto():
   return [uworker_msg_pb2.BlobUploadUrl(key='uuid')] * 1000
+
+
+@test_utils.with_cloud_emulators('datastore')
+class SampleCrashesForReuploadTest(unittest.TestCase):
+  """Test testcase creation event is emitted when created during fuzz task."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._get_sample_rate',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._get_replication_topic',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._publish_to_pubsub',
+        'clusterfuzz._internal.system.environment.get_value',
+    ])
+
+    # Needed mocks for simulating the resulting crashes of fuzz task.
+    self.job_type = 'some_job'
+    self.fuzzer_name = 'some_fuzzer'
+    self.binary_name = 'binary'
+    self.project = 'project'
+    self.engine = 'engine'
+    self.replication_topic = 'crash_replication'
+    self.sample_rate = 100
+    self.fuzz_task_id = 'some_task_id'
+    self.fuzzed_key = 'fuzzed_key'
+    self.arguments = 'some_args'
+    self.cli_command = 'cli_command'
+    self.http_flag = True
+    self.gestures = []
+
+    self.mock._get_sample_rate.return_value = self.sample_rate
+    self.mock._get_replication_topic.return_value = self.replication_topic
+    self.mock.get_value.return_value = self.fuzz_task_id
+
+    self.fuzz_target = data_types.FuzzTarget(
+        engine=self.engine, binary=self.binary_name, project=self.project)
+
+    crash = mock.MagicMock(
+        fuzzed_key=self.fuzzed_key,
+        arguments=self.arguments,
+        application_command_line=self.cli_command,
+        http_flag=self.http_flag,
+        gestures=self.gestures)
+
+    self.crash_group = mock.MagicMock(crashes=[crash],)
+
+  def test_crashes_are_sampled_to_crash_replication_topic(self):
+    """Test that the postprocess_sample_testcases method sends the
+      expected message to the crash replication topic."""
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    fuzz_task_input.fuzz_target.CopyFrom(
+        uworker_io.entity_to_protobuf(self.fuzz_target))
+    uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+        fuzz_task_input=fuzz_task_input,
+        job_type=self.job_type,
+        fuzzer_name=self.fuzzer_name,
+        uworker_env={},
+        setup_input=None,
+    )
+
+    fuzz_task_output = mock.MagicMock(crash_groups=[self.crash_group])
+    uworker_output = mock.MagicMock(fuzz_task_output=fuzz_task_output)
+
+    fuzz_task.postprocess_sample_testcases(uworker_input, uworker_output)
+
+    expected_messages = [{
+        'fuzzed_key': self.fuzzed_key,
+        'job': self.job_type,
+        'fuzzer': self.fuzzer_name,
+        'target_name': self.binary_name,
+        'arguments': self.arguments,
+        'application_command_line': self.cli_command,
+        'gestures': str(self.gestures),
+        'http_flag': self.http_flag,
+        'original_task_id': self.fuzz_task_id,
+    }]
+
+    self.mock._publish_to_pubsub.assert_called_once_with(
+        expected_messages, self.replication_topic)

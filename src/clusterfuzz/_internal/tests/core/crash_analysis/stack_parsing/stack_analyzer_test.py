@@ -1281,6 +1281,25 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_maglev_type_error(self):
+    """Test a type error in maglev, including a node number and input ID
+    which should be converted to `NUMBER` to avoid flooding us with identical
+    issues."""
+    data = self._read_test_data('v8_maglev_type_error.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = (
+        'Type representation error: node #NUMBER : Float64Add (input @NUMBER = Int32Multi\n'
+        'v8::internal::maglev::CheckValueInputIs\n'
+        'v8::internal::maglev::ProcessResult v8::internal::maglev::MaglevGraphVerifier::P\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
@@ -2480,6 +2499,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                     expected_state, expected_stacktrace,
                                     expected_security_flag)
 
+  def test_check_file_line(self):
+    """Tests a recent Chromium CHECK failure and file/line info parsing."""
+    data = self._read_test_data('check_file_line.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'atk_child in ax_tree_formatter_auralinux.cc\n'
+        'base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_oom(self):
     """Test an out of memory stacktrace."""
     data = self._read_test_data('oom.txt')
@@ -2577,6 +2613,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'Out-of-memory'
     expected_address = ''
     expected_state = 'NULL'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_centipede_stack_limit_exceeded(self):
+    """Test a centipede stack overflow."""
+
+    data = self._read_test_data('centipede_stack_limit_exceeded.txt')
+    data = centipede.trim_logs(data)
+    expected_type = 'Stack-overflow'
+    expected_state = ('v8::internal::wasm::grow_stack\n'
+                      'Builtins_WasmHandleStackOverflow\n'
+                      '/mnt/scratch0/clusterfuzz/bot/builds/'
+                      'v8-asan_linux-release_5d13784cfc85e430de954\n')
+    expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -2792,6 +2846,40 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'base::internal::AssertBaseSyncPrimitivesAllowed\n'
         'base::internal::ScopedBlockingCallWithBaseSyncPrimitives::ScopedBlockingCallWith\n'
     )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_check_eq_multiline(self):
+    """Tests a Chromium CHECK_EQ failure with multi-line values."""
+    data = self._read_test_data('check_eq_multiline.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'std::string_view(content::indexed_db::EncodeSortableIDBKey(key)) == input (0wwwy\n'
+        'InvokeCallback\n'
+        '~Cleanup\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_check_eq_multiline2(self):
+    """Tests a Chromium CHECK failure with multi-line additional details."""
+    data = self._read_test_data('check_eq_multiline2.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'std::string_view(content::indexed_db::EncodeSortableIDBKey(key)) == input in ind\n'
+        'InvokeCallback\n'
+        '~Cleanup\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -3554,7 +3642,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test googletest stacktrace."""
     data = self._read_test_data('googletest.txt')
     expected_type = 'Abrt'
-    expected_state = 'v8::internal::SingleString\nExecuteInputsFromShmem\n'
+    expected_state = 'v8::internal::SingleString\n'
     expected_address = '0x0539000a18ab'
     expected_stacktrace = data
     expected_security_flag = False
@@ -3853,3 +3941,75 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag, expected_categories)
+
+  def test_miracle_ptr_protected(self):
+    """Test for a MiraclePtr protected crash."""
+    data = self._read_test_data("miracle_ptr_protected.txt")
+    expected_type = "Heap-use-after-free\nREAD 8"
+    expected_address = "0x60f00003b280"
+    expected_state = "function_a\nfunction_b\nfunction_c\n"
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(
+        data,
+        expected_type,
+        expected_address,
+        expected_state,
+        expected_stacktrace,
+        expected_security_flag,
+    )
+
+  def test_miracle_ptr_not_protected(self):
+    """Test for a MiraclePtr not protected crash."""
+    data = self._read_test_data("miracle_ptr_not_protected.txt")
+    expected_type = "Heap-use-after-free\nREAD 8"
+    expected_address = "0x60f00003b280"
+    expected_state = "function_a\nfunction_b\nfunction_c\n"
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(
+        data,
+        expected_type,
+        expected_address,
+        expected_state,
+        expected_stacktrace,
+        expected_security_flag,
+    )
+
+  def test_miracle_ptr_manual_analysis_required(self):
+    """Test for a MiraclePtr crash that requires manual analysis."""
+    data = self._read_test_data("miracle_ptr_manual_analysis_required.txt")
+    expected_type = "Heap-use-after-free\nREAD 8"
+    expected_address = "0x60f00003b280"
+    expected_state = "function_a\nfunction_b\nfunction_c\n"
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(
+        data,
+        expected_type,
+        expected_address,
+        expected_state,
+        expected_stacktrace,
+        expected_security_flag,
+    )
+
+  def test_miracle_ptr_status_missing(self):
+    """Test for a crash where MiraclePtr status is missing."""
+    data = self._read_test_data("miracle_ptr_status_missing.txt")
+    expected_type = "Heap-use-after-free\nREAD 8"
+    expected_address = "0x60f00003b280"
+    expected_state = "function_a\nfunction_b\nfunction_c\n"
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(
+        data,
+        expected_type,
+        expected_address,
+        expected_state,
+        expected_stacktrace,
+        expected_security_flag,
+    )

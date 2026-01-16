@@ -1608,6 +1608,11 @@ def prepare_runner(fuzzer_path,
 
   # Add *SAN_OPTIONS overrides from .options file.
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
+  environment.set_value('LSAN_OPTIONS', 'detect_leaks=0:symbolize=0')
+
+  # TODO(metzman): Get rid of this when we start running the init
+  # scripts on batch.
+  environment.set_value('AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES', '1')
 
   return runner
 

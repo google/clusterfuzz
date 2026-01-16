@@ -115,8 +115,6 @@ NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE = 7
 UNREPRODUCIBLE_TESTCASE_NO_BUG_DEADLINE = 7
 UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE = 14
 
-# Chromium specific issue state tracking labels.
-CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL = 'ReleaseBlock-Beta'
 # TODO(ochang): Find some way to remove these.
 CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL = 'Test-Predator-Auto-CC'
 CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL = 'Test-Predator-Auto-Components'
@@ -820,6 +818,9 @@ class Config(Model):
   # Privileged users.
   privileged_users = ndb.TextProperty(default='')
 
+  # Privileged groups.
+  privileged_groups = ndb.TextProperty(default='')
+
   # Blacklisted users.
   blacklisted_users = ndb.TextProperty(default='')
 
@@ -949,6 +950,9 @@ class Job(Model):
 
   # The platform that this job can run on.
   platform = ndb.StringProperty()
+
+  # Base OS version for the job.
+  base_os_version = ndb.StringProperty()
 
   # Blobstore key of the custom binary for this job.
   custom_binary_key = ndb.StringProperty()
@@ -1469,6 +1473,9 @@ class OssFuzzProject(Model):
   # CCs for the project.
   ccs = ndb.StringProperty(repeated=True)
 
+  # Base OS version for the project.
+  base_os_version = ndb.StringProperty()
+
 
 class OssFuzzProjectInfo(Model):
   """Set up information for a project (cpu allocation, instance groups, service
@@ -1599,3 +1606,200 @@ class TestcaseVariant(Model):
 
   # Platform (e.g. windows, linux, android).
   platform = ndb.StringProperty()
+
+
+class TestcaseLifecycleEvent(Model):
+  """Represents an event from a testcase lifecycle."""
+  # Events' TTL, currently set to ~5Y.
+  TESTCASE_EVENT_TTL = datetime.timedelta(days=1826)
+
+  ### Event definition.
+  # Event type (testcase_creation, issue_filed, etc).
+  event_type = ndb.StringProperty(required=True)
+
+  # Event creation time.
+  timestamp = ndb.DateTimeProperty()
+
+  # Event expiration time (should only be used for TTL, not read by CF).
+  ttl_expiry_timestamp = ndb.DateTimeProperty(indexed=False)
+
+  # Source location that emitted the event.
+  source = ndb.StringProperty()
+
+  ### Common metadata.
+  # Source code commit hash.
+  clusterfuzz_version = ndb.StringProperty()
+
+  # Config code commit hash.
+  clusterfuzz_config_version = ndb.StringProperty()
+
+  # Identifier for the running instance on batch, GCE, GKE, etc.
+  instance_id = ndb.StringProperty()
+
+  # Operating system name.
+  operating_system = ndb.StringProperty()
+
+  # Operating system version.
+  os_version = ndb.StringProperty()
+
+  ### Testcase-related properties.
+  # Testcase identifier/key.
+  testcase_id = ndb.IntegerProperty()
+
+  # Name of the fuzzer associated with the testcase.
+  fuzzer = ndb.StringProperty()
+
+  # Type of the job associated with the testcase.
+  job = ndb.StringProperty()
+
+  # Revision that the testcase was created.
+  crash_revision = ndb.IntegerProperty()
+
+  ### Task-related properties.
+  # Task ID (artificial or corresponding to the utask execution).
+  task_id = ndb.StringProperty()
+
+  # Task name.
+  task_name = ndb.StringProperty()
+
+  ### Testcase Creation.
+  # How testcase was created (manual upload, fuzz, corpus pruning).
+  creation_origin = ndb.StringProperty()
+
+  # If testcase is manually uploaded, the user email.
+  uploader = ndb.StringProperty()
+
+  ### Testcase Rejection.
+  # Explanation for the testcase rejection.
+  rejection_reason = ndb.StringProperty()
+
+  ### Testcase Fixed.
+  # Build revision in which the crash stopped reproducing.
+  fixed_revision = ndb.StringProperty()
+
+  ### Issue Filing/Closing.
+  # Name of the project associated with the issue tracker.
+  issue_tracker_project = ndb.StringProperty()
+
+  # ID from issue tracker bug (same as `bug_information` for Testcase).
+  issue_id = ndb.StringProperty()
+
+  # If the issue filing attempt was successful.
+  issue_created = ndb.BooleanProperty()
+
+  # User email, if issue is manually created.
+  issue_reporter = ndb.StringProperty()
+
+  # Reason for closing the issue (e.g., testcase fixed).
+  closing_reason = ndb.StringProperty()
+
+  ### Grouping.
+  # Group ID that the testcase is currently being moved to.
+  group_id = ndb.IntegerProperty()
+
+  # Previous group ID, If testcase was in a previous group.
+  previous_group_id = ndb.IntegerProperty()
+
+  # Similar testcase that caused the grouping.
+  similar_testcase_id = ndb.IntegerProperty()
+
+  # Reason for grouping.
+  grouping_reason = ndb.StringProperty()
+
+  # If testcase's group is being merged, the reason that caused the grouping.
+  group_merge_reason = ndb.StringProperty()
+
+  ### Task execution.
+  # Task stage, i.e., preprocess, main or postprocess.
+  task_stage = ndb.StringProperty()
+
+  # Task status (e.g., started, finished, exception).
+  task_status = ndb.StringProperty()
+
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome = ndb.StringProperty()
+
+  # Task-specific message (usually added to testcases comment field).
+  task_comments = ndb.TextProperty()
+
+  # Task-related job type.
+  task_job = ndb.StringProperty()
+
+  # Task-related fuzzer name.
+  task_fuzzer = ndb.StringProperty()
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
+
+
+class FuzzerTaskEvent(Model):
+  """An event from fuzzer-based tasks, namely fuzz and corpus pruning.
+
+  This entity is needed to avoid flooding the `TestcaseLifecycleEvent` with task
+  execution events that are not actually linked to a specific testcase.
+  Since fuzz task execution events are highly frequent, this tries to reduce the
+  Datastore usage by limiting the amount of indexed fields, except those that
+  will be used to assist with tracing clusterfuzz execution.
+  """
+  # Fuzzer task events' TTL, currently set to 2 months.
+  FUZZER_EVENT_TTL = datetime.timedelta(days=60)
+
+  ### Event definition.
+  # Event type (mostly task_execution).
+  event_type = ndb.StringProperty(required=True)
+
+  # Event creation time.
+  timestamp = ndb.DateTimeProperty()
+
+  # Event expiration time (should only be used for TTL, not read by CF).
+  ttl_expiry_timestamp = ndb.DateTimeProperty(indexed=False)
+
+  # Source location that emitted the event.
+  source = ndb.TextProperty()
+
+  ### Common metadata.
+  # Source code commit hash.
+  clusterfuzz_version = ndb.TextProperty()
+
+  # Config code commit hash.
+  clusterfuzz_config_version = ndb.TextProperty()
+
+  # Identifier for the running instance on batch, GCE, GKE, etc.
+  instance_id = ndb.TextProperty()
+
+  # Operating system name.
+  operating_system = ndb.StringProperty()
+
+  # Operating system version.
+  os_version = ndb.TextProperty()
+
+  ### Task-related properties.
+  # Task ID (artificial or corresponding to the utask execution).
+  task_id = ndb.StringProperty()
+
+  # Task name.
+  task_name = ndb.StringProperty()
+
+  ### Task execution.
+  # Task stage, i.e., preprocess, main or postprocess.
+  task_stage = ndb.StringProperty()
+
+  # Task status (e.g., started, finished, exception).
+  task_status = ndb.StringProperty()
+
+  # UTask return code based on error types from uworker protobuf.
+  task_outcome = ndb.StringProperty()
+
+  # Task-specific message (usually added to testcases comment field).
+  task_comments = ndb.TextProperty()
+
+  # Task-related job type.
+  task_job = ndb.TextProperty()
+
+  # Task-related fuzzer name.
+  task_fuzzer = ndb.TextProperty()
+
+  def _pre_put_hook(self):
+    self.ttl_expiry_timestamp = (
+        datetime.datetime.now() + self.FUZZER_EVENT_TTL)

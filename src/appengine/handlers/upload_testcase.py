@@ -35,6 +35,9 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
@@ -301,13 +304,36 @@ class UploadHandlerCommon:
     """Get the upload."""
     raise NotImplementedError
 
-  def do_post(self):
-    """Upload a testcase."""
-    email = helpers.get_user_email()
-    testcase_id = request.get('testcaseId')
-    uploaded_file = self.get_upload()
+  def _handle_upload(self,
+                     uploaded_file,
+                     job_type,
+                     fuzzer_name,
+                     target_name,
+                     additional_arguments,
+                     app_launch_command,
+                     gestures,
+                     platform_id,
+                     http_flag,
+                     high_end_job=None,
+                     bug_information=None,
+                     crash_revision=None,
+                     timeout=None,
+                     retries=None,
+                     bug_summary_update_flag=None,
+                     quiet_flag=None,
+                     issue_labels=None,
+                     stacktrace=None,
+                     multiple_testcases=None,
+                     trusted_agreement_signed=False,
+                     testcase_id=None,
+                     testcase_metadata=None) -> str:
+    """Holds the logic for actually performing a testcase upload."""
     if testcase_id and not uploaded_file:
       testcase = helpers.get_testcase(testcase_id)
+      if not access.can_user_access_testcase(testcase):
+        raise helpers.AccessDeniedError()
+
+      # Use minimized testcase for upload (if available).
       if not access.can_user_access_testcase(testcase):
         raise helpers.AccessDeniedError()
 
@@ -322,7 +348,6 @@ class UploadHandlerCommon:
       uploaded_file.filename = os.path.basename(
           uploaded_file.filename.replace('\\', os.sep))
 
-    job_type = request.get('job')
     if not job_type:
       raise helpers.EarlyExitError('Missing job name.', 400)
 
@@ -330,7 +355,6 @@ class UploadHandlerCommon:
     if not job:
       raise helpers.EarlyExitError('Invalid job name.', 400)
 
-    fuzzer_name = request.get('fuzzer')
     job_type_lowercase = job_type.lower()
 
     for engine in fuzzing.ENGINES:
@@ -338,7 +362,7 @@ class UploadHandlerCommon:
         fuzzer_name = engine
 
     is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
-    target_name = request.get('target')
+
     if not is_engine_job and target_name:
       raise helpers.EarlyExitError(
           'Target name is not applicable to non-engine jobs (AFL, libFuzzer).',
@@ -352,6 +376,7 @@ class UploadHandlerCommon:
         not data_types.Fuzzer.VALID_NAME_REGEX.match(target_name)):
       raise helpers.EarlyExitError('Invalid target name.', 400)
 
+    email = helpers.get_user_email()
     fully_qualified_fuzzer_name = ''
     if is_engine_job and target_name:
       if _is_trusted_uploader_allowed(email) or job.is_external():
@@ -372,29 +397,12 @@ class UploadHandlerCommon:
         job_type=job_type,
         fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)) and
         not _is_uploader_allowed(email)):
+      helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    multiple_testcases = bool(request.get('multiple'))
-    http_flag = bool(request.get('http'))
-    high_end_job = bool(request.get('highEnd'))
-    bug_information = request.get('issue')
-    crash_revision = request.get('revision')
-    timeout = request.get('timeout')
-    retries = request.get('retries')
-    bug_summary_update_flag = bool(request.get('updateIssue'))
-    quiet_flag = bool(request.get('quiet'))
-    additional_arguments = request.get('args')
-    app_launch_command = request.get('cmd')
-    platform_id = request.get('platform')
-    issue_labels = request.get('issue_labels')
-    gestures = request.get('gestures') or '[]'
-    stacktrace = request.get('stacktrace')
-    trusted_agreement_signed = request.get(
-        'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
-
     # Chrome is the only ClusterFuzz deployment where there are trusted bots
-    # running utasks.
-    # This check also fails on oss-fuzz because of the way it abuses platform.
+    # running utasks. This check also fails on oss-fuzz because of the way it
+    # abuses platform.
     if (not trusted_agreement_signed and utils.is_chromium() and
         task_utils.is_remotely_executing_utasks() and
         ((platform_id and platform_id != 'Linux') or
@@ -424,7 +432,6 @@ class UploadHandlerCommon:
       raise helpers.EarlyExitError(
           'Should not specify stacktrace for non-external jobs.', 400)
 
-    testcase_metadata = request.get('metadata', {})
     if testcase_metadata:
       try:
         testcase_metadata = json.loads(testcase_metadata)
@@ -467,10 +474,6 @@ class UploadHandlerCommon:
           not _allow_unprivileged_metadata(testcase_metadata)):
         raise helpers.EarlyExitError(
             'You are not privileged to set testcase metadata.', 400)
-
-      if additional_arguments:
-        raise helpers.EarlyExitError(
-            'You are not privileged to add command-line arguments.', 400)
 
       if gestures:
         raise helpers.EarlyExitError(
@@ -606,8 +609,14 @@ class UploadHandlerCommon:
         additional_metadata=testcase_metadata,
         crash_data=crash_data)
 
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    events.emit(
+        events.TestcaseCreationEvent(
+            testcase=testcase,
+            creation_origin=events.TestcaseOrigin.MANUAL_UPLOAD,
+            uploader=email))
+
     if not quiet_flag:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
       issue = issue_tracker_utils.get_issue_for_testcase(testcase)
       if issue:
         report_url = data_handler.TESTCASE_REPORT_URL.format(
@@ -619,6 +628,59 @@ class UploadHandlerCommon:
 
     helpers.log(f'Uploaded testcase {testcase_id}', helpers.VIEW_OPERATION)
     return self.render_json({'id': str(testcase_id)})  # pylint: disable=no-member
+
+  def do_post(self):
+    """Upload a testcase."""
+    # Set artifical task id env to be used by tracing.
+    environment.set_task_id_vars(task_name='upload_testcase')
+    testcase_id = request.get('testcaseId')
+    uploaded_file = self.get_upload()
+    job_type = request.get('job')
+    fuzzer_name = request.get('fuzzer')
+    target_name = request.get('target')
+    multiple_testcases = bool(request.get('multiple'))
+    http_flag = bool(request.get('http'))
+    high_end_job = bool(request.get('highEnd'))
+    bug_information = request.get('issue')
+    crash_revision = request.get('revision')
+    timeout = request.get('timeout')
+    retries = request.get('retries')
+    bug_summary_update_flag = bool(request.get('updateIssue'))
+    quiet_flag = bool(request.get('quiet'))
+    additional_arguments = request.get('args')
+    app_launch_command = request.get('cmd')
+    platform_id = request.get('platform')
+    issue_labels = request.get('issue_labels')
+    gestures = request.get('gestures') or '[]'
+    stacktrace = request.get('stacktrace')
+    trusted_agreement_signed = request.get(
+        'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
+    testcase_metadata = request.get('metadata', {})
+
+    return self._handle_upload(
+        uploaded_file=uploaded_file,
+        testcase_id=testcase_id,
+        job_type=job_type,
+        fuzzer_name=fuzzer_name,
+        target_name=target_name,
+        multiple_testcases=multiple_testcases,
+        http_flag=http_flag,
+        high_end_job=high_end_job,
+        bug_information=bug_information,
+        crash_revision=crash_revision,
+        timeout=timeout,
+        retries=retries,
+        bug_summary_update_flag=bug_summary_update_flag,
+        quiet_flag=quiet_flag,
+        additional_arguments=additional_arguments,
+        app_launch_command=app_launch_command,
+        platform_id=platform_id,
+        issue_labels=issue_labels,
+        gestures=gestures,
+        stacktrace=stacktrace,
+        trusted_agreement_signed=trusted_agreement_signed,
+        testcase_metadata=testcase_metadata,
+    )
 
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
@@ -668,3 +730,56 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
   @handler.oauth
   def post(self, *args):
     return self.do_post()
+
+
+class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
+  """Handler that picks up the pubsub notification."""
+
+  def get_upload(self):
+    pass
+
+  @handler.pubsub_push
+  def post(self, message):
+    """Uploads a crash sampled from fuzz task."""
+    with monitor.wrap_with_monitoring():
+      message_data = json.loads(message.data.decode('utf-8'))
+      helpers.log(f'Message: {type(message)} {message}', helpers.VIEW_OPERATION)
+
+      job = message_data.get('job', None)
+      fuzzer = message_data.get('fuzzer', None)
+      fuzz_target = message_data.get('target_name', None)
+      original_task_id = message_data.get('original_task_id', None)
+      helpers.log(f'Uploading testcase from fuzz task id {original_task_id}',
+                  helpers.VIEW_OPERATION)
+      helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
+      uploaded_file_key = message_data['fuzzed_key']
+      uploaded_file = blobs.get_blob_info(uploaded_file_key)
+      try:
+        response = self._handle_upload(
+            uploaded_file=uploaded_file,
+            job_type=job,
+            fuzzer_name=fuzzer,
+            target_name=fuzz_target,
+            additional_arguments=message_data.get('arguments', None),
+            app_launch_command=message_data.get('application_command_line',
+                                                None),
+            gestures=message_data.get('gestures', '[]'),
+            http_flag=message_data.get('http_flag', None),
+            platform_id='Linux',
+            trusted_agreement_signed=True,
+        )
+        monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
+            'fuzzer': fuzzer,
+            'job': job,
+            'fuzz_target': fuzz_target,
+            'success': True,
+        })
+        return response
+      except Exception as e:
+        monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
+            'fuzzer': fuzzer,
+            'job': job,
+            'fuzz_target': fuzz_target,
+            'success': False,
+        })
+        raise e

@@ -175,13 +175,20 @@ def execute(args):
   third_party_path = os.path.join(module_parent_path, 'third_party')
   os.environ['PYTHONPATH'] = ':'.join(
       [third_party_path, module_parent_path, pythonpath])
-
-  if 'GOOGLE_CLOUDBUILD' in os.environ:
+  if args.path:
+    diff_command = f'git ls-files {os.path.abspath(args.path)}'
+  elif 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
-    _, output = common.execute('git diff --name-only master FETCH_HEAD')
+    diff_command = 'git diff --name-only master FETCH_HEAD'
   else:
-    _, output = common.execute('git diff --name-only FETCH_HEAD')
+    if 'IS_GITHUB_ACTIONS' in os.environ:
+      # In GitHub actions, we want to compare against the base branch.
+      diff_command = 'git diff --name-only FETCH_HEAD'
+    else:
+      # If not, fall back to diffing against HEAD.
+      diff_command = 'git diff --name-only HEAD'
 
+  _, output = common.execute(diff_command)
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
   ]

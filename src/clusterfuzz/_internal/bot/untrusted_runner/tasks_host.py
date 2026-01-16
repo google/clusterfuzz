@@ -111,36 +111,6 @@ def do_corpus_pruning(uworker_input, context,
       cross_pollination_stats=pollination_stats)
 
 
-def process_testcase(engine_name, tool_name, target_name, arguments,
-                     testcase_path, output_path, timeout):
-  """Process testcase on untrusted worker."""
-  if tool_name == 'minimize':
-    operation = untrusted_runner_pb2.ProcessTestcaseRequest.MINIMIZE
-  else:
-    operation = untrusted_runner_pb2.ProcessTestcaseRequest.CLEANSE
-
-  rebased_testcase_path = file_host.rebase_to_worker_root(testcase_path)
-  file_host.copy_file_to_worker(testcase_path, rebased_testcase_path)
-
-  request = untrusted_runner_pb2.ProcessTestcaseRequest(
-      engine=engine_name,
-      operation=operation,
-      target_name=target_name,
-      arguments=arguments,
-      testcase_path=file_host.rebase_to_worker_root(testcase_path),
-      output_path=file_host.rebase_to_worker_root(output_path),
-      timeout=timeout)
-
-  response = host.stub().ProcessTestcase(request)
-
-  rebased_output_path = file_host.rebase_to_worker_root(output_path)
-  file_host.copy_file_from_worker(rebased_output_path, output_path)
-
-  return engine.ReproduceResult(
-      list(response.command), response.return_code, response.time_executed,
-      response.output)
-
-
 def _unpack_values(values):
   """Unpack protobuf values."""
   unpacked = {}

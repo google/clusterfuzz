@@ -36,6 +36,7 @@ from clusterfuzz._internal.bot.minimizer import errors as minimizer_errors
 from clusterfuzz._internal.bot.minimizer import html_minimizer
 from clusterfuzz._internal.bot.minimizer import js_minimizer
 from clusterfuzz._internal.bot.minimizer import minimizer
+from clusterfuzz._internal.bot.minimizer import unicode_minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
@@ -293,10 +294,6 @@ class TestRunner:
     # the device.
     if environment.is_android():
       android.device.push_testcases_to_device()
-    elif environment.is_trusted_host():
-      from clusterfuzz._internal.bot.untrusted_runner import file_host
-      file_host.push_testcases_to_worker()
-
     # If we need to write a command line file, only do so if the arguments have
     # changed.
     arguments_changed = arguments != self._previous_arguments
@@ -1342,6 +1339,26 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
   return current_minimizer.minimize(file_path)
 
 
+def do_unicode_minimization(test_function, get_temp_file, data, deadline,
+                            threads, cleanup_interval, delete_temp_files):
+  """Attempts unicode escapes minimization."""
+
+  try:
+    current_minimizer = unicode_minimizer.UnicodeMinimizer(
+        test_function=test_function,
+        max_threads=threads,
+        deadline=deadline,
+        cleanup_function=process_handler.cleanup_stale_processes,
+        single_thread_cleanup_interval=cleanup_interval,
+        get_temp_file=get_temp_file,
+        delete_temp_files=delete_temp_files,
+        progress_report_function=logs.info)
+    return current_minimizer.minimize(data)
+  # shouldn't happen, but let's not block whole JS minimization on it.
+  except minimizer_errors.TokenizationFailureError:
+    return data
+
+
 def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
                        cleanup_interval, delete_temp_files):
   """Javascript minimization strategy."""
@@ -1351,6 +1368,9 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
   for _ in range(2):
     data = do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
+
+  data = do_unicode_minimization(test_function, get_temp_file, data, deadline,
+                                 threads, cleanup_interval, delete_temp_files)
 
   tokenizer = AntlrTokenizer(JavaScriptLexer)
 
@@ -1390,11 +1410,6 @@ def _run_libfuzzer_testcase(fuzz_target,
   process_handler.cleanup_stale_processes()
   shell.clear_temp_directory()
 
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import file_host
-    file_host.copy_file_to_worker(
-        testcase_file_path, file_host.rebase_to_worker_root(testcase_file_path))
-
   test_timeout = environment.get_value('TEST_TIMEOUT',
                                        process_handler.DEFAULT_TEST_TIMEOUT)
   return testcase_manager.test_for_crash_with_retries(
@@ -1409,15 +1424,6 @@ def _run_libfuzzer_testcase(fuzz_target,
 def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
                          output_path, timeout):
   """Run the libFuzzer engine."""
-  arguments = list(arguments)
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-
-    # TODO(ochang): Remove hardcode.
-    return tasks_host.process_testcase('libFuzzer', tool_name, target_name,
-                                       arguments, testcase_path, output_path,
-                                       timeout)
-
   target_path = engine_common.find_fuzzer_path(
       environment.get_value('BUILD_DIR'), target_name)
   if not target_path:
@@ -1430,7 +1436,7 @@ def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
     assert tool_name == 'cleanse'
     func = engine_impl.cleanse
 
-  return func(target_path, arguments, testcase_path, output_path, timeout)
+  return func(target_path, list(arguments), testcase_path, output_path, timeout)
 
 
 def _run_libfuzzer_tool(
@@ -1695,10 +1701,11 @@ def do_libfuzzer_minimization(
 
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
-    cleansed_testcase_path, last_minimized_keys = do_libfuzzer_cleanse(
+    cleansed_testcase_path, cleansed_minimized_keys = do_libfuzzer_cleanse(
         fuzz_target, testcase, current_testcase_path,
         expected_state.crash_state, minimize_task_input)
     if cleansed_testcase_path:
+      last_minimized_keys = cleansed_minimized_keys
       current_testcase_path = cleansed_testcase_path
 
   # Finalize the test case if we were able to reproduce it.
@@ -1714,6 +1721,8 @@ def do_libfuzzer_minimization(
       memory_tool_options=memory_tool_options)
   if last_minimized_keys:
     minimize_task_output.minimized_keys = str(last_minimized_keys)
+  else:
+    logs.warning('Last minimized keys are none after LibFuzzer minimization.')
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)  # pylint: disable=no-member
 
 

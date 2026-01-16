@@ -254,6 +254,11 @@ def get_application_id():
   return app_id
 
 
+def get_logging_cloud_project_id():
+  """Return logging cloud project id."""
+  return environment.get_value('LOGGING_CLOUD_PROJECT_ID')
+
+
 def get_clusterfuzz_release():
   return os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
 
@@ -1000,6 +1005,14 @@ def emails_equal(first, second):
   return normalize_email(first) == normalize_email(second)
 
 
+def is_service_account(email: str) -> bool:
+  """Check if an email is a SA based on email address pattern."""
+  sa_email = normalize_email(email)
+  if '@' not in sa_email:
+    return False
+  return sa_email.endswith('gserviceaccount.com')
+
+
 def parse_delimited(value_or_handle, delimiter, strip=False,
                     remove_empty=False):
   """Parse a delimter separated value."""
@@ -1031,7 +1044,9 @@ def is_oss_fuzz():
 
 def is_chromium():
   """If this is an instance of chromium fuzzing."""
-  return default_project_name() in ('chromium', 'chromium-testing')
+  return default_project_name() in ('chromium', 'chromium-testing',
+                                    'clusterfuzz-staging',
+                                    'clusterfuzz-development')
 
 
 def file_hash(file_path):

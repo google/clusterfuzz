@@ -15,7 +15,26 @@
 any other module in tasks to prevent circular imports and issues with
 appengine."""
 
+import os
+
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+
+_TESTCASE_BASED_TASKS = {
+    'analyze',
+    'blame',
+    'impact',
+    'minimize',
+    'progression',
+    'regression',
+    'symbolize',
+    'variant',
+}
+
+_FUZZER_BASED_TASKS = {
+    'corpus_pruning',
+    'fuzz',
+}
 
 
 def get_command_from_module(full_module_name: str) -> str:
@@ -35,3 +54,40 @@ def is_remotely_executing_utasks() -> bool:
 
 class UworkerMsgParseError(RuntimeError):
   """Error for parsing UworkerMsgs."""
+
+
+def is_testcase_based_task(task_name: str):
+  return task_name in _TESTCASE_BASED_TASKS
+
+
+def is_fuzzer_based_task(task_name: str):
+  return task_name in _FUZZER_BASED_TASKS
+
+
+def get_task_execution_event_data(
+    task_command: str,
+    task_argument: str | uworker_msg_pb2.Input | None,  # pylint: disable=no-member
+    job_type: str | None = None) -> dict:
+  """Returns a formatted dict with task execution event data."""
+  event_data = {}
+  event_data['task_job'] = job_type
+  if is_testcase_based_task(task_command):
+    testcase_id = (
+        task_argument.testcase_id
+        if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
+        else task_argument)
+    event_data['testcase_id'] = None if testcase_id is None else int(
+        testcase_id)
+  elif is_fuzzer_based_task(task_command):
+    event_data['task_fuzzer'] = (
+        task_argument.fuzzer_name
+        if isinstance(task_argument, uworker_msg_pb2.Input)  # pylint: disable=no-member
+        else task_argument)
+  return event_data
+
+
+def reset_task_stage_env() -> None:
+  """Helper to unset env vars before a task stage."""
+  unset_vars = ['TASK_COMMENTS']
+  for var in unset_vars:
+    os.environ.pop(var, None)

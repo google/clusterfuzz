@@ -19,6 +19,11 @@ import os
 import re
 import shlex
 import time
+from typing import Generator
+from typing import Mapping
+from typing import Sequence
+from typing import Type
+from typing import TypeAlias
 
 from google.cloud import ndb
 
@@ -86,6 +91,8 @@ FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
     (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
      data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
 
+FilterValue: TypeAlias = str | int | float | bool | datetime.datetime
+
 FuzzerDisplay = collections.namedtuple(
     'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
 
@@ -152,8 +159,13 @@ def find_testcase(project_name,
         culprit_engine = engine
         target_without_engine = fuzz_target[len(culprit_engine) + 1:]
         break
-      target_with_different_engines = []
-      assert culprit_engine
+
+    if not culprit_engine:
+      logs.error(
+          f'Engine not found for target {fuzz_target} when searching for a '
+          'testcase. If the job sets DEDUP_ONLY_SAME_TARGET, the fuzz target '
+          'is expected to follow the pattern: <engine>_<target>.')
+      return None
 
     target_with_different_engines = [
         f'{engine}_{target_without_engine}' for engine in fuzzing.ENGINES
@@ -443,6 +455,8 @@ def format_issue_information(testcase, format_string):
   result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options_string)
   result = result.replace('%ARGS%', arguments)
   result = result.replace('%BAZEL_TEST_ARGS%', bazel_test_args)
+  result = result.replace('https://source.corp.google.com/file:google3//',
+                          'https://source.corp.google.com/file:google3/')
   return result
 
 
@@ -652,7 +666,7 @@ def handle_duplicate_entry(testcase):
       testcase.crash_state,
       testcase.security_flag,
       testcase_to_exclude=testcase,
-      fuzz_target=testcase.fuzzer_name)
+      fuzz_target=testcase.actual_fuzzer_name())
   if not existing_testcase:
     return
 
@@ -825,16 +839,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   return testcase_id
 
 
-def set_initial_testcase_metadata(testcase):
-  """Set various testcase metadata fields during testcase initialization."""
-  build_key = environment.get_value('BUILD_KEY')
-  if build_key:
-    testcase.set_metadata('build_key', build_key, update_testcase=False)
-
-  build_url = environment.get_value('BUILD_URL')
-  if build_url:
-    testcase.set_metadata('build_url', build_url, update_testcase=False)
-
+def get_filtered_gn_args() -> str | None:
+  """Return filtered GN args based on filepath GN_ARGS_PATH."""
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
   if gn_args_path:
     gn_args = utils.read_data_from_file(
@@ -847,8 +853,41 @@ def set_initial_testcase_metadata(testcase):
         if not GOMA_DIR_LINE_REGEX.match(line)
     ]
     filtered_gn_args = '\n'.join(filtered_gn_args_lines)
-    testcase.set_metadata('gn_args', filtered_gn_args, update_testcase=False)
+    return filtered_gn_args
+  return None
 
+
+def set_build_metadata_to_testcase(testcase: data_types.Testcase,
+                                   build_key: str | None = None,
+                                   build_url: str | None = None,
+                                   gn_args: str | None = None,
+                                   update: bool = False):
+  """Set testcase metadata fields related to the build metadata."""
+  dirty_flag = False
+  build_key = (
+      environment.get_value('BUILD_KEY') if build_key is None else build_key)
+  if build_key and not testcase.get_metadata('build_key'):
+    dirty_flag = True
+    testcase.set_metadata('build_key', build_key, update_testcase=False)
+
+  build_url = (
+      environment.get_value('BUILD_URL') if build_url is None else build_url)
+  if build_url and not testcase.get_metadata('build_url'):
+    dirty_flag = True
+    testcase.set_metadata('build_url', build_url, update_testcase=False)
+
+  gn_args = get_filtered_gn_args() if gn_args is None else gn_args
+  if gn_args and not testcase.get_metadata('gn_args'):
+    dirty_flag = True
+    testcase.set_metadata('gn_args', gn_args, update_testcase=False)
+
+  if update and dirty_flag:
+    testcase.put()
+
+
+def set_initial_testcase_metadata(testcase: data_types.Testcase) -> None:
+  """Set various testcase metadata fields during testcase initialization."""
+  set_build_metadata_to_testcase(testcase)
   testcase.platform = environment.platform().lower()
   testcase.platform_id = environment.get_platform_id()
 
@@ -873,6 +912,8 @@ def update_testcase_comment(testcase, task_state, message=None):
                                            task_state)
   if message:
     testcase.comments += ': %s' % message.rstrip('.')
+    task_comments = environment.get_value('TASK_COMMENTS', '')
+    environment.set_value('TASK_COMMENTS', task_comments + message + '\n')
   testcase.comments += '.\n'
 
   # Truncate if too long.
@@ -920,8 +961,12 @@ def critical_tasks_completed(testcase):
   if not utils.is_chromium():
     return testcase.minimized_keys and testcase.regression
 
+  # Only require impact if it is feasible to run it. Don't require it if not
+  # (when regression fails).
+  impact_satisfied = testcase.is_impact_set_flag or testcase.regression == 'NA'
+
   return bool(testcase.minimized_keys and testcase.regression and
-              testcase.is_impact_set_flag and not testcase.analyze_pending)
+              impact_satisfied and not testcase.analyze_pending)
 
 
 # ------------------------------------------------------------------------------
@@ -1566,6 +1611,68 @@ def get_entity_by_type_and_id(entity_type, entity_id):
   return entity_type.get_by_id(int(entity_id))
 
 
+def _apply_filters(query: ndb.Query, entity_kind: Type[data_types.Model],
+                   equality_filters: Mapping[str, FilterValue] | None):
+  """Applies equality filters to a query."""
+  if not equality_filters:
+    return query
+
+  for property_name, value in equality_filters.items():
+    if (prop := getattr(entity_kind, property_name, None)) is None:
+      logs.warning(
+          f'Query filters contain a non-existent property: {property_name}')
+      continue
+    query = query.filter(prop == value)
+
+  return query
+
+
+def _apply_order(query: ndb.Query, entity_kind: Type[data_types.Model],
+                 order_by: Sequence[str] | None):
+  """Applies ordering to a query."""
+  if not order_by:
+    return query
+
+  for order_field in order_by:
+    desc = order_field.startswith('-')
+    property_name = order_field[1:] if desc else order_field
+    if (prop := getattr(entity_kind, property_name, None)) is None:
+      logs.warning(f'Query order argument contains a non-existent property: '
+                   f'{property_name}')
+      continue
+    query = query.order(-prop) if desc else query.order(prop)
+
+  return query
+
+
+def get_entities_query(
+    entity_kind: Type[data_types.Model],
+    equality_filters: Mapping[str, FilterValue] | None = None,
+    order_by: Sequence[str] | None = None) -> ndb.Query:
+  """Returns a query for the entity kind with equality filters and ordering."""
+  query = entity_kind.query()
+  query = _apply_filters(query, entity_kind, equality_filters)
+  query = _apply_order(query, entity_kind, order_by)
+  return query
+
+
+def get_entities_ids(entity_kind: Type[data_types.Model],
+                     equality_filters: Mapping[str, FilterValue] | None = None,
+                     order_by: Sequence[str] | None = None) -> Generator:
+  """Yields IDs of entities matching optional filters and ordering."""
+  query = get_entities_query(entity_kind, equality_filters, order_by)
+  yield from (
+      key.id() for key in ndb_utils.get_all_from_query(query, keys_only=True))
+
+
+def get_entities(entity_kind: Type[data_types.Model],
+                 equality_filters: Mapping[str, FilterValue] | None = None,
+                 order_by: Sequence[str] | None = None) -> Generator:
+  """Yields entities matching optional filters and ordering."""
+  query = get_entities_query(entity_kind, equality_filters, order_by)
+  yield from ndb_utils.get_all_from_query(query)
+
+
 # ------------------------------------------------------------------------------
 # TestcaseVariant related functions
 # ------------------------------------------------------------------------------
@@ -1668,7 +1775,7 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   jobs = get_or_create_multi_entities_from_keys(job_mapping)
 
   for job in jobs:
-    # TODO(metzman): Decide if we want to handle unused fuzzers differentlyo.
+    # TODO(metzman): Decide if we want to handle unused fuzzers differently.
     job.last_run = utils.utcnow()
 
   ndb_utils.put_multi(jobs)

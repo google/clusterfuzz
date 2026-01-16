@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Corpus pruning task."""
-
+import asyncio
 import collections
 import datetime
 import json
 import os
 import random
 import shutil
+import time
 from typing import List
 import zipfile
 
+import aiohttp
+from google.auth.transport import requests as google_auth_requests
 from google.cloud import ndb
 from google.protobuf import timestamp_pb2
 
@@ -44,11 +47,14 @@ from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import fast_http
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
@@ -71,11 +77,11 @@ TIMEOUT_FLAG = f'-timeout={SINGLE_UNIT_TIMEOUT}'
 
 # Corpus files limit for cases when corpus pruning task failed in the last
 # execution.
-CORPUS_FILES_LIMIT_FOR_FAILURES = 10000
+CORPUS_FILES_LIMIT_FOR_FAILURES = 50_000
 
 # Corpus total size limit for cases when corpus pruning task failed in the last
 # execution.
-CORPUS_SIZE_LIMIT_FOR_FAILURES = 2 * 1024 * 1024 * 1024  # 2 GB.
+CORPUS_SIZE_LIMIT_FOR_FAILURES = 10 * 1024 * 1024 * 1024  # 10 GB.
 
 # Maximum number of units to restore from quarantine in one run.
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
@@ -98,6 +104,9 @@ SYNC_TIMEOUT = 2 * 60 * 60
 # current fuzz target corpus.
 CROSS_POLLINATE_FUZZER_COUNT = 3
 
+# From https://cloud.google.com/storage/docs/batch
+GOOGLE_CLOUD_MAX_BATCH_SIZE = 100
+
 CorpusPruningResult = collections.namedtuple('CorpusPruningResult', [
     'coverage_info', 'crashes', 'fuzzer_binary_name', 'revision',
     'cross_pollination_stats'
@@ -118,27 +127,68 @@ def _get_corpus_file_paths(corpus_path):
   ]
 
 
-def _limit_corpus_size(corpus_url):
-  """Limit number of files and size of a corpus."""
-  corpus_count = 0
-  corpus_size = 0
-  deleted_corpus_count = 0
-  bucket, _ = storage.get_bucket_name_and_path(corpus_url)
-  logs.info('Limiting corpus size.')
-  for corpus_file in storage.get_blobs(corpus_url):
-    corpus_count += 1
-    corpus_size += corpus_file['size']
-    if (corpus_count > CORPUS_FILES_LIMIT_FOR_FAILURES or
-        corpus_size > CORPUS_SIZE_LIMIT_FOR_FAILURES):
-      path_to_delete = storage.get_cloud_storage_file_path(
-          bucket, corpus_file['name'])
-      storage.delete(path_to_delete)
-      deleted_corpus_count += 1
-  logs.info('Done limiting corpus size.')
+async def _limit_corpus_sizes(corpus_urls):
+  try:
+    await asyncio.gather(
+        *[_limit_corpus_size_async(corpus_url) for corpus_url in corpus_urls])
+  except Exception as e:
+    logs.error(f'Error in _limit_corpus_sizes: {e}')
 
-  if deleted_corpus_count:
-    logs.info('Removed %d files from oversized corpus: %s.' %
-              (deleted_corpus_count, corpus_url))
+
+async def _limit_corpus_size_async(corpus_url):
+  """Limits corpus size using async listing and deleting."""
+  logs.info(f'Limiting corpus size {corpus_url} asynchronously.')
+  creds, _ = credentials.get_default()
+  creds.refresh(google_auth_requests.Request())
+  bucket, path = storage.get_bucket_name_and_path(corpus_url)
+
+  async def _delete_corpus_element(name, session):
+    await fast_http.delete_blob_async(bucket, name, session, creds.token)
+
+  deleting = False
+  corpus_size = 0
+  num_deleted = 0
+  delete_tasks = []
+
+  async with aiohttp.ClientSession() as session:
+    start_time = time.time()
+    idx = 0
+    num_deleted = 1
+    async for blob in fast_http.list_blobs_async(bucket, path, creds.token):
+      idx += 1
+      if idx >= 5_000_000:
+        break
+      if not deleting:
+        corpus_size += blob['size']
+        if idx >= CORPUS_FILES_LIMIT_FOR_FAILURES:
+          deleting = True
+        elif corpus_size >= CORPUS_SIZE_LIMIT_FOR_FAILURES:
+          deleting = True
+        continue
+
+      assert deleting
+      if idx % 20_000 == 0:
+        # TODO: Support debug as a log method.
+        logs.info(f'Deleting: {blob["name"]}.')
+
+      # We must refresh ocassionally.
+      if idx % 100_000 == 0:
+        creds.refresh(google_auth_requests.Request())
+
+      blob_name = blob['name']
+      delete_tasks.append(
+          asyncio.create_task(_delete_corpus_element(blob_name, session)))
+      num_deleted += 1
+      # Arbitrary limit so we don't use too much RAM.
+      if len(delete_tasks) >= 1_000:
+        # If *any* tasks complete, we can schedule more.
+        _, pending = await asyncio.wait(
+            delete_tasks, return_when=asyncio.FIRST_COMPLETED)
+        delete_tasks = list(pending)
+
+    await asyncio.gather(*delete_tasks)
+  logs.info(f'Deleted {num_deleted} corpus elements. '
+            f'Took {time.time() - start_time} seconds.')
 
 
 def _get_time_remaining(start_time):
@@ -427,16 +477,21 @@ class CorpusPrunerBase:
           bad_units_path, CORPUS_PRUNING_TIMEOUT)
     except TimeoutError as e:
       raise CorpusPruningError(
-          'Corpus pruning timed out while minimizing corpus\n' + repr(e))
+          'Corpus pruning timed out while minimizing corpus') from e
     except engine.Error as e:
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               repr(e))
+      raise CorpusPruningError(
+          'Corpus pruning failed to minimize corpus due to an engine error'
+      ) from e
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
     if not shell.get_directory_file_count(minimized_corpus_path):
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               symbolized_output)
+      logs.warning(
+          'No files in minimized corpus after merging.',
+          symbolized_output=symbolized_output)
+      raise CorpusPruningError(
+          'Corpus pruning failed to minimize corpus as the output directory '
+          'is empty')
 
     logs.info('Corpus merge finished successfully.', output=symbolized_output)
     return result.stats
@@ -635,15 +690,11 @@ def _get_pruner_and_runner(context):
   return pruner, runner
 
 
-def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
+def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
-
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.do_corpus_pruning(uworker_input, context, revision)
 
   if not build_manager.setup_build(
       revision=revision, fuzz_target=context.fuzz_target.binary):
@@ -767,23 +818,7 @@ def do_corpus_pruning(uworker_input, context, revision) -> CorpusPruningResult:
       cross_pollination_stats=cross_pollination_stats)
 
 
-def _update_crash_unit_path(context, crash):
-  """If running on a trusted host, updates the crash unit_path after copying
-  the file locally."""
-  if not environment.is_trusted_host():
-    return
-  from clusterfuzz._internal.bot.untrusted_runner import file_host
-  unit_path = os.path.join(context.bad_units_path,
-                           os.path.basename(crash.unit_path))
-  # Prevent the worker from escaping out of |context.bad_units_path|.
-  if not file_host.is_directory_parent(unit_path, context.bad_units_path):
-    raise CorpusPruningError('Invalid units path from worker.')
-
-  file_host.copy_file_from_worker(crash.unit_path, unit_path)
-  crash.unit_path = unit_path
-
-
-def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
+def _upload_corpus_crashes_zip(result: CorpusPruningResult,
                                corpus_crashes_blob_name,
                                corpus_crashes_upload_url):
   """Packs the corpus crashes in a zip file. The file is then uploaded
@@ -792,7 +827,6 @@ def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
   zip_filename = os.path.join(temp_dir, corpus_crashes_blob_name)
   with zipfile.ZipFile(zip_filename, 'w') as zip_file:
     for crash in result.crashes:
-      _update_crash_unit_path(context, crash)
       unit_name = os.path.basename(crash.unit_path)
       zip_file.write(crash.unit_path, unit_name, zipfile.ZIP_DEFLATED)
 
@@ -804,9 +838,10 @@ def _upload_corpus_crashes_zip(context: Context, result: CorpusPruningResult,
 
 def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Process crashes found in the corpus."""
-  if not output.corpus_pruning_task_output.crashes:
-    return
-
+  # TODO(metzman): Fix this function after the holiday break.
+  # if not output.corpus_pruning_task_output.crashes:
+  return
+  # pylint: disable=unreachable
   corpus_pruning_output = output.corpus_pruning_task_output
   crash_revision = corpus_pruning_output.crash_revision
   fuzz_target = data_handler.get_fuzz_target(output.uworker_input.fuzzer_name)
@@ -881,6 +916,10 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.set_metadata('fuzzer_binary_name',
                             corpus_pruning_output.fuzzer_binary_name)
+      events.emit(
+          events.TestcaseCreationEvent(
+              testcase=testcase,
+              creation_origin=events.TestcaseOrigin.CORPUS_PRUNING))
 
       if output.issue_metadata:
         for key, value in json.loads(output.issue_metadata).items():
@@ -1022,7 +1061,7 @@ def _extract_coverage_information(context, result):
   return coverage_info
 
 
-def utask_main(uworker_input):
+def _utask_main(uworker_input):
   """Execute corpus pruning task."""
   fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
@@ -1044,13 +1083,14 @@ def utask_main(uworker_input):
 
   uworker_output = None
   try:
-    result = do_corpus_pruning(uworker_input, context, revision)
+    result = do_corpus_pruning(context, revision)
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
     issue_metadata = issue_metadata or {}
-    _upload_corpus_crashes_zip(
-        context, result,
-        uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
-        uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
+    # TODO(metzman): Fix this issue.
+    # _upload_corpus_crashes_zip(
+    #     result,
+    #     uworker_input.corpus_pruning_task_input.corpus_crashes_blob_name,
+    #     uworker_input.corpus_pruning_task_input.corpus_crashes_upload_url)
     uworker_output = uworker_msg_pb2.Output(  # pylint: disable=no-member
         corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(  # pylint: disable=no-member
             coverage_info=_extract_coverage_information(context, result),
@@ -1071,6 +1111,16 @@ def utask_main(uworker_input):
     context.cleanup()
 
   return uworker_output
+
+
+def utask_main(uworker_input):
+  """Sets logs context and executes corpus pruning task."""
+  fuzz_target = uworker_io.entity_from_protobuf(
+      uworker_input.corpus_pruning_task_input.fuzz_target,
+      data_types.FuzzTarget)
+  with logs.fuzzer_log_context(uworker_input.fuzzer_name,
+                               uworker_input.job_type, fuzz_target):
+    return _utask_main(uworker_input)
 
 
 def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
@@ -1104,7 +1154,7 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
   corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
 
 
-def utask_preprocess(fuzzer_name, job_type, uworker_env):
+def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
 
@@ -1112,9 +1162,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
-  last_execution_failed = bool(
+  last_execution_failed = not bool(
       last_execution_metadata and
-      last_execution_metadata.status == data_types.TaskState.ERROR)
+      last_execution_metadata.status == data_types.TaskState.FINISHED)
 
   # Make sure we're the only instance running for the given fuzzer and
   # job_type.
@@ -1133,12 +1183,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
+  logs.info('checking last')
   if last_execution_failed:
+    logs.info('last')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
-    for corpus_url in corpus_urls:
-      _limit_corpus_size(corpus_url)
+    asyncio.run(_limit_corpus_sizes(corpus_urls))
 
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
       fuzz_target.engine, fuzz_target.project_qualified_name())
@@ -1162,12 +1213,20 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     setup_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
+  logs.info('done preprocess')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
       setup_input=setup_input,
       corpus_pruning_task_input=corpus_pruning_task_input)
+
+
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  """Sets logs context and runs preprocessing for corpus pruning task."""
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
+    return _utask_preprocess(fuzzer_name, job_type, uworker_env)
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
@@ -1198,7 +1257,7 @@ def _update_latest_backup(output):
                f'{latest_backup_gcs_url}.')
 
 
-def utask_postprocess(output):
+def _utask_postprocess(output):
   """Trusted: Handles errors and writes anything needed to the db."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -1211,3 +1270,12 @@ def utask_postprocess(output):
   _save_coverage_information(output)
   _process_corpus_crashes(output)
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
+
+
+def utask_postprocess(output):
+  """Sets logs context and runs postprocess for corpus pruning task."""
+  fuzzer_name = output.uworker_input.fuzzer_name
+  job_type = output.uworker_input.job_type
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
+    return _utask_postprocess(output)

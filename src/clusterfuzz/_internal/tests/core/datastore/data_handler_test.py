@@ -16,6 +16,7 @@
 import datetime
 import json
 import os
+from typing import Generator
 import unittest
 from unittest import mock
 
@@ -39,11 +40,10 @@ class SetInitialTestcaseMetadata(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
 
-  def test_set(self):
-    """Test set everything."""
+  def test_testcase_metadata_from_env(self):
+    """Tests the initial testcase metadata set from the env vars."""
     os.environ['FAIL_RETRIES'] = '3'
     os.environ['FAIL_WAIT'] = '3'
-    os.environ['BUILD_KEY'] = 'build_key_value'
     os.environ['BUILD_KEY'] = 'build_key_value'
     os.environ['BUILD_URL'] = 'build_url_value'
     os.environ['APP_DIR'] = 'app_dir_value'
@@ -65,6 +65,31 @@ class SetInitialTestcaseMetadata(fake_filesystem_unittest.TestCase):
         'is_asan = true\nuse_goma = true\nv8_enable_verify_heap = true',
         metadata['gn_args'])
 
+  def test_testcase_metadata_from_args(self):
+    """Tests that testcase build metadata is set from args."""
+    build_key = 'build_key_test'
+    build_url = 'build_url_test'
+    os.environ['GN_ARGS_PATH'] = 'app_dir_value/args.gn'
+    self.fs.create_file(
+        'app_dir_value/args.gn',
+        contents=('is_asan = true\n'
+                  'goma_dir = /home/user/goma\n'
+                  'use_goma = false\n'
+                  'v8_enable_verify_heap = true'))
+    gn_args = data_handler.get_filtered_gn_args()
+    del os.environ['GN_ARGS_PATH']
+
+    testcase = data_types.Testcase()
+    data_handler.set_build_metadata_to_testcase(
+        testcase, build_key=build_key, build_url=build_url, gn_args=gn_args)
+    metadata = json.loads(testcase.additional_metadata)
+
+    self.assertEqual('build_key_test', metadata['build_key'])
+    self.assertEqual('build_url_test', metadata['build_url'])
+    self.assertEqual(
+        'is_asan = true\nuse_goma = false\nv8_enable_verify_heap = true',
+        metadata['gn_args'])
+
 
 @test_utils.with_cloud_emulators('datastore')
 class DataHandlerTest(unittest.TestCase):
@@ -74,6 +99,7 @@ class DataHandlerTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.default_project_name',
+        'clusterfuzz._internal.base.utils.is_chromium',
         'clusterfuzz._internal.config.db_config.get',
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         ('get_storage_provider',
@@ -261,6 +287,88 @@ class DataHandlerTest(unittest.TestCase):
         testcase_to_exclude=reproducible_with_bug)
     self.assertTrue(
         test_utils.entities_equal(exclude_result, reproducible_no_bug))
+
+  @parameterized.parameterized.expand([
+      ('engine1_target_test1', True),  # Same fuzz_target.
+      ('engine2_target_test1', True),  # Same fuzz_target with diff engine.
+      ('engine1_target_test3', False)  # Not matching any fuzz_target.
+  ])
+  @mock.patch('clusterfuzz._internal.fuzzing.ENGINES', ['engine1', 'engine2'])
+  def test_find_testcase_with_fuzz_target_deduplication(self, fuzz_target,
+                                                        should_find):
+    """Test find_testcase with fuzz_target deduplication enabled."""
+    environment.set_value('DEDUP_ONLY_SAME_TARGET', True)
+
+    # Create testcases with different fuzz targets.
+    testcase1 = test_utils.create_generic_testcase()
+    testcase1.one_time_crasher_flag = False  # higher priority
+    testcase1.project_name = 'project'
+    testcase1.crash_type = 'type'
+    testcase1.crash_state = 'state'
+    testcase1.security_flag = True
+    testcase1.overridden_fuzzer_name = 'engine1_target_test1'
+    testcase1.fuzzer_name = 'engine1'
+    testcase1.status = 'Processed'
+    testcase1.open = True
+    testcase1.put()
+
+    testcase2 = test_utils.create_generic_testcase()
+    testcase1.one_time_crasher_flag = True  # lower priority
+    testcase2.project_name = 'project'
+    testcase2.crash_type = 'type'
+    testcase2.crash_state = 'state'
+    testcase2.security_flag = True
+    testcase2.overridden_fuzzer_name = 'engine2_target_test1'
+    testcase2.fuzzer_name = 'engine2'
+    testcase2.status = 'Processed'
+    testcase2.open = True
+    testcase2.put()
+
+    testcase3 = test_utils.create_generic_testcase()
+    testcase3.one_time_crasher_flag = False
+    testcase3.project_name = 'project'
+    testcase3.crash_type = 'type'
+    testcase3.crash_state = 'state'
+    testcase3.security_flag = True
+    testcase3.overridden_fuzzer_name = 'engine1_target_test2'
+    testcase3.fuzzer_name = 'engine1'
+    testcase3.status = 'Processed'
+    testcase3.open = True
+    testcase3.put()
+
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target=fuzz_target)
+    if should_find:
+      # Uses testcase1 as it has the highest priority.
+      self.assertTrue(test_utils.entities_equal(result, testcase1))
+    else:
+      self.assertIsNone(result)
+
+  @parameterized.parameterized.expand([
+      'unknown_target_test2',  # Engine in fuzz_target not found.
+      'engine1'  # fuzz_target malformatted.
+  ])
+  @mock.patch('clusterfuzz._internal.fuzzing.ENGINES', ['engine1', 'engine2'])
+  def test_find_testcase_with_fuzz_target_deduplication_exceptions(
+      self, fuzz_target):
+    """Test handled failures in find_testcase with fuzz_target dedup enabled."""
+    environment.set_value('DEDUP_ONLY_SAME_TARGET', True)
+
+    testcase = test_utils.create_generic_testcase()
+    testcase.one_time_crasher_flag = True
+    testcase.project_name = 'project'
+    testcase.crash_type = 'type'
+    testcase.crash_state = 'state'
+    testcase.security_flag = True
+    testcase.overridden_fuzzer_name = 'engine1_target_test2'
+    testcase.fuzzer_name = 'engine1'
+    testcase.status = 'Processed'
+    testcase.open = True
+    testcase.put()
+
+    result = data_handler.find_testcase(
+        'project', 'type', 'state', True, fuzz_target=fuzz_target)
+    self.assertIsNone(result)
 
   def test_get_issue_description_oom(self):
     """Test get_issue_description for an oom testcase."""
@@ -489,6 +597,30 @@ class DataHandlerTest(unittest.TestCase):
     self.project_config['bucket_domain_suffix'] = 'custom.suffix.com'
     self.assertEqual('test-corpus.custom.suffix.com',
                      data_handler.get_data_bundle_bucket_name('test'))
+
+  def test_critical_tasks_pending_chrome_regression_fail(self):
+    """Tests that in Chrome, if regression is 'NA', impact doesn't block filing
+    (i.e., critical_tasks_completed returns True if other conditions are
+    met). We need to ensure this because impact cannot run without
+    regression. This was only intended to create a dependence from impact
+    on regression. It is not supposed to block issue filing."""
+    self.mock.is_chromium.return_value = True
+    testcase = data_types.Testcase()
+    testcase.minimized_keys = 'fake'
+    # Regression ran but failed.
+    testcase.regression = 'NA'
+    testcase.is_impact_set_flag = False
+    testcase.analyze_pending = False
+
+    self.assertTrue(data_handler.critical_tasks_completed(testcase))
+
+    # Now ensure the original behavior, where testcases that did not regression
+    # or ran it successfully wait for impact to file an issue.
+    testcase.regression = None
+    self.assertFalse(data_handler.critical_tasks_completed(testcase))
+
+    testcase.regression = 'nots NA'
+    self.assertFalse(data_handler.critical_tasks_completed(testcase))
 
 
 class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
@@ -722,6 +854,13 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     )
     job.put()
 
+    job = data_types.Job()
+    job.name = 'job'
+    job.environment_string = (
+        'PROJECT_NAME = test_project\n'
+        'HELP_FORMAT = https://source.corp.google.com/file:google3//a/b/c')
+    job.put()
+
     fuzz_target = data_types.FuzzTarget(id='libFuzzer_test_project_test_fuzzer')
     fuzz_target.binary = 'test_fuzzer'
     fuzz_target.project = 'test_project'
@@ -851,6 +990,15 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     self.assertEqual(
         data_handler.get_formatted_reproduction_help(testcase),
         'base_fuzzer\nblah')
+
+  def test_url_replacement(self):
+    """Test url replacement."""
+    testcase = data_types.Testcase()
+    testcase.job_type = 'job'
+    testcase.fuzzer_name = 'fuzzer'
+    testcase.put()
+    self.assertEqual('https://source.corp.google.com/file:google3/a/b/c',
+                     data_handler.get_formatted_reproduction_help(testcase))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -984,3 +1132,94 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         self.job.name, None, None, None, None, None, None, None,
         timeout_multiplier, None, True)
     self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetEntitiesTest(unittest.TestCase):
+  """Test retrieving entities from datastore."""
+
+  class GetEntitiesTestModel(data_types.Model):
+    """Generic model for get_entities tests."""
+    name = ndb.StringProperty()
+    value = ndb.IntegerProperty()
+    timestamp = ndb.DateTimeProperty()
+
+  def setUp(self):
+    self.entity1 = self.GetEntitiesTestModel(
+        name='a', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1))
+    self.entity1.put()
+    self.entity2 = self.GetEntitiesTestModel(
+        name='b', value=2, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 2))
+    self.entity2.put()
+    self.entity3 = self.GetEntitiesTestModel(
+        name='c', value=1, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 3))
+    self.entity3.put()
+    self.entity4 = self.GetEntitiesTestModel(
+        name='d', value=3, timestamp=datetime.datetime(2023, 1, 1, 0, 0, 4))
+    self.entity4.put()
+
+  def test_get_all(self):
+    """Verify that all entities are returned when no filters are applied."""
+    result = data_handler.get_entities(self.GetEntitiesTestModel)
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
+
+  def test_keys_only(self):
+    """Verify that get_entities_ids returns only the ids."""
+    result = data_handler.get_entities_ids(
+        self.GetEntitiesTestModel, order_by=['timestamp'])
+    expected_entities = [
+        self.entity1.key.id(),
+        self.entity2.key.id(),
+        self.entity3.key.id(),
+        self.entity4.key.id()
+    ]
+    self.assertCountEqual(result, expected_entities)
+
+  def test_with_equality_filters(self):
+    """Verify that only entities matching the equality filters are returned."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 1})
+    expected_entities = [self.entity1, self.entity3]
+    self.assertCountEqual(result, expected_entities)
+
+  @parameterized.parameterized.expand([
+      (['value', 'name'], ['entity1', 'entity3', 'entity2', 'entity4']),
+      (['-name'], ['entity4', 'entity3', 'entity2', 'entity1']),
+  ])
+  def test_with_order_by(self, order_by, expected_order_keys):
+    """Verify that entities are returned in the specified order."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=order_by)
+    expected_entities = [getattr(self, key) for key in expected_order_keys]
+    self.assertSequenceEqual(list(result), expected_entities)
+
+  def test_with_equality_filters_and_order(self):
+    """Verify that filtering and ordering can be combined."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel,
+        equality_filters={'value': 1},
+        order_by=['-name'])
+    expected_entities = [self.entity3, self.entity1]
+    self.assertSequenceEqual(list(result), expected_entities)
+
+  def test_non_existent_filter_property(self):
+    """Verify that filtering on a non-existent property returns all entities."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'non_existent': 1})
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
+
+  def test_non_existent_order_property(self):
+    """Verify that ordering by a non-existent property returns all entities."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, order_by=['non_existent'])
+    expected_entities = [self.entity1, self.entity2, self.entity3, self.entity4]
+    self.assertCountEqual(expected_entities, result)
+
+  def test_no_entities_found(self):
+    """Verify that an empty generator is returned when no entities match."""
+    result = data_handler.get_entities(
+        self.GetEntitiesTestModel, equality_filters={'value': 5})
+    self.assertIsInstance(result, Generator)
+    self.assertCountEqual(result, [])

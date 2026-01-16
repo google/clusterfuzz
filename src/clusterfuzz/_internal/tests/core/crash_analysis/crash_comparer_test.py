@@ -25,6 +25,22 @@ class CrashComparerTest(unittest.TestCase):
         crash_state_1, crash_state_2)
     self.assertEqual(crash_comparer_instance.is_similar(), result)
 
+  def test_config_thresholds(self):
+    """Test correctly configuring the comparer thresholds."""
+    crash_state_1 = 'test1'
+    crash_state_2 = 'test2'
+    default_comparer = crash_comparer.CrashComparer(crash_state_1,
+                                                    crash_state_2)
+    self.assertEqual(default_comparer.compare_threshold,
+                     default_comparer.COMPARE_THRESHOLD)
+    self.assertEqual(default_comparer.same_frames_threshold,
+                     default_comparer.SAME_FRAMES_THRESHOLD)
+
+    custom_comparer = crash_comparer.CrashComparer(crash_state_1, crash_state_2,
+                                                   0.9, 3)
+    self.assertEqual(custom_comparer.compare_threshold, 0.9)
+    self.assertEqual(custom_comparer.same_frames_threshold, 3)
+
   def test_is_similar_ascii(self):
     """Test is similar with ASCII."""
     crash_state_1 = (
@@ -103,3 +119,17 @@ class CrashComparerTest(unittest.TestCase):
 
     crash_state_2 = 'third\nsecond\nfirst\n'
     self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+  def test_is_similar_null_string(self):
+    """Test is_similar with "NULL" strings."""
+    crash_state_1 = 'first\nsecond\nthird\n'
+    crash_state_2 = 'NULL'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+    crash_state_1 = 'NULL'
+    crash_state_2 = 'first\nsecond\nthird\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+    crash_state_1 = 'NULL'
+    crash_state_2 = 'NULL'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)

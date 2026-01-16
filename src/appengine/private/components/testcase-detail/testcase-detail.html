@@ -28,6 +28,8 @@
 <link rel="import" href="find-similar-issues-panel.html">
 <link rel="import" href="redo-dialog.html">
 <link rel="import" href="refresh-button.html">
+<link rel="import" href="testcase-event-history.html">
+<link rel="import" href="testcase-status-events.html">
 <link rel="import" href="testcase-variants.html">
 <link rel="import" href="set-security-dialog.html">
 <link rel="import" href="suspected-cls.html">
@@ -300,7 +302,9 @@
                     </span>
                     <span slot="f">
                       <if-else condition="[[info.testcase.group_bug_information]]">
-                        <a slot="t" href="[[info.issue_url]]">[[info.testcase.group_bug_information]]</a> (from its group)
+                        <span slot="t">
+                          <a slot="t" href="[[info.issue_url]]">[[info.testcase.group_bug_information]]</a> (from its group)
+                        </span>
                         <span slot="f">None</span>
                       </if-else>
                     </span>
@@ -605,6 +609,9 @@
         <template is="dom-if" if="[[info.suspected_cls]]">
           <suspected-cls info="[[info]]"></suspected-cls>
         </template>
+
+        <testcase-status-events info="[[info]]"></testcase-status-events>
+
         <div class="section">
           <div class="title">
             Crash Stacktrace
@@ -647,6 +654,9 @@
           <div class="title">Metadata</div>
           <div class="body padding pre-line">[[info.footer]]</div>
         </div>
+
+        <testcase-event-history info="[[info]]"></testcase-event-history>
+
       </div>
     </div>
   </template>

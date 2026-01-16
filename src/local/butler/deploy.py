@@ -51,6 +51,10 @@ SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 Version = namedtuple('Version', ['id', 'deploy_time', 'traffic_split'])
 
 
+class DeploymentError(Exception):
+  """Deployment Error"""
+
+
 def now(tz=None):
   """Used for mocks."""
   return datetime.datetime.now(tz)
@@ -230,12 +234,14 @@ def find_file_exceeding_limit(path, limit):
 
 def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   """Deploy zip to GCS."""
+  gsutil = common.Gsutil()
   if test_deployment:
-    common.execute(f'gsutil cp {zip_path} gs://{bucket_name}/test-deployment/'
-                   f'{os.path.basename(zip_path)}')
+    gsutil.run(
+        'cp', zip_path,
+        f'gs://{bucket_name}/test-deployment/{os.path.basename(zip_path)}')
   else:
-    common.execute('gsutil cp %s gs://%s/%s' % (zip_path, bucket_name,
-                                                os.path.basename(zip_path)))
+    gsutil.run('cp', zip_path,
+               f'gs://{bucket_name}/{os.path.basename(zip_path)}')
 
 
 def _deploy_manifest(bucket_name,
@@ -243,16 +249,15 @@ def _deploy_manifest(bucket_name,
                      test_deployment=False,
                      release='prod'):
   """Deploy source manifest to GCS."""
+  gsutil = common.Gsutil()
   remote_manifest_path = utils.get_remote_manifest_filename(release)
 
   if test_deployment:
-    common.execute(f'gsutil cp {manifest_path} '
-                   f'gs://{bucket_name}/test-deployment/'
-                   f'{remote_manifest_path}')
+    gsutil.run('cp', manifest_path, f'gs://{bucket_name}/test-deployment/'
+               f'{remote_manifest_path}')
   else:
-    common.execute(f'gsutil cp {manifest_path} '
-                   f'gs://{bucket_name}/'
-                   f'{remote_manifest_path}')
+    gsutil.run('cp', manifest_path,
+               f'gs://{bucket_name}/{remote_manifest_path}')
 
 
 def _update_deployment_manager(project, name, config_path):
@@ -348,28 +353,6 @@ def _update_bigquery(project):
                    'datasets.yaml'))
 
 
-def _update_redis(project):
-  """Update redis instance."""
-  _update_deployment_manager(
-      project, 'redis',
-      os.path.join(environment.get_config_directory(), 'redis',
-                   'instance.yaml'))
-
-  region = appengine.region(project)
-  return_code, _ = common.execute(
-      'gcloud compute networks vpc-access connectors describe '
-      'connector --region={region} '
-      '--project={project}'.format(project=project, region=region),
-      exit_on_error=False)
-
-  if return_code:
-    # Does not exist.
-    common.execute('gcloud compute networks vpc-access connectors create '
-                   'connector --network=default --region={region} '
-                   '--range=10.8.0.0/28 '
-                   '--project={project}'.format(project=project, region=region))
-
-
 def get_remote_sha(git_dir: str = '.'):
   """Get remote sha of origin/master."""
   _, remote_sha_line = common.execute(
@@ -411,7 +394,7 @@ def _staging_deployment_helper():
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
-                            deploy_k8s=True,
+                            deploy_terraform=True,
                             test_deployment=False,
                             release='prod'):
   """Helper for production deployment."""
@@ -433,18 +416,22 @@ def _prod_deployment_helper(config_dir,
     _update_pubsub_queues(project)
     _update_alerts(project)
     _update_bigquery(project)
-    _update_redis(project)
 
   labels: dict[str, Any] = {
       'deploy_zip': bool(package_zip_paths),
       'deploy_app_engine': deploy_appengine,
-      'deploy_kubernetes': deploy_k8s,
+      'deploy_kubernetes': False,
+      'deploy_terraform': deploy_terraform,
       'success': True,
       'release': release,
       'clusterfuzz_version': utils.current_source_version()
   }
 
   try:
+    # Appengine depends on Redis, which is managed by Terraform
+    # Therefore, we need to deploy Terraform first
+    if deploy_terraform:
+      _deploy_terraform(config_dir)
     _deploy_app_prod(
         project,
         deployment_bucket,
@@ -458,16 +445,12 @@ def _prod_deployment_helper(config_dir,
       common.execute(
           f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
 
-    if deploy_k8s:
-      _deploy_terraform(config_dir)
-      _deploy_k8s(config_dir)
-
     print(f'Production deployment finished. {labels}')
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
   except Exception as ex:
     labels.update({'success': False})
     monitoring_metrics.PRODUCTION_DEPLOYMENT.increment(labels)
-    raise ex
+    raise DeploymentError from ex
 
 
 def _deploy_terraform(config_dir):
@@ -500,27 +483,6 @@ def _enforce_safe_day_to_deploy():
                        'rule. Do not break it!')
 
 
-def _deploy_k8s(config_dir):
-  """Deploys all k8s workloads."""
-  k8s_dir = os.path.join('infra', 'k8s')
-  k8s_instance_dir = os.path.join(config_dir, 'k8s')
-  k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
-  redis_host = _get_redis_ip(k8s_project)
-  os.environ['REDIS_HOST'] = redis_host
-  common.execute(f'gcloud config set project {k8s_project}')
-  common.execute(
-      'gcloud container clusters get-credentials clusterfuzz-cronjobs-gke '
-      f'--region={appengine.region(k8s_project)}')
-  for workload in common.get_all_files(k8s_dir):
-    # pylint:disable=anomalous-backslash-in-string
-    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
-
-  # Deploys cron jobs that are defined in the current instance configuration.
-  for workload in common.get_all_files(k8s_instance_dir):
-    # pylint:disable=anomalous-backslash-in-string
-    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
-
-
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
   if sys.version_info.major != 3 or sys.version_info.minor != 11:
@@ -545,9 +507,14 @@ def execute(args):
     print('Your branch is dirty. Please fix before deploying.')
     sys.exit(1)
 
-  if not common.has_file_in_path('gsutil'):
-    print('gsutil not found in PATH.')
-    sys.exit(1)
+  if environment.get_value('USE_GCLOUD_STORAGE'):
+    if not common.has_file_in_path('gcloud'):
+      print('gcloud not found in PATH.')
+      sys.exit(1)
+  else:
+    if not common.has_file_in_path('gsutil'):
+      print('gsutil not found in PATH.')
+      sys.exit(1)
 
   _enforce_safe_day_to_deploy()
 
@@ -558,14 +525,14 @@ def execute(args):
     if is_diff_origin_master() or is_diff_origin_master(
         environment.get_config_directory()):
       if args.force:
-        print('You are not on origin/master for clusterfuzz'
+        print('You are not on origin/master for clusterfuzz '
               'or clusterfuzz-config. --force is used. Continue.')
         for _ in range(3):
           print('.')
           time.sleep(1)
         print()
       else:
-        print('You are not on origin/master for clusterfuzz'
+        print('You are not on origin/master for clusterfuzz '
               'or clusterfuzz-config. Please fix or use --force.')
         sys.exit(1)
 
@@ -583,12 +550,12 @@ def execute(args):
 
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
-  deploy_k8s = 'k8s' in args.targets
+  deploy_terraform = 'terraform' in args.targets
   test_deployment = 'test_deployment' in args.targets
 
   if test_deployment:
     deploy_appengine = False
-    deploy_k8s = False
+    deploy_terraform = False
     deploy_zips = True
 
   package_zip_paths = []
@@ -623,7 +590,7 @@ def execute(args):
         args.config_dir,
         package_zip_paths,
         deploy_appengine,
-        deploy_k8s,
+        deploy_terraform,
         test_deployment=test_deployment,
         release=args.release)
 

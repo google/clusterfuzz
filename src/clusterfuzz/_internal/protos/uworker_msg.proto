@@ -52,6 +52,9 @@ message FuzzTaskInput {
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
   repeated BlobUploadUrl crash_upload_urls = 7;
+  repeated google.protobuf.Any trials = 8;
+  optional string web_tests_url = 9;
+  optional string script_log_upload_key = 10;
 }
 
 message DataBundleCorpus {
@@ -74,6 +77,7 @@ message Corpus {
   optional google.protobuf.Timestamp last_updated_time = 2;
   optional string gcs_url = 3;
   repeated string upload_urls = 4;
+  optional string backup_url = 5;
 }
 
 message MinimizeTaskInput {
@@ -259,6 +263,9 @@ message FuzzTaskOutput {
   optional BuildData build_data = 14;
   optional int64 app_revision = 15;
   repeated EngineOutput engine_outputs = 16;
+  optional string build_key = 17;
+  optional string build_url = 18;
+  optional string gn_args = 19;
 }
 
 message MinimizeTaskOutput {

@@ -66,3 +66,9 @@ resources:
     type: queue.jinja
   - name: ml-jobs-linux
     type: queue.jinja
+  - name: utask_main
+    type: queue.jinja
+  - name: preprocess
+    type: queue.jinja
+  - name: postprocess
+    type: queue.jinja

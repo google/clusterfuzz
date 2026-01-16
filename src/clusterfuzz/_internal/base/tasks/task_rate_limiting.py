@@ -38,7 +38,6 @@ _UTASK_PSEUDO_TASKS = {'uworker_main', 'postprocess', 'preprocess'}
 @memoize.wrap(memoize.FifoInMemory(1))
 def optin_to_task_rate_limiting():
   enabled = local_config.ProjectConfig().get('rate_limit_tasks.enabled', False)
-  logs.info(f'Using async HTTP: {enabled}.')
   return enabled
 
 

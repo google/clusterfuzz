@@ -49,8 +49,11 @@ def handle_build_setup_error(output):
   tasks.add_task('symbolize', testcase_id, job_type, wait_time=build_fail_wait)
 
 
-def _utask_preprocess(testcase_id, job_type, uworker_env, testcase):
+def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Run preprocessing for symbolize task."""
+  # Locate the testcase associated with the id.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+
   # We should atleast have a symbolized debug or release build.
   if not build_manager.has_symbolized_builds():
     return None
@@ -76,12 +79,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    return _utask_preprocess(testcase_id, job_type, uworker_env, testcase)
+    return _utask_preprocess(testcase_id, job_type, uworker_env)
 
 
-def _utask_main(uworker_input, testcase):
+def _utask_main(uworker_input):
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   uworker_io.check_handling_testcase_safe(testcase)
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
@@ -233,7 +238,7 @@ def utask_main(uworker_input):
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
-    return _utask_main(uworker_input, testcase)
+    return _utask_main(uworker_input)
 
 
 def get_symbolized_stacktraces(testcase_file_path, testcase,
@@ -331,7 +336,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 )
 
 
-def _utask_postprocess(output, testcase):
+def _utask_postprocess(output):
   """Handle the output from utask_main."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -340,6 +345,7 @@ def _utask_postprocess(output, testcase):
   symbolize_task_output = output.symbolize_task_output
 
   # Update crash parameters.
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase.crash_type = symbolize_task_output.crash_type
   testcase.crash_address = symbolize_task_output.crash_address
   testcase.crash_state = symbolize_task_output.crash_state
@@ -376,4 +382,4 @@ def utask_postprocess(output):
   # Retrieve the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    return _utask_postprocess(output, testcase)
+    return _utask_postprocess(output)

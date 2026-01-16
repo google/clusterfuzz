@@ -16,6 +16,17 @@
 from clusterfuzz._internal.metrics import monitor
 
 # Fuzz task metrics.
+UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
+    'task/fuzz/uploaded_testcase_count',
+    description='The number of uploaded testcases in GAE.',
+    field_spec=[
+        monitor.BooleanField('success'),
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('fuzz_target'),
+    ])
+
+# Fuzz task metrics.
 BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
     'debug/big_query/write_count',
     description='The number of BigQuery writes',
@@ -29,6 +40,8 @@ CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
     field_spec=[
         monitor.StringField('build_id'),
+        monitor.StringField('instance_id'),
+        monitor.BooleanField('is_candidate'),
         monitor.BooleanField('is_succeeded'),
     ])
 
@@ -84,6 +97,7 @@ FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -93,6 +107,7 @@ FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
@@ -102,6 +117,7 @@ JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -111,6 +127,7 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
@@ -122,6 +139,7 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
         monitor.IntegerField('return_code'),
         monitor.StringField('platform'),
         monitor.StringField('job'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -133,6 +151,10 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -146,6 +168,7 @@ FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -157,6 +180,10 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -335,8 +362,7 @@ ANDROID_UPTIME = monitor.CounterMetric(
 CHROME_TEST_SYNCER_SUCCESS = monitor.CounterMetric(
     'chrome_test_syncer_success',
     description='Counter for successful test syncer exits.',
-    field_spec=[],
-)
+    field_spec=[])
 
 # Metrics related to issue lifecycle
 
@@ -388,6 +414,23 @@ UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
     ],
 )
 
+# Grouper-related metrics
+
+TESTCASE_GROUP_OVERFLOW_COUNT = monitor.GaugeMetric(
+    'grouper/testcase_group_overflow_count',
+    description='The number of testcases that were marked as closed or deleted '
+    'due to group overflow.',
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('fuzzer_name'),
+    ])
+
+TESTCASE_GROUPS_SIZES = monitor.CumulativeDistributionMetric(
+    'grouper/testcase_groups_sizes',
+    description='Distribution of testcase groups sizes (before shrinkage).',
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=None)
+
 ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
     'task/analyze/reproducibility',
     description='Outcome count for analyze task.',
@@ -407,5 +450,6 @@ PRODUCTION_DEPLOYMENT = monitor.CounterMetric(
         monitor.BooleanField('deploy_zip'),
         monitor.BooleanField('deploy_app_engine'),
         monitor.BooleanField('deploy_kubernetes'),
+        monitor.BooleanField('deploy_terraform'),
         monitor.StringField('clusterfuzz_version')
     ])
