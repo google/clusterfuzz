@@ -16,6 +16,7 @@ kind: Job
 metadata:
   name: "{{job_name}}"
 spec:
+  ttlSecondsAfterFinished: 100
   activeDeadlineSeconds: {{active_deadline_seconds}}
   template:
     metadata:
