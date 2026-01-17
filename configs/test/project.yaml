@@ -115,8 +115,7 @@ env:
   #              which get automatically subsituted in the template.
   #              Make sure to unicode-escape the string, e.g. \n becomes \\n, etc.
 
-  # Default issue tracker name unless overridden in a job definition. Current only supports monorail
-  # issue tracker (disabled by default).
+  # Default issue tracker name unless overridden in a job definition.
   # ISSUE_TRACKER: issue-tracker-name
 
   # Web tests (e.g. html, js tests) to automatically download once a day and provide a default

@@ -19,8 +19,7 @@ import flask
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.monorail import issue
+from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import find_similar_issues
@@ -68,9 +67,8 @@ class HandlerTest(unittest.TestCase):
   def test_find(self):
     """Ensure it returns correct JSON when everything is ok."""
     issue_tracker = mock.Mock()
-    monorail_issue = issue.Issue()
-    monorail_issue.id = 100
-    issue_item = monorail.Issue(monorail_issue)
+    issue_item = appengine_test_utils.MockIssue()
+    issue_item.id = 100
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
     self.mock.get_search_keywords.return_value = ['query']
     self.mock.get_similar_issues_url.return_value = 'similarurl'
