@@ -420,4 +420,5 @@ message Output {
   optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
   optional string issue_metadata = 20;
   optional string error_message = 15;
+  optional string cpu_usage_max = 21;
 }

@@ -16,6 +16,7 @@
 import contextlib
 import enum
 import importlib
+import os
 import time
 from typing import Optional
 
@@ -25,6 +26,7 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
@@ -365,6 +367,15 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
 
+    if environment.get_value('IS_K8S_ENV'):
+      max_cpu_path = '/etc/cpu-usage/max_cpu'
+      if os.path.exists(max_cpu_path):
+        try:
+          with open(max_cpu_path, 'r') as f:
+            uworker_output.cpu_usage_max = f.read().strip()
+        except Exception as e:
+          logs.error(f'Failed to read max CPU usage: {e}')
+
     return uworker_io.serialize_uworker_output(uworker_output)
 
 
@@ -400,6 +411,19 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
         events.TaskStatus.POST_STARTED,
         uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
             uworker_output.error_type))
+
+    if uworker_output.cpu_usage_max:
+      try:
+        cpu_usage = float(uworker_output.cpu_usage_max)
+        job = data_types.Job.query(
+            data_types.Job.name == uworker_output.uworker_input.job_type).get()
+        if job and cpu_usage > job.required_cpu:
+          logs.info(
+              f'Updating job required_cpu to {cpu_usage} for job {job.name}')
+          job.required_cpu = cpu_usage
+          job.put()
+      except Exception as e:
+        logs.error(f'Failed to update job required_cpu: {e}')
 
     utask_module.utask_postprocess(uworker_output)
 
@@ -464,12 +488,23 @@ def uworker_main(input_download_url) -> None:
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
 
-    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-      recorder.utask_main_failure = uworker_output.error_type
+    if uworker_output is None:
+      return None
 
     # NOTE: Keep this in sync with `uworker_main_no_io()`.
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      recorder.utask_main_failure = uworker_output.error_type
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
+
+    if environment.get_value('IS_K8S_ENV'):
+      max_cpu_path = '/etc/cpu-usage/max_cpu'
+      if os.path.exists(max_cpu_path):
+        try:
+          with open(max_cpu_path, 'r') as f:
+            uworker_output.cpu_usage_max = f.read().strip()
+        except Exception as e:
+          logs.error(f'Failed to read max CPU usage: {e}')
 
     uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                    uworker_output_upload_url)
@@ -518,5 +553,18 @@ def tworker_postprocess(output_download_url) -> None:
         events.TaskStatus.POST_STARTED,
         uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
             uworker_output.error_type))
+
+    if uworker_output.cpu_usage_max:
+      try:
+        cpu_usage = float(uworker_output.cpu_usage_max)
+        job = data_types.Job.query(
+            data_types.Job.name == uworker_output.uworker_input.job_type).get()
+        if job and cpu_usage > job.required_cpu:
+          logs.info(
+              f'Updating job required_cpu to {cpu_usage} for job {job.name}')
+          job.required_cpu = cpu_usage
+          job.put()
+      except Exception as e:
+        logs.error(f'Failed to update job required_cpu: {e}')
 
     utask_module.utask_postprocess(uworker_output)

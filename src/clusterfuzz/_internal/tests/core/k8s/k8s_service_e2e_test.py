@@ -202,6 +202,25 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.metadata.name, actual_job_name)
 
+    # Check for sidecar container and volume.
+    pod_spec = job.spec.template.spec
+    containers = pod_spec.containers
+    container_names = [c.name for c in containers]
+    self.assertIn('cpu-monitor', container_names)
+
+    # Find the cpu-monitor container.
+    monitor_container = next(c for c in containers if c.name == 'cpu-monitor')
+    self.assertEqual(monitor_container.image, 'busybox')
+
+    # Check volume mounts for main container.
+    main_container = next(c for c in containers if c.name == actual_job_name)
+    mount_paths = [m.mount_path for m in main_container.volume_mounts]
+    self.assertIn('/etc/cpu-usage', mount_paths)
+
+    # Check volumes.
+    volume_names = [v.name for v in pod_spec.volumes]
+    self.assertIn('cpu-usage', volume_names)
+
     # Wait for the job to start running.
     job_running = False
     for _ in range(180):
@@ -234,6 +253,20 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.metadata.name, actual_job_name)
     self.assertEqual(job.spec.template.spec.runtime_class_name, 'kata')
+
+    # Check for sidecar container and volume.
+    pod_spec = job.spec.template.spec
+    containers = pod_spec.containers
+    container_names = [c.name for c in containers]
+    self.assertIn('cpu-monitor', container_names)
+
+    # Find the cpu-monitor container.
+    monitor_container = next(c for c in containers if c.name == 'cpu-monitor')
+    self.assertEqual(monitor_container.image, 'busybox')
+
+    # Check volumes.
+    volume_names = [v.name for v in pod_spec.volumes]
+    self.assertIn('cpu-usage', volume_names)
 
     # Wait for the job to start running.
     job_running = False
