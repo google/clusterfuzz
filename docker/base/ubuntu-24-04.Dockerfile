@@ -112,6 +112,10 @@ RUN cd /tmp && \
     rm node.tar.xz
 ENV PATH="/usr/local/node/bin:${PATH}"
 
+# Support i386.
+RUN dpkg --add-architecture i386
+RUN apt update && apt install libc6:i386 -y
+
 ENV CLOUDSDK_PYTHON=python3.11
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
