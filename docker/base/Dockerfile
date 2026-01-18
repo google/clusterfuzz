@@ -130,6 +130,10 @@ RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11
 COPY setup_19.x /data
 RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
 
+# Support i386.
+RUN dpkg --add-architecture i386
+RUN apt update && apt install libc6:i386 -y
+
 ENV CLOUDSDK_PYTHON=python3.11
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
