@@ -113,7 +113,7 @@ class GCloudStorageRunner:
         cmd=cmd,
         cwd=cwd,
         arguments=arg_str)
-
+    print(f'Running {cmd} with {tool_name}. cwd={cwd}, args={arg_str}')
     try:
       result = self.gcloud_runner.run_and_wait(arguments, **kwargs)
       logs.info(
@@ -125,14 +125,19 @@ class GCloudStorageRunner:
           return_code=result.return_code,
           timed_out=result.timed_out,
           output=result.output)
+      print(f'Finished Running {cmd} with {tool_name}. cwd={cwd}, '
+            f'args={arg_str}, return_code={result.return_code}, '
+            f'timed_out={result.timed_out}, output={result.output}')
       return result
-    except Exception:
+    except Exception as e:
       logs.error(
           f'Failed to run {cmd} with {tool_name}.',
           tool_name=tool_name,
           cmd=cmd,
           cwd=cwd,
           arguments=arg_str)
+      print(f'Failed to run {cmd} with {tool_name}. cwd={cwd}, '
+            f'args={arg_str}, exception={e}')
       raise
 
   def rsync(self,

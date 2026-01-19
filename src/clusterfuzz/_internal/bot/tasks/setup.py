@@ -444,12 +444,14 @@ def _should_update_data_bundle(data_bundle, data_bundle_directory):
   # Check if data bundle is up to date. If yes, skip the update.
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.info('Data bundle was recently synced, skip.')
+    print('Data bundle was recently synced, skip.')
     return False
 
   # Re-check if another bot did the sync already. If yes, skip.
   # TODO(metzman): Figure out if is this even needed without NFS?
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.info('Another bot finished the sync, skip.')
+    print('Another bot finished the sync, skip.')
     return False
 
   return True
@@ -460,11 +462,13 @@ def _prepare_update_data_bundle(fuzzer, data_bundle):
   data_bundle_directory = _get_data_bundle_directory(fuzzer, data_bundle)
   if not data_bundle_directory:
     logs.error('Failed to setup data bundle %s.' % data_bundle.name)
+    print(f'Failed to setup data bundle {data_bundle.name}')
     return None
 
   if not shell.create_directory(
       data_bundle_directory, create_intermediates=True):
     logs.error('Failed to create data bundle %s directory.' % data_bundle.name)
+    print(f'Failed to create data bundle {data_bundle.name} directory.')
     return None
 
   return data_bundle_directory
@@ -483,9 +487,11 @@ def update_data_bundle(
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
   logs.info('Setting up data bundle %s.' % data_bundle)
+  print(f'Setting up data bundle: {data_bundle}')
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):
+    print('Should not _should_update_data_bundle.')
     return True
 
   time_before_sync_start = time.time()
@@ -496,10 +502,12 @@ def update_data_bundle(
 
     if not (take_trusted_host_path() and data_bundle.sync_to_worker):
       logs.info('Data bundles: normal path.')
+      print('Data bundles: normal path.')
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
     else:
       logs.info('Data bundles: untrusted runner path.')
+      print('Data bundles: untrusted runner path.')
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as untrusted_corpus_manager
       from clusterfuzz._internal.bot.untrusted_runner import file_host
@@ -516,11 +524,13 @@ def update_data_bundle(
 
     if not result:
       logs.error(f'Failed to sync data bundle {data_bundle.name}.')
+      print(f'Failed to sync data bundle {data_bundle.name}')
       return False
 
   # Update the testcase list file.
   testcase_manager.create_testcase_list_file(data_bundle_directory)
   logs.info('Synced data bundle.')
+  print('Synced data bundle.')
 
   #  Write last synced time in the sync file.
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
