@@ -27,6 +27,38 @@ spec:
       shareProcessNamespace: true
       serviceAccountName: "{{service_account_name}}"
       dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+      - name: cpu-monitor
+        image: busybox
+        restartPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          MAX_CPU_FILE="/etc/cpu-usage/max_cpu"
+          echo 0 > $MAX_CPU_FILE
+          # Get ticks per second (usually 100)
+          CLK_TCK=100
+          while true; do
+            # Sum utime(14), stime(15), cutime(16), cstime(17) for all processes in the pod
+            USAGE_BEF=$(cat /proc/[0-9]*/stat 2>/dev/null | awk '{s+=$14+$15+$16+$17} END {print s}')
+            TIME_BEF=$(date +%s%N)
+            sleep 2
+            USAGE_AFT=$(cat /proc/[0-9]*/stat 2>/dev/null | awk '{s+=$14+$15+$16+$17} END {print s}')
+            TIME_AFT=$(date +%s%N)
+
+            TICKS=$((USAGE_AFT - USAGE_BEF))
+            DURATION_NS=$((TIME_AFT - TIME_BEF))
+
+            # core_usage = (ticks / (duration_sec)) / clk_tck
+            CURRENT_CPU=$(awk "BEGIN {print ($TICKS / ($DURATION_NS / 1000000000)) / $CLK_TCK}")
+
+            MAX_CPU=$(cat $MAX_CPU_FILE)
+            awk -v cur=$CURRENT_CPU -v max=$MAX_CPU 'BEGIN { if (cur > max) exit 0; exit 1 }' && echo $CURRENT_CPU > $MAX_CPU_FILE
+            sleep 58
+          done
+        volumeMounts:
+        - name: cpu-usage
+          mountPath: /etc/cpu-usage
       containers:
       - name: "{{job_name}}"
         image: "{{docker_image}}"
@@ -69,36 +101,6 @@ spec:
           value: 'true'
         - name: UPDATE_WEB_TESTS
           value: 'False'
-        volumeMounts:
-        - name: cpu-usage
-          mountPath: /etc/cpu-usage
-      - name: cpu-monitor
-        image: busybox
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          MAX_CPU_FILE="/etc/cpu-usage/max_cpu"
-          echo 0 > $MAX_CPU_FILE
-          # Get ticks per second (usually 100)
-          CLK_TCK=100
-          while true; do
-            # Sum utime(14), stime(15), cutime(16), cstime(17) for all processes in the pod
-            USAGE_BEF=$(cat /proc/[0-9]*/stat 2>/dev/null | awk '{s+=$14+$15+$16+$17} END {print s}')
-            TIME_BEF=$(date +%s%N)
-            sleep 2
-            USAGE_AFT=$(cat /proc/[0-9]*/stat 2>/dev/null | awk '{s+=$14+$15+$16+$17} END {print s}')
-            TIME_AFT=$(date +%s%N)
-
-            TICKS=$((USAGE_AFT - USAGE_BEF))
-            DURATION_NS=$((TIME_AFT - TIME_BEF))
-
-            # core_usage = (ticks / (duration_sec)) / clk_tck
-            CURRENT_CPU=$(awk "BEGIN {print ($TICKS / ($DURATION_NS / 1000000000)) / $CLK_TCK}")
-
-            MAX_CPU=$(cat $MAX_CPU_FILE)
-            awk -v cur=$CURRENT_CPU -v max=$MAX_CPU 'BEGIN { if (cur > max) exit 0; exit 1 }' && echo $CURRENT_CPU > $MAX_CPU_FILE
-            sleep 58
-          done
         volumeMounts:
         - name: cpu-usage
           mountPath: /etc/cpu-usage
