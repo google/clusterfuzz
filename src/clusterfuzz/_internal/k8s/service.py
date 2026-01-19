@@ -62,7 +62,7 @@ def _get_config_names(remote_tasks: typing.List[types.RemoteTask]):
   config_map = {}
   for task in remote_tasks:
     if task.job_type not in job_map:
-      logs.error(f"{task.job_type} doesn't exist.")
+      logs.error(f'{task.job_type} doesn\'t exist.')
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -176,7 +176,7 @@ class KubernetesService(types.RemoteTaskInterface):
     credentials, _ = google.auth.default()
     project = utils.get_application_id()
     service = discovery.build('container', 'v1', credentials=credentials)
-    parent = f"projects/{project}/locations/-"
+    parent = f'projects/{project}/locations/-'
 
     try:
       # pylint: disable=no-member
@@ -186,12 +186,12 @@ class KubernetesService(types.RemoteTaskInterface):
       cluster = next((c for c in clusters if c['name'] == CLUSTER_NAME), None)
 
       if not cluster:
-        logs.error(f"Cluster {CLUSTER_NAME} not found in project {project}.")
-        print(f"DEBUG: Cluster {CLUSTER_NAME} not found in project {project}.")
+        logs.error(f'Cluster {CLUSTER_NAME} not found in project {project}.')
+        print(f'DEBUG: Cluster {CLUSTER_NAME} not found in project {project}.')
         return
 
     except Exception as e:
-      logs.error(f"Failed to list clusters in {project}: {e}")
+      logs.error(f'Failed to list clusters in {project}: {e}')
       return
 
     endpoint = cluster['endpoint']
@@ -212,13 +212,13 @@ class KubernetesService(types.RemoteTaskInterface):
       request = google_requests.Request()
       if not creds.valid or creds.expired:
         creds.refresh(request)
-      return {"authorization": "Bearer " + creds.token}
+      return {'authorization': 'Bearer ' + creds.token}
 
     configuration.refresh_api_key_hook = lambda _: get_token(credentials)
     configuration.api_key = get_token(credentials)
 
     k8s_client.Configuration.set_default(configuration)
-    logs.info("GKE credentials loaded successfully.")
+    logs.info('GKE credentials loaded successfully.')
 
   def _create_service_account_if_needed(self,
                                         service_account_email: str) -> str:
@@ -264,10 +264,10 @@ class KubernetesService(types.RemoteTaskInterface):
           namespace='default',
           label_selector='app.kubernetes.io/name=clusterfuzz-kata-job',
           field_selector='status.phase=Pending')
-      logs.info(f"Found {len(pods.items)} pending jobs.")
+      logs.info(f'Found {len(pods.items)} pending jobs.')
       return len(pods.items)
     except Exception as e:
-      logs.error(f"Failed to list pods: {e}")
+      logs.error(f'Failed to list pods: {e}')
       return 0
 
   def create_utask_main_job(self, module: str, job_type: str,
@@ -308,9 +308,9 @@ class KubernetesService(types.RemoteTaskInterface):
       logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
-    logs.info('Creating batch jobs.')
+    logs.info('Creating Kubernetes jobs.')
     jobs = []
-    logs.info('Batching utask_mains.')
+    logs.info('Batching k8s utask_mains.')
     for config, input_urls in job_specs.items():
       # TODO(javanlacerda): Batch multiple tasks into a single job.
       for input_url in input_urls:

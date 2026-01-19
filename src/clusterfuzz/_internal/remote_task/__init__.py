@@ -94,7 +94,7 @@ class RemoteTaskGate(types.RemoteTaskInterface):
 
       if total_weight >= 1.0 and weight > 0.0:
         logs.warning(
-            "Total weight for jobs frequency bigger than 1.0. Adapter starving",
+            'Total weight for jobs frequency bigger than 1.0. Adapter starving',
             adapter=adapter.id)
         break
 
@@ -106,7 +106,7 @@ class RemoteTaskGate(types.RemoteTaskInterface):
       total_weight += weight
       frequencies[adapter.id] = weight if weight >= 0 else 0.0
 
-    logs.info("Job frequencies", frequencies=frequencies)
+    logs.info('Job frequencies', frequencies=frequencies)
     return frequencies
 
   def create_utask_main_job(self, module: str, job_type: str,

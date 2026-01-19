@@ -213,7 +213,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
     self.assertTrue(
         job_running,
-        f"Job {actual_job_name} did not start running. Status: {job.status}")
+        f'Job {actual_job_name} did not start running. Status: {job.status}')
 
     self.api_client.delete_namespaced_job(
         name=actual_job_name,
@@ -246,7 +246,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
     self.assertTrue(
         job_running,
-        f"Kata Job {actual_job_name} did not start running. Status: {job.status}"
+        f'Kata Job {actual_job_name} did not start running. Status: {job.status}'
     )
 
     self.api_client.delete_namespaced_job(
@@ -294,7 +294,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
     self.assertTrue(
         job_running,
-        f"Job {actual_job_name} did not start running. Status: {job.status}")
+        f'Job {actual_job_name} did not start running. Status: {job.status}')
 
     self.api_client.delete_namespaced_job(
         name=actual_job_name,
@@ -359,7 +359,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
       self.assertTrue(
           job_running,
-          f"Job {job_name} did not start running. Status: {job.status}")
+          f'Job {job_name} did not start running. Status: {job.status}')
 
       self.api_client.delete_namespaced_job(
           name=job_name,

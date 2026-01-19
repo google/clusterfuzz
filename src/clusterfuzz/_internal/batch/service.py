@@ -209,7 +209,7 @@ def _get_config_names(batch_tasks: List[types.RemoteTask]):
   config_map = {}
   for task in batch_tasks:
     if task.job_type not in job_map:
-      logs.error(f"{task.job_type} doesn't exist.")
+      logs.error(f'{task.job_type} doesn\'t exist.')
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'

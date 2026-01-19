@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ class FeatureFlags(Enum):
     """Get a feature flag value."""
     flag = self.flag
     if not flag or flag.description is None:
-      return ""
+      return ''
     return flag.description
 
   @property
@@ -66,5 +66,5 @@ class FeatureFlags(Enum):
     """Get a feature flag value."""
     flag = self.flag
     if not flag or flag.string_value is None:
-      return ""
+      return ''
     return flag.string_value

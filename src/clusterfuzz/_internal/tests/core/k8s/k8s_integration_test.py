@@ -75,23 +75,23 @@ class KubernetesIntegrationTest(unittest.TestCase):
 
         # Verify configuration
         config = client.Configuration.get_default_copy()
-        print(f"Loaded Host: {config.host}")
+        print(f'Loaded Host: {config.host}')
 
         # Check that we got a valid https endpoint
-        self.assertTrue(config.host.startswith("https://"))
+        self.assertTrue(config.host.startswith('https://'))
         self.assertTrue(config.verify_ssl)
         self.assertIsNotNone(config.ssl_ca_cert)
 
         # Verify API key fix is present (Crucial for manual path)
-        self.assertIn("authorization", config.api_key)
+        self.assertIn('authorization', config.api_key)
 
         # Verify hook is present
         self.assertIsNotNone(config.refresh_api_key_hook)
 
         # Verify actual connectivity and auth
-        print("Attempting to list jobs to verify authentication...")
+        print('Attempting to list jobs to verify authentication...')
         k8s_service._batch_api.list_namespaced_job(namespace='default', limit=1)
-        print("Successfully listed jobs.")
+        print('Successfully listed jobs.')
 
       finally:
         if old_kubeconfig:
