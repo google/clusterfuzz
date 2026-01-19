@@ -234,14 +234,14 @@ def find_file_exceeding_limit(path, limit):
 
 def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   """Deploy zip to GCS."""
-  gsutil = common.Gsutil()
+  gcloud_storage = common.Gcloud(storage=True)
   if test_deployment:
-    gsutil.run(
+    gcloud_storage.run(
         'cp', zip_path,
         f'gs://{bucket_name}/test-deployment/{os.path.basename(zip_path)}')
   else:
-    gsutil.run('cp', zip_path,
-               f'gs://{bucket_name}/{os.path.basename(zip_path)}')
+    gcloud_storage.run('cp', zip_path,
+                       f'gs://{bucket_name}/{os.path.basename(zip_path)}')
 
 
 def _deploy_manifest(bucket_name,
@@ -249,15 +249,16 @@ def _deploy_manifest(bucket_name,
                      test_deployment=False,
                      release='prod'):
   """Deploy source manifest to GCS."""
-  gsutil = common.Gsutil()
+  gcloud_storage = common.Gcloud(storage=True)
   remote_manifest_path = utils.get_remote_manifest_filename(release)
 
   if test_deployment:
-    gsutil.run('cp', manifest_path, f'gs://{bucket_name}/test-deployment/'
-               f'{remote_manifest_path}')
+    gcloud_storage.run(
+        'cp', manifest_path, f'gs://{bucket_name}/test-deployment/'
+        f'{remote_manifest_path}')
   else:
-    gsutil.run('cp', manifest_path,
-               f'gs://{bucket_name}/{remote_manifest_path}')
+    gcloud_storage.run('cp', manifest_path,
+                       f'gs://{bucket_name}/{remote_manifest_path}')
 
 
 def _update_deployment_manager(project, name, config_path):
@@ -499,22 +500,13 @@ def execute(args):
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
 
   if not common.has_file_in_path('gcloud'):
-    print('Please install gcloud.')
+    print('gcloud not found in PATH. Please install gcloud.')
     sys.exit(1)
 
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
     print('Your branch is dirty. Please fix before deploying.')
     sys.exit(1)
-
-  if environment.get_value('USE_GCLOUD_STORAGE'):
-    if not common.has_file_in_path('gcloud'):
-      print('gcloud not found in PATH.')
-      sys.exit(1)
-  else:
-    if not common.has_file_in_path('gsutil'):
-      print('gsutil not found in PATH.')
-      sys.exit(1)
 
   _enforce_safe_day_to_deploy()
 
