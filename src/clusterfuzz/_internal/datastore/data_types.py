@@ -983,9 +983,6 @@ class Job(Model):
   # value here is the subscription used for receiving reproduction updates.
   external_updates_subscription = ndb.StringProperty()
 
-  # The maximum CPU usage for this job.
-  required_cpu = ndb.FloatProperty(default=0.0)
-
   def is_external(self):
     """Whether this job is external."""
     return (bool(self.external_reproduction_topic) or
@@ -1806,6 +1803,14 @@ class FuzzerTaskEvent(Model):
   def _pre_put_hook(self):
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.FUZZER_EVENT_TTL)
+
+
+class JobTaskName(Model):
+  """Job task name."""
+  task_name = ndb.StringProperty()
+  job_name = ndb.StringProperty()
+  # The maximum CPU usage for this task and job.
+  required_cpu = ndb.FloatProperty(default=0.0)
 
 
 class FeatureFlag(Model):

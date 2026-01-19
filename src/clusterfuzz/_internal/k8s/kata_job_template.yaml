@@ -26,6 +26,37 @@ spec:
       runtimeClassName: kata
       serviceAccountName: "{{service_account_name}}"
       dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+      - name: cpu-monitor
+        image: busybox
+        restartPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          MAX_CPU_FILE="/etc/cpu-usage/max_cpu"
+          echo 0 > $MAX_CPU_FILE
+          while true; do
+            if [ -f /sys/fs/cgroup/cpu.stat ]; then
+              USAGE_BEF=$(grep 'usage_usec' /sys/fs/cgroup/cpu.stat | awk '{print $2}')
+              sleep 1
+              USAGE_AFT=$(grep 'usage_usec' /sys/fs/cgroup/cpu.stat | awk '{print $2}')
+              CURRENT_CPU=$(awk "BEGIN {print ($USAGE_AFT - $USAGE_BEF) / 1000000}")
+            elif [ -f /sys/fs/cgroup/cpuacct/cpuacct.usage ]; then
+              USAGE_BEF=$(cat /sys/fs/cgroup/cpuacct/cpuacct.usage)
+              sleep 1
+              USAGE_AFT=$(cat /sys/fs/cgroup/cpuacct/cpuacct.usage)
+              CURRENT_CPU=$(awk "BEGIN {print ($USAGE_AFT - $USAGE_BEF) / 1000000000}")
+            else
+              CURRENT_CPU=0
+            fi
+
+            MAX_CPU=$(cat $MAX_CPU_FILE)
+            awk -v cur=$CURRENT_CPU -v max=$MAX_CPU 'BEGIN { if (cur > max) exit 0; exit 1 }' && echo $CURRENT_CPU > $MAX_CPU_FILE
+            sleep 59
+          done
+        volumeMounts:
+        - name: cpu-usage
+          mountPath: /etc/cpu-usage
       containers:
       - name: "{{job_name}}"
         image: "{{docker_image}}"
@@ -68,35 +99,6 @@ spec:
           value: 'true'
         - name: UPDATE_WEB_TESTS
           value: 'False'
-        volumeMounts:
-        - name: cpu-usage
-          mountPath: /etc/cpu-usage
-      - name: cpu-monitor
-        image: busybox
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          MAX_CPU_FILE="/etc/cpu-usage/max_cpu"
-          echo 0 > $MAX_CPU_FILE
-          while true; do
-            if [ -f /sys/fs/cgroup/cpu.stat ]; then
-              USAGE_BEF=$(grep 'usage_usec' /sys/fs/cgroup/cpu.stat | awk '{print $2}')
-              sleep 1
-              USAGE_AFT=$(grep 'usage_usec' /sys/fs/cgroup/cpu.stat | awk '{print $2}')
-              CURRENT_CPU=$(awk "BEGIN {print ($USAGE_AFT - $USAGE_BEF) / 1000000}")
-            elif [ -f /sys/fs/cgroup/cpuacct/cpuacct.usage ]; then
-              USAGE_BEF=$(cat /sys/fs/cgroup/cpuacct/cpuacct.usage)
-              sleep 1
-              USAGE_AFT=$(cat /sys/fs/cgroup/cpuacct/cpuacct.usage)
-              CURRENT_CPU=$(awk "BEGIN {print ($USAGE_AFT - $USAGE_BEF) / 1000000000}")
-            else
-              CURRENT_CPU=0
-            fi
-
-            MAX_CPU=$(cat $MAX_CPU_FILE)
-            awk -v cur=$CURRENT_CPU -v max=$MAX_CPU 'BEGIN { if (cur > max) exit 0; exit 1 }' && echo $CURRENT_CPU > $MAX_CPU_FILE
-            sleep 59
-          done
         volumeMounts:
         - name: cpu-usage
           mountPath: /etc/cpu-usage

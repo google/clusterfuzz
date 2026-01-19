@@ -24,6 +24,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
+
 @test_utils.with_cloud_emulators('datastore')
 class CpuUsagePropagationTest(unittest.TestCase):
   """Tests for CPU usage propagation."""
@@ -40,15 +41,20 @@ class CpuUsagePropagationTest(unittest.TestCase):
     ])
 
     self.job_name = 'test_job'
-    self.job = data_types.Job(name=self.job_name, required_cpu=1.0)
+    self.job = data_types.Job(name=self.job_name)
     self.job.put()
+
+    self.task_name = 'fuzz'
+    self.job_task_name = data_types.JobTaskName(
+        job_name=self.job_name, task_name=self.task_name, required_cpu=1.0)
+    self.job_task_name.put()
 
     self.uworker_input = uworker_msg_pb2.Input(
         job_type=self.job_name,
         module_name='test_module',
     )
     self.mock.download_and_deserialize_uworker_input.return_value = self.uworker_input
-    self.mock.get_command_from_module.return_value = 'fuzz'
+    self.mock.get_command_from_module.return_value = self.task_name
 
     self.utask_module = mock.MagicMock()
     self.utask_module.__name__ = 'test_module'
@@ -61,7 +67,8 @@ class CpuUsagePropagationTest(unittest.TestCase):
     with mock.patch('os.path.exists', return_value=True), \
          mock.patch('builtins.open', mock.mock_open(read_data='2.5')):
 
-      uworker_output = uworker_msg_pb2.Output(error_type=uworker_msg_pb2.ErrorType.NO_ERROR)
+      uworker_output = uworker_msg_pb2.Output(
+          error_type=uworker_msg_pb2.ErrorType.NO_ERROR)
       self.utask_module.utask_main.return_value = uworker_output
 
       uworker_main('http://input')
@@ -72,7 +79,7 @@ class CpuUsagePropagationTest(unittest.TestCase):
       self.assertEqual(output.cpu_usage_max, '2.5')
 
   def test_tworker_postprocess_update(self):
-    """Test that tworker_postprocess updates the Job entity."""
+    """Test that tworker_postprocess updates the JobTaskName entity."""
     uworker_output = uworker_msg_pb2.Output(
         cpu_usage_max='3.0',
         uworker_input=self.uworker_input,
@@ -81,13 +88,15 @@ class CpuUsagePropagationTest(unittest.TestCase):
 
     tworker_postprocess('http://output')
 
-    updated_job = data_types.Job.query(data_types.Job.name == self.job_name).get()
-    self.assertEqual(updated_job.required_cpu, 3.0)
+    updated_job_task_name = data_types.JobTaskName.query(
+        data_types.JobTaskName.job_name == self.job_name,
+        data_types.JobTaskName.task_name == self.task_name).get()
+    self.assertEqual(updated_job_task_name.required_cpu, 3.0)
 
   def test_tworker_postprocess_no_update_if_lower(self):
     """Test that tworker_postprocess does not update if new value is lower."""
-    self.job.required_cpu = 5.0
-    self.job.put()
+    self.job_task_name.required_cpu = 5.0
+    self.job_task_name.put()
 
     uworker_output = uworker_msg_pb2.Output(
         cpu_usage_max='3.0',
@@ -97,8 +106,11 @@ class CpuUsagePropagationTest(unittest.TestCase):
 
     tworker_postprocess('http://output')
 
-    updated_job = data_types.Job.query(data_types.Job.name == self.job_name).get()
-    self.assertEqual(updated_job.required_cpu, 5.0)
+    updated_job_task_name = data_types.JobTaskName.query(
+        data_types.JobTaskName.job_name == self.job_name,
+        data_types.JobTaskName.task_name == self.task_name).get()
+    self.assertEqual(updated_job_task_name.required_cpu, 5.0)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -415,15 +415,23 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
     if uworker_output.cpu_usage_max:
       try:
         cpu_usage = float(uworker_output.cpu_usage_max)
-        job = data_types.Job.query(
-            data_types.Job.name == uworker_output.uworker_input.job_type).get()
-        if job and cpu_usage > job.required_cpu:
-          logs.info(
-              f'Updating job required_cpu to {cpu_usage} for job {job.name}')
-          job.required_cpu = cpu_usage
-          job.put()
+        job_name = uworker_output.uworker_input.job_type
+        task_name = task_utils.get_command_from_module(
+            uworker_output.uworker_input.module_name)
+        job_task_name = data_types.JobTaskName.query(
+            data_types.JobTaskName.job_name == job_name,
+            data_types.JobTaskName.task_name == task_name).get()
+        if not job_task_name:
+          job_task_name = data_types.JobTaskName(
+              job_name=job_name, task_name=task_name)
+
+        if cpu_usage > job_task_name.required_cpu:
+          logs.info(f'Updating job_task_name required_cpu to {cpu_usage} for '
+                    f'job {job_name} and task {task_name}')
+          job_task_name.required_cpu = cpu_usage
+          job_task_name.put()
       except Exception as e:
-        logs.error(f'Failed to update job required_cpu: {e}')
+        logs.error(f'Failed to update job_task_name required_cpu: {e}')
 
     utask_module.utask_postprocess(uworker_output)
 
@@ -557,14 +565,22 @@ def tworker_postprocess(output_download_url) -> None:
     if uworker_output.cpu_usage_max:
       try:
         cpu_usage = float(uworker_output.cpu_usage_max)
-        job = data_types.Job.query(
-            data_types.Job.name == uworker_output.uworker_input.job_type).get()
-        if job and cpu_usage > job.required_cpu:
-          logs.info(
-              f'Updating job required_cpu to {cpu_usage} for job {job.name}')
-          job.required_cpu = cpu_usage
-          job.put()
+        job_name = uworker_output.uworker_input.job_type
+        task_name = task_utils.get_command_from_module(
+            uworker_output.uworker_input.module_name)
+        job_task_name = data_types.JobTaskName.query(
+            data_types.JobTaskName.job_name == job_name,
+            data_types.JobTaskName.task_name == task_name).get()
+        if not job_task_name:
+          job_task_name = data_types.JobTaskName(
+              job_name=job_name, task_name=task_name)
+
+        if cpu_usage > job_task_name.required_cpu:
+          logs.info(f'Updating job_task_name required_cpu to {cpu_usage} for '
+                    f'job {job_name} and task {task_name}')
+          job_task_name.required_cpu = cpu_usage
+          job_task_name.put()
       except Exception as e:
-        logs.error(f'Failed to update job required_cpu: {e}')
+        logs.error(f'Failed to update job_task_name required_cpu: {e}')
 
     utask_module.utask_postprocess(uworker_output)
