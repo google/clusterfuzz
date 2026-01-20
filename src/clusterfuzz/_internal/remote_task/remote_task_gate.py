@@ -149,7 +149,10 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     results = []
     for adapter_id, tasks in tasks_by_adapter.items():
       if tasks:
-        logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
-        service = self._service_map[adapter_id]
-        results.extend(service.create_utask_main_jobs(tasks))
+        try:
+          logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
+          service = self._service_map[adapter_id]
+          results.extend(service.create_utask_main_jobs(tasks))
+        except Exception:  # pylint: disable=broad-except
+          logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
     return results

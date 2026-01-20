@@ -31,7 +31,6 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -295,19 +294,6 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
-    limit = None
-    if feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.enabled:
-      limit = feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.content
-
-    if limit is not None and self._get_pending_jobs_count() >= int(limit):
-      logs.warning(
-          f'Kubernetes job limit reached. Not acking {len(remote_tasks)} tasks.'
-      )
-      for task in remote_tasks:
-        if task.pubsub_task:
-          task.pubsub_task.do_not_ack = True
-      return []
-
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:

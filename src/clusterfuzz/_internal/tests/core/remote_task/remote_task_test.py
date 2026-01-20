@@ -98,11 +98,9 @@ class RemoteTaskGateTest(unittest.TestCase):
     """Test successful creation."""
     mock_get_frequency.return_value = {'kubernetes': 1.0}
     mock_pubsub_task = mock.Mock()
-    mock_pubsub_task.do_not_ack = False
     task = remote_task_types.RemoteTask(
         'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
 
     self.gate.create_utask_main_jobs([task])
 
     self.assertTrue(mock_k8s_create.called)
-    self.assertFalse(mock_pubsub_task.do_not_ack)

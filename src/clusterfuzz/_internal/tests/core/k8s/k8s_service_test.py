@@ -17,7 +17,6 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.k8s import service
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -41,11 +40,6 @@ class KubernetesServiceTest(unittest.TestCase):
     data_types.Job(
         name='job2', platform='LINUX',
         environment_string='CUSTOM_VAR = value').put()
-
-    data_types.FeatureFlag(
-        id=feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.value,
-        enabled=True,
-        value=100.0).put()
 
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
   @mock.patch.object(service.KubernetesService, 'create_job')
@@ -84,22 +78,6 @@ class KubernetesServiceTest(unittest.TestCase):
         namespace='default',
         label_selector='app.kubernetes.io/name=clusterfuzz-kata-job',
         field_selector='status.phase=Pending')
-
-  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
-  def test_create_uworker_main_batch_jobs_limit_reached(
-      self, mock_get_pending_count, _):
-    """Tests that create_utask_main_jobs nacks when limit reached."""
-    mock_get_pending_count.return_value = 101
-    kube_service = service.KubernetesService()
-
-    mock_pubsub_task = mock.Mock()
-    mock_pubsub_task.do_not_ack = False
-    task = remote_task_types.RemoteTask(
-        'fuzz', 'job1', 'url1', pubsub_task=mock_pubsub_task)
-
-    result = kube_service.create_utask_main_jobs([task])
-    self.assertEqual(result, [])
-    self.assertTrue(mock_pubsub_task.do_not_ack)
 
   @mock.patch('kubernetes.client.BatchV1Api')
   def test_create_job_kata(self, mock_batch_api_cls, _):
