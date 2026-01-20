@@ -269,7 +269,6 @@ UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
     r'.*call to function [^\s]+ through pointer to incorrect function type.*')
 UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
-UBSAN_INDEX_OUT_OF_RANGE_REGEX = re.compile(r'.*index out of range.*')
 UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
     r'.*unsigned integer overflow.*')
 UBSAN_INTEGER_OVERFLOW_REGEX = re.compile(
@@ -299,10 +298,9 @@ UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX = re.compile(
     r'.*null pointer returned from function declared to never return null.*')
 UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
 UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
-UBSAN_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(
-    r'.*slice bounds out of range.*')
 UBSAN_UNREACHABLE_REGEX = re.compile(
     r'.*execution reached an unreachable program point.*')
+UBSAN_UPCAST_OF_NULL_POINTER = re.compile(r'.*upcast of null pointer of type.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
     r'.*variable length array bound evaluates to non-positive value.*')
 UBSAN_VPTR_REGEX = re.compile(
@@ -687,7 +685,6 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_IMPLICIT_CONVERSION_REGEX, 'Implicit-conversion'),
     (UBSAN_INCORRECT_FUNCTION_POINTER_REGEX, 'Incorrect-function-pointer-type'),
     (UBSAN_INDEX_OOB_REGEX, 'Index-out-of-bounds'),
-    (UBSAN_INDEX_OUT_OF_RANGE_REGEX, 'Index-out-of-range'),
     (UBSAN_INVALID_BOOL_VALUE_REGEX, 'Invalid-bool-value'),
     (UBSAN_INVALID_BUILTIN_REGEX, 'Invalid-builtin-use'),
     (UBSAN_MISALIGNED_ADDRESS_REGEX, 'Misaligned-address'),
@@ -700,9 +697,9 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_POINTER_OVERFLOW_REGEX, 'Pointer-overflow'),
     (UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX, 'Invalid-null-return'),
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
-    (UBSAN_SLICE_BOUNDS_OUT_OF_RANGE_REGEX, 'Slice-bounds-out-of-range'),
     (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
     (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
+    (UBSAN_UPCAST_OF_NULL_POINTER, 'Upcast-of-null-pointer'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
 
     # The following types are supersets of other types, and should be placed
