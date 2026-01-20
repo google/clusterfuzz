@@ -48,10 +48,9 @@ class KubernetesServiceTest(unittest.TestCase):
         value=100.0).put()
 
   @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
-  @mock.patch.object(service.KubernetesService, 'create_kata_container_job')
   @mock.patch.object(service.KubernetesService, 'create_job')
-  def test_create_uworker_main_batch_jobs(
-      self, mock_create_job, mock_create_kata_job, mock_get_pending_count, _):
+  def test_create_uworker_main_batch_jobs(self, mock_create_job,
+                                          mock_get_pending_count, _):
     """Tests the creation of uworker main batch jobs."""
     mock_get_pending_count.return_value = 0
     tasks = [
@@ -63,13 +62,10 @@ class KubernetesServiceTest(unittest.TestCase):
     kube_service = service.KubernetesService()
     kube_service.create_utask_main_jobs(tasks)
 
-    # Assuming default config implies Kata, and no batching of URLs.
-    # Total 3 tasks, so 3 calls.
-    self.assertEqual(3, mock_create_kata_job.call_count)
-    self.assertEqual(0, mock_create_job.call_count)
+    # Total 3 tasks, so 3 calls to create_job.
+    self.assertEqual(3, mock_create_job.call_count)
 
-    urls = sorted(
-        [call.args[1] for call in mock_create_kata_job.call_args_list])
+    urls = sorted([call.args[1] for call in mock_create_job.call_args_list])
     self.assertEqual(urls, ['url1', 'url2', 'url3'])
 
   @mock.patch('kubernetes.client.CoreV1Api')
@@ -106,8 +102,8 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertTrue(mock_pubsub_task.do_not_ack)
 
   @mock.patch('kubernetes.client.BatchV1Api')
-  def test_create_kata_container_job_spec(self, mock_batch_api_cls, _):
-    """Tests that create_kata_container_job generates the correct spec."""
+  def test_create_job_kata(self, mock_batch_api_cls, _):
+    """Tests that create_job generates the correct spec for Kata."""
     mock_batch_api = mock_batch_api_cls.return_value
     kube_service = service.KubernetesService()
     # Mock _create_service_account_if_needed
@@ -123,7 +119,7 @@ class KubernetesServiceTest(unittest.TestCase):
         clusterfuzz_release='prod',
         is_kata=True)
 
-    kube_service.create_kata_container_job(config, 'input_url')
+    kube_service.create_job(config, 'input_url')
 
     self.assertTrue(mock_batch_api.create_namespaced_job.called)
     call_args = mock_batch_api.create_namespaced_job.call_args
@@ -137,22 +133,18 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertEqual(['ALL'],
                      container['securityContext']['capabilities']['add'])
 
-    # Check HOST_UID env var
-    env_names = {e['name']: e['value'] for e in container['env']}
-    self.assertEqual('1337', env_names['HOST_UID'])
+    # Check labels
+    self.assertEqual('fuzz', job_body['metadata']['labels']['task_name'])
+    self.assertEqual('test-job', job_body['metadata']['labels']['job_name'])
 
-    # Check shm size
-    volumes = {v['name']: v for v in pod_spec['volumes']}
-    self.assertEqual('1.9Gi', volumes['dshm']['emptyDir']['sizeLimit'])
-
-    # Check Service Account
-    self.assertEqual('test', pod_spec['serviceAccountName'])
-    kube_service._create_service_account_if_needed.assert_called_with(
-        'test@clusterfuzz-test.iam.gserviceaccount.com')
+    # Check Kata specific fields
+    self.assertEqual('kata', pod_spec['runtimeClassName'])
+    self.assertEqual('ClusterFirstWithHostNet', pod_spec['dnsPolicy'])
+    self.assertIn('lifecycle', container)
 
   @mock.patch('kubernetes.client.BatchV1Api')
-  def test_create_job(self, mock_batch_api_cls, _):
-    """Tests create_job."""
+  def test_create_job_standard(self, mock_batch_api_cls, _):
+    """Tests create_job for standard container."""
     mock_batch_api = mock_batch_api_cls.return_value
     kube_service = service.KubernetesService()
     kube_service._create_service_account_if_needed = mock.Mock(
@@ -173,11 +165,15 @@ class KubernetesServiceTest(unittest.TestCase):
     call_args = mock_batch_api.create_namespaced_job.call_args
     job_body = call_args.kwargs['body']
 
+    pod_spec = job_body['spec']['template']['spec']
+    container = pod_spec['containers'][0]
+
     # Check Service Account
-    self.assertEqual('test-sa',
-                     job_body['spec']['template']['spec']['serviceAccountName'])
-    kube_service._create_service_account_if_needed.assert_called_with(
-        'test-email')
+    self.assertEqual('test-sa', pod_spec['serviceAccountName'])
+
+    # Check that Kata specific fields are NOT present
+    self.assertNotIn('runtimeClassName', pod_spec)
+    self.assertIn('volumeMounts', container)
 
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')

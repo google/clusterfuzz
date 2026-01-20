@@ -136,8 +136,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
                      service_account_name: str) -> dict:
   """Creates the body of a Kubernetes job."""
 
-  job_name = config.job_type.replace('_', '-') + '-' + str(uuid.uuid4()).split(
-      '-', maxsplit=1)[0]
+  job_name = f'cf-job-{str(uuid.uuid4())}'
   job_name = job_name.lower()
 
   # Set up Jinja2 environment and load the template.
@@ -153,6 +152,9 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
       'docker_image': config.docker_image,
       'clusterfuzz_release': config.clusterfuzz_release,
       'input_url': input_url,
+      'is_kata': config.is_kata,
+      'task_name': config.command,
+      'clusterfuzz_job_name': config.job_type,
   }
 
   # Render the template and load as YAML.
@@ -314,39 +316,6 @@ class KubernetesService(types.RemoteTaskInterface):
     for config, input_urls in job_specs.items():
       # TODO(javanlacerda): Batch multiple tasks into a single job.
       for input_url in input_urls:
-        if config.is_kata:
-          jobs.append(self.create_kata_container_job(config, input_url))
-        else:
-          jobs.append(self.create_job(config, input_url))
+        jobs.append(self.create_job(config, input_url))
 
     return jobs
-
-  def create_kata_container_job(self, config: KubernetesJobConfig,
-                                input_url: str) -> str:
-    """Creates a Kubernetes job that runs in a Kata container."""
-    service_account_name = self._create_service_account_if_needed(
-        config.service_account_email)
-    job_name = 'clusterfuzz-kata-job-' + str(uuid.uuid4()).split(
-        '-', maxsplit=1)[0]
-
-    # Set up Jinja2 environment and load the template.
-    template_dir = os.path.dirname(__file__)
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-    template = jinja_env.get_template('kata_job_template.yaml')
-
-    # Define the context with all the dynamic values.
-    context = {
-        'job_name': job_name,
-        'active_deadline_seconds': tasks.get_task_duration(config.command),
-        'service_account_name': service_account_name,
-        'docker_image': config.docker_image,
-        'clusterfuzz_release': config.clusterfuzz_release,
-        'input_url': input_url,
-    }
-
-    # Render the template and load as YAML.
-    rendered_spec = template.render(context)
-    job_spec = yaml.safe_load(rendered_spec)
-
-    self._batch_api.create_namespaced_job(body=job_spec, namespace='default')
-    return job_name

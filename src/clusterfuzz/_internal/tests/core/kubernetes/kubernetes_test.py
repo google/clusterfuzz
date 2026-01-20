@@ -77,7 +77,10 @@ class KubernetesJobClientTest(unittest.TestCase):
     called_args, called_kwargs = self.k8s_client._batch_api.create_namespaced_job.call_args
     self.assertEqual(called_args, ())
     job_body = called_kwargs['body']
-    self.assertEqual(job_body['metadata']['name'], 'test-job-a0b1c2d3')
+    self.assertEqual(job_body['metadata']['name'],
+                     'cf-job-a0b1c2d3-e4f5-6789-0123-456789abcdef')
+    self.assertEqual(job_body['metadata']['labels']['task_name'], 'fuzz')
+    self.assertEqual(job_body['metadata']['labels']['job_name'], 'test-job')
     self.assertEqual(
         job_body['spec']['template']['spec']['containers'][0]['image'],
         'test-image')

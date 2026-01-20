@@ -52,7 +52,7 @@ class KubernetesServiceLimitTest(unittest.TestCase):
 
     # We expect this to proceed to job creation logic (which we mock to avoid actual creation)
     with mock.patch.object(service.KubernetesService,
-                           'create_kata_container_job') as mock_create:
+                           'create_job') as mock_create:
       kube_service.create_utask_main_jobs(
           [types.RemoteTask('fuzz', 'job1', 'url1')])
       self.assertTrue(mock_create.called)

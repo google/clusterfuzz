@@ -15,16 +15,44 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: "{{job_name}}"
+  labels:
+    task_name: "{{task_name}}"
+    job_name: "{{clusterfuzz_job_name}}"
 spec:
   ttlSecondsAfterFinished: 100
   activeDeadlineSeconds: {{active_deadline_seconds}}
   template:
+    metadata:
+      labels:
+        task_name: "{{task_name}}"
+        job_name: "{{clusterfuzz_job_name}}"
+        {% if is_kata %}
+        app.kubernetes.io/name: clusterfuzz-kata-job
+        {% endif %}
     spec:
+      {% if is_kata %}
+      runtimeClassName: kata
+      {% endif %}
+      dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: "{{service_account_name}}"
       containers:
       - name: "{{job_name}}"
         image: "{{docker_image}}"
         imagePullPolicy: IfNotPresent
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+        resources:
+          requests:
+            cpu: '2'
+            memory: 3.75Gi
+          limits:
+            cpu: '2'
+            memory: 3.75Gi
         env:
         - name: HOST_UID
           value: '1337'
@@ -57,5 +85,9 @@ spec:
         emptyDir:
           medium: Memory
           sizeLimit: 1.9Gi
+      {% if is_kata %}
+      nodeSelector:
+        cloud.google.com/gke-nodepool: kata-enabled-pool
+      {% endif %}
       restartPolicy: Never
   backoffLimit: 0

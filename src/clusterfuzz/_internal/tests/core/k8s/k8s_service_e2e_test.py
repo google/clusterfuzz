@@ -220,40 +220,6 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
 
-  @unittest.skip('Should be implemented against a cluster that supports kata')
-  def test_create_kata_container_job(self, mock_get_logging_config_dict):
-    """Tests creating a Kata container job."""
-    input_urls = []
-    actual_job_name = self.kubernetes_client.create_kata_container_job(
-        self.image, input_urls)
-
-    # Wait for the job to be created.
-    time.sleep(5)
-
-    job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-    self.assertIsNotNone(job)
-    self.assertEqual(job.metadata.name, actual_job_name)
-    self.assertEqual(job.spec.template.spec.runtime_class_name, 'kata')
-
-    # Wait for the job to start running.
-    job_running = False
-    for _ in range(180):
-      job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-      if job.status.active or job.status.succeeded:
-        job_running = True
-        break
-      time.sleep(1)
-
-    self.assertTrue(
-        job_running,
-        f'Kata Job {actual_job_name} did not start running. Status: {job.status}'
-    )
-
-    self.api_client.delete_namespaced_job(
-        name=actual_job_name,
-        namespace='default',
-        body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
-
   @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
