@@ -13,11 +13,11 @@
 # limitations under the License.
 """Bot startup script."""
 
-from clusterfuzz._internal import remote_task
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
 from clusterfuzz._internal.base import modules
+from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
 
 modules.fix_module_search_paths()
@@ -103,7 +103,7 @@ def schedule_utask_mains():
             task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    remote_task.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
+    remote_task_gate.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
 
 
 def task_loop():

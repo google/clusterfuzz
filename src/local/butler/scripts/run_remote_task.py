@@ -15,9 +15,9 @@
 
 import contextlib
 
-from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
@@ -52,7 +52,8 @@ def schedule_utask_mains():
         for task in utask_mains
     ]
 
-    results = remote_task.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
+    results = remote_task_gate.RemoteTaskGate().create_utask_main_jobs(
+        batch_tasks)
   print('Created jobs:', results)
   return results
 

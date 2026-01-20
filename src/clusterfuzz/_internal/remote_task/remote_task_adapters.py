@@ -15,9 +15,9 @@
 
 from enum import Enum
 
-from clusterfuzz._internal.batch.service import GcpBatchService
+from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.datastore import feature_flags
-from clusterfuzz._internal.k8s.service import KubernetesService
+from clusterfuzz._internal.k8s import service as k8s_service
 
 
 class RemoteTaskAdapters(Enum):
@@ -33,9 +33,9 @@ class RemoteTaskAdapters(Enum):
     feature_flag: The feature flag that controls the frequency of this backend.
     default_weight: The default frequency if the feature flag is not set.
   """
-  KUBERNETES = ('kubernetes', KubernetesService,
+  KUBERNETES = ('kubernetes', k8s_service.KubernetesService,
                 feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY, 0.0)
-  GCP_BATCH = ('gcp_batch', GcpBatchService, None, 1.0)
+  GCP_BATCH = ('gcp_batch', batch_service.GcpBatchService, None, 1.0)
 
   def __init__(self, adapter_id, service, feature_flag, default_weight):
     self.id = adapter_id

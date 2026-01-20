@@ -15,7 +15,7 @@
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal.remote_task import RemoteTaskGate
+from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.tests.core.datastore import ds_test_utils
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -28,7 +28,7 @@ class GetJobFrequencyTest(unittest.TestCase):
     mock.patch(
         'clusterfuzz._internal.k8s.service.KubernetesService._load_gke_credentials'
     ).start()
-    self.gate = RemoteTaskGate()
+    self.gate = remote_task_gate.RemoteTaskGate()
 
   def test_get_job_frequency_defaults(self):
     """Tests that the default frequencies are returned when no feature flags

@@ -47,5 +47,5 @@ class RemoteTaskInterface(abc.ABC):
 
   @abc.abstractmethod
   def create_utask_main_jobs(self, remote_tasks: list[RemoteTask]):
-    """Creates a many remote tasks for uworker main tasks."""
+    """Creates many remote tasks for uworker main tasks."""
     raise NotImplementedError

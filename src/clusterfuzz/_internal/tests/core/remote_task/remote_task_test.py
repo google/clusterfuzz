@@ -16,8 +16,8 @@
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.k8s import service as k8s_service
+from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -59,9 +59,9 @@ class RemoteTaskGateTest(unittest.TestCase):
         }]
     }
 
-    self.gate = remote_task.RemoteTaskGate()
+    self.gate = remote_task_gate.RemoteTaskGate()
 
-  @mock.patch.object(remote_task.RemoteTaskGate, 'get_job_frequency')
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
@@ -88,7 +88,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     # Verify result is empty list
     self.assertEqual(result, [])
 
-  @mock.patch.object(remote_task.RemoteTaskGate, 'get_job_frequency')
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
