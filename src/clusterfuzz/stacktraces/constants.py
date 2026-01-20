@@ -259,7 +259,8 @@ SYMBOL_NOT_FOUND_REGEX = re.compile(
     r'.*: cannot locate symbol ([`\'"])(.*)\1 referenced by')
 TRUSTY_STACK_FRAME_REGEX = re.compile(
     r'(uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16}) in (\w+)')
-UBSAN_ASSUMPTION_VIOLATION = re.compile(r'.*assumption is violated during execution.*')
+UBSAN_ASSUMPTION_VIOLATION = re.compile(
+    r'.*assumption is violated during execution.*')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
@@ -298,7 +299,8 @@ UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX = re.compile(
     r'.*null pointer returned from function declared to never return null.*')
 UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
 UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
-UBSAN_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(r'.*slice bounds out of range.*')
+UBSAN_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(
+    r'.*slice bounds out of range.*')
 UBSAN_UNREACHABLE_REGEX = re.compile(
     r'.*execution reached an unreachable program point.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
