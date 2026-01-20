@@ -33,29 +33,6 @@ from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-@mock.patch(
-    'clusterfuzz._internal.metrics.logs.get_logging_config_dict',
-    return_value={
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'simpleFormatter': {
-                'format': '%(levelname)s:%(module)s:%(lineno)d:%(message)s'
-            }
-        },
-        'handlers': {
-            'consoleHandler': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'simpleFormatter'
-            }
-        },
-        'loggers': {
-            'root': {
-                'handlers': ['consoleHandler'],
-                'level': 'INFO'
-            }
-        }
-    })
 @test_utils.with_cloud_emulators('datastore')
 class KubernetesServiceE2ETest(unittest.TestCase):
   """End-to-end tests for the Kubernetes service."""
@@ -66,146 +43,61 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     if not os.getenv('K8S_E2E'):
       raise unittest.SkipTest('K8S_E2E environment variable not set.')
 
-    cls.mock_batch_config = mock.Mock()
-    cls.mock_batch_config.get.return_value = 'test-project'
+    cls.cluster_name = 'test-cluster-for-e2e-test'
+    cls.image = 'gcr.io/clusterfuzz-images/base:000dc1f-202511191429'
 
-    def get_batch_config(key):
-      return {
-          'project': 'test-project',
-          'mapping': {
-              'LINUX-PREEMPTIBLE-UNPRIVILEGED': {
-                  'clusterfuzz_release': 'prod',
-                  'docker_image': cls.image,
-                  'user_data': 'file://linux-init.yaml',
-                  'disk_size_gb': 10,
-                  'disk_type': 'pd-standard',
-                  'service_account_email': 'test-email',
-                  'preemptible': True,
-                  'machine_type': 'machine-type',
-                  'subconfigs': [{
-                      'name': 'subconfig1',
-                      'weight': 1
-                  }]
-              },
-              'LINUX-NONPREEMPTIBLE-UNPRIVILEGED': {
-                  'clusterfuzz_release': 'prod',
-                  'docker_image': cls.image,
-                  'user_data': 'file://linux-init.yaml',
-                  'disk_size_gb': 20,
-                  'disk_type': 'pd-standard',
-                  'service_account_email': 'test-email',
-                  'preemptible': False,
-                  'machine_type': 'machine-type',
-                  'subconfigs': [{
-                      'name': 'subconfig1',
-                      'weight': 1
-                  }]
-              }
-          },
-          'subconfigs': {
-              'subconfig1': {
-                  'region': 'region',
-                  'network': 'network',
-                  'subnetwork': 'subnetwork'
-              }
-          }
-      }.get(key)
+    # Find `kind` executable.
+    cls.kind_path = (
+        shutil.which('kind') or os.path.expanduser('~/.local/bin/kind'))
+    if not cls.kind_path or not os.path.exists(cls.kind_path):
+      raise unittest.SkipTest('kind executable not found.')
 
-    cls.mock_batch_config.get.side_effect = get_batch_config
+    # Ensure no old cluster exists and create a new one.
+    subprocess.run(
+        [cls.kind_path, 'delete', 'cluster', '--name', cls.cluster_name],
+        check=False)
+    subprocess.run(
+        [cls.kind_path, 'create', 'cluster', '--name', cls.cluster_name],
+        check=True)
 
-    cls.mock_local_config = mock.Mock()
-    cls.mock_local_config.BatchConfig.return_value = cls.mock_batch_config
+    # Get kubeconfig and load it.
+    kubeconfig = subprocess.check_output(
+        [cls.kind_path, 'get', 'kubeconfig', '--name',
+         cls.cluster_name]).decode('utf-8')
 
-    with mock.patch(
-        'clusterfuzz._internal.config.local_config', new=cls.mock_local_config):
-      cls.cluster_name = 'test-cluster-for-e2e-test'
-      cls.image = 'gcr.io/clusterfuzz-images/base:000dc1f-202511191429'
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+      f.write(kubeconfig)
+      cls.kubeconfig_path = f.name
+    k8s_config.load_kube_config(config_file=cls.kubeconfig_path)
 
-      # First, try to find `kind` in the user's local bin directory.
-      home_dir = os.path.expanduser('~')
-      local_kind_path = os.path.join(home_dir, '.local', 'bin', 'kind')
-
-      if os.path.exists(local_kind_path):
-        cls.kind_path = local_kind_path
-      else:
-        # Fallback to searching the PATH.
-        cls.kind_path = shutil.which('kind')
-
-      # Ensure no old cluster exists.
-      subprocess.run(
-          [cls.kind_path, 'delete', 'cluster', '--name', cls.cluster_name],
-          check=False)
-
-      subprocess.run(
-          [cls.kind_path, 'create', 'cluster', '--name', cls.cluster_name],
-          check=True)
-
-      # Explicitly get the kubeconfig from the kind cluster.
-      kubeconfig = subprocess.check_output(
-          [cls.kind_path, 'get', 'kubeconfig', '--name',
-           cls.cluster_name]).decode('utf-8')
-
-      # Write the kubeconfig to a temporary file and load it.
-      with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
-        f.write(kubeconfig)
-        cls.kubeconfig_path = f.name
-      k8s_config.load_kube_config(config_file=cls.kubeconfig_path)
-      cls.api_client = k8s_client.BatchV1Api()
-
+    cls.api_client = k8s_client.BatchV1Api()
     cls.kubernetes_client = kubernetes_service.KubernetesService(
         k8s_config_loaded=True)
+
+    # Setup dummy jobs in datastore.
     data_types.Job(name='test-job', platform='LINUX').put()
     data_types.Job(name='test-job1', platform='LINUX').put()
     data_types.Job(name='test-job2', platform='LINUX').put()
 
-    cls.mock_get_config_names = mock.Mock(
-        return_value={
-            ('fuzz', 'test-job'): ('LINUX-PREEMPTIBLE-UNPRIVILEGED', 10, None),
-            ('fuzz', 'test-job1'): ('LINUX-PREEMPTIBLE-UNPRIVILEGED', 10, None),
-            ('fuzz', 'test-job2'): ('LINUX-NONPREEMPTIBLE-UNPRIVILEGED', 20,
-                                    None),
-        })
-    cls.mock_get_config_names_patcher = mock.patch(
-        'clusterfuzz._internal.batch.service._get_config_names',
-        new=cls.mock_get_config_names)
-    cls.mock_get_config_names_patcher.start()
-
   @classmethod
   def tearDownClass(cls):
     """Tear down the test environment."""
-    os.remove(cls.kubeconfig_path)
-    subprocess.run(
-        [cls.kind_path, 'delete', 'cluster', '--name', cls.cluster_name],
-        check=True)
-    cls.mock_get_config_names_patcher.stop()
+    if hasattr(cls, 'kubeconfig_path') and os.path.exists(cls.kubeconfig_path):
+      os.remove(cls.kubeconfig_path)
+    if hasattr(cls, 'kind_path') and cls.kind_path:
+      subprocess.run(
+          [cls.kind_path, 'delete', 'cluster', '--name', cls.cluster_name],
+          check=True)
 
-  def test_create_job(self, mock_get_logging_config_dict):
-    """Tests creating a job."""
-    input_url = 'url'
-    task = remote_task_types.RemoteTask(None, 'test-job', None)
-    task.docker_image = self.image
+  def _wait_for_job_and_delete(self, job_name):
+    """Waits for a job to start running and then deletes it."""
+    # Wait for the job to be created in the API.
+    time.sleep(2)
 
-    config = KubernetesJobConfig(
-        job_type='test-job',
-        docker_image=self.image,
-        command=task.command,
-        disk_size_gb=10,
-        service_account_email='test-email',
-        clusterfuzz_release='prod',
-        is_kata=False)
-    actual_job_name = self.kubernetes_client.create_job(config, input_url)
-
-    # Wait for the job to be created.
-    time.sleep(5)
-
-    job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-    self.assertIsNotNone(job)
-    self.assertEqual(job.metadata.name, actual_job_name)
-
-    # Wait for the job to start running.
+    # Wait for the job to start running (at least one active pod).
     job_running = False
-    for _ in range(180):
-      job = self.api_client.read_namespaced_job(actual_job_name, 'default')
+    for _ in range(60):
+      job = self.api_client.read_namespaced_job(job_name, 'default')
       if job.status.active or job.status.succeeded:
         job_running = True
         break
@@ -213,19 +105,32 @@ class KubernetesServiceE2ETest(unittest.TestCase):
 
     self.assertTrue(
         job_running,
-        f'Job {actual_job_name} did not start running. Status: {job.status}')
+        f'Job {job_name} did not start running. Status: {job.status}')
 
+    # Cleanup.
     self.api_client.delete_namespaced_job(
-        name=actual_job_name,
+        name=job_name,
         namespace='default',
         body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
+
+  def test_create_job(self):
+    """Tests creating a job."""
+    config = KubernetesJobConfig(
+        job_type='test-job',
+        docker_image=self.image,
+        command='fuzz',
+        disk_size_gb=10,
+        service_account_email='test-email',
+        clusterfuzz_release='prod',
+        is_kata=False)
+    actual_job_name = self.kubernetes_client.create_job(config, 'url')
+    self._wait_for_job_and_delete(actual_job_name)
 
   @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
   def test_create_uworker_main_batch_job(self, mock_get_command_from_module,
-                                         mock_get_k8s_job_configs,
-                                         mock_get_logging_config_dict):
+                                         mock_get_k8s_job_configs):
     """Tests creating a single uworker main batch job."""
     mock_get_command_from_module.return_value = 'fuzz'
     config = KubernetesJobConfig(
@@ -238,41 +143,15 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         is_kata=False)
     mock_get_k8s_job_configs.return_value = {('fuzz', 'test-job'): config}
 
-    actual_job_name = \
-        self.kubernetes_client.create_utask_main_job(
-            'module', 'test-job', 'url1')
-
-    # Wait for the job to be created.
-    time.sleep(5)
-
-    job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-    self.assertIsNotNone(job)
-    self.assertEqual(job.metadata.name, actual_job_name)
-
-    # Wait for the job to start running.
-    job_running = False
-    for _ in range(180):
-      job = self.api_client.read_namespaced_job(actual_job_name, 'default')
-      if job.status.active or job.status.succeeded:
-        job_running = True
-        break
-      time.sleep(1)
-
-    self.assertTrue(
-        job_running,
-        f'Job {actual_job_name} did not start running. Status: {job.status}')
-
-    self.api_client.delete_namespaced_job(
-        name=actual_job_name,
-        namespace='default',
-        body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
+    actual_job_name = self.kubernetes_client.create_utask_main_job(
+        'module', 'test-job', 'url1')
+    self._wait_for_job_and_delete(actual_job_name)
 
   @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
   def test_create_uworker_main_batch_jobs(self, mock_get_command_from_module,
-                                          mock_get_k8s_job_configs,
-                                          mock_get_logging_config_dict):
+                                          mock_get_k8s_job_configs):
     """Tests creating multiple uworker main batch jobs."""
     mock_get_command_from_module.return_value = 'fuzz'
     config1 = KubernetesJobConfig(
@@ -285,7 +164,7 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         is_kata=False)
     config2 = KubernetesJobConfig(
         job_type='test-job2',
-        docker_image='different-image',
+        docker_image=self.image,
         command='fuzz',
         disk_size_gb=20,
         service_account_email='test-email',
@@ -302,35 +181,11 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'test-job2', 'url2'),
     ]
 
-    actual_job_names = \
-        self.kubernetes_client.create_utask_main_jobs(tasks)
+    actual_job_names = self.kubernetes_client.create_utask_main_jobs(tasks)
     self.assertEqual(len(actual_job_names), 2)
 
     for job_name in actual_job_names:
-      # Wait for the job to be created.
-      time.sleep(5)
-
-      job = self.api_client.read_namespaced_job(job_name, 'default')
-      self.assertIsNotNone(job)
-      self.assertEqual(job.metadata.name, job_name)
-
-      # Wait for the job to start running.
-      job_running = False
-      for _ in range(180):
-        job = self.api_client.read_namespaced_job(job_name, 'default')
-        if job.status.active or job.status.succeeded:
-          job_running = True
-          break
-        time.sleep(1)
-
-      self.assertTrue(
-          job_running,
-          f'Job {job_name} did not start running. Status: {job.status}')
-
-      self.api_client.delete_namespaced_job(
-          name=job_name,
-          namespace='default',
-          body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
+      self._wait_for_job_and_delete(job_name)
 
 
 if __name__ == '__main__':

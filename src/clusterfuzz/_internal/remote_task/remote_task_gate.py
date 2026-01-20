@@ -24,8 +24,8 @@ import random
 from typing import List
 
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.remote_task import remote_task_adapters
+from clusterfuzz._internal.remote_task import remote_task_types
 
 
 class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
