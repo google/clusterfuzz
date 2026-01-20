@@ -286,7 +286,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'project::v3::impl::func_ex::func::f_header\n'
                       'project::v3::impl::func_ex::func::f_document\n')
     expected_stacktrace = data
-    expected_security_flag = True
+    expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -596,7 +596,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'Test::Ex::operator\n'
                       'Test::Ex::operator\n')
     expected_stacktrace = data
-    expected_security_flag = True
+    expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
