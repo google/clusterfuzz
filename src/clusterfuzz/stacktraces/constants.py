@@ -259,6 +259,7 @@ SYMBOL_NOT_FOUND_REGEX = re.compile(
     r'.*: cannot locate symbol ([`\'"])(.*)\1 referenced by')
 TRUSTY_STACK_FRAME_REGEX = re.compile(
     r'(uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16}) in (\w+)')
+UBSAN_ASSUMPTION_VIOLATION = re.compile(r'.*assumption is violated during execution.*')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
@@ -267,6 +268,7 @@ UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
     r'.*call to function [^\s]+ through pointer to incorrect function type.*')
 UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
+UBSAN_INDEX_OUT_OF_RANGE_REGEX = re.compile(r'.*index out of range.*')
 UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
     r'.*unsigned integer overflow.*')
 UBSAN_INTEGER_OVERFLOW_REGEX = re.compile(
@@ -296,6 +298,7 @@ UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX = re.compile(
     r'.*null pointer returned from function declared to never return null.*')
 UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
 UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
+UBSAN_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(r'.*slice bounds out of range.*')
 UBSAN_UNREACHABLE_REGEX = re.compile(
     r'.*execution reached an unreachable program point.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
@@ -682,6 +685,7 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_IMPLICIT_CONVERSION_REGEX, 'Implicit-conversion'),
     (UBSAN_INCORRECT_FUNCTION_POINTER_REGEX, 'Incorrect-function-pointer-type'),
     (UBSAN_INDEX_OOB_REGEX, 'Index-out-of-bounds'),
+    (UBSAN_INDEX_OUT_OF_RANGE_REGEX, 'Index-out-of-range'),
     (UBSAN_INVALID_BOOL_VALUE_REGEX, 'Invalid-bool-value'),
     (UBSAN_INVALID_BUILTIN_REGEX, 'Invalid-builtin-use'),
     (UBSAN_MISALIGNED_ADDRESS_REGEX, 'Misaligned-address'),
@@ -694,6 +698,7 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_POINTER_OVERFLOW_REGEX, 'Pointer-overflow'),
     (UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX, 'Invalid-null-return'),
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
+    (UBSAN_SLICE_BOUNDS_OUT_OF_RANGE_REGEX, 'Slice-bounds-out-of-range'),
     (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
     (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
@@ -702,6 +707,7 @@ UBSAN_CRASH_TYPES_MAP = [
     # at the end to avoid subsuming crashes from the more specialized types.
     (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
     (UBSAN_INTEGER_OVERFLOW_REGEX, 'Integer-overflow'),
+    (UBSAN_ASSUMPTION_VIOLATION, 'Assumption-violation'),
 ]
 
 # Additional regexes for cleaning up format.
