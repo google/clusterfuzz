@@ -277,6 +277,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
     actual_state = stack_analyzer.get_crash_data(data)
     self.assertEqual(actual_state.crash_state, expected_state)
 
+  def test_ubsan_assumption_violated(self):
+    """Test the ubsan assumption violation format."""
+    data = self._read_test_data('ubsan_assumption_violation.txt')
+    expected_type = 'Assumption-violation'
+    expected_address = ''
+    expected_state = ('project::v3::impl::func_ex::func::f_key\n'
+                      'project::v3::impl::func_ex::func::f_header\n'
+                      'project::v3::impl::func_ex::func::f_document\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ubsan_bad_cast_downcast(self):
     """Test the ubsan bad cast downcast format."""
     data = self._read_test_data('ubsan_bad_cast_downcast.txt')
@@ -567,6 +582,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'courgette::Disassembler::CreateProgram\n')
     expected_stacktrace = data
     expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ubsan_upcast_null_pointer(self):
+    """Test the ubsan upcast of null pointer format."""
+    data = self._read_test_data('ubsan_upcast_of_null_pointer.txt')
+    expected_type = 'Upcast-of-null-pointer'
+    expected_address = ''
+    expected_state = ('Test::Ex::operator\n'
+                      'Test::Ex::operator\n'
+                      'Test::Ex::operator\n')
+    expected_stacktrace = data
+    expected_security_flag = True
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
