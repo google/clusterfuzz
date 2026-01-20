@@ -1,0 +1,17 @@
+/src/project/include/test++/impl/f.inl:1234:2: runtime error: assumption is violated during execution
+    #0 0x5d4761e1112b in project::v3::impl::func_ex::func::f_key() /src/project/include/test++/impl/f.inl:1234:4
+    #1 0x5d4761e0e123 in project::v3::impl::func_ex::func::f_header() /src/project/include/test++/impl/f.inl:1111:5
+    #2 0x5d4761e0caab in project::v3::impl::func_ex::func::f_document() /src/project/include/test++/impl/f.inl:1111:44
+    #3 0x5d4761e0bf3c in project::v3::impl::func_ex::func::func(project::v3::impl::reader_interface&&) /src/project/include/test++/impl/f.inl:4321:5
+    #4 0x5d4761e09c42 in do_func /src/project/include/test++/impl/f.inl:1234:10
+    #5 0x5d4761e09c42 in project::v3::ex::func(std::__1::basic_string_view<char, std::__1::char_traits<char>>, std::__1::basic_string_view<char, std::__1::char_traits<char>>) /src/project/include/test++/impl/f.inl:1234:10
+    #6 0x5d4761e099e3 in LLVMFuzzerTestOneInput /src/project/fuzzing/test_fuzzer.cpp:20:33
+    #7 0x5d4761d6087d in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:619:13
+    #8 0x5d4761d4b602 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:329:6
+    #9 0x5d4761d514d0 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:865:9
+    #10 0x5d4761d7cff2 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #11 0x7b4fad7ea1c9 in __libc_start_call_main sysdeps/nptl/libc_start_call_main.h:58:16
+    #12 0x7b4fad7ea28a in __libc_start_main csu/libc-start.c:360:3
+    #13 0x5d4761d446e4 in _start
+
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /src/project/include/test++/impl/f.inl:1234:4
