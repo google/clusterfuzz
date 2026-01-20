@@ -59,6 +59,9 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'retry',
 ])
 
+WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
+                                           ['name', 'weight'])
+
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
@@ -237,10 +240,6 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   # TODO(metzman): Come up with a more systematic way for configs to
   # be overridden by jobs.
   return config_map
-
-
-WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
-                                           ['name', 'weight'])
 
 
 def _get_subconfig(batch_config, instance_spec):

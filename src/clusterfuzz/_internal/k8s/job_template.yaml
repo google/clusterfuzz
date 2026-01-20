@@ -89,5 +89,5 @@ spec:
       nodeSelector:
         cloud.google.com/gke-nodepool: kata-enabled-pool
       {% endif %}
-      restartPolicy: Never
+      restartPolicy: "{{restart_policy}}"
   backoffLimit: 0

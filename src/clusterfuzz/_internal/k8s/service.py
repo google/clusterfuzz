@@ -155,6 +155,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
       'is_kata': config.is_kata,
       'task_name': config.command,
       'clusterfuzz_job_name': config.job_type,
+      'restart_policy': 'Never' if config.command == 'fuzz' else 'OnFailure'
   }
 
   # Render the template and load as YAML.

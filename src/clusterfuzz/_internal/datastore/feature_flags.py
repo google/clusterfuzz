@@ -31,7 +31,7 @@ class FeatureFlags(Enum):
 
   @property
   def flag(self):
-    """Get a feature flag."""
+    """Get the feature flag."""
     flag = ndb.Key(data_types.FeatureFlag, self.value).get()
     if not flag:
       return None
@@ -47,7 +47,7 @@ class FeatureFlags(Enum):
 
   @property
   def content(self):
-    """Get a feature flag value."""
+    """Get the feature flag content."""
     flag = self.flag
     if not flag or flag.value is None:
       return None
@@ -55,7 +55,7 @@ class FeatureFlags(Enum):
 
   @property
   def description(self):
-    """Get a feature flag value."""
+    """Get the feature flag description."""
     flag = self.flag
     if not flag or flag.description is None:
       return ''
@@ -63,7 +63,7 @@ class FeatureFlags(Enum):
 
   @property
   def string_value(self):
-    """Get a feature flag value."""
+    """Get the feature flag string value."""
     flag = self.flag
     if not flag or flag.string_value is None:
       return ''
