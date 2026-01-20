@@ -22,7 +22,7 @@ from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.batch.service import GcpBatchService
 from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.remote_task import remote_task_adapters
-from clusterfuzz._internal.remote_task import types
+from clusterfuzz._internal.remote_task import remote_task_types
 
 
 class RemoteTaskGateTest(unittest.TestCase):
@@ -111,7 +111,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     """Tests that create_utask_main_jobs correctly routes a single task
     based on _get_adapter."""
     tasks = [
-        types.RemoteTask('command1', 'job1', 'url1'),
+        remote_task_types.RemoteTask('command1', 'job1', 'url1'),
     ]
     mock_get_adapter.return_value = 'kubernetes'
     gate = remote_task.RemoteTaskGate()
@@ -126,10 +126,10 @@ class RemoteTaskGateTest(unittest.TestCase):
     """Tests that create_utask_main_jobs correctly routes multiple tasks
     using deterministic slicing."""
     tasks = [
-        types.RemoteTask('command', 'job1', 'url1'),
-        types.RemoteTask('command', 'job1', 'url2'),
-        types.RemoteTask('command', 'job1', 'url3'),
-        types.RemoteTask('command', 'job1', 'url4'),
+        remote_task_types.RemoteTask('command', 'job1', 'url1'),
+        remote_task_types.RemoteTask('command', 'job1', 'url2'),
+        remote_task_types.RemoteTask('command', 'job1', 'url3'),
+        remote_task_types.RemoteTask('command', 'job1', 'url4'),
     ]
 
     # 50% split
@@ -150,9 +150,9 @@ class RemoteTaskGateTest(unittest.TestCase):
     """Tests that create_utask_main_jobs correctly distributes remainder
     tasks."""
     tasks = [
-        types.RemoteTask('c', 'j', 'u1'),
-        types.RemoteTask('c', 'j', 'u2'),
-        types.RemoteTask('c', 'j', 'u3'),
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+        remote_task_types.RemoteTask('c', 'j', 'u2'),
+        remote_task_types.RemoteTask('c', 'j', 'u3'),
     ]
 
     # 33/33/33 split - one task will be a remainder
@@ -175,8 +175,8 @@ class RemoteTaskGateTest(unittest.TestCase):
   def test_create_utask_main_jobs_full_kubernetes(self, mock_get_job_frequency):
     """Tests that all tasks are routed to Kubernetes when frequency is 1.0."""
     tasks = [
-        types.RemoteTask('c', 'j', 'u1'),
-        types.RemoteTask('c', 'j', 'u2'),
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+        remote_task_types.RemoteTask('c', 'j', 'u2'),
     ]
     mock_get_job_frequency.return_value = {'kubernetes': 1.0, 'gcp_batch': 0.0}
     gate = remote_task.RemoteTaskGate()
@@ -188,8 +188,8 @@ class RemoteTaskGateTest(unittest.TestCase):
   def test_create_utask_main_jobs_full_gcp_batch(self, mock_get_job_frequency):
     """Tests that all tasks are routed to GCP Batch when frequency is 1.0."""
     tasks = [
-        types.RemoteTask('c', 'j', 'u1'),
-        types.RemoteTask('c', 'j', 'u2'),
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+        remote_task_types.RemoteTask('c', 'j', 'u2'),
     ]
     mock_get_job_frequency.return_value = {'kubernetes': 0.0, 'gcp_batch': 1.0}
     gate = remote_task.RemoteTaskGate()

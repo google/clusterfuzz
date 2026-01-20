@@ -18,7 +18,7 @@ import contextlib
 from clusterfuzz._internal import remote_task
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.remote_task import types
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
 
@@ -48,7 +48,7 @@ def schedule_utask_mains():
   results = []
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        types.RemoteTask(task.command, task.job, task.argument)
+        remote_task_types.RemoteTask(task.command, task.job, task.argument)
         for task in utask_mains
     ]
 

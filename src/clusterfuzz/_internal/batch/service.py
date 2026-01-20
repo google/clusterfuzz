@@ -35,7 +35,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.remote_task import types
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
 # A named tuple that defines the execution environment for a batch workload.
@@ -170,7 +170,8 @@ def count_queued_or_scheduled_tasks(project: str,
   """Counts the number of queued and scheduled tasks."""
   region = f'projects/{project}/locations/{region}'
   jobs_filter = 'Status.State="SCHEDULED" OR Status.State="QUEUED"'
-  req = batch.types.ListJobsRequest(parent=region, filter=jobs_filter)
+  req = batch.remote_task_types.ListJobsRequest(
+      parent=region, filter=jobs_filter)
   queued = 0
   scheduled = 0
   for job in _batch_client().list_jobs(request=req):
@@ -193,13 +194,14 @@ def is_remote_task(command: str, job_name: str) -> bool:
   be found for the given command and job type.
   """
   try:
-    _get_specs_from_config([types.RemoteTask(command, job_name, None)])
+    _get_specs_from_config(
+        [remote_task_types.RemoteTask(command, job_name, None)])
     return True
   except ValueError:
     return False
 
 
-def _get_config_names(batch_tasks: List[types.RemoteTask]):
+def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   """"Gets the name of the configs for each batch_task. Returns a dict
   that is indexed by command and job_type for efficient lookup."""
   job_names = {task.job_type for task in batch_tasks}
@@ -253,7 +255,8 @@ def _get_subconfig(batch_config, instance_spec):
   return all_subconfigs[weighted_subconfig.name]
 
 
-def _get_specs_from_config(batch_tasks: List[types.RemoteTask]) -> Dict:
+def _get_specs_from_config(
+    batch_tasks: List[remote_task_types.RemoteTask]) -> Dict:
   """Gets the configured specifications for a batch workload."""
   if not batch_tasks:
     return {}
@@ -321,7 +324,7 @@ def _get_specs_from_config(batch_tasks: List[types.RemoteTask]) -> Dict:
   return specs
 
 
-class GcpBatchService(types.RemoteTaskInterface):
+class GcpBatchService(remote_task_types.RemoteTaskInterface):
   """A high-level service for creating and managing remote tasks.
   
   This service provides a simple interface for scheduling ClusterFuzz tasks on
@@ -371,13 +374,16 @@ class GcpBatchService(types.RemoteTaskInterface):
                             input_download_url: str):
     """Creates a single batch job for a uworker main task."""
     command = task_utils.get_command_from_module(module)
-    batch_tasks = [types.RemoteTask(command, job_type, input_download_url)]
+    batch_tasks = [
+        remote_task_types.RemoteTask(command, job_type, input_download_url)
+    ]
     result = self.create_utask_main_jobs(batch_tasks)
     if result is None:
       return result
     return result[0]
 
-  def create_utask_main_jobs(self, remote_tasks: List[types.RemoteTask]):
+  def create_utask_main_jobs(self,
+                             remote_tasks: List[remote_task_types.RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
     
     This method groups the tasks by their workload specification and creates a

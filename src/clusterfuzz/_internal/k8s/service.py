@@ -34,7 +34,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.remote_task import types
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
 CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
@@ -50,7 +50,7 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
 ])
 
 
-def _get_config_names(remote_tasks: typing.List[types.RemoteTask]):
+def _get_config_names(remote_tasks: typing.List[remote_task_types.RemoteTask]):
   """"Gets the name of the configs for each batch_task. Returns a dict
 
   that is indexed by command and job_type for efficient lookup."""
@@ -62,7 +62,7 @@ def _get_config_names(remote_tasks: typing.List[types.RemoteTask]):
   config_map = {}
   for task in remote_tasks:
     if task.job_type not in job_map:
-      logs.error(f'{task.job_type} doesn\'t exist.')
+      logs.error(f"{task.job_type} doesn't exist.")
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -88,13 +88,13 @@ def _get_config_names(remote_tasks: typing.List[types.RemoteTask]):
 
 
 def _get_k8s_job_configs(
-    remote_tasks: typing.List[types.RemoteTask]
+    remote_tasks: typing.List[remote_task_types.RemoteTask]
 ) -> typing.Dict[typing.Tuple[str, str], KubernetesJobConfig]:
   """Gets the configured specifications for a batch workload."""
 
   if not remote_tasks:
     return {}
-  #TODO(javanlacerda): Create remote task config
+  # TODO(javanlacerda): Create remote task config
   batch_config = local_config.BatchConfig()
   config_map = _get_config_names(remote_tasks)
   configs = {}
@@ -162,7 +162,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
   return yaml.safe_load(rendered_spec)
 
 
-class KubernetesService(types.RemoteTaskInterface):
+class KubernetesService(remote_task_types.RemoteTaskInterface):
   """A remote task execution client for Kubernetes."""
 
   def __init__(self, k8s_config_loaded: bool = False):
@@ -178,7 +178,7 @@ class KubernetesService(types.RemoteTaskInterface):
     credentials, _ = google.auth.default()
     project = utils.get_application_id()
     service = discovery.build('container', 'v1', credentials=credentials)
-    parent = f'projects/{project}/locations/-'
+    parent = f"projects/{project}/locations/-"
 
     try:
       # pylint: disable=no-member
@@ -188,12 +188,12 @@ class KubernetesService(types.RemoteTaskInterface):
       cluster = next((c for c in clusters if c['name'] == CLUSTER_NAME), None)
 
       if not cluster:
-        logs.error(f'Cluster {CLUSTER_NAME} not found in project {project}.')
-        print(f'DEBUG: Cluster {CLUSTER_NAME} not found in project {project}.')
+        logs.error(f"Cluster {CLUSTER_NAME} not found in project {project}.")
+        print(f"DEBUG: Cluster {CLUSTER_NAME} not found in project {project}.")
         return
 
     except Exception as e:
-      logs.error(f'Failed to list clusters in {project}: {e}')
+      logs.error(f"Failed to list clusters in {project}: {e}")
       return
 
     endpoint = cluster['endpoint']
@@ -214,13 +214,13 @@ class KubernetesService(types.RemoteTaskInterface):
       request = google_requests.Request()
       if not creds.valid or creds.expired:
         creds.refresh(request)
-      return {'authorization': 'Bearer ' + creds.token}
+      return {"authorization": "Bearer " + creds.token}
 
     configuration.refresh_api_key_hook = lambda _: get_token(credentials)
     configuration.api_key = get_token(credentials)
 
     k8s_client.Configuration.set_default(configuration)
-    logs.info('GKE credentials loaded successfully.')
+    logs.info("GKE credentials loaded successfully.")
 
   def _create_service_account_if_needed(self,
                                         service_account_email: str) -> str:
@@ -266,10 +266,10 @@ class KubernetesService(types.RemoteTaskInterface):
           namespace='default',
           label_selector='app.kubernetes.io/name=clusterfuzz-kata-job',
           field_selector='status.phase=Pending')
-      logs.info(f'Found {len(pods.items)} pending jobs.')
+      logs.info(f"Found {len(pods.items)} pending jobs.")
       return len(pods.items)
     except Exception as e:
-      logs.error(f'Failed to list pods: {e}')
+      logs.error(f"Failed to list pods: {e}")
       return 0
 
   def create_utask_main_job(self, module: str, job_type: str,
@@ -277,25 +277,28 @@ class KubernetesService(types.RemoteTaskInterface):
     """Creates a single batch job for a uworker main task."""
 
     command = task_utils.get_command_from_module(module)
-    batch_tasks = [types.RemoteTask(command, job_type, input_download_url)]
+    batch_tasks = [
+        remote_task_types.RemoteTask(command, job_type, input_download_url)
+    ]
     result = self.create_utask_main_jobs(batch_tasks)
 
     if result is None:
       return result
     return result[0]
 
-  def create_utask_main_jobs(self, remote_tasks: typing.List[types.RemoteTask]):
+  def create_utask_main_jobs(
+      self, remote_tasks: typing.List[remote_task_types.RemoteTask]):
     """Creates a batch job for a list of uworker main tasks.
 
     This method groups the tasks by their workload specification and creates a
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
-    if feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.enabled and \
-    feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.content is not None\
-    and self._get_pending_jobs_count() >= int(feature_flags
-                                              .FeatureFlags.
-                                              K8S_PENDING_JOBS_LIMITER.content):
+    limit = None
+    if feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.enabled:
+      limit = feature_flags.FeatureFlags.K8S_PENDING_JOBS_LIMITER.content
+
+    if limit is not None and self._get_pending_jobs_count() >= int(limit):
       logs.warning(
           f'Kubernetes job limit reached. Not acking {len(remote_tasks)} tasks.'
       )
@@ -310,11 +313,10 @@ class KubernetesService(types.RemoteTaskInterface):
       logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
-    logs.info('Creating Kubernetes jobs.')
+    logs.info('Creating batch jobs.')
     jobs = []
-    logs.info('Batching k8s utask_mains.')
+    logs.info('Batching utask_mains.')
     for config, input_urls in job_specs.items():
-      # TODO(javanlacerda): Batch multiple tasks into a single job.
       for input_url in input_urls:
         jobs.append(self.create_job(config, input_url))
 

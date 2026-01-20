@@ -26,10 +26,10 @@ from typing import List
 
 from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.remote_task import types
+from clusterfuzz._internal.remote_task import remote_task_types
 
 
-class RemoteTaskGate(types.RemoteTaskInterface):
+class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
   """A generic dispatcher for remote task execution.
 
   This class acts as a high-level manager that abstracts away the specific
@@ -116,7 +116,8 @@ class RemoteTaskGate(types.RemoteTaskInterface):
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
-  def create_utask_main_jobs(self, remote_tasks: List[types.RemoteTask]):
+  def create_utask_main_jobs(self,
+                             remote_tasks: List[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
 
     This method handles two cases:
