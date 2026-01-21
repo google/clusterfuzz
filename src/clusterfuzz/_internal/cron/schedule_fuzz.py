@@ -14,6 +14,7 @@
 """Cron job to schedule fuzz tasks that run on batch."""
 
 import collections
+import datetime
 import multiprocessing
 import random
 import time
@@ -25,10 +26,10 @@ from googleapiclient import discovery
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.batch import gcp as batch
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 
@@ -295,7 +296,13 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
     return fuzz_tasks
 
 
-def get_fuzz_tasks(available_cpus: int) -> [tasks.Task]:
+def get_fuzz_tasks(project, regions) -> [tasks.Task]:
+  available_cpus = get_available_cpus(project, regions)
+  logs.info(f'{available_cpus} available CPUs.')
+
+  if not available_cpus:
+    return []
+
   if utils.is_oss_fuzz():
     scheduler = OssfuzzFuzzTaskScheduler(available_cpus)
   else:
@@ -377,26 +384,91 @@ def respect_project_max_cpus(num_cpus):
   return min(max_cpus_per_schedule, num_cpus)
 
 
+def get_congested_regions() -> List[str]:
+  """Returns a list of congested regions. The strategy used is as follows:
+  Run congestion jobs every time this cron is run in each region.
+  Assuming we run this cron more than 3 times an hour, if there aren't
+  3 completed jobs in the last hour, they either failed (unlikely, they are
+  trivial) or never ran because of congestion.
+  """
+  one_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+  congestion_jobs = list(
+      data_types.CongestionJob.query(
+          data_types.CongestionJob.timestamp > one_hour_ago))
+
+  jobs_by_region = collections.defaultdict(list)
+  for job in congestion_jobs:
+    if job.region:
+      jobs_by_region[job.region].append(job)
+
+  congested_regions = []
+  for region, jobs in jobs_by_region.items():
+    # Sort by timestamp descending.
+    jobs.sort(key=lambda j: j.timestamp, reverse=True)
+    # Check the last 3 jobs.
+    recent_jobs = jobs[:3]
+    if len(recent_jobs) < 3:
+      continue
+
+    completed_count = batch.check_congestion_jobs(
+        [job.job_id for job in recent_jobs])
+    if completed_count < 3:
+      # TODO(metzman): Add some monitoring here.
+      logs.error(f'Congestion detected in {region}: {completed_count}/3 '
+                 'congestion jobs completed in the last hour.')
+      congested_regions.append(region)
+  return congested_regions
+
+
+def schedule_congestion_jobs(fuzz_tasks, all_regions):
+  """Schedules congestion jobs for all regions."""
+  # Run a hello world task that finishes very quickly. The job field is
+  # ignored, but we need one, so pick an arbitrary one.
+  clusterfuzz_job_type = None
+  if fuzz_tasks:
+    clusterfuzz_job_type = fuzz_tasks[0].job
+  else:
+    # If no tasks scheduled, try to get a job type from DB to run congestion
+    # job.
+    job = data_types.Job.query().get()
+    if job:
+      clusterfuzz_job_type = job.name
+
+  if clusterfuzz_job_type:
+    for region in all_regions:
+      try:
+        batch_job_result = batch.create_congestion_job(
+            clusterfuzz_job_type, gce_region=region)
+        data_types.CongestionJob(
+            job_id=batch_job_result.name, region=region).put()
+      except Exception:
+        logs.error(f'Failed to create congestion job in {region}.')
+
+
 def schedule_fuzz_tasks() -> bool:
   """Schedules fuzz tasks."""
-  multiprocessing.set_start_method('spawn')
+  try:
+    multiprocessing.set_start_method('spawn')
+  except RuntimeError:  # Ignore if this was done previously.
+    pass
+
   batch_config = local_config.BatchConfig()
   project = batch_config.get('project')
-  regions = get_batch_regions(batch_config)
+  all_regions = get_batch_regions(batch_config)
+  congested_regions = get_congested_regions()
+  regions = [r for r in all_regions if r not in congested_regions]
+
   start = time.time()
-  available_cpus = get_available_cpus(project, regions)
-  logs.info(f'{available_cpus} available CPUs.')
-  if not available_cpus:
-    return False
+  fuzz_tasks = get_fuzz_tasks(project, regions)
 
-  fuzz_tasks = get_fuzz_tasks(available_cpus)
-  if not fuzz_tasks:
-    logs.error('No fuzz tasks found to schedule.')
-    return False
+  if fuzz_tasks:
+    logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
+    tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)  # pylint: disable=line-too-long
+    logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+  else:
+    logs.info('No fuzz tasks scheduled.')
 
-  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
-  tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
+  schedule_congestion_jobs(fuzz_tasks, all_regions)
 
   end = time.time()
   total = end - start
