@@ -48,7 +48,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
                             'gs://target_bucket/target_path')
     if use_gcloud_storage:
       expected_args = [
-          'rsync', '--delete-unmatched-destination-objects',
+          'rsync', '-r', '--delete-unmatched-destination-objects',
           'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
       ]
     else:
@@ -74,7 +74,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
                             'gs://target_bucket/target_path')
     if use_gcloud_storage:
       expected_args = [
-          'rsync', '--delete-unmatched-destination-objects',
+          'rsync', '-r', '--delete-unmatched-destination-objects',
           '/local/source_bucket/objects/source_path',
           '/local/target_bucket/objects/target_path'
       ]
@@ -100,7 +100,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         timeout=1337)
     if use_gcloud_storage:
       expected_args = [
-          'rsync', '--delete-unmatched-destination-objects',
+          'rsync', '-r', '--delete-unmatched-destination-objects',
           'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
       ]
     else:
@@ -124,7 +124,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         delete=False)
     if use_gcloud_storage:
       expected_args = [
-          'rsync', 'gs://source_bucket/source_path',
+          'rsync', '-r', 'gs://source_bucket/source_path',
           'gs://target_bucket/target_path'
       ]
     else:
@@ -150,7 +150,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         exclusion_pattern='"*.txt$"')
     if use_gcloud_storage:
       expected_args = [
-          'rsync', '--exclude', '"*.txt$"', 'gs://source_bucket/source_path',
+          'rsync', '-r', '--exclude', '"*.txt$"', 'gs://source_bucket/source_path',
           'gs://target_bucket/target_path'
       ]
     else:
