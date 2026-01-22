@@ -42,8 +42,8 @@ class FuzzerLogsTest(unittest.TestCase):
 
   def test_upload_to_logs(self):
     """Test a simple call to upload_to_logs."""
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
     fuzzer_logs.upload_to_logs('fake-gcs-bucket', 'fake content')
     self.mock.write_data.assert_called_once_with(
         'fake content',
@@ -51,8 +51,8 @@ class FuzzerLogsTest(unittest.TestCase):
 
   def test_upload_to_logs_with_all_arguments(self):
     """Test a call to upload_to_logs with all arguments being passed."""
-    mock_gsutil = mock.MagicMock()
-    self.mock.write_data.return_value = mock_gsutil
+    mock_gcloud = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gcloud
     fuzzer_logs.upload_to_logs(
         'gcs-bucket',
         'fake content',
