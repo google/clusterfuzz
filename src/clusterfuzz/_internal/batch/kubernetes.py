@@ -11,4 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Remote task tests."""
+"""Kubernetes batch client."""
+from clusterfuzz._internal.remote_task import RemoteTaskInterface
+
+
+class KubernetesJobClient(RemoteTaskInterface):
+  """A remote task execution client for Kubernetes.
+  
+  This class is a placeholder for a future implementation of a remote task
+  execution client that uses Kubernetes. It is not yet implemented.
+  """
+
+  def create_job(self, spec, input_urls):
+    """Creates a Kubernetes job."""
+    raise NotImplementedError('Kubernetes batch client is not implemented yet.')

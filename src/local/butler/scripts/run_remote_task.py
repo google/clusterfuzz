@@ -17,8 +17,6 @@ import contextlib
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.remote_task import remote_task_gate
-from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
 
@@ -37,25 +35,22 @@ def lease_all_tasks(task_list):
 
 def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
+  from clusterfuzz._internal.google_cloud_utils import batch
 
   print('Attempting to combine batch tasks.')
   utask_mains = tasks.get_utask_mains()
   if not utask_mains:
     print('No utask mains.')
-    return []
+    return []  # Return an empty list for consistency.
 
   print(f'Combining {len(utask_mains)} batch tasks.')
-  results = []
+
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        remote_task_types.RemoteTask(task.command, task.job, task.argument)
+        batch.BatchTask(task.command, task.job, task.argument)
         for task in utask_mains
     ]
-
-    results = remote_task_gate.RemoteTaskGate().create_utask_main_jobs(
-        batch_tasks)
-  print('Created jobs:', results)
-  return results
+    return batch.create_uworker_main_batch_jobs(batch_tasks)
 
 
 def execute(*args, **kwargs):  # pylint: disable=unused-argument

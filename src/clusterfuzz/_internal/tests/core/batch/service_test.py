@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for the batch batch_service."""
+"""Tests for the batch service."""
 import datetime
 import unittest
 from unittest import mock
 import uuid
 
 from google.cloud import batch_v1 as batch
-from google.cloud.batch_v1.types import job as gcb_job
 
-from clusterfuzz._internal.batch import service as batch_service
+from clusterfuzz._internal.batch import data_structures
+from clusterfuzz._internal.batch import gcp
+from clusterfuzz._internal.batch import service
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -50,7 +50,7 @@ def _get_expected_task_spec(batch_workload_spec):
   if batch_workload_spec.retry:
     task_spec.max_retry_count = 4
   else:
-    task_spec.max_retry_count = batch_service.DEFAULT_RETRY_COUNT
+    task_spec.max_retry_count = gcp.DEFAULT_RETRY_COUNT
   task_spec.max_run_duration = datetime.timedelta(
       seconds=int(batch_workload_spec.max_run_duration[:-1]))
 
@@ -126,7 +126,7 @@ def _get_expected_create_request(job_name_uuid, spec, input_urls):
   task_group.task_count = len(input_urls)
   task_group.task_environments = task_environments
   task_group.task_spec = task_spec
-  task_group.task_count_per_node = batch_service.TASK_COUNT_PER_NODE
+  task_group.task_count_per_node = gcp.TASK_COUNT_PER_NODE
 
   job = batch.Job()
   job.task_groups = [task_group]
@@ -143,24 +143,26 @@ def _get_expected_create_request(job_name_uuid, spec, input_urls):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GcpBatchServiceTest(unittest.TestCase):
-  """Tests for GcpBatchService."""
+class BatchServiceTest(unittest.TestCase):
+  """Tests for BatchService."""
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.batch.service._batch_client',
+        'clusterfuzz._internal.batch.gcp._batch_client',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'uuid.uuid4',
     ])
+    self.mock.GcpBatchClient = mock.Mock(
+    )  # Still need this for BatchService constructor
     self.mock_batch_client_instance = mock.Mock()
     self.mock._batch_client.return_value = self.mock_batch_client_instance
-    self.batch_service = batch_service.GcpBatchService()
+    self.batch_service = service.BatchService()
     self.mock.uuid4.side_effect = [uuid.UUID(u) for u in UUIDS]
 
   def test_create_uworker_main_batch_jobs(self):
-    """Tests that create_utask_main_jobs works as expected."""
+    """Tests that create_uworker_main_batch_jobs works as expected."""
     # Create mock data.
-    spec1 = batch_service.BatchWorkloadSpec(
+    spec1 = service.BatchWorkloadSpec(
         clusterfuzz_release='release1',
         disk_size_gb=10,
         disk_type='type1',
@@ -176,7 +178,7 @@ class GcpBatchServiceTest(unittest.TestCase):
         priority=1,
         max_run_duration='1s',
         retry=False)
-    spec2 = batch_service.BatchWorkloadSpec(
+    spec2 = service.BatchWorkloadSpec(
         clusterfuzz_release='release2',
         disk_size_gb=20,
         disk_type='type2',
@@ -199,13 +201,13 @@ class GcpBatchServiceTest(unittest.TestCase):
           ('command2', 'job2'): spec2,
       }
       tasks = [
-          remote_task_types.RemoteTask('command1', 'job1', 'url1'),
-          remote_task_types.RemoteTask('command1', 'job1', 'url2'),
-          remote_task_types.RemoteTask('command2', 'job2', 'url3'),
+          data_structures.BatchTask('command1', 'job1', 'url1'),
+          data_structures.BatchTask('command1', 'job1', 'url2'),
+          data_structures.BatchTask('command2', 'job2', 'url3'),
       ]
 
       # Call the function.
-      self.batch_service.create_utask_main_jobs(tasks)
+      self.batch_service.create_uworker_main_batch_jobs(tasks)
 
       # Assert that create_job was called with the correct arguments.
       expected_create_request_1 = _get_expected_create_request(
@@ -218,9 +220,9 @@ class GcpBatchServiceTest(unittest.TestCase):
       ])
 
   def test_create_uworker_main_batch_job(self):
-    """Tests that create_utask_main_job works as expected."""
+    """Tests that create_uworker_main_batch_job works as expected."""
     # Create mock data.
-    spec1 = batch_service.BatchWorkloadSpec(
+    spec1 = service.BatchWorkloadSpec(
         clusterfuzz_release='release1',
         disk_size_gb=10,
         disk_type='type1',
@@ -241,13 +243,12 @@ class GcpBatchServiceTest(unittest.TestCase):
       mock_get_specs_from_config.return_value = {
           ('fuzz', 'job1'): spec1,
       }
-
-      self.mock_batch_client_instance.create_job.return_value = gcb_job.Job(
-          name='job')
+      self.mock_batch_client_instance.create_job.return_value = 'job'
       self.mock.get_command_from_module.return_value = 'fuzz'
 
       # Call the function.
-      result = self.batch_service.create_utask_main_job('fuzz', 'job1', 'url1')
+      result = self.batch_service.create_uworker_main_batch_job(
+          'fuzz', 'job1', 'url1')
 
       # Assert that create_job was called with the correct arguments.
       expected_create_request = _get_expected_create_request(
@@ -271,11 +272,11 @@ class IsRemoteTaskTest(unittest.TestCase):
     """Tests that is_remote_task works as expected."""
     # Test when it is a remote task.
     self.mock._get_specs_from_config.return_value = {('fuzz', 'job'): True}
-    self.assertTrue(batch_service.is_remote_task('fuzz', 'job'))
+    self.assertTrue(service.is_remote_task('fuzz', 'job'))
 
     # Test when it is not a remote task.
     self.mock._get_specs_from_config.side_effect = ValueError
-    self.assertFalse(batch_service.is_remote_task('progression', 'job'))
+    self.assertFalse(service.is_remote_task('progression', 'job'))
 
 
 if __name__ == '__main__':
@@ -295,7 +296,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.random_weighted_choice',
     ])
-    self.mock.random_weighted_choice.return_value = batch_service.WeightedSubconfig(
+    self.mock.random_weighted_choice.return_value = service.WeightedSubconfig(
         name='east4-network2',
         weight=1,
     )
@@ -304,7 +305,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     """Tests that _get_specs_from_config works for non-preemptibles as
         expected."""
     spec = _get_spec_from_config('analyze', self.job.name)
-    expected_spec = batch_service.BatchWorkloadSpec(
+    expected_spec = service.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
@@ -330,7 +331,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
     spec = _get_spec_from_config('fuzz', job.name)
-    expected_spec = batch_service.BatchWorkloadSpec(
+    expected_spec = service.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
@@ -373,16 +374,16 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         platform='LINUX',
         name='libfuzzer_asan_test').put()
 
-    spec = batch_service._get_specs_from_config(
-        [remote_task_types.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
+    spec = service._get_specs_from_config(
+        [service.BatchTask('fuzz', 'libfuzzer_asan_test', None)])
     self.assertEqual(spec['fuzz', 'libfuzzer_asan_test'].disk_size_gb, size)
 
   def test_get_specs_from_config_no_disk_size(self):
     """Test that disk_size_gb isn't mandatory."""
     data_types.Job(platform='LINUX', name='libfuzzer_asan_test').put()
-    spec = batch_service._get_specs_from_config(
-        [remote_task_types.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
-    conf = batch_service._get_batch_config()
+    spec = service._get_specs_from_config(
+        [service.BatchTask('fuzz', 'libfuzzer_asan_test', None)])
+    conf = service._get_batch_config()
     expected_size = (
         conf.get('mapping')['LINUX-PREEMPTIBLE-UNPRIVILEGED']['disk_size_gb'])
     self.assertEqual(spec['fuzz', 'libfuzzer_asan_test'].disk_size_gb,
@@ -405,8 +406,8 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         platform='LINUX',
         name=job_name).put()
 
-    spec = batch_service._get_specs_from_config(
-        [remote_task_types.RemoteTask('fuzz', job_name, None)])
+    spec = service._get_specs_from_config(
+        [service.BatchTask('fuzz', job_name, None)])
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
 
   @mock.patch('clusterfuzz._internal.batch.service.utils.is_oss_fuzz')
@@ -421,8 +422,8 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     job1 = data_types.Job(
         name='job1', platform='LINUX', base_os_version='job-os-ubuntu-20')
     mock_get_all_from_query.return_value = [job1]
-    config_map = batch_service._get_config_names(
-        [remote_task_types.RemoteTask('fuzz', 'job1', None)])
+    config_map = service._get_config_names(
+        [service.BatchTask('fuzz', 'job1', None)])
     self.assertEqual(config_map[('fuzz', 'job1')][2], 'job-os-ubuntu-20')
 
     # Test Case 2: OSS-Fuzz project, project-level version overrides job-level.
@@ -436,24 +437,24 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         name='my-project', base_os_version='project-os-ubuntu-24')
     mock_get_all_from_query.return_value = [job2]
     mock_oss_fuzz_project_query.return_value.get.return_value = project
-    config_map = batch_service._get_config_names(
-        [remote_task_types.RemoteTask('fuzz', 'job2', None)])
+    config_map = service._get_config_names(
+        [service.BatchTask('fuzz', 'job2', None)])
     self.assertEqual(config_map[('fuzz', 'job2')][2], 'project-os-ubuntu-24')
 
     # Test Case 3: OSS-Fuzz project, only project-level version exists.
     job3 = data_types.Job(name='job3', project='my-project', platform='LINUX')
     mock_get_all_from_query.return_value = [job3]
     mock_oss_fuzz_project_query.return_value.get.return_value = project
-    config_map = batch_service._get_config_names(
-        [remote_task_types.RemoteTask('fuzz', 'job3', None)])
+    config_map = service._get_config_names(
+        [service.BatchTask('fuzz', 'job3', None)])
     self.assertEqual(config_map[('fuzz', 'job3')][2], 'project-os-ubuntu-24')
 
     # Test Case 4: Internal project, no version is set, should be None.
     mock_is_oss_fuzz.return_value = False
     job4 = data_types.Job(name='job4', platform='LINUX')
     mock_get_all_from_query.return_value = [job4]
-    config_map = batch_service._get_config_names(
-        [remote_task_types.RemoteTask('fuzz', 'job4', None)])
+    config_map = service._get_config_names(
+        [service.BatchTask('fuzz', 'job4', None)])
     self.assertIsNone(config_map[('fuzz', 'job4')][2])
 
     # Test Case 5: OSS-Fuzz project, but no versions are set anywhere.
@@ -463,12 +464,12 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     project_no_version = data_types.OssFuzzProject(name='my-project-no-version')
     mock_get_all_from_query.return_value = [job5]
     mock_oss_fuzz_project_query.return_value.get.return_value = project_no_version
-    config_map = batch_service._get_config_names(
-        [remote_task_types.RemoteTask('fuzz', 'job5', None)])
+    config_map = service._get_config_names(
+        [service.BatchTask('fuzz', 'job5', None)])
     self.assertIsNone(config_map[('fuzz', 'job5')][2])
 
 
 def _get_spec_from_config(command, job_name):
   return list(
-      batch_service._get_specs_from_config(
-          [remote_task_types.RemoteTask(command, job_name, None)]).values())[0]
+      service._get_specs_from_config(
+          [service.BatchTask(command, job_name, None)]).values())[0]
