@@ -554,9 +554,9 @@ class PubSubTask(Task):
     finally:
       _event.set()
       leaser_thread.join()
-    
+
     # If we get here the task succeeded in running. Acknowledge the message.
-    self._pubsub_message.ack()  
+    self._pubsub_message.ack()
     track_task_end()
 
   def dont_retry(self):
