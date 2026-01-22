@@ -205,7 +205,7 @@ def is_remote_task(command: str, job_name: str) -> bool:
 
 
 def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
-  """"Gets the name of the configs for each batch_task. Returns a dict
+  """Gets the name of the configs for each batch_task. Returns a dict
   that is indexed by command and job_type for efficient lookup."""
   job_names = {task.job_type for task in batch_tasks}
   query = data_types.Job.query(data_types.Job.name.IN(list(job_names)))

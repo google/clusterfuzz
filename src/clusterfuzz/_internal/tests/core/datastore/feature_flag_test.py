@@ -14,8 +14,8 @@
 """FeatureFlag tests."""
 import unittest
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
