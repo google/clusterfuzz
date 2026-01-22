@@ -18,9 +18,15 @@ on GCP Batch. It abstracts away the details of the underlying batch client
 and provides a simple interface for scheduling ClusterFuzz tasks.
 """
 import collections
+import json
+import random
 from typing import Dict
 from typing import List
+import urllib.request
 
+import google.auth.transport.requests
+
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -30,11 +36,69 @@ from clusterfuzz._internal.batch.gcp import GcpBatchClient
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
+
+
+class AllRegionsOverloadedError(Exception):
+  """Raised when all batch regions are overloaded."""
+
+
+@memoize.wrap(memoize.Memcache(60))
+def get_region_load(project, region):
+  """Gets the current load (queued and scheduled jobs) for a region."""
+  creds, _ = credentials.get_default()
+  if not creds:
+    logs.error('No credentials found for batch load check.')
+    return 0, 0
+
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+
+  url = (f'https://batch.googleapis.com/v1alpha/projects/{project}/locations/'
+         f'{region}/jobs:countByState?states=QUEUED&states=SCHEDULED')
+
+  headers = {
+      'Authorization': f'Bearer {creds.token}',
+      'Content-Type': 'application/json'
+  }
+
+  req = urllib.request.Request(url, headers=headers)
+  try:
+    with urllib.request.urlopen(req) as response:
+      if response.status != 200:
+        logs.error(
+            f'Batch countByState failed: {response.status} {response.read()}')
+        return 0, 0
+
+      data = json.loads(response.read())
+      logs.info(f'Batch countByState response for {region}: {data}')
+      # The API returns a list of state counts.
+      # Example: { "jobCounts": [ { "state": "QUEUED", "count": "10" }, ... ] }
+      queued = 0
+      scheduled = 0
+
+      # Log data for debugging first few times if needed, or just rely on structure.
+      # We'll assume the structure is standard for Google APIs.
+      job_counts = data.get('jobCounts', [])
+      for item in job_counts:
+        state = item.get('state')
+        count = int(item.get('count', 0))
+        if state == 'QUEUED':
+          queued = count
+        elif state == 'SCHEDULED':
+          scheduled = count
+        else:
+          logs.error(f'Unknown state: {state}')
+
+      return queued, scheduled
+  except Exception as e:
+    logs.error(f'Failed to get region load for {region}: {e}')
+    return 0, 0
 
 
 def _get_batch_config():
@@ -44,7 +108,7 @@ def _get_batch_config():
 
 def is_remote_task(command: str, job_name: str) -> bool:
   """Returns whether a task is configured to run remotely on GCP Batch.
-  
+
   This is determined by checking if a valid batch workload specification can
   be found for the given command and job type.
   """
@@ -103,15 +167,44 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
 
 
 def _get_subconfig(batch_config, instance_spec):
-  # TODO(metzman): Make this pick one at random or based on conditions.
   all_subconfigs = batch_config.get('subconfigs', {})
   instance_subconfigs = instance_spec['subconfigs']
-  weighted_subconfigs = [
-      WeightedSubconfig(subconfig['name'], subconfig['weight'])
-      for subconfig in instance_subconfigs
-  ]
-  weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
-  return all_subconfigs[weighted_subconfig.name]
+
+  queue_check_regions = batch_config.get('queue_check_regions')
+  if not queue_check_regions:
+    logs.info('Skipping batch load check because queue_check_regions is not configured.')
+    weighted_subconfigs = [
+        WeightedSubconfig(subconfig['name'], subconfig['weight'])
+        for subconfig in instance_subconfigs
+    ]
+    weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
+    return all_subconfigs[weighted_subconfig.name]
+
+  # New behavior: Check load for configured regions.
+  healthy_subconfigs = []
+  project = batch_config.get('project')
+
+  for subconfig in instance_subconfigs:
+    name = subconfig['name']
+    conf = all_subconfigs[name]
+    region = conf['region']
+
+    if region in queue_check_regions:
+      load = sum(get_region_load(project, region))
+      logs.info(f'Region {region} has {load} queued/scheduled jobs.')
+      if load >= 5:
+        logs.info(f'Region {region} overloaded (load={load}). Skipping.')
+        continue
+
+    healthy_subconfigs.append(name)
+
+  if not healthy_subconfigs:
+    logs.error('All candidate regions are overloaded.')
+    raise AllRegionsOverloadedError('All candidate regions are overloaded.')
+
+  # Randomly pick one from healthy regions to avoid thundering herd.
+  chosen_name = random.choice(healthy_subconfigs)
+  return all_subconfigs[chosen_name]
 
 
 def _get_specs_from_config(batch_tasks) -> Dict:
@@ -184,7 +277,7 @@ def _get_specs_from_config(batch_tasks) -> Dict:
 
 class BatchService:
   """A high-level service for creating and managing remote tasks.
-  
+
   This service provides a simple interface for scheduling ClusterFuzz tasks on
   GCP Batch. It handles the details of creating batch jobs and tasks, and
   provides a way to check if a task is configured to run remotely.
@@ -205,7 +298,7 @@ class BatchService:
 
   def create_uworker_main_batch_jobs(self, batch_tasks: List[BatchTask]):
     """Creates a batch job for a list of uworker main tasks.
-    
+
     This method groups the tasks by their workload specification and creates a
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.

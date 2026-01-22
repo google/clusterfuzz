@@ -295,11 +295,15 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     self.job.put()
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.random_weighted_choice',
+        'clusterfuzz._internal.batch.service.random.choice',
+        'clusterfuzz._internal.batch.service.get_region_load',
     ])
     self.mock.random_weighted_choice.return_value = service.WeightedSubconfig(
         name='east4-network2',
         weight=1,
     )
+    self.mock.choice.return_value = 'east4-network2'
+    self.mock.get_region_load.return_value = (0, 0)
 
   def test_nonpreemptible(self):
     """Tests that _get_specs_from_config works for non-preemptibles as
