@@ -63,7 +63,9 @@ class KubernetesIntegrationTest(unittest.TestCase):
     }
 
     # Mock list_namespaced_job to avoid actual network call to 1.2.3.4
-    with mock.patch('kubernetes.client.BatchV1Api.list_namespaced_job'):
+    with mock.patch('kubernetes.client.BatchV1Api.list_namespaced_job'), \
+         mock.patch.dict(os.environ, {'BOT_DIR': '/fake/bot'}), \
+         mock.patch('builtins.open', mock.mock_open()):
       try:
         # This will trigger _load_gke_credentials
         # It should try load_kube_config (fail), load_incluster (fail), then manual.

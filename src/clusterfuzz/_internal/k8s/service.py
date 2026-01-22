@@ -15,7 +15,6 @@
 import base64
 import collections
 import os
-import tempfile
 import typing
 import uuid
 
@@ -199,9 +198,9 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     # ca_cert is base64 encoded.
     ca_cert = base64.b64decode(cluster['masterAuth']['clusterCaCertificate'])
 
-    # Write CA cert to a temporary file.
-    fd, ca_cert_path = tempfile.mkstemp()
-    with os.fdopen(fd, 'wb') as f:
+    # Write CA cert to the bot directory.
+    ca_cert_path = os.path.join(os.environ['BOT_DIR'], 'ca_cert.pem')
+    with open(ca_cert_path, 'wb') as f:
       f.write(ca_cert)
 
     configuration = k8s_client.Configuration()

@@ -17,8 +17,6 @@
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
 from clusterfuzz._internal.base import modules
-from clusterfuzz._internal.remote_task import remote_task_gate
-from clusterfuzz._internal.remote_task import remote_task_types
 
 modules.fix_module_search_paths()
 
@@ -44,6 +42,8 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.metrics import profiler
+from clusterfuzz._internal.remote_task import remote_task_gate
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
 
