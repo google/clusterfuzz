@@ -36,6 +36,7 @@ class GetJobFrequencyTest(unittest.TestCase):
 
     frequencies = self.gate.get_job_frequency()
     self.assertEqual(frequencies['kubernetes'], 0.0)
+    self.assertEqual(frequencies['cloud_run'], 0.0)
     self.assertEqual(frequencies['gcp_batch'], 1.0)
     self.assertEqual(sum(frequencies.values()), 1.0)
 
@@ -46,7 +47,29 @@ class GetJobFrequencyTest(unittest.TestCase):
 
     frequencies = self.gate.get_job_frequency()
     self.assertEqual(frequencies['kubernetes'], 0.3)
+    self.assertEqual(frequencies['cloud_run'], 0.0)
     self.assertEqual(frequencies['gcp_batch'], 0.7)
+    self.assertEqual(sum(frequencies.values()), 1.0)
+
+  @ds_test_utils.with_flags(cloud_run_jobs_frequency=0.4)
+  def test_get_job_frequency_with_cloud_run_flag(self):
+    """Tests that the frequencies are correctly calculated when the
+    cloud_run_jobs_frequency flag is set."""
+
+    frequencies = self.gate.get_job_frequency()
+    self.assertEqual(frequencies['kubernetes'], 0.0)
+    self.assertEqual(frequencies['cloud_run'], 0.4)
+    self.assertEqual(frequencies['gcp_batch'], 0.6)
+    self.assertEqual(sum(frequencies.values()), 1.0)
+
+  @ds_test_utils.with_flags(k8s_jobs_frequency=0.2, cloud_run_jobs_frequency=0.3)
+  def test_get_job_frequency_with_both_flags(self):
+    """Tests that the frequencies are correctly calculated when both flags are set."""
+
+    frequencies = self.gate.get_job_frequency()
+    self.assertEqual(frequencies['kubernetes'], 0.2)
+    self.assertEqual(frequencies['cloud_run'], 0.3)
+    self.assertEqual(frequencies['gcp_batch'], 0.5)
     self.assertEqual(sum(frequencies.values()), 1.0)
 
   @ds_test_utils.with_flags(k8s_jobs_frequency=1.0)

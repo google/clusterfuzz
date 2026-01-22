@@ -19,6 +19,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.batch.service import GcpBatchService
+from clusterfuzz._internal.cloud_run import service as cloud_run_service
 from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
@@ -31,9 +32,11 @@ class RemoteTaskGateTest(unittest.TestCase):
   def setUp(self):
     super().setUp()
     self.mock_k8s_service = mock.Mock(spec=KubernetesService)
+    self.mock_cloud_run_service = mock.Mock(spec=cloud_run_service.CloudRunService)
     self.mock_gcp_batch_service = mock.Mock(spec=GcpBatchService)
 
     self.mock_k8s_service.create_utask_main_jobs.return_value = []
+    self.mock_cloud_run_service.create_utask_main_jobs.return_value = []
     self.mock_gcp_batch_service.create_utask_main_jobs.return_value = []
 
     # Patch RemoteTaskAdapters to return our mock services
@@ -43,6 +46,12 @@ class RemoteTaskGateTest(unittest.TestCase):
                 mock.Mock(
                     id='kubernetes',
                     service=mock.Mock(return_value=self.mock_k8s_service),
+                    feature_flag=None,
+                    default_weight=0.0),
+            'CLOUD_RUN':
+                mock.Mock(
+                    id='cloud_run',
+                    service=mock.Mock(return_value=self.mock_cloud_run_service),
                     feature_flag=None,
                     default_weight=0.0),
             'GCP_BATCH':
@@ -60,8 +69,10 @@ class RemoteTaskGateTest(unittest.TestCase):
     service map."""
     gate = remote_task_gate.RemoteTaskGate()
     self.assertIn('kubernetes', gate._service_map)
+    self.assertIn('cloud_run', gate._service_map)
     self.assertIn('gcp_batch', gate._service_map)
     self.assertEqual(gate._service_map['kubernetes'], self.mock_k8s_service)
+    self.assertEqual(gate._service_map['cloud_run'], self.mock_cloud_run_service)
     self.assertEqual(gate._service_map['gcp_batch'],
                      self.mock_gcp_batch_service)
 
@@ -70,16 +81,20 @@ class RemoteTaskGateTest(unittest.TestCase):
   def test_get_adapter(self, mock_get_job_frequency, mock_random_choices):
     """Tests that _get_adapter returns the correct adapter based on
     job_frequency."""
-    mock_get_job_frequency.return_value = {'kubernetes': 0.3, 'gcp_batch': 0.7}
-    mock_random_choices.return_value = ['gcp_batch']
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 0.1,
+        'cloud_run': 0.2,
+        'gcp_batch': 0.7
+    }
+    mock_random_choices.return_value = ['cloud_run']
 
     gate = remote_task_gate.RemoteTaskGate()
     selected_adapter = gate._get_adapter()
 
     mock_get_job_frequency.assert_called_once()
-    mock_random_choices.assert_called_once_with(['kubernetes', 'gcp_batch'],
-                                                [0.3, 0.7])
-    self.assertEqual(selected_adapter, 'gcp_batch')
+    mock_random_choices.assert_called_once_with(
+        ['kubernetes', 'cloud_run', 'gcp_batch'], [0.1, 0.2, 0.7])
+    self.assertEqual(selected_adapter, 'cloud_run')
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
   def test_create_utask_main_job_kubernetes(self, mock_get_adapter):
@@ -90,6 +105,19 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate.create_utask_main_job('module', 'job', 'url')
     self.mock_k8s_service.create_utask_main_job.assert_called_once_with(
         'module', 'job', 'url')
+    self.mock_cloud_run_service.create_utask_main_job.assert_not_called()
+    self.mock_gcp_batch_service.create_utask_main_job.assert_not_called()
+
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
+  def test_create_utask_main_job_cloud_run(self, mock_get_adapter):
+    """Tests that create_utask_main_job calls the Cloud Run service
+    when cloud_run adapter is chosen."""
+    mock_get_adapter.return_value = 'cloud_run'
+    gate = remote_task_gate.RemoteTaskGate()
+    gate.create_utask_main_job('module', 'job', 'url')
+    self.mock_cloud_run_service.create_utask_main_job.assert_called_once_with(
+        'module', 'job', 'url')
+    self.mock_k8s_service.create_utask_main_job.assert_not_called()
     self.mock_gcp_batch_service.create_utask_main_job.assert_not_called()
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
@@ -105,6 +133,7 @@ class RemoteTaskGateTest(unittest.TestCase):
         'url',
     )
     self.mock_k8s_service.create_utask_main_job.assert_not_called()
+    self.mock_cloud_run_service.create_utask_main_job.assert_not_called()
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
   def test_create_utask_main_jobs_single_task(self, mock_get_adapter):

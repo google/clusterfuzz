@@ -16,6 +16,7 @@
 from enum import Enum
 
 from clusterfuzz._internal.batch import service as batch_service
+from clusterfuzz._internal.cloud_run import service as cloud_run_service
 from clusterfuzz._internal.datastore import feature_flags
 from clusterfuzz._internal.k8s import service as k8s_service
 
@@ -35,6 +36,8 @@ class RemoteTaskAdapters(Enum):
   """
   KUBERNETES = ('kubernetes', k8s_service.KubernetesService,
                 feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY, 0.0)
+  CLOUD_RUN = ('cloud_run', cloud_run_service.CloudRunService,
+               feature_flags.FeatureFlags.CLOUD_RUN_JOBS_FREQUENCY, 0.0)
   GCP_BATCH = ('gcp_batch', batch_service.GcpBatchService, None, 1.0)
 
   def __init__(self, adapter_id, service, feature_flag, default_weight):
