@@ -176,7 +176,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
   def _load_gke_credentials(self):
     """Loads GKE credentials and configures the Kubernetes client."""
     credentials, _ = google.auth.default()
-    project = utils.get_application_id()
+    project = environment.get_value('K8S_PROJECT')
     service = discovery.build('container', 'v1', credentials=credentials)
     parent = f'projects/{project}/locations/-'
 
