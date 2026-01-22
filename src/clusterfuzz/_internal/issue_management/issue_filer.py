@@ -323,7 +323,9 @@ def file_issue(testcase,
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
-      is_security=testcase.security_flag, is_crash=is_crash)
+      is_security=testcase.security_flag,
+      is_crash=is_crash,
+      crash_type=testcase.crash_type)
 
   issue = issue_tracker.new_issue()
   issue.title = data_handler.get_issue_summary(testcase)
