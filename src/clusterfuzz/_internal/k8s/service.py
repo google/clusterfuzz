@@ -35,7 +35,8 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
-CLUSTER_NAME = 'clusterfuzz-cronjobs-gke'
+CLUSTER_NAME = project_config = local_config.ProjectConfig().get(
+    'cluster_name', 'clusterfuzz-cronjobs-gke')
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
     'job_type',
