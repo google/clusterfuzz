@@ -198,8 +198,7 @@ class GSUtilRunner:
     """Rsync with gsutil or gcloud storage."""
     use_gcloud = use_gcloud_for_command('rsync')
     if use_gcloud:
-      command = ['rsync']
-      # gcloud storage rsync is recursive by default.
+      command = ['rsync', '-r']
       if delete:
         command.append('--delete-unmatched-destination-objects')
       if exclusion_pattern:
