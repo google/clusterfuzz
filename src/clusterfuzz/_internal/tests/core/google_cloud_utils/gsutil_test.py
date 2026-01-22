@@ -150,8 +150,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         exclusion_pattern='"*.txt$"')
     if use_gcloud_storage:
       expected_args = [
-          'rsync', '-r', '--exclude', '"*.txt$"', 'gs://source_bucket/source_path',
-          'gs://target_bucket/target_path'
+          'rsync', '-r', '--exclude', '"*.txt$"',
+          'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
       ]
     else:
       expected_args = [
