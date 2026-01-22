@@ -173,8 +173,7 @@ def count_queued_or_scheduled_tasks(project: str,
   """Counts the number of queued and scheduled tasks."""
   region = f'projects/{project}/locations/{region}'
   jobs_filter = 'Status.State="SCHEDULED" OR Status.State="QUEUED"'
-  req = batch.remote_task_types.ListJobsRequest(
-      parent=region, filter=jobs_filter)
+  req = batch.types.ListJobsRequest(parent=region, filter=jobs_filter)
   queued = 0
   scheduled = 0
   for job in _batch_client().list_jobs(request=req):
