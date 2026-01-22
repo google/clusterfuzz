@@ -65,7 +65,7 @@ ALLOWED_VIEW_RESTRICTIONS = ['none', 'security', 'all']
 
 PUBSUB_PLATFORMS = ['linux']
 
-MEMORY_UNSAFE_LANGUAGES = {'c++', 'c'}
+MEMORY_SAFE_LANGUAGES = {'go', 'java', 'python', 'rust'}
 OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT = 1.0
 OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
 
@@ -562,10 +562,10 @@ def create_project_settings(project, info, service_account):
       oss_fuzz_project.base_os_version = base_os_version
       oss_fuzz_project.put()
   else:
-    if language in MEMORY_UNSAFE_LANGUAGES:
-      cpu_weight = OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT
-    else:
+    if language in MEMORY_SAFE_LANGUAGES:
       cpu_weight = OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT
+    else:
+      cpu_weight = OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT
 
     data_types.OssFuzzProject(
         id=project,
