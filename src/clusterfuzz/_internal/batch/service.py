@@ -75,7 +75,7 @@ def get_region_load(project: str, region: str) -> int:
       data = json.loads(response.read())
       logs.info(f'Batch countByState response for {region}: {data}')
       # The API returns a list of state counts.
-      # Example: { "jobCounts": [ { "state": "QUEUED", "count": "10" }, ... ] }
+      # Example: { "jobCounts": { "state": "QUEUED", "count": "10" } }
       total = 0
 
       # Log data for debugging first few times if needed, or just rely on structure.
@@ -84,7 +84,7 @@ def get_region_load(project: str, region: str) -> int:
       for item in job_counts:
         state = item.get('state')
         count = int(item.get('count', 0))
-        if state == 'QUEUED' or state == 'SCHEDULED':
+        if state in ('QUEUED', 'SCHEDULED'):
           total += count
         else:
           logs.error(f'Unknown state: {state}')
