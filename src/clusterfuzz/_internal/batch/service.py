@@ -51,54 +51,48 @@ class AllRegionsOverloadedError(Exception):
 
 
 @memoize.wrap(memoize.Memcache(60))
-def get_region_load(project, region):
+def get_region_load(project: str, region: str) -> int:
   """Gets the current load (queued and scheduled jobs) for a region."""
   creds, _ = credentials.get_default()
-  if not creds:
-    logs.error('No credentials found for batch load check.')
-    return 0, 0
-
   if not creds.valid:
     creds.refresh(google.auth.transport.requests.Request())
-
-  url = (f'https://batch.googleapis.com/v1alpha/projects/{project}/locations/'
-         f'{region}/jobs:countByState?states=QUEUED&states=SCHEDULED')
 
   headers = {
       'Authorization': f'Bearer {creds.token}',
       'Content-Type': 'application/json'
   }
 
+  url = (f'https://batch.googleapis.com/v1alpha/projects/{project}/locations/'
+         f'{region}/jobs:countByState?states=QUEUED&states=SCHEDULED')
   req = urllib.request.Request(url, headers=headers)
   try:
     with urllib.request.urlopen(req) as response:
       if response.status != 200:
         logs.error(
             f'Batch countByState failed: {response.status} {response.read()}')
-        return 0, 0
+        return 0
 
       data = json.loads(response.read())
       logs.info(f'Batch countByState response for {region}: {data}')
-      # The API returns a list of state counts.
-      # Example: { "jobCounts": [ { "state": "QUEUED", "count": "10" }, ... ] }
-      queued = 0
-      scheduled = 0
+      # The API returns a dict of states to counts
+      # Example: { "jobCounts": {'QUEUED': 10, 'SCHEDULED': 11}}
+      total = 0
 
       # Log data for debugging first few times if needed, or just rely on structure.
       # We'll assume the structure is standard for Google APIs.
       job_counts = data.get('jobCounts', {})
       for state, count in job_counts.items():
         if state == 'QUEUED':
-          queued = int(count)
+          total += int(count)
         elif state == 'SCHEDULED':
-          scheduled = int(count)
+          total += int(count)
         else:
           logs.error(f'Unknown state: {state}')
 
-      return queued, scheduled
+      return total
   except Exception as e:
     logs.error(f'Failed to get region load for {region}: {e}')
-    return 0, 0
+    return 0
 
 
 def _get_batch_config():
@@ -190,7 +184,7 @@ def _get_subconfig(batch_config, instance_spec):
     region = conf['region']
 
     if region in queue_check_regions:
-      queued = sum(get_region_load(project, region))
+      queued = get_region_load(project, region)
       logs.info(f'Region {region} has {queued} queued jobs.')
       if queued >= MAX_QUEUE_SIZE:
         logs.info(f'Region {region} overloaded (queued={queued}). Skipping.')
