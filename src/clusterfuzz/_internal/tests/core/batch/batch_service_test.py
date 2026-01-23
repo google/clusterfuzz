@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for the batch batch_service."""
 import datetime
-import json
 import unittest
 from unittest import mock
 import uuid
