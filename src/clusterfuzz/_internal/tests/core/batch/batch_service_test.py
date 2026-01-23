@@ -601,7 +601,3 @@ def _get_spec_from_config(command, job_name):
   return list(
       batch_service._get_specs_from_config(
           [remote_task_types.RemoteTask(command, job_name, None)]).values())[0]
-
-
-if __name__ == '__main__':
-  unittest.main()
