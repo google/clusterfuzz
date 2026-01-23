@@ -615,6 +615,17 @@ class StackParser:
             new_type='Bad-cast',
             new_frame_count=0)
 
+      # Golang stacktraces. Needs to be done before the other UBSan crash as
+      # it uses the same pattern of "runtime error:".
+      if state.is_golang:
+        for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
+          if self.update_state_on_match(
+              golang_crash_regex, line, state, new_type=golang_crash_type):
+            state.found_golang_crash = True
+            state.crash_state = ''
+            state.frame_count = 0
+            continue
+
       # Other UndefinedBehavior Sanitizer crash.
       ubsan_runtime_match = UBSAN_RUNTIME_ERROR_REGEX.match(line)
       if ubsan_runtime_match and not state.crash_type and self.include_ubsan:
@@ -641,16 +652,6 @@ class StackParser:
           new_type='Memcpy-param-overlap',
           reset=True,
           address_from_group=2)
-
-      # Golang stacktraces.
-      if state.is_golang:
-        for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
-          if self.update_state_on_match(
-              golang_crash_regex, line, state, new_type=golang_crash_type):
-            state.found_golang_crash = True
-            state.crash_state = ''
-            state.frame_count = 0
-            continue
 
       # Python stacktraces.
       if state.is_python:

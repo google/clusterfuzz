@@ -64,6 +64,12 @@ TASK_LEASE_SECONDS_BY_COMMAND = {
     'regression': 24 * 60 * 60,
 }
 
+
+def get_task_duration(command):
+  """Gets the duration of a task."""
+  return TASK_LEASE_SECONDS_BY_COMMAND.get(command, TASK_LEASE_SECONDS)
+
+
 TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX': 'Linux',
     'LINUX_WITH_GPU': 'Linux (with GPU)',

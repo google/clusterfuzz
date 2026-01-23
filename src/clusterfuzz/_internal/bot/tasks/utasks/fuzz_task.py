@@ -461,6 +461,7 @@ def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
       'return_code': return_code,
       'platform': environment.platform(),
       'job': job_type,
+      'runtime': environment.get_runtime().value
   })
 
 
@@ -480,20 +481,26 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
       known_crash_count, {
           'fuzzer': fuzzer,
           'platform': environment.platform(),
+          'runtime': environment.get_runtime().value
       })
   monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
       new_crash_count, {
           'fuzzer': fuzzer,
           'platform': environment.platform(),
+          'runtime': environment.get_runtime().value
       })
-  monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(known_crash_count, {
-      'job': job_type,
-      'platform': environment.platform(),
-  })
-  monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(new_crash_count, {
-      'job': job_type,
-      'platform': environment.platform()
-  })
+  monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(
+      known_crash_count, {
+          'job': job_type,
+          'platform': environment.platform(),
+          'runtime': environment.get_runtime().value
+      })
+  monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(
+      new_crash_count, {
+          'job': job_type,
+          'platform': environment.platform(),
+          'runtime': environment.get_runtime().value
+      })
 
 
 def _last_sync_time(sync_file_path):
@@ -2035,7 +2042,8 @@ class FuzzingSession:
         fuzzing_session_duration, {
             'fuzzer': self.fuzzer_name,
             'job': self.job_type,
-            'platform': environment.platform()
+            'platform': environment.platform(),
+            'runtime': environment.get_runtime().value,
         })
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
@@ -2287,11 +2295,15 @@ def _add_build_metadata_to_output(
   fuzz_task_output.gn_args = data_handler.get_filtered_gn_args() or ''
 
 
-def _upload_engine_output(engine_output):
+def _upload_engine_output(engine_output, fuzzer_name):
   timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
-  testcase_manager.upload_log(engine_output.output.decode(),
-                              engine_output.return_code, timestamp)
-  testcase_manager.upload_testcase(None, engine_output.testcase, timestamp)
+  testcase_manager.upload_log(
+      engine_output.output.decode(),
+      engine_output.return_code,
+      timestamp,
+      fuzzer_name=fuzzer_name)
+  testcase_manager.upload_testcase(
+      None, engine_output.testcase, timestamp, fuzzer_name=fuzzer_name)
 
 
 def _utask_postprocess(output):
@@ -2308,8 +2320,9 @@ def _utask_postprocess(output):
   session.postprocess(output)
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
+  fuzzer_name = output.fuzz_task_output.fully_qualified_fuzzer_name
   for engine_output in output.fuzz_task_output.engine_outputs:
-    _upload_engine_output(engine_output)
+    _upload_engine_output(engine_output, fuzzer_name)
 
 
 def utask_postprocess(output):

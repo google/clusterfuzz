@@ -42,6 +42,8 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.metrics import profiler
+from clusterfuzz._internal.remote_task import remote_task_gate
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
 
@@ -86,7 +88,6 @@ def lease_all_tasks(task_list):
 
 def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
-  from clusterfuzz._internal.google_cloud_utils import batch
 
   logs.info('Attempting to combine batch tasks.')
   utask_mains = tasks.get_utask_mains()
@@ -98,10 +99,11 @@ def schedule_utask_mains():
 
   with lease_all_tasks(utask_mains):
     batch_tasks = [
-        batch.BatchTask(task.command, task.job, task.argument)
+        remote_task_types.RemoteTask(
+            task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    batch.create_uworker_main_batch_jobs(batch_tasks)
+    remote_task_gate.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
 
 
 def task_loop():

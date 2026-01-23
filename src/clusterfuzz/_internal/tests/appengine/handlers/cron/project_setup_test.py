@@ -247,12 +247,15 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib2', {
             'homepage': 'http://example2.com',
+            'language': 'c++',
             'disabled': True,
             'fuzzing_engines': ['libfuzzer',],
         }),
         ('lib3', {
             'homepage':
                 'http://example3.com',
+            'language':
+                'c',
             'sanitizers': [
                 'address',
                 {
@@ -281,6 +284,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib5', {
             'homepage': 'http://example5.com',
+            'language': 'python',
             'sanitizers': ['address'],
             'fuzzing_engines': ['libfuzzer',],
             'experimental': True,
@@ -289,6 +293,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib6', {
             'homepage': 'http://example6.com',
+            'language': 'rust',
             'sanitizers': ['address', 'memory', 'undefined'],
             'fuzzing_engines': ['libfuzzer', 'afl'],
             'auto_ccs': 'User@example.com',
@@ -296,6 +301,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib7', {
             'homepage': 'http://example.com',
+            'language': 'jvm',
             'primary_contact': 'primary@example.com',
             'auto_ccs': ['User@example.com',],
             'fuzzing_engines': ['libfuzzer',],

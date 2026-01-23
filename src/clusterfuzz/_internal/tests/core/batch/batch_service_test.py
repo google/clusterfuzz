@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for the batch service."""
+"""Tests for the batch batch_service."""
 import datetime
 import json
 import unittest
@@ -19,11 +19,11 @@ from unittest import mock
 import uuid
 
 from google.cloud import batch_v1 as batch
+from google.cloud.batch_v1.types import job as gcb_job
 
-from clusterfuzz._internal.batch import data_structures
-from clusterfuzz._internal.batch import gcp
-from clusterfuzz._internal.batch import service
+from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -51,7 +51,7 @@ def _get_expected_task_spec(batch_workload_spec):
   if batch_workload_spec.retry:
     task_spec.max_retry_count = 4
   else:
-    task_spec.max_retry_count = gcp.DEFAULT_RETRY_COUNT
+    task_spec.max_retry_count = batch_service.DEFAULT_RETRY_COUNT
   task_spec.max_run_duration = datetime.timedelta(
       seconds=int(batch_workload_spec.max_run_duration[:-1]))
 
@@ -127,7 +127,7 @@ def _get_expected_create_request(job_name_uuid, spec, input_urls):
   task_group.task_count = len(input_urls)
   task_group.task_environments = task_environments
   task_group.task_spec = task_spec
-  task_group.task_count_per_node = gcp.TASK_COUNT_PER_NODE
+  task_group.task_count_per_node = batch_service.TASK_COUNT_PER_NODE
 
   job = batch.Job()
   job.task_groups = [task_group]
@@ -144,26 +144,24 @@ def _get_expected_create_request(job_name_uuid, spec, input_urls):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class BatchServiceTest(unittest.TestCase):
-  """Tests for BatchService."""
+class GcpBatchServiceTest(unittest.TestCase):
+  """Tests for GcpBatchService."""
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.batch.gcp._batch_client',
+        'clusterfuzz._internal.batch.service._batch_client',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'uuid.uuid4',
     ])
-    self.mock.GcpBatchClient = mock.Mock(
-    )  # Still need this for BatchService constructor
     self.mock_batch_client_instance = mock.Mock()
     self.mock._batch_client.return_value = self.mock_batch_client_instance
-    self.batch_service = service.BatchService()
+    self.batch_service = batch_service.GcpBatchService()
     self.mock.uuid4.side_effect = [uuid.UUID(u) for u in UUIDS]
 
   def test_create_uworker_main_batch_jobs(self):
-    """Tests that create_uworker_main_batch_jobs works as expected."""
+    """Tests that create_utask_main_jobs works as expected."""
     # Create mock data.
-    spec1 = service.BatchWorkloadSpec(
+    spec1 = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='release1',
         disk_size_gb=10,
         disk_type='type1',
@@ -179,7 +177,7 @@ class BatchServiceTest(unittest.TestCase):
         priority=1,
         max_run_duration='1s',
         retry=False)
-    spec2 = service.BatchWorkloadSpec(
+    spec2 = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='release2',
         disk_size_gb=20,
         disk_type='type2',
@@ -202,13 +200,13 @@ class BatchServiceTest(unittest.TestCase):
           ('command2', 'job2'): spec2,
       }
       tasks = [
-          data_structures.BatchTask('command1', 'job1', 'url1'),
-          data_structures.BatchTask('command1', 'job1', 'url2'),
-          data_structures.BatchTask('command2', 'job2', 'url3'),
+          remote_task_types.RemoteTask('command1', 'job1', 'url1'),
+          remote_task_types.RemoteTask('command1', 'job1', 'url2'),
+          remote_task_types.RemoteTask('command2', 'job2', 'url3'),
       ]
 
       # Call the function.
-      self.batch_service.create_uworker_main_batch_jobs(tasks)
+      self.batch_service.create_utask_main_jobs(tasks)
 
       # Assert that create_job was called with the correct arguments.
       expected_create_request_1 = _get_expected_create_request(
@@ -221,9 +219,9 @@ class BatchServiceTest(unittest.TestCase):
       ])
 
   def test_create_uworker_main_batch_job(self):
-    """Tests that create_uworker_main_batch_job works as expected."""
+    """Tests that create_utask_main_job works as expected."""
     # Create mock data.
-    spec1 = service.BatchWorkloadSpec(
+    spec1 = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='release1',
         disk_size_gb=10,
         disk_type='type1',
@@ -244,12 +242,13 @@ class BatchServiceTest(unittest.TestCase):
       mock_get_specs_from_config.return_value = {
           ('fuzz', 'job1'): spec1,
       }
-      self.mock_batch_client_instance.create_job.return_value = 'job'
+
+      self.mock_batch_client_instance.create_job.return_value = gcb_job.Job(
+          name='job')
       self.mock.get_command_from_module.return_value = 'fuzz'
 
       # Call the function.
-      result = self.batch_service.create_uworker_main_batch_job(
-          'fuzz', 'job1', 'url1')
+      result = self.batch_service.create_utask_main_job('fuzz', 'job1', 'url1')
 
       # Assert that create_job was called with the correct arguments.
       expected_create_request = _get_expected_create_request(
@@ -273,11 +272,11 @@ class IsRemoteTaskTest(unittest.TestCase):
     """Tests that is_remote_task works as expected."""
     # Test when it is a remote task.
     self.mock._get_specs_from_config.return_value = {('fuzz', 'job'): True}
-    self.assertTrue(service.is_remote_task('fuzz', 'job'))
+    self.assertTrue(batch_service.is_remote_task('fuzz', 'job'))
 
     # Test when it is not a remote task.
     self.mock._get_specs_from_config.side_effect = ValueError
-    self.assertFalse(service.is_remote_task('progression', 'job'))
+    self.assertFalse(batch_service.is_remote_task('progression', 'job'))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -286,52 +285,28 @@ class GetRegionLoadTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
-        'urllib.request.urlopen',
-        'google.auth.transport.requests.Request',
+        'clusterfuzz._internal.batch.service.count_queued_or_scheduled_tasks',
     ])
-    self.mock_creds = mock.Mock()
-    self.mock_creds.token = 'fake-token'
-    self.mock_creds.valid = True
-    self.mock.get_default.return_value = (self.mock_creds, 'project')
 
   def test_get_region_load_success(self):
     """Tests get_region_load with a successful API response."""
-    mock_response = mock.Mock()
-    mock_response.status = 200
-    mock_response.read.return_value = json.dumps({
-        'jobCounts': [{
-            'state': 'QUEUED',
-            'count': '10'
-        }, {
-            'state': 'SCHEDULED',
-            'count': '5'
-        }]
-    }).encode('utf-8')
-    self.mock.urlopen.return_value.__enter__.return_value = mock_response
+    self.mock.count_queued_or_scheduled_tasks.return_value = (10, 5)
 
-    load = service.get_region_load('project', 'us-central1')
+    load = batch_service.get_region_load('project', 'us-central1')
     self.assertEqual(load, 15)
 
   def test_get_region_load_empty(self):
     """Tests get_region_load with an empty response."""
-    mock_response = mock.Mock()
-    mock_response.status = 200
-    mock_response.read.return_value = json.dumps({
-        'jobCounts': []
-    }).encode('utf-8')
-    self.mock.urlopen.return_value.__enter__.return_value = mock_response
+    self.mock.count_queued_or_scheduled_tasks.return_value = (0, 0)
 
-    load = service.get_region_load('project', 'us-central1')
+    load = batch_service.get_region_load('project', 'us-central1')
     self.assertEqual(load, 0)
 
   def test_get_region_load_error(self):
     """Tests get_region_load with an API error."""
-    mock_response = mock.Mock()
-    mock_response.status = 500
-    self.mock.urlopen.return_value.__enter__.return_value = mock_response
+    self.mock.count_queued_or_scheduled_tasks.side_effect = Exception('error')
 
-    load = service.get_region_load('project', 'us-central1')
+    load = batch_service.get_region_load('project', 'us-central1')
     self.assertEqual(load, 0)
 
 
@@ -381,7 +356,8 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
     self.mock.get_region_load.return_value = 2  # Total load 2 < 50
     self.mock.choice.side_effect = lambda x: x[0]
 
-    subconfig = service._get_subconfig(self.batch_config, self.instance_spec)
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
     self.assertEqual(subconfig['region'], 'us-central1')
 
   def test_one_region_overloaded(self):
@@ -399,15 +375,16 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
 
     self.mock.choice.side_effect = mock_choice
 
-    subconfig = service._get_subconfig(self.batch_config, self.instance_spec)
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
     self.assertEqual(subconfig['region'], 'us-east4')
 
   def test_all_regions_overloaded(self):
     """Tests that AllRegionsOverloadedError is raised when no healthy regions exist."""
     self.mock.get_region_load.return_value = 50  # Load 50 is threshold for "overloaded"
 
-    with self.assertRaises(service.AllRegionsOverloadedError):
-      service._get_subconfig(self.batch_config, self.instance_spec)
+    with self.assertRaises(batch_service.AllRegionsOverloadedError):
+      batch_service._get_subconfig(self.batch_config, self.instance_spec)
 
   def test_skip_load_check_if_not_in_config(self):
     """Tests that load check is skipped for regions not in queue_check_regions."""
@@ -417,7 +394,7 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
     self.mock.random_weighted_choice.return_value = mock.Mock(name='central1')
     self.mock.random_weighted_choice.return_value.name = 'central1'
 
-    subconfig = service._get_subconfig(self.batch_config, instance_spec)
+    subconfig = batch_service._get_subconfig(self.batch_config, instance_spec)
     self.assertEqual(subconfig['region'], 'us-central1')
     self.assertFalse(self.mock.get_region_load.called)
 
@@ -427,7 +404,8 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
     self.mock.random_weighted_choice.return_value = mock.Mock(name='central1')
     self.mock.random_weighted_choice.return_value.name = 'central1'
 
-    subconfig = service._get_subconfig(self.batch_config, self.instance_spec)
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
     self.assertEqual(subconfig['region'], 'us-central1')
     self.assertFalse(self.mock.get_region_load.called)
 
@@ -445,7 +423,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         'clusterfuzz._internal.batch.service.random.choice',
         'clusterfuzz._internal.batch.service.get_region_load',
     ])
-    self.mock.random_weighted_choice.return_value = service.WeightedSubconfig(
+    self.mock.random_weighted_choice.return_value = batch_service.WeightedSubconfig(
         name='east4-network2',
         weight=1,
     )
@@ -456,7 +434,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     """Tests that _get_specs_from_config works for non-preemptibles as
         expected."""
     spec = _get_spec_from_config('analyze', self.job.name)
-    expected_spec = service.BatchWorkloadSpec(
+    expected_spec = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
@@ -482,7 +460,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
     spec = _get_spec_from_config('fuzz', job.name)
-    expected_spec = service.BatchWorkloadSpec(
+    expected_spec = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='prod',
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
@@ -525,16 +503,16 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         platform='LINUX',
         name='libfuzzer_asan_test').put()
 
-    spec = service._get_specs_from_config(
-        [service.BatchTask('fuzz', 'libfuzzer_asan_test', None)])
+    spec = batch_service._get_specs_from_config(
+        [remote_task_types.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
     self.assertEqual(spec['fuzz', 'libfuzzer_asan_test'].disk_size_gb, size)
 
   def test_get_specs_from_config_no_disk_size(self):
     """Test that disk_size_gb isn't mandatory."""
     data_types.Job(platform='LINUX', name='libfuzzer_asan_test').put()
-    spec = service._get_specs_from_config(
-        [service.BatchTask('fuzz', 'libfuzzer_asan_test', None)])
-    conf = service._get_batch_config()
+    spec = batch_service._get_specs_from_config(
+        [remote_task_types.RemoteTask('fuzz', 'libfuzzer_asan_test', None)])
+    conf = batch_service._get_batch_config()
     expected_size = (
         conf.get('mapping')['LINUX-PREEMPTIBLE-UNPRIVILEGED']['disk_size_gb'])
     self.assertEqual(spec['fuzz', 'libfuzzer_asan_test'].disk_size_gb,
@@ -557,8 +535,8 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         platform='LINUX',
         name=job_name).put()
 
-    spec = service._get_specs_from_config(
-        [service.BatchTask('fuzz', job_name, None)])
+    spec = batch_service._get_specs_from_config(
+        [remote_task_types.RemoteTask('fuzz', job_name, None)])
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
 
   @mock.patch('clusterfuzz._internal.batch.service.utils.is_oss_fuzz')
@@ -573,8 +551,8 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     job1 = data_types.Job(
         name='job1', platform='LINUX', base_os_version='job-os-ubuntu-20')
     mock_get_all_from_query.return_value = [job1]
-    config_map = service._get_config_names(
-        [service.BatchTask('fuzz', 'job1', None)])
+    config_map = batch_service._get_config_names(
+        [remote_task_types.RemoteTask('fuzz', 'job1', None)])
     self.assertEqual(config_map[('fuzz', 'job1')][2], 'job-os-ubuntu-20')
 
     # Test Case 2: OSS-Fuzz project, project-level version overrides job-level.
@@ -588,24 +566,24 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         name='my-project', base_os_version='project-os-ubuntu-24')
     mock_get_all_from_query.return_value = [job2]
     mock_oss_fuzz_project_query.return_value.get.return_value = project
-    config_map = service._get_config_names(
-        [service.BatchTask('fuzz', 'job2', None)])
+    config_map = batch_service._get_config_names(
+        [remote_task_types.RemoteTask('fuzz', 'job2', None)])
     self.assertEqual(config_map[('fuzz', 'job2')][2], 'project-os-ubuntu-24')
 
     # Test Case 3: OSS-Fuzz project, only project-level version exists.
     job3 = data_types.Job(name='job3', project='my-project', platform='LINUX')
     mock_get_all_from_query.return_value = [job3]
     mock_oss_fuzz_project_query.return_value.get.return_value = project
-    config_map = service._get_config_names(
-        [service.BatchTask('fuzz', 'job3', None)])
+    config_map = batch_service._get_config_names(
+        [remote_task_types.RemoteTask('fuzz', 'job3', None)])
     self.assertEqual(config_map[('fuzz', 'job3')][2], 'project-os-ubuntu-24')
 
     # Test Case 4: Internal project, no version is set, should be None.
     mock_is_oss_fuzz.return_value = False
     job4 = data_types.Job(name='job4', platform='LINUX')
     mock_get_all_from_query.return_value = [job4]
-    config_map = service._get_config_names(
-        [service.BatchTask('fuzz', 'job4', None)])
+    config_map = batch_service._get_config_names(
+        [remote_task_types.RemoteTask('fuzz', 'job4', None)])
     self.assertIsNone(config_map[('fuzz', 'job4')][2])
 
     # Test Case 5: OSS-Fuzz project, but no versions are set anywhere.
@@ -615,15 +593,15 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     project_no_version = data_types.OssFuzzProject(name='my-project-no-version')
     mock_get_all_from_query.return_value = [job5]
     mock_oss_fuzz_project_query.return_value.get.return_value = project_no_version
-    config_map = service._get_config_names(
-        [service.BatchTask('fuzz', 'job5', None)])
+    config_map = batch_service._get_config_names(
+        [remote_task_types.RemoteTask('fuzz', 'job5', None)])
     self.assertIsNone(config_map[('fuzz', 'job5')][2])
 
 
 def _get_spec_from_config(command, job_name):
   return list(
-      service._get_specs_from_config(
-          [service.BatchTask(command, job_name, None)]).values())[0]
+      batch_service._get_specs_from_config(
+          [remote_task_types.RemoteTask(command, job_name, None)]).values())[0]
 
 
 if __name__ == '__main__':
