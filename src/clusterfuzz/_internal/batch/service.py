@@ -43,6 +43,8 @@ from clusterfuzz._internal.system import environment
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
+MAX_QUEUE_SIZE = 50
+
 
 class AllRegionsOverloadedError(Exception):
   """Raised when all batch regions are overloaded."""
@@ -84,14 +86,12 @@ def get_region_load(project, region):
 
       # Log data for debugging first few times if needed, or just rely on structure.
       # We'll assume the structure is standard for Google APIs.
-      job_counts = data.get('jobCounts', [])
-      for item in job_counts:
-        state = item.get('state')
-        count = int(item.get('count', 0))
+      job_counts = data.get('jobCounts', {})
+      for state, count in job_counts.items():
         if state == 'QUEUED':
-          queued = count
+          queued = int(count)
         elif state == 'SCHEDULED':
-          scheduled = count
+          scheduled = int(count)
         else:
           logs.error(f'Unknown state: {state}')
 
@@ -190,10 +190,10 @@ def _get_subconfig(batch_config, instance_spec):
     region = conf['region']
 
     if region in queue_check_regions:
-      load = sum(get_region_load(project, region))
-      logs.info(f'Region {region} has {load} queued/scheduled jobs.')
-      if load >= 5:
-        logs.info(f'Region {region} overloaded (load={load}). Skipping.')
+      queued = sum(get_region_load(project, region))
+      logs.info(f'Region {region} has {queued} queued jobs.')
+      if queued >= MAX_QUEUE_SIZE:
+        logs.info(f'Region {region} overloaded (queued={queued}). Skipping.')
         continue
 
     healthy_subconfigs.append(name)
