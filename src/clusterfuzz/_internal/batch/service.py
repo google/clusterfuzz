@@ -18,13 +18,16 @@ on GCP Batch. It abstracts away the details of the underlying batch client
 and provides a simple interface for scheduling ClusterFuzz tasks.
 """
 import collections
+import json
 import random
 import threading
+import urllib.request
 from typing import Dict
 from typing import List
 from typing import Tuple
 import uuid
 
+import google.auth.transport.requests
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import memoize
@@ -67,7 +70,7 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
 # See https://cloud.google.com/batch/quotas#job_limits
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
-MAX_QUEUE_SIZE = 50
+MAX_QUEUE_SIZE = 100
 
 
 class AllRegionsOverloadedError(Exception):
@@ -193,11 +196,45 @@ def count_queued_or_scheduled_tasks(project: str,
   return (queued, scheduled)
 
 
-@memoize.wrap(memoize.Memcache(60))
+@memoize.wrap(memoize.InMemory(60))
 def get_region_load(project: str, region: str) -> int:
   """Gets the current load (queued and scheduled jobs) for a region."""
+  creds, _ = credentials.get_default()
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+
+  headers = {
+      'Authorization': f'Bearer {creds.token}',
+      'Content-Type': 'application/json'
+  }
+
   try:
-    return sum(count_queued_or_scheduled_tasks(project, region))
+    url = (f'https://batch.googleapis.com/v1alpha/projects/{project}/locations/'
+           f'{region}/jobs:countByState?states=QUEUED')
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req) as response:
+      if response.status != 200:
+        logs.error(
+            f'Batch countByState failed: {response.status} {response.read()}')
+        return 0
+
+      data = json.loads(response.read())
+      logs.info(f'Batch countByState response for {region}: {data}')
+      # The API returns a list of state counts.
+      # Example: { "jobCounts": { "QUEUED": "10" } }
+      total = 0
+
+      # Log data for debugging first few times if needed, or just rely on structure.
+      # We'll assume the structure is standard for Google APIs.
+      job_counts = data.get('jobCounts', {})
+      for state, count in job_counts.items():
+        count = int(count)
+        if state == 'QUEUED'
+          total += count
+        else:
+          logs.error(f'Unknown state: {state}')
+
+      return total
   except Exception as e:
     logs.error(f'Failed to get region load for {region}: {e}')
     return 0
@@ -287,7 +324,7 @@ def _get_subconfig(batch_config, instance_spec):
 
     if region in queue_check_regions:
       load = get_region_load(project, region)
-      logs.info(f'Region {region} has {load} queued/scheduled jobs.')
+      logs.info(f'Region {region} has {load} queued jobs.')
       if load >= MAX_QUEUE_SIZE:
         logs.info(f'Region {region} overloaded (load={load}). Skipping.')
         continue
