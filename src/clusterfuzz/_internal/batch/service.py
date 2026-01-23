@@ -62,10 +62,10 @@ def get_region_load(project: str, region: str) -> int:
       'Content-Type': 'application/json'
   }
 
-  url = (f'https://batch.googleapis.com/v1alpha/projects/{project}/locations/'
-         f'{region}/jobs:countByState?states=QUEUED&states=SCHEDULED')
-  req = urllib.request.Request(url, headers=headers)
   try:
+    url = (f'https://batch.googleapis.com/v1alpha/projects/{project}/locations/'
+           f'{region}/jobs:countByState?states=QUEUED&states=SCHEDULED')
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req) as response:
       if response.status != 200:
         logs.error(
@@ -74,18 +74,18 @@ def get_region_load(project: str, region: str) -> int:
 
       data = json.loads(response.read())
       logs.info(f'Batch countByState response for {region}: {data}')
-      # The API returns a dict of states to counts
-      # Example: { "jobCounts": {'QUEUED': 10, 'SCHEDULED': 11}}
+      # The API returns a list of state counts.
+      # Example: { "jobCounts": [ { "state": "QUEUED", "count": "10" }, ... ] }
       total = 0
 
       # Log data for debugging first few times if needed, or just rely on structure.
       # We'll assume the structure is standard for Google APIs.
-      job_counts = data.get('jobCounts', {})
-      for state, count in job_counts.items():
-        if state == 'QUEUED':
-          total += int(count)
-        elif state == 'SCHEDULED':
-          total += int(count)
+      job_counts = data.get('jobCounts', [])
+      for item in job_counts:
+        state = item.get('state')
+        count = int(item.get('count', 0))
+        if state == 'QUEUED' or state == 'SCHEDULED':
+          total += count
         else:
           logs.error(f'Unknown state: {state}')
 
@@ -166,7 +166,9 @@ def _get_subconfig(batch_config, instance_spec):
 
   queue_check_regions = batch_config.get('queue_check_regions')
   if not queue_check_regions:
-    logs.info('Skipping batch load check because queue_check_regions is not configured.')
+    logs.info(
+        'Skipping batch load check because queue_check_regions is not configured.'
+    )
     weighted_subconfigs = [
         WeightedSubconfig(subconfig['name'], subconfig['weight'])
         for subconfig in instance_subconfigs
@@ -174,7 +176,7 @@ def _get_subconfig(batch_config, instance_spec):
     weighted_subconfig = utils.random_weighted_choice(weighted_subconfigs)
     return all_subconfigs[weighted_subconfig.name]
 
-  # New behavior: Check load for configured regions.
+  # Check load for configured regions.
   healthy_subconfigs = []
   project = batch_config.get('project')
 
@@ -184,10 +186,10 @@ def _get_subconfig(batch_config, instance_spec):
     region = conf['region']
 
     if region in queue_check_regions:
-      queued = get_region_load(project, region)
-      logs.info(f'Region {region} has {queued} queued jobs.')
-      if queued >= MAX_QUEUE_SIZE:
-        logs.info(f'Region {region} overloaded (queued={queued}). Skipping.')
+      load = get_region_load(project, region)
+      logs.info(f'Region {region} has {load} queued/scheduled jobs.')
+      if load >= MAX_QUEUE_SIZE:
+        logs.info(f'Region {region} overloaded (load={load}). Skipping.')
         continue
 
     healthy_subconfigs.append(name)
@@ -224,7 +226,6 @@ def _get_specs_from_config(batch_tasks) -> Dict:
     versioned_images_map = instance_spec.get('versioned_docker_images')
     if (base_os_version and versioned_images_map and
         base_os_version in versioned_images_map):
-      # New path: Use the versioned image if specified and available.
       docker_image_uri = versioned_images_map[base_os_version]
     else:
       # Fallback/legacy path: Use the original docker_image key.
