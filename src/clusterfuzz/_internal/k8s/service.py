@@ -14,6 +14,7 @@
 """Kubernetes batch client."""
 import base64
 import collections
+import ipaddress
 import os
 import typing
 import uuid
@@ -206,7 +207,16 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
 
     configuration = k8s_client.Configuration()
     configuration.host = f'https://{endpoint}'
-    configuration.ssl_ca_cert = ca_cert_path
+
+    try:
+      ipaddress.ip_address(endpoint)
+      configuration.ssl_ca_cert = ca_cert_path
+    except ValueError:
+      # If the endpoint is a hostname, we assume it's using a public CA or
+      # the system trust store should be used.
+      logs.info(f'Endpoint {endpoint} is a hostname. '
+                'Skipping custom CA configuration.')
+
     configuration.verify_ssl = True
 
     def get_token(creds):
