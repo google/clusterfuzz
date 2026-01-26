@@ -3256,7 +3256,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('golang_not_ubsan.txt')
     expected_type = 'Index out of range'
     expected_address = ''
-    expected_state = ('vm.(*VM).execute.f2\nvm.(*thread).Pop\nruntime.Fuzz\n')
+    expected_state = 'vm.(*VM).execute.f2\nvm.(*thread).Pop\nruntime.Fuzz\n'
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
