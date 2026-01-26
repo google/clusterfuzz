@@ -638,7 +638,10 @@ class StackParser:
             break
 
         if state.crash_type == 'UNKNOWN':
-          logs.error('Unknown UBSan crash type: {reason}'.format(reason=reason))
+          logs.error(
+              f'Unknown UBSan crash type: {reason}',
+              crash_line=line,
+              is_golang=state.is_golang)
 
         state.crash_address = ''
         state.crash_state = ''
