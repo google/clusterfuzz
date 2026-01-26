@@ -3435,7 +3435,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     self.mock.error.assert_called_once_with(
         'Unknown UBSan crash type: '
-        'unsupported ubsan error that needs a new signature')
+        'unsupported ubsan error that needs a new signature',
+        crash_line='../../third_party/freetype/src/src/cff/cffload.c:2060:51:'
+        ' runtime error: unsupported ubsan error that needs a new signature',
+        is_golang=False)
 
   def test_libfuzzer_overwrites_const_input(self):
     """Test for libFuzzer when target tries to overwrite const input."""
