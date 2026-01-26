@@ -1,0 +1,34 @@
+panic in thread &blah.thread{pc:1, matched:false, matches:map[int][]string{}, time:time.Time{wall:0x0, ext:0, loc:(*time.Location)(nil)}, stack:[]interface {}{}} at instr "{neg <nil> 0}": runtime error: index out of range [-1]
+panic: runtime error: index out of range [-1] [recovered, repanicked]
+
+goroutine 25 [running, locked to thread]:
+github.com/test/project/runtime/vm.(*VM).execute.f2()
+	github.com/test/project/runtime/vm/vm.go:342 +0x25a
+panic({0x5904b147b6a0?, 0x10c00028a1f8?})
+	runtime/panic.go:783 +0x132
+github.com/test/project/runtime/vm.(*thread).Pop(...)
+	github.com/test/project/runtime/vm/vm.go:91
+github.com/test/project/runtime/vm.(*thread).PopInt(0x5904b0e35f2d?)
+	github.com/test/project/runtime/vm/vm.go:132 +0x4df
+github.com/test/project/runtime/vm.(*VM).execute(0x10c0000000e0, 0x10c000014280, {0x7e21d673dc90?, {0x0?, 0x0?}, 0x10c00005a008?})
+	github.com/test/project/runtime/vm/vm.go:721 +0x25a5
+github.com/test/project/runtime/vm.(*VM).ProcessLogLine(0x10c0000000e0, {0x5904b1326cc5?, 0x5904b133c2f5?}, 0x10c00013b140)
+	github.com/test/project/runtime/vm/vm.go:982 +0x2f9
+github.com/test/project/runtime.Fuzz({0x7a71d63e29d0, 0xe, 0xe})
+	github.com/test/project/runtime/fuzz.go:57 +0x6bd
+main.LLVMFuzzerTestOneInput(...)
+	github.com/test/project/runtime/main.1712287244.go:21
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==11256==ERROR: AddressSanitizer: ABRT on unknown address 0x053900002bf8 (pc 0x5904b0ea0ea1 bp 0x10c00003d468 sp 0x10c00003d450 T0)
+SCARINESS: 10 (signal)
+    #0 0x5904b0ea0ea1 in runtime.raise.abi0 runtime/sys_linux_amd64.s:154
+
+==11256==Register values:
+rax = 0x0000000000000000  rbx = 0x0000000000000000  rcx = 0x00005904b0ea0ea1  rdx = 0x0000000000000006
+rdi = 0x0000000000002bf8  rsi = 0x0000000000002bf8  rbp = 0x000010c00003d468  rsp = 0x000010c00003d450
+ r8 = 0x0000000000000001   r9 = 0x0000000000000000  r10 = 0x0000000000000008  r11 = 0x0000000000000246
+r12 = 0x0000000000002bf8  r13 = 0x000000000000069c  r14 = 0x000010c0000028c0  r15 = 0xffffffffffffffff
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_project_0264546c3sadfd22344ce674621bb6261/revisions/vm-fuzzer+0x2fcea1)
+==11256==ABORTING

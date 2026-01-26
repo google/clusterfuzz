@@ -3251,6 +3251,19 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_golang_panic_runtime_error_not_ubsan(self):
+    """Test golang stacktrace with panic not considered ubsan unknown type."""
+    data = self._read_test_data('golang_not_ubsan.txt')
+    expected_type = 'Index out of range'
+    expected_address = ''
+    expected_state = ('vm.(*VM).execute.f2\nvm.(*thread).Pop\nruntime.Fuzz\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+    self.mock.error.assert_not_called()
+
   def test_golang_panic_runtime_error_index_out_of_range_with_msan(self):
     """Test golang stacktrace with panic caused by index out of range
     with memory sanitizer."""
