@@ -340,15 +340,15 @@ WYCHEPROOF_JAVA_EXCEPTION = re.compile(
 
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
-    r'^panic: runtime error: integer divide by zero.*')
+    r'^panic( in .*)?: runtime error: integer divide by zero.*')
 GOLANG_INDEX_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: index out of range.*')
+    r'^panic( in .*)?: runtime error: index out of range.*')
 GOLANG_INVALID_MEMORY_ADDRESS_REGEX = re.compile(
-    r'^panic: runtime error: invalid memory address.*')
+    r'^panic( in .*)?: runtime error: invalid memory address.*')
 GOLANG_MAKESLICE_LEN_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: makeslice: len out of range.*')
+    r'^panic( in .*)?: runtime error: makeslice: len out of range.*')
 GOLANG_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: slice bounds out of range.*')
+    r'^panic( in .*)?: runtime error: slice bounds out of range.*')
 GOLANG_STACK_OVERFLOW_REGEX = re.compile(r'^fatal error: stack overflow.*')
 
 GOLANG_CRASH_TYPES_MAP = [
