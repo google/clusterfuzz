@@ -284,28 +284,34 @@ class GetRegionLoadTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.batch.service.count_queued_or_scheduled_tasks',
+        'urllib.request.urlopen',
     ])
 
   def test_get_region_load_success(self):
     """Tests get_region_load with a successful API response."""
-    self.mock.count_queued_or_scheduled_tasks.return_value = (10, 5)
+    mock_response = mock.Mock()
+    mock_response.status = 200
+    mock_response.read.return_value = b'{"jobCounts": {"QUEUED": "15"}}'
+    self.mock.urlopen.return_value.__enter__.return_value = mock_response
 
-    load = batch_service.get_region_load('project', 'us-central1')
+    load = batch_service.get_region_load('project_success', 'us-central1')
     self.assertEqual(load, 15)
 
   def test_get_region_load_empty(self):
     """Tests get_region_load with an empty response."""
-    self.mock.count_queued_or_scheduled_tasks.return_value = (0, 0)
+    mock_response = mock.Mock()
+    mock_response.status = 200
+    mock_response.read.return_value = b'{}'
+    self.mock.urlopen.return_value.__enter__.return_value = mock_response
 
-    load = batch_service.get_region_load('project', 'us-central1')
+    load = batch_service.get_region_load('project_empty', 'us-central1')
     self.assertEqual(load, 0)
 
   def test_get_region_load_error(self):
     """Tests get_region_load with an API error."""
-    self.mock.count_queued_or_scheduled_tasks.side_effect = Exception('error')
+    self.mock.urlopen.side_effect = Exception('error')
 
-    load = batch_service.get_region_load('project', 'us-central1')
+    load = batch_service.get_region_load('project_error', 'us-central1')
     self.assertEqual(load, 0)
 
 
@@ -352,7 +358,7 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
 
   def test_all_regions_healthy(self):
     """Tests that a region is picked when all are healthy."""
-    self.mock.get_region_load.return_value = 2  # Total load 2 < 50
+    self.mock.get_region_load.return_value = 2  # Total load 2 < 100
     self.mock.choice.side_effect = lambda x: x[0]
 
     subconfig = batch_service._get_subconfig(self.batch_config,
@@ -361,9 +367,9 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
 
   def test_one_region_overloaded(self):
     """Tests that overloaded regions are skipped."""
-    # us-central1 (load 60) is overloaded, us-east4 (load 2) is healthy.
+    # us-central1 (load 100) is overloaded, us-east4 (load 2) is healthy.
     self.mock.get_region_load.side_effect = [
-        60,  # us-central1
+        100,  # us-central1
         2,  # us-east4
     ]
 
@@ -380,7 +386,7 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
 
   def test_all_regions_overloaded(self):
     """Tests that AllRegionsOverloadedError is raised when no healthy regions exist."""
-    self.mock.get_region_load.return_value = 50  # Load 50 is threshold for "overloaded"
+    self.mock.get_region_load.return_value = 100  # Load 100 is threshold for "overloaded"
 
     with self.assertRaises(batch_service.AllRegionsOverloadedError):
       batch_service._get_subconfig(self.batch_config, self.instance_spec)

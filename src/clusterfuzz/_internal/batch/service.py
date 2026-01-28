@@ -21,10 +21,10 @@ import collections
 import json
 import random
 import threading
-import urllib.request
 from typing import Dict
 from typing import List
 from typing import Tuple
+import urllib.request
 import uuid
 
 import google.auth.transport.requests
@@ -229,7 +229,7 @@ def get_region_load(project: str, region: str) -> int:
       job_counts = data.get('jobCounts', {})
       for state, count in job_counts.items():
         count = int(count)
-        if state == 'QUEUED'
+        if state == 'QUEUED':
           total += count
         else:
           logs.error(f'Unknown state: {state}')
