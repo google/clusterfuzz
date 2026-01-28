@@ -13,6 +13,7 @@
 # limitations under the License.
 """Build archive tests."""
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -23,6 +24,7 @@ from clusterfuzz._internal.build_management import build_archive
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'build_archive_data')
 
@@ -133,9 +135,11 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
         'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
         'clusterfuzz._internal.bot.fuzzers.utils.is_fuzz_target',
+        'clusterfuzz._internal.build_management.build_archive.ChromeBuildArchive.archive_schema_version',
     ])
     self.mock.open.return_value.list_members.return_value = []
     self.mock.is_fuzz_target.side_effect = self._mock_is_fuzz_target
+    self.mock.archive_schema_version.return_value = 0
     self.build = build_archive.ChromeBuildArchive(self.mock.open.return_value)
     self._declared_fuzzers = []
     self.maxDiff = None
@@ -189,10 +193,16 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
   def _declare_fuzzers(self, fuzzers):
     self._declared_fuzzers = fuzzers
 
+  def _set_archive_schema_version(self, version):
+    self.mock.archive_schema_version.return_value = version
+    self.build = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
   def test_possible_dependencies(self, dir_prefix):
     """Tests that all the necessary dependencies are correctly extracted from
     the runtime_deps file."""
+    #self._set_archive_schema_version(1)
+    #self.assertEqual(self.build.archive_schema_version(), 1)
     deps_files = self._generate_possible_fuzzer_dependencies('', 'my_fuzzer')
     needed_files = self._generate_possible_fuzzer_dependencies(
         dir_prefix, 'my_fuzzer')
@@ -201,24 +211,7 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self._declare_fuzzers(['my_fuzzer'])
     to_extract = self.build.get_target_dependencies('my_fuzzer')
     to_extract = [f.name for f in to_extract]
-    self.assertCountEqual(to_extract, needed_files)
-
-  @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_possible_dependencies_archive_without_normalized_path(
-      self, dir_prefix):
-    """Tests that the chrome build handler correctly handles mixed-up
-    normalized and not normalized path."""
-    deps_files = self._generate_possible_fuzzer_dependencies('', 'my_fuzzer')
-    needed_files = self._generate_possible_fuzzer_dependencies(
-        dir_prefix, 'my_fuzzer')
-    self._add_files_to_archive(needed_files)
-
-    # we want our runtime_deps to have normalized path so that they do not
-    # exactly match the archive paths.
-    self._generate_runtime_deps(deps_files)
-    self._declare_fuzzers(['my_fuzzer'])
-    to_extract = self.build.get_target_dependencies('my_fuzzer')
-    to_extract = [f.name for f in to_extract]
+    self.assertEqual(to_extract, needed_files)
     self.assertCountEqual(to_extract, needed_files)
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
