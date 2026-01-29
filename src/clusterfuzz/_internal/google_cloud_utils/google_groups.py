@@ -13,6 +13,7 @@
 # limitations under the License.
 """Helper for google groups management."""
 
+import threading
 from urllib import parse
 
 from googleapiclient import discovery
@@ -21,25 +22,21 @@ from googleapiclient.errors import HttpError
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 # pylint: disable=no-member
 
-_identity_service: discovery.Resource | None = None
+_local = threading.local()
 
-
-def _config_identity_api() -> None:
-  """Build the google cloud identity service api."""
-  global _identity_service
-  creds, _ = credentials.get_default()
-  _identity_service = discovery.build('cloudidentity', 'v1', credentials=creds)
-
-
+@environment.local_noop
 def get_identity_api() -> discovery.Resource | None:
   """Return cloud identity api client."""
-  if _identity_service is None:
-    _config_identity_api()
+  if not hasattr(_local, 'identity_service'):
+    creds, _ = credentials.get_default()
+    _local.identity_service = discovery.build(
+        'cloudidentity', 'v1', credentials=creds, cache_discovery=False)
 
-  return _identity_service
+  return _local.identity_service
 
 
 def get_group_id(group_name: str, exists_check: bool = False) -> str | None:
