@@ -134,7 +134,7 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.get_utask_mains',
-        'clusterfuzz._internal.remote_task.remote_task_gate.RemoteTaskGate.create_utask_main_jobs',
+        'clusterfuzz._internal.remote_task.remote_task_gate.RemoteTaskGate',
         'clusterfuzz._internal.base.tasks.bulk_add_tasks',
     ])
 
@@ -150,11 +150,12 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     self.mock.get_utask_mains.return_value = [mock_task]
 
     # Simulate that the tasks were not created and returned back.
-    self.mock.create_utask_main_jobs.side_effect = lambda x, tasks: tasks
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.side_effect = lambda tasks: tasks
 
     run_bot.schedule_utask_mains()
 
-    self.mock.create_utask_main_jobs.assert_called_once()
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )
 
     # Check that bulk_add_tasks was called with the tasks returned by create_utask_main_jobs
     # and the correct queue.
@@ -179,10 +180,11 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     mock_task.lease.return_value.__exit__.return_value = None
 
     self.mock.get_utask_mains.return_value = [mock_task]
-    self.mock.create_utask_main_jobs.return_value = []
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
 
     run_bot.schedule_utask_mains()
 
-    self.mock.create_utask_main_jobs.assert_called_once()
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )
     self.mock.bulk_add_tasks.assert_called_once_with(
         [], queue=taskslib.PREPROCESS_QUEUE, eta_now=True)

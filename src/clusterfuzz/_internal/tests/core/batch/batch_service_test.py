@@ -254,7 +254,7 @@ class GcpBatchServiceTest(unittest.TestCase):
           UUIDS[0], spec1, ['url1'])
       self.mock_batch_client_instance.create_job.assert_called_with(
           expected_create_request)
-      self.assertEqual(result, 'job')
+      self.assertEqual(result, [])
 
 
 @test_utils.with_cloud_emulators('datastore')
