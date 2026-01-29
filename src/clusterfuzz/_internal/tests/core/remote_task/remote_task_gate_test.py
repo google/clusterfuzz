@@ -55,6 +55,12 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.patcher.start()
     self.addCleanup(self.patcher.stop)
 
+    self.mock_prepare_unscheduled_tasks = mock.patch.object(
+        remote_task_gate.RemoteTaskGate,
+        'prepare_unscheduled_tasks',
+        side_effect=lambda x: x).start()
+    self.addCleanup(mock.patch.stopall)
+
   def test_init(self):
     """Tests that the RemoteTaskGate initializes correctly and creates
     service map."""
@@ -228,24 +234,34 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.mock_k8s_service.create_utask_main_jobs.assert_not_called()
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
-  def test_create_utask_main_jobs_returns_unscheduled_tasks(
+  def test_create_utask_main_jobs_calls_prepare_unscheduled_tasks(
       self, mock_get_job_frequency):
-    """Tests that create_utask_main_jobs returns unscheduled tasks directly."""
+    """Tests that create_utask_main_jobs calls prepare_unscheduled_tasks with
+    unscheduled tasks."""
     tasks = [
         remote_task_types.RemoteTask('c', 'j', 'u1'),
     ]
     unscheduled_tasks = [
         remote_task_types.RemoteTask('c', 'j', 'u1'),
     ]
+    prepared_tasks = [
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+    ]
+    prepared_tasks[0].argument = 'arg'
 
     mock_get_job_frequency.return_value = {'kubernetes': 1.0, 'gcp_batch': 0.0}
     self.mock_k8s_service.create_utask_main_jobs.return_value = unscheduled_tasks
+
+    self.mock_prepare_unscheduled_tasks.side_effect = None
+    self.mock_prepare_unscheduled_tasks.return_value = prepared_tasks
 
     gate = remote_task_gate.RemoteTaskGate()
     result = gate.create_utask_main_jobs(tasks)
 
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(tasks)
-    self.assertEqual(result, unscheduled_tasks)
+    self.mock_prepare_unscheduled_tasks.assert_called_once_with(
+        unscheduled_tasks)
+    self.assertEqual(result, prepared_tasks)
 
 
 class RemoteTaskGateProcessingTest(unittest.TestCase):
@@ -272,3 +288,47 @@ class RemoteTaskGateProcessingTest(unittest.TestCase):
     self.patcher.start()
     self.addCleanup(self.patcher.stop)
     self.gate = remote_task_gate.RemoteTaskGate()
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input'
+  )
+  def test_prepare_unscheduled_tasks(self, mock_download):
+    """Tests that prepare_unscheduled_tasks correctly updates task arguments."""
+
+    def side_effect(url):
+      mock_input = mock.Mock()
+      if url == 'signed_url_1':
+        mock_input.testcase_id = None
+        mock_input.fuzzer_name = 'fuzzer1'
+      elif url == 'signed_url_2':
+        mock_input.testcase_id = None
+        mock_input.fuzzer_name = 'fuzzer2'
+      elif url == 'signed_url_3':
+        mock_input.testcase_id = '12345'
+        mock_input.fuzzer_name = 'fuzzer3'
+      return mock_input
+
+    mock_download.side_effect = side_effect
+
+    task1 = remote_task_types.RemoteTask(
+        command='fuzz', job_type='job1', input_download_url='signed_url_1')
+    task2 = remote_task_types.RemoteTask(
+        command='fuzz', job_type='job2', input_download_url='signed_url_2')
+    task3 = remote_task_types.RemoteTask(
+        command='progression',
+        job_type='job3',
+        input_download_url='signed_url_3')
+
+    tasks = [task1, task2, task3]
+
+    updated_tasks = self.gate.prepare_unscheduled_tasks(tasks)
+
+    self.assertEqual(len(updated_tasks), 3)
+    self.assertEqual(updated_tasks[0].argument, 'fuzzer1')
+    self.assertEqual(updated_tasks[1].argument, 'fuzzer2')
+    self.assertEqual(updated_tasks[2].argument, '12345')
+
+  def test_prepare_unscheduled_tasks_empty(self):
+    """Tests that prepare_unscheduled_tasks handles empty list of tasks."""
+    updated_tasks = self.gate.prepare_unscheduled_tasks([])
+    self.assertEqual(updated_tasks, [])

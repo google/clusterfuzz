@@ -14,6 +14,7 @@
 """Remote task types."""
 
 import abc
+import typing
 
 from clusterfuzz._internal.base import tasks
 

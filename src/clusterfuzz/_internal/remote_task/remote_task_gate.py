@@ -21,7 +21,10 @@ the task creation logic to a specific implementation.
 
 import collections
 import random
+import typing
 
+from clusterfuzz._internal.base.tasks.task_utils import is_testcase_based_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -104,6 +107,37 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     logs.info('Job frequencies', frequencies=frequencies)
     return frequencies
 
+  def prepare_unscheduled_tasks(
+      self, unscheduled_remote_tasks: typing.List[remote_task_types.RemoteTask]
+  ) -> typing.List[remote_task_types.RemoteTask]:
+    """Prepares the unscheduled remote tasks to be sent back to the 
+      preprocess queue.
+
+      The messages in the preprocess queue expects tasks with 
+      the properties followng task_name, fuzzer, job, eta. 
+      The utasks has the signed url as argument instead of the fuzzer,
+      then for sending it back to the preprocess, it recovers its fuzzer
+      and override the argument.
+    """
+
+    prepared_tasks = []
+    if not unscheduled_remote_tasks:
+      return prepared_tasks
+
+    for task in unscheduled_remote_tasks:
+      try:
+        uworker_input = uworker_io.download_and_deserialize_uworker_input(
+            task.input_download_url)
+        if is_testcase_based_task(task.command):
+          task.argument = uworker_input.testcase_id
+        else:
+          task.argument = uworker_input.fuzzer_name
+        prepared_tasks.append(task)
+      except Exception:
+        logs.error('Could not prepare the task due to an error.')
+
+    return prepared_tasks
+
   def create_utask_main_job(self, module, job_type, input_download_url):
     """Creates a single remote task, selecting a backend dynamically."""
     adapter_id = self._get_adapter()
@@ -161,4 +195,6 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
           logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
           unscheduled_tasks.extend(tasks)
 
-    return unscheduled_tasks
+    prepared_unscheduled_tasks = self.prepare_unscheduled_tasks(
+        unscheduled_tasks)
+    return prepared_unscheduled_tasks

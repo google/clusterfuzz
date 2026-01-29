@@ -47,6 +47,14 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.addCleanup(patcher.stop)
     patcher.start()
 
+    # Mock prepare_unscheduled_tasks to avoid NDB context issues
+    patcher = mock.patch.object(
+        remote_task_gate.RemoteTaskGate,
+        'prepare_unscheduled_tasks',
+        side_effect=lambda x: x)
+    self.addCleanup(patcher.stop)
+    patcher.start()
+
     self.gate = remote_task_gate.RemoteTaskGate()
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
