@@ -31,7 +31,7 @@ spec:
         {% endif %}
     spec:
       {% if is_kata %}
-      runtimeClassName: kata
+      runtimeClassName: kata-qemu-virtiofs
       {% endif %}
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: "{{service_account_name}}"

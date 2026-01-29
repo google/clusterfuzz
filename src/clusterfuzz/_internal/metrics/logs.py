@@ -58,9 +58,16 @@ def _is_running_on_k8s():
   return os.getenv('IS_K8S_ENV') == 'true'
 
 
+def _is_running_on_cloud_run():
+  """Returns whether or not we're running on Cloud Run."""
+  return bool(os.getenv('K_SERVICE') or os.getenv('CLOUD_RUN_JOB'))
+
+
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_running_on_k8s():
+  if _is_running_on_cloud_run():
+    task_name = 'cloud_run'
+  elif _is_running_on_k8s():
     task_name = 'k8s'
   elif _is_running_on_app_engine():
     task_name = 'appengine'
@@ -99,9 +106,9 @@ def _file_logging_enabled():
   This is disabled if we are running in app engine or kubernetes as these have
     their dedicated loggers, see configure_appengine() and configure_k8s().
   """
-  return bool(os.getenv(
-      'LOG_TO_FILE',
-      'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  return bool(os.getenv('LOG_TO_FILE', 'True')) and not (
+      _is_running_on_app_engine() or _is_running_on_k8s() or
+      _is_running_on_cloud_run())
 
 
 def _cloud_logging_enabled():
@@ -111,8 +118,9 @@ def _cloud_logging_enabled():
     or kubernetes as these have their dedicated loggers, see
     configure_appengine() and configure_k8s()."""
   return (bool(os.getenv('LOG_TO_GCP', 'True')) and
-          not os.getenv("PY_UNITTESTS") and not _is_local() and
-          not _is_running_on_app_engine() and not _is_running_on_k8s())
+          not os.getenv("PY_UNITTESTS") and not _is_local() and not
+          (_is_running_on_app_engine() or _is_running_on_k8s() or
+           _is_running_on_cloud_run()))
 
 
 def suppress_unwanted_warnings():
@@ -486,6 +494,18 @@ def configure_k8s():
   logging.getLogger().setLevel(logging.INFO)
 
 
+def configure_cloud_run():
+  """Configure logging for Cloud Run."""
+  # Cloud Run captures stdout/stderr.
+  handler = logging.StreamHandler(sys.stdout)
+  handler.setLevel(logging.INFO)
+  formatter = JsonFormatter()
+  handler.setFormatter(formatter)
+
+  logging.getLogger().addHandler(handler)
+  logging.getLogger().setLevel(logging.INFO)
+
+
 def configure_cloud_logging():
   """ Configure Google cloud logging, for bots not running on appengine nor k8s.
   """
@@ -560,6 +580,10 @@ def configure(name, extras=None):
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
 
+  if _is_running_on_cloud_run():
+    configure_cloud_run()
+    return
+
   if _is_running_on_k8s():
     configure_k8s()
     return
@@ -594,7 +618,8 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine() or _is_running_on_k8s():
+  if (_is_running_on_cloud_run() or _is_running_on_app_engine() or
+      _is_running_on_k8s()):
     # Running on App Engine.
     set_logger(logging.getLogger())
 

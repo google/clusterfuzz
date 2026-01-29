@@ -64,7 +64,7 @@ def _get_config_names(remote_tasks: list[remote_task_types.RemoteTask]):
   config_map = {}
   for task in remote_tasks:
     if task.job_type not in job_map:
-      logs.error(f'{task.job_type} doesnt exist.')
+      print(f'{task.job_type} doesnt exist.')
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -138,6 +138,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
   """Creates the body of a Kubernetes job."""
 
   job_name = f'cf-job-{str(uuid.uuid4())}'
+  print(job_name)
   job_name = job_name.lower()
 
   # Set up Jinja2 environment and load the template.
@@ -161,6 +162,7 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
 
   # Render the template and load as YAML.
   rendered_spec = template.render(context)
+  print(rendered_spec)
   return yaml.safe_load(rendered_spec)
 
 
@@ -190,11 +192,11 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
       cluster = next((c for c in clusters if c['name'] == CLUSTER_NAME), None)
 
       if not cluster:
-        logs.error(f'Cluster {CLUSTER_NAME} not found in project {project}.')
+        print(f'Cluster {CLUSTER_NAME} not found in project {project}.')
         return
 
     except Exception as e:
-      logs.error(f'Failed to list clusters in {project}: {e}')
+      print(f'Failed to list clusters in {project}: {e}')
       return
 
     endpoint = cluster['endpoint']
@@ -215,7 +217,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     except ValueError:
       # If the endpoint is a hostname, we assume it's using a public CA or
       # the system trust store should be used.
-      logs.info(f'Endpoint {endpoint} is a hostname. '
+      print(f'Endpoint {endpoint} is a hostname. '
                 'Skipping custom CA configuration.')
 
     configuration.verify_ssl = True
@@ -230,7 +232,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     configuration.api_key = get_token(credentials)
 
     k8s_client.Configuration.set_default(configuration)
-    logs.info('GKE credentials loaded successfully.')
+    print('GKE credentials loaded successfully.')
 
   def _create_service_account_if_needed(self,
                                         service_account_email: str) -> str:
@@ -245,7 +247,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
       if e.status != 404:
         raise
 
-    logs.info(f'Creating Service Account {service_account_name} for '
+    print(f'Creating Service Account {service_account_name} for '
               f'{service_account_email}.')
     metadata = k8s_client.V1ObjectMeta(
         name=service_account_name,
@@ -276,10 +278,10 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
           namespace='default',
           label_selector='app.kubernetes.io/name=clusterfuzz-kata-job',
           field_selector='status.phase=Pending')
-      logs.info(f'Found {len(pods.items)} pending jobs.')
+      print(f'Found {len(pods.items)} pending jobs.')
       return len(pods.items)
     except Exception as e:
-      logs.error(f'Failed to list pods: {e}')
+      print(f'Failed to list pods: {e}')
       return 0
 
   def create_utask_main_job(self, module: str, job_type: str,
@@ -308,21 +310,21 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     else:
       limit = K8S_JOBS_PENDING_LIMIT_DEFAULT
 
-    pending_jobs_count = self._get_pending_jobs_count()
-    if pending_jobs_count >= limit:
-      logs.warning(
-          f'Pending jobs count {pending_jobs_count} reached limit {limit} '
-          f'for k8s.')
-      return remote_tasks
+    # pending_jobs_count = self._get_pending_jobs_count()
+    # if pending_jobs_count >= limit:
+    #   print(
+    #       f'Pending jobs count {pending_jobs_count} reached limit {limit} '
+    #       f'for k8s.')
+    #   return remote_tasks
 
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
-      logs.info(
+      print(
           f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
-    logs.info('Creating Kubernetes jobs.')
+    print('Creating Kubernetes jobs.')
     for config, input_urls in job_specs.items():
       for input_url in input_urls:
         self.create_job(config, input_url)

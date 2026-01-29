@@ -1543,3 +1543,78 @@ class TestLogContextSingleton(unittest.TestCase):
 
     # Number of increments plus the common context.
     self.assertEqual(len(run_bot_logs.log_contexts.contexts), num_it + 1)
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Tests for logs.py on Cloud Run."""
+import logging
+import os
+import unittest
+from unittest import mock
+
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.tests.test_libs import helpers
+
+
+class LogsCloudRunTest(unittest.TestCase):
+  """Tests for logs on Cloud Run."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    os.environ['K_SERVICE'] = 'my-service'
+
+  def test_configure_cloud_run(self):
+    """Test that configure_cloud_run sets up a StreamHandler."""
+    logger = logging.getLogger()
+    # Remove existing handlers
+    logger.handlers = []
+
+    logs.configure_cloud_run()
+
+    self.assertEqual(len(logger.handlers), 1)
+    handler = logger.handlers[0]
+    self.assertIsInstance(handler, logging.StreamHandler)
+    self.assertIsInstance(handler.formatter, logs.JsonFormatter)
+    self.assertEqual(logger.level, logging.INFO)
+
+  def test_is_running_on_cloud_run(self):
+    """Test _is_running_on_cloud_run."""
+    self.assertTrue(logs._is_running_on_cloud_run())
+    del os.environ['K_SERVICE']
+    self.assertFalse(logs._is_running_on_cloud_run())
+    os.environ['CLOUD_RUN_JOB'] = 'my-job'
+    self.assertTrue(logs._is_running_on_cloud_run())
+
+  def test_file_logging_disabled_on_cloud_run(self):
+    """Test that file logging is disabled on Cloud Run."""
+    self.assertFalse(logs._file_logging_enabled())
+
+  def test_cloud_logging_disabled_on_cloud_run(self):
+    """Test that Cloud Logging (via library) is disabled on Cloud Run."""
+    self.assertFalse(logs._cloud_logging_enabled())
+
+  @mock.patch('clusterfuzz._internal.metrics.logs.configure_cloud_run')
+  def test_configure_calls_cloud_run(self, mock_configure_cloud_run):
+    """Test that configure calls configure_cloud_run."""
+    logs.configure('test_logger')
+    mock_configure_cloud_run.assert_called_once()
+
+  @mock.patch('clusterfuzz._internal.metrics.logs.configure_cloud_run')
+  @mock.patch('clusterfuzz._internal.metrics.logs.configure_k8s')
+  def test_configure_priority(self, mock_configure_k8s,
+                              mock_configure_cloud_run):
+    """Test that Cloud Run configuration takes priority over K8s."""
+    os.environ['IS_K8S_ENV'] = 'true'
+    logs.configure('test_logger')
+    mock_configure_cloud_run.assert_called_once()
+    mock_configure_k8s.assert_not_called()
