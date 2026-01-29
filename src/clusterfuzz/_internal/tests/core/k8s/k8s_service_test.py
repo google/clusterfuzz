@@ -54,13 +54,33 @@ class KubernetesServiceTest(unittest.TestCase):
     ]
 
     kube_service = service.KubernetesService()
-    kube_service.create_utask_main_jobs(tasks)
+    result = kube_service.create_utask_main_jobs(tasks)
 
     # Total 3 tasks, so 3 calls to create_job.
     self.assertEqual(3, mock_create_job.call_count)
 
     urls = sorted([call.args[1] for call in mock_create_job.call_args_list])
     self.assertEqual(urls, ['url1', 'url2', 'url3'])
+    self.assertEqual(result, [])
+
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
+  @mock.patch.object(service.KubernetesService, 'create_job')
+  def test_create_uworker_main_batch_jobs_limit(self, mock_create_job,
+                                                mock_get_pending_count, _):
+    """Tests the job limiter logic."""
+    data_types.FeatureFlag(
+        id='k8s_jobs_pending_limit', value=2.0, enabled=True).put()
+    mock_get_pending_count.return_value = 2  # At limit
+
+    tasks = [
+        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
+    ]
+
+    kube_service = service.KubernetesService()
+    uncreated = kube_service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(0, mock_create_job.call_count)
+    self.assertEqual(tasks, uncreated)
 
   @mock.patch('kubernetes.client.CoreV1Api')
   def test_get_pending_jobs_count(self, mock_core_api_cls, _):

@@ -27,6 +27,7 @@ class FeatureFlags(Enum):
   TEST_FLOAT_FLAG = 'test_float_flag'
 
   K8S_JOBS_FREQUENCY = 'k8s_jobs_frequency'
+  K8S_JOBS_PENDING_LIMIT = 'k8s_jobs_pending_limit'
 
   @property
   def flag(self):

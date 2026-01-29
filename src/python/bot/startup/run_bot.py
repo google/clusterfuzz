@@ -103,7 +103,14 @@ def schedule_utask_mains():
             task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    remote_task_gate.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
+    # We send back to the preprocess the tasks that couldn't be scheduled to be executed.
+    # This is necessary because the signed url can expire.
+    # We also need to send it back and not discard it because it would break the coreography
+    # avoiding to execute follow up tasks, such as progression, minimize...
+    uncreated_tasks = remote_task_gate.RemoteTaskGate().create_utask_main_jobs(
+        batch_tasks)
+    tasks.bulk_add_tasks(
+        uncreated_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
 
 
 def task_loop():

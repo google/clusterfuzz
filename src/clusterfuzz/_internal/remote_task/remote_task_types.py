@@ -15,8 +15,11 @@
 
 import abc
 
+from clusterfuzz._internal.base.tasks import Task
+from clusterfuzz._internal.google_cloud_utils import pubsub
 
-class RemoteTask:
+
+class RemoteTask(Task):
   """Represents a single ClusterFuzz task to be executed on a remote worker.
   
   This class holds the necessary information to execute a ClusterFuzz command,
@@ -29,6 +32,16 @@ class RemoteTask:
     self.job_type = job_type
     self.input_download_url = input_download_url
     self.pubsub_task = pubsub_task
+
+  def to_pubsub_message(self):
+    """Convert the task to a pubsub message."""
+    attributes = {
+        'command': self.command,
+        'argument': str(self.input_download_url),
+        'job': self.job_type,
+    }
+
+    return pubsub.Message(attributes=attributes)
 
 
 class RemoteTaskInterface(abc.ABC):

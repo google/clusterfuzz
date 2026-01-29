@@ -26,6 +26,7 @@ import jinja2
 from kubernetes import client as k8s_client
 import yaml
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -38,6 +39,8 @@ from clusterfuzz._internal.system import environment
 
 CLUSTER_NAME = project_config = local_config.ProjectConfig().get(
     'cluster_name', 'clusterfuzz-cronjobs-gke')
+
+K8S_JOBS_PENDING_LIMIT_DEFAULT = 1000
 
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
     'job_type',
@@ -289,11 +292,8 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     batch_tasks = [
         remote_task_types.RemoteTask(command, job_type, input_download_url)
     ]
-    result = self.create_utask_main_jobs(batch_tasks)
-
-    if result is None:
-      return result
-    return result[0]
+    uncreated_tasks = self.create_utask_main_jobs(batch_tasks)
+    return uncreated_tasks
 
   def create_utask_main_jobs(
       self, remote_tasks: typing.List[remote_task_types.RemoteTask]):
@@ -303,10 +303,22 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     separate batch job for each group. This allows tasks with similar
     requirements to be processed together, which can improve efficiency.
     """
+
+    flag = feature_flags.FeatureFlags.K8S_JOBS_PENDING_LIMIT.flag
+    limit = int(
+        flag.value) if flag and flag.enabled else K8S_JOBS_PENDING_LIMIT_DEFAULT
+
+    pending_jobs_count = self._get_pending_jobs_count()
+    if pending_jobs_count >= limit:
+      logs.warning(
+          f'Pending jobs count {pending_jobs_count} reached limit {limit}.')
+      return remote_tasks
+
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
-      logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
+      logs.info(
+          f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
     logs.info('Creating batch jobs.')
@@ -316,4 +328,4 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
       for input_url in input_urls:
         jobs.append(self.create_job(config, input_url))
 
-    return jobs
+    return []
