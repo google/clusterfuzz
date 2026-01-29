@@ -14,9 +14,9 @@
 """Remote task types."""
 
 import abc
+import typing
 
 from clusterfuzz._internal.base.tasks import Task
-from clusterfuzz._internal.google_cloud_utils import pubsub
 
 
 class RemoteTask(Task):
@@ -28,20 +28,10 @@ class RemoteTask(Task):
   """
 
   def __init__(self, command, job_type, input_download_url, pubsub_task=None):
-    self.command = command
+    super().__init__(command, input_download_url, job_type)
     self.job_type = job_type
     self.input_download_url = input_download_url
     self.pubsub_task = pubsub_task
-
-  def to_pubsub_message(self):
-    """Convert the task to a pubsub message."""
-    attributes = {
-        'command': self.command,
-        'argument': str(self.input_download_url),
-        'job': self.job_type,
-    }
-
-    return pubsub.Message(attributes=attributes)
 
 
 class RemoteTaskInterface(abc.ABC):
@@ -55,10 +45,15 @@ class RemoteTaskInterface(abc.ABC):
   @abc.abstractmethod
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
-    """Creates a single remote task for a uworker main task."""
+    """Creates a single remote task for a uworker main task.
+       Returns the task that couldn't be created.
+    """
     raise NotImplementedError
 
   @abc.abstractmethod
-  def create_utask_main_jobs(self, remote_tasks: list[RemoteTask]):
-    """Creates many remote tasks for uworker main tasks."""
+  def create_utask_main_jobs(
+      self, remote_tasks: typing.List[RemoteTask]) -> typing.List[RemoteTask]:
+    """Creates many remote tasks for uworker main tasks.
+       Returns the tasks that couldn't be created.
+    """
     raise NotImplementedError

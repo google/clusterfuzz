@@ -321,11 +321,8 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
           f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
-    logs.info('Creating batch jobs.')
-    jobs = []
-    logs.info('Batching utask_mains.')
+    logs.info('Creating GCP batch jobs.')
     for config, input_urls in job_specs.items():
       for input_url in input_urls:
-        jobs.append(self.create_job(config, input_url))
-
+        self.create_job(config, input_url)
     return []

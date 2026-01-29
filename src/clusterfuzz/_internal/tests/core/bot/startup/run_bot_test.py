@@ -126,3 +126,63 @@ class LeaseAllTasksTest(unittest.TestCase):
       with run_bot.lease_all_tasks(tasks):
         pass
     lease.assert_called_with()
+
+
+class ScheduleUtaskMainsTest(unittest.TestCase):
+  """Tests for schedule_utask_mains."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.get_utask_mains',
+        'clusterfuzz._internal.remote_task.remote_task_gate.RemoteTaskGate.create_utask_main_jobs',
+        'clusterfuzz._internal.base.tasks.bulk_add_tasks',
+    ])
+
+  def test_schedule_tasks_requeue_uncreated(self):
+    """Test that uncreated tasks are requeued to the preprocess queue."""
+    mock_task = mock.MagicMock()
+    mock_task.command = 'command'
+    mock_task.job = 'job'
+    mock_task.argument = 'argument'
+    mock_task.lease.return_value.__enter__.return_value = None
+    mock_task.lease.return_value.__exit__.return_value = None
+
+    self.mock.get_utask_mains.return_value = [mock_task]
+
+    # Simulate that the tasks were not created and returned back.
+    self.mock.create_utask_main_jobs.side_effect = lambda x, tasks: tasks
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.create_utask_main_jobs.assert_called_once()
+
+    # Check that bulk_add_tasks was called with the tasks returned by create_utask_main_jobs
+    # and the correct queue.
+    args, kwargs = self.mock.bulk_add_tasks.call_args
+    self.assertEqual(kwargs['queue'], taskslib.PREPROCESS_QUEUE)
+    self.assertTrue(kwargs['eta_now'])
+
+    # Verify the tasks passed to bulk_add_tasks correspond to the input tasks
+    requeued_tasks = args[0]
+    self.assertEqual(len(requeued_tasks), 1)
+    self.assertEqual(requeued_tasks[0].command, 'command')
+    self.assertEqual(requeued_tasks[0].job_type, 'job')
+    self.assertEqual(requeued_tasks[0].input_download_url, 'argument')
+
+  def test_schedule_tasks_success(self):
+    """Test scheduling tasks successfully."""
+    mock_task = mock.MagicMock()
+    mock_task.command = 'command'
+    mock_task.job = 'job'
+    mock_task.argument = 'argument'
+    mock_task.lease.return_value.__enter__.return_value = None
+    mock_task.lease.return_value.__exit__.return_value = None
+
+    self.mock.get_utask_mains.return_value = [mock_task]
+    self.mock.create_utask_main_jobs.return_value = []
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.create_utask_main_jobs.assert_called_once()
+    self.mock.bulk_add_tasks.assert_called_once_with(
+        [], queue=taskslib.PREPROCESS_QUEUE, eta_now=True)

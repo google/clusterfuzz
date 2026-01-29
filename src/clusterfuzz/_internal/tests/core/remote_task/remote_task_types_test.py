@@ -14,6 +14,7 @@
 """Tests for remote_task_types."""
 
 import unittest
+
 from clusterfuzz._internal.remote_task import remote_task_types
 
 
@@ -26,9 +27,9 @@ class RemoteTaskTest(unittest.TestCase):
         command='fuzz',
         job_type='libfuzzer_asan',
         input_download_url='gs://bucket/input')
-    
+
     message = task.to_pubsub_message()
-    
+
     self.assertEqual(message.attributes['command'], 'fuzz')
     self.assertEqual(message.attributes['job'], 'libfuzzer_asan')
     self.assertEqual(message.attributes['argument'], 'gs://bucket/input')
@@ -36,12 +37,10 @@ class RemoteTaskTest(unittest.TestCase):
   def test_to_pubsub_message_none_url(self):
     """Test to_pubsub_message with None input_download_url."""
     task = remote_task_types.RemoteTask(
-        command='fuzz',
-        job_type='libfuzzer_asan',
-        input_download_url=None)
-    
+        command='fuzz', job_type='libfuzzer_asan', input_download_url=None)
+
     message = task.to_pubsub_message()
-    
+
     self.assertEqual(message.attributes['command'], 'fuzz')
     self.assertEqual(message.attributes['job'], 'libfuzzer_asan')
     self.assertEqual(message.attributes['argument'], 'None')
