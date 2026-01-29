@@ -149,7 +149,7 @@ def add_member_to_group(group_id: str, member: str) -> bool:
     return False
 
 
-def delete_google_group_membership(group_id, member) -> bool:
+def delete_google_group_membership(group_id: str, member: str) -> bool:
   """Delete a google group membership."""
   identity_service = get_identity_api()
 
