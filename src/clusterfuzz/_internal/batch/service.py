@@ -489,7 +489,7 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
       job_specs[spec].append(remote_task.input_download_url)
 
     logs.info('Creating batch jobs.')
-
+    logs.info('Batching utask_mains.')
     for spec, input_urls in job_specs.items():
       for input_urls_portion in utils.batched(input_urls,
                                               MAX_CONCURRENT_VMS_PER_JOB - 1):

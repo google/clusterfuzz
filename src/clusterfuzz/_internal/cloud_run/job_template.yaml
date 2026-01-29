@@ -1,0 +1,48 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+launchStage: BETA
+template:
+  template:
+    maxRetries: 0
+    timeout: {{max_run_duration}}
+    serviceAccount: {{service_account_email}}
+    containers:
+    - image: {{docker_image}}
+      resources:
+        limits:
+          cpu: '{{cpu}}'
+          memory: {{memory}}
+      env:
+      - name: HOST_UID
+        value: '1337'
+      - name: CLUSTERFUZZ_RELEASE
+        value: "{{clusterfuzz_release}}"
+      - name: UNTRUSTED_WORKER
+        value: 'False'
+      - name: UWORKER
+        value: 'True'
+      - name: USE_GCLOUD_STORAGE_RSYNC
+        value: '1'
+      - name: UWORKER_INPUT_DOWNLOAD_URL
+        value: "{{input_url}}"
+    {% if subnetwork %}
+    vpcAccess:
+      networkInterfaces:
+      - network: {{network}}
+        subnetwork: {{subnetwork}}
+        tags:
+        - clusterfuzz-worker
+      egress: ALL_TRAFFIC
+    {% endif %}
+  taskCount: 1

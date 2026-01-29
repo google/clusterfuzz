@@ -28,10 +28,12 @@ class FeatureFlags(Enum):
 
   K8S_JOBS_FREQUENCY = 'k8s_jobs_frequency'
   K8S_JOBS_PENDING_LIMIT = 'k8s_jobs_pending_limit'
-
-  UTASK_MAIN_QUEUE_LIMIT = 'utask_main_queue_limit'
+  CLOUD_RUN_JOBS_FREQUENCY = 'cloud_run_jobs_frequency'
+  CLOUD_RUN_JOBS_PENDING_LIMIT = 'cloud_run_jobs_pending_limit'
 
   GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
+
+  UTASK_MAIN_QUEUE_LIMIT = 'utask_main_queue_limit'
 
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
