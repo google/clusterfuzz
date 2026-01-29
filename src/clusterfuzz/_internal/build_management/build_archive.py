@@ -227,21 +227,23 @@ class ChromeBuildArchive(DefaultBuildArchive):
   Defaults to using the default unpacker in case something goes wrong.
   """
 
-  def archive_schema_version(self) -> int:
-    if not hasattr(self, '_archive_schema_version'):
-      manifest_path = 'clusterfuzz_manifest.json'
-      # The manifest may not exist for earlier versions of archives. In this
-      # case, default to schema version 0.
-      if self.file_exists(manifest_path):
-        manifest = json.loads(self.open(manifest_path).read().decode())
-        self._archive_schema_version = manifest.get('archive_schema_version', 0)
-        if self._archive_schema_version == 0:
-          logs.warning(
-              'clusterfuzz_manifest.json was incorrectly formatted or missing an archive_schema_version field'
-          )
-      else:
-        self._archive_schema_version = 0
-    return self._archive_schema_version
+  def __init__(self,
+               reader: archive.ArchiveReader,
+               archive_schema_version: int = 0):
+    super().__init__(reader)
+    # The manifest may not exist for earlier versions of archives. In this
+    # case, default to schema version 0.
+    manifest_path = 'clusterfuzz_manifest.json'
+    if self.file_exists(manifest_path):
+      with self.open(manifest_path) as f:
+        manifest = json.load(f)
+      self._archive_schema_version = manifest.get('archive_schema_version', 0)
+      if self._archive_schema_version == 0:
+        logs.warning(
+            'clusterfuzz_manifest.json was incorrectly formatted or missing an archive_schema_version field'
+        )
+    else:
+      self._archive_schema_version = archive_schema_version
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
@@ -260,21 +262,19 @@ class ChromeBuildArchive(DefaultBuildArchive):
     Returns:
         the dependency path relative to the archive root.
     """
-    path = os.path.normpath(path)
 
     # Archive schema version 0 represents legacy behavior. For newer archive
     # versions, runtime_deps that were formerly stored under
     # {self.root_dir()}/src_root/ are now stored in the root directory, while
     # the build artifacts formerly stored in the root directory are now stored
     # in the build directory.
-    if self.archive_schema_version() == 0 and path.startswith('../../'):
-      path = path.replace('../../', 'src_root/')
-    elif self.archive_schema_version() > 0:
+
+    if self._archive_schema_version > 0:
       # Assumes the dependency path is relative to the deps file and
       # transforms it into into a full path relative to the archive root. For
       # example:
       #
-      # deps_file_path: "/root/A/B/fuzz_target.runtime_deps"
+      # deps_file_path: "/A/B/fuzz_target.runtime_deps"
       # os.path.dirname(deps_file_path) => "/A/B/" (call this DEPS_DIR)
       # path1: "./my_dep"
       # path2: "../../C/my_dep2"
@@ -289,6 +289,11 @@ class ChromeBuildArchive(DefaultBuildArchive):
       # os.path.normpath(os.path.join(DEPS_DIR, path3)) => "/A/B/D/my_dep3"
       return os.path.normpath(
           os.path.join(os.path.dirname(deps_file_path), path))
+
+    # Legacy behavior. Remap `../../` to `src_root/`.
+    path = os.path.normpath(path)
+    if path.startswith('../../'):
+      path = path.replace('../../', 'src_root/')
 
     return os.path.join(self.root_dir(), path)
 
