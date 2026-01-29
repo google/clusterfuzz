@@ -72,7 +72,7 @@ def check_transitive_group_membership(group_id: str, member: str) -> bool:
 def create_google_group(group_name: str,
                         group_display_name: str,
                         group_description: str,
-                        customer_id: str | None = None) -> bool:
+                        customer_id: str | None = None) -> str | None:
   """Create a google group."""
   identity_service = get_identity_api()
 
@@ -80,7 +80,7 @@ def create_google_group(group_name: str,
       local_config.ProjectConfig().get('groups_customer_id'))
   if not customer_id:
     logs.error('No customer ID set. Unable to create a new google group.')
-    return False
+    return None
 
   group_key = {"id": group_name}
   group = {
@@ -97,16 +97,18 @@ def create_google_group(group_name: str,
     request = identity_service.groups().create(body=group)
     request.uri += "&initialGroupConfig=WITH_INITIAL_OWNER"
     response = request.execute()
+    group_id = response.get('response').get('name')
     logs.info(f'Created google group {group_name}', request_response=response)
-    return True
+    return group_id
   except HttpError:
     logs.error(f'Failed to create google group {group_name}')
-    return False
+    return None
 
 
 def list_google_group_memberships(group_id: str) -> list[str] | None:
   """Get list of members from a google group."""
   identity_service = get_identity_api()
+
   try:
     response = identity_service.groups().memberships().list(
         parent=group_id).execute()
