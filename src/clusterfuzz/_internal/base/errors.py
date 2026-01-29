@@ -110,3 +110,10 @@ class InvalidConfigKey(Error):
 
   def __str__(self):
     return 'Invalid config key %s.' % self.key_name
+
+
+class QueueLimitReachedError(Error):
+  """Error thrown when the queue limit is reached."""
+
+  def __init__(self, size):
+    super().__init__(f'Queue limit reached {size}.')
