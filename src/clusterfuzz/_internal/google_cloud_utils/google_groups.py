@@ -22,13 +22,12 @@ from googleapiclient.errors import HttpError
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 
 # pylint: disable=no-member
 
 _local = threading.local()
 
-@environment.local_noop
+
 def get_identity_api() -> discovery.Resource | None:
   """Return cloud identity api client."""
   if not hasattr(_local, 'identity_service'):
