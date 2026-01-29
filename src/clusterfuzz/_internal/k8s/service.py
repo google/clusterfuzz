@@ -16,7 +16,6 @@ import base64
 import collections
 import ipaddress
 import os
-import typing
 import uuid
 
 import google.auth
@@ -26,6 +25,7 @@ import jinja2
 from kubernetes import client as k8s_client
 import yaml
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -39,6 +39,8 @@ from clusterfuzz._internal.system import environment
 CLUSTER_NAME = project_config = local_config.ProjectConfig().get(
     'cluster_name', 'clusterfuzz-cronjobs-gke')
 
+K8S_JOBS_PENDING_LIMIT_DEFAULT = 1000
+
 KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
     'job_type',
     'docker_image',
@@ -50,7 +52,7 @@ KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
 ])
 
 
-def _get_config_names(remote_tasks: typing.List[remote_task_types.RemoteTask]):
+def _get_config_names(remote_tasks: list[remote_task_types.RemoteTask]):
   """Gets the name of the configs for each batch_task. Returns a dict
 
   that is indexed by command and job_type for efficient lookup."""
@@ -87,9 +89,8 @@ def _get_config_names(remote_tasks: typing.List[remote_task_types.RemoteTask]):
   return config_map
 
 
-def _get_k8s_job_configs(
-    remote_tasks: typing.List[remote_task_types.RemoteTask]
-) -> typing.Dict[typing.Tuple[str, str], KubernetesJobConfig]:
+def _get_k8s_job_configs(remote_tasks: list[remote_task_types.RemoteTask]
+                        ) -> dict[tuple[str, str], KubernetesJobConfig]:
   """Gets the configured specifications for a batch workload."""
 
   if not remote_tasks:
@@ -283,37 +284,46 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
-    """Creates a single batch job for a uworker main task."""
+    """Creates a single Kubernetes job for a uworker main task."""
 
     command = task_utils.get_command_from_module(module)
     batch_tasks = [
         remote_task_types.RemoteTask(command, job_type, input_download_url)
     ]
-    result = self.create_utask_main_jobs(batch_tasks)
+    uncreated_tasks = self.create_utask_main_jobs(batch_tasks)
+    return uncreated_tasks
 
-    if result is None:
-      return result
-    return result[0]
+  def create_utask_main_jobs(self,
+                             remote_tasks: list[remote_task_types.RemoteTask]):
+    """Creates Kubernetes jobs for a list of uworker main tasks.
 
-  def create_utask_main_jobs(
-      self, remote_tasks: typing.List[remote_task_types.RemoteTask]):
-    """Creates a batch job for a list of uworker main tasks.
-
-    This method groups the tasks by their workload specification and creates a
-    separate batch job for each group. This allows tasks with similar
-    requirements to be processed together, which can improve efficiency.
+    This method groups the tasks by their workload specification to efficiently
+    schedule them. It then iterates through the groups and creates a separate
+    Kubernetes job for each task.
     """
+
+    k8s_limit_flag = feature_flags.FeatureFlags.K8S_JOBS_PENDING_LIMIT
+    if k8s_limit_flag.content and k8s_limit_flag.enabled:
+      limit = int(k8s_limit_flag.content)
+    else:
+      limit = K8S_JOBS_PENDING_LIMIT_DEFAULT
+
+    pending_jobs_count = self._get_pending_jobs_count()
+    if pending_jobs_count >= limit:
+      logs.warning(
+          f'Pending jobs count {pending_jobs_count} reached limit {limit} '
+          f'for k8s.')
+      return remote_tasks
+
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
-      logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
+      logs.info(
+          f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
-    logs.info('Creating batch jobs.')
-    jobs = []
-    logs.info('Batching utask_mains.')
+    logs.info('Creating Kubernetes jobs.')
     for config, input_urls in job_specs.items():
       for input_url in input_urls:
-        jobs.append(self.create_job(config, input_url))
-
-    return jobs
+        self.create_job(config, input_url)
+    return []

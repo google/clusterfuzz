@@ -157,7 +157,7 @@ class GcpBatchServiceTest(unittest.TestCase):
     self.batch_service = batch_service.GcpBatchService()
     self.mock.uuid4.side_effect = [uuid.UUID(u) for u in UUIDS]
 
-  def test_create_uworker_main_batch_jobs(self):
+  def test_create_utask_main_jobs(self):
     """Tests that create_utask_main_jobs works as expected."""
     # Create mock data.
     spec1 = batch_service.BatchWorkloadSpec(
@@ -217,7 +217,7 @@ class GcpBatchServiceTest(unittest.TestCase):
           mock.call(expected_create_request_2),
       ])
 
-  def test_create_uworker_main_batch_job(self):
+  def test_create_utask_main_job(self):
     """Tests that create_utask_main_job works as expected."""
     # Create mock data.
     spec1 = batch_service.BatchWorkloadSpec(
@@ -254,7 +254,7 @@ class GcpBatchServiceTest(unittest.TestCase):
           UUIDS[0], spec1, ['url1'])
       self.mock_batch_client_instance.create_job.assert_called_with(
           expected_create_request)
-      self.assertEqual(result, 'job')
+      self.assertIsNone(result)
 
 
 @test_utils.with_cloud_emulators('datastore')

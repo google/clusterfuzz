@@ -21,7 +21,6 @@ the task creation logic to a specific implementation.
 
 import collections
 import random
-from typing import List
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
@@ -106,12 +105,13 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     return frequencies
 
   def create_utask_main_job(self, module, job_type, input_download_url):
+    """Creates a single remote task, selecting a backend dynamically."""
     adapter_id = self._get_adapter()
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
   def create_utask_main_jobs(self,
-                             remote_tasks: List[remote_task_types.RemoteTask]):
+                             remote_tasks: list[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
 
     This method handles two cases:
@@ -128,6 +128,7 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
       # For a single task, use a random distribution.
       adapter_id = self._get_adapter()
       tasks_by_adapter[adapter_id].extend(remote_tasks)
+      unscheduled_tasks = []
     else:
       # For multiple tasks, use deterministic slicing to ensure the
       # distribution precisely matches the frequency configuration.
@@ -139,20 +140,25 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
             remote_tasks[start_index:start_index + count])
         start_index += count
 
-      # Distribute any remainder tasks (due to rounding) one by one. This
-      # ensures that all tasks are assigned to a backend.
       remaining_tasks = remote_tasks[start_index:]
-      for i, task in enumerate(remaining_tasks):
-        adapter_id = list(frequencies.keys())[i % len(frequencies)]
-        tasks_by_adapter[adapter_id].append(task)
+      if sum(frequencies.values()) >= 0.999:
+        # Distribute any remainder tasks (due to rounding) one by one. This
+        # ensures that all tasks are assigned to a backend.
+        for i, task in enumerate(remaining_tasks):
+          adapter_id = list(frequencies.keys())[i % len(frequencies)]
+          tasks_by_adapter[adapter_id].append(task)
+        unscheduled_tasks = []
+      else:
+        unscheduled_tasks = list(remaining_tasks)
 
-    results = []
     for adapter_id, tasks in tasks_by_adapter.items():
       if tasks:
         try:
           logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
           service = self._service_map[adapter_id]
-          results.extend(service.create_utask_main_jobs(tasks))
+          unscheduled_tasks.extend(service.create_utask_main_jobs(tasks))
         except Exception:  # pylint: disable=broad-except
           logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
-    return results
+          unscheduled_tasks.extend(tasks)
+
+    return unscheduled_tasks

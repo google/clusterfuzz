@@ -111,7 +111,28 @@ class KubernetesServiceE2ETest(unittest.TestCase):
     self.api_client.delete_namespaced_job(
         name=job_name,
         namespace='default',
-        body=k8s_client.V1DeleteOptions(propagation_policy='Foreground'))
+        body=k8s_client.V1DeleteOptions(propagation_policy='Background'))
+
+    # Wait for deletion.
+    for _ in range(120):
+      try:
+        self.api_client.read_namespaced_job(job_name, 'default')
+        time.sleep(1)
+      except k8s_client.rest.ApiException as e:
+        if e.status == 404:
+          return
+        raise
+
+    self.fail(f'Job {job_name} was not deleted.')
+
+  def _get_cf_jobs(self):
+    """Returns a list of ClusterFuzz jobs."""
+    jobs = self.api_client.list_namespaced_job('default')
+    return [
+        j.metadata.name
+        for j in jobs.items
+        if j.metadata.name.startswith('cf-job-')
+    ]
 
   def test_create_job(self):
     """Tests creating a job."""
@@ -129,8 +150,8 @@ class KubernetesServiceE2ETest(unittest.TestCase):
   @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
-  def test_create_uworker_main_batch_job(self, mock_get_command_from_module,
-                                         mock_get_k8s_job_configs):
+  def test_create_utask_main_job(self, mock_get_command_from_module,
+                                 mock_get_k8s_job_configs):
     """Tests creating a single uworker main batch job."""
     mock_get_command_from_module.return_value = 'fuzz'
     config = KubernetesJobConfig(
@@ -143,15 +164,19 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         is_kata=False)
     mock_get_k8s_job_configs.return_value = {('fuzz', 'test-job'): config}
 
-    actual_job_name = self.kubernetes_client.create_utask_main_job(
+    result = self.kubernetes_client.create_utask_main_job(
         'module', 'test-job', 'url1')
-    self._wait_for_job_and_delete(actual_job_name)
+    self.assertEqual(result, [])
+
+    jobs = self._get_cf_jobs()
+    self.assertEqual(len(jobs), 1)
+    self._wait_for_job_and_delete(jobs[0])
 
   @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
   @mock.patch(
       'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
-  def test_create_uworker_main_batch_jobs(self, mock_get_command_from_module,
-                                          mock_get_k8s_job_configs):
+  def test_create_utask_main_jobs(self, mock_get_command_from_module,
+                                  mock_get_k8s_job_configs):
     """Tests creating multiple uworker main batch jobs."""
     mock_get_command_from_module.return_value = 'fuzz'
     config1 = KubernetesJobConfig(
@@ -181,10 +206,12 @@ class KubernetesServiceE2ETest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'test-job2', 'url2'),
     ]
 
-    actual_job_names = self.kubernetes_client.create_utask_main_jobs(tasks)
-    self.assertEqual(len(actual_job_names), 2)
+    result = self.kubernetes_client.create_utask_main_jobs(tasks)
+    self.assertEqual(result, [])
 
-    for job_name in actual_job_names:
+    jobs = self._get_cf_jobs()
+    self.assertEqual(len(jobs), 2)
+    for job_name in jobs:
       self._wait_for_job_and_delete(job_name)
 
 

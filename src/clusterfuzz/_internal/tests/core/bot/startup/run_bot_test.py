@@ -126,3 +126,52 @@ class LeaseAllTasksTest(unittest.TestCase):
       with run_bot.lease_all_tasks(tasks):
         pass
     lease.assert_called_with()
+
+
+class ScheduleUtaskMainsTest(unittest.TestCase):
+  """Tests for schedule_utask_mains."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.get_utask_mains',
+        'clusterfuzz._internal.remote_task.remote_task_gate.RemoteTaskGate',
+    ])
+
+  def test_schedule_tasks_requeue_uncreated(self):
+    """Test that uncreated tasks are not acked."""
+    mock_task = mock.MagicMock()
+    mock_task.command = 'command'
+    mock_task.job = 'job'
+    mock_task.argument = 'argument'
+    mock_task.lease.return_value.__enter__.return_value = None
+    mock_task.lease.return_value.__exit__.return_value = None
+
+    self.mock.get_utask_mains.return_value = [mock_task]
+
+    # Simulate that the tasks were not created and returned back.
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.side_effect = lambda tasks: tasks
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )
+
+    # Verify that cancel_lease_ack was called on the pubsub task.
+    mock_task.cancel_lease_ack.assert_called_once()
+
+  def test_schedule_tasks_success(self):
+    """Test scheduling tasks successfully."""
+    mock_task = mock.MagicMock()
+    mock_task.command = 'command'
+    mock_task.job = 'job'
+    mock_task.argument = 'argument'
+    mock_task.lease.return_value.__enter__.return_value = None
+    mock_task.lease.return_value.__exit__.return_value = None
+
+    self.mock.get_utask_mains.return_value = [mock_task]
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )

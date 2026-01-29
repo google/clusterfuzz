@@ -23,6 +23,8 @@ import time
 from typing import List
 from typing import Optional
 
+from google.cloud import monitoring_v3
+
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
@@ -31,6 +33,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -509,6 +512,7 @@ class PubSubTask(Task):
     }
 
     self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
+    self._should_ack = True
 
   def attribute(self, key):
     """Return attribute value."""
@@ -534,9 +538,14 @@ class PubSubTask(Task):
         min(pubsub.MAX_ACK_DEADLINE, time_until_eta))
     return True
 
+  def cancel_lease_ack(self):
+    """Cancels acknowledgement of the lease."""
+    self._should_ack = False
+
   @contextlib.contextmanager
   def lease(self, _event=None):  # pylint: disable=arguments-differ
     """Maintain a lease for the task."""
+    self._should_ack = True
     task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
         self.command, get_task_lease_timeout())
 
@@ -556,7 +565,8 @@ class PubSubTask(Task):
       leaser_thread.join()
 
     # If we get here the task succeeded in running. Acknowledge the message.
-    self._pubsub_message.ack()
+    if self._should_ack:
+      self._pubsub_message.ack()
     track_task_end()
 
   def dont_retry(self):
@@ -676,6 +686,46 @@ def get_utask_mains() -> List[PubSubTask]:
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
   return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
+
+
+def get_utask_main_queue_size():
+  """Returns the size of the utask main queue."""
+  queue_name = UTASK_MAIN_QUEUE
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if base_os_version:
+    queue_name = f'{queue_name}-{base_os_version}'
+
+  application_id = utils.get_application_id()
+  metric = 'pubsub.googleapis.com/subscription/num_undelivered_messages'
+  query_filter = (f'metric.type="{metric}" AND '
+                  f'resource.labels.subscription_id="{queue_name}"')
+
+  try:
+    creds = credentials.get_default()[0]
+    client = monitoring_v3.MetricServiceClient(credentials=creds)
+
+    now = time.time()
+    interval = monitoring_v3.TimeInterval(
+        end_time={'seconds': int(now)},
+        start_time={'seconds': int(now - 5 * 60)},
+    )
+
+    results = client.list_time_series(
+        request={
+            'filter': query_filter,
+            'interval': interval,
+            'name': f'projects/{application_id}',
+            'view': monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+        })
+
+    for result in results:
+      if not result.points:
+        continue
+      return result.points[0].value.int64_value
+  except Exception:
+    logs.error('Failed to get utask_main queue size.')
+
+  return 0
 
 
 def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:

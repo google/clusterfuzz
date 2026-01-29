@@ -41,23 +41,11 @@ class RemoteTaskGateTest(unittest.TestCase):
     mock_creds.token = 'fake-token'
     self.mock_auth_default.return_value = (mock_creds, 'test-project')
 
-    # Mock discovery.build to avoid network calls during KubernetesService init
-    patcher = mock.patch('googleapiclient.discovery.build')
+    # Mock _load_gke_credentials to avoid BOT_DIR dependency
+    patcher = mock.patch.object(k8s_service.KubernetesService,
+                                '_load_gke_credentials')
     self.addCleanup(patcher.stop)
-    self.mock_discovery_build = patcher.start()
-    mock_service = mock.Mock()
-    self.mock_discovery_build.return_value = mock_service
-    mock_service.projects().locations().clusters().list(
-    ).execute.return_value = {
-        'clusters': [{
-            'name': 'clusterfuzz-cronjobs-gke',
-            'endpoint': '1.2.3.4',
-            'masterAuth': {
-                'clusterCaCertificate':
-                    'ZmFrZS1jZXJ0'  # base64 encoded 'fake-cert'
-            }
-        }]
-    }
+    patcher.start()
 
     self.gate = remote_task_gate.RemoteTaskGate()
 
@@ -66,7 +54,7 @@ class RemoteTaskGateTest(unittest.TestCase):
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
-  def test_create_uworker_main_batch_jobs_k8s_limit_reached(
+  def test_create_utask_main_jobs_k8s_limit_reached(
       self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
     """Test delegation when K8s limit is reached (handled by service)."""
     # Setup tasks to go to Kubernetes
@@ -93,8 +81,8 @@ class RemoteTaskGateTest(unittest.TestCase):
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
-  def test_create_uworker_main_batch_jobs_success(self, _, mock_k8s_create,
-                                                  mock_get_frequency):
+  def test_create_utask_main_jobs_success(self, _, mock_k8s_create,
+                                          mock_get_frequency):
     """Test successful creation."""
     mock_get_frequency.return_value = {'kubernetes': 1.0}
     mock_pubsub_task = mock.Mock()
