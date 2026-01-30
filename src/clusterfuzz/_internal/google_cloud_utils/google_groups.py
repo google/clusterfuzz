@@ -17,13 +17,15 @@ import threading
 from urllib import parse
 
 from googleapiclient import discovery
-from googleapiclient.errors import HttpError
+from googleapiclient import errors
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 
 # pylint: disable=no-member
+
+_FAIL_RETRIES = 3
 
 _local = threading.local()
 
@@ -45,7 +47,7 @@ def get_group_id(group_name: str, exists_check: bool = False) -> str | None:
     request = identity_service.groups().lookup(groupKey_id=group_name)
     response = request.execute()
     return response.get('name')
-  except HttpError:
+  except errors.HttpError:
     if not exists_check:
       logs.warning(f"Unable to look up group {group_name}.")
     return None
@@ -61,9 +63,9 @@ def check_transitive_group_membership(group_id: str, member: str) -> bool:
     request = identity_service.groups().memberships().checkTransitiveMembership(
         parent=group_id)
     request.uri += "&" + query_params
-    response = request.execute()
+    response = request.execute(num_retries=_FAIL_RETRIES)
     return response.get('hasMembership', False)
-  except HttpError:
+  except errors.HttpError:
     logs.warning(
         f'Unable to check group membership from {member} to {group_id}.')
     return False
@@ -96,26 +98,13 @@ def create_google_group(group_name: str,
   try:
     request = identity_service.groups().create(body=group)
     request.uri += "&initialGroupConfig=WITH_INITIAL_OWNER"
-    response = request.execute()
+    response = request.execute(num_retries=_FAIL_RETRIES)
     group_id = response.get('response').get('name')
     logs.info(f'Created google group {group_name}', request_response=response)
     return group_id
-  except HttpError:
+  except errors.HttpError:
     logs.error(f'Failed to create google group {group_name}')
     return None
-
-
-def create_google_group_if_needed(group_name: str,
-                                  group_display_name: str | None = None,
-                                  group_description: str | None = None,
-                                  customer_id: str | None = None) -> str | None:
-  """Check if group exists, creating it if needed, and return its id."""
-  group_id = get_group_id(group_name, exists_check=True)
-  if not group_id:
-    return create_google_group(group_name, group_display_name,
-                               group_description, customer_id)
-
-  return group_id
 
 
 def get_google_group_memberships(group_id: str) -> dict[str, str] | None:
@@ -130,7 +119,7 @@ def get_google_group_memberships(group_id: str) -> dict[str, str] | None:
         for member in response.get('memberships', [])
     }
     return memberships
-  except HttpError:
+  except errors.HttpError:
     logs.error(f'Failed to get list of members from group {group_id}')
     return None
 
@@ -151,11 +140,11 @@ def add_member_to_group(group_id: str, member: str) -> bool:
     }
     # Create a membership using the group ID and the membership object
     response = identity_service.groups().memberships().create(
-        parent=group_id, body=membership).execute()
+        parent=group_id, body=membership).execute(num_retries=_FAIL_RETRIES)
     logs.info(
         f'Added {member} to google group {group_id}', request_response=response)
     return True
-  except HttpError:
+  except errors.HttpError:
     logs.error(f'Failed to add {member} to google group {group_id}')
     return False
 
@@ -175,11 +164,11 @@ def delete_google_group_membership(group_id: str,
       membership_name = membership_lookup_response.get("name")
 
     response = identity_service.groups().memberships().delete(
-        name=membership_name).execute()
+        name=membership_name).execute(num_retries=_FAIL_RETRIES)
     logs.info(
         f'Removed {member} ({membership_name}) from google group {group_id}',
         request_response=response)
     return True
-  except HttpError:
+  except errors.HttpError:
     logs.error(f'Failed to remove {member} from google group {group_id}')
     return False
