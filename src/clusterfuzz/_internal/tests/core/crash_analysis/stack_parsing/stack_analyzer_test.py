@@ -3296,6 +3296,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_golang_panic_runtime_error_slice_bounds_oor_with_log_header(self):
+    """Test go stacktrace with panic by slice bounds oor with log header."""
+    data = self._read_test_data(
+        'golang_panic_runtime_error_slice_bounds_with_log_header.txt')
+    expected_type = 'Slice bounds out of range'
+    expected_address = ''
+    expected_state = 'strings.ToLower\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_golang_panic_runtime_error_integer_divide_by_zero(self):
     """Test golang stacktrace with panic caused by integer divide by zero."""
     data = self._read_test_data(
