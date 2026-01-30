@@ -70,8 +70,8 @@ def check_transitive_group_membership(group_id: str, member: str) -> bool:
 
 
 def create_google_group(group_name: str,
-                        group_display_name: str,
-                        group_description: str,
+                        group_display_name: str | None = None,
+                        group_description: str | None = None,
                         customer_id: str | None = None) -> str | None:
   """Create a google group."""
   identity_service = get_identity_api()
@@ -105,17 +105,30 @@ def create_google_group(group_name: str,
     return None
 
 
-def list_google_group_memberships(group_id: str) -> list[str] | None:
-  """Get list of members from a google group."""
+def create_google_group_if_needed(group_name: str,
+                                  group_display_name: str | None = None,
+                                  group_description: str | None = None,
+                                  customer_id: str | None = None) -> str | None:
+  """Check if group exists, creating it if needed, and return its id."""
+  group_id = get_group_id(group_name, exists_check=True)
+  if not group_id:
+    return create_google_group(group_name, group_display_name,
+                               group_description, customer_id)
+
+  return group_id
+
+
+def get_google_group_memberships(group_id: str) -> dict[str, str] | None:
+  """Get dict of membership name to members id from a google group."""
   identity_service = get_identity_api()
 
   try:
     response = identity_service.groups().memberships().list(
         parent=group_id).execute()
-    memberships = [
-        member.get('preferredMemberKey').get('id')
-        for member in response.get('memberships')
-    ]
+    memberships = {
+        member.get('preferredMemberKey').get('id'): member.get('name')
+        for member in response.get('memberships', [])
+    }
     return memberships
   except HttpError:
     logs.error(f'Failed to get list of members from group {group_id}')
@@ -147,21 +160,24 @@ def add_member_to_group(group_id: str, member: str) -> bool:
     return False
 
 
-def delete_google_group_membership(group_id: str, member: str) -> bool:
+def delete_google_group_membership(group_id: str,
+                                   member: str,
+                                   membership_name: str | None = None) -> bool:
   """Delete a google group membership."""
   identity_service = get_identity_api()
 
   try:
-    membership_lookup_request = identity_service.groups().memberships().lookup(
-        parent=group_id)
-    membership_lookup_request.uri += "&memberKey.id=" + member
-    membership_lookup_response = membership_lookup_request.execute()
-    membership_name = membership_lookup_response.get("name")
+    if not membership_name:
+      membership_lookup_request = identity_service.groups().memberships(
+      ).lookup(parent=group_id)
+      membership_lookup_request.uri += "&memberKey.id=" + member
+      membership_lookup_response = membership_lookup_request.execute()
+      membership_name = membership_lookup_response.get("name")
 
     response = identity_service.groups().memberships().delete(
         name=membership_name).execute()
     logs.info(
-        f'Removed {member} from google group {group_id}',
+        f'Removed {member} ({membership_name}) from google group {group_id}',
         request_response=response)
     return True
   except HttpError:
