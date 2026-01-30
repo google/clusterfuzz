@@ -110,8 +110,8 @@ def schedule_utask_mains():
     # progression, minimize...
     uncreated_tasks = remote_task_gate.RemoteTaskGate().create_utask_main_jobs(
         batch_tasks)
-    logs.info(
-        f'Sending back %d uncreated tasks to {tasks.PREPROCESS_QUEUE} queue.')
+    logs.info(f'Sending back {len(uncreated_tasks)} uncreated tasks to '
+              f'{tasks.PREPROCESS_QUEUE} queue.')
     tasks.bulk_add_tasks(
         uncreated_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
 

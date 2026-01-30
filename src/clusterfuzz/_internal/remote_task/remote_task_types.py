@@ -16,10 +16,10 @@
 import abc
 import typing
 
-from clusterfuzz._internal.base.tasks import Task
+from clusterfuzz._internal.base import tasks
 
 
-class RemoteTask(Task):
+class RemoteTask(tasks.Task):
   """Represents a single ClusterFuzz task to be executed on a remote worker.
   
   This class holds the necessary information to execute a ClusterFuzz command,
@@ -29,6 +29,7 @@ class RemoteTask(Task):
 
   def __init__(self, command, job_type, input_download_url, pubsub_task=None):
     super().__init__(command, input_download_url, job_type)
+    self.command = command
     self.job_type = job_type
     self.input_download_url = input_download_url
     self.pubsub_task = pubsub_task
