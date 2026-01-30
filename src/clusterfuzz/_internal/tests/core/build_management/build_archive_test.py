@@ -295,7 +295,7 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     """Tests that all the necessary dependencies are correctly extracted from
     the runtime_deps file.
 
-    Under the current archive schema, dependency paths in `runtime_deps` files
+    Under archive schema version 1, dependency paths in `runtime_deps` files
     are interpreted as being relative to the file itself, meaning that they must
     be normalized to the equivalent path relative to the archive root before
     they can be extracted.
@@ -330,8 +330,8 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
   def test_dsyms_are_correctly_unpacked(self, dir_prefix):
-    """Tests that even if not listed in the runtime deps, dSYMs are correctly unpacked.
-    """
+    """Tests that even if not listed in the runtime deps, dSYMs are correctly
+    unpacked."""
     self._set_archive_schema_version(1)
     needed_files = self._generate_normalized_dependency_filenames(
         dir_prefix, 'my_fuzzer')

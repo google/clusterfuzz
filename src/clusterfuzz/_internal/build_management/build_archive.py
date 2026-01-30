@@ -16,7 +16,11 @@
 import abc
 import json
 import os
-from typing import BinaryIO, Callable, List, Optional, Union
+from typing import BinaryIO
+from typing import Callable
+from typing import List
+from typing import Optional
+from typing import Union
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import archive
@@ -224,12 +228,27 @@ class ChromeBuildArchive(DefaultBuildArchive):
   archive to decide which schema version to use when interpreting its contents.
   The legacy schema is applied to archives with no manifest.
 
+  Under the legacy schema, fuzz targets were assumed to be at the root of the
+  archive while runtime_deps starting with `../../` were remapped to
+  `/src_root/`.
+
+  Schema version 1 does away with `/src_root/` and interprets runtime_deps
+  entries as file paths relative to the runtime_deps file, which lives in the
+  build directory along with fuzz target binaries.
+
   Defaults to using the default unpacker in case something goes wrong.
   """
 
   def __init__(self,
                reader: archive.ArchiveReader,
-               archive_schema_version: int = 0):
+               default_archive_schema_version: int = 0):
+    """Initializes a `ChromiumBuildArchive` with the given reader.
+
+    Arguments:
+      reader: See `DefaultBuildArchive`.
+      default_archive_schema_version: Specifies which version of a build archive
+        to expect if `clusterfuzz_manifest.json` is missing or badly formatted.
+    """
     super().__init__(reader)
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
@@ -237,13 +256,14 @@ class ChromeBuildArchive(DefaultBuildArchive):
     if self.file_exists(manifest_path):
       with self.open(manifest_path) as f:
         manifest = json.load(f)
-      self._archive_schema_version = manifest.get('archive_schema_version', 0)
-      if self._archive_schema_version == 0:
+      self._archive_schema_version = manifest.get('archive_schema_version')
+      if self._archive_schema_version is None:
         logs.warning(
             'clusterfuzz_manifest.json was incorrectly formatted or missing an archive_schema_version field'
         )
+        self._archive_schema_version = 0
     else:
-      self._archive_schema_version = archive_schema_version
+      self._archive_schema_version = default_archive_schema_version
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
