@@ -375,8 +375,10 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
     batch_tasks = [
         remote_task_types.RemoteTask(command, job_type, input_download_url)
     ]
-    uncreated_tasks = self.create_utask_main_jobs(batch_tasks)
-    return uncreated_tasks
+    result = self.create_utask_main_jobs(batch_tasks)
+    if not result:
+      return None
+    return result[0]
 
   def create_utask_main_jobs(self,
                              remote_tasks: List[remote_task_types.RemoteTask]):

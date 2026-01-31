@@ -41,23 +41,19 @@ class RemoteTaskGateTest(unittest.TestCase):
     mock_creds.token = 'fake-token'
     self.mock_auth_default.return_value = (mock_creds, 'test-project')
 
-    # Mock discovery.build to avoid network calls during KubernetesService init
-    patcher = mock.patch('googleapiclient.discovery.build')
+    # Mock _load_gke_credentials to avoid BOT_DIR dependency
+    patcher = mock.patch.object(k8s_service.KubernetesService,
+                                '_load_gke_credentials')
     self.addCleanup(patcher.stop)
-    self.mock_discovery_build = patcher.start()
-    mock_service = mock.Mock()
-    self.mock_discovery_build.return_value = mock_service
-    mock_service.projects().locations().clusters().list(
-    ).execute.return_value = {
-        'clusters': [{
-            'name': 'clusterfuzz-cronjobs-gke',
-            'endpoint': '1.2.3.4',
-            'masterAuth': {
-                'clusterCaCertificate':
-                    'ZmFrZS1jZXJ0'  # base64 encoded 'fake-cert'
-            }
-        }]
-    }
+    patcher.start()
+
+    # Mock prepare_unscheduled_tasks to avoid NDB context issues
+    patcher = mock.patch.object(
+        remote_task_gate.RemoteTaskGate,
+        'prepare_unscheduled_tasks',
+        side_effect=lambda x: x)
+    self.addCleanup(patcher.stop)
+    patcher.start()
 
     self.gate = remote_task_gate.RemoteTaskGate()
 

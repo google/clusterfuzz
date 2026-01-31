@@ -55,6 +55,12 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.patcher.start()
     self.addCleanup(self.patcher.stop)
 
+    self.mock_prepare_unscheduled_tasks = mock.patch.object(
+        remote_task_gate.RemoteTaskGate,
+        'prepare_unscheduled_tasks',
+        side_effect=lambda x: x).start()
+    self.addCleanup(mock.patch.stopall)
+
   def test_init(self):
     """Tests that the RemoteTaskGate initializes correctly and creates
     service map."""
@@ -197,3 +203,33 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.mock_gcp_batch_service.create_utask_main_jobs.assert_called_once_with(
         tasks)
     self.mock_k8s_service.create_utask_main_jobs.assert_not_called()
+
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
+  def test_create_utask_main_jobs_calls_prepare_unscheduled_tasks(
+      self, mock_get_job_frequency):
+    """Tests that create_utask_main_jobs calls prepare_unscheduled_tasks with
+    unscheduled tasks."""
+    tasks = [
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+    ]
+    unscheduled_tasks = [
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+    ]
+    prepared_tasks = [
+        remote_task_types.RemoteTask('c', 'j', 'u1'),
+    ]
+    prepared_tasks[0].argument = 'arg'
+
+    mock_get_job_frequency.return_value = {'kubernetes': 1.0, 'gcp_batch': 0.0}
+    self.mock_k8s_service.create_utask_main_jobs.return_value = unscheduled_tasks
+
+    self.mock_prepare_unscheduled_tasks.side_effect = None
+    self.mock_prepare_unscheduled_tasks.return_value = prepared_tasks
+
+    gate = remote_task_gate.RemoteTaskGate()
+    result = gate.create_utask_main_jobs(tasks)
+
+    self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(tasks)
+    self.mock_prepare_unscheduled_tasks.assert_called_once_with(
+        unscheduled_tasks)
+    self.assertEqual(result, prepared_tasks)

@@ -21,8 +21,10 @@ the task creation logic to a specific implementation.
 
 import collections
 import random
-from typing import List
+import typing
 
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -105,13 +107,39 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     logs.info('Job frequencies', frequencies=frequencies)
     return frequencies
 
+  def prepare_unscheduled_tasks(
+      self, unscheduled_remote_tasks: typing.List[remote_task_types.RemoteTask]
+  ) -> typing.List[remote_task_types.RemoteTask]:
+    """Prepares the unscheduled remote tasks to be sent back to the 
+      preprocess queue.
+
+      The messages in the preprocess queue expects tasks with 
+      the properties followng task_name, fuzzer, job, eta. 
+      The utasks has the signed url as argument instead of the fuzzer,
+      then for sending it back to the preprocess, it recovers its fuzzer
+      and override the argument.
+    """
+
+    job_names = {task.job_type for task in unscheduled_remote_tasks}
+    query = data_types.FuzzerJob.query(
+        data_types.FuzzerJob.job.IN(list(job_names)))
+    fuzzer_jobs = ndb_utils.get_all_from_query(query)
+    fuzzer_jobs_name_mapped = {job.name: job for job in fuzzer_jobs}
+    for task in unscheduled_remote_tasks:
+      if task.job_type not in fuzzer_jobs_name_mapped:
+        logs.error(f'{task.job_type} not found.')
+        continue
+      task.argument = fuzzer_jobs_name_mapped[task.job_type].argument
+
+    return unscheduled_remote_tasks
+
   def create_utask_main_job(self, module, job_type, input_download_url):
     adapter_id = self._get_adapter()
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
-  def create_utask_main_jobs(self,
-                             remote_tasks: List[remote_task_types.RemoteTask]):
+  def create_utask_main_jobs(
+      self, remote_tasks: typing.List[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
 
     This method handles two cases:
@@ -146,13 +174,16 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
         adapter_id = list(frequencies.keys())[i % len(frequencies)]
         tasks_by_adapter[adapter_id].append(task)
 
-    results = []
+    unscheduled_tasks = []
     for adapter_id, tasks in tasks_by_adapter.items():
       if tasks:
         try:
           logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
           service = self._service_map[adapter_id]
-          results.extend(service.create_utask_main_jobs(tasks))
+          unscheduled_tasks.extend(service.create_utask_main_jobs(tasks))
         except Exception:  # pylint: disable=broad-except
           logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
-    return results
+
+    prepared_unscheduled_tasks = self.prepare_unscheduled_tasks(
+        unscheduled_tasks)
+    return prepared_unscheduled_tasks
