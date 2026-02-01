@@ -31,6 +31,8 @@ class FeatureFlags(Enum):
 
   UTASK_MAIN_QUEUE_LIMIT = 'utask_main_queue_limit'
 
+  PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
+
   @property
   def flag(self):
     """Get the feature flag."""
