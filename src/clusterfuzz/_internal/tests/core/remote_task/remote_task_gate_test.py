@@ -283,3 +283,8 @@ class RemoteTaskGateDatastoreTest(unittest.TestCase):
     self.assertEqual(updated_tasks[0].argument, 'fuzzer1')
     self.assertEqual(updated_tasks[1].argument, 'fuzzer2')
     self.assertEqual(updated_tasks[2].argument, 'signed_url_3')
+
+  def test_prepare_unscheduled_tasks_empty(self):
+    """Tests that prepare_unscheduled_tasks handles empty list of tasks."""
+    updated_tasks = self.gate.prepare_unscheduled_tasks([])
+    self.assertEqual(updated_tasks, [])
