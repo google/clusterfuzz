@@ -19,10 +19,12 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.batch.service import GcpBatchService
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 class RemoteTaskGateTest(unittest.TestCase):
@@ -233,3 +235,51 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.mock_prepare_unscheduled_tasks.assert_called_once_with(
         unscheduled_tasks)
     self.assertEqual(result, prepared_tasks)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class RemoteTaskGateDatastoreTest(unittest.TestCase):
+  """Tests for RemoteTaskGate that require datastore."""
+
+  def setUp(self):
+    super().setUp()
+    # Mock adapters to avoid real service instantiation
+    self.patcher = mock.patch.dict(
+        remote_task_adapters.RemoteTaskAdapters._member_map_, {
+            'KUBERNETES':
+                mock.Mock(
+                    id='kubernetes',
+                    service=mock.Mock(),
+                    feature_flag=None,
+                    default_weight=0.0),
+            'GCP_BATCH':
+                mock.Mock(
+                    id='gcp_batch',
+                    service=mock.Mock(),
+                    feature_flag=None,
+                    default_weight=1.0),
+        })
+    self.patcher.start()
+    self.addCleanup(self.patcher.stop)
+    self.gate = remote_task_gate.RemoteTaskGate()
+
+  def test_prepare_unscheduled_tasks(self):
+    """Tests that prepare_unscheduled_tasks correctly updates task arguments."""
+    data_types.FuzzerJob(job='job1', fuzzer='fuzzer1').put()
+    data_types.FuzzerJob(job='job2', fuzzer='fuzzer2').put()
+
+    task1 = remote_task_types.RemoteTask(
+        command='fuzz', job_type='job1', input_download_url='signed_url_1')
+    task2 = remote_task_types.RemoteTask(
+        command='fuzz', job_type='job2', input_download_url='signed_url_2')
+    task3 = remote_task_types.RemoteTask(
+        command='fuzz', job_type='job3', input_download_url='signed_url_3')
+
+    tasks = [task1, task2, task3]
+
+    updated_tasks = self.gate.prepare_unscheduled_tasks(tasks)
+
+    self.assertEqual(len(updated_tasks), 3)
+    self.assertEqual(updated_tasks[0].argument, 'fuzzer1')
+    self.assertEqual(updated_tasks[1].argument, 'fuzzer2')
+    self.assertEqual(updated_tasks[2].argument, 'signed_url_3')

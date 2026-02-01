@@ -124,12 +124,14 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     query = data_types.FuzzerJob.query(
         data_types.FuzzerJob.job.IN(list(job_names)))
     fuzzer_jobs = ndb_utils.get_all_from_query(query)
-    fuzzer_jobs_name_mapped = {job.name: job for job in fuzzer_jobs}
+    fuzzer_jobs_name_mapped = {
+        fuzzer_job.job: fuzzer_job for fuzzer_job in fuzzer_jobs
+    }
     for task in unscheduled_remote_tasks:
       if task.job_type not in fuzzer_jobs_name_mapped:
         logs.error(f'{task.job_type} not found.')
         continue
-      task.argument = fuzzer_jobs_name_mapped[task.job_type].argument
+      task.argument = fuzzer_jobs_name_mapped[task.job_type].fuzzer
 
     return unscheduled_remote_tasks
 
