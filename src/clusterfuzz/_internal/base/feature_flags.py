@@ -28,6 +28,8 @@ class FeatureFlags(Enum):
 
   K8S_JOBS_FREQUENCY = 'k8s_jobs_frequency'
 
+  PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
+
   @property
   def flag(self):
     """Get the feature flag."""
