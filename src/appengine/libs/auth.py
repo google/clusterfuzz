@@ -14,14 +14,12 @@
 """Authentication helpers."""
 
 import collections
-from urllib import parse
 
 from firebase_admin import auth
 from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
 from googleapiclient import discovery
-from googleapiclient.errors import HttpError
 import jwt
 import requests
 
@@ -29,7 +27,6 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from libs import helpers
@@ -252,48 +249,3 @@ def decode_claims(session_cookie):
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
   except (ValueError, auth.AuthError):
     raise AuthError('Invalid session cookie.')
-
-
-def get_identity_api() -> discovery.Resource:
-  """Return cloud identity api client."""
-  creds, _ = credentials.get_default()
-  return discovery.build('cloudidentity', 'v1', credentials=creds)
-
-
-def get_google_group_id(group_email: str,
-                        identity_service: discovery.Resource | None = None
-                       ) -> str | None:
-  """Retrive a google group ID."""
-  if not identity_service:
-    identity_service = get_identity_api()
-
-  try:
-    request = identity_service.groups().lookup(groupKey_id=group_email)
-    response = request.execute()
-    return response.get('name')
-  except HttpError:
-    logs.warning(f"Unable to look up group {group_email}.")
-    return None
-
-
-def check_transitive_group_membership(
-    group_id: str,
-    member: str,
-    identity_service: discovery.Resource | None = None) -> bool:
-  """Check if an user is a member of a google group."""
-  if not identity_service:
-    identity_service = get_identity_api()
-
-  try:
-    query_params = parse.urlencode({
-        "query": "member_key_id == '{}'".format(member)
-    })
-    request = identity_service.groups().memberships().checkTransitiveMembership(
-        parent=group_id)
-    request.uri += "&" + query_params
-    response = request.execute()
-    return response.get('hasMembership', False)
-  except HttpError:
-    logs.warning(
-        f'Unable to check group membership from {member} to {group_id}.')
-    return False
