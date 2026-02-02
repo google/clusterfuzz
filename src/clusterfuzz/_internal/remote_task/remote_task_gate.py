@@ -23,8 +23,8 @@ import collections
 import random
 import typing
 
-from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.base.tasks.task_utils import is_testcase_based_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -120,22 +120,23 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
       and override the argument.
     """
 
+    prepared_tasks = []
     if not unscheduled_remote_tasks:
-      return []
+      return prepared_tasks
 
-    job_names = {task.job_type for task in unscheduled_remote_tasks}
-    query = data_types.FuzzerJob.query(data_types.FuzzerJob.job.IN(job_names))
-    fuzzer_jobs = ndb_utils.get_all_from_query(query)
-    fuzzer_jobs_name_mapped = {
-        fuzzer_job.job: fuzzer_job for fuzzer_job in fuzzer_jobs
-    }
     for task in unscheduled_remote_tasks:
-      if task.job_type not in fuzzer_jobs_name_mapped:
-        logs.error(f'{task.job_type} not found.')
-        continue
-      task.argument = fuzzer_jobs_name_mapped[task.job_type].fuzzer
+      try:
+        uworker_input = uworker_io.download_and_deserialize_uworker_input(
+            task.input_download_url)
+        if is_testcase_based_task(task.command):
+          task.argument = uworker_input.testcase_id
+        else:
+          task.argument = uworker_input.fuzzer_name
+        prepared_tasks.append(task)
+      except Exception:
+        logs.error('Could not prepare the task due to an error.')
 
-    return unscheduled_remote_tasks
+    return prepared_tasks
 
   def create_utask_main_job(self, module, job_type, input_download_url):
     adapter_id = self._get_adapter()
