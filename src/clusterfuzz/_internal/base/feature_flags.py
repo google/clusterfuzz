@@ -28,6 +28,10 @@ class FeatureFlags(Enum):
 
   K8S_JOBS_FREQUENCY = 'k8s_jobs_frequency'
   K8S_JOBS_PENDING_LIMIT = 'k8s_jobs_pending_limit'
+  CLOUD_RUN_JOBS_FREQUENCY = 'cloud_run_jobs_frequency'
+  CLOUD_RUN_JOBS_PENDING_LIMIT = 'cloud_run_jobs_pending_limit'
+
+  GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
   @property
   def flag(self):
