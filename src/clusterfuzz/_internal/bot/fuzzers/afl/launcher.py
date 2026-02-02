@@ -601,6 +601,8 @@ class AflRunnerCommon:
       logs.error(
           f'AFL target exited with abnormal exit code: {result.return_code}.',
           output=result.output)
+      return False
+    return True
 
   def run_single_testcase(self, testcase_path):
     """Runs a single testcase.
@@ -619,9 +621,9 @@ class AflRunnerCommon:
     self.afl_setup()
     result = self.run_and_wait(additional_args=[testcase_path])
     print('Running command:', engine_common.get_command_quoted(result.command))
-    self.check_return_code(result)
+    is_expected_return_code = self.check_return_code(result)
 
-    return result
+    return result, is_expected_return_code
 
   def afl_setup(self):
     """Make sure we can run afl. Delete any files that afl_driver needs to
@@ -1300,8 +1302,8 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
 
-    self.check_return_code(result, [134])
-    return result
+    is_expected_return_code = self.check_return_code(result, [134])
+    return result, is_expected_return_code
 
   def get_file_features(self, input_file_path, showmap_args):
     """Get the features (edge hit counts) of |input_file_path| using

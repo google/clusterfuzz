@@ -131,14 +131,18 @@ class Engine(engine.Engine):
     runner = launcher.prepare_runner(target_path, config, input_path,
                                      input_directory)
 
-    reproduce_result = _run_single_testcase(runner, input_path)
+    reproduce_result, is_expected_return_code = _run_single_testcase(
+        runner, input_path)
 
     command = reproduce_result.command
     return_code = reproduce_result.return_code
     time_executed = reproduce_result.time_executed
+    process_output = reproduce_result.output
     output = runner.fuzzer_stderr
 
-    return engine.ReproduceResult(command, return_code, time_executed, output)
+    return engine.ReproduceResult(command, return_code, time_executed,
+                                  output, process_output,
+                                  is_expected_return_code)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
