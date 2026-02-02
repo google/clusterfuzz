@@ -62,11 +62,14 @@ class FuzzResult:
 class ReproduceResult:
   """Results from running a testcase against a target."""
 
-  def __init__(self, command, return_code, time_executed, output):
+  def __init__(self, command, return_code, time_executed, output,
+               process_output=None, is_expected_return_code=None):
     self.command = command
     self.return_code = return_code
     self.time_executed = time_executed
     self.output = output
+    self.process_output = process_output
+    self.is_expected_return_code = is_expected_return_code
 
 
 class Engine:
