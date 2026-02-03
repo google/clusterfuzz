@@ -1,0 +1,73 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Cron to sync OSS-Fuzz projects groups used as CC in the issue tracker."""
+
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.cron import project_setup
+from clusterfuzz._internal.google_cloud_utils import google_groups
+from clusterfuzz._internal.metrics import logs
+
+_CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
+_CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
+
+
+def sync_project_cc_group(project_name, info):
+  """Sync the project's google group used for CCing in the issue tracker."""
+  group_name = f'{project_name}{_CC_GROUP_SUFFIX}'
+
+  group_id = google_groups.get_group_id(group_name)
+  # Create the group and bail out since the CIG API might delay to create a
+  # new group. Add members will be done in the next project-setup run.
+  if not group_id:
+    group_description = f'{_CC_GROUP_DESC}: {project_name}'
+    created = google_groups.create_google_group(
+        group_name, group_description=group_description)
+    if not created:
+      logs.info('Failed to create or retrieve the issue tracker CC group '
+                f'for {project_name}')
+      return
+    logs.info(f'Created issue tracker CC group for {project_name}. '
+              'Skipping adding members as group may still not exist.')
+    return
+
+  group_memberships = google_groups.get_google_group_memberships(group_id)
+  if group_memberships is None:
+    logs.info(
+        f'Failed to get list of group members for {project_name}. Skipping.')
+    return
+
+  ccs = set(project_setup.ccs_from_info(info))
+
+  to_add = ccs - group_memberships.keys()
+  for member in to_add:
+    google_groups.add_member_to_group(group_id, member)
+
+  to_delete = group_memberships.keys() - ccs
+  for member in to_delete:
+    # Ignore the SA that created the group from members to delete.
+    if utils.is_service_account(member):
+      continue
+    memebership_name = group_memberships[member]
+    google_groups.delete_google_group_membership(group_id, member,
+                                                 memebership_name)
+
+
+def main():
+  """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
+  projects = project_setup.get_oss_fuzz_projects()
+  for project, info in projects:
+    sync_project_cc_group(project, info)
+
+  logs.info('OSS-Fuzz CC groups sync succeeded.')
+  return True
