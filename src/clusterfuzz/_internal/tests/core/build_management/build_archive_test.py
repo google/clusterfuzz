@@ -217,7 +217,7 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     # Runtime deps include file paths that begin with ../../ so the build
     # directory is assumed to be two levels deep into the file tree.
     return [
-        os.path.normpath(os.path.join('/out/build/', file))
+        os.path.normpath(os.path.join('out/build/', file))
         for file in deps_paths
     ]
 
@@ -348,5 +348,60 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = self.build.get_target_dependencies('my_fuzzer')
     to_extract = [f.name for f in to_extract]
     self.assertIn(
-        '/out/build/my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency',
+        'out/build/my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency',
         to_extract)
+
+
+class ChromeBuildArchiveManifestTest(unittest.TestCase):
+  """Test for reading clusterfuzz_manifest.json for Chrome archives."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.archive.ArchiveReader.file_exists',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
+        'clusterfuzz._internal.system.archive.open',
+    ])
+    self.mock.file_exists.return_value = False
+
+  def _generate_manifest(self, archive_schema_version):
+
+    def _mock_open(_):
+      buffer = io.BytesIO(b'')
+      buffer.write(
+          json.dumps({
+              'archive_schema_version': archive_schema_version
+          }).encode())
+      buffer.seek(0)
+      return buffer
+
+    self.mock.open.return_value.open.side_effect = _mock_open
+
+  def _generate_invalid_manifest(self):
+
+    def _mock_open(_):
+      buffer = io.BytesIO(b'')
+      buffer.write(json.dumps({'my_field': 1}).encode())
+      buffer.seek(0)
+      return buffer
+
+    self.mock.open.return_value.open.side_effect = _mock_open
+
+  def test_manifest_is_correctly_read(self):
+    """Tests that the manifest is correctly read and used to set the archive
+    schema version if it exists and that the cases of a missing or invalid
+    manifest are handled correctly."""
+
+    # No manifest exists; should default to archive schema version 0 (legacy).
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive._archive_schema_version, 0)
+
+    # Invalid manifest; should default to version 0.
+    self.mock.file_exists.return_value = True
+    self._generate_invalid_manifest()
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive._archive_schema_version, 0)
+
+    # Valid manifest.
+    self._generate_manifest(1)
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive._archive_schema_version, 1)
