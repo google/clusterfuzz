@@ -232,9 +232,57 @@ class ChromeBuildArchive(DefaultBuildArchive):
   archive while runtime_deps starting with `../../` were remapped to
   `/src_root/`.
 
+  Example archive tree:
+  ==========
+  my_fuzzer
+  my_fuzzer.options
+  my_ruzzer.owners
+  my_fuzzer.runtime_deps
+  # etc. for all fuzz targets
+  src_root/
+    .vpython3
+    third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
+      # all instrumented libs
+    # etc. for other deps
+
+  my_fuzzer.runtime_deps:
+  ==========
+  ./my_fuzzer
+  my_fuzzer.options
+  my_fuzzer.owners
+  my_fuzzer.runtime_deps
+  ../../.vpython3
+  ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/ld-linux-x86-64.so.2
+  # etc.
+
   Schema version 1 does away with `/src_root/` and interprets runtime_deps
   entries as file paths relative to the runtime_deps file, which lives in the
   build directory along with fuzz target binaries.
+
+  Example archive tree:
+  ==========
+  out/build/my_fuzzer
+  out/build/my_fuzzer.options
+  out/build/my_fuzzer.owners
+  out/build/my_fuzzer.runtime_deps
+  out/build/libbase.so
+  out/build/libatomic.so
+  # etc. for all fuzz targets and deps in the build directory
+  .vpython3
+  third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
+    # all instrumented libs
+  # etc. for other deps
+
+  my_fuzzer.runtime_deps:
+  ==========
+  ./my_fuzzer
+  my_fuzzer.options
+  my_fuzzer.owners
+  my_fuzzer.runtime_deps
+  ./libbase.so
+  ./libatomic.so
+  ../../.vpython3
+  ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib
 
   Defaults to using the default unpacker in case something goes wrong.
   """

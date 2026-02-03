@@ -193,32 +193,31 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     archives.
     """
     return [
-        f'{fuzz_target}',
-        f'{fuzz_target}.exe',
-        f'{fuzz_target}.exe.pdb',
-        f'{fuzz_target}.dict',
-        f'{fuzz_target}.options',
+        f'./{fuzz_target}',
+        f'{fuzz_target}.owners',
         f'{fuzz_target}.runtime_deps',
-        f'{fuzz_target}.par',
         f'{fuzz_target}.dSYM/Contents/Resources/DWARF/some_dependency',
-        'shared.dll',
-        'shared.dll.pdb',
-        './llvm-symbolizer',
+        './libbase.so',
+        '../../tools/valgrind/asan/',
+        '../../third_party/llvm-build/Release+Asserts/bin/llvm-symbolizer',
+        '../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib',
+        'third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/ld-linux-x86-64.so.2',
+        './libatomic.so',
         'icudtl.dat',
-        'swiftshader/libGLESv2.so',
-        'instrumented_libraries/msan/lib/libgcrypt.so.11.8.2',
-        'afl-fuzz',
-        '../some_dependency',
-        './chrome_crashpad_handler',
+        f'bin/run_{fuzz_target}',
+        '../../testing/location_tags.json',
     ]
 
-  def _generate_normalized_dependency_filenames(self, dir_prefix, fuzz_target):
+  def _generate_normalized_dependency_filenames(self, fuzz_target):
     """Returns a list of dependencies as normalized file paths, i.e. with
     relative path separators like './' and '../' resolved to their true
     directory names.
     """
+
+    # Runtime deps include file paths that begin with ../../ so the build
+    # directory is assumed to be two levels deep into the file tree.
     return [
-        os.path.normpath(os.path.join(dir_prefix, file))
+        os.path.normpath(os.path.join('/out/build/', file))
         for file in self._generate_possible_fuzzer_dependencies(fuzz_target)
     ]
 
@@ -290,8 +289,7 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertCountEqual(to_extract, needed_files)
 
-  @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_possible_dependencies(self, dir_prefix):
+  def test_possible_dependencies(self):
     """Tests that all the necessary dependencies are correctly extracted from
     the runtime_deps file.
 
@@ -302,8 +300,7 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     """
     self._set_archive_schema_version(1)
     deps_entries = self._generate_possible_fuzzer_dependencies('my_fuzzer')
-    deps_files = self._generate_normalized_dependency_filenames(
-        dir_prefix, 'my_fuzzer')
+    deps_files = self._generate_normalized_dependency_filenames('my_fuzzer')
     self._add_files_to_archive(deps_files)
     self._generate_runtime_deps(deps_entries)
     self._declare_fuzzers(['my_fuzzer'])
@@ -311,16 +308,14 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertCountEqual(to_extract, deps_files)
 
-  @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_other_fuzzer_not_extracted(self, dir_prefix):
+  def test_other_fuzzer_not_extracted(self):
     """Tests that the chrome build handler only unpacks dependencies for the
     requested fuzzer, even if other fuzzers exist in the build."""
     self._set_archive_schema_version(1)
     deps_entries = self._generate_possible_fuzzer_dependencies('my_fuzzer')
-    needed_files = self._generate_normalized_dependency_filenames(
-        dir_prefix, 'my_fuzzer')
+    needed_files = self._generate_normalized_dependency_filenames('my_fuzzer')
     other_fuzzer = self._generate_normalized_dependency_filenames(
-        dir_prefix, 'other_fuzzer')
+        'other_fuzzer')
     self._add_files_to_archive(list(set(needed_files + other_fuzzer)))
     self._generate_runtime_deps(deps_entries)
     self._declare_fuzzers(['my_fuzzer', 'other_fuzzer'])
@@ -328,17 +323,15 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertCountEqual(to_extract, needed_files)
 
-  @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_dsyms_are_correctly_unpacked(self, dir_prefix):
+  def test_dsyms_are_correctly_unpacked(self):
     """Tests that even if not listed in the runtime deps, dSYMs are correctly
     unpacked."""
     self._set_archive_schema_version(1)
-    needed_files = self._generate_normalized_dependency_filenames(
-        dir_prefix, 'my_fuzzer')
+    needed_files = self._generate_normalized_dependency_filenames('my_fuzzer')
     self._add_files_to_archive(needed_files)
     self._generate_runtime_deps(['my_fuzzer'])
     to_extract = self.build.get_target_dependencies('my_fuzzer')
     to_extract = [f.name for f in to_extract]
-    dsym_path = os.path.join(
-        dir_prefix, 'my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency')
-    self.assertIn(dsym_path, to_extract)
+    self.assertIn(
+        '/out/build/my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency',
+        to_extract)
