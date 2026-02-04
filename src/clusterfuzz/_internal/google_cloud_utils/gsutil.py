@@ -42,7 +42,16 @@ def get_gcloud_path():
   if gcloud_absolute_path:
     return gcloud_absolute_path
 
-  logs.error('Cannot locate gcloud in PATH.')
+  # TEMP: use GSUTIL_PATH as fallback to find the gcloud bin directory.
+  # This seems to only be used by mac and android.
+  gcloud_directory = environment.get_value('GSUTIL_PATH')
+  if gcloud_directory:
+    gcloud_absolute_path = os.path.join(gcloud_directory, gcloud_executable)
+    if os.path.exists(gcloud_absolute_path):
+      logs.info(f'Using gcloud executable from GSUTIL_PATH: {gcloud_directory}')
+      return gcloud_absolute_path
+
+  logs.error('Cannot locate gcloud in PATH or it does not exist.')
   return None
 
 
@@ -189,8 +198,7 @@ class GSUtilRunner:
     """Rsync with gsutil or gcloud storage."""
     use_gcloud = use_gcloud_for_command('rsync')
     if use_gcloud:
-      command = ['rsync']
-      # gcloud storage rsync is recursive by default.
+      command = ['rsync', '-r']
       if delete:
         command.append('--delete-unmatched-destination-objects')
       if exclusion_pattern:

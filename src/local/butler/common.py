@@ -37,76 +37,31 @@ class GcloudError(Exception):
   """Gcloud error."""
 
 
-class GsutilError(Exception):
-  """Gsutil error."""
-
-
 class Gcloud:
-  """Project specific gcloud."""
+  """Gcloud runner."""
 
-  def __init__(self, project_id):
+  def __init__(self, project_id=None, storage=False):
     self.project_id = project_id
+    self.storage = storage
 
   def run(self, *args):
     """Run a gcloud command."""
-    arguments = ['gcloud', '--project=' + self.project_id]
+    arguments = ['gcloud']
+    if self.project_id:
+      arguments += ['--project=' + self.project_id]
+    if self.storage:
+      arguments += ['storage']
     arguments.extend(args)
     return _run_and_handle_exception(arguments, GcloudError)
 
 
-class Gsutil:
-  """gsutil runner."""
-
-  def run(self, *args):
-    """Run a gsutil command."""
-    command = args[0]
-    if command == 'cors':
-      command = 'cors_set'
-    elif command == 'defstorageclass':
-      command = 'defstorageclass_set'
-
-    if environment.get_value(f'USE_GCLOUD_STORAGE_{command.upper()}'):
-      arguments = ['gcloud', 'storage']
-      if args[0] == 'mb':
-        # gsutil mb -p <project> gs://<bucket>
-        # gcloud storage buckets create gs://<bucket> --project <project>
-        arguments.extend(['buckets', 'create', args[3], '--project', args[2]])
-      elif args[0] == 'cors' and args[1] == 'set':
-        # gsutil cors set <file> gs://<bucket>
-        # gcloud storage buckets update gs://<bucket> --cors-file <file>
-        arguments.extend(['buckets', 'update', args[3], '--cors-file', args[2]])
-      elif args[0] == 'cp':
-        arguments.extend(args)
-      elif args[0] == 'defstorageclass' and args[1] == 'set':
-        # gsutil defstorageclass set <class> gs://<bucket>
-        # gcloud storage buckets update gs://<bucket>
-        # --default-storage-class <class>
-        arguments.extend(
-            ['buckets', 'update', args[3], '--default-storage-class', args[2]])
-      elif args[0] == 'iam' and args[1] == 'ch':
-        # gsutil iam ch <role>:<member> gs://<bucket>
-        # gcloud storage buckets add-iam-policy-binding gs://<bucket>
-        # --member=<member> --role=<role>
-        role, member = args[2].split(':')
-        arguments.extend([
-            'buckets', 'add-iam-policy-binding', args[3], f'--member={member}',
-            f'--role={role}'
-        ])
-      else:
-        arguments.extend(args)
-    else:
-      arguments = ['gsutil']
-      arguments.extend(args)
-    return _run_and_handle_exception(arguments, GsutilError)
-
-
 def _run_and_handle_exception(arguments, exception_class):
   """Run a command and handle its error output."""
-  command = ' '.join(shlex.quote(arg) for arg in arguments)
-  return_code, output = execute(command, exit_on_error=False)
-  if return_code != 0:
-    raise exception_class(output)
-  return output
+  print('Running:', ' '.join(shlex.quote(arg) for arg in arguments))
+  try:
+    return subprocess.check_output(arguments)
+  except subprocess.CalledProcessError as e:
+    raise exception_class(e.output)
 
 
 def _utcnow():
