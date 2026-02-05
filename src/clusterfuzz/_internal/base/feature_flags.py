@@ -33,6 +33,8 @@ class FeatureFlags(Enum):
 
   GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
+  PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
+
   @property
   def flag(self):
     """Get the feature flag."""
