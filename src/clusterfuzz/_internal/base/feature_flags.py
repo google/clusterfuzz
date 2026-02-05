@@ -30,8 +30,9 @@ class FeatureFlags(Enum):
   K8S_JOBS_PENDING_LIMIT = 'k8s_jobs_pending_limit'
 
   UTASK_MAIN_QUEUE_LIMIT = 'utask_main_queue_limit'
-
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
+
+  GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
   @property
   def flag(self):

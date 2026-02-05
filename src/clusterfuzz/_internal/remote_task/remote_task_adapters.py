@@ -35,7 +35,8 @@ class RemoteTaskAdapters(Enum):
   """
   KUBERNETES = ('kubernetes', k8s_service.KubernetesService,
                 feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY, 0.0)
-  GCP_BATCH = ('gcp_batch', batch_service.GcpBatchService, None, 1.0)
+  GCP_BATCH = ('gcp_batch', batch_service.GcpBatchService,
+               feature_flags.FeatureFlags.GCP_BATCH_JOBS_FREQUENCY, 1.0)
 
   def __init__(self, adapter_id, service, feature_flag, default_weight):
     self.id = adapter_id
