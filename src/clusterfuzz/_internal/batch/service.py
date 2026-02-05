@@ -376,8 +376,8 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
         remote_task_types.RemoteTask(command, job_type, input_download_url)
     ]
     result = self.create_utask_main_jobs(batch_tasks)
-    if result is None:
-      return result
+    if not result:
+      return None
     return result[0]
 
   def create_utask_main_jobs(self,
@@ -396,12 +396,10 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
       job_specs[spec].append(remote_task.input_download_url)
 
     logs.info('Creating batch jobs.')
-    jobs = []
-
     logs.info('Batching utask_mains.')
     for spec, input_urls in job_specs.items():
       for input_urls_portion in utils.batched(input_urls,
                                               MAX_CONCURRENT_VMS_PER_JOB - 1):
-        jobs.append(self.create_job(spec, input_urls_portion).name)
+        self.create_job(spec, input_urls_portion).name
 
-    return jobs
+    return []

@@ -16,13 +16,18 @@ base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 
 from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.base.tasks import UTASK_MAIN_QUEUE
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 10000
 
 
 class BaseTask:
@@ -153,6 +158,18 @@ class UTask(BaseUTask):
     if not (environment.is_tworker() or is_remote_utask(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
+
+    utask_main_queue_size = tasks.get_utask_main_queue_size()
+
+    utask_main_queue_limit = UTASK_MAIN_QUEUE_LIMIT_DEFAULT
+    utask_flag = feature_flags.FeatureFlags.UTASK_MAIN_QUEUE_LIMIT.flag
+    if utask_flag and utask_flag.enabled:
+      utask_main_queue_limit = utask_flag.content
+    if utask_main_queue_size > utask_main_queue_limit:
+      base_os_version = environment.get_value('BASE_OS_VERSION')
+      queue_name = UTASK_MAIN_QUEUE if not base_os_version else \
+        f'{UTASK_MAIN_QUEUE}-{base_os_version}'
+      raise errors.QueueLimitReachedError(utask_main_queue_size, queue_name)
 
     logs.info('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)
