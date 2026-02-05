@@ -76,6 +76,9 @@ mapping:
         name: east4-network2
         weight: 1
 project: 'test-clusterfuzz'
+queue_check_regions:
+  - us-central1
+  - us-east4
 subconfigs:
   central1-network1:
     region: 'us-central1'
