@@ -109,6 +109,12 @@ UTASK_QUEUE_PULL_SECONDS = 150
 # scheduling on batch.
 MAX_UTASKS = 3000
 
+# Time window to get the metrics.
+# We should look for metrics in
+# start = now - _QUEUE_LIMIT_INTERVAL
+# end = now
+_QUEUE_LIMIT_INTERVAL = 5 * 60  # 5 minutes.
+
 
 class Error(Exception):
   """Base exception class."""
@@ -707,7 +713,7 @@ def get_utask_main_queue_size():
     now = time.time()
     interval = monitoring_v3.TimeInterval(
         end_time={'seconds': int(now)},
-        start_time={'seconds': int(now - 5 * 60)},
+        start_time={'seconds': int(now - _QUEUE_LIMIT_INTERVAL)},
     )
 
     results = client.list_time_series(

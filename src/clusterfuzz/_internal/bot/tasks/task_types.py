@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.base.tasks import UTASK_MAIN_QUEUE
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.metrics import events
@@ -165,7 +166,10 @@ class UTask(BaseUTask):
     if utask_flag and utask_flag.enabled:
       utask_main_queue_limit = utask_flag.content
     if utask_main_queue_size > utask_main_queue_limit:
-      raise errors.QueueLimitReachedError(utask_main_queue_size)
+      base_os_version = environment.get_value('BASE_OS_VERSION')
+      queue_name = UTASK_MAIN_QUEUE if not base_os_version else \
+        f'{UTASK_MAIN_QUEUE}-{base_os_version}'
+      raise errors.QueueLimitReachedError(utask_main_queue_size, queue_name)
 
     logs.info('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)

@@ -31,6 +31,8 @@ class FeatureFlags(Enum):
 
   UTASK_MAIN_QUEUE_LIMIT = 'utask_main_queue_limit'
 
+  GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
+
   @property
   def flag(self):
     """Get the feature flag."""

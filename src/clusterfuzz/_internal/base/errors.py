@@ -115,5 +115,5 @@ class InvalidConfigKey(Error):
 class QueueLimitReachedError(Error):
   """Error thrown when the queue limit is reached."""
 
-  def __init__(self, size):
-    super().__init__(f'Queue limit reached {size}.')
+  def __init__(self, size, queue):
+    super().__init__(f'Queue {queue} has reached the limit of {size}.')
