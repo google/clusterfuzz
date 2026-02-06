@@ -25,7 +25,6 @@ from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
-
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'build_archive_data')
 
 

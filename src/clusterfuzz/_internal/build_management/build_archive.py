@@ -25,7 +25,6 @@ from typing import Union
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import archive
 
-
 # Extensions to exclude when unarchiving a fuzz target. Note that fuzz target
 # own files like seed corpus, options, etc are covered by its own regex.
 FUZZ_TARGET_EXCLUDED_EXTENSIONS = [
@@ -226,52 +225,14 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   Expects a manifest file named `clusterfuzz_manifest.json` in the root of the
   archive to decide which schema version to use when interpreting its contents.
-  The legacy schema is applied to archives with no manifest.
+  The legacy schema is applied to archives with no manifest. Defaults to using
+  the default unpacker in case something goes wrong.
 
   Under the legacy schema, fuzz targets were assumed to be at the root of the
   archive while runtime_deps starting with `../../` were remapped to
   `/src_root/`.
 
-  Example archive tree:
-  ==========
-  my_fuzzer
-  my_fuzzer.options
-  my_ruzzer.owners
-  my_fuzzer.runtime_deps
-  # etc. for all fuzz targets
-  src_root/
-    .vpython3
-    third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
-      # all instrumented libs
-    # etc. for other deps
-
-  my_fuzzer.runtime_deps:
-  ==========
-  ./my_fuzzer
-  my_fuzzer.options
-  my_fuzzer.owners
-  my_fuzzer.runtime_deps
-  ../../.vpython3
-  ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/ld-linux-x86-64.so.2
-  # etc.
-
-  Schema version 1 does away with `/src_root/` and interprets runtime_deps
-  entries as file paths relative to the runtime_deps file, which lives in the
-  build directory along with fuzz target binaries.
-
-  Example archive tree:
-  ==========
-  out/build/my_fuzzer
-  out/build/my_fuzzer.options
-  out/build/my_fuzzer.owners
-  out/build/my_fuzzer.runtime_deps
-  out/build/libbase.so
-  out/build/libatomic.so
-  # etc. for all fuzz targets and deps in the build directory
-  .vpython3
-  third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
-    # all instrumented libs
-  # etc. for other deps
+  Given the following runtime_deps:
 
   my_fuzzer.runtime_deps:
   ==========
@@ -284,7 +245,38 @@ class ChromeBuildArchive(DefaultBuildArchive):
   ../../.vpython3
   ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib
 
-  Defaults to using the default unpacker in case something goes wrong.
+  The legacy schema would expect an archive with the following structure:
+  ==========
+  my_fuzzer
+  my_fuzzer.options
+  my_ruzzer.owners
+  my_fuzzer.runtime_deps
+  libbase.so
+  libatomic.so
+  # etc. for all fuzz targets
+  src_root/
+    .vpython3
+    third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
+      # all instrumented libs
+    # etc. for other deps
+
+  Schema version 1 does away with `/src_root/` and interprets runtime_deps
+  entries as file paths relative to the runtime_deps file, which lives in the
+  build directory along with fuzz target binaries.
+
+  Expected archive structure with the same runtime_deps:
+  ==========
+  out/build/my_fuzzer
+  out/build/my_fuzzer.options
+  out/build/my_fuzzer.owners
+  out/build/my_fuzzer.runtime_deps
+  out/build/libbase.so
+  out/build/libatomic.so
+  # etc. for all fuzz targets and deps in the build directory
+  .vpython3
+  third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
+    # all instrumented libs
+  # etc. for other deps
   """
 
   def __init__(self,
