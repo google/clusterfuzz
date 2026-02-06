@@ -28,14 +28,14 @@ def sync_project_cc_group(project_name, info):
 
   group_id = google_groups.get_group_id(group_name)
   # Create the group and bail out since the CIG API might delay to create a
-  # new group. Add members will be done in the next project-setup run.
+  # new group. Add members will be done in the next cron run.
   if not group_id:
     group_description = f'{_CC_GROUP_DESC}: {project_name}'
     created = google_groups.create_google_group(
         group_name, group_description=group_description)
     if not created:
-      logs.info('Failed to create or retrieve the issue tracker CC group '
-                f'for {project_name}')
+      logs.warning('Failed to create or retrieve the issue tracker CC group '
+                   f'for {project_name}')
       return
     logs.info(f'Created issue tracker CC group for {project_name}. '
               'Skipping adding members as group may still not exist.')
@@ -43,9 +43,16 @@ def sync_project_cc_group(project_name, info):
 
   group_memberships = google_groups.get_google_group_memberships(group_id)
   if group_memberships is None:
-    logs.info(
+    logs.warning(
         f'Failed to get list of group members for {project_name}. Skipping.')
     return
+
+  if len(group_memberships) <= 1:
+    # If only the SA is a member, we know that the group has just been created
+    # and we need to update settings to allow external members.
+    if not google_groups.set_oss_fuzz_access_settings(group_name):
+      logs.warning(f'Failed to allow external members for {group_name}')
+      return
 
   ccs = set(project_setup.ccs_from_info(info))
 
@@ -66,6 +73,7 @@ def sync_project_cc_group(project_name, info):
 def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
   projects = project_setup.get_oss_fuzz_projects()
+
   for project, info in projects:
     sync_project_cc_group(project, info)
 

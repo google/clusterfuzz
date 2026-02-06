@@ -31,6 +31,7 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.google_groups.get_google_group_memberships',
         'clusterfuzz._internal.google_cloud_utils.google_groups.add_member_to_group',
         'clusterfuzz._internal.google_cloud_utils.google_groups.delete_google_group_membership',
+        'clusterfuzz._internal.google_cloud_utils.google_groups.set_oss_fuzz_access_settings',
         'clusterfuzz._internal.base.utils.is_service_account',
     ])
 
@@ -73,6 +74,26 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
                                                      'member3@example.com')
     self.mock.delete_google_group_membership.assert_called_with(
         'group2_id', 'member1@example.com', 'membership1')
+
+  def test_main_exec_for_new_group(self):
+    """Test main execution for a newly created group."""
+    self.mock.get_oss_fuzz_projects.return_value = [('project1', {'info': 1})]
+    self.mock.get_group_id.return_value = '1'
+    self.mock.get_google_group_memberships.return_value = {
+        'member1@gserviceaccount.com': 'membership1'
+    }
+    self.mock.set_oss_fuzz_access_settings.return_value = True
+    self.mock.ccs_from_info.return_value = ['member2@example.com']
+    self.mock.is_service_account.return_value = True
+
+    self.assertTrue(oss_fuzz_cc_groups.main())
+    self.mock.create_google_group.assert_not_called()
+    self.mock.get_group_id.assert_called_once_with('project1-ccs@oss-fuzz.com')
+    self.mock.set_oss_fuzz_access_settings.assert_called_once_with(
+        'project1-ccs@oss-fuzz.com')
+    self.mock.add_member_to_group.assert_called_once_with(
+        '1', 'member2@example.com')
+    self.mock.delete_google_group_membership.assert_not_called()
 
   def test_create_fail(self):
     """Test group creation failure."""

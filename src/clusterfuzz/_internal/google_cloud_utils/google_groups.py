@@ -40,6 +40,16 @@ def get_identity_api() -> discovery.Resource | None:
   return _local.identity_service
 
 
+def get_group_settings_api() -> discovery.Resource | None:
+  """Return the groups settings api client."""
+  if not hasattr(_local, 'groups_settings_service'):
+    creds, _ = credentials.get_default()
+    _local.groups_settings_service = discovery.build(
+        'groupssettings', 'v1', credentials=creds, cache_discovery=False)
+
+  return _local.groups_settings_service
+
+
 def get_group_id(group_name: str, exists_check: bool = False) -> str | None:
   """Retrive a google group ID."""
   identity_service = get_identity_api()
@@ -49,7 +59,7 @@ def get_group_id(group_name: str, exists_check: bool = False) -> str | None:
     return response.get('name')
   except errors.HttpError:
     if not exists_check:
-      logs.warning(f"Unable to look up group {group_name}.")
+      logs.warning(f'Unable to look up group {group_name}.')
     return None
 
 
@@ -58,16 +68,45 @@ def check_transitive_group_membership(group_id: str, member: str) -> bool:
   identity_service = get_identity_api()
   try:
     query_params = parse.urlencode({
-        "query": "member_key_id == '{}'".format(member)
+        'query': "member_key_id == '{}'".format(member)
     })
     request = identity_service.groups().memberships().checkTransitiveMembership(
         parent=group_id)
-    request.uri += "&" + query_params
+    request.uri += '&' + query_params
     response = request.execute(num_retries=_FAIL_RETRIES)
     return response.get('hasMembership', False)
   except errors.HttpError:
     logs.warning(
         f'Unable to check group membership from {member} to {group_id}.')
+    return False
+
+
+def set_oss_fuzz_access_settings(group_name: str) -> bool:
+  """Sets expected access settings for oss-fuzz projects cc groups.
+  
+  The main setting is allowing external members, but as a safeguard, it sets
+  who can view/post/contact/moderate the group to only owners/managers.
+  """
+  groups_service = get_group_settings_api()
+
+  try:
+    group_resources = {
+        'allowExternalMembers': 'true',
+        'whoCanViewMembership': 'ALL_MANAGERS_CAN_VIEW',
+        'whoCanViewGroup': 'ALL_MANAGERS_CAN_VIEW',
+        'whoCanPostMessage': 'ALL_OWNERS_CAN_POST',
+        'whoCanContactOwner': 'ALL_MANAGERS_CAN_CONTACT',
+        'whoCanModerateMembers': 'OWNERS_ONLY'
+    }
+    response = groups_service.groups().patch(
+        groupUniqueId=group_name,
+        body=group_resources).execute(num_retries=_FAIL_RETRIES)
+    logs.info(
+        f'Updated group access settings for {group_name}',
+        request_response=response)
+    return True
+  except errors.HttpError:
+    logs.error(f'Failed to set access settings for {group_name}')
     return False
 
 
@@ -84,20 +123,20 @@ def create_google_group(group_name: str,
     logs.error('No customer ID set. Unable to create a new google group.')
     return None
 
-  group_key = {"id": group_name}
+  group_key = {'id': group_name}
   group = {
-      "parent": "customers/" + customer_id,
-      "description": group_description,
-      "displayName": group_display_name,
-      "groupKey": group_key,
+      'parent': 'customers/' + customer_id,
+      'description': group_description,
+      'displayName': group_display_name,
+      'groupKey': group_key,
       # Set the label to specify creation of a Google Group.
-      "labels": {
-          "cloudidentity.googleapis.com/groups.discussion_forum": ""
+      'labels': {
+          'cloudidentity.googleapis.com/groups.discussion_forum': ''
       }
   }
   try:
     request = identity_service.groups().create(body=group)
-    request.uri += "&initialGroupConfig=WITH_INITIAL_OWNER"
+    request.uri += '&initialGroupConfig=WITH_INITIAL_OWNER'
     response = request.execute(num_retries=_FAIL_RETRIES)
     group_id = response.get('response').get('name')
     logs.info(f'Created google group {group_name}', request_response=response)
@@ -131,11 +170,11 @@ def add_member_to_group(group_id: str, member: str) -> bool:
   try:
     # Create a membership object with a role type MEMBER
     membership = {
-        "preferredMemberKey": {
-            "id": member
+        'preferredMemberKey': {
+            'id': member
         },
-        "roles": {
-            "name": "MEMBER",
+        'roles': {
+            'name': 'MEMBER',
         }
     }
     # Create a membership using the group ID and the membership object
@@ -159,9 +198,9 @@ def delete_google_group_membership(group_id: str,
     if not membership_name:
       membership_lookup_request = identity_service.groups().memberships(
       ).lookup(parent=group_id)
-      membership_lookup_request.uri += "&memberKey.id=" + member
+      membership_lookup_request.uri += '&memberKey.id=' + member
       membership_lookup_response = membership_lookup_request.execute()
-      membership_name = membership_lookup_response.get("name")
+      membership_name = membership_lookup_response.get('name')
 
     response = identity_service.groups().memberships().delete(
         name=membership_name).execute(num_retries=_FAIL_RETRIES)
