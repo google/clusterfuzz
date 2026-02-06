@@ -47,7 +47,7 @@ def sync_project_cc_group(project_name, info):
         f'Failed to get list of group members for {project_name}. Skipping.')
     return
 
-  if len(group_memberships) == 1:
+  if len(group_memberships) <= 1:
     # If only the SA is a member, we know that the group has just been created
     # and we need to update settings to allow external members.
     if not google_groups.set_oss_fuzz_access_settings(group_name):
