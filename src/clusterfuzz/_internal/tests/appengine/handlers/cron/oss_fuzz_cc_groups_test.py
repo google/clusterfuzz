@@ -75,8 +75,8 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     self.mock.delete_google_group_membership.assert_called_with(
         'group2_id', 'member1@example.com', 'membership1')
 
-  def test_set_access_settings_to_group(self):
-    """Test sets oss-fuzz cc group access settings for a new group."""
+  def test_main_exec_for_new_group(self):
+    """Test main execution for a newly created group."""
     self.mock.get_oss_fuzz_projects.return_value = [('project1', {'info': 1})]
     self.mock.get_group_id.return_value = '1'
     self.mock.get_google_group_memberships.return_value = {
