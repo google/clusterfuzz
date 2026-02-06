@@ -27,11 +27,11 @@ jobs:
       run:
         working-directory: src
     steps:
-    - uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f # v2.3.4
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
       with:
         fetch-depth: 0
     - name: Set up Python 3
-      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5 # v2.2.2
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
       with:
         python-version: 3.11
     - name: Install pypa/build
