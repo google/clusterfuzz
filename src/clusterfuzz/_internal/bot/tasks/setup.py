@@ -25,6 +25,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
@@ -494,7 +495,8 @@ def update_data_bundle(
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
 
-    if not (take_trusted_host_path() and data_bundle.sync_to_worker):
+    if not (take_trusted_host_path() and data_bundle.sync_to_worker and
+            task_types.task_main_runs_on_uworker()):
       logs.info('Data bundles: normal path.')
       result = corpus_manager.sync_data_bundle_corpus_to_disk(
           data_bundle_corpus, data_bundle_directory)
