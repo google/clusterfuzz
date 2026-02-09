@@ -243,7 +243,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
   ./libbase.so
   ./libatomic.so
   ../../.vpython3
-  ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib
+  ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib
+    /lib/
+
 
   The legacy schema would expect an archive with the following structure:
   ==========
@@ -299,7 +301,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
       self._archive_schema_version = manifest.get('archive_schema_version')
       if self._archive_schema_version is None:
         logs.warning(
-            'clusterfuzz_manifest.json was incorrectly formatted or missing an archive_schema_version field'
+            'clusterfuzz_manifest.json was incorrectly formatted or missing an '
+            'archive_schema_version field'
         )
         self._archive_schema_version = default_archive_schema_version
     else:
@@ -309,6 +312,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
     if not hasattr(self, '_root_dir'):
       self._root_dir = super().root_dir()  # pylint: disable=attribute-defined-outside-init
     return self._root_dir
+
+  def archive_schema_version(self) -> int:
+    return self._archive_schema_version
 
   def get_dependency_path(self, path: str, deps_file_path: str) -> str:
     """Deps are given as paths relative to the deps file where they are listed,

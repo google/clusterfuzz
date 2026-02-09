@@ -235,7 +235,9 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self._declared_fuzzers = fuzzers
 
   def _set_archive_schema_version(self, version):
-    self.build._archive_schema_version = version
+    self.build = build_archive.ChromeBuildArchive(
+        self.mock.open.return_value, version)
+
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
   def test_possible_dependencies_legacy(self, dir_prefix):
@@ -289,7 +291,7 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self.assertCountEqual(to_extract, needed_files)
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_dsyms_are_correctly_unpacked(self, dir_prefix):
+  def test_dsyms_are_correctly_unpacked_legacy(self, dir_prefix):
     """Tests that even if not listed in the runtime deps, dSYMs are correctly unpacked.
     """
     needed_files = self._generate_possible_fuzzer_dependencies_legacy(
@@ -392,15 +394,15 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
 
     # No manifest exists; should default to archive schema version 0 (legacy).
     test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
-    self.assertEqual(test_archive._archive_schema_version, 0)
+    self.assertEqual(test_archive.archive_schema_version(), 0)
 
     # Invalid manifest; should default to version 0.
     self.mock.file_exists.return_value = True
     self._generate_invalid_manifest()
     test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
-    self.assertEqual(test_archive._archive_schema_version, 0)
+    self.assertEqual(test_archive.archive_schema_version(), 0)
 
     # Valid manifest.
     self._generate_manifest(1)
     test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
-    self.assertEqual(test_archive._archive_schema_version, 1)
+    self.assertEqual(test_archive.archive_schema_version(), 1)
