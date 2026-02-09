@@ -163,8 +163,8 @@ class UTask(BaseUTask):
 
     utask_main_queue_limit = UTASK_MAIN_QUEUE_LIMIT_DEFAULT
     utask_flag = feature_flags.FeatureFlags.UTASK_MAIN_QUEUE_LIMIT
-    utask_main_queue_limit = utask_flag.content if utask_flag.content else \
-      UTASK_MAIN_QUEUE_LIMIT_DEFAULT
+    if utask_flag.enabled and utask_flag.content:
+      utask_main_queue_limit = int(utask_flag.content)
 
     if utask_main_queue_size > utask_main_queue_limit:
       base_os_version = environment.get_value('BASE_OS_VERSION')

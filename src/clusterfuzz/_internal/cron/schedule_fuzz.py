@@ -248,11 +248,10 @@ def schedule_fuzz_tasks() -> bool:
   creds = credentials.get_default()[0]
   preprocess_queue_size = get_queue_size(creds, project, tasks.PREPROCESS_QUEUE)
 
+  target_size = PREPROCESS_TARGET_SIZE_DEFAULT
   target_size_flag = feature_flags.FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT
-  if target_size_flag and target_size_flag.enabled:
-    target_size = int(target_size_flag.value)
-  else:
-    target_size = PREPROCESS_TARGET_SIZE_DEFAULT
+  if target_size_flag.enabled and target_size_flag.content:
+    target_size = int(target_size_flag.content)
 
   num_tasks = target_size - preprocess_queue_size
   logs.info(f'Preprocess queue size: {preprocess_queue_size}. '
