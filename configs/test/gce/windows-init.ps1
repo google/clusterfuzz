@@ -276,7 +276,7 @@ $fileName = "$tmp\clusterfuzz.zip"
 if ($env:USE_GCLOUD_STORAGE_CP -eq "1") {
   gcloud storage cp gs://$deploymentBucket/windows-3.zip $fileName
 } else {
-  gsutil cp gs://$deploymentBucket/windows-3.zip $fileName
+  gcloud storage cp gs://$deploymentBucket/windows-3.zip $fileName
 }
 unzip $fileName
 
@@ -313,5 +313,4 @@ cmd /c c:\python311\python -m pip install pywinauto==0.6.8
 Write-Host "Run scripts"
 c:\autologin.bat
 c:\PsExec.exe \\$hostName -accepteula -h -i 0 -username `""$domain\$username"`" -password `""$password"`" c:\startup.bat
-
 

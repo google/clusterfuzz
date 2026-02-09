@@ -65,16 +65,16 @@ class GcsCorpusTest(unittest.TestCase):
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
 
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-o', 'GSUtil:parallel_thread_count=16',
-        '-q', 'rsync', '-r', '-d', 'gs://bucket/', '/dir'
+        '/gsutil_path/gcloud', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', 'gs://bucket/', '/dir'
     ])
 
     self.mock.cpu_count.return_value = 2
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', 'gs://bucket/',
-        '/dir'
+        '/gsutil_path/gcloud', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', 'gs://bucket/', '/dir'
     ])
 
   def test_rsync_from_disk(self):
@@ -84,16 +84,16 @@ class GcsCorpusTest(unittest.TestCase):
     self.assertTrue(corpus.rsync_from_disk('/dir'))
 
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-o', 'GSUtil:parallel_thread_count=16',
-        '-q', 'rsync', '-r', '-d', '/dir', 'gs://bucket/'
+        '/gsutil_path/gcloud', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', '/dir', 'gs://bucket/'
     ])
 
     self.mock.cpu_count.return_value = 2
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.rsync_from_disk('/dir'))
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
-        'gs://bucket/'
+        '/gsutil_path/gcloud', 'storage', 'rsync', '--recursive',
+        '--delete-unmatched-destination-objects', '/dir', 'gs://bucket/'
     ])
 
   def test_upload_files(self):
@@ -105,8 +105,8 @@ class GcsCorpusTest(unittest.TestCase):
     self.assertTrue(corpus.upload_files(['/dir/a', '/dir/b']))
 
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', '-o', 'GSUtil:parallel_thread_count=16',
-        'cp', '-I', 'gs://bucket/'
+        '/gsutil_path/gcloud', 'storage', 'cp', '--read-paths-from-stdin',
+        'gs://bucket/'
     ])
 
     mock_popen.communicate.assert_called_with(b'/dir/a\n/dir/b')
@@ -115,7 +115,7 @@ class GcsCorpusTest(unittest.TestCase):
     corpus = corpus_manager.GcsCorpus('bucket')
     self.assertTrue(corpus.upload_files(['/dir/a', '/dir/b']))
     self.assertEqual(self.mock.Popen.call_args[0][0],
-                     ['/gsutil_path/gsutil', '-m', 'cp', '-I', 'gs://bucket/'])
+                     ['/gsutil_path/gcloud', 'storage', 'cp', '--read-paths-from-stdin', 'gs://bucket/'])
 
 
 class RsyncErrorHandlingTest(unittest.TestCase):
@@ -247,12 +247,11 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil',
-        '-m',
-        '-q',
+        '/gsutil_path/gcloud',
+        'storage',
         'rsync',
-        '-r',
-        '-d',
+        '--recursive',
+        '--delete-unmatched-destination-objects',
         'gs://bucket/libFuzzer/fuzzer/',
         '/dir',
     ])
@@ -267,21 +266,19 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(commands, [
         [
-            '/gsutil_path/gsutil',
-            '-m',
-            '-q',
+            '/gsutil_path/gcloud',
+            'storage',
             'rsync',
-            '-r',
-            '-d',
+            '--recursive',
+            '--delete-unmatched-destination-objects',
             'gs://bucket/libFuzzer/fuzzer/',
             '/dir',
         ],
         [
-            '/gsutil_path/gsutil',
-            '-m',
-            '-q',
+            '/gsutil_path/gcloud',
+            'storage',
             'rsync',
-            '-r',
+            '--recursive',
             'gs://bucket/libFuzzer/fuzzer_regressions/',
             '/dir/regressions',
         ],
@@ -292,8 +289,8 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.rsync_from_disk('/dir'))
     self.assertEqual(self.mock.Popen.call_args_list[0][0][0], [
-        '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
-        'gs://bucket/libFuzzer/fuzzer/'
+        '/gsutil_path/gcloud', 'storage', 'rsync', '--recursive', '--delete-unmatched-destination-objects',
+        '/dir', 'gs://bucket/libFuzzer/fuzzer/'
     ])
 
   def test_upload_files(self):
@@ -305,7 +302,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     mock_popen.communicate.assert_called_with(b'/dir/a\n/dir/b')
 
     self.assertEqual(self.mock.Popen.call_args[0][0], [
-        '/gsutil_path/gsutil', '-m', 'cp', '-I', 'gs://bucket/libFuzzer/fuzzer/'
+        '/gsutil_path/gcloud', 'storage', 'cp', '--read-paths-from-stdin', 'gs://bucket/libFuzzer/fuzzer/'
     ])
 
 

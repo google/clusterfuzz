@@ -42,7 +42,7 @@ else
     if [ "$USE_GCLOUD_STORAGE_CP" = "1" ]; then
       gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
     else
-      gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
+      gcloud storage cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP $CLUSTERFUZZ_FILE
     fi
     unzip -q -o $CLUSTERFUZZ_FILE
   fi
