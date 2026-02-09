@@ -144,4 +144,4 @@ def get_kernel_hash_and_build_id():
   if match:
     return match.group(2), match.group(3)
 
-  return None
+  return None, None
