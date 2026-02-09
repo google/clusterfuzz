@@ -363,9 +363,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
   def _get_filename_matcher(self, file: str) -> Callable[[str], bool]:
     return lambda f: os.path.basename(f) == file
 
-  def _match_files(
-      self, matchers: List[Callable[[str],
-                                    bool]]) -> List[archive.ArchiveMemberInfo]:
+  def _match_files(self, matchers: List[Callable[[str], bool]]
+                  ) -> List[archive.ArchiveMemberInfo]:
     res = []
     for member in self.list_members():
       if any(matcher(member.name) for matcher in matchers):
