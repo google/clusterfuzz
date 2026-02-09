@@ -238,7 +238,6 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self.build = build_archive.ChromeBuildArchive(self.mock.open.return_value,
                                                   version)
 
-
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
   def test_possible_dependencies_legacy(self, dir_prefix):
     """Tests that all the necessary dependencies are correctly extracted from
@@ -365,6 +364,8 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock.file_exists.return_value = False
 
   def _generate_manifest(self, archive_schema_version):
+    """Mocks open calls so that they return a buffer containing valid JSON for
+    the given archive schema version."""
 
     def _mock_open(_):
       buffer = io.BytesIO(b'')
@@ -378,6 +379,8 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock.open.return_value.open.side_effect = _mock_open
 
   def _generate_invalid_manifest(self):
+    """Mocks open calls so that they return a buffer containing invalid contents
+    for clusterfuzz_manifest.json."""
 
     def _mock_open(_):
       buffer = io.BytesIO(b'')
