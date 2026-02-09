@@ -217,6 +217,22 @@ class GcpBatchServiceTest(unittest.TestCase):
           mock.call(expected_create_request_2),
       ])
 
+  def test_create_uworker_main_batch_jobs_all_regions_overloaded(self):
+    """Tests that create_utask_main_jobs returns tasks when all regions are overloaded."""
+    tasks = [
+        remote_task_types.RemoteTask('command1', 'job1', 'url1'),
+        remote_task_types.RemoteTask('command2', 'job2', 'url2'),
+    ]
+    with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
+                   ) as mock_get_specs_from_config:
+      mock_get_specs_from_config.side_effect = batch_service.AllRegionsOverloadedError(
+          'All regions overloaded')
+
+      result = self.batch_service.create_utask_main_jobs(tasks)
+
+      self.assertEqual(result, tasks)
+      self.mock_batch_client_instance.create_job.assert_not_called()
+
   def test_create_uworker_main_batch_job(self):
     """Tests that create_utask_main_job works as expected."""
     # Create mock data.
@@ -254,7 +270,7 @@ class GcpBatchServiceTest(unittest.TestCase):
           UUIDS[0], spec1, ['url1'])
       self.mock_batch_client_instance.create_job.assert_called_with(
           expected_create_request)
-      self.assertEqual(result, 'job')
+      self.assertEqual(result, None)
 
 
 @test_utils.with_cloud_emulators('datastore')
