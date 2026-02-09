@@ -302,8 +302,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
       if self._archive_schema_version is None:
         logs.warning(
             'clusterfuzz_manifest.json was incorrectly formatted or missing an '
-            'archive_schema_version field'
-        )
+            'archive_schema_version field')
         self._archive_schema_version = default_archive_schema_version
     else:
       self._archive_schema_version = default_archive_schema_version

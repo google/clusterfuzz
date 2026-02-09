@@ -235,8 +235,8 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self._declared_fuzzers = fuzzers
 
   def _set_archive_schema_version(self, version):
-    self.build = build_archive.ChromeBuildArchive(
-        self.mock.open.return_value, version)
+    self.build = build_archive.ChromeBuildArchive(self.mock.open.return_value,
+                                                  version)
 
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
