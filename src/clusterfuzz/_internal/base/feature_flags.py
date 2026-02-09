@@ -27,6 +27,13 @@ class FeatureFlags(Enum):
   TEST_FLOAT_FLAG = 'test_float_flag'
 
   K8S_JOBS_FREQUENCY = 'k8s_jobs_frequency'
+  K8S_JOBS_PENDING_LIMIT = 'k8s_jobs_pending_limit'
+
+  UTASK_MAIN_QUEUE_LIMIT = 'utask_main_queue_limit'
+
+  GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
+
+  PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
   @property
   def flag(self):

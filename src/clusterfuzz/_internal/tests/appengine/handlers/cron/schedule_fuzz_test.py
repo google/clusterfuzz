@@ -17,8 +17,6 @@ import unittest
 
 from clusterfuzz._internal.cron import schedule_fuzz
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import credentials
-from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 # pylint: disable=protected-access
@@ -68,8 +66,8 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     data_types.OssFuzzProject(name=project_name).put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    num_cpus = 10
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus)
+    num_tasks = 5
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks)
     tasks = scheduler.get_fuzz_tasks()
     comparable_results = []
     for task in tasks:
@@ -110,7 +108,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
         name=project_name, base_os_version='project-version').put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus=2)
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks=1)
     tasks = scheduler.get_fuzz_tasks()
     self.assertEqual(len(tasks), 1)
     task = tasks[0]
@@ -149,7 +147,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     data_types.OssFuzzProject(name=project_name).put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus=2)
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks=1)
     tasks = scheduler.get_fuzz_tasks()
     self.assertEqual(len(tasks), 1)
     task = tasks[0]
@@ -188,7 +186,7 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     data_types.OssFuzzProject(name=project_name).put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_cpus=2)
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks=1)
     tasks = scheduler.get_fuzz_tasks()
     self.assertEqual(len(tasks), 1)
     task = tasks[0]
@@ -218,7 +216,7 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
 
   def _run_and_get_task(self):
     """Runs the scheduler and returns the single task created."""
-    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler(num_cpus=2)
+    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler(num_tasks=1)
     tasks = scheduler.get_fuzz_tasks()
     self.assertEqual(len(tasks), 1)
     return tasks[0]
@@ -234,55 +232,3 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
     self._setup_chrome_entities()
     task = self._run_and_get_task()
     self.assertIsNone(task.extra_info.get('base_os_version'))
-
-
-class TestGetCpuUsage(unittest.TestCase):
-  """Tests for get_cpu_limit_for_regions."""
-
-  def setUp(self):
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.cron.schedule_fuzz._get_quotas',
-        'clusterfuzz._internal.config.local_config.ProjectConfig.get'
-    ])
-    self.creds = credentials.get_default()
-
-  def test_usage(self):
-    """Tests that get_cpu_limit_for_regions handles usage properly."""
-    self.mock.get.return_value = 100_000
-    self.mock._get_quotas.return_value = [{
-        'metric': 'PREEMPTIBLE_CPUS',
-        'limit': 5,
-        'usage': 2
-    }]
-    self.assertEqual(
-        schedule_fuzz.get_cpu_usage(self.creds, 'project', 'region'), (5, 2))
-
-  def test_cpus_and_preemptible_cpus(self):
-    """Tests that get_cpu_limit_for_regions handles usage properly."""
-    self.mock.get.return_value = 100_000
-    self.mock._get_quotas.return_value = [{
-        'metric': 'PREEMPTIBLE_CPUS',
-        'limit': 5,
-        'usage': 0
-    }, {
-        'metric': 'CPUS',
-        'limit': 5,
-        'usage': 5
-    }]
-    self.assertEqual(
-        schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), (5, 0))
-
-  def test_config_limit(self):
-    """Tests that the config limit is used."""
-    self.mock.get.return_value = 2
-    self.mock._get_quotas.return_value = [{
-        'metric': 'PREEMPTIBLE_CPUS',
-        'limit': 5,
-        'usage': 0
-    }, {
-        'metric': 'CPUS',
-        'limit': 5,
-        'usage': 5
-    }]
-    self.assertEqual(
-        schedule_fuzz.get_cpu_usage(self.creds, 'region', 'project'), (2, 0))

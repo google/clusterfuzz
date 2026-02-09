@@ -217,6 +217,22 @@ class GcpBatchServiceTest(unittest.TestCase):
           mock.call(expected_create_request_2),
       ])
 
+  def test_create_uworker_main_batch_jobs_all_regions_overloaded(self):
+    """Tests that create_utask_main_jobs returns tasks when all regions are overloaded."""
+    tasks = [
+        remote_task_types.RemoteTask('command1', 'job1', 'url1'),
+        remote_task_types.RemoteTask('command2', 'job2', 'url2'),
+    ]
+    with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
+                   ) as mock_get_specs_from_config:
+      mock_get_specs_from_config.side_effect = batch_service.AllRegionsOverloadedError(
+          'All regions overloaded')
+
+      result = self.batch_service.create_utask_main_jobs(tasks)
+
+      self.assertEqual(result, tasks)
+      self.mock_batch_client_instance.create_job.assert_not_called()
+
   def test_create_uworker_main_batch_job(self):
     """Tests that create_utask_main_job works as expected."""
     # Create mock data.
@@ -254,7 +270,7 @@ class GcpBatchServiceTest(unittest.TestCase):
           UUIDS[0], spec1, ['url1'])
       self.mock_batch_client_instance.create_job.assert_called_with(
           expected_create_request)
-      self.assertEqual(result, 'job')
+      self.assertEqual(result, None)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -278,10 +294,141 @@ class IsRemoteTaskTest(unittest.TestCase):
     self.assertFalse(batch_service.is_remote_task('progression', 'job'))
 
 
-if __name__ == '__main__':
-  unittest.main()
+@test_utils.with_cloud_emulators('datastore')
+class GetRegionLoadTest(unittest.TestCase):
+  """Tests for get_region_load."""
 
-# pylint: disable=protected-access
+  def setUp(self):
+    helpers.patch(self, [
+        'urllib.request.urlopen',
+    ])
+
+  def test_get_region_load_success(self):
+    """Tests get_region_load with a successful API response."""
+    mock_response = mock.Mock()
+    mock_response.status = 200
+    mock_response.read.return_value = b'{"jobCounts": {"QUEUED": "15"}}'
+    self.mock.urlopen.return_value.__enter__.return_value = mock_response
+
+    load = batch_service.get_region_load('project_success', 'us-central1')
+    self.assertEqual(load, 15)
+
+  def test_get_region_load_empty(self):
+    """Tests get_region_load with an empty response."""
+    mock_response = mock.Mock()
+    mock_response.status = 200
+    mock_response.read.return_value = b'{}'
+    self.mock.urlopen.return_value.__enter__.return_value = mock_response
+
+    load = batch_service.get_region_load('project_empty', 'us-central1')
+    self.assertEqual(load, 0)
+
+  def test_get_region_load_error(self):
+    """Tests get_region_load with an API error."""
+    self.mock.urlopen.side_effect = Exception('error')
+
+    load = batch_service.get_region_load('project_error', 'us-central1')
+    self.assertEqual(load, 0)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetSubconfigLoadBalancingTest(unittest.TestCase):
+  """Tests for load balancing in _get_subconfig."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.batch.service.get_region_load',
+        'clusterfuzz._internal.batch.service.random.choice',
+        'clusterfuzz._internal.base.utils.random_weighted_choice',
+    ])
+    self.batch_config = {
+        'project': 'test-project',
+        'queue_check_regions': ['us-central1', 'us-east4'],
+        'subconfigs': {
+            'central1': {
+                'region': 'us-central1',
+                'network': 'n1'
+            },
+            'east4': {
+                'region': 'us-east4',
+                'network': 'n2'
+            },
+            'west1': {
+                'region': 'us-west1',
+                'network': 'n3'
+            },
+        }
+    }
+    self.instance_spec = {
+        'subconfigs': [
+            {
+                'name': 'central1',
+                'weight': 1
+            },
+            {
+                'name': 'east4',
+                'weight': 1
+            },
+        ]
+    }
+
+  def test_all_regions_healthy(self):
+    """Tests that a region is picked when all are healthy."""
+    self.mock.get_region_load.return_value = 2  # Total load 2 < 100
+    self.mock.choice.side_effect = lambda x: x[0]
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+
+  def test_one_region_overloaded(self):
+    """Tests that overloaded regions are skipped."""
+    # us-central1 (load 100) is overloaded, us-east4 (load 2) is healthy.
+    self.mock.get_region_load.side_effect = [
+        100,  # us-central1
+        2,  # us-east4
+    ]
+
+    # random.choice should only see ['east4']
+    def mock_choice(items):
+      self.assertEqual(items, ['east4'])
+      return items[0]
+
+    self.mock.choice.side_effect = mock_choice
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-east4')
+
+  def test_all_regions_overloaded(self):
+    """Tests that AllRegionsOverloadedError is raised when no healthy regions exist."""
+    self.mock.get_region_load.return_value = 100  # Load 100 is threshold for "overloaded"
+
+    with self.assertRaises(batch_service.AllRegionsOverloadedError):
+      batch_service._get_subconfig(self.batch_config, self.instance_spec)
+
+  def test_skip_load_check_if_not_in_config(self):
+    """Tests that load check is skipped for regions not in queue_check_regions."""
+    instance_spec = {'subconfigs': [{'name': 'central1', 'weight': 1},]}
+    self.batch_config['queue_check_regions'] = [
+    ]  # Empty list, so central1 is not checked
+    self.mock.random_weighted_choice.return_value = mock.Mock(name='central1')
+    self.mock.random_weighted_choice.return_value.name = 'central1'
+
+    subconfig = batch_service._get_subconfig(self.batch_config, instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+    self.assertFalse(self.mock.get_region_load.called)
+
+  def test_skip_load_check_if_disabled(self):
+    """Tests that load check is skipped if queue_check_regions is missing."""
+    del self.batch_config['queue_check_regions']
+    self.mock.random_weighted_choice.return_value = mock.Mock(name='central1')
+    self.mock.random_weighted_choice.return_value.name = 'central1'
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+    self.assertFalse(self.mock.get_region_load.called)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -294,11 +441,15 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     self.job.put()
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.random_weighted_choice',
+        'clusterfuzz._internal.batch.service.random.choice',
+        'clusterfuzz._internal.batch.service.get_region_load',
     ])
     self.mock.random_weighted_choice.return_value = batch_service.WeightedSubconfig(
         name='east4-network2',
         weight=1,
     )
+    self.mock.choice.return_value = 'east4-network2'
+    self.mock.get_region_load.return_value = 0
 
   def test_nonpreemptible(self):
     """Tests that _get_specs_from_config works for non-preemptibles as

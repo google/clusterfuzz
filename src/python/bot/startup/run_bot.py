@@ -87,7 +87,7 @@ def lease_all_tasks(task_list):
 
 
 def schedule_utask_mains():
-  """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
+  """Schedules utask_mains from preprocessed utasks on remote backends."""
 
   logs.info('Attempting to combine batch tasks.')
   utask_mains = tasks.get_utask_mains()
@@ -103,7 +103,13 @@ def schedule_utask_mains():
             task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    remote_task_gate.RemoteTaskGate().create_utask_main_jobs(batch_tasks)
+    uncreated_tasks = remote_task_gate.RemoteTaskGate().create_utask_main_jobs(
+        batch_tasks)
+    logs.info(f'Not acking {len(uncreated_tasks)} uncreated tasks.')
+    # Tasks that couldn't be scheduled shoulnd't be acked.
+    for task in uncreated_tasks:
+      if task.pubsub_task:
+        task.pubsub_task.cancel_lease_ack()
 
 
 def task_loop():
