@@ -72,10 +72,22 @@ def sync_project_cc_group(project_name, info):
 
 def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
-  projects = project_setup.get_oss_fuzz_projects()
+  logs.info('OSS-Fuzz TEST CC groups sync started.')
+  project_name_1 = 'vtcosta-test'
+  info_1 = {
+      'primary_contact': 'vtcosta@google.com',
+      'auto_ccs': ['javanlacerda@google.com']
+  }
+  project_name_2 = 'vtcosta-test-2'
+  info_2 = {
+      'primary_contact': 'vtcosta@google.com',
+      'auto_ccs': ['andrenribeiro@google.com']
+  }
+
+  projects = [(project_name_1, info_1), (project_name_2, info_2)]
 
   for project, info in projects:
     sync_project_cc_group(project, info)
 
-  logs.info('OSS-Fuzz CC groups sync succeeded.')
+  logs.info('OSS-Fuzz TEST CC groups sync succeeded.')
   return True
