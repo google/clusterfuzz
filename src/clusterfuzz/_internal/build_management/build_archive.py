@@ -313,6 +313,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return self._root_dir
 
   def archive_schema_version(self) -> int:
+    """Returns the schema version number for this archive."""
     return self._archive_schema_version
 
   def get_dependency_path(self, path: str, deps_file_path: str) -> str:
