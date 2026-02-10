@@ -22,6 +22,10 @@ from clusterfuzz._internal.datastore import ndb_utils
 
 MEMCACHE_TTL_IN_SECONDS = 15 * 60
 
+# OSS-Fuzz issue tracker CC group
+OSS_FUZZ_CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
+OSS_FUZZ_CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
+
 
 def _fuzzers_for_job(job_type, include_parents):
   """Return all fuzzers that have the job associated.
@@ -198,7 +202,10 @@ def _allowed_users_for_entity(name, entity_kind, auto_cc=None):
   return sorted(allowed_users)
 
 
-def _cc_users_for_entity(name, entity_type, security_flag):
+def _cc_users_for_entity(name,
+                         entity_type,
+                         security_flag,
+                         allow_cc_group_for_job=True):
   """Return CC users for entity."""
   users = _allowed_users_for_entity(name, entity_type,
                                     data_types.AutoCCType.ALL)
@@ -207,6 +214,20 @@ def _cc_users_for_entity(name, entity_type, security_flag):
     users.extend(
         _allowed_users_for_entity(name, entity_type,
                                   data_types.AutoCCType.SECURITY))
+
+  if (entity_type != data_types.PermissionEntityKind.JOB or
+      not allow_cc_group_for_job):
+    return sorted(users)
+
+  # CC group is only available for jobs, as it is not possible to infer the
+  # project from the other permission entity kinds alone.
+  users_in_cc_group = _allowed_users_for_entity(
+      name, entity_type, data_types.AutoCCType.USE_CC_GROUP)
+  if users_in_cc_group:
+    # Assume users are synced with the project group.
+    group_name = get_cc_group_from_job(name)
+    if group_name:
+      users.append(group_name)
 
   return sorted(users)
 
@@ -336,15 +357,33 @@ def is_upload_allowed_for_user(user_email):
   return bool(permissions.get())
 
 
-def cc_users_for_job(job_type, security_flag):
+def cc_users_for_job(job_type, security_flag, allow_cc_group=True):
   """Return external users that should be CC'ed according to the given rule.
 
   Args:
     job_type: The name of the job
     security_flag: Whether or not the CC is for a security issue.
+    allow_cc_group: Whether to allow including the project cc group from the
+      job, if exists any user with the use cc group auto_cc type.
 
   Returns:
     A list of user emails that should be CC'ed.
   """
   return _cc_users_for_entity(job_type, data_types.PermissionEntityKind.JOB,
-                              security_flag)
+                              security_flag, allow_cc_group)
+
+
+def get_cc_group_from_job(job_type: str) -> str:
+  """Docstring for get_cc_group_from_entity"""
+  project_name = data_handler.get_project_name(job_type)
+  return get_project_cc_group_name(project_name)
+
+
+def get_project_cc_group_name(project_name: str) -> str:
+  """Return oss-fuzz issue tracker CC group email for a project."""
+  return f'{project_name}{OSS_FUZZ_CC_GROUP_SUFFIX}'
+
+
+def get_project_cc_group_description(project_name: str) -> str:
+  """Return oss-fuzz issue tracker CC group description for a project."""
+  return f'{OSS_FUZZ_CC_GROUP_DESC}: {project_name}'
