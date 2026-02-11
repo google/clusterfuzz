@@ -117,8 +117,8 @@ def create_google_group(group_name: str,
   """Create a google group."""
   identity_service = get_identity_api()
 
-  customer_id = customer_id or str(
-      local_config.ProjectConfig().get('groups_customer_id'))
+  customer_id = customer_id or local_config.ProjectConfig().get(
+      'groups_customer_id')
   if not customer_id:
     logs.error('No customer ID set. Unable to create a new google group.')
     return None
