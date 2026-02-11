@@ -30,16 +30,10 @@ _FAIL_RETRIES = 3
 _local = threading.local()
 
 
-def get_identity_api(manage_groups: bool = False) -> discovery.Resource | None:
+def get_identity_api() -> discovery.Resource | None:
   """Return cloud identity api client."""
-
-  if (not hasattr(_local, 'identity_service') or
-      getattr(_local, 'manage_groups', None) != manage_groups):
-    scopes = None
-    if manage_groups:
-      scopes = ['https://www.googleapis.com/auth/cloud-identity.groups']
-    creds, _ = credentials.get_default(scopes)
-    _local.manage_groups = manage_groups
+  if not hasattr(_local, 'identity_service'):
+    creds, _ = credentials.get_default()
     _local.identity_service = discovery.build(
         'cloudidentity', 'v1', credentials=creds, cache_discovery=False)
 
@@ -50,7 +44,7 @@ def get_group_settings_api() -> discovery.Resource | None:
   """Return the groups settings api client."""
   if not hasattr(_local, 'groups_settings_service'):
     scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
-    creds, _ = credentials.get_default(scopes)
+    creds = credentials.get_scoped_service_account_credentials(scopes)
     _local.groups_settings_service = discovery.build(
         'groupssettings', 'v1', credentials=creds, cache_discovery=False)
 
@@ -124,8 +118,8 @@ def create_google_group(group_name: str,
   """Create a google group."""
   identity_service = get_identity_api()
 
-  customer_id = customer_id or str(
-      local_config.ProjectConfig().get('groups_customer_id'))
+  customer_id = customer_id or local_config.ProjectConfig().get(
+      'groups_customer_id')
   if not customer_id:
     logs.error('No customer ID set. Unable to create a new google group.')
     return None
