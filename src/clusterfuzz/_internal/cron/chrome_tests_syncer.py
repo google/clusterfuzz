@@ -123,23 +123,6 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     shell.remove_directory(directory_path)
 
-  # Rename all fuzzed testcase files as regular files.
-  logs.info('Renaming testcase files.')
-  for root, _, files in os.walk(crash_testcases_directory):
-    for filename in files:
-      if not filename.startswith(testcase_manager.FUZZ_PREFIX):
-        continue
-
-      file_path = os.path.join(root, filename)
-      stripped_file_name = os.path.basename(file_path)[len(
-          testcase_manager.FUZZ_PREFIX):]
-      stripped_file_path = os.path.join(
-          os.path.dirname(file_path), stripped_file_name)
-      try:
-        os.rename(file_path, stripped_file_path)
-      except Exception as e:
-        raise RuntimeError(f'Failed to rename testcase {file_path}') from e
-
   # Remove empty files and dirs to avoid the case where a fuzzer randomly
   # chooses an empty dir/file and generates zero testcases.
   shell.remove_empty_files(crash_testcases_directory)
@@ -253,6 +236,34 @@ def process_fuzzilli_archive(fuzzilli_tests_directory, archive_suffix):
   shell.remove_file(local_archive)
 
 
+def rename_testcase_files(directory):
+  """Rename files with the 'fuzz-' prefix to avoid picking them up for fuzzing
+  without modifying them with a fuzzer.
+  """
+  # Rename all fuzzed testcase files as regular files.
+  for root, _, files in os.walk(directory):
+    for filename in files:
+      if not filename.startswith(testcase_manager.FUZZ_PREFIX):
+        continue
+
+      file_path = os.path.join(root, filename)
+      stripped_file_name = os.path.basename(file_path)[len(
+          testcase_manager.FUZZ_PREFIX):]
+      stripped_file_path = os.path.join(
+          os.path.dirname(file_path), stripped_file_name)
+      try:
+        os.rename(file_path, stripped_file_path)
+      except Exception as e:
+        raise RuntimeError(f'Failed to rename testcase {file_path}') from e
+
+
+def clean_up_filenames(tests_directory, test_folders):
+  """Rename files with the 'fuzz-' prefix in all test folders."""
+  for folder in test_folders:
+    logs.info(f'Renaming testcase files in {folder}')
+    rename_testcase_files(os.path.join(tests_directory, folder))
+
+
 def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
                tests_directory: str):
   """Main sync routine."""
@@ -301,22 +312,28 @@ def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
   create_symbolic_link(tests_directory, 'src/third_party/blink/web_tests',
                        'LayoutTests')
 
+  test_folders = [
+      'CrashTests',
+      'LayoutTests',
+      'WebKit/JSTests/es6',
+      'WebKit/JSTests/stress',
+      'WebKit/LayoutTests',
+      'fuzzilli',
+      'gecko-tests',
+      'v8/test/mjsunit',
+      'spidermonkey',
+      'chakra',
+      'webgl-conformance-tests',
+  ]
+
+  clean_up_filenames(tests_directory, test_folders)
+
   subprocess.check_call(
       [
           'zip',
           '-r',
           tests_archive_local,
-          'CrashTests',
-          'LayoutTests',
-          'WebKit/JSTests/es6',
-          'WebKit/JSTests/stress',
-          'WebKit/LayoutTests',
-          'fuzzilli',
-          'gecko-tests',
-          'v8/test/mjsunit',
-          'spidermonkey',
-          'chakra',
-          'webgl-conformance-tests',
+      ] + test_folders + [
           '-x',
           '*.cc',
           '-x',
