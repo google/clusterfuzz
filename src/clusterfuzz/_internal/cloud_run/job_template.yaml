@@ -17,13 +17,39 @@ template:
     maxRetries: 0
     timeout: {{max_run_duration}}
     serviceAccount: {{service_account_email}}
+    executionEnvironment: EXECUTION_ENVIRONMENT_GEN2
+    volumes:
+    - name: scratch-volume
+      emptyDir:
+        medium: MEMORY
+        sizeLimit: {{disk_size_gb}}Gi
     containers:
-    - image: {{docker_image}}
+    - name: {{job_name}}
+      image: {{docker_image}}
+      command:
+      - /bin/bash
+      - -c
+      - |
+        # Override the check to use DISABLE_MOUNTS instead of IS_K8S_ENV.
+        # We copy to /tmp to ensure we have write permissions.
+        cp /data/setup_common.sh /tmp/setup_common.sh
+        sed -i 's/if \[\[ -z "$IS_K8S_ENV" \]\]/if \[\[ -z "$DISABLE_MOUNTS" \]\]/' /tmp/setup_common.sh
+        
+        # We patch start.sh to source our modified setup_common.sh
+        cp /data/start.sh /tmp/start.sh
+        sed -i 's|source /data/setup_common.sh|source /tmp/setup_common.sh|' /tmp/start.sh
+        
+        exec bash -ex /tmp/start.sh
       resources:
         limits:
           cpu: '{{cpu}}'
           memory: {{memory}}
+      volumeMounts:
+      - name: scratch-volume
+        mountPath: /mnt/scratch0
       env:
+      - name: DEPLOYMENT_BUCKET
+        value: "deployment.clusterfuzz-development.appspot.com"
       - name: HOST_UID
         value: '1337'
       - name: CLUSTERFUZZ_RELEASE
@@ -36,6 +62,12 @@ template:
         value: '1'
       - name: UWORKER_INPUT_DOWNLOAD_URL
         value: "{{input_url}}"
+      - name: DISABLE_MOUNTS
+        value: 'true'
+      - name: UPDATE_WEB_TESTS
+        value: 'False'
+      - name: LOG_TO_CONSOLE
+        value: 'True'
     {% if subnetwork %}
     vpcAccess:
       networkInterfaces:
@@ -43,6 +75,6 @@ template:
         subnetwork: {{subnetwork}}
         tags:
         - clusterfuzz-worker
-      egress: ALL_TRAFFIC
+      egress: PRIVATE_RANGES_ONLY
     {% endif %}
   taskCount: 1

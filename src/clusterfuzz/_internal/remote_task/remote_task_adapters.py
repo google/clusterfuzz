@@ -35,11 +35,11 @@ class RemoteTaskAdapters(Enum):
     default_weight: The default frequency if the feature flag is not set.
   """
   KUBERNETES = ('kubernetes', k8s_service.KubernetesService,
-                feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY, 0.0)
+                None, 0.0)
   GCP_BATCH = ('gcp_batch', batch_service.GcpBatchService,
-               feature_flags.FeatureFlags.GCP_BATCH_JOBS_FREQUENCY, 1.0)
+               None, 0.0)
   CLOUD_RUN = ('cloud_run', cloud_run_service.CloudRunService,
-               feature_flags.FeatureFlags.CLOUD_RUN_JOBS_FREQUENCY, 0.0)
+               None, 1.0)
 
   def __init__(self, adapter_id, service, feature_flag, default_weight):
     self.id = adapter_id

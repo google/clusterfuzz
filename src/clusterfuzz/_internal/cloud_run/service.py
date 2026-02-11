@@ -31,6 +31,7 @@ from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
@@ -74,7 +75,7 @@ def _get_config_names(remote_tasks: List[remote_task_types.RemoteTask]):
   config_map = {}
   for task in remote_tasks:
     if task.job_type not in job_map:
-      logs.error(f"{task.job_type} doesn't exist.")
+      print(f"{task.job_type} doesn't exist.")
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -149,9 +150,29 @@ def _get_specs_from_config(
     cpu = instance_spec.get('cpu', '2')
     memory = instance_spec.get('memory', '4Gi')
 
+    # If using in-memory disk, we need to increase the memory limit.
+    # We add 4Gi of buffer to the disk size.
+    memory_limit_gb = int(disk_size_gb) + 4
+    
+    # Cloud Run has a 32Gi limit for memory.
+    if memory_limit_gb > 32:
+      memory_limit_gb = 32
+      
+    memory = f'{memory_limit_gb}Gi'
+
+    # Cloud Run requires more CPUs for higher memory limits.
+    # For memory > 16Gi, we need 8 CPUs.
+    if memory_limit_gb > 16:
+      cpu = '8'
+    elif memory_limit_gb > 8:
+      cpu = '4'
+
+    # The actual disk size available for the in-memory volume.
+    actual_disk_size_gb = memory_limit_gb - 4
+
     spec = CloudRunWorkloadSpec(
         docker_image=docker_image_uri,
-        disk_size_gb=disk_size_gb,
+        disk_size_gb=actual_disk_size_gb,
         disk_type=instance_spec['disk_type'],
         user_data=instance_spec['user_data'],
         service_account_email=instance_spec['service_account_email'],
@@ -170,13 +191,20 @@ def _get_specs_from_config(
   return specs
 
 
-def _create_job_body(spec: CloudRunWorkloadSpec, input_url: str) -> dict:
+def _create_job_body(spec: CloudRunWorkloadSpec, input_url: str, job_name: str) -> dict:
   """Creates the body of a Cloud Run job."""
 
   # Set up Jinja2 environment and load the template.
   template_dir = os.path.dirname(__file__)
   jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
   template = jinja_env.get_template('job_template.yaml')
+
+  try:
+    deployment_bucket = compute_metadata.get(
+        'project/attributes/deployment-bucket')
+  except Exception:
+    print('Failed to get deployment-bucket from metadata.')
+    deployment_bucket = f'{spec.project}-deployment'
 
   context = {
       'max_run_duration': spec.max_run_duration,
@@ -188,10 +216,20 @@ def _create_job_body(spec: CloudRunWorkloadSpec, input_url: str) -> dict:
       'input_url': input_url,
       'network': spec.network,
       'subnetwork': spec.subnetwork,
+      'project': spec.project,
+      'deployment_bucket': deployment_bucket,
+      'job_name': job_name,
+      'disk_size_gb': spec.disk_size_gb,
   }
 
   rendered_spec = template.render(context)
-  return yaml.safe_load(rendered_spec)
+  print(f'Rendered job template for {job_name}.')
+  try:
+    return yaml.safe_load(rendered_spec)
+  except Exception as e:
+    print(f'Failed to parse YAML for {job_name}: {e}')
+    print(f'YAML content:\n{rendered_spec}')
+    raise
 
 
 class CloudRunService(remote_task_types.RemoteTaskInterface):
@@ -200,50 +238,59 @@ class CloudRunService(remote_task_types.RemoteTaskInterface):
   def __init__(self):
     credentials, _ = google.auth.default()
     self._service = discovery.build('run', 'v2', credentials=credentials)
+    self._service_v1 = discovery.build('run', 'v1', credentials=credentials)
 
   def _get_pending_executions_count(self, project: str, region: str) -> int:
     """Returns the number of pending/running executions."""
-    parent = f'projects/{project}/locations/{region}'
+    parent = f'namespaces/{project}'
     try:
-      request = self._service.projects().locations().executions().list(
-          parent=parent, showDeleted=False)
+      # Use v1 API for listing executions as it is more stable for this purpose.
+      request = self._service_v1.namespaces().executions().list(
+          parent=parent)
       response = request.execute()
-      executions = response.get('executions', [])
+      executions = response.get('items', [])
 
       active_count = 0
       for execution in executions:
-        if 'completionTime' not in execution:
+        # Check if execution is in a terminal state
+        status = execution.get('status', {})
+        conditions = status.get('conditions', [])
+        is_finished = any(
+            c.get('type') == 'Ready' and c.get('status') in ['True', 'False']
+            for c in conditions)
+        if not is_finished:
           active_count += 1
 
       return active_count
     except Exception as e:
-      logs.error(f'Failed to list executions in {region}: {e}')
+      print(f'Failed to list executions in {region}: {e}')
       return 0
 
-  def create_job(self, spec: CloudRunWorkloadSpec, input_url: str):
+  def create_job(self, spec: CloudRunWorkloadSpec,
+                 task: remote_task_types.RemoteTask):
     """Creates a Cloud Run job."""
     job_name = f'j-{str(uuid.uuid4()).lower()}'
     parent = f'projects/{spec.project}/locations/{spec.region}'
     job_full_name = f'{parent}/jobs/{job_name}'
 
-    body = _create_job_body(spec, input_url)
+    body = _create_job_body(spec, task.input_download_url, job_name)
 
     try:
       request = self._service.projects().locations().jobs().create(
           parent=parent, jobId=job_name, body=body)
-      operation = request.execute()
-      logs.info(f'Created Cloud Run job {job_name}.', spec=spec)
+      request.execute()
+      print(f'Created Cloud Run job {job_name}. Spec: {spec}')
 
       # We also need to RUN the job immediately after creating it
       run_request = self._service.projects().locations().jobs().run(
           name=job_full_name)
-      run_operation = run_request.execute()
-      logs.info(f'Started Cloud Run job {job_name}.')
-      return run_operation
+      run_request.execute()
+      print(f'Started Cloud Run job {job_name}.')
+      return None
 
-    except errors.HttpError as e:
-      logs.error(f'Failed to create/run Cloud Run job {job_name}: {e}')
-      raise
+    except Exception as e:
+      print(f'Failed to create/run Cloud Run job {job_name}: {e}')
+      return task
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -264,7 +311,7 @@ class CloudRunService(remote_task_types.RemoteTaskInterface):
     specs = _get_specs_from_config(remote_tasks)
 
     for remote_task in remote_tasks:
-      logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
+      print(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
       spec = specs[(remote_task.command, remote_task.job_type)]
       spec_map[spec].append(remote_task)
 
@@ -276,7 +323,7 @@ class CloudRunService(remote_task_types.RemoteTaskInterface):
         flag.value
     ) if flag and flag.enabled else CLOUD_RUN_JOBS_PENDING_LIMIT_DEFAULT
 
-    logs.info('Creating Cloud Run jobs.')
+    print('Creating Cloud Run jobs.')
     for spec, tasks in spec_map.items():
       region = spec.region
       project = spec.project
@@ -286,13 +333,15 @@ class CloudRunService(remote_task_types.RemoteTaskInterface):
             project, region)
 
       if checked_regions[region] >= limit:
-        logs.warning(
+        print(
             f'Pending executions {checked_regions[region]} in {region} reached limit {limit}.'
         )
         uncreated_tasks.extend(tasks)
         continue
 
       for task in tasks:
-        self.create_job(spec, task.input_download_url)
+        failed_task = self.create_job(spec, task)
+        if failed_task:
+          uncreated_tasks.append(failed_task)
 
     return uncreated_tasks
