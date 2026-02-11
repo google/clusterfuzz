@@ -21,6 +21,7 @@ from googleapiclient import discovery
 from googleapiclient import errors
 
 from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -62,9 +63,14 @@ def get_group_settings_api() -> discovery.Resource | None:
       # In production, the metadata server might not provide tokens with
       # Workspace scopes. Use impersonated credentials to get them.
       base_creds, _ = credentials.get_default()
+      target_principal = getattr(base_creds, 'service_account_email', None)
+      if target_principal == 'default':
+        target_principal = compute_metadata.get(
+            'instance/service-accounts/default/email')
+
       creds = impersonated_credentials.Credentials(
           source_credentials=base_creds,
-          target_principal=base_creds.service_account_email,
+          target_principal=target_principal,
           target_scopes=scopes,
           lifetime=3600)
     _local.groups_settings_service = discovery.build(
