@@ -72,6 +72,7 @@ def sync_project_cc_group(project_name, info):
 
 def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
+  logs.info('OSS-Fuzz CC groups sync started.')
   projects = project_setup.get_oss_fuzz_projects()
 
   for project, info in projects:
