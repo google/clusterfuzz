@@ -85,9 +85,5 @@ spec:
         emptyDir:
           medium: Memory
           sizeLimit: 1.9Gi
-      {% if is_kata %}
-      nodeSelector:
-        cloud.google.com/gke-nodepool: kata-enabled-pool
-      {% endif %}
       restartPolicy: "{{restart_policy}}"
   backoffLimit: 0
