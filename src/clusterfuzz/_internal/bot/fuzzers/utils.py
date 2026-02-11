@@ -26,7 +26,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
+ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par', '.sh']
 FUZZ_TARGET_SEARCH_BYTES = [b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver']
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*|jazzerjs)$')
