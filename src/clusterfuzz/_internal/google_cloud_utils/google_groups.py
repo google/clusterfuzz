@@ -16,15 +16,12 @@
 import threading
 from urllib import parse
 
-from google.auth import impersonated_credentials
 from googleapiclient import discovery
 from googleapiclient import errors
 
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 
 # pylint: disable=no-member
 
@@ -56,23 +53,7 @@ def get_group_settings_api() -> discovery.Resource | None:
   """Return the groups settings api client."""
   if not hasattr(_local, 'groups_settings_service'):
     scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
-    if environment.get_value('LOCAL_DEVELOPMENT') or environment.get_value(
-        'PY_UNITTESTS'):
-      creds, _ = credentials.get_default(scopes)
-    else:
-      # In production, the metadata server might not provide tokens with
-      # Workspace scopes. Use impersonated credentials to get them.
-      base_creds, _ = credentials.get_default()
-      target_principal = getattr(base_creds, 'service_account_email', None)
-      if target_principal == 'default':
-        target_principal = compute_metadata.get(
-            'instance/service-accounts/default/email')
-
-      creds = impersonated_credentials.Credentials(
-          source_credentials=base_creds,
-          target_principal=target_principal,
-          target_scopes=scopes,
-          lifetime=3600)
+    creds, _ = credentials.get_default(scopes)
     _local.groups_settings_service = discovery.build(
         'groupssettings', 'v1', credentials=creds, cache_discovery=False)
 
