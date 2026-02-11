@@ -30,10 +30,16 @@ _FAIL_RETRIES = 3
 _local = threading.local()
 
 
-def get_identity_api() -> discovery.Resource | None:
+def get_identity_api(manage_groups: bool = False) -> discovery.Resource | None:
   """Return cloud identity api client."""
-  if not hasattr(_local, 'identity_service'):
-    creds, _ = credentials.get_default()
+
+  if (not hasattr(_local, 'identity_service') or
+      getattr(_local, 'manage_groups', None) != manage_groups):
+    scopes = None
+    if manage_groups:
+      scopes = ['https://www.googleapis.com/auth/cloud-identity.groups']
+    creds, _ = credentials.get_default(scopes)
+    _local.manage_groups = manage_groups
     _local.identity_service = discovery.build(
         'cloudidentity', 'v1', credentials=creds, cache_discovery=False)
 
@@ -43,7 +49,8 @@ def get_identity_api() -> discovery.Resource | None:
 def get_group_settings_api() -> discovery.Resource | None:
   """Return the groups settings api client."""
   if not hasattr(_local, 'groups_settings_service'):
-    creds, _ = credentials.get_default()
+    scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
+    creds, _ = credentials.get_default(scopes)
     _local.groups_settings_service = discovery.build(
         'groupssettings', 'v1', credentials=creds, cache_discovery=False)
 
