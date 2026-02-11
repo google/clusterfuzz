@@ -16,12 +16,14 @@ import json
 
 from google.auth import compute_engine
 from google.auth import credentials
+from google.auth import impersonated_credentials
 from google.auth.transport import requests
 from google.oauth2 import service_account
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import secret_manager
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -99,3 +101,31 @@ def get_signing_credentials(service_account_info):
         request, '', service_account_email=creds.service_account_email)
     token = creds.token
   return signing_creds, token
+
+
+def get_scoped_service_account_credentials(
+    scopes: list[str]) -> impersonated_credentials.Credentials | None:
+  """Gets scoped credentials by self-impersonating the service account."""
+  creds, _ = get_default()
+  service_account_email = getattr(creds, 'service_account_email', None)
+  if service_account_email == 'default':
+    # Resolve the default service account email using GCE metadata server.
+    service_account_email = compute_metadata.get(
+        'instance/service-accounts/default/email')
+
+  if not service_account_email:
+    logs.warning('Could not retrieve service account email when getting scoped'
+                 'credentials.')
+    return None
+
+  logs.info(
+      f'Using scoped credentials from service account: {service_account_email}')
+  scoped_creds = impersonated_credentials.Credentials(
+      source_credentials=creds,
+      target_principal=service_account_email,
+      target_scopes=scopes,
+  )
+  request = requests.Request()
+  scoped_creds.refresh(request)
+
+  return scoped_creds
