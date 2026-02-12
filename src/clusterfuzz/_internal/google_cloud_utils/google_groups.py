@@ -52,8 +52,8 @@ def get_identity_api(manage_groups: bool = False) -> discovery.Resource | None:
 def get_group_settings_api() -> discovery.Resource | None:
   """Return the groups settings api client."""
   if not hasattr(_local, 'groups_settings_service'):
-    scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
-    creds, _ = credentials.get_default(scopes)
+    sa = credentials.get_groups_settings_service_account()
+    creds = credentials.get_groups_settings_credentials(sa)
     _local.groups_settings_service = discovery.build(
         'groupssettings', 'v1', credentials=creds, cache_discovery=False)
 

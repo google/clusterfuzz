@@ -42,6 +42,7 @@ _SCOPES = [
 ]
 
 _SIGNING_KEY_SECRET_ID = 'gcs-signer-key'
+_GROUPS_SETTINGS_KEY_SECRETED_ID = 'groups-settings-key'
 
 
 def _use_anonymous_credentials():
@@ -99,3 +100,24 @@ def get_signing_credentials(service_account_info):
         request, '', service_account_email=creds.service_account_email)
     token = creds.token
   return signing_creds, token
+
+
+def get_groups_settings_service_account():
+  """Gets."""
+  if _use_anonymous_credentials():
+    return None
+  project_id = utils.get_application_id()
+  return json.loads(
+      secret_manager.get(_GROUPS_SETTINGS_KEY_SECRETED_ID, project_id))
+
+
+def get_groups_settings_credentials(service_account_info):
+  """Returns credentials for groups settings."""
+  if _use_anonymous_credentials():
+    return None
+  scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
+  groups_creds = service_account.Credentials.from_service_account_info(
+      service_account_info, scopes=scopes)
+  request = requests.Request()
+  groups_creds.refresh(request)
+  return groups_creds
