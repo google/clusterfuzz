@@ -44,7 +44,6 @@ _SCOPES = [
 ]
 
 _SIGNING_KEY_SECRET_ID = 'gcs-signer-key'
-_GROUPS_SETTINGS_KEY_SECRETED_ID = 'groups-settings-key'
 
 
 def _use_anonymous_credentials():
@@ -104,14 +103,6 @@ def get_signing_credentials(service_account_info):
   return signing_creds, token
 
 
-<<<<<<< HEAD
-def get_scoped_credentials(scopes):
-  """Gets scoped creds."""
-  creds, _ = get_default()
-  service_account_email = getattr(creds, 'service_account_email', None)
-  if service_account_email == 'default':
-    # In GKE, resolve this using GCE metadata
-=======
 def get_scoped_service_account_credentials(
     scopes: list[str]) -> impersonated_credentials.Credentials | None:
   """Gets scoped credentials by self-impersonating the service account."""
@@ -119,56 +110,22 @@ def get_scoped_service_account_credentials(
   service_account_email = getattr(creds, 'service_account_email', None)
   if service_account_email == 'default':
     # Resolve the default service account email using GCE metadata server.
->>>>>>> 67f1d530c (Fix credentials for groups settings api)
     service_account_email = compute_metadata.get(
         'instance/service-accounts/default/email')
 
   if not service_account_email:
-<<<<<<< HEAD
-    logs.warning('Could not retrive real service account')
-    return None
-
-  logs.info(f'Using service account: {service_account_email}')
-=======
     logs.warning('Could not retrieve service account email when getting scoped'
                  'credentials.')
     return None
 
   logs.info(
       f'Using scoped credentials from service account: {service_account_email}')
->>>>>>> 67f1d530c (Fix credentials for groups settings api)
   scoped_creds = impersonated_credentials.Credentials(
       source_credentials=creds,
       target_principal=service_account_email,
       target_scopes=scopes,
   )
-<<<<<<< HEAD
-
-  return scoped_creds
-
-
-def get_groups_settings_service_account():
-  """Gets."""
-  if _use_anonymous_credentials():
-    return None
-  project_id = utils.get_application_id()
-  return json.loads(
-      secret_manager.get(_GROUPS_SETTINGS_KEY_SECRETED_ID, project_id))
-
-
-def get_groups_settings_credentials(service_account_info):
-  """Returns credentials for groups settings."""
-  if _use_anonymous_credentials():
-    return None
-  scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
-  groups_creds = service_account.Credentials.from_service_account_info(
-      service_account_info, scopes=scopes)
-  request = requests.Request()
-  groups_creds.refresh(request)
-  return groups_creds
-=======
   request = requests.Request()
   scoped_creds.refresh(request)
 
   return scoped_creds
->>>>>>> 67f1d530c (Fix credentials for groups settings api)

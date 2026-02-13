@@ -30,19 +30,10 @@ _FAIL_RETRIES = 3
 _local = threading.local()
 
 
-def get_identity_api(manage_groups: bool = False) -> discovery.Resource | None:
+def get_identity_api() -> discovery.Resource | None:
   """Return cloud identity api client."""
-
-  if (not hasattr(_local, 'identity_service') or
-      getattr(_local, 'manage_groups', None) != manage_groups):
-    if manage_groups:
-      scopes = ['https://www.googleapis.com/auth/cloud-identity.groups']
-    else:
-      scopes = [
-          'https://www.googleapis.com/auth/cloud-identity.groups.readonly'
-      ]
-    creds, _ = credentials.get_default(scopes)
-    _local.manage_groups = manage_groups
+  if not hasattr(_local, 'identity_service'):
+    creds, _ = credentials.get_default()
     _local.identity_service = discovery.build(
         'cloudidentity', 'v1', credentials=creds, cache_discovery=False)
 
@@ -125,10 +116,10 @@ def create_google_group(group_name: str,
                         group_description: str | None = None,
                         customer_id: str | None = None) -> str | None:
   """Create a google group."""
-  identity_service = get_identity_api(manage_groups=True)
+  identity_service = get_identity_api()
 
-  customer_id = customer_id or str(
-      local_config.ProjectConfig().get('groups_customer_id'))
+  customer_id = customer_id or local_config.ProjectConfig().get(
+      'groups_customer_id')
   if not customer_id:
     logs.error('No customer ID set. Unable to create a new google group.')
     return None
@@ -175,7 +166,7 @@ def get_google_group_memberships(group_id: str) -> dict[str, str] | None:
 
 def add_member_to_group(group_id: str, member: str) -> bool:
   """Add a new member to a google group."""
-  identity_service = get_identity_api(manage_groups=True)
+  identity_service = get_identity_api()
 
   try:
     # Create a membership object with a role type MEMBER
@@ -202,7 +193,7 @@ def delete_google_group_membership(group_id: str,
                                    member: str,
                                    membership_name: str | None = None) -> bool:
   """Delete a google group membership."""
-  identity_service = get_identity_api(manage_groups=True)
+  identity_service = get_identity_api()
 
   try:
     if not membership_name:
