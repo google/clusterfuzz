@@ -998,13 +998,13 @@ class ProjectSetup:
         existing_permission = query.get()
         if existing_permission:
           continue
-
+        # OSS-Fuzz issue tracker ccs use the corresponding project cc group.
         data_types.ExternalUserPermission(
             email=cc,
             entity_kind=data_types.PermissionEntityKind.JOB,
             entity_name=job_name,
             is_prefix=False,
-            auto_cc=data_types.AutoCCType.ALL).put()
+            auto_cc=data_types.AutoCCType.USE_CC_GROUP).put()
 
   def set_up(self, projects):
     """Do project setup. Return a list of all the project names that were set
