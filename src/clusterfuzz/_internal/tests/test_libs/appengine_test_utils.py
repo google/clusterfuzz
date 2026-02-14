@@ -15,23 +15,217 @@
 
 import datetime
 
-from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.monorail.comment import Comment
-from clusterfuzz._internal.issue_management.monorail.issue import Issue
+from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.tests.test_libs import test_utils
+
+
+class MockIssue(issue_tracker.Issue):
+  """Mock issue."""
+
+  def __init__(self):
+    self._id = 1
+    self._title = ''
+    self._reporter = ''
+    self._merged_into = None
+    self._closed_time = None
+    self._status = 'Assigned'
+    self._body = ''
+    self._assignee = 'owner@chromium.org'
+    self._ccs = issue_tracker.LabelStore()
+    self._labels = issue_tracker.LabelStore()
+    self._components = issue_tracker.LabelStore()
+    self._actions = []
+    self.created = None
+    self.itm = None
+    self.open = True
+    self._comment = ''
+
+  @property
+  def id(self):
+    return self._id
+
+  @id.setter
+  def id(self, value):
+    self._id = value
+
+  @property
+  def title(self):
+    return self._title
+
+  @title.setter
+  def title(self, value):
+    self._title = value
+
+  @property
+  def summary(self):
+    return self._title
+
+  @summary.setter
+  def summary(self, value):
+    self._title = value
+
+  @property
+  def reporter(self):
+    return self._reporter
+
+  @reporter.setter
+  def reporter(self, value):
+    self._reporter = value
+
+  @property
+  def merged_into(self):
+    return self._merged_into
+
+  @merged_into.setter
+  def merged_into(self, value):
+    self._merged_into = value
+
+  @property
+  def closed_time(self):
+    return self._closed_time
+
+  @closed_time.setter
+  def closed_time(self, value):
+    self._closed_time = value
+
+  @property
+  def is_open(self):
+    return self.open
+
+  @property
+  def status(self):
+    return self._status
+
+  @status.setter
+  def status(self, value):
+    self._status = value
+
+  @property
+  def body(self):
+    return self._body
+
+  @body.setter
+  def body(self, value):
+    self._body = value
+
+  @property
+  def comment(self):
+    return self._comment
+
+  @comment.setter
+  def comment(self, value):
+    self._comment = value
+
+  @property
+  def assignee(self):
+    return self._assignee
+
+  @assignee.setter
+  def assignee(self, value):
+    self._assignee = value
+
+  @property
+  def ccs(self):
+    return self._ccs
+
+  @ccs.setter
+  def ccs(self, value):
+    self._ccs = issue_tracker.LabelStore(value)
+
+  @property
+  def labels(self):
+    return self._labels
+
+  @labels.setter
+  def labels(self, value):
+    self._labels = issue_tracker.LabelStore(value)
+
+  @property
+  def components(self):
+    return self._components
+
+  @components.setter
+  def components(self, value):
+    self._components = issue_tracker.LabelStore(value)
+
+  @property
+  def actions(self):
+    return self._actions
+
+  def save(self, new_comment=None, notify=True):
+    if new_comment:
+      self.comment = new_comment
+    if self.itm:
+      self.itm.save(self, new_comment=new_comment, notify=notify)
+
+
+class MockAction(issue_tracker.Action):
+  """Mock action."""
+
+  def __init__(self, comment=None, author=None, created=None, labels=None):
+    self._comment = comment
+    self._author = author
+    self._created = created
+    self._labels = issue_tracker.ChangeList()
+    if labels:
+      self._labels.added.extend(labels)
+
+  @property
+  def author(self):
+    return self._author
+
+  @author.setter
+  def author(self, value):
+    self._author = value
+
+  @property
+  def comment(self):
+    return self._comment
+
+  @comment.setter
+  def comment(self, value):
+    self._comment = value
+
+  @property
+  def created(self):
+    return self._created
+
+  @created.setter
+  def created(self, value):
+    self._created = value
+
+  @property
+  def title(self):
+    return None
+
+  @property
+  def status(self):
+    return None
+
+  @property
+  def assignee(self):
+    return None
+
+  @property
+  def ccs(self):
+    return issue_tracker.ChangeList()
+
+  @property
+  def labels(self):
+    return self._labels
+
+  @labels.setter
+  def labels(self, value):
+    self._labels = value
+
+  @property
+  def components(self):
+    return issue_tracker.ChangeList()
 
 
 def create_generic_issue(created_days_ago=28):
   """Returns a simple issue object for use in tests."""
-  issue = Issue()
-  issue.cc = []
-  issue.comment = ''
-  issue.comments = []
-  issue.components = []
-  issue.labels = []
-  issue.open = True
-  issue.owner = 'owner@chromium.org'
-  issue.status = 'Assigned'
+  issue = MockIssue()
   issue.id = 1
   issue.itm = create_issue_tracker_manager()
 
@@ -39,7 +233,7 @@ def create_generic_issue(created_days_ago=28):
   issue.created = (
       test_utils.CURRENT_TIME - datetime.timedelta(days=created_days_ago))
 
-  return monorail.Issue(issue)
+  return issue
 
 
 def create_generic_issue_comment(comment_body='Comment.',
@@ -47,16 +241,9 @@ def create_generic_issue_comment(comment_body='Comment.',
                                  days_ago=21,
                                  labels=None):
   """Return a simple comment used for testing."""
-  comment = Comment()
-  comment.comment = comment_body
-  comment.author = author
-  comment.created = test_utils.CURRENT_TIME - datetime.timedelta(days=days_ago)
-  comment.labels = labels
-
-  if comment.labels is None:
-    comment.labels = []
-
-  return comment
+  created = test_utils.CURRENT_TIME - datetime.timedelta(days=days_ago)
+  return MockAction(
+      comment=comment_body, author=author, created=created, labels=labels)
 
 
 def create_issue_tracker_manager():
@@ -85,9 +272,8 @@ def create_issue_tracker_manager():
 
     def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
       """Save an issue."""
-      if issue.new:
+      if not issue.id:
         issue.id = self.next_id
-        issue.new = False
         self.next_id += 1
 
       self.issues[issue.id] = issue
