@@ -62,6 +62,7 @@ class UtaskMainRuntime(enum.Enum):
   BATCH = 'batch'
   KATA_CONTAINER = 'kata_container'
   INSTANCE_GROUP = 'instance_group'
+  CLOUD_RUN = 'cloud_run'
 
 
 def _eval_value(value_string):
@@ -731,6 +732,11 @@ def is_uworker():
   return get_value('UWORKER')
 
 
+def is_cloud_run():
+  """Returns whether or not we're running on Cloud Run."""
+  return bool(get_value('K_SERVICE') or get_value('CLOUD_RUN_JOB'))
+
+
 def get_runtime() -> UtaskMainRuntime:
   """
   Get the current runtime for running the tasks.
@@ -742,6 +748,9 @@ def get_runtime() -> UtaskMainRuntime:
   """
   if is_uworker() and is_running_on_k8s():
     return UtaskMainRuntime.KATA_CONTAINER
+
+  if is_uworker() and is_cloud_run():
+    return UtaskMainRuntime.CLOUD_RUN
 
   if is_uworker() and not is_running_on_k8s():
     return UtaskMainRuntime.BATCH

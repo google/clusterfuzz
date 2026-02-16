@@ -37,6 +37,8 @@ template:
         value: '1'
       - name: UWORKER_INPUT_DOWNLOAD_URL
         value: "{{input_url}}"
+      - name: IS_K8S_ENV
+        value: 'true'
       - name: DISABLE_MOUNTS
         value: 'true'
       - name: UPDATE_WEB_TESTS

@@ -180,17 +180,30 @@ def _create_job_body(spec: CloudRunWorkloadSpec, input_url: str,
   template = jinja_env.get_template('job_template.yaml')
 
   context = {
-      'max_run_duration': spec.max_run_duration,
-      'service_account_email': spec.service_account_email,
-      'docker_image': spec.docker_image,
-      'cpu': spec.cpu,
-      'memory': spec.memory,
-      'clusterfuzz_release': spec.clusterfuzz_release,
-      'input_url': input_url,
-      'network': spec.network,
-      'subnetwork': spec.subnetwork,
-      'deployment_bucket': environment.get_value('DEPLOYMENT_BUCKET', 'deployment.clusterfuzz-development.appspot.com'),
-      'job_name': job_name,
+      'max_run_duration':
+          spec.max_run_duration,
+      'service_account_email':
+          spec.service_account_email,
+      'docker_image':
+          spec.docker_image,
+      'cpu':
+          spec.cpu,
+      'memory':
+          spec.memory,
+      'clusterfuzz_release':
+          spec.clusterfuzz_release,
+      'input_url':
+          input_url,
+      'network':
+          spec.network,
+      'subnetwork':
+          spec.subnetwork,
+      'deployment_bucket':
+          environment.get_value(
+              'DEPLOYMENT_BUCKET',
+              'deployment.clusterfuzz-development.appspot.com'),
+      'job_name':
+          job_name,
   }
 
   rendered_spec = template.render(context)

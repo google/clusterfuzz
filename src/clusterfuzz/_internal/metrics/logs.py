@@ -106,9 +106,10 @@ def _file_logging_enabled():
   This is disabled if we are running in app engine or kubernetes as these have
     their dedicated loggers, see configure_appengine() and configure_k8s().
   """
-  return bool(os.getenv('LOG_TO_FILE', 'True')) and not (
-      _is_running_on_app_engine() or _is_running_on_k8s() or
-      _is_running_on_cloud_run())
+  return bool(os.getenv(
+      'LOG_TO_FILE',
+      'True')) and not (_is_running_on_app_engine() or _is_running_on_k8s() or
+                        _is_running_on_cloud_run())
 
 
 def _cloud_logging_enabled():
@@ -118,9 +119,9 @@ def _cloud_logging_enabled():
     or kubernetes as these have their dedicated loggers, see
     configure_appengine() and configure_k8s()."""
   return (bool(os.getenv('LOG_TO_GCP', 'True')) and
-          not os.getenv("PY_UNITTESTS") and not _is_local() and not
-          (_is_running_on_app_engine() or _is_running_on_k8s() or
-           _is_running_on_cloud_run()))
+          not os.getenv("PY_UNITTESTS") and not _is_local() and
+          not (_is_running_on_app_engine() or _is_running_on_k8s() or
+               _is_running_on_cloud_run()))
 
 
 def suppress_unwanted_warnings():

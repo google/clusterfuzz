@@ -218,7 +218,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
       # If the endpoint is a hostname, we assume it's using a public CA or
       # the system trust store should be used.
       print(f'Endpoint {endpoint} is a hostname. '
-                'Skipping custom CA configuration.')
+            'Skipping custom CA configuration.')
 
     configuration.verify_ssl = True
 
@@ -248,7 +248,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
         raise
 
     print(f'Creating Service Account {service_account_name} for '
-              f'{service_account_email}.')
+          f'{service_account_email}.')
     metadata = k8s_client.V1ObjectMeta(
         name=service_account_name,
         annotations={'iam.gke.io/gcp-service-account': service_account_email})
@@ -320,8 +320,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
-      print(
-          f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
+      print(f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
       config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
     print('Creating Kubernetes jobs.')

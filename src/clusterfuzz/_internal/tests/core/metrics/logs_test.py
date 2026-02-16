@@ -1543,6 +1543,8 @@ class TestLogContextSingleton(unittest.TestCase):
 
     # Number of increments plus the common context.
     self.assertEqual(len(run_bot_logs.log_contexts.contexts), num_it + 1)
+
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
