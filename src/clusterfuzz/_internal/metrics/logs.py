@@ -32,6 +32,11 @@ from typing import Any
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
+try:
+  from google.cloud.logging.resource import Resource
+except ImportError:
+  Resource = None
+
 # This is needed to avoid circular import
 if TYPE_CHECKING:
   from clusterfuzz._internal.cron.grouper import TestcaseAttributes
@@ -58,14 +63,14 @@ def _is_running_on_k8s():
   return os.getenv('IS_K8S_ENV') == 'true'
 
 
-def _is_running_on_cloud_run():
+def is_running_on_cloud_run():
   """Returns whether or not we're running on Cloud Run."""
   return bool(os.getenv('K_SERVICE') or os.getenv('CLOUD_RUN_JOB'))
 
 
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_running_on_cloud_run():
+  if is_running_on_cloud_run():
     task_name = 'cloud_run'
   elif _is_running_on_k8s():
     task_name = 'k8s'
@@ -109,7 +114,7 @@ def _file_logging_enabled():
   return bool(os.getenv(
       'LOG_TO_FILE',
       'True')) and not (_is_running_on_app_engine() or _is_running_on_k8s() or
-                        _is_running_on_cloud_run())
+                        is_running_on_cloud_run())
 
 
 def _cloud_logging_enabled():
@@ -121,7 +126,7 @@ def _cloud_logging_enabled():
   return (bool(os.getenv('LOG_TO_GCP', 'True')) and
           not os.getenv("PY_UNITTESTS") and not _is_local() and
           not (_is_running_on_app_engine() or _is_running_on_k8s() or
-               _is_running_on_cloud_run()))
+               is_running_on_cloud_run()))
 
 
 def suppress_unwanted_warnings():
@@ -497,15 +502,85 @@ def configure_k8s():
 
 def configure_cloud_run():
   """Configure logging for Cloud Run."""
-  # Cloud Run captures stdout/stderr.
-  handler = logging.StreamHandler(sys.stdout)
+  import urllib.request
+
+  import google.cloud.logging
+  from google.cloud.logging.handlers import CloudLoggingHandler
+  from google.cloud.logging.handlers.transports import BackgroundThreadTransport
+
+  client = google.cloud.logging.Client()
+
+  region = os.getenv('GOOGLE_CLOUD_REGION')
+  if not region:
+    try:
+      req = urllib.request.Request(
+          'http://metadata.google.internal/computeMetadata/v1/instance/region',
+          headers={'Metadata-Flavor': 'Google'})
+      with urllib.request.urlopen(req) as response:
+        # Response is projects/PROJECT_NUM/regions/REGION
+        data = response.read().decode('utf-8')
+        region = data.split('/')[-1]
+    except Exception:
+      region = 'us-central1'
+
+  job_name = os.getenv('CLOUD_RUN_JOB', 'unknown')
+  resource = Resource(
+      type='cloud_run_job',
+      labels={
+          'project_id': client.project,
+          'job_name': job_name,
+          'location': region,
+      })
+
+  labels = {
+      'bot_name': os.getenv('BOT_NAME', 'unknown'),
+  }
+
+  class FlushIntervalTransport(BackgroundThreadTransport):
+
+    def __init__(self, client, name, **kwargs):
+      super().__init__(
+          client,
+          name,
+          grace_period=int(os.getenv('LOGGING_CLOUD_GRACE_PERIOD', '15')),
+          max_latency=int(os.getenv('LOGGING_CLOUD_MAX_LATENCY', '10')),
+          **kwargs)
+
+  handler = CloudLoggingHandler(
+      client=client,
+      name='cloud-run-logs',
+      resource=resource,
+      labels=labels,
+      transport=FlushIntervalTransport)
+
+  def cloud_run_label_filter(record):
+    handler.labels.update({
+        'task_payload':
+            os.getenv('TASK_PAYLOAD', 'null'),
+        'fuzz_target':
+            os.getenv('FUZZ_TARGET', 'null'),
+        'worker_bot_name':
+            os.getenv('WORKER_BOT_NAME', 'null'),
+        'extra':
+            truncate(
+                json.dumps(
+                    getattr(record, 'extras', {}),
+                    default=_handle_unserializable),
+                STACKDRIVER_LOG_MESSAGE_LIMIT),
+        'location':
+            json.dumps(
+                getattr(record, 'location', {'Error': True}),
+                default=_handle_unserializable),
+    })
+    return True
+
+  handler.addFilter(cloud_run_label_filter)
   handler.setLevel(logging.INFO)
   formatter = JsonFormatter()
   handler.setFormatter(formatter)
 
   logging.getLogger().addHandler(handler)
   logging.getLogger().setLevel(logging.INFO)
-
 
 def configure_cloud_logging():
   """ Configure Google cloud logging, for bots not running on appengine nor k8s.
@@ -581,7 +656,7 @@ def configure(name, extras=None):
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
 
-  if _is_running_on_cloud_run():
+  if is_running_on_cloud_run():
     configure_cloud_run()
     return
 
@@ -619,7 +694,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if (_is_running_on_cloud_run() or _is_running_on_app_engine() or
+  if (is_running_on_cloud_run() or _is_running_on_app_engine() or
       _is_running_on_k8s()):
     # Running on App Engine.
     set_logger(logging.getLogger())

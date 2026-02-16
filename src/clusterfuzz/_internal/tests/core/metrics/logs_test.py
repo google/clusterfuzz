@@ -1576,26 +1576,61 @@ class LogsCloudRunTest(unittest.TestCase):
     os.environ['K_SERVICE'] = 'my-service'
 
   def test_configure_cloud_run(self):
-    """Test that configure_cloud_run sets up a StreamHandler."""
-    logger = logging.getLogger()
-    # Remove existing handlers
-    logger.handlers = []
+    """Test that configure_cloud_run sets up a CloudLoggingHandler."""
+    # Ensure module is loaded so we can patch it
+    try:
+      import google.cloud.logging
+      import google.cloud.logging.handlers
+      import google.cloud.logging.resource
+    except ImportError:
+      pass
 
-    logs.configure_cloud_run()
+    with mock.patch('google.cloud.logging.Client') as mock_client, \
+         mock.patch('google.cloud.logging.handlers.CloudLoggingHandler') as mock_handler_class, \
+         mock.patch('clusterfuzz._internal.metrics.logs.Resource') as mock_resource, \
+         mock.patch('urllib.request.urlopen') as mock_urlopen:
 
-    self.assertEqual(len(logger.handlers), 1)
-    handler = logger.handlers[0]
-    self.assertIsInstance(handler, logging.StreamHandler)
-    self.assertIsInstance(handler.formatter, logs.JsonFormatter)
-    self.assertEqual(logger.level, logging.INFO)
+      mock_client_instance = mock.Mock()
+      mock_client_instance.project = 'my-project'
+      mock_client.return_value = mock_client_instance
 
+      mock_handler_instance = mock.Mock()
+      mock_handler_class.return_value = mock_handler_instance
+
+      mock_response = mock.Mock()
+      mock_response.read.return_value = b'projects/123/regions/us-central1'
+      mock_response.__enter__ = mock.Mock(return_value=mock_response)
+      mock_response.__exit__ = mock.Mock(return_value=None)
+      mock_urlopen.return_value = mock_response
+
+      logger = logging.getLogger()
+      logger.handlers = []
+
+      # Ensure we don't have env var set to test metadata fetch
+      if 'GOOGLE_CLOUD_REGION' in os.environ:
+        del os.environ['GOOGLE_CLOUD_REGION']
+      os.environ['CLOUD_RUN_JOB'] = 'my-job'
+
+      logs.configure_cloud_run()
+      self.assertEqual(len(logger.handlers), 1)
+      self.assertEqual(logger.handlers[0], mock_handler_instance)
+
+      mock_client.assert_called_once()
+      mock_resource.assert_called_once_with(
+          type='cloud_run_job',
+          labels={
+              'project_id': 'my-project',
+              'job_name': 'my-job',
+              'location': 'us-central1',
+          })
+      mock_handler_class.assert_called_once()
   def test_is_running_on_cloud_run(self):
     """Test _is_running_on_cloud_run."""
-    self.assertTrue(logs._is_running_on_cloud_run())
+    self.assertTrue(logs.is_running_on_cloud_run())
     del os.environ['K_SERVICE']
-    self.assertFalse(logs._is_running_on_cloud_run())
+    self.assertFalse(logs.is_running_on_cloud_run())
     os.environ['CLOUD_RUN_JOB'] = 'my-job'
-    self.assertTrue(logs._is_running_on_cloud_run())
+    self.assertTrue(logs.is_running_on_cloud_run())
 
   def test_file_logging_disabled_on_cloud_run(self):
     """Test that file logging is disabled on Cloud Run."""
