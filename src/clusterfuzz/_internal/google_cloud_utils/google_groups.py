@@ -43,7 +43,8 @@ def get_identity_api() -> discovery.Resource | None:
 def get_group_settings_api() -> discovery.Resource | None:
   """Return the groups settings api client."""
   if not hasattr(_local, 'groups_settings_service'):
-    creds, _ = credentials.get_default()
+    scopes = ['https://www.googleapis.com/auth/apps.groups.settings']
+    creds = credentials.get_scoped_service_account_credentials(scopes)
     _local.groups_settings_service = discovery.build(
         'groupssettings', 'v1', credentials=creds, cache_discovery=False)
 
@@ -117,8 +118,8 @@ def create_google_group(group_name: str,
   """Create a google group."""
   identity_service = get_identity_api()
 
-  customer_id = customer_id or str(
-      local_config.ProjectConfig().get('groups_customer_id'))
+  customer_id = customer_id or local_config.ProjectConfig().get(
+      'groups_customer_id')
   if not customer_id:
     logs.error('No customer ID set. Unable to create a new google group.')
     return None
