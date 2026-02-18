@@ -41,7 +41,7 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     project1 = data_types.OssFuzzProject(
         name='project1', ccs=['member2@example.com'])
     project2 = data_types.OssFuzzProject(
-        name='project2', ccs=['member3@example.com'])
+        name='project2', ccs=['member2@example.com', 'member3@example.com'])
     project1.put()
     project2.put()
 
