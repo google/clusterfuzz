@@ -208,7 +208,7 @@ class AutoCCType:
   ALL = 1
   # Auto-CC only for security issues.
   SECURITY = 2
-  # Use cc google group for all issues - oss-fuzz specific.
+  # OSS-Fuzz specific - Auto-CC the user's project google group in all issues.
   USE_CC_GROUP = 3
 
 
