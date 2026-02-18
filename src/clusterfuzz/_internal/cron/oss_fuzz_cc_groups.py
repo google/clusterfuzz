@@ -56,6 +56,7 @@ def sync_project_cc_group(project_name: str, ccs: list[str]):
       return
 
   ccs_set = set(ccs)
+
   to_add = ccs_set - group_memberships.keys()
   for member in to_add:
     google_groups.add_member_to_group(group_id, member)
