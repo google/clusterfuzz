@@ -24,7 +24,6 @@ MEMCACHE_TTL_IN_SECONDS = 15 * 60
 
 # OSS-Fuzz issue tracker CC group
 OSS_FUZZ_CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
-OSS_FUZZ_CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
 
 
 def _fuzzers_for_job(job_type, include_parents):
@@ -376,14 +375,9 @@ def cc_users_for_job(job_type, security_flag, allow_cc_group=True):
 def get_cc_group_from_job(job_type: str) -> str:
   """Docstring for get_cc_group_from_entity"""
   project_name = data_handler.get_project_name(job_type)
-  return get_project_cc_group_name(project_name)
+  return get_oss_fuzz_project_cc_group(project_name)
 
 
-def get_project_cc_group_name(project_name: str) -> str:
+def get_oss_fuzz_project_cc_group(project_name: str) -> str | None:
   """Return oss-fuzz issue tracker CC group email for a project."""
   return f'{project_name}{OSS_FUZZ_CC_GROUP_SUFFIX}'
-
-
-def get_project_cc_group_description(project_name: str) -> str:
-  """Return oss-fuzz issue tracker CC group description for a project."""
-  return f'{OSS_FUZZ_CC_GROUP_DESC}: {project_name}'

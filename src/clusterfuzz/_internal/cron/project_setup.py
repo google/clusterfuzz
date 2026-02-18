@@ -998,7 +998,7 @@ class ProjectSetup:
         existing_permission = query.get()
         if existing_permission:
           continue
-        # OSS-Fuzz issue tracker ccs use the corresponding project cc group.
+        # For OSS-Fuzz issue tracker, use the project cc google group.
         data_types.ExternalUserPermission(
             email=cc,
             entity_kind=data_types.PermissionEntityKind.JOB,
