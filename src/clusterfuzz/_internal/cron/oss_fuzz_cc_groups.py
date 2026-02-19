@@ -16,7 +16,6 @@
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.cron import project_setup
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import google_groups
@@ -29,7 +28,7 @@ def get_project_cc_group_description(project_name: str) -> str:
   return f'{oss_fuzz_cc_desc}: {project_name}'
 
 
-def sync_project_cc_group(project_name, info):
+def sync_project_cc_group(project_name: str, ccs: list[str]):
   """Sync the oss-fuzz project's group used for CCing in the issue tracker."""
   group_name = external_users.get_project_cc_group(project_name)
 
