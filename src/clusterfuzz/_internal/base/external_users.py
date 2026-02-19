@@ -23,7 +23,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 
 MEMCACHE_TTL_IN_SECONDS = 15 * 60
 
-# Issue tracker CC group
+# Issue tracker CC group suffix
 CC_GROUP_SUFFIX = '-ccs'
 
 
@@ -374,7 +374,7 @@ def cc_users_for_job(job_type, security_flag, allow_cc_group=True):
 
 
 def get_cc_group_from_job(job_type: str) -> str | None:
-  """Docstring for get_cc_group_from_job"""
+  """Retrieve the job's project issue cc google group."""
   project_name = data_handler.get_project_name(job_type)
   if not project_name:
     return None
