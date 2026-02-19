@@ -39,7 +39,7 @@ a software project's development process:
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
 
 ## Trophies
-As of February 2023, ClusterFuzz has found ~27,000 bugs in Google (e.g. [Chrome]). Additionally, ClusterFuzz has helped identify and fix over [8,900] vulnerabilities and [28,000] bugs across [850] projects integrated with [OSS-Fuzz].
+As of February 2023, ClusterFuzz has found ~27,000 bugs across Google products (e.g. [Chrome]). Additionally, ClusterFuzz has helped identify and fix over [8,900] vulnerabilities and [28,000] bugs across [850] projects integrated with [OSS-Fuzz].
 
 ## Getting Help
 You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask
