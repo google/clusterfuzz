@@ -14,7 +14,8 @@
 """Cron to sync OSS-Fuzz projects groups used as CC in the issue tracker."""
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.cron import project_setup
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.metrics import logs
 
@@ -22,7 +23,7 @@ _CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
 _CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
 
 
-def sync_project_cc_group(project_name, info):
+def sync_project_cc_group(project_name: str, ccs: list[str]):
   """Sync the project's google group used for CCing in the issue tracker."""
   group_name = f'{project_name}{_CC_GROUP_SUFFIX}'
 
@@ -54,13 +55,13 @@ def sync_project_cc_group(project_name, info):
       logs.warning(f'Failed to allow external members for {group_name}')
       return
 
-  ccs = set(project_setup.ccs_from_info(info))
+  ccs_set = set(ccs)
 
-  to_add = ccs - group_memberships.keys()
+  to_add = ccs_set - group_memberships.keys()
   for member in to_add:
     google_groups.add_member_to_group(group_id, member)
 
-  to_delete = group_memberships.keys() - ccs
+  to_delete = group_memberships.keys() - ccs_set
   for member in to_delete:
     # Ignore the SA that created the group from members to delete.
     if utils.is_service_account(member):
@@ -73,10 +74,11 @@ def sync_project_cc_group(project_name, info):
 def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
   logs.info('OSS-Fuzz CC groups sync started.')
-  projects = project_setup.get_oss_fuzz_projects()
 
-  for project, info in projects:
-    sync_project_cc_group(project, info)
+  for project in ndb_utils.get_all_from_model(data_types.OssFuzzProject):
+    project_name = project.name
+    ccs = project.ccs
+    sync_project_cc_group(project_name, ccs)
 
   logs.info('OSS-Fuzz CC groups sync succeeded.')
   return True
