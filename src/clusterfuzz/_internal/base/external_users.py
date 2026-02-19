@@ -15,6 +15,7 @@
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import fuzz_target_utils
@@ -22,8 +23,8 @@ from clusterfuzz._internal.datastore import ndb_utils
 
 MEMCACHE_TTL_IN_SECONDS = 15 * 60
 
-# OSS-Fuzz issue tracker CC group
-OSS_FUZZ_CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
+# Issue tracker CC group
+CC_GROUP_SUFFIX = '-ccs'
 
 
 def _fuzzers_for_job(job_type, include_parents):
@@ -372,12 +373,17 @@ def cc_users_for_job(job_type, security_flag, allow_cc_group=True):
                               security_flag, allow_cc_group)
 
 
-def get_cc_group_from_job(job_type: str) -> str:
-  """Docstring for get_cc_group_from_entity"""
+def get_cc_group_from_job(job_type: str) -> str | None:
+  """Docstring for get_cc_group_from_job"""
   project_name = data_handler.get_project_name(job_type)
-  return get_oss_fuzz_project_cc_group(project_name)
+  if not project_name:
+    return None
+  return get_project_cc_group(project_name)
 
 
-def get_oss_fuzz_project_cc_group(project_name: str) -> str | None:
-  """Return oss-fuzz issue tracker CC group email for a project."""
-  return f'{project_name}{OSS_FUZZ_CC_GROUP_SUFFIX}'
+def get_project_cc_group(project_name: str) -> str:
+  """Return issue tracker CC group email for a project."""
+  group_domain = local_config.ProjectConfig().get('issue_cc_groups.domain')
+  if not group_domain:
+    group_domain = 'google.com'
+  return f'{project_name}{CC_GROUP_SUFFIX}@{group_domain}'

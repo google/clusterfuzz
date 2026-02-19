@@ -15,28 +15,33 @@
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.cron import project_setup
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.metrics import logs
 
 
 def get_project_cc_group_description(project_name: str) -> str:
-  """Return oss-fuzz issue tracker CC group description for a project."""
+  """Return issue CC group description for a oss-fuzz project."""
   oss_fuzz_cc_desc = 'External CCs in OSS-Fuzz issue tracker for project'
   return f'{oss_fuzz_cc_desc}: {project_name}'
 
 
 def sync_project_cc_group(project_name, info):
-  """Sync the project's google group used for CCing in the issue tracker."""
-  group_name = external_users.get_oss_fuzz_project_cc_group(project_name)
+  """Sync the oss-fuzz project's group used for CCing in the issue tracker."""
+  group_name = external_users.get_project_cc_group(project_name)
 
   group_id = google_groups.get_group_id(group_name)
   # Create the group and bail out since the CIG API might delay to create a
   # new group. Add members will be done in the next cron run.
   if not group_id:
     group_description = get_project_cc_group_description(project_name)
+    customer_id = local_config.ProjectConfig().get(
+        'issue_cc_groups.customer_id')
     created = google_groups.create_google_group(
-        group_name, group_description=group_description)
+        group_name,
+        group_description=group_description,
+        customer_id=customer_id)
     if not created:
       logs.warning('Failed to create or retrieve the issue tracker CC group '
                    f'for {project_name}')
