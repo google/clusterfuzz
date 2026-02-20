@@ -23,6 +23,7 @@ from google.cloud import ndb
 import requests
 import yaml
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
@@ -973,6 +974,11 @@ class ProjectSetup:
   def sync_user_permissions(self, project, info):
     """Sync permissions of project based on project.yaml."""
     ccs = ccs_from_info(info)
+    fflag = feature_flags.FeatureFlags.UPDATE_OSS_FUZZ_USERS_AUTO_CC
+    update_cc_to_groups = fflag.enabled
+    auto_cc_type = (
+        data_types.AutoCCType.USE_CC_GROUP
+        if update_cc_to_groups else data_types.AutoCCType.ALL)
 
     for template in get_jobs_for_project(project, info):
       job_name = template.job_name(project, self._config_suffix)
@@ -997,14 +1003,18 @@ class ProjectSetup:
 
         existing_permission = query.get()
         if existing_permission:
+          if (update_cc_to_groups and
+              existing_permission.auto_cc != auto_cc_type):
+            existing_permission.auto_cc = auto_cc_type
+            existing_permission.put()
           continue
-
+        # For OSS-Fuzz issue tracker, use the project cc google group.
         data_types.ExternalUserPermission(
             email=cc,
             entity_kind=data_types.PermissionEntityKind.JOB,
             entity_name=job_name,
             is_prefix=False,
-            auto_cc=data_types.AutoCCType.ALL).put()
+            auto_cc=auto_cc_type).put()
 
   def set_up(self, projects):
     """Do project setup. Return a list of all the project names that were set

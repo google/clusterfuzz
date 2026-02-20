@@ -20,6 +20,7 @@ import re
 from google.cloud import ndb
 import requests
 
+from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_policy
@@ -136,7 +137,8 @@ def get_build_time(build):
       stripped_timestamp.group(0), TIMESTAMP_FORMAT)
 
 
-def file_bug(issue_tracker, policy, project_name, build_id, ccs, build_type):
+def file_bug(issue_tracker, policy, project_name, build_id, project_cc_group,
+             build_type):
   """File a new bug for a build failure."""
   logs.info('Filing bug for new build failure (project=%s, build_type=%s, '
             'build_id=%s).' % (project_name, build_type, build_id))
@@ -147,8 +149,8 @@ def file_bug(issue_tracker, policy, project_name, build_id, ccs, build_type):
   issue.body = _get_issue_body(project_name, build_id, build_type)
   issue.status = policy.status('new')
 
-  for cc in ccs:
-    issue.ccs.add(cc)
+  if project_cc_group:
+    issue.ccs.add(project_cc_group)
 
   issue.save()
   return str(issue.id)
@@ -259,9 +261,11 @@ def _process_failures(projects, build_type):
               'Project %s is disabled, skipping bug filing.' % project_name)
           continue
 
+        project_cc_group = external_users.get_project_cc_group(
+            oss_fuzz_project.name)
         build_failure.issue_id = file_bug(issue_tracker, policy, project_name,
-                                          build['build_id'],
-                                          oss_fuzz_project.ccs, build_type)
+                                          build['build_id'], project_cc_group,
+                                          build_type)
       elif (build_failure.consecutive_failures -
             MIN_CONSECUTIVE_BUILD_FAILURES) % REMINDER_INTERVAL == 0:
         send_reminder(issue_tracker, build_failure.issue_id, build['build_id'])

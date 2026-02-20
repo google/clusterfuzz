@@ -208,6 +208,8 @@ class AutoCCType:
   ALL = 1
   # Auto-CC only for security issues.
   SECURITY = 2
+  # OSS-Fuzz specific - Auto-CC the user's project google group in all issues.
+  USE_CC_GROUP = 3
 
 
 # Type of permission. Used by ExternalUserPermision.

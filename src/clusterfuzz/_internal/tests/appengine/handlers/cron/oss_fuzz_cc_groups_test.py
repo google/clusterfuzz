@@ -34,7 +34,12 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.google_groups.delete_google_group_membership',
         'clusterfuzz._internal.google_cloud_utils.google_groups.set_oss_fuzz_access_settings',
         'clusterfuzz._internal.base.utils.is_service_account',
+        'clusterfuzz._internal.config.local_config.ProjectConfig'
     ])
+    self.mock.ProjectConfig.return_value = {
+        'issue_cc_groups.customer_id': 'C10101010',
+        'issue_cc_groups.domain': 'oss-fuzz.com'
+    }
 
   def test_main(self):
     """Test main execution for creating groups and syncing project ccs."""
@@ -62,7 +67,8 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     self.mock.create_google_group.assert_called_with(
         'project1-ccs@oss-fuzz.com',
         group_description=(
-            'External CCs in OSS-Fuzz issue tracker for project: project1'))
+            'External CCs in OSS-Fuzz issue tracker for project: project1'),
+        customer_id='C10101010')
 
     # project2 check
     self.mock.add_member_to_group.assert_called_with('group2_id',

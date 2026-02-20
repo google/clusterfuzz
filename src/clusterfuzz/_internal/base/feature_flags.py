@@ -35,6 +35,8 @@ class FeatureFlags(Enum):
 
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
+  UPDATE_OSS_FUZZ_USERS_AUTO_CC = 'update_oss_fuzz_users_auto_cc'
+
   @property
   def flag(self):
     """Get the feature flag."""
