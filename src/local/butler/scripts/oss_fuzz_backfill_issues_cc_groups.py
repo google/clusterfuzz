@@ -86,8 +86,9 @@ def execute(args):
       logs.error(f'Failed to apply ccs for testcase {testcase.key.id()}: {e}')
 
   if testcases_failed:
-    # logging.error('OSS fuzz apply ccs failed.')
+    logs.error(
+        f'Failed for {len(testcases_failed)} testcases: {testcases_failed}')
     return False
 
-  logs.info('OSS fuzz apply ccs succeeded.')
+  logs.info('Succeeded.')
   return True
