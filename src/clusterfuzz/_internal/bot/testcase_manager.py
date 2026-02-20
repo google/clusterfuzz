@@ -620,6 +620,7 @@ class TestcaseRunner:
     run_timeout = warmup_timeout if round_number == 1 else self._test_timeout
 
     if self._is_black_box:
+      result = None
       return_code, crash_time, output = process_handler.run_process(
           self._command,
           timeout=run_timeout,
@@ -639,15 +640,23 @@ class TestcaseRunner:
 
       log_header = engine_common.get_log_header(result.command,
                                                 result.time_executed)
-      output = log_header + '\n' + result.output
+      output = log_header + '\n' + result.fuzzer_output
 
     process_handler.terminate_stale_application_instances()
+
+    if result and not result.is_expected_return_code:
+      process_crash_result = CrashResult(return_code, crash_time,
+                                         result.process_output)
+      if process_crash_result.is_crash():
+        logs.info('Build')
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
       logs.info(
           f'No crash occurred (round {round_number}).',
           output=output,
+          return_code=return_code,
+          crash_time=crash_time,
       )
 
     return crash_result
@@ -803,6 +812,9 @@ def test_for_crash_with_retries(fuzz_target,
                                          expected_security_flag,
                                          testcase.flaky_stack)
   except TargetNotFoundError:
+    logs.warning(
+        'Fuzz target not found when testing for crash. Treating as not crashing.'
+    )
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
 
