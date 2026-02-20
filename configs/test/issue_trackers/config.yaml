@@ -20,7 +20,9 @@
 #   - %SEVERITY%: The security severity of the testcase.
 #   - %PLATFORM%: The platform the testcase was found on.
 test-project:
-  type: monorail
+  type: google_issue_tracker
+  url: https://issuetracker.google.com/issues
+  default_component_id: 12345
   policies:
     status:
       # REQUIRED: Status mappings.
