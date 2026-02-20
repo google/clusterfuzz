@@ -23,6 +23,7 @@ from unittest import mock
 from google.cloud import ndb
 import googleapiclient
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.cron import project_setup
 from clusterfuzz._internal.datastore import data_types
@@ -234,6 +235,10 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     pubsub_client.create_topic(old_topic_name)
     pubsub_client.create_topic(other_topic_name)
     pubsub_client.create_subscription(old_subscription_name, old_topic_name)
+
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.UPDATE_OSS_FUZZ_USERS_AUTO_CC.value,
+        enabled=True).put()
 
     self.mock.get_oss_fuzz_projects.return_value = [
         ('lib1', {
