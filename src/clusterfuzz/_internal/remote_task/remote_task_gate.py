@@ -22,6 +22,10 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
+from google.cloud import ndb
+
+from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -44,12 +48,20 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     }
     self._adapters = remote_task_adapters.RemoteTaskAdapters
 
-  def _get_adapter(self) -> str:
+  def _get_adapter(self, job_type: str = None) -> str:
     """Performs a weighted random choice to select a remote backend.
 
     This method is used when creating a single task, ensuring that the
     distribution of tasks over time aligns with the configured frequencies.
     """
+    if feature_flags.FeatureFlags.JOB_RUNTIME_ROUTING.enabled and job_type:
+      job_runtime = ndb.Key(data_types.JobRuntime, job_type).get()
+      if job_runtime:
+        if job_runtime.runtime == 'batch':
+          return 'gcp_batch'
+        if job_runtime.runtime == 'kata':
+          return 'kubernetes'
+
     frequencies = self.get_job_frequency()
     population = list(frequencies.keys())
     weights = list(frequencies.values())
@@ -106,7 +118,7 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
 
   def create_utask_main_job(self, module, job_type, input_download_url):
     """Creates a single remote task, selecting a backend dynamically."""
-    adapter_id = self._get_adapter()
+    adapter_id = self._get_adapter(job_type)
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
@@ -114,40 +126,84 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
                              remote_tasks: list[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
 
-    This method handles two cases:
-    1. If there is only one task, it uses a weighted random choice to select
-       a backend, similar to `create_utask_main_job`.
-    2. If there are multiple tasks, it distributes them deterministically
-       across the available backends based on their configured frequencies.
-       This ensures that a batch of 100 tasks with a 70/30 split sends
-       exactly 70 tasks to one backend and 30 to the other.
+    This method distributes tasks based on both configured frequencies and
+    JobRuntime preferences. It ensures that the total number of tasks sent to
+    each runtime does not exceed its frequency-based allocation, while
+    prioritizing JobRuntime preferences when possible.
     """
+    if not remote_tasks:
+      return []
+
     tasks_by_adapter = collections.defaultdict(list)
 
     if len(remote_tasks) == 1:
-      # For a single task, use a random distribution.
-      adapter_id = self._get_adapter()
+      # For a single task, use the specific adapter selection logic which
+      # respects JobRuntime preferences if enabled.
+      adapter_id = self._get_adapter(remote_tasks[0].job_type)
       tasks_by_adapter[adapter_id].extend(remote_tasks)
       unscheduled_tasks = []
     else:
-      # For multiple tasks, use deterministic slicing to ensure the
-      # distribution precisely matches the frequency configuration.
       frequencies = self.get_job_frequency()
-      start_index = 0
-      for adapter_id, frequency in frequencies.items():
-        count = int(len(remote_tasks) * frequency)
-        tasks_by_adapter[adapter_id].extend(
-            remote_tasks[start_index:start_index + count])
-        start_index += count
+      total_count = len(remote_tasks)
 
-      remaining_tasks = remote_tasks[start_index:]
+      # Calculate target counts for each adapter based on frequencies.
+      target_counts = {
+          adapter_id: int(total_count * freq)
+          for adapter_id, freq in frequencies.items()
+      }
+
+      # Group tasks by their preferred adapter.
+      preferred_tasks = collections.defaultdict(list)
+      if feature_flags.FeatureFlags.JOB_RUNTIME_ROUTING.enabled:
+        # Fetch all JobRuntime entities in a single multi-get to optimize
+        # performance.
+        unique_job_types = list({task.job_type for task in remote_tasks})
+        keys = [
+            ndb.Key(data_types.JobRuntime, job_type)
+            for job_type in unique_job_types
+        ]
+        job_runtimes = ndb.get_multi(keys)
+        runtime_map = {
+            jr.job_name: jr.runtime for jr in job_runtimes if jr is not None
+        }
+
+        for task in remote_tasks:
+          runtime = runtime_map.get(task.job_type)
+          if runtime == 'batch':
+            preferred_tasks['gcp_batch'].append(task)
+          elif runtime == 'kata':
+            preferred_tasks['kubernetes'].append(task)
+          else:
+            preferred_tasks[None].append(task)
+      else:
+        preferred_tasks[None] = list(remote_tasks)
+
+      # 1. Assign preferred tasks up to target count (respecting the "min"
+      # rule).
+      # The number of tasks for each runtime is min(preferred, target_count).
+      remaining_tasks = []
+      for adapter_id, target in target_counts.items():
+        assigned = preferred_tasks[adapter_id][:target]
+        tasks_by_adapter[adapter_id].extend(assigned)
+        # Overflow preferred tasks are pooled for later distribution.
+        remaining_tasks.extend(preferred_tasks[adapter_id][target:])
+
+      # Add tasks with no preference to the pool.
+      remaining_tasks.extend(preferred_tasks[None])
+
+      # 2. Fill remaining room in target counts using tasks from the pool.
+      for adapter_id, target in target_counts.items():
+        room = target - len(tasks_by_adapter[adapter_id])
+        if room > 0:
+          tasks_by_adapter[adapter_id].extend(remaining_tasks[:room])
+          remaining_tasks = remaining_tasks[room:]
+
+      # 3. Handle remainders due to rounding or sum(frequencies) < 1.0.
+      unscheduled_tasks = []
       if sum(frequencies.values()) >= 0.999:
-        # Distribute any remainder tasks (due to rounding) one by one. This
-        # ensures that all tasks are assigned to a backend.
         for i, task in enumerate(remaining_tasks):
           adapter_id = list(frequencies.keys())[i % len(frequencies)]
           tasks_by_adapter[adapter_id].append(task)
-        unscheduled_tasks = []
       else:
         unscheduled_tasks = list(remaining_tasks)
 

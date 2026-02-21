@@ -18,7 +18,9 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.batch.service import GcpBatchService
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
@@ -35,6 +37,11 @@ class RemoteTaskGateTest(unittest.TestCase):
 
     self.mock_k8s_service.create_utask_main_jobs.return_value = []
     self.mock_gcp_batch_service.create_utask_main_jobs.return_value = []
+
+    # Mock the JOB_RUNTIME_ROUTING feature flag to be disabled by default.
+    self.mock_routing_flag = mock.PropertyMock(return_value=False)
+    mock.patch.object(feature_flags.FeatureFlags.JOB_RUNTIME_ROUTING.__class__,
+                      'enabled', self.mock_routing_flag).start()
 
     # Patch RemoteTaskAdapters to return our mock services
     self.patcher = mock.patch.dict(
@@ -54,6 +61,7 @@ class RemoteTaskGateTest(unittest.TestCase):
         })
     self.patcher.start()
     self.addCleanup(self.patcher.stop)
+    self.addCleanup(mock.patch.stopall)
 
   def test_init(self):
     """Tests that the RemoteTaskGate initializes correctly and creates
@@ -106,19 +114,41 @@ class RemoteTaskGateTest(unittest.TestCase):
     )
     self.mock_k8s_service.create_utask_main_job.assert_not_called()
 
-  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
-  def test_create_utask_main_jobs_single_task(self, mock_get_adapter):
-    """Tests that create_utask_main_jobs correctly routes a single task
-    based on _get_adapter."""
+  def test_create_utask_main_jobs_single_task(self):
+    """Tests that create_utask_main_jobs correctly routes a single task."""
     tasks = [
         remote_task_types.RemoteTask('command1', 'job1', 'url1'),
     ]
-    mock_get_adapter.return_value = 'kubernetes'
+    # Set frequency to 100% k8s to ensure it goes there even if no JobRuntime.
+    self.patcher.stop()
+    self.patcher = mock.patch.dict(
+        remote_task_adapters.RemoteTaskAdapters._member_map_, {
+            'KUBERNETES':
+                mock.Mock(
+                    id='kubernetes',
+                    service=mock.Mock(return_value=self.mock_k8s_service),
+                    feature_flag=None,
+                    default_weight=1.0),
+            'GCP_BATCH':
+                mock.Mock(
+                    id='gcp_batch',
+                    service=mock.Mock(return_value=self.mock_gcp_batch_service),
+                    feature_flag=None,
+                    default_weight=0.0),
+        })
+    self.patcher.start()
+
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
 
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(tasks)
     self.mock_gcp_batch_service.create_utask_main_jobs.assert_not_called()
+
+  def test_create_utask_main_jobs_empty(self):
+    """Tests that create_utask_main_jobs handles empty lists."""
+    gate = remote_task_gate.RemoteTaskGate()
+    result = gate.create_utask_main_jobs([])
+    self.assertEqual(result, [])
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   def test_create_utask_main_jobs_multiple_tasks_slicing(
@@ -246,6 +276,90 @@ class RemoteTaskGateTest(unittest.TestCase):
 
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(tasks)
     self.assertEqual(result, unscheduled_tasks)
+
+
+class RemoteTaskGateRoutingTest(unittest.TestCase):
+  """Tests for job runtime routing logic in RemoteTaskGate."""
+
+  def setUp(self):
+    super().setUp()
+    self.mock_k8s_service = mock.Mock(spec=KubernetesService)
+    self.mock_gcp_batch_service = mock.Mock(spec=GcpBatchService)
+
+    self.mock_k8s_service.create_utask_main_jobs.return_value = []
+    self.mock_gcp_batch_service.create_utask_main_jobs.return_value = []
+
+    # Mock the JOB_RUNTIME_ROUTING feature flag to be enabled.
+    mock.patch.object(
+        feature_flags.FeatureFlags.JOB_RUNTIME_ROUTING.__class__,
+        'enabled',
+        mock.PropertyMock(return_value=True)).start()
+
+    # Patch RemoteTaskAdapters to return our mock services
+    # 70% GCP_BATCH, 30% KUBERNETES
+    self.patcher = mock.patch.dict(
+        remote_task_adapters.RemoteTaskAdapters._member_map_, {
+            'KUBERNETES':
+                mock.Mock(
+                    id='kubernetes',
+                    service=mock.Mock(return_value=self.mock_k8s_service),
+                    feature_flag=None,
+                    default_weight=0.3),
+            'GCP_BATCH':
+                mock.Mock(
+                    id='gcp_batch',
+                    service=mock.Mock(return_value=self.mock_gcp_batch_service),
+                    feature_flag=None,
+                    default_weight=0.7),
+        })
+    self.patcher.start()
+    self.addCleanup(self.patcher.stop)
+    self.addCleanup(mock.patch.stopall)
+
+  @mock.patch('google.cloud.ndb.Key')
+  @mock.patch('google.cloud.ndb.get_multi')
+  def test_create_utask_main_jobs_capped_routing(self, mock_get_multi,
+                                                 mock_key):
+    """Tests that routing is capped by frequency (min rule)."""
+    # 10 tasks. Budget: 7 batch, 3 kata.
+    tasks = [
+        remote_task_types.RemoteTask('c', f'job_{i}', 'u') for i in range(10)
+    ]
+
+    # 10 tasks prefer kata.
+    mock_runtimes = []
+    for i in range(10):
+      jr = mock.Mock(spec=data_types.JobRuntime)
+      jr.job_name = f'job_{i}'
+      jr.runtime = 'kata'
+      mock_runtimes.append(jr)
+
+    mock_get_multi.return_value = mock_runtimes
+
+    gate = remote_task_gate.RemoteTaskGate()
+    gate.create_utask_main_jobs(tasks)
+
+    # Kata budget is 3. Only 3 should be sent to kubernetes.
+    self.mock_k8s_service.create_utask_main_jobs.assert_called_once()
+    self.assertEqual(
+        len(self.mock_k8s_service.create_utask_main_jobs.call_args[0][0]), 3)
+
+    # The other 7 MUST be sent to batch to satisfy frequency.
+    self.mock_gcp_batch_service.create_utask_main_jobs.assert_called_once()
+    self.assertEqual(
+        len(self.mock_gcp_batch_service.create_utask_main_jobs.call_args[0][0]),
+        7)
+
+  @mock.patch('google.cloud.ndb.Key')
+  def test_get_adapter_routing(self, mock_key):
+    """Tests that _get_adapter respects JobRuntime."""
+    mock_jr = mock.Mock(spec=data_types.JobRuntime)
+    mock_jr.runtime = 'kata'
+    mock_key.return_value.get.return_value = mock_jr
+
+    gate = remote_task_gate.RemoteTaskGate()
+    # Should return kubernetes regardless of weights because of JobRuntime.
+    self.assertEqual(gate._get_adapter('some_job'), 'kubernetes')
 
 
 class RemoteTaskGateProcessingTest(unittest.TestCase):

@@ -1034,6 +1034,15 @@ class Job(Model):
     self.populate_indices()
 
 
+class JobRuntime(Model):
+  """Mapping from job to a runtime."""
+  # Job name.
+  job_name = ndb.StringProperty()
+
+  # Runtime name.
+  runtime = ndb.StringProperty()
+
+
 class CSRFToken(Model):
   """Token used to prevent CSRF attacks."""
   # Value of this token.

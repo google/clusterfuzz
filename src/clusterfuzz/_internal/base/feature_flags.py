@@ -35,6 +35,8 @@ class FeatureFlags(Enum):
 
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
+  JOB_RUNTIME_ROUTING = 'job_runtime_routing'
+
   @property
   def flag(self):
     """Get the feature flag."""
