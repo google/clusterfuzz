@@ -120,23 +120,24 @@ def _reproduce_testcase(args: argparse.Namespace) -> None:
     logs.info('No crash occurred. Exiting.')
     return
 
-  logs.info('Testing for reproducibility...')
-  reproduces = testcase_manager.test_for_reproducibility(
-      fuzz_target=fuzz_target,
-      testcase_path=testcase_file_path,
-      crash_type=testcase.crash_type,
-      expected_state=None,
-      expected_security_flag=testcase.security_flag,
-      test_timeout=test_timeout,
-      http_flag=testcase.http_flag,
-      gestures=testcase.gestures,
-      arguments=testcase.minimized_arguments,
-  )
+  if args.test_reproducibility:
+    logs.info('Testing for reproducibility...')
+    reproduces = testcase_manager.test_for_reproducibility(
+        fuzz_target=fuzz_target,
+        testcase_path=testcase_file_path,
+        crash_type=testcase.crash_type,
+        expected_state=None,
+        expected_security_flag=testcase.security_flag,
+        test_timeout=test_timeout,
+        http_flag=testcase.http_flag,
+        gestures=testcase.gestures,
+        arguments=testcase.minimized_arguments,
+    )
 
-  if reproduces:
-    logs.info('The testcase reliably reproduces.')
-  else:
-    logs.info('The testcase does not reliably reproduce.')
+    if reproduces:
+      logs.info('The testcase reliably reproduces.')
+    else:
+      logs.info('The testcase does not reliably reproduce.')
 
 
 def execute(args: argparse.Namespace) -> None:

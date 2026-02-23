@@ -347,6 +347,11 @@ def _add_reproduce_subparser(toplevel_subparsers):
       '--testcase-id',
       required=True,
       help='The testcase ID to reproduce.')
+  parser.add_argument(
+      '--test-reproducibility',
+      action='store_true',
+      default=False,
+      help='Whether to also test for reproducibility.')
 
 
 def main():
