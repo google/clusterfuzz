@@ -640,7 +640,7 @@ class TestcaseRunner:
 
       log_header = engine_common.get_log_header(result.command,
                                                 result.time_executed)
-      output = log_header + '\n' + result.fuzzer_output
+      output = log_header + '\n' + result.output
 
     process_handler.terminate_stale_application_instances()
 
@@ -648,7 +648,7 @@ class TestcaseRunner:
       process_crash_result = CrashResult(return_code, crash_time,
                                          result.process_output)
       if process_crash_result.is_crash():
-        logs.info('Build')
+        logs.info('Bad build, might not be a valid run')
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
