@@ -79,6 +79,11 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
+                        swarming_pb2.StringPair(
+                            key='CF_BOT_VARS',
+                            value=
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
+                        ),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -143,7 +148,12 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                         swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
-                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2')
+                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
+                        swarming_pb2.StringPair(
+                            key='CF_BOT_VARS',
+                            value=
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}'
+                        )
                     ],
                     env_prefixes=[
                         swarming_pb2.StringListPair(
@@ -200,6 +210,11 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
+                        swarming_pb2.StringPair(
+                            key='CF_BOT_VARS',
+                            value=
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
+                        ),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -248,6 +263,11 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
+                        swarming_pb2.StringPair(
+                            key='CF_BOT_VARS',
+                            value=
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
+                        ),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -264,3 +284,47 @@ class SwarmingTest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
+
+  def test_compress_env_vars(self):
+    """Tests (Happy Path) that _compress_env_vars correctly compresses environment variables into a JSON string."""
+    env_vars = [
+        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
+        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
+    ]
+    
+    result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
+    
+    expected_result = swarming_pb2.StringPair(
+        key='CF_BOT_VARS',
+        value='{"ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}'
+    )
+    self.assertEqual(result, expected_result)
+
+  def test_compress_env_vars_empty(self):
+    """Tests that _compress_env_vars handles an empty list of environment variables safely."""
+    env_vars = []
+    
+    result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
+    
+    expected_result = swarming_pb2.StringPair(
+        key='CF_BOT_VARS',
+        value='{}'
+    )
+    self.assertEqual(result, expected_result)
+
+  def test_compress_env_vars_duplicate_keys(self):
+    """Tests that _compress_env_vars handles duplicate keys by taking the last value."""
+    env_vars = [
+        swarming_pb2.StringPair(key='DUPLICATE_KEY', value='FIRST_VALUE'),
+        swarming_pb2.StringPair(key='OTHER_KEY', value='OTHER_VALUE'),
+        swarming_pb2.StringPair(key='DUPLICATE_KEY', value='LAST_VALUE'),
+    ]
+    
+    result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
+    
+    expected_result = swarming_pb2.StringPair(
+        key='CF_BOT_VARS',
+        value='{"DUPLICATE_KEY": "LAST_VALUE", "OTHER_KEY": "OTHER_VALUE"}'
+    )
+    self.assertEqual(result, expected_result)
+

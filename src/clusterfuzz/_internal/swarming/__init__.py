@@ -17,6 +17,7 @@ import base64
 import uuid
 
 from google.protobuf import json_format
+from json import dumps
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
@@ -34,9 +35,9 @@ def _requires_gpu() -> bool:
 
 
 def is_swarming_task(command: str, job_name: str):
-  """Returns True if the task is supposed to run on swarming."""
+  """Returns True if the task is supposed to run on swarming. Currently swarming only supports Linux tasks."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu():
+  if not job or not _requires_gpu() or not str(job.platform).upper().startswith('LINUX'): 
     return False
   try:
     _get_new_task_spec(command, job_name, '')
@@ -106,6 +107,8 @@ def _get_new_task_spec(command: str, job_name: str,
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
 
+  task_environment.append(_compress_env_vars(task_environment))
+
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
@@ -142,6 +145,13 @@ def _get_new_task_spec(command: str, job_name: str,
 
   return new_task_request
 
+def _compress_env_vars(env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:
+  """
+  Compresses all env variables into a single JSON string , which will be used to set up the 
+  env variables in swarming bots that launch clusterfuzz using a docker container.
+  """
+  env_vars_dict = {pair.key: pair.value for pair in env_vars}
+  return swarming_pb2.StringPair(key='CF_BOT_VARS', value=dumps(env_vars_dict))
 
 def push_swarming_task(command, download_url, job_type):
   """Schedules a task on swarming."""
