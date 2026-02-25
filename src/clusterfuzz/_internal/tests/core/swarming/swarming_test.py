@@ -291,25 +291,20 @@ class SwarmingTest(unittest.TestCase):
         swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
         swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
     ]
-    
+
     result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
-    
+
     expected_result = swarming_pb2.StringPair(
-        key='CF_BOT_VARS',
-        value='{"ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}'
-    )
+        key='CF_BOT_VARS', value='{"ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}')
     self.assertEqual(result, expected_result)
 
   def test_compress_env_vars_empty(self):
     """Tests that _compress_env_vars handles an empty list of environment variables safely."""
     env_vars = []
-    
+
     result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
-    
-    expected_result = swarming_pb2.StringPair(
-        key='CF_BOT_VARS',
-        value='{}'
-    )
+
+    expected_result = swarming_pb2.StringPair(key='CF_BOT_VARS', value='{}')
     self.assertEqual(result, expected_result)
 
   def test_compress_env_vars_duplicate_keys(self):
@@ -319,12 +314,10 @@ class SwarmingTest(unittest.TestCase):
         swarming_pb2.StringPair(key='OTHER_KEY', value='OTHER_VALUE'),
         swarming_pb2.StringPair(key='DUPLICATE_KEY', value='LAST_VALUE'),
     ]
-    
+
     result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
-    
+
     expected_result = swarming_pb2.StringPair(
         key='CF_BOT_VARS',
-        value='{"DUPLICATE_KEY": "LAST_VALUE", "OTHER_KEY": "OTHER_VALUE"}'
-    )
+        value='{"DUPLICATE_KEY": "LAST_VALUE", "OTHER_KEY": "OTHER_VALUE"}')
     self.assertEqual(result, expected_result)
-
