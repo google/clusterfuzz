@@ -37,7 +37,7 @@ def _requires_gpu() -> bool:
 def is_swarming_task(command: str, job_name: str):
   """Returns True if the task is supposed to run on swarming. Currently swarming only supports Linux tasks."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu() or not str(job.platform).upper().startswith('LINUX'): 
+  if not job or not _requires_gpu(): 
     return False
   try:
     _get_new_task_spec(command, job_name, '')
