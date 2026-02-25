@@ -115,7 +115,7 @@ sudo apt-get update
 sudo apt-get install -y \
     docker-ce \
     google-cloud-cli \
-    openjdk-11-jdk \
+    openjdk-17-jdk \
     liblzma-dev
 
 # Install patchelf - latest version not available on some older distros so we
