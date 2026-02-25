@@ -36,7 +36,7 @@ def _requires_gpu() -> bool:
 
 def is_swarming_task(command: str, job_name: str):
   """Returns True if the task is supposed to run on swarming."""
-  # TODO: b/487716733 - Allow clusterfuzz to trigger swarming tasks for MAC and Windows
+  # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job or not _requires_gpu() or str(
       job.platform).upper() == 'MAC' or str(job.platform).upper() == 'WINDOWS':
