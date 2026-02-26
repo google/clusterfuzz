@@ -1056,8 +1056,14 @@ class StackParser:
         # Check failures.
         self.update_state_on_check_failure(state, line, GOOGLE_LOG_FATAL_REGEX,
                                            'Fatal error')
+
+        # Chrome
         self.update_state_on_check_failure(
             state, line, CHROME_CHECK_FAILURE_REGEX, 'CHECK failure')
+        self.update_state_on_check_failure(
+            state, line, CHROME_DCHECK_FAILURE_REGEX, 'DCHECK failure')
+
+        # Google
         self.update_state_on_check_failure(
             state, line, GOOGLE_CHECK_FAILURE_REGEX, 'CHECK failure')
 
