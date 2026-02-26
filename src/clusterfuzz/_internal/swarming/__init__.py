@@ -109,7 +109,7 @@ def _get_new_task_spec(command: str, job_name: str,
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
 
-  task_environment.append(_compress_env_vars(task_environment))
+  task_environment.append(_env_vars_to_json(task_environment))
 
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
@@ -148,7 +148,7 @@ def _get_new_task_spec(command: str, job_name: str,
   return new_task_request
 
 
-def _compress_env_vars(
+def _env_vars_to_json(
     env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
   """
   Compresses all env variables into a single JSON string , which will be used

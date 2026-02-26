@@ -285,37 +285,37 @@ class SwarmingTest(unittest.TestCase):
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
 
-  def test_compress_env_vars(self):
-    """Tests (Happy Path) that _compress_env_vars correctly compresses environment variables into a JSON string."""
+  def test_env_vars_to_json(self):
+    """Tests (Happy Path) that _env_vars_to_json correctly compresses environment variables into a JSON string."""
     env_vars = [
         swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
         swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
     ]
 
-    result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
+    result = swarming._env_vars_to_json(env_vars)  # pylint: disable=protected-access
 
     expected_result = swarming_pb2.StringPair(
         key='CF_BOT_VARS', value='{"ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}')
     self.assertEqual(result, expected_result)
 
-  def test_compress_env_vars_empty(self):
-    """Tests that _compress_env_vars handles an empty list of environment variables safely."""
+  def test_env_vars_to_json_empty(self):
+    """Tests that _env_vars_to_json handles an empty list of environment variables safely."""
     env_vars = []
 
-    result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
+    result = swarming._env_vars_to_json(env_vars)  # pylint: disable=protected-access
 
     expected_result = swarming_pb2.StringPair(key='CF_BOT_VARS', value='{}')
     self.assertEqual(result, expected_result)
 
-  def test_compress_env_vars_duplicate_keys(self):
-    """Tests that _compress_env_vars handles duplicate keys by taking the last value."""
+  def test_env_vars_to_json_duplicate_keys(self):
+    """Tests that _env_vars_to_json handles duplicate keys by taking the last value."""
     env_vars = [
         swarming_pb2.StringPair(key='DUPLICATE_KEY', value='FIRST_VALUE'),
         swarming_pb2.StringPair(key='OTHER_KEY', value='OTHER_VALUE'),
         swarming_pb2.StringPair(key='DUPLICATE_KEY', value='LAST_VALUE'),
     ]
 
-    result = swarming._compress_env_vars(env_vars)  # pylint: disable=protected-access
+    result = swarming._env_vars_to_json(env_vars)  # pylint: disable=protected-access
 
     expected_result = swarming_pb2.StringPair(
         key='CF_BOT_VARS',
