@@ -17,6 +17,7 @@ import os
 
 from local.butler import common
 
+
 FIRST_PARTY_MODULES = [
     'handlers',
     'libs',
@@ -24,8 +25,8 @@ FIRST_PARTY_MODULES = [
 ]
 
 ISORT_CMD = ('isort --dont-order-by-type --force-single-line-imports '
-             '--force-sort-within-sections --line-length=80 ' + ' '.join(
-                 [f'-p {mod}' for mod in FIRST_PARTY_MODULES]) + ' ')
+             '--force-sort-within-sections --line-length=80 ' +
+             ' '.join([f'-p {mod}' for mod in FIRST_PARTY_MODULES]) + ' ')
 
 
 def execute(args):
@@ -48,7 +49,7 @@ def execute(args):
       not f.endswith('_pb2.py') and not f.endswith('_pb2_grpc.py')
   ]
   if py_changed_file_paths:
-    common.execute(f'yapf -p -i {" ".join(py_changed_file_paths)}')
+    common.execute(f'yapf -p -i --style yapf {" ".join(py_changed_file_paths)}')
     common.execute(f'{ISORT_CMD} {" ".join(py_changed_file_paths)}')
   go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
 
