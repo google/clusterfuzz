@@ -264,3 +264,27 @@ class SwarmingTest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
+
+  def test_is_swarming_task(self):
+    """Tests is_swarming_task."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='IS_SWARMING_JOB = True\n')
+    job.put()
+
+    self.assertTrue(swarming.is_swarming_task('fuzz', job.name))
+
+    job.environment_string = 'IS_SWARMING_JOB = False\n'
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
+
+    job.environment_string = ''
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
+
+    # Test unknown platform (ValueError in _get_new_task_spec)
+    job.platform = 'UNKNOWN'
+    job.environment_string = 'IS_SWARMING_JOB = True\n'
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
