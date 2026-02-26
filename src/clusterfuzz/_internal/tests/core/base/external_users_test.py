@@ -127,6 +127,13 @@ class ExternalUsersTest(unittest.TestCase):
         auto_cc=data_types.AutoCCType.NONE).put()
 
     data_types.ExternalUserPermission(
+        email='user11@example.com',
+        entity_name='job',
+        entity_kind=data_types.PermissionEntityKind.JOB,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.USE_CC_GROUP).put()
+
+    data_types.ExternalUserPermission(
         email='uploader1@example.com',
         entity_name=None,
         entity_kind=data_types.PermissionEntityKind.UPLOADER,
@@ -137,7 +144,7 @@ class ExternalUsersTest(unittest.TestCase):
     data_types.Fuzzer(name='fuzzer').put()
     data_types.Fuzzer(name='parent', jobs=['job', 'job2', 'job3']).put()
 
-    data_types.Job(name='job').put()
+    data_types.Job(name='job', environment_string='PROJECT_NAME=project1').put()
     data_types.Job(name='job2').put()
     data_types.Job(name='job3').put()
 
@@ -311,9 +318,12 @@ class ExternalUsersTest(unittest.TestCase):
   def test_cc_users_for_job(self):
     """cc_users_for_job tests."""
     result = external_users.cc_users_for_job('job', security_flag=False)
-    self.assertEqual(result, ['user2@example.com', 'user@example.com'])
+    self.assertEqual(
+        result,
+        ['project1-ccs@google.com', 'user2@example.com', 'user@example.com'])
 
-    result = external_users.cc_users_for_job('job', security_flag=True)
+    result = external_users.cc_users_for_job(
+        'job', security_flag=True, allow_cc_group=False)
     self.assertEqual(result, ['user2@example.com', 'user@example.com'])
 
     result = external_users.cc_users_for_job('job2', security_flag=False)

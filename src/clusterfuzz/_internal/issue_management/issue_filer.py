@@ -315,7 +315,8 @@ def file_issue(testcase,
                issue_tracker,
                security_severity=None,
                user_email=None,
-               additional_ccs=None):
+               additional_ccs=None,
+               allow_project_cc_group=True):
   """File an issue for the given test case."""
   logs.info(f'Filing new issue for testcase: {testcase.key.id()}.')
 
@@ -406,8 +407,10 @@ def file_issue(testcase,
       testcase.overridden_fuzzer_name or testcase.fuzzer_name)
   ccs += external_users.cc_users_for_fuzzer(fully_qualified_fuzzer_name,
                                             testcase.security_flag)
-  ccs += external_users.cc_users_for_job(testcase.job_type,
-                                         testcase.security_flag)
+  ccs += external_users.cc_users_for_job(
+      testcase.job_type,
+      testcase.security_flag,
+      allow_cc_group=allow_project_cc_group)
 
   # Add the user as a cc if requested, and any default ccs for this job.
   # Check for additional ccs or labels from the job definition.

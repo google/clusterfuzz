@@ -125,10 +125,13 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         ('policy_get',
          'clusterfuzz._internal.issue_management.issue_tracker_policy.get'),
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker',
-        'clusterfuzz._internal.metrics.logs.error',
-        'requests.get',
+        'clusterfuzz._internal.metrics.logs.error', 'requests.get',
+        'clusterfuzz._internal.config.local_config.ProjectConfig'
     ])
 
+    self.mock.ProjectConfig.return_value = {
+        'issue_cc_groups.domain': 'oss-fuzz.com'
+    }
     self.mock.utcnow.return_value = datetime.datetime(2018, 2, 1)
     self.mock.is_cron.return_value = True
 
@@ -374,7 +377,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzProject(
         id='proj2', name='proj2', ccs=['a@user.com']).put()
     data_types.OssFuzzProject(
-        id='proj6', name='proj7', ccs=['b@user.com']).put()
+        id='proj6', name='proj6', ccs=['b@user.com']).put()
 
     oss_fuzz_build_status.main()
     self.assertCountEqual([
@@ -426,7 +429,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.assertEqual(2, len(self.itm.issues))
     issue = self.itm.issues[1]
-    self.assertCountEqual(['a@user.com'], issue.cc)
+    self.assertCountEqual(['proj2-ccs@oss-fuzz.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
@@ -445,7 +448,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'day once it is fixed.**', issue.body)
 
     issue = self.itm.issues[2]
-    self.assertCountEqual(['b@user.com'], issue.cc)
+    self.assertCountEqual(['proj6-ccs@oss-fuzz.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
