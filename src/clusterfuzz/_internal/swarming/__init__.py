@@ -34,15 +34,20 @@ def _requires_gpu() -> bool:
   return bool(utils.string_is_true(requires_gpu))
 
 
+def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
+                       job: data_types.Job) -> dict | None:
+  if not _requires_gpu():
+    return None
+  return swarming_config.get('mapping').get(job.platform, None)
+
+
 def is_swarming_task(job_name: str):
   """Returns True if the task is supposed to run on swarming."""
   # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  swarming_config = _get_swarming_config()
-  platform_config = swarming_config.get('mapping').get(job.platform, None)
-  if not job or not _requires_gpu() or platform_config is None:
+  if job is None:
     return False
-  return True
+  return _get_instance_spec(_get_swarming_config(), job) is not None
 
 
 def _get_task_name():
@@ -59,15 +64,16 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   """Gets the configured specifications for a swarming task. 
   Returns None if the task should'nt be executed on swarming"""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-
-  if not is_swarming_task(job_name):
+  if job is None:
+    print("Job is None")
     return None
 
-  config_name = job.platform
   swarming_config = _get_swarming_config()
-  instance_spec = swarming_config.get('mapping').get(config_name, None)
+  instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
-    raise ValueError(f'No mapping for {config_name}')
+    print("Instance spec is None")
+    return None
+
   swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
   logs_project_id = swarming_config.get('logs_project_id')
@@ -111,8 +117,6 @@ def create_new_task_request(command: str, job_name: str, download_url: str
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
 
-  task_environment.append(_env_vars_to_json(task_environment))
-
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
@@ -142,7 +146,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=task_environment,
+                  env=[_env_vars_to_json(task_environment)],
                   env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
@@ -158,7 +162,9 @@ def _env_vars_to_json(
   using a docker container.
   """
   env_vars_dict = {pair.key: pair.value for pair in env_vars}
-  return swarming_pb2.StringPair(key='CF_BOT_VARS', value=dumps(env_vars_dict))  # pylint: disable=no-member
+  return swarming_pb2.StringPair(  # pylint: disable=no-member
+      key='DOCKER_ENV_VARS',
+      value=dumps(env_vars_dict))
 
 
 def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
