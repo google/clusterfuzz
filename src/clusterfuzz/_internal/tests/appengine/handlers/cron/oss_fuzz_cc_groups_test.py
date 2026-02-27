@@ -15,6 +15,8 @@
 
 import unittest
 
+import parameterized
+
 from clusterfuzz._internal.cron import oss_fuzz_cc_groups
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
@@ -125,3 +127,18 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
 
     self.assertTrue(oss_fuzz_cc_groups.main())
     self.mock.delete_google_group_membership.assert_not_called()
+
+  @parameterized.parameterized.expand(
+      [('test1@googlemail.com', 'test1@gmail.com'), ('TesT2@gmail.com',
+                                                     'test2@gmail.com'),
+       ('test3@example.com', 'test3@example.com'), ('test4.dot@gmail.com',
+                                                    'test4dot@gmail.com'),
+       ('test5.dot@example.com',
+        'test5.dot@example.com'), ('test6+alias@example.com',
+                                   'test6@example.com'), ('test7.not.an.email',
+                                                          None)])
+  def test_normalize_email_for_group(self, test_email, normalized_email):
+    """Test normalize email for groups method."""
+    self.assertEqual(
+        oss_fuzz_cc_groups.normalize_email_for_group(test_email),
+        normalized_email)
