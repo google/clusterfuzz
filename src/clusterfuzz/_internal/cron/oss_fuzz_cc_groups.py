@@ -95,7 +95,7 @@ def sync_project_cc_group(project_name: str, ccs: list[str]):
     # Ignore the SA that created the group from members to delete.
     if not member or utils.is_service_account(member):
       continue
-    memebership_name = group_memberships[member]
+    memebership_name = group_memberships_norm[member]
     google_groups.delete_google_group_membership(group_id, member,
                                                  memebership_name)
 
