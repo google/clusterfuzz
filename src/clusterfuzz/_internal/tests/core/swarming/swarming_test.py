@@ -32,17 +32,19 @@ class SwarmingTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
-        'clusterfuzz._internal.swarming._get_task_name'
+        'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.swarming._requires_gpu'
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
+    self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that _get_new_task_spec works as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
-        'corpus_pruning', job.name, 'https://download_url')
+    spec = swarming.create_new_task_request('corpus_pruning', job.name,
+                                            'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
         priority=1,
@@ -68,16 +70,10 @@ class SwarmingTest(unittest.TestCase):
                             size_bytes=1234)),
                     execution_timeout_secs=86400,
                     env=[
-                        swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
-                            key='SWARMING_BOT', value='True'),
-                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
-                        swarming_pb2.StringPair(
-                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_IMAGE',
+                            key='DOCKER_ENV_VARS',
                             value=
-                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
                         ),
                     ],
                     secret_bytes=base64.b64encode(
@@ -86,20 +82,20 @@ class SwarmingTest(unittest.TestCase):
 
     self.assertEqual(spec, expected_spec)
 
-  def test_get_spec_from_config_raises_error_on_unknown_config(self):
-    """Tests that _get_new_task_spec raises error when there's no mapping for the config."""
+  def test_get_spec_from_config_returns_none_on_unknown_config(self):
+    """Tests that _get_new_task_spec returns None when there's no mapping for the config."""
     job = data_types.Job(name='some_job_name', platform='UNKNOWN-PLATFORM')
     job.put()
-    with self.assertRaises(ValueError):
-      swarming._get_new_task_spec(  # pylint: disable=protected-access
-          'corpus_pruning', job.name, 'https://download_url')
+    spec = swarming.create_new_task_request('corpus_pruning', job.name,
+                                            'https://download_url')
+    self.assertIsNone(spec)
 
   def test_get_spec_from_config_without_docker_image(self):
     """Tests that _get_new_task_spec works as expected (without a docker image)."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='MAC')
     job.put()
-    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
-        'corpus_pruning', job.name, 'https://download_url')
+    spec = swarming.create_new_task_request('corpus_pruning', job.name,
+                                            'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
         priority=1,
@@ -136,14 +132,11 @@ class SwarmingTest(unittest.TestCase):
                             size_bytes=456)),
                     execution_timeout_secs=86400,
                     env=[
-                        swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
-                            key='SWARMING_BOT', value='True'),
-                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
-                        swarming_pb2.StringPair(
-                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
-                        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
-                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2')
+                            key='DOCKER_ENV_VARS',
+                            value=
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}'
+                        )
                     ],
                     env_prefixes=[
                         swarming_pb2.StringListPair(
@@ -162,8 +155,8 @@ class SwarmingTest(unittest.TestCase):
     """Tests that _get_new_task_spec works as expected for fuzz commands."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
-        'fuzz', job.name, 'https://download_url')
+    spec = swarming.create_new_task_request('fuzz', job.name,
+                                            'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
         priority=1,
@@ -189,16 +182,10 @@ class SwarmingTest(unittest.TestCase):
                             size_bytes=1234)),
                     execution_timeout_secs=12345,
                     env=[
-                        swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
-                            key='SWARMING_BOT', value='True'),
-                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
-                        swarming_pb2.StringPair(
-                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_IMAGE',
+                            key='DOCKER_ENV_VARS',
                             value=
-                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
                         ),
                     ],
                     secret_bytes=base64.b64encode(
@@ -210,7 +197,9 @@ class SwarmingTest(unittest.TestCase):
     """Tests that push_swarming_task works as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    swarming.push_swarming_task('fuzz', 'https://download_url', job.name)
+    test_request = swarming.create_new_task_request('fuzz', job.name,
+                                                    'https://download_url')
+    swarming.push_swarming_task(test_request)
 
     expected_new_task_request = swarming_pb2.NewTaskRequest(
         name='task_name',
@@ -237,16 +226,10 @@ class SwarmingTest(unittest.TestCase):
                             size_bytes=1234)),
                     execution_timeout_secs=12345,
                     env=[
-                        swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
-                            key='SWARMING_BOT', value='True'),
-                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
-                        swarming_pb2.StringPair(
-                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_IMAGE',
+                            key='DOCKER_ENV_VARS',
                             value=
-                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
                         ),
                     ],
                     secret_bytes=base64.b64encode(
@@ -264,3 +247,39 @@ class SwarmingTest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
+
+  def test_env_vars_to_json(self):
+    """Tests (Happy Path) that _env_vars_to_json correctly compresses environment variables into a JSON string."""
+    env_vars = [
+        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
+        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
+    ]
+
+    result = swarming._env_vars_to_json(env_vars)  # pylint: disable=protected-access
+
+    expected_result = swarming_pb2.StringPair(
+        key='DOCKER_ENV_VARS',
+        value='{"ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}')
+    self.assertEqual(result, expected_result)
+
+  def test_env_vars_to_json_empty(self):
+    """Tests that _env_vars_to_json handles an empty list of environment variables safely."""
+    result = swarming._env_vars_to_json([])  # pylint: disable=protected-access
+
+    expected_result = swarming_pb2.StringPair(key='DOCKER_ENV_VARS', value='{}')
+    self.assertEqual(result, expected_result)
+
+  def test_env_vars_to_json_duplicate_keys(self):
+    """Tests that _env_vars_to_json handles duplicate keys by taking the last value."""
+    env_vars = [
+        swarming_pb2.StringPair(key='DUPLICATE_KEY', value='FIRST_VALUE'),
+        swarming_pb2.StringPair(key='OTHER_KEY', value='OTHER_VALUE'),
+        swarming_pb2.StringPair(key='DUPLICATE_KEY', value='LAST_VALUE'),
+    ]
+
+    result = swarming._env_vars_to_json(env_vars)  # pylint: disable=protected-access
+
+    expected_result = swarming_pb2.StringPair(
+        key='DOCKER_ENV_VARS',
+        value='{"DUPLICATE_KEY": "LAST_VALUE", "OTHER_KEY": "OTHER_VALUE"}')
+    self.assertEqual(result, expected_result)

@@ -14,6 +14,7 @@
 """Swarming helpers."""
 
 import base64
+from json import dumps
 import uuid
 
 from google.protobuf import json_format
@@ -33,16 +34,20 @@ def _requires_gpu() -> bool:
   return bool(utils.string_is_true(requires_gpu))
 
 
-def is_swarming_task(command: str, job_name: str):
+def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
+                       job: data_types.Job) -> dict | None:
+  if not _requires_gpu():
+    return None
+  return swarming_config.get('mapping').get(job.platform, None)
+
+
+def is_swarming_task(job_name: str):
   """Returns True if the task is supposed to run on swarming."""
+  # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu():
+  if job is None:
     return False
-  try:
-    _get_new_task_spec(command, job_name, '')
-    return True
-  except ValueError:
-    return False
+  return _get_instance_spec(_get_swarming_config(), job) is not None
 
 
 def _get_task_name():
@@ -54,15 +59,21 @@ def _get_swarming_config():
   return local_config.SwarmingConfig()
 
 
-def _get_new_task_spec(command: str, job_name: str,
-                       download_url: str) -> swarming_pb2.NewTaskRequest:  # pylint: disable=no-member
-  """Gets the configured specifications for a swarming task."""
+def create_new_task_request(command: str, job_name: str, download_url: str
+                           ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
+  """Gets the configured specifications for a swarming task. 
+  Returns None if the task should'nt be executed on swarming"""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  config_name = job.platform
+  if job is None:
+    print("Job is None")
+    return None
+
   swarming_config = _get_swarming_config()
-  instance_spec = swarming_config.get('mapping').get(config_name, None)
+  instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
-    raise ValueError(f'No mapping for {config_name}')
+    print("Instance spec is None")
+    return None
+
   swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
   logs_project_id = swarming_config.get('logs_project_id')
@@ -135,7 +146,7 @@ def _get_new_task_spec(command: str, job_name: str,
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=task_environment,
+                  env=[_env_vars_to_json(task_environment)],
                   env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
@@ -143,13 +154,21 @@ def _get_new_task_spec(command: str, job_name: str,
   return new_task_request
 
 
-def push_swarming_task(command, download_url, job_type):
-  """Schedules a task on swarming."""
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
-  if not job:
-    raise ValueError('invalid job_name')
+def _env_vars_to_json(
+    env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
+  """
+  Compresses all env variables into a single JSON string , which will be used
+  to set up the env variables in swarming bots that launch clusterfuzz 
+  using a docker container.
+  """
+  env_vars_dict = {pair.key: pair.value for pair in env_vars}
+  return swarming_pb2.StringPair(  # pylint: disable=no-member
+      key='DOCKER_ENV_VARS',
+      value=dumps(env_vars_dict))
 
-  task_spec = _get_new_task_spec(command, job_type, download_url)
+
+def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
+  """Schedules a task on swarming."""
   creds, _ = credentials.get_default()
   headers = {
       'Accept': 'application/json',
@@ -159,4 +178,4 @@ def push_swarming_task(command, download_url, job_type):
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
   utils.post_url(
-      url=url, data=json_format.MessageToJson(task_spec), headers=headers)
+      url=url, data=json_format.MessageToJson(task_request), headers=headers)
