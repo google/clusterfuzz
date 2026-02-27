@@ -40,7 +40,7 @@ def is_swarming_task(job_name: str):
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   swarming_config = _get_swarming_config()
   platform_config = swarming_config.get('mapping').get(job.platform, None)
-  if not job or not _requires_gpu() or platform_config == None:
+  if not job or not _requires_gpu() or platform_config is None:
     return False
   return True
 
