@@ -32,9 +32,11 @@ class SwarmingTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
-        'clusterfuzz._internal.swarming._get_task_name'
+        'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.swarming._requires_gpu'
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
+    self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):
@@ -91,13 +93,13 @@ class SwarmingTest(unittest.TestCase):
 
     self.assertEqual(spec, expected_spec)
 
-  def test_get_spec_from_config_raises_error_on_unknown_config(self):
-    """Tests that _get_new_task_spec raises error when there's no mapping for the config."""
+  def test_get_spec_from_config_returns_none_on_unknown_config(self):
+    """Tests that _get_new_task_spec returns None when there's no mapping for the config."""
     job = data_types.Job(name='some_job_name', platform='UNKNOWN-PLATFORM')
     job.put()
-    with self.assertRaises(ValueError):
-      swarming.create_new_task_request(  # pylint: disable=protected-access
-          'corpus_pruning', job.name, 'https://download_url')
+    spec = swarming.create_new_task_request(  # pylint: disable=protected-access
+        'corpus_pruning', job.name, 'https://download_url')
+    self.assertIsNone(spec)
 
   def test_get_spec_from_config_without_docker_image(self):
     """Tests that _get_new_task_spec works as expected (without a docker image)."""
