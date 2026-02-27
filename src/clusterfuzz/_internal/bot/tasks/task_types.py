@@ -115,8 +115,8 @@ def is_remote_utask(command, job):
     # Return True even if we can't query the db.
     return True
 
-  return batch_service.is_remote_task(
-      command, job) or swarming.is_swarming_task(command, job)
+  return batch_service.is_remote_task(command,
+                                      job) or swarming.is_swarming_task(job)
 
 
 def task_main_runs_on_uworker():
@@ -181,8 +181,10 @@ class UTask(BaseUTask):
     if batch_service.is_remote_task(command, job_type):
       tasks.add_utask_main(command, download_url, job_type)
     else:
-      assert swarming.is_swarming_task(command, job_type)
-      swarming.push_swarming_task(command, download_url, job_type)
+      swarming_task = swarming.create_new_task_request(command, job_type,
+                                                       download_url)
+      if swarming_task:
+        swarming.push_swarming_task(swarming_task)
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def preprocess(self, task_argument, job_type, uworker_env):

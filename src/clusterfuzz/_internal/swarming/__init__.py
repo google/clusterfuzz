@@ -34,18 +34,15 @@ def _requires_gpu() -> bool:
   return bool(utils.string_is_true(requires_gpu))
 
 
-def is_swarming_task(command: str, job_name: str):
+def is_swarming_task(job_name: str):
   """Returns True if the task is supposed to run on swarming."""
   # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu() or str(
-      job.platform).upper() == 'MAC' or str(job.platform).upper() == 'WINDOWS':
+  swarming_config = _get_swarming_config()
+  platform_config = swarming_config.get('mapping').get(job.platform, None)
+  if not job or not _requires_gpu() or platform_config == None:
     return False
-  try:
-    _get_new_task_spec(command, job_name, '')
-    return True
-  except ValueError:
-    return False
+  return True
 
 
 def _get_task_name():
@@ -57,10 +54,15 @@ def _get_swarming_config():
   return local_config.SwarmingConfig()
 
 
-def _get_new_task_spec(command: str, job_name: str,
-                       download_url: str) -> swarming_pb2.NewTaskRequest:  # pylint: disable=no-member
-  """Gets the configured specifications for a swarming task."""
+def create_new_task_request(command: str, job_name: str, download_url: str
+                           ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
+  """Gets the configured specifications for a swarming task. 
+  Returns None if the task should'nt be executed on swarming"""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
+
+  if not is_swarming_task(job_name):
+    return None
+
   config_name = job.platform
   swarming_config = _get_swarming_config()
   instance_spec = swarming_config.get('mapping').get(config_name, None)
@@ -159,13 +161,8 @@ def _env_vars_to_json(
   return swarming_pb2.StringPair(key='CF_BOT_VARS', value=dumps(env_vars_dict))  # pylint: disable=no-member
 
 
-def push_swarming_task(command, download_url, job_type):
+def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
   """Schedules a task on swarming."""
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
-  if not job:
-    raise ValueError('invalid job_name')
-
-  task_spec = _get_new_task_spec(command, job_type, download_url)
   creds, _ = credentials.get_default()
   headers = {
       'Accept': 'application/json',
@@ -175,4 +172,4 @@ def push_swarming_task(command, download_url, job_type):
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
   utils.post_url(
-      url=url, data=json_format.MessageToJson(task_spec), headers=headers)
+      url=url, data=json_format.MessageToJson(task_request), headers=headers)

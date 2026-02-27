@@ -41,7 +41,7 @@ class SwarmingTest(unittest.TestCase):
     """Tests that _get_new_task_spec works as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
+    spec = swarming.create_new_task_request(  # pylint: disable=protected-access
         'corpus_pruning', job.name, 'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
@@ -96,14 +96,14 @@ class SwarmingTest(unittest.TestCase):
     job = data_types.Job(name='some_job_name', platform='UNKNOWN-PLATFORM')
     job.put()
     with self.assertRaises(ValueError):
-      swarming._get_new_task_spec(  # pylint: disable=protected-access
+      swarming.create_new_task_request(  # pylint: disable=protected-access
           'corpus_pruning', job.name, 'https://download_url')
 
   def test_get_spec_from_config_without_docker_image(self):
     """Tests that _get_new_task_spec works as expected (without a docker image)."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='MAC')
     job.put()
-    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
+    spec = swarming.create_new_task_request(  # pylint: disable=protected-access
         'corpus_pruning', job.name, 'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
@@ -172,7 +172,7 @@ class SwarmingTest(unittest.TestCase):
     """Tests that _get_new_task_spec works as expected for fuzz commands."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
+    spec = swarming.create_new_task_request(  # pylint: disable=protected-access
         'fuzz', job.name, 'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
@@ -225,7 +225,9 @@ class SwarmingTest(unittest.TestCase):
     """Tests that push_swarming_task works as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    swarming.push_swarming_task('fuzz', 'https://download_url', job.name)
+    test_request = swarming.create_new_task_request(
+        'fuzz', 'https://download_url', job.name)
+    swarming.push_swarming_task(test_request)
 
     expected_new_task_request = swarming_pb2.NewTaskRequest(
         name='task_name',
@@ -300,9 +302,7 @@ class SwarmingTest(unittest.TestCase):
 
   def test_env_vars_to_json_empty(self):
     """Tests that _env_vars_to_json handles an empty list of environment variables safely."""
-    env_vars = []
-
-    result = swarming._env_vars_to_json(env_vars)  # pylint: disable=protected-access
+    result = swarming._env_vars_to_json([])  # pylint: disable=protected-access
 
     expected_result = swarming_pb2.StringPair(key='CF_BOT_VARS', value='{}')
     self.assertEqual(result, expected_result)
