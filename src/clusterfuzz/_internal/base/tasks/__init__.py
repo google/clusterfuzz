@@ -26,6 +26,7 @@ from typing import Optional
 from google.cloud import monitoring_v3
 
 from clusterfuzz._internal.base import external_tasks
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.tasks import task_utils
@@ -694,6 +695,7 @@ def get_utask_mains() -> List[PubSubTask]:
   return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
 
 
+@memoize.wrap(memoize.InMemory(60))
 def get_utask_main_queue_size():
   """Returns the size of the utask main queue."""
   queue_name = UTASK_MAIN_QUEUE

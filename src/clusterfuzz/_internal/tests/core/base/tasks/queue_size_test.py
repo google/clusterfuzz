@@ -56,7 +56,7 @@ class GetUtaskMainQueueSizeTest(unittest.TestCase):
     mock_series.points = [mock_point]
     mock_client.list_time_series.return_value = [mock_series]
 
-    size = tasks.get_utask_main_queue_size()
+    size = tasks.get_utask_main_queue_size(__memoize_force__=True)
     self.assertEqual(size, 12345)
 
     mock_client.list_time_series.assert_called_once()
@@ -77,7 +77,7 @@ class GetUtaskMainQueueSizeTest(unittest.TestCase):
     mock_series.points = [mock_point]
     mock_client.list_time_series.return_value = [mock_series]
 
-    size = tasks.get_utask_main_queue_size()
+    size = tasks.get_utask_main_queue_size(__memoize_force__=True)
     self.assertEqual(size, 10)
 
     kwargs = mock_client.list_time_series.call_args[1]
@@ -88,5 +88,5 @@ class GetUtaskMainQueueSizeTest(unittest.TestCase):
     """Test failure to retrieve queue size (returns 0)."""
     mock_client = self.mock_monitoring.return_value
     mock_client.list_time_series.side_effect = Exception("Boom")
-    size = tasks.get_utask_main_queue_size()
+    size = tasks.get_utask_main_queue_size(__memoize_force__=True)
     self.assertEqual(size, 0)
