@@ -1,0 +1,30 @@
+{
+	"name": "ClusterFuzz Noble Python 3.11",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/bin/python3.11",
+				"python.analysis.extraPaths": ["/workspace/src/python"],
+				"python.linting.enabled": true,
+				"python.formatting.provider": "yapf"
+			},
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance"
+			]
+		}
+	},
+
+	// Run commands after the container is created.
+	// Since install_deps.bash might not be present or could fail,
+	// we will only attempt to install if it's there.
+	"postCreateCommand": "if [ -f \"./local/install_deps.bash\" ]; then ./local/install_deps.bash; fi",
+
+	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
+}
