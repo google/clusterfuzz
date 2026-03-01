@@ -1,45 +1,36 @@
 {
-    "name": "Python 3.11 Development",
-    "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu-24.04",
-    "features": {
-        "ghcr.io/devcontainers/features/python:1": {
-            "version": "3.11.9",
-            "installTools": true
+  "name": "Python 3.11 Development",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+  
+  // Use 'features' to install additional tools easily
+  "features": {
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
+  },
+
+  // Configure tool-specific settings
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "always",
+          "source.organizeImports": "always"
         }
-    },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-python.python",
-                "ms-python.vscode-pylance",
-                "charliermarsh.ruff"
-            ],
-            "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python"
-            }
-        }
-    },
-    "remoteUser": "vscode"
-}{
-    "name": "Python 3.11 Development",
-    "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu-24.04",
-    "features": {
-        "ghcr.io/devcontainers/features/python:1": {
-            "version": "3.11.9",
-            "installTools": true
-        }
-    },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-python.python",
-                "ms-python.vscode-pylance",
-                "charliermarsh.ruff"
-            ],
-            "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python"
-            }
-        }
-    },
-    "remoteUser": "vscode"
+      }
+    }
+  },
+
+  // Use 'postCreateCommand' to install dependencies automatically
+  "postCreateCommand": "pip install --upgrade pip && if [ -f requirements.txt ]; then pip install -r requirements.txt; fi",
+
+  // Run as a non-root user for better security
+  "remoteUser": "vscode"
 }
