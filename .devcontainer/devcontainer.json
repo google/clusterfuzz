@@ -4,7 +4,8 @@
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.11",
-      "installTools": true
+      "installTools": true,
+      "toolsToInstall": "pipenv"
     }
   },
   "customizations": {
