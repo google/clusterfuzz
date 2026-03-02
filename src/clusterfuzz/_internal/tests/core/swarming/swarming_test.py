@@ -33,11 +33,40 @@ class SwarmingTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
-        'clusterfuzz._internal.swarming._requires_gpu'
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
-    self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.maxDiff = None
+
+  def test_is_swarming_task_true(self):
+    """Tests that is_swarming_task returns True for a swarming job."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='IS_SWARMING_JOB = True')
+    job.put()
+    self.assertTrue(swarming.is_swarming_task('libfuzzer_chrome_asan'))
+
+  def test_is_swarming_task_false_not_swarming_job(self):
+    """Tests that is_swarming_task returns False if IS_SWARMING_JOB is not True."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='IS_SWARMING_JOB = False')
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('libfuzzer_chrome_asan'))
+
+  def test_is_swarming_task_false_no_mapping(self):
+    """Tests that is_swarming_task returns False if there is no mapping for the platform."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='UNKNOWN',
+        environment_string='IS_SWARMING_JOB = True')
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('libfuzzer_chrome_asan'))
+
+  def test_is_swarming_task_false_no_job(self):
+    """Tests that is_swarming_task returns False if the job doesn't exist."""
+    self.assertFalse(swarming.is_swarming_task('non_existent_job'))
 
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that _get_new_task_spec works as expected."""
