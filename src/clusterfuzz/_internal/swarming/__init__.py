@@ -19,6 +19,7 @@ import uuid
 
 from google.protobuf import json_format
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
@@ -60,7 +61,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   """Gets the configured specifications for a swarming task. 
   Returns None if the task should'nt be executed on swarming"""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if job is None:
+  if job is None or not feature_flags.FeatureFlags.SWARMING_TASKS.enabled:
     return None
 
   swarming_config = _get_swarming_config()

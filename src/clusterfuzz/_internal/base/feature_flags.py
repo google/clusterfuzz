@@ -37,6 +37,8 @@ class FeatureFlags(Enum):
 
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
+  SWARMING_TASKS = 'swarming_tasks'
+
   @property
   def flag(self):
     """Get the feature flag."""
