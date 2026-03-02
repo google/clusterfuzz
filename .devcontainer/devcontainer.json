@@ -27,9 +27,6 @@
       }
     }
   },
-  "containerEnv": {
-    "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}"
-  },
-  "postCreateCommand": "python --version && java --version && pip install --upgrade pip && pip install pipenv && bash local/install_deps.bash && npm install -g @google/gemini-cli",
+  "postCreateCommand": "pip install pipenv && bash local/install_deps.bash && npm install -g @google/gemini-cli",
   "remoteUser": "vscode"
 }
