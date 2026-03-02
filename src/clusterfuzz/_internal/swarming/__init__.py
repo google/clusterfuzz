@@ -27,22 +27,25 @@ from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
 
-def is_swarming_task(command: str, job_name: str):
+def _requires_gpu() -> bool:
+  """Checks whether the REQUIRES_GPU env variable is set. This means
+  that the current job needs a gpu enabled device."""
+  requires_gpu = environment.get_value('REQUIRES_GPU')
+  return bool(utils.string_is_true(requires_gpu))
+
+
+def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
+                       job: data_types.Job) -> dict | None:
+  if not _requires_gpu():
+    return None
+  return swarming_config.get('mapping').get(job.platform, None)
+
+
+def is_swarming_task(job_name: str):
   """Returns True if the task is supposed to run on swarming."""
   # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  
-  if not job:
-    return False
-
-  job_environment = job.get_environment()
-  if not utils.string_is_true(job_environment.get('IS_SWARMING_JOB')):
-    return False
-
-  try:
-    _get_new_task_spec(command, job_name, '')
-    return True
-  except ValueError:
+  if job is None:
     return False
   return _get_instance_spec(_get_swarming_config(), job) is not None
 
