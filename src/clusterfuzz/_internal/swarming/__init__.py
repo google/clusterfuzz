@@ -24,6 +24,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
@@ -56,12 +57,15 @@ def _get_swarming_config():
   return local_config.SwarmingConfig()
 
 
+@logs.task_stage_context(logs.Stage.PREPROCESS)
 def create_new_task_request(command: str, job_name: str, download_url: str
                            ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
   """Gets the configured specifications for a swarming task. 
   Returns None if the task should'nt be executed on swarming"""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None or not feature_flags.FeatureFlags.SWARMING_TASKS.enabled:
+    flag_status = feature_flags.FeatureFlags.SWARMING_TASKS.enabled
+    logs.warning(f'Cant create swarming task, feature flag {flag_status}.')
     return None
 
   swarming_config = _get_swarming_config()
