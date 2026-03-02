@@ -4,8 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.11",
-      "installTools": true,
-      "toolsToInstall": "pipenv"
+      "installTools": true
     }
   },
   "customizations": {
@@ -19,6 +18,6 @@
       }
     }
   },
-  "postCreateCommand": "python --version && pip install --upgrade pip",
+  "postCreateCommand": "python --version && pip install --upgrade pip && pip install pipenv",
   "remoteUser": "vscode"
 }
