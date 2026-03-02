@@ -14,7 +14,7 @@
 """Swarming helpers."""
 
 import base64
-from json import dumps
+import json
 import uuid
 
 from google.protobuf import json_format
@@ -25,6 +25,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
+
 
 def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
                        job: data_types.Job) -> dict | None:
@@ -159,7 +160,7 @@ def _env_vars_to_json(
   env_vars_dict = {pair.key: pair.value for pair in env_vars}
   return swarming_pb2.StringPair(  # pylint: disable=no-member
       key='DOCKER_ENV_VARS',
-      value=dumps(env_vars_dict))
+      value=json.dumps(env_vars_dict))
 
 
 def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
