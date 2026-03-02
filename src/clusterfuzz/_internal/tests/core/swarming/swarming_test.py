@@ -33,8 +33,10 @@ class SwarmingTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.base.feature_flags.FeatureFlags'
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
+    self.mock.FeatureFlags.SWARMING_TASKS.enabled = True
     self.maxDiff = None
 
   def test_is_swarming_task_true(self):
