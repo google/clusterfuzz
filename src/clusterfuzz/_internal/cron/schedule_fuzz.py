@@ -20,6 +20,7 @@ import time
 from google.cloud import monitoring_v3
 
 from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -30,6 +31,7 @@ from clusterfuzz._internal.metrics import logs
 PREPROCESS_TARGET_SIZE_DEFAULT = 10000
 
 
+@memoize.wrap(memoize.InMemory(60))
 def get_queue_size(creds, project_id, subscription_id):
   """Returns the size of the queue (unacked messages)."""
   # TODO(metzman): Not all of these are fuzz_tasks. Deal with that.
