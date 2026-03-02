@@ -65,13 +65,11 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   Returns None if the task should'nt be executed on swarming"""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None:
-    print("Job is None")
     return None
 
   swarming_config = _get_swarming_config()
   instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
-    print("Instance spec is None")
     return None
 
   swarming_pool = swarming_config.get('swarming_pool')
@@ -111,11 +109,13 @@ def create_new_task_request(command: str, job_name: str, download_url: str
       task_environment.append(
           swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
 
+  swarming_bot_environment = []
   if instance_spec.get('docker_image'):
-    task_environment.append(
+    swarming_bot_environment.append(
         swarming_pb2.StringPair(  # pylint: disable=no-member
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
+  swarming_bot_environment.append(_env_vars_to_json(task_environment))
 
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
@@ -146,7 +146,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=[_env_vars_to_json(task_environment)],
+                  env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])

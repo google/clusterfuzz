@@ -71,9 +71,14 @@ class SwarmingTest(unittest.TestCase):
                     execution_timeout_secs=86400,
                     env=[
                         swarming_pb2.StringPair(
+                            key='DOCKER_IMAGE',
+                            value=
+                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                        ),
+                        swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                     ],
                     secret_bytes=base64.b64encode(
@@ -183,9 +188,14 @@ class SwarmingTest(unittest.TestCase):
                     execution_timeout_secs=12345,
                     env=[
                         swarming_pb2.StringPair(
+                            key='DOCKER_IMAGE',
+                            value=
+                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                        ),
+                        swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                     ],
                     secret_bytes=base64.b64encode(
@@ -227,9 +237,14 @@ class SwarmingTest(unittest.TestCase):
                     execution_timeout_secs=12345,
                     env=[
                         swarming_pb2.StringPair(
+                            key='DOCKER_IMAGE',
+                            value=
+                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                        ),
+                        swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                     ],
                     secret_bytes=base64.b64encode(
