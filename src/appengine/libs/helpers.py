@@ -14,6 +14,7 @@
 """helper.py is a kitchen sink. It contains static methods that are used by
    multiple handlers."""
 
+import difflib
 import logging
 import sys
 import traceback
@@ -165,3 +166,19 @@ def log(message, operation_type):
   """Logs operation being carried by current logged-in user."""
   logging.info('ClusterFuzz: %s (%s): %s.', operation_type, get_user_email(),
                message)
+
+
+def diff(old_str, new_str):
+  """Generates the diff between the two provided strings."""
+  old_lines = old_str.splitlines(keepends=True)
+  new_lines = new_str.splitlines(keepends=True)
+
+  diff_generator = difflib.ndiff(old_lines, new_lines)
+  clean_diff = [
+      line for line in diff_generator
+      if line.startswith('- ') or line.startswith('+ ')
+  ]
+  if not clean_diff:
+    return "No changes detected."
+
+  return "".join(clean_diff)

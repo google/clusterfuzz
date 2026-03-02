@@ -139,6 +139,23 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     return value
 
+  def _get_fuzzer_state_str(self, fuzzer):
+    return (f"Filename: {getattr(fuzzer, 'filename', 'None')}\n"
+            f"Blobstore Key: {getattr(fuzzer, 'blobstore_key', 'None')}\n"
+            f"File Size: {getattr(fuzzer, 'file_size', 'None')}\n"
+            f"Jobs: {getattr(fuzzer, 'jobs', 'None')}\n"
+            f"Source: {getattr(fuzzer, 'source', 'None')}\n"
+            f"Timeout: {getattr(fuzzer, 'timeout', 'None')}\n"
+            f"Max Testcases: {getattr(fuzzer, 'max_testcases', 'None')}\n"
+            f"External Contribution: \
+            {getattr(fuzzer, 'external_contribution', 'None')}\n"
+            f"Differential: {getattr(fuzzer, 'differential', 'None')}\n"
+            f"Environment: \
+            {getattr(fuzzer, 'additional_environment_string', 'None')}\n"
+            f"Data Bundle: {getattr(fuzzer, 'data_bundle_name', 'None')}\n"
+            f"Executable Path: {getattr(fuzzer, 'executable_path', 'None')}\n"
+            f"Launcher Script: {getattr(fuzzer, 'launcher_script', 'None')}\n")
+
   def apply_fuzzer_changes(self, fuzzer, upload_info):
     """Apply changes to a fuzzer."""
     if upload_info and not archive.is_archive(upload_info.filename):
@@ -159,6 +176,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
             'Please enter the path to the executable, or if the archive you '
             'uploaded is less than 16MB, ensure that the executable file has '
             '"run" in its name.', 400)
+
+    existing_fuzzer_info = self._get_fuzzer_state_str(fuzzer)
 
     jobs = request.get('jobs', [])
     timeout = self._get_integer_value('timeout')
@@ -201,7 +220,14 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
-    helpers.log('Uploaded fuzzer %s.' % fuzzer.name, helpers.MODIFY_OPERATION)
+    new_fuzzer_info = self._get_fuzzer_state_str(fuzzer)
+    fuzzer_diff = helpers.diff(existing_fuzzer_info, new_fuzzer_info)
+    fuzzer_update_message = (f"\n--- Updated fuzzer {fuzzer.name} ---\n"
+                             f"{new_fuzzer_info}"
+                             f"--- Changes (Diff) ---\n"
+                             f"{fuzzer_diff}")
+    helpers.log(fuzzer_update_message, helpers.MODIFY_OPERATION)
+
     return self.redirect('/fuzzers')
 
 
