@@ -1,36 +1,23 @@
 {
-  "name": "Python 3.11 Development",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
-  
-  // Use 'features' to install additional tools easily
+  "name": "Python 3.11 (Ubuntu 24.04)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
-    "ghcr.io/devcontainers/features/git-lfs:1": {}
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11",
+      "installTools": true
+    }
   },
-
-  // Configure tool-specific settings
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-python.vscode-pylance",
-        "charliermarsh.ruff",
-        "tamasfe.even-better-toml"
+        "ms-python.vscode-pylance"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "python.analysis.typeCheckingMode": "basic",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-          "source.fixAll": "always",
-          "source.organizeImports": "always"
-        }
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
       }
     }
   },
-
-  // Use 'postCreateCommand' to install dependencies automatically
-  "postCreateCommand": "pip install --upgrade pip && if [ -f requirements.txt ]; then pip install -r requirements.txt; fi",
-
-  // Run as a non-root user for better security
+  "postCreateCommand": "python --version && pip install --upgrade pip",
   "remoteUser": "vscode"
 }
