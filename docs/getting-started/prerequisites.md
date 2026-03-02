@@ -47,6 +47,8 @@ where X.Y.Z is the release version (for example, 1.0.1).
 
 ## Installing prerequisites
 
+**Note:** If you want a consistent environment without manual setup, we highly recommend using [Development Containers]({{ site.baseurl }}/getting-started/local-instance/#development-containers-recommended).
+
 ### Google Cloud SDK
 
 This step is only necessary on the **macOS** platform. For **Linux** user, Google Cloud SDK

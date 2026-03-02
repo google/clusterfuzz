@@ -21,6 +21,30 @@ lack of Google Cloud emulators.
 
 ---
 
+## Development Containers (Recommended)
+
+Devcontainers provide a consistent and reproducible development environment by containerizing the setup. This eliminates environment-specific issues and significantly simplifies onboarding for new developers.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or another Docker-compatible engine.
+- [Visual Studio Code](https://code.visualstudio.com/).
+- [Dev Containers extension for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+
+### Getting Started
+
+1. Open the ClusterFuzz repository in VS Code.
+2. VS Code should prompt you to "Reopen in Container". If not, press `F1` (or `Ctrl+Shift+P` / `Cmd+Shift+P`) and select **Dev Containers: Reopen in Container**.
+3. The first time you do this, it will build the container image and run `local/install_deps.bash`. This may take several minutes.
+4. Once the setup is complete, you will have a fully configured environment with Python 3.11, Java 21, and all necessary dependencies.
+
+**Tip:** Since devcontainers already have all dependencies installed, you can speed up the server startup by using the `--skip-install-deps` flag:
+```bash
+python butler.py run_server --skip-install-deps
+```
+
+You can then run the local server or bot as described in the following sections.
+
 ## Running a local server
 
 You can start a local server by running the following command:
