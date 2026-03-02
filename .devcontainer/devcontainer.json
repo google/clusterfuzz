@@ -9,6 +9,9 @@
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",
       "installTools": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
     }
   },
   "customizations": {
@@ -16,13 +19,17 @@
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "vscjava.vscode-java-pack"
+        "vscjava.vscode-java-pack",
+        "google.gemini-cli-vscode-ide-companion"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python"
       }
     }
   },
-  "postCreateCommand": "python --version && java --version && pip install --upgrade pip && pip install pipenv && bash local/install_deps.bash",
+  "containerEnv": {
+    "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}"
+  },
+  "postCreateCommand": "python --version && java --version && pip install --upgrade pip && pip install pipenv && bash local/install_deps.bash && npm install -g @google/gemini-cli",
   "remoteUser": "vscode"
 }
