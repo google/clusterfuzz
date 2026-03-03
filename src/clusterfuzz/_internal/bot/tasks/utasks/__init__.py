@@ -63,9 +63,10 @@ def _timestamp_now() -> Timestamp:
   return ts
 
 
-def _get_execution_mode(job_type):
+def _get_execution_mode(utask_module, job_type):
   """Determines whether this task in executed on swarming or batch."""
-  if swarming.is_swarming_task(job_type):
+  command = task_utils.get_command_from_module(utask_module.__name__)
+  if swarming.is_swarming_task(command, job_type):
     return Mode.SWARMING
   return Mode.BATCH
 
@@ -409,7 +410,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
   with _MetricRecorder(_Subtask.PREPROCESS) as recorder:
-    execution_mode = _get_execution_mode(job_type)
+    execution_mode = _get_execution_mode(utask_module, job_type)
     uworker_input = _preprocess(utask_module, task_argument, job_type,
                                 uworker_env, recorder, execution_mode)
     if not uworker_input:
@@ -500,7 +501,8 @@ def tworker_postprocess(output_download_url) -> None:
     task_utils.reset_task_stage_env()
 
     utask_module = get_utask_module(uworker_output.uworker_input.module_name)
-    execution_mode = _get_execution_mode(uworker_output.uworker_input.job_type)
+    execution_mode = _get_execution_mode(utask_module,
+                                         uworker_output.uworker_input.job_type)
     recorder.set_task_details(
         utask_module,
         uworker_output.uworker_input.job_type,
