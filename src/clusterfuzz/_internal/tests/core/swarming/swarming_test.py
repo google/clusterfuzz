@@ -33,10 +33,12 @@ class SwarmingTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.swarming._requires_gpu',
         'clusterfuzz._internal.base.feature_flags.FeatureFlags'
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
     self.mock.FeatureFlags.SWARMING_TASKS.enabled = True
+    self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.maxDiff = None
 
   def test_is_swarming_task_true(self):
@@ -48,13 +50,11 @@ class SwarmingTest(unittest.TestCase):
     job.put()
     self.assertTrue(swarming.is_swarming_task('libfuzzer_chrome_asan'))
 
-  def test_is_swarming_task_false_not_swarming_job(self):
-    """Tests that is_swarming_task returns False if IS_SWARMING_JOB is not True."""
-    job = data_types.Job(
-        name='libfuzzer_chrome_asan',
-        platform='LINUX',
-        environment_string='IS_SWARMING_JOB = False')
+  def test_is_swarming_task_false_not_requires_gpu(self):
+    """Tests that is_swarming_task returns False if REQUIRES_GPU is False."""
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
+    self.mock._requires_gpu.return_value = False  # pylint: disable=protected-access
     self.assertFalse(swarming.is_swarming_task('libfuzzer_chrome_asan'))
 
   def test_is_swarming_task_false_no_mapping(self):
