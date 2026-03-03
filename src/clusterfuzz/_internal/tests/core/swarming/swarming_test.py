@@ -70,6 +70,26 @@ class SwarmingTest(unittest.TestCase):
     """Tests that is_swarming_task returns False if the job doesn't exist."""
     self.assertFalse(swarming.is_swarming_task('non_existent_job'))
 
+  def test_is_swarming_task_false_feature_flag_disabled(self):
+    """Tests that is_swarming_task returns False if the feature flag is disabled."""
+    self.mock.FeatureFlags.SWARMING_TASKS.enabled = False
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='IS_SWARMING_JOB = True')
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('libfuzzer_chrome_asan'))
+
+  def test_create_new_task_request_feature_flag_disabled(self):
+    """Tests that create_new_task_request returns None when the feature flag is disabled."""
+    self.mock.FeatureFlags.SWARMING_TASKS.enabled = False
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    job.put()
+
+    spec = swarming.create_new_task_request('corpus_pruning', job.name,
+                                            'https://download_url')
+    self.assertIsNone(spec)
+
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that _get_new_task_spec works as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')

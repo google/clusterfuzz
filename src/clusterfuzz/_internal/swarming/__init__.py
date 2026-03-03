@@ -34,10 +34,11 @@ def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
 
 
 def is_swarming_task(job_name: str):
-  """Returns True if the task is supposed to run on swarming."""
+  """Returns True if the task is supposed to run on swarming and 
+  if swarming feature flag is enabled."""
   # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if job is None:
+  if job is None or not feature_flags.FeatureFlags.SWARMING_TASKS.enabled:
     return False
 
   job_environment = job.get_environment()
