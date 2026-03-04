@@ -53,3 +53,11 @@ class FeatureFlagTest(unittest.TestCase):
     self.assertEqual(feature_flags.FeatureFlags.TEST_FLOAT_FLAG.content, 1.23)
     self.assertEqual(feature_flags.FeatureFlags.TEST_FLOAT_FLAG.string_value,
                      'checker')
+
+  def test_not_found_in_db(self):
+    """Test that a feature flag returns empty or False values when not found in the DB."""
+    self.assertFalse(feature_flags.FeatureFlags.TEST_FLAG.enabled)
+    self.assertIsNone(feature_flags.FeatureFlags.TEST_FLAG.flag)
+    self.assertIsNone(feature_flags.FeatureFlags.TEST_FLAG.content)
+    self.assertEqual(feature_flags.FeatureFlags.TEST_FLAG.description, '')
+    self.assertEqual(feature_flags.FeatureFlags.TEST_FLAG.string_value, '')
