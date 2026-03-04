@@ -33,8 +33,10 @@ class SwarmingTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.swarming._requires_gpu'
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
+    self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):
