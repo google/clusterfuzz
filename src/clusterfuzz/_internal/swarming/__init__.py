@@ -19,6 +19,7 @@ import uuid
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -33,10 +34,10 @@ def _requires_gpu() -> bool:
   return bool(utils.string_is_true(requires_gpu))
 
 
-def is_swarming_task(command: str, job_name: str):
+def is_swarming_task(command: str, job_name: str) -> bool:
   """Returns True if the task is supposed to run on swarming."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu():
+  if not job or not _requires_gpu() or not FeatureFlags.SWARMING_TASKS.enabled:
     return False
   try:
     _get_new_task_spec(command, job_name, '')
