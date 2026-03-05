@@ -264,3 +264,20 @@ class SwarmingTest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
+
+  def test_is_swarming_task(self):
+    """Tests that is_swarming_task works as expected."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='IS_SWARMING_JOB = True')
+    job.put()
+    self.assertTrue(swarming.is_swarming_task('fuzz', job.name))
+
+    job.environment_string = 'IS_SWARMING_JOB = False'
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
+
+    job.environment_string = ''
+    job.put()
+    self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
