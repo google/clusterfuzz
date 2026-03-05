@@ -36,8 +36,10 @@ def _requires_gpu() -> bool:
 
 def is_swarming_task(command: str, job_name: str) -> bool:
   """Returns True if the task is supposed to run on swarming."""
+  if not not FeatureFlags.SWARMING_TASKS.enabled:
+    return False
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu() or not FeatureFlags.SWARMING_TASKS.enabled:
+  if not job or not _requires_gpu():
     return False
   try:
     _get_new_task_spec(command, job_name, '')
