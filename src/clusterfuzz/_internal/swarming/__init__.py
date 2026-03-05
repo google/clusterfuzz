@@ -45,8 +45,9 @@ def is_swarming_task(command: str, job_name: str):
     return False
 
 
-def _get_task_name():
-  return 't-' + str(uuid.uuid4()).lower()
+def _create_task_name() -> str:
+  """Creates a unique task name."""
+  return 't-' + str(uuid.uuid4())
 
 
 def _get_swarming_config():
@@ -122,7 +123,7 @@ def _get_new_task_spec(command: str, job_name: str,
   cas_input_root = instance_spec.get('cas_input_root', {})
 
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
-      name=_get_task_name(),
+      name=_create_task_name(),
       priority=priority,
       realm=swarming_realm,
       service_account=service_account,
