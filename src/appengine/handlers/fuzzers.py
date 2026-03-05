@@ -34,6 +34,10 @@ from libs import handler
 from libs import helpers
 
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
+FUZZER_FIELDS_EXCLUDED_FROM_LOG = [
+    'result', 'result_timestamp', 'console_output', 'return_code',
+    'sample_testcase', 'stats_columns', 'stats_column_descriptions'
+]
 
 
 class Handler(base_handler.Handler):
@@ -140,21 +144,11 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     return value
 
   def _get_fuzzer_state_str(self, fuzzer):
-    return (f"Filename: {getattr(fuzzer, 'filename', 'None')}\n"
-            f"Blobstore Key: {getattr(fuzzer, 'blobstore_key', 'None')}\n"
-            f"File Size: {getattr(fuzzer, 'file_size', 'None')}\n"
-            f"Jobs: {getattr(fuzzer, 'jobs', 'None')}\n"
-            f"Source: {getattr(fuzzer, 'source', 'None')}\n"
-            f"Timeout: {getattr(fuzzer, 'timeout', 'None')}\n"
-            f"Max Testcases: {getattr(fuzzer, 'max_testcases', 'None')}\n"
-            f"External Contribution: \
-            {getattr(fuzzer, 'external_contribution', 'None')}\n"
-            f"Differential: {getattr(fuzzer, 'differential', 'None')}\n"
-            f"Environment: \
-            {getattr(fuzzer, 'additional_environment_string', 'None')}\n"
-            f"Data Bundle: {getattr(fuzzer, 'data_bundle_name', 'None')}\n"
-            f"Executable Path: {getattr(fuzzer, 'executable_path', 'None')}\n"
-            f"Launcher Script: {getattr(fuzzer, 'launcher_script', 'None')}\n")
+    fuzzer_dict = fuzzer.to_dict(exclude=FUZZER_FIELDS_EXCLUDED_FROM_LOG)
+    state_str = ""
+    for key, val in fuzzer_dict.items():
+      state_str += f"{key}: {val}\n"
+    return state_str
 
   def apply_fuzzer_changes(self, fuzzer, upload_info):
     """Apply changes to a fuzzer."""
