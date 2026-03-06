@@ -39,6 +39,7 @@ def _requires_gpu() -> bool:
 def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
                        job: data_types.Job) -> dict | None:
   if not _requires_gpu():
+    logs.debug('Job is not GPU enabled.', job_name=job.name)
     return None
   return swarming_config.get('mapping').get(job.platform, None)
 

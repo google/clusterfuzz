@@ -854,6 +854,9 @@ def emit(level, message, exc_info=None, **extras):
             }
         })
 
+def debug(message, **extras):
+  """Logs the debug message."""
+  emit(logging.DEBUG, message, **extras)
 
 def info(message, **extras):
   """Logs the message to a given log file."""

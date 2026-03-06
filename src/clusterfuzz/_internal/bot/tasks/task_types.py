@@ -109,6 +109,7 @@ def is_no_privilege_workload(command, job):
 
 def is_remote_utask(command, job):
   if not COMMAND_TYPES[command].is_execution_remote(command):
+    logs.debug(f'Command is not remote: {command}', job_name=job)
     return False
 
   if environment.is_uworker():
