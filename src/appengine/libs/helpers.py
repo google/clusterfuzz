@@ -178,7 +178,5 @@ def diff(old_str: str, new_str: str) -> str:
       line for line in diff_generator
       if line.startswith('- ') or line.startswith('+ ')
   ]
-  if not clean_diff:
-    return "No changes detected."
 
   return "".join(clean_diff)
