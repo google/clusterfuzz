@@ -168,7 +168,7 @@ def log(message, operation_type):
                message)
 
 
-def diff(old_str, new_str):
+def diff(old_str: str, new_str: str) -> str:
   """Generates the diff between the two provided strings."""
   old_lines = old_str.splitlines(keepends=True)
   new_lines = new_str.splitlines(keepends=True)

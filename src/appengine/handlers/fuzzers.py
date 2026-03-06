@@ -143,12 +143,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     return value
 
-  def _get_fuzzer_state_str(self, fuzzer):
+  def _get_fuzzer_state_str(self, fuzzer: data_types: Fuzzer) -> str:
     fuzzer_dict = fuzzer.to_dict(exclude=FUZZER_FIELDS_EXCLUDED_FROM_LOG)
-    state_str = ""
-    for key, val in fuzzer_dict.items():
-      state_str += f"{key}: {val}\n"
-    return state_str
+    return '\n'.join(f"{key}: {val}" for key, val in fuzzer_dict.items())
 
   def apply_fuzzer_changes(self, fuzzer, upload_info):
     """Apply changes to a fuzzer."""
