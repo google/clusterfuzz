@@ -143,13 +143,13 @@ def _get_new_task_spec(command: str, job_name: str,
   return new_task_request
 
 
-def push_swarming_task(command, download_url, job_type):
+def push_swarming_task(command, download_url, job_name):
   """Schedules a task on swarming."""
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job:
     raise ValueError('invalid job_name')
 
-  task_spec = _get_new_task_spec(command, job_type, download_url)
+  task_spec = _get_new_task_spec(command, job_name, download_url)
   creds, _ = credentials.get_default()
   headers = {
       'Accept': 'application/json',
