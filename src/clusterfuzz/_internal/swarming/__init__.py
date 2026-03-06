@@ -107,7 +107,8 @@ def _get_new_task_spec(command: str, job_name: str,
             value=instance_spec['docker_image']))
 
   task_dimensions = [
-      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
+      # TODO(jardondiego): dynamically determine os based on job config variables
+      swarming_pb2.StringPair(key='os', value='Linux'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
   ]
 
