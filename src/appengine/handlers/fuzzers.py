@@ -143,7 +143,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     return value
 
-  def _get_fuzzer_state_str(self, fuzzer: data_types: Fuzzer) -> str:
+  def _get_fuzzer_state_str(self, fuzzer: data_types.Fuzzer) -> str:
     fuzzer_dict = fuzzer.to_dict(exclude=FUZZER_FIELDS_EXCLUDED_FROM_LOG)
     return '\n'.join(f"{key}: {val}" for key, val in fuzzer_dict.items())
 
@@ -214,7 +214,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     new_fuzzer_info = self._get_fuzzer_state_str(fuzzer)
     fuzzer_diff = helpers.diff(existing_fuzzer_info, new_fuzzer_info)
     fuzzer_update_message = (f"\n--- Updated fuzzer {fuzzer.name} ---\n"
-                             f"{new_fuzzer_info}"
+                             f"{new_fuzzer_info}\n"
                              f"--- Changes (Diff) ---\n"
                              f"{fuzzer_diff}")
     helpers.log(fuzzer_update_message, helpers.MODIFY_OPERATION)
