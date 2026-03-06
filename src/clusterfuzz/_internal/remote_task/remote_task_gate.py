@@ -22,6 +22,7 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -43,6 +44,11 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
         for adapter in remote_task_adapters.RemoteTaskAdapters
     }
     self._adapters = remote_task_adapters.RemoteTaskAdapters
+
+  def _is_swarming_job(self, job_type):
+    """Returns true if the job is a swarming job."""
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
+    return job and job.get_environment().get('IS_SWARMING_JOB')
 
   def _get_adapter(self) -> str:
     """Performs a weighted random choice to select a remote backend.
@@ -106,9 +112,27 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
 
   def create_utask_main_job(self, module, job_type, input_download_url):
     """Creates a single remote task, selecting a backend dynamically."""
+    if self._is_swarming_job(job_type):
+      return self._service_map['swarming'].create_utask_main_job(
+          module, job_type, input_download_url)
+
     adapter_id = self._get_adapter()
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
+
+  def _send_tasks(self, tasks_by_adapter):
+    """Sends tasks to their respective adapters."""
+    unscheduled_tasks = []
+    for adapter_id, tasks in tasks_by_adapter.items():
+      if tasks:
+        try:
+          logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
+          service = self._service_map[adapter_id]
+          unscheduled_tasks.extend(service.create_utask_main_jobs(tasks))
+        except Exception:  # pylint: disable=broad-except
+          logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
+          unscheduled_tasks.extend(tasks)
+    return unscheduled_tasks
 
   def create_utask_main_jobs(self,
                              remote_tasks: list[remote_task_types.RemoteTask]):
@@ -122,43 +146,56 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
        This ensures that a batch of 100 tasks with a 70/30 split sends
        exactly 70 tasks to one backend and 30 to the other.
     """
-    tasks_by_adapter = collections.defaultdict(list)
+    job_types = {task.job_type for task in remote_tasks}
+    jobs = data_types.Job.query(data_types.Job.name.IN(list(job_types))).fetch()
+    swarming_job_types = {
+        job.name for job in jobs if job.get_environment().get('IS_SWARMING_JOB')
+    }
 
-    if len(remote_tasks) == 1:
+    swarming_tasks = [
+        task for task in remote_tasks if task.job_type in swarming_job_types
+    ]
+    other_tasks = [
+        task for task in remote_tasks if task.job_type not in swarming_job_types
+    ]
+
+    tasks_by_adapter = collections.defaultdict(list)
+    tasks_by_adapter['swarming'].extend(swarming_tasks)
+
+    if not other_tasks:
+      return self._send_tasks(tasks_by_adapter)
+
+    if len(other_tasks) == 1:
       # For a single task, use a random distribution.
       adapter_id = self._get_adapter()
-      tasks_by_adapter[adapter_id].extend(remote_tasks)
-      unscheduled_tasks = []
+      tasks_by_adapter[adapter_id].extend(other_tasks)
     else:
       # For multiple tasks, use deterministic slicing to ensure the
       # distribution precisely matches the frequency configuration.
       frequencies = self.get_job_frequency()
       start_index = 0
       for adapter_id, frequency in frequencies.items():
-        count = int(len(remote_tasks) * frequency)
+        count = int(len(other_tasks) * frequency)
         tasks_by_adapter[adapter_id].extend(
-            remote_tasks[start_index:start_index + count])
+            other_tasks[start_index:start_index + count])
         start_index += count
 
-      remaining_tasks = remote_tasks[start_index:]
+      remaining_tasks = other_tasks[start_index:]
       if sum(frequencies.values()) >= 0.999:
         # Distribute any remainder tasks (due to rounding) one by one. This
         # ensures that all tasks are assigned to a backend.
         for i, task in enumerate(remaining_tasks):
           adapter_id = list(frequencies.keys())[i % len(frequencies)]
           tasks_by_adapter[adapter_id].append(task)
-        unscheduled_tasks = []
       else:
-        unscheduled_tasks = list(remaining_tasks)
+        # If frequencies don't sum to 1.0, some tasks might remain unscheduled.
+        # This is handled by adding them to the final returned list.
+        # However, _send_tasks currently doesn't have a way to receive these.
+        # Let's fix this.
+        pass
 
-    for adapter_id, tasks in tasks_by_adapter.items():
-      if tasks:
-        try:
-          logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
-          service = self._service_map[adapter_id]
-          unscheduled_tasks.extend(service.create_utask_main_jobs(tasks))
-        except Exception:  # pylint: disable=broad-except
-          logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
-          unscheduled_tasks.extend(tasks)
+    unscheduled_tasks = self._send_tasks(tasks_by_adapter)
+    if len(other_tasks) > 1 and sum(frequencies.values()) < 0.999:
+      unscheduled_tasks.extend(other_tasks[start_index:])
 
     return unscheduled_tasks
