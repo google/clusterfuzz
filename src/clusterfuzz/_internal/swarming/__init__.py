@@ -45,9 +45,13 @@ def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
 
 def is_swarming_task(job_name: str):
   """Returns True if the task is supposed to run on swarming."""
+  if not FeatureFlags.SWARMING_TASKS.enabled:
+    logs.info('Swarming tasks are not enabled.', job_name=job_name)
+    return False
   # TODO: b/487716733 - Trigger swarming tasks for MAC and Windows
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None:
+    logs.error('Job not found for swarming task check.', job_name=job_name)
     return False
   return _get_instance_spec(_get_swarming_config(), job) is not None
 
@@ -56,7 +60,7 @@ def _get_task_name():
   return 't-' + str(uuid.uuid4()).lower()
 
 
-def _get_swarming_config():
+def _get_swarming_config() -> local_config.SwarmingConfig:
   """Returns the swarming config."""
   return local_config.SwarmingConfig()
 
@@ -65,13 +69,21 @@ def create_new_task_request(command: str, job_name: str, download_url: str
                            ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
   """Gets the configured specifications for a swarming task. 
   Returns None if the task should'nt be executed on swarming"""
+  if not FeatureFlags.SWARMING_TASKS.enabled:
+    logs.info('Swarming tasks are not enabled.', job_name=job_name)
+    return None
+
+  logs.info(
+      'Creating new swarming task request.', command=command, job_name=job_name)
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None:
+    logs.error('Job not found for task request.', job_name=job_name)
     return None
 
   swarming_config = _get_swarming_config()
   instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
+    logs.error('Instance spec not found for task request.', job_name=job_name)
     return None
 
   swarming_pool = swarming_config.get('swarming_pool')
@@ -171,6 +183,7 @@ def _env_vars_to_json(
 
 def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
   """Schedules a task on swarming."""
+  logs.info('Pushing new task to swarming.', task_name=task_request.name)
   creds, _ = credentials.get_default()
   headers = {
       'Accept': 'application/json',
@@ -179,5 +192,7 @@ def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: di
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  utils.post_url(
+  logs.info(f'Task posted to {url}', task_name=task_request.name)
+  response = utils.post_url(
       url=url, data=json_format.MessageToJson(task_request), headers=headers)
+  logs.info(f'Swarming response: {response}', task_name=task_request.name)
