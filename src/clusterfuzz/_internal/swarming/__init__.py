@@ -18,6 +18,7 @@ from json import dumps
 import uuid
 
 from google.protobuf import json_format
+from google.auth.transport import requests
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
@@ -186,11 +187,15 @@ def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: di
   """Schedules a task on swarming."""
   logs.info('Pushing new task to swarming.', task_name=task_request.name)
   creds, _ = credentials.get_default()
+  if not creds.valid:
+    logs.info('Refreshing credentials.')
+    creds.refresh(requests.Request())
   headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': creds.token
+      'Authorization': f'Bearer {creds.token}'
   }
+  logs.info(f'Using Service account: {creds.service_account_email}',task_name=task_request.name)
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
   logs.info(f'Task posted to {url}', task_name=task_request.name)
