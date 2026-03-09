@@ -107,9 +107,11 @@ def _get_new_task_spec(command: str, job_name: str,
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
 
+  os_swarming_dimension = job.get_environment().get('OS_SWARMING_DIMENSION', 'Linux')
+
   task_dimensions = [
-      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='os', value=os_swarming_dimension),
+      swarming_pb2.StringPair(key='pool', value=swarming_pool),
   ]
 
   dimensions = instance_spec.get('dimensions', None)

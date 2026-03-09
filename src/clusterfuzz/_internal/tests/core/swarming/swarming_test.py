@@ -58,7 +58,7 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './linux_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(key='os', value='Linux'),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
                     cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
@@ -115,7 +115,7 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './mac_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(key='os', value='Linux'),
                         swarming_pb2.StringPair(key='pool', value='pool-name'),
                         swarming_pb2.StringPair(key='key1', value='value1'),
                         swarming_pb2.StringPair(key='key2', value='value2'),
@@ -179,7 +179,7 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './linux_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(key='os', value='Linux'),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
                     cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
@@ -227,7 +227,7 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './linux_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(key='os', value='Linux'),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
                     cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
@@ -283,3 +283,18 @@ class SwarmingTest(unittest.TestCase):
     job.environment_string = ''
     job.put()
     self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
+
+  def test_get_spec_with_custom_os_dimension(self):
+    """Tests that _get_new_task_spec uses OS_SWARMING_DIMENSION if provided."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='OS_SWARMING_DIMENSION = Windows')
+    job.put()
+    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
+        'fuzz', job.name, 'https://download_url')
+
+    # The 'os' dimension should now be 'Windows' regardless of job.platform
+    os_dimension = next(d for d in spec.task_slices[0].properties.dimensions
+                        if d.key == 'os')
+    self.assertEqual(os_dimension.value, 'Windows')
