@@ -14,7 +14,8 @@
 """Cron to sync OSS-Fuzz projects groups used as CC in the issue tracker."""
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.cron import project_setup
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.metrics import logs
 
@@ -22,7 +23,31 @@ _CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
 _CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
 
 
-def sync_project_cc_group(project_name, info):
+def normalize_email_for_group(email):
+  """Normalize an email address for google groups."""
+  email = email.strip().lower()
+
+  parts = email.split('@')
+  if len(parts) != 2:
+    logs.error(f'Email with unexpected format: {email}')
+    return None
+  local, domain = parts
+
+  # Convert googlemail to gmail
+  if domain in 'googlemail.com':
+    domain = 'gmail.com'
+
+  # Remove dots if domain is gmail
+  if domain == 'gmail.com':
+    local = local.replace('.', '')
+
+  # Remove pluses alias/tags as it is not supported by cloud identity api.
+  local = local.split('+', 1)[0]
+
+  return f'{local}@{domain}'
+
+
+def sync_project_cc_group(project_name: str, ccs: list[str]):
   """Sync the project's google group used for CCing in the issue tracker."""
   group_name = f'{project_name}{_CC_GROUP_SUFFIX}'
 
@@ -54,40 +79,35 @@ def sync_project_cc_group(project_name, info):
       logs.warning(f'Failed to allow external members for {group_name}')
       return
 
-  ccs = set(project_setup.ccs_from_info(info))
+  ccs_norm = {normalize_email_for_group(cc) for cc in ccs}
+  group_memberships_norm = {
+      normalize_email_for_group(k): v for k, v in group_memberships.items()
+  }
+  to_add = ccs_norm - group_memberships_norm.keys()
+  to_delete = group_memberships_norm.keys() - ccs_norm
 
-  to_add = ccs - group_memberships.keys()
   for member in to_add:
+    if not member:
+      continue
     google_groups.add_member_to_group(group_id, member)
 
-  to_delete = group_memberships.keys() - ccs
   for member in to_delete:
     # Ignore the SA that created the group from members to delete.
-    if utils.is_service_account(member):
+    if not member or utils.is_service_account(member):
       continue
-    memebership_name = group_memberships[member]
+    memebership_name = group_memberships_norm[member]
     google_groups.delete_google_group_membership(group_id, member,
                                                  memebership_name)
 
 
 def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
-  logs.info('OSS-Fuzz TEST CC groups sync started.')
-  project_name_1 = 'vtcosta-test'
-  info_1 = {
-      'primary_contact': 'vtcosta@google.com',
-      'auto_ccs': ['javanlacerda@google.com']
-  }
-  project_name_2 = 'vtcosta-test-2'
-  info_2 = {
-      'primary_contact': 'vtcosta@google.com',
-      'auto_ccs': ['andrenribeiro@google.com']
-  }
+  logs.info('OSS-Fuzz CC groups sync started.')
 
-  projects = [(project_name_1, info_1), (project_name_2, info_2)]
+  for project in ndb_utils.get_all_from_model(data_types.OssFuzzProject):
+    project_name = project.name
+    ccs = project.ccs
+    sync_project_cc_group(project_name, ccs)
 
-  for project, info in projects:
-    sync_project_cc_group(project, info)
-
-  logs.info('OSS-Fuzz TEST CC groups sync succeeded.')
+  logs.info('OSS-Fuzz CC groups sync succeeded.')
   return True
