@@ -88,6 +88,21 @@ class SwarmingTest(unittest.TestCase):
 
     self.assertEqual(spec, expected_spec)
 
+  def test_get_spec_with_swarming_os_dimension(self):
+    """Tests that _get_new_task_spec uses SWARMING_OS_DIMENSION if present."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='SWARMING_OS_DIMENSION = custom_os')
+    job.put()
+    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
+        'corpus_pruning', job.name, 'https://download_url')
+
+    # Verify that the 'os' dimension is 'custom_os' instead of 'LINUX'.
+    dimensions = spec.task_slices[0].properties.dimensions
+    os_dimension = [d.value for d in dimensions if d.key == 'os'][0]
+    self.assertEqual(os_dimension, 'custom_os')
+
   def test_get_spec_from_config_raises_error_on_unknown_config(self):
     """Tests that _get_new_task_spec raises error when there's no mapping for the config."""
     job = data_types.Job(name='some_job_name', platform='UNKNOWN-PLATFORM')
