@@ -19,6 +19,7 @@ import uuid
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -28,6 +29,8 @@ from clusterfuzz._internal.system import environment
 
 def is_swarming_task(command: str, job_name: str):
   """Returns True if the task is supposed to run on swarming."""
+  if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    return False
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job:
     return False
