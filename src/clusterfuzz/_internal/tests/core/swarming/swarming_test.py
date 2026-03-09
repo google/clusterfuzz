@@ -32,9 +32,11 @@ class SwarmingTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
-        'clusterfuzz._internal.swarming._get_task_name'
+        'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.swarming.FeatureFlags',
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
+    self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):
