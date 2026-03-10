@@ -14,12 +14,12 @@
 """Swarming tests."""
 import base64
 import unittest
+from unittest import mock
 
 from google.protobuf import json_format
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -27,7 +27,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 @test_utils.with_cloud_emulators('datastore')
 class SwarmingTest(unittest.TestCase):
-  """Tests for swarming utilss."""
+  """Tests for swarming utils."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -35,8 +35,10 @@ class SwarmingTest(unittest.TestCase):
         'clusterfuzz._internal.swarming._get_task_name',
         'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
         'google.auth.transport.requests.Request',
+        'clusterfuzz._internal.swarming.FeatureFlags',
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
+    self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):
@@ -89,7 +91,8 @@ class SwarmingTest(unittest.TestCase):
     self.assertEqual(spec, expected_spec)
 
   def test_get_spec_from_config_raises_error_on_unknown_config(self):
-    """Tests that _get_new_task_spec raises error when there's no mapping for the config."""
+    """Tests that _get_new_task_spec raises error when there's no mapping for
+    the config."""
     job = data_types.Job(name='some_job_name', platform='UNKNOWN-PLATFORM')
     job.put()
     with self.assertRaises(ValueError):
@@ -97,7 +100,8 @@ class SwarmingTest(unittest.TestCase):
           'corpus_pruning', job.name, 'https://download_url')
 
   def test_get_spec_from_config_without_docker_image(self):
-    """Tests that _get_new_task_spec works as expected (without a docker image)."""
+    """Tests that _get_new_task_spec works as expected (without a docker
+    image)."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='MAC')
     job.put()
     spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
@@ -210,7 +214,7 @@ class SwarmingTest(unittest.TestCase):
 
   def test_push_swarming_task(self):
     """Tests that push_swarming_task works as expected."""
-    mock_creds = helpers.CustomMock()
+    mock_creds = mock.MagicMock()
     mock_creds.token = 'fake_token'
     self.mock.get_default.return_value = (mock_creds, None)
 
@@ -273,7 +277,7 @@ class SwarmingTest(unittest.TestCase):
 
   def test_push_swarming_task_with_refresh(self):
     """Tests that push_swarming_task refreshes credentials if token is missing."""
-    mock_creds = helpers.CustomMock()
+    mock_creds = mock.MagicMock()
     mock_creds.token = None
     self.mock.get_default.return_value = (mock_creds, None)
 
