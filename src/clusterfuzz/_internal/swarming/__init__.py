@@ -151,13 +151,7 @@ def push_swarming_task(command, download_url, job_type):
     raise ValueError('invalid job_name')
 
   task_spec = _get_new_task_spec(command, job_type, download_url)
-  swarming_config = _get_swarming_config()
-  auth_service_account = swarming_config.get('auth_service_account')
-  if auth_service_account:
-    creds = credentials.get_target_service_account_credentials(
-        auth_service_account, _SWARMING_SCOPES)
-  else:
-    creds, _ = credentials.get_default()
+  creds, _ = credentials.get_default(_SWARMING_SCOPES)
 
   if not creds.token:
     creds.refresh(requests.Request())
@@ -167,7 +161,7 @@ def push_swarming_task(command, download_url, job_type):
       'Content-Type': 'application/json',
       'Authorization': creds.token
   }
-  swarming_server = swarming_config.get('swarming_server')
+  swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
   utils.post_url(
       url=url, data=json_format.MessageToJson(task_spec), headers=headers)
