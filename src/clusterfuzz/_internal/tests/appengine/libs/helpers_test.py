@@ -159,3 +159,27 @@ class LogTest(unittest.TestCase):
     helpers.log('message', helpers.VIEW_OPERATION)
     self.mock.info.assert_called_once_with(
         'ClusterFuzz: %s (%s): %s.', helpers.VIEW_OPERATION, 'email', 'message')
+
+
+class DiffTest(unittest.TestCase):
+  """Test diff."""
+
+  def test_diff_empty(self):
+    """Test diff with empty strings."""
+    self.assertEqual(helpers.diff('', ''), '')
+
+  def test_diff_no_change(self):
+    """Test diff with no changes."""
+    self.assertEqual(helpers.diff('a\nb\n', 'a\nb\n'), '')
+
+  def test_diff_addition(self):
+    """Test diff with addition."""
+    self.assertEqual(helpers.diff('a\nb\n', 'a\nb\nc\n'), '+ c\n')
+
+  def test_diff_deletion(self):
+    """Test diff with deletion."""
+    self.assertEqual(helpers.diff('a\nb\nc\n', 'a\nc\n'), '- b\n')
+
+  def test_diff_modification(self):
+    """Test diff with modification."""
+    self.assertEqual(helpers.diff('a\nb\nc\n', 'a\nd\nc\n'), '- b\n+ d\n')
