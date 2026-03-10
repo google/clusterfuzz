@@ -63,12 +63,11 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   unique_dimensions['os'] = job.platform
   unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
 
-  if platform_specific_dimensions:
-    for dimension in platform_specific_dimensions:
-      unique_dimensions[dimension['key'].lower()] = dimension['value']
+  for dimension in platform_specific_dimensions:
+    unique_dimensions[dimension['key'].lower()] = dimension['value']
 
   swarming_dimensions = environment.get_value('SWARMING_DIMENSIONS')
-  if swarming_dimensions:
+  if isinstance(swarming_dimensions, dict):
     for key, value in swarming_dimensions.items():
       unique_dimensions[key.lower()] = value
 
@@ -131,7 +130,7 @@ def _get_new_task_spec(command: str, job_name: str,
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
 
-  dimensions = instance_spec.get('dimensions', None)
+  dimensions = instance_spec.get('dimensions', [])
 
   cas_input_root = instance_spec.get('cas_input_root', {})
 

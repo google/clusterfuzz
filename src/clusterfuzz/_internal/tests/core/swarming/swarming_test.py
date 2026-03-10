@@ -293,7 +293,7 @@ class SwarmingTest(unittest.TestCase):
         'os': 'windows'
     })
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    dimensions = swarming._get_task_dimensions(job, None)  # pylint: disable=protected-access
+    dimensions = swarming._get_task_dimensions(job, [])  # pylint: disable=protected-access
 
     expected_dimensions = [
         swarming_pb2.StringPair(key='os', value='windows'),
