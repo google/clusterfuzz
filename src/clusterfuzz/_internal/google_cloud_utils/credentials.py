@@ -129,18 +129,3 @@ def get_scoped_service_account_credentials(
   scoped_creds.refresh(request)
 
   return scoped_creds
-
-
-def get_target_service_account_credentials(
-    target_email: str, scopes: list[str]) -> impersonated_credentials.Credentials:
-  """Gets credentials for a target service account by impersonating it."""
-  source_creds, _ = get_default()
-  target_creds = impersonated_credentials.Credentials(
-      source_credentials=source_creds,
-      target_principal=target_email,
-      target_scopes=scopes,
-  )
-  request = requests.Request()
-  target_creds.refresh(request)
-
-  return target_creds

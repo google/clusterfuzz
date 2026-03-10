@@ -26,7 +26,7 @@ from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
-_SWARMING_SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
+_SWARMING_SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com']
 
 
 def is_swarming_task(command: str, job_name: str):
