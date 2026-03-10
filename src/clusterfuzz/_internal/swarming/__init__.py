@@ -57,6 +57,30 @@ def is_swarming_task(job_name: str):
     return False
   return _get_instance_spec(_get_swarming_config(), job) is not None
 
+def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
+                        ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
+  """ Gets all swarming dimensions for a task.
+  Job dimensions have more precedence than static dimensions"""
+  unique_dimensions = {}
+  unique_dimensions['os'] = job.platform
+  unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
+
+  if platform_specific_dimensions:
+    for dimension in platform_specific_dimensions:
+      unique_dimensions[dimension['key'].lower()] = dimension['value']
+
+  swarming_dimensions = environment.get_value('SWARMING_DIMENSIONS')
+  if isinstance(swarming_dimensions, dict):
+    for key, value in swarming_dimensions.items():
+      unique_dimensions[key.lower()] = value
+
+  task_dimensions = []
+  for dimension, value in unique_dimensions.items():
+    task_dimensions.append(
+        swarming_pb2.StringPair(  # pylint: disable=no-member
+            key=dimension, value=value))
+  return task_dimensions
+
 
 def _get_task_name():
   return 't-' + str(uuid.uuid4()).lower()
@@ -88,7 +112,6 @@ def create_new_task_request(command: str, job_name: str, download_url: str
     logs.error('Instance spec not found for task request.', job_name=job_name)
     return None
 
-  swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
   logs_project_id = swarming_config.get('logs_project_id')
   priority = instance_spec['priority']
@@ -110,7 +133,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   # env_prefixes allows the modification of existing environment variables by
   # adding the values as prefixes to the env variable.
   env_prefixes = instance_spec.get('env_prefixes', {})
-  task_environment = [
+  default_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
@@ -119,33 +142,19 @@ def create_new_task_request(command: str, job_name: str, download_url: str
           value=logs_project_id),
   ]
 
-  env = instance_spec.get('env', None)
-  if env:
-    for var in env:
-      task_environment.append(
-          swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
-
+  platform_specific_environment = instance_spec.get('env', [])
   swarming_bot_environment = []
-  if instance_spec.get('docker_image'):
-    swarming_bot_environment.append(
-        swarming_pb2.StringPair(  # pylint: disable=no-member
-            key='DOCKER_IMAGE',
-            value=instance_spec['docker_image']))
-  swarming_bot_environment.append(_env_vars_to_json(task_environment))
+  swarming_bot_environment.append(
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='DOCKER_IMAGE',
+          value=instance_spec.get('docker_image','')))
+  for var in platform_specific_environment:
+    default_environment.append(
+        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+  swarming_bot_environment.append(_env_vars_to_json(default_environment))
+  swarming_bot_environment.extend(default_environment)
 
-  task_dimensions = [
-      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
-  ]
-
-  dimensions = instance_spec.get('dimensions', None)
-  if dimensions:
-    for dimension in dimensions:
-      task_dimensions.append(
-          swarming_pb2.StringPair(  # pylint: disable=no-member
-              key=dimension['key'],
-              value=dimension['value']))
-
+  dimensions = instance_spec.get('dimensions', [])
   cas_input_root = instance_spec.get('cas_input_root', {})
 
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
@@ -158,7 +167,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
               expiration_secs=expiration_secs,
               properties=swarming_pb2.TaskProperties(  # pylint: disable=no-member
                   command=startup_command,
-                  dimensions=task_dimensions,
+                  dimensions=_get_task_dimensions(job, dimensions),
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,

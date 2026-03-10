@@ -14,6 +14,7 @@
 """Swarming tests."""
 import base64
 import unittest
+from unittest import mock
 
 from google.protobuf import json_format
 
@@ -21,6 +22,7 @@ from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -35,10 +37,17 @@ class SwarmingTest(unittest.TestCase):
         'clusterfuzz._internal.swarming._get_task_name',
         'clusterfuzz._internal.swarming._requires_gpu',
         'clusterfuzz._internal.swarming.FeatureFlags',
+        'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
     self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.mock.FeatureFlags.SWARMING_TASKS.enabled = True
+    self.mock.get_default.return_value = (mock.Mock(
+        service_account_email='test-clusterfuzz-service-account-email',
+        token='test-token',
+        valid=True), None)
+    environment.set_value('SWARMING_DIMENSIONS', None)
+    self.addCleanup(environment.set_value, 'SWARMING_DIMENSIONS', None)
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):
@@ -82,6 +91,12 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -140,10 +155,20 @@ class SwarmingTest(unittest.TestCase):
                     execution_timeout_secs=86400,
                     env=[
                         swarming_pb2.StringPair(
+                            key='DOCKER_IMAGE', value=''),
+                        swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}'
-                        )
+                        ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
+                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
                     ],
                     env_prefixes=[
                         swarming_pb2.StringListPair(
@@ -199,6 +224,12 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -248,6 +279,12 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -257,7 +294,7 @@ class SwarmingTest(unittest.TestCase):
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': creds.token
+        'Authorization': f'Bearer {creds.token}'
     }
     expected_url = 'https://server-name/prpc/swarming.v2.Tasks/NewTask'
     self.mock.post_url.assert_called_with(
@@ -300,3 +337,42 @@ class SwarmingTest(unittest.TestCase):
         key='DOCKER_ENV_VARS',
         value='{"DUPLICATE_KEY": "LAST_VALUE", "OTHER_KEY": "OTHER_VALUE"}')
     self.assertEqual(result, expected_result)
+
+
+  def test_get_task_dimensions_with_env_var(self):
+    """Tests that _get_task_dimensions handles SWARMING_DIMENSIONS env var."""
+    environment.set_value('SWARMING_DIMENSIONS', {
+        'cpu': 'x86',
+        'os': 'windows'
+    })
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    dimensions = swarming._get_task_dimensions(job, None)  # pylint: disable=protected-access
+
+    expected_dimensions = [
+        swarming_pb2.StringPair(key='os', value='windows'),
+        swarming_pb2.StringPair(key='pool', value='pool-name'),
+        swarming_pb2.StringPair(key='cpu', value='x86'),
+    ]
+    self.assertCountEqual(dimensions, expected_dimensions)
+
+  def test_get_task_dimensions_job_precedence(self):
+    """Tests that job swarming dimensions have more precedence than platform ones."""
+    # Use 'MAC' platform which has static dimensions (key1, key2) in swarming.yaml.
+    job = data_types.Job(name='mac_job', platform='MAC')
+    job.put()
+
+    # Platform dimensions for MAC are: key1: value1, key2: value2.
+    # We set SWARMING_DIMENSIONS in the environment to override key1.
+    environment.set_value('SWARMING_DIMENSIONS', {'key1': 'job_value1'})
+
+    spec = swarming.create_new_task_request(
+        'fuzz', job.name, 'https://download_url')
+    dimensions = spec.task_slices[0].properties.dimensions
+
+    expected_dimensions = [
+        swarming_pb2.StringPair(key='os', value='MAC'),
+        swarming_pb2.StringPair(key='pool', value='pool-name'),
+        swarming_pb2.StringPair(key='key1', value='job_value1'),
+        swarming_pb2.StringPair(key='key2', value='value2'),
+    ]
+    self.assertCountEqual(dimensions, expected_dimensions)
