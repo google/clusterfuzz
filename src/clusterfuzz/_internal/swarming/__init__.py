@@ -14,7 +14,7 @@
 """Swarming helpers."""
 
 import base64
-from json import dumps
+import json
 import uuid
 
 from google.protobuf import json_format
@@ -66,7 +66,7 @@ def _env_vars_to_json(
   env_vars_dict = {pair.key: pair.value for pair in env_vars}
   return swarming_pb2.StringPair(  # pylint: disable=no-member
       key='DOCKER_ENV_VARS',
-      value=dumps(env_vars_dict))
+      value=json.dumps(env_vars_dict))
 
 
 def _get_new_task_spec(command: str, job_name: str,
@@ -100,7 +100,7 @@ def _get_new_task_spec(command: str, job_name: str,
   # env_prefixes allows the modification of existing environment variables by
   # adding the values as prefixes to the env variable.
   env_prefixes = instance_spec.get('env_prefixes', {})
-  default_environment = [
+  default_task_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
@@ -118,8 +118,8 @@ def _get_new_task_spec(command: str, job_name: str,
   for var in platform_specific_env:
     swarming_bot_environment.append(
         swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
-  swarming_bot_environment.append(_env_vars_to_json(default_environment))
-  swarming_bot_environment.extend(default_environment)
+  swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
+  swarming_bot_environment.extend(default_task_environment)
 
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
