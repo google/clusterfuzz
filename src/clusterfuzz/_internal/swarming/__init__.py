@@ -14,6 +14,7 @@
 """Swarming helpers."""
 
 import base64
+from json import dumps
 import uuid
 
 from google.protobuf import json_format
@@ -53,6 +54,19 @@ def _get_task_name():
 def _get_swarming_config():
   """Returns the swarming config."""
   return local_config.SwarmingConfig()
+
+
+def _env_vars_to_json(
+    env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
+  """
+  Compresses all env variables into a single JSON string , which will be used
+  to set up the env variables in swarming bots that launch clusterfuzz 
+  using a docker container.
+  """
+  env_vars_dict = {pair.key: pair.value for pair in env_vars}
+  return swarming_pb2.StringPair(  # pylint: disable=no-member
+      key='DOCKER_ENV_VARS',
+      value=dumps(env_vars_dict))
 
 
 def _get_new_task_spec(command: str, job_name: str,
@@ -95,17 +109,17 @@ def _get_new_task_spec(command: str, job_name: str,
           value=logs_project_id),
   ]
 
-  env = instance_spec.get('env', None)
-  if env:
-    for var in env:
-      task_environment.append(
-          swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
-
+  swarming_bot_environment = []
   if instance_spec.get('docker_image'):
-    task_environment.append(
+    swarming_bot_environment.append(
         swarming_pb2.StringPair(  # pylint: disable=no-member
             key='DOCKER_IMAGE',
             value=instance_spec['docker_image']))
+
+  if job.platform.lower() in ['linux', 'android']:
+    swarming_bot_environment.append(_env_vars_to_json(task_environment))
+  else:
+    swarming_bot_environment.extend(task_environment)
 
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
@@ -136,7 +150,7 @@ def _get_new_task_spec(command: str, job_name: str,
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=task_environment,
+                  env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
