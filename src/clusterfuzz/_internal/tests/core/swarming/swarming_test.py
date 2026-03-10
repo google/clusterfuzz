@@ -144,6 +144,8 @@ class SwarmingTest(unittest.TestCase):
                     execution_timeout_secs=86400,
                     env=[
                         swarming_pb2.StringPair(key='DOCKER_IMAGE', value=''),
+                        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
+                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
                         swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=

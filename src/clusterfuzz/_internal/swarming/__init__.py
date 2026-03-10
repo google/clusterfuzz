@@ -109,11 +109,15 @@ def _get_new_task_spec(command: str, job_name: str,
           value=logs_project_id),
   ]
 
+  platform_specific_env = instance_spec.get('env', [])
   swarming_bot_environment = []
   swarming_bot_environment.append(
       swarming_pb2.StringPair(  # pylint: disable=no-member
           key='DOCKER_IMAGE',
           value=instance_spec.get('docker_image', '')))
+  for var in platform_specific_env:
+    swarming_bot_environment.append(
+        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
   swarming_bot_environment.append(_env_vars_to_json(default_environment))
   swarming_bot_environment.extend(default_environment)
 
