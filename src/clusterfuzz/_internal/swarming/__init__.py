@@ -100,7 +100,7 @@ def _get_new_task_spec(command: str, job_name: str,
   # env_prefixes allows the modification of existing environment variables by
   # adding the values as prefixes to the env variable.
   env_prefixes = instance_spec.get('env_prefixes', {})
-  task_environment = [
+  default_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
@@ -110,16 +110,12 @@ def _get_new_task_spec(command: str, job_name: str,
   ]
 
   swarming_bot_environment = []
-  if instance_spec.get('docker_image'):
-    swarming_bot_environment.append(
-        swarming_pb2.StringPair(  # pylint: disable=no-member
-            key='DOCKER_IMAGE',
-            value=instance_spec['docker_image']))
-
-  if job.platform.lower() in ['linux', 'android']:
-    swarming_bot_environment.append(_env_vars_to_json(task_environment))
-  else:
-    swarming_bot_environment.extend(task_environment)
+  swarming_bot_environment.append(
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='DOCKER_IMAGE',
+          value=instance_spec.get('docker_image', '')))
+  swarming_bot_environment.append(_env_vars_to_json(default_environment))
+  swarming_bot_environment.extend(default_environment)
 
   task_dimensions = [
       swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member

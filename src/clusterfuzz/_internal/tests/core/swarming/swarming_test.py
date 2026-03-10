@@ -80,6 +80,12 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -137,6 +143,12 @@ class SwarmingTest(unittest.TestCase):
                             size_bytes=456)),
                     execution_timeout_secs=86400,
                     env=[
+                        swarming_pb2.StringPair(key='DOCKER_IMAGE', value=''),
+                        swarming_pb2.StringPair(
+                            key='DOCKER_ENV_VARS',
+                            value=
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
+                        ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
@@ -198,6 +210,12 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -245,6 +263,12 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
