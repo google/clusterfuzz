@@ -127,8 +127,12 @@ def _get_new_task_spec(command: str, job_name: str,
   swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
   swarming_bot_environment.extend(default_task_environment)
 
+  os_task_dimension = job.get_environment().get('SWARMING_OS_DIMENSION')
+  if not os_task_dimension:
+    os_task_dimension = job.platform
+
   task_dimensions = [
-      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='os', value=os_task_dimension),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
   ]
 
