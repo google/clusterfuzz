@@ -27,6 +27,11 @@ from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
+_SWARMING_SCOPES = [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com'
+]
+
 
 def is_swarming_task(command: str, job_name: str):
   """Returns True if the task is supposed to run on swarming."""
@@ -152,8 +157,9 @@ def push_swarming_task(command, download_url, job_type):
     raise ValueError('invalid job_name')
 
   task_spec = _get_new_task_spec(command, job_type, download_url)
-  creds, _ = credentials.get_default()
-  if not creds.valid:
+  creds, _ = credentials.get_default(_SWARMING_SCOPES)
+
+  if not creds.token:
     creds.refresh(requests.Request())
 
   headers = {

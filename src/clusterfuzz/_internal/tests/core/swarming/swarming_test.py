@@ -14,6 +14,7 @@
 """Swarming tests."""
 import base64
 import unittest
+from unittest import mock
 
 from google.protobuf import json_format
 
@@ -27,12 +28,14 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 @test_utils.with_cloud_emulators('datastore')
 class SwarmingTest(unittest.TestCase):
-  """Tests for swarming utilss."""
+  """Tests for swarming utils."""
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
+        'google.auth.transport.requests.Request',
         'clusterfuzz._internal.swarming.FeatureFlags',
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
@@ -89,7 +92,8 @@ class SwarmingTest(unittest.TestCase):
     self.assertEqual(spec, expected_spec)
 
   def test_get_spec_from_config_raises_error_on_unknown_config(self):
-    """Tests that _get_new_task_spec raises error when there's no mapping for the config."""
+    """Tests that _get_new_task_spec raises error when there's no mapping for
+    the config."""
     job = data_types.Job(name='some_job_name', platform='UNKNOWN-PLATFORM')
     job.put()
     with self.assertRaises(ValueError):
@@ -97,7 +101,8 @@ class SwarmingTest(unittest.TestCase):
           'corpus_pruning', job.name, 'https://download_url')
 
   def test_get_spec_from_config_without_docker_image(self):
-    """Tests that _get_new_task_spec works as expected (without a docker image)."""
+    """Tests that _get_new_task_spec works as expected (without a docker
+    image)."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='MAC')
     job.put()
     spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
@@ -210,6 +215,10 @@ class SwarmingTest(unittest.TestCase):
 
   def test_push_swarming_task(self):
     """Tests that push_swarming_task works as expected."""
+    mock_creds = mock.MagicMock()
+    mock_creds.token = 'fake_token'
+    self.mock.get_default.return_value = (mock_creds, None)
+
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
     swarming.push_swarming_task('fuzz', 'https://download_url', job.name)
@@ -255,7 +264,8 @@ class SwarmingTest(unittest.TestCase):
                         'https://download_url'.encode('utf-8'))))
         ])
 
-    creds, _ = credentials.get_default()
+    self.mock.get_default.assert_called_with(
+        swarming._SWARMING_SCOPES)  # pylint: disable=protected-access
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -266,6 +276,30 @@ class SwarmingTest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(expected_new_task_request),
         headers=expected_headers)
+
+  def test_push_swarming_task_with_refresh(self):
+    """Tests that push_swarming_task refreshes credentials if token is missing."""
+    mock_creds = mock.MagicMock()
+    mock_creds.token = None
+    self.mock.get_default.return_value = (mock_creds, None)
+
+    def refresh_side_effect(_):
+      mock_creds.token = 'refreshed_token'
+
+    mock_creds.refresh.side_effect = refresh_side_effect
+
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    job.put()
+    swarming.push_swarming_task('fuzz', 'https://download_url', job.name)
+
+    mock_creds.refresh.assert_called_with(self.mock.Request.return_value)
+    expected_headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'refreshed_token'
+    }
+    self.assertEqual(self.mock.post_url.call_args[1]['headers'],
+                     expected_headers)
 
   def test_is_swarming_task(self):
     """Tests that is_swarming_task works as expected."""
