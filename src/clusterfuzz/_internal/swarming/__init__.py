@@ -16,6 +16,7 @@
 import base64
 import uuid
 
+from google.auth.transport import requests
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
@@ -152,10 +153,13 @@ def push_swarming_task(command, download_url, job_type):
 
   task_spec = _get_new_task_spec(command, job_type, download_url)
   creds, _ = credentials.get_default()
+  if not creds.valid:
+    creds.refresh(requests.Request())
+
   headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': creds.token
+      'Authorization': f'Bearer {creds.token}'
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
