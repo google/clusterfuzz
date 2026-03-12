@@ -34,6 +34,10 @@ from libs import handler
 from libs import helpers
 
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
+FUZZER_FIELDS_EXCLUDED_FROM_LOG = [
+    'result', 'result_timestamp', 'console_output', 'return_code',
+    'sample_testcase', 'stats_columns', 'stats_column_descriptions'
+]
 
 
 class Handler(base_handler.Handler):
@@ -139,6 +143,10 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     return value
 
+  def _get_fuzzer_state_str(self, fuzzer: data_types.Fuzzer) -> str:
+    fuzzer_dict = fuzzer.to_dict(exclude=FUZZER_FIELDS_EXCLUDED_FROM_LOG)
+    return '\n'.join(f"{key}: {val}" for key, val in fuzzer_dict.items())
+
   def apply_fuzzer_changes(self, fuzzer, upload_info):
     """Apply changes to a fuzzer."""
     if upload_info and not archive.is_archive(upload_info.filename):
@@ -159,6 +167,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
             'Please enter the path to the executable, or if the archive you '
             'uploaded is less than 16MB, ensure that the executable file has '
             '"run" in its name.', 400)
+
+    existing_fuzzer_info = self._get_fuzzer_state_str(fuzzer)
 
     jobs = request.get('jobs', [])
     timeout = self._get_integer_value('timeout')
@@ -201,7 +211,14 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
-    helpers.log('Uploaded fuzzer %s.' % fuzzer.name, helpers.MODIFY_OPERATION)
+    new_fuzzer_info = self._get_fuzzer_state_str(fuzzer)
+    fuzzer_diff = helpers.diff(existing_fuzzer_info, new_fuzzer_info)
+    fuzzer_update_message = (f"\n--- Updated fuzzer {fuzzer.name} ---\n"
+                             f"{new_fuzzer_info}\n"
+                             f"--- Changes (Diff) ---\n"
+                             f"{fuzzer_diff}")
+    helpers.log(fuzzer_update_message, helpers.MODIFY_OPERATION)
+
     return self.redirect('/fuzzers')
 
 
