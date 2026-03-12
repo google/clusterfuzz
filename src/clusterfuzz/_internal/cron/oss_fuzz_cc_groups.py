@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cron to sync OSS-Fuzz projects groups used as CC in the issue tracker."""
 
+from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -21,6 +22,7 @@ from clusterfuzz._internal.metrics import logs
 
 _CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
 _CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
+_API_DELAY = 3  # 3s delay to avoid cloud identity api rate limits.
 
 
 def normalize_email_for_group(email):
@@ -45,6 +47,27 @@ def normalize_email_for_group(email):
   local = local.split('+', 1)[0]
 
   return f'{local}@{domain}'
+
+
+@retry.wrap(
+    retries=3,
+    delay=_API_DELAY,
+    function='cron.oss_fuzz_cc_groups._add_member_with_retry',
+    retry_on_false=True)
+def _add_member_with_retry(group_id, member):
+  """Add a member to a group with retry."""
+  return google_groups.add_member_to_group(group_id, member)
+
+
+@retry.wrap(
+    retries=3,
+    delay=_API_DELAY,
+    function='cron.oss_fuzz_cc_groups._delete_member_with_retry',
+    retry_on_false=True)
+def _delete_member_with_retry(group_id, member, membership_name):
+  """Delete a member from a group with retry."""
+  return google_groups.delete_google_group_membership(group_id, member,
+                                                      membership_name)
 
 
 def sync_project_cc_group(project_name: str, ccs: list[str]):
@@ -89,15 +112,14 @@ def sync_project_cc_group(project_name: str, ccs: list[str]):
   for member in to_add:
     if not member:
       continue
-    google_groups.add_member_to_group(group_id, member)
+    _add_member_with_retry(group_id, member)
 
   for member in to_delete:
     # Ignore the SA that created the group from members to delete.
     if not member or utils.is_service_account(member):
       continue
-    memebership_name = group_memberships_norm[member]
-    google_groups.delete_google_group_membership(group_id, member,
-                                                 memebership_name)
+    membership_name = group_memberships_norm[member]
+    _delete_member_with_retry(group_id, member, membership_name)
 
 
 def main():
