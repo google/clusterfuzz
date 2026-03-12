@@ -33,7 +33,10 @@ _local = threading.local()
 def get_identity_api() -> discovery.Resource | None:
   """Return cloud identity api client."""
   if not hasattr(_local, 'identity_service'):
-    creds, _ = credentials.get_default()
+    scopes = ['https://www.googleapis.com/auth/cloud-identity.groups']
+    creds = credentials.get_scoped_service_account_credentials(scopes)
+    if not creds:
+      creds, _ = credentials.get_default()
     _local.identity_service = discovery.build(
         'cloudidentity', 'v1', credentials=creds, cache_discovery=False)
 
