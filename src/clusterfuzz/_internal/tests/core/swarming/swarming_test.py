@@ -267,7 +267,7 @@ class SwarmingTest(unittest.TestCase):
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'fake_token'
+        'Authorization': 'Bearer fake_token'
     }
     expected_url = 'https://server-name/prpc/swarming.v2.Tasks/NewTask'
     self.mock.post_url.assert_called_with(
@@ -294,7 +294,7 @@ class SwarmingTest(unittest.TestCase):
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'refreshed_token'
+        'Authorization': 'Bearer refreshed_token'
     }
     self.assertEqual(self.mock.post_url.call_args[1]['headers'],
                      expected_headers)

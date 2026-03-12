@@ -29,7 +29,7 @@ from clusterfuzz._internal.system import environment
 
 _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
-    'https://www.googleapis.com'
+    'https://www.googleapis.com/auth/userinfo.email'
 ]
 
 
@@ -165,7 +165,7 @@ def push_swarming_task(command, download_url, job_type):
   headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': creds.token
+      'Authorization': f'Bearer {creds.token}'
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
