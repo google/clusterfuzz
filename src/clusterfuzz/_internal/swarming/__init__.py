@@ -30,6 +30,11 @@ from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
 
+_SWARMING_SCOPES = [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/userinfo.email'
+]
+
 def _requires_gpu() -> bool:
   """Checks whether the REQUIRES_GPU env variable is set. This means
   that the current job needs a gpu enabled device."""
@@ -195,19 +200,25 @@ def _env_vars_to_json(
 def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
   """Schedules a task on swarming."""
   logs.info('Pushing new task to swarming.', task_name=task_request.name)
-  creds, _ = credentials.get_default()
-  if not creds.valid:
-    logs.info('Refreshing credentials.')
+
+  swarming_server = _get_swarming_config().get('swarming_server')
+  creds, _ = credentials.get_default(_SWARMING_SCOPES)
+
+  if not creds.token:
     creds.refresh(requests.Request())
+
   headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       'Authorization': f'Bearer {creds.token}'
   }
-  logs.info(f'Using Service account: {creds.service_account_email}',task_name=task_request.name)
-  swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  logs.info(f'Task posted to {url}', task_name=task_request.name)
+  logs.info(
+      f'Posted to {url} with headers: {headers}',
+      task_name=task_request.name)
+  logs.info(
+      f'Body: {json_format.MessageToJson(task_request)}',
+      task_name=task_request.name)
   response = utils.post_url(
       url=url, data=json_format.MessageToJson(task_request), headers=headers)
   logs.info(f'Swarming response: {response}', task_name=task_request.name)

@@ -38,10 +38,12 @@ class SwarmingTest(unittest.TestCase):
         'clusterfuzz._internal.swarming._requires_gpu',
         'clusterfuzz._internal.swarming.FeatureFlags',
         'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.is_gce',
     ])
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
     self.mock._requires_gpu.return_value = True  # pylint: disable=protected-access
     self.mock.FeatureFlags.SWARMING_TASKS.enabled = True
+    self.mock.is_gce.return_value = False
     self.mock.get_default.return_value = (mock.Mock(
         service_account_email='test-clusterfuzz-service-account-email',
         token='test-token',
@@ -290,11 +292,10 @@ class SwarmingTest(unittest.TestCase):
                         'https://download_url'.encode('utf-8'))))
         ])
 
-    creds, _ = credentials.get_default()
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {creds.token}'
+        'Authorization': 'Bearer test-token'
     }
     expected_url = 'https://server-name/prpc/swarming.v2.Tasks/NewTask'
     self.mock.post_url.assert_called_with(
