@@ -18,7 +18,9 @@ from enum import Enum
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.k8s import service as k8s_service
-from clusterfuzz._internal.swarming.remote_task_service import RemoteTaskSwarmingService as SwarmingService
+from clusterfuzz._internal.swarming.remote_task_service import \
+    RemoteTaskSwarmingService as SwarmingService
+
 
 class RemoteTaskAdapters(Enum):
   """Defines the supported remote task execution backends.
@@ -37,7 +39,8 @@ class RemoteTaskAdapters(Enum):
                 feature_flags.FeatureFlags.K8S_JOBS_FREQUENCY, 0.0)
   GCP_BATCH = ('gcp_batch', batch_service.GcpBatchService,
                feature_flags.FeatureFlags.GCP_BATCH_JOBS_FREQUENCY, 1.0)
-  SWARMING = ('swarming', SwarmingService, feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION, 0.0)
+  SWARMING = ('swarming', SwarmingService,
+              feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION, 0.0)
 
   def __init__(self, adapter_id, service, feature_flag, default_weight):
     self.id = adapter_id

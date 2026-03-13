@@ -13,29 +13,41 @@
 # limitations under the License.
 """Swarming service."""
 
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.remote_task import remote_task_types
 import clusterfuzz._internal.swarming as swarming
-from clusterfuzz._internal.base.tasks import task_utils
+
 
 class RemoteTaskSwarmingService(remote_task_types.RemoteTaskInterface):
+
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
     """Creates a single swarming task for a uworker main task."""
     command = task_utils.get_command_from_module(module)
-    if not swarming.is_swarming_task(command, job_type):
-      return
-    
-    swarming.push_swarming_task(command, input_download_url, job_type)
-  
-  def create_utask_main_jobs(
-      self, remote_tasks: list[remote_task_types.RemoteTask]) -> list[remote_task_types.RemoteTask]:
+    swarming_task = remote_task_types.RemoteTask(command, job_type,
+                                                 input_download_url)
+    result = self.create_utask_main_jobs([swarming_task])
+
+    if not result:
+      return None
+
+    return result[0]
+
+  def create_utask_main_jobs(self,
+                             remote_tasks: list[remote_task_types.RemoteTask]
+                            ) -> list[remote_task_types.RemoteTask]:
     """Creates many remote tasks for uworker main tasks.
        Returns the tasks that couldn't be created.
     """
     unscheduled_tasks = []
     for task in remote_tasks:
       try:
-        self.create_utask_main_job(task.command, task.job_type, task.input_download_url)
+        if not swarming.is_swarming_task(task.command, task.job_type):
+          unscheduled_tasks.append(task)
+          continue
+
+        swarming.push_swarming_task(task.command, task.input_download_url,
+                                    task.job_type)
       except Exception:  # pylint: disable=broad-except
         unscheduled_tasks.append(task)
     return unscheduled_tasks
