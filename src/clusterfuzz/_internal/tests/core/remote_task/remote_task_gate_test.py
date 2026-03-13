@@ -23,6 +23,8 @@ from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
+from clusterfuzz._internal.swarming.remote_task_service import \
+    RemoteTaskSwarmingService
 
 
 class RemoteTaskGateTest(unittest.TestCase):
@@ -32,9 +34,11 @@ class RemoteTaskGateTest(unittest.TestCase):
     super().setUp()
     self.mock_k8s_service = mock.Mock(spec=KubernetesService)
     self.mock_gcp_batch_service = mock.Mock(spec=GcpBatchService)
+    self.mock_swarming_service = mock.Mock(spec=RemoteTaskSwarmingService)
 
     self.mock_k8s_service.create_utask_main_jobs.return_value = []
     self.mock_gcp_batch_service.create_utask_main_jobs.return_value = []
+    self.mock_swarming_service.create_utask_main_jobs.return_value = []
 
     # Patch RemoteTaskAdapters to return our mock services
     self.patcher = mock.patch.dict(
@@ -51,6 +55,12 @@ class RemoteTaskGateTest(unittest.TestCase):
                     service=mock.Mock(return_value=self.mock_gcp_batch_service),
                     feature_flag=None,
                     default_weight=1.0),
+            'SWARMING':
+                mock.Mock(
+                    id='swarming',
+                    service=mock.Mock(return_value=self.mock_swarming_service),
+                    feature_flag=None,
+                    default_weight=0.0),
         })
     self.patcher.start()
     self.addCleanup(self.patcher.stop)
@@ -61,41 +71,77 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate = remote_task_gate.RemoteTaskGate()
     self.assertIn('kubernetes', gate._service_map)
     self.assertIn('gcp_batch', gate._service_map)
+    self.assertIn('swarming', gate._service_map)
     self.assertEqual(gate._service_map['kubernetes'], self.mock_k8s_service)
     self.assertEqual(gate._service_map['gcp_batch'],
                      self.mock_gcp_batch_service)
+    self.assertEqual(gate._service_map['swarming'], self.mock_swarming_service)
 
   @mock.patch('random.choices')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   def test_get_adapter(self, mock_get_job_frequency, mock_random_choices):
     """Tests that _get_adapter returns the correct adapter based on
     job_frequency."""
-    mock_get_job_frequency.return_value = {'kubernetes': 0.3, 'gcp_batch': 0.7}
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 0.3,
+        'gcp_batch': 0.7,
+        'swarming': 0.0
+    }
     mock_random_choices.return_value = ['gcp_batch']
 
     gate = remote_task_gate.RemoteTaskGate()
     selected_adapter = gate._get_adapter()
 
     mock_get_job_frequency.assert_called_once()
-    mock_random_choices.assert_called_once_with(['kubernetes', 'gcp_batch'],
-                                                [0.3, 0.7])
+    mock_random_choices.assert_called_once_with(
+        ['kubernetes', 'gcp_batch', 'swarming'], [0.3, 0.7, 0.0])
     self.assertEqual(selected_adapter, 'gcp_batch')
 
+  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
+  def test_create_utask_main_job_swarming_priority(self, mock_get_command,
+                                                   mock_is_swarming):
+    """Tests that create_utask_main_job prioritizes Swarming tasks."""
+    mock_get_command.return_value = 'fuzz'
+    mock_is_swarming.return_value = True
+
+    gate = remote_task_gate.RemoteTaskGate()
+    gate.create_utask_main_job('module', 'job', 'url')
+
+    self.mock_swarming_service.create_utask_main_job.assert_called_once_with(
+        'module', 'job', 'url')
+    self.mock_k8s_service.create_utask_main_job.assert_not_called()
+    self.mock_gcp_batch_service.create_utask_main_job.assert_not_called()
+
+  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
-  def test_create_utask_main_job_kubernetes(self, mock_get_adapter):
+  def test_create_utask_main_job_kubernetes(self, mock_get_adapter,
+                                            mock_get_command, mock_is_swarming):
     """Tests that create_utask_main_job calls the Kubernetes service
-    when kubernetes adapter is chosen."""
+    when kubernetes adapter is chosen and it's not a swarming task."""
+    mock_get_command.return_value = 'fuzz'
+    mock_is_swarming.return_value = False
     mock_get_adapter.return_value = 'kubernetes'
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_job('module', 'job', 'url')
     self.mock_k8s_service.create_utask_main_job.assert_called_once_with(
         'module', 'job', 'url')
     self.mock_gcp_batch_service.create_utask_main_job.assert_not_called()
+    self.mock_swarming_service.create_utask_main_job.assert_not_called()
 
+  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
-  def test_create_utask_main_job_gcp_batch(self, mock_get_adapter):
+  def test_create_utask_main_job_gcp_batch(self, mock_get_adapter,
+                                           mock_get_command, mock_is_swarming):
     """Tests that create_utask_main_job calls the GCP Batch service
-    when gcp_batch adapter is chosen."""
+    when gcp_batch adapter is chosen and it's not a swarming task."""
+    mock_get_command.return_value = 'fuzz'
+    mock_is_swarming.return_value = False
     mock_get_adapter.return_value = 'gcp_batch'
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_job('module', 'job', 'url')
@@ -105,6 +151,7 @@ class RemoteTaskGateTest(unittest.TestCase):
         'url',
     )
     self.mock_k8s_service.create_utask_main_job.assert_not_called()
+    self.mock_swarming_service.create_utask_main_job.assert_not_called()
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
   def test_create_utask_main_jobs_single_task(self, mock_get_adapter):
@@ -133,7 +180,11 @@ class RemoteTaskGateTest(unittest.TestCase):
     ]
 
     # 50% split
-    mock_get_job_frequency.return_value = {'kubernetes': 0.5, 'gcp_batch': 0.5}
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 0.5,
+        'gcp_batch': 0.5,
+        'swarming': 0.0
+    }
 
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
@@ -156,13 +207,16 @@ class RemoteTaskGateTest(unittest.TestCase):
     ]
 
     # 50/50 split - one task will be a remainder
-    mock_get_job_frequency.return_value = {'kubernetes': 0.5, 'gcp_batch': 0.5}
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 0.5,
+        'gcp_batch': 0.5,
+        'swarming': 0.0
+    }
 
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
 
     # Expect 1 for k8s, 1 for gcp_batch, and 1 remainder distributed round robin.
-    # In this case, first k8s gets 1, then gcp_batch gets 1, then k8s gets the last one.
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(
         [tasks[0], tasks[2]])
     self.mock_gcp_batch_service.create_utask_main_jobs.assert_called_once_with(
@@ -182,22 +236,18 @@ class RemoteTaskGateTest(unittest.TestCase):
     # 0.25 each. Sum 0.5.
     mock_get_job_frequency.return_value = {
         'kubernetes': 0.25,
-        'gcp_batch': 0.25
+        'gcp_batch': 0.25,
+        'swarming': 0.0
     }
 
     gate = remote_task_gate.RemoteTaskGate()
     result = gate.create_utask_main_jobs(tasks)
-
-    # 4 * 0.25 = 1 task each.
-    # Total assigned = 2.
-    # Total unscheduled = 2.
 
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(
         [tasks[0]])
     self.mock_gcp_batch_service.create_utask_main_jobs.assert_called_once_with(
         [tasks[1]])
 
-    # Result should contain unscheduled (tasks[2], tasks[3]).
     self.assertEqual(result, [tasks[2], tasks[3]])
 
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
@@ -207,7 +257,11 @@ class RemoteTaskGateTest(unittest.TestCase):
         remote_task_types.RemoteTask('c', 'j', 'u1'),
         remote_task_types.RemoteTask('c', 'j', 'u2'),
     ]
-    mock_get_job_frequency.return_value = {'kubernetes': 1.0, 'gcp_batch': 0.0}
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 1.0,
+        'gcp_batch': 0.0,
+        'swarming': 0.0
+    }
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(tasks)
@@ -220,7 +274,11 @@ class RemoteTaskGateTest(unittest.TestCase):
         remote_task_types.RemoteTask('c', 'j', 'u1'),
         remote_task_types.RemoteTask('c', 'j', 'u2'),
     ]
-    mock_get_job_frequency.return_value = {'kubernetes': 0.0, 'gcp_batch': 1.0}
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 0.0,
+        'gcp_batch': 1.0,
+        'swarming': 0.0
+    }
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_jobs(tasks)
     self.mock_gcp_batch_service.create_utask_main_jobs.assert_called_once_with(
@@ -238,7 +296,11 @@ class RemoteTaskGateTest(unittest.TestCase):
         remote_task_types.RemoteTask('c', 'j', 'u1'),
     ]
 
-    mock_get_job_frequency.return_value = {'kubernetes': 1.0, 'gcp_batch': 0.0}
+    mock_get_job_frequency.return_value = {
+        'kubernetes': 1.0,
+        'gcp_batch': 0.0,
+        'swarming': 0.0
+    }
     self.mock_k8s_service.create_utask_main_jobs.return_value = unscheduled_tasks
 
     gate = remote_task_gate.RemoteTaskGate()
@@ -268,6 +330,12 @@ class RemoteTaskGateProcessingTest(unittest.TestCase):
                     service=mock.Mock(),
                     feature_flag=None,
                     default_weight=1.0),
+            'SWARMING':
+                mock.Mock(
+                    id='swarming',
+                    service=mock.Mock(),
+                    feature_flag=None,
+                    default_weight=0.0),
         })
     self.patcher.start()
     self.addCleanup(self.patcher.stop)
