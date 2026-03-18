@@ -131,10 +131,27 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     """
     tasks_by_adapter = collections.defaultdict(list)
 
-    if len(remote_tasks) == 1:
+    swarming_tasks = [
+      task for task in remote_tasks if swarming.is_swarming_task(task.command, task.job_type)
+    ]
+
+    nonswarming_tasks = [
+      task for task in remote_tasks if not swarming.is_swarming_task(task.command, task.job_type)
+    ]
+
+    if swarming_tasks:
+      for task in swarming_tasks:
+        service = self._service_map['swarming']
+        tasks_by_adapter['swarming'].append(service.create_utask_main_job(
+            task.command, task.job_type, task.input_download_url))
+        
+    if not nonswarming_tasks:
+      return []
+
+    if len(nonswarming_tasks) == 1:
       # For a single task, use a random distribution.
       adapter_id = self._get_adapter()
-      tasks_by_adapter[adapter_id].extend(remote_tasks)
+      tasks_by_adapter[adapter_id].extend(nonswarming_tasks)
       unscheduled_tasks = []
     else:
       # For multiple tasks, use deterministic slicing to ensure the
@@ -142,12 +159,12 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
       frequencies = self.get_job_frequency()
       start_index = 0
       for adapter_id, frequency in frequencies.items():
-        count = int(len(remote_tasks) * frequency)
+        count = int(len(nonswarming_tasks) * frequency)
         tasks_by_adapter[adapter_id].extend(
-            remote_tasks[start_index:start_index + count])
+            nonswarming_tasks[start_index:start_index + count])
         start_index += count
 
-      remaining_tasks = remote_tasks[start_index:]
+      remaining_tasks = nonswarming_tasks[start_index:]
       if sum(frequencies.values()) >= 0.999:
         # Distribute any remainder tasks (due to rounding) one by one. This
         # ensures that all tasks are assigned to a backend.
