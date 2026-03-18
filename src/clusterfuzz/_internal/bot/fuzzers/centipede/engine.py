@@ -24,6 +24,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
@@ -425,9 +426,12 @@ class Engine(engine.Engine):
 
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
-      rss_limit = constants.RSS_LIMIT_MB_DEFAULT
       if constants.RSS_LIMIT_MB_FLAGNAME in fuzzer_arguments:
         rss_limit = fuzzer_arguments[constants.RSS_LIMIT_MB_FLAGNAME]
+      elif (utils.is_chromium() or utils.default_project_name() == 'google'):
+        rss_limit = 0
+      else:
+        rss_limit = constants.RSS_LIMIT_MB_DEFAULT
       timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
       if constants.TIMEOUT_PER_INPUT_FLAGNAME in fuzzer_arguments:
         timeout = fuzzer_arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
