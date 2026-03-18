@@ -33,6 +33,10 @@ class FeatureFlags(Enum):
 
   GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
+  GCP_BATCH_EPHEMERAL_SSD = 'gcp_batch_ephemeral_ssd'
+
+  GCP_BATCH_PREEMPTIBLE = 'gcp_batch_preemptible'
+
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
   SWARMING_REMOTE_EXECUTION = 'swarming_remote_execution'

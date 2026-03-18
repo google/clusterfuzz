@@ -46,7 +46,15 @@ def _get_expected_task_spec(batch_workload_spec):
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
-  task_spec.runnables = [runnable]
+  if batch_workload_spec.use_ephemeral_ssd:
+    mount_runnable = batch.Runnable()
+    mount_runnable.script = batch.Runnable.Script()
+    mount_runnable.script.text = (
+        'mkdir -p /var/scratch0 && chmod a+w /var/scratch0')
+    task_spec.runnables = [mount_runnable, runnable]
+  else:
+    task_spec.runnables = [runnable]
+
   if batch_workload_spec.retry:
     task_spec.max_retry_count = 4
   else:
@@ -78,12 +86,16 @@ def _get_expected_allocation_policy(spec):
   """
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
-  disk.size_gb = spec.disk_size_gb
   disk.type = spec.disk_type
+  if spec.use_ephemeral_ssd:
+    disk.type = 'local-ssd'
+  else:
+    disk.size_gb = spec.disk_size_gb
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
   instance_policy.machine_type = spec.machine_type
   _set_preemptible(instance_policy, spec)
+
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
 
@@ -147,6 +159,7 @@ class GcpBatchServiceTest(unittest.TestCase):
   """Tests for GcpBatchService."""
 
   def setUp(self):
+    """Sets up the test case."""
     helpers.patch(self, [
         'clusterfuzz._internal.batch.service._batch_client',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
@@ -175,7 +188,8 @@ class GcpBatchServiceTest(unittest.TestCase):
         gce_region='region1',
         priority=1,
         max_run_duration='1s',
-        retry=False)
+        retry=False,
+        use_ephemeral_ssd=False)
     spec2 = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='release2',
         disk_size_gb=20,
@@ -191,7 +205,8 @@ class GcpBatchServiceTest(unittest.TestCase):
         gce_region='region2',
         priority=0,
         max_run_duration='2s',
-        retry=True)
+        retry=True,
+        use_ephemeral_ssd=True)
     with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
                    ) as mock_get_specs_from_config:
       mock_get_specs_from_config.return_value = {
@@ -251,7 +266,8 @@ class GcpBatchServiceTest(unittest.TestCase):
         gce_region='region1',
         priority=1,
         max_run_duration='1s',
-        retry=False)
+        retry=False,
+        use_ephemeral_ssd=False)
     with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
                    ) as mock_get_specs_from_config:
       mock_get_specs_from_config.return_value = {
@@ -278,6 +294,7 @@ class IsRemoteTaskTest(unittest.TestCase):
   """Tests for is_remote_task functionality."""
 
   def setUp(self):
+    """Sets up the test case."""
     helpers.patch(self, [
         'clusterfuzz._internal.batch.service._get_specs_from_config',
     ])
@@ -299,6 +316,7 @@ class GetRegionLoadTest(unittest.TestCase):
   """Tests for get_region_load."""
 
   def setUp(self):
+    """Sets up the test case."""
     helpers.patch(self, [
         'urllib.request.urlopen',
     ])
@@ -336,6 +354,7 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
   """Tests for load balancing in _get_subconfig."""
 
   def setUp(self):
+    """Sets up the test case."""
     helpers.patch(self, [
         'clusterfuzz._internal.batch.service.get_region_load',
         'clusterfuzz._internal.batch.service.random.choice',
@@ -436,6 +455,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
   """Tests for _get_specs_from_config."""
 
   def setUp(self):
+    """Sets up the test case."""
     self.maxDiff = None
     self.job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     self.job.put()
@@ -450,6 +470,8 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     )
     self.mock.choice.return_value = 'east4-network2'
     self.mock.get_region_load.return_value = 0
+    data_types.FeatureFlag(id='gcp_batch_ephemeral_ssd', enabled=False).put()
+    data_types.FeatureFlag(id='gcp_batch_preemptible', enabled=False).put()
 
   def test_nonpreemptible(self):
     """Tests that _get_specs_from_config works for non-preemptibles as
@@ -472,14 +494,29 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         priority=1,
         retry=True,
         max_run_duration='21600s',
+        use_ephemeral_ssd=False,
     )
 
     self.assertCountEqual(spec, expected_spec)
+
+  def test_get_specs_from_config_preemptible_fallback(self):
+    """Tests that _get_specs_from_config falls back to instance_spec if flag is disabled."""
+    # libfuzzer_chrome_asan is normally preemptible for fuzz tasks.
+    # We'll test it for 'analyze' which is normally NON-preemptible.
+    spec = _get_spec_from_config('analyze', self.job.name)
+    # Flag is disabled (from setUp), and analyze is normally non-preemptible.
+    self.assertFalse(spec.preemptible)
+
+    # Now enable it and it should be preemptible.
+    data_types.FeatureFlag(id='gcp_batch_preemptible', enabled=True).put()
+    spec = _get_spec_from_config('analyze', self.job.name)
+    self.assertTrue(spec.preemptible)
 
   def test_fuzz_get_specs_from_config(self):
     """Tests that _get_specs_from_config works for fuzz tasks as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
+    data_types.FeatureFlag(id='gcp_batch_preemptible', enabled=True).put()
     spec = _get_spec_from_config('fuzz', job.name)
     expected_spec = batch_service.BatchWorkloadSpec(
         clusterfuzz_release='prod',
@@ -498,6 +535,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         priority=0,
         retry=False,
         max_run_duration='21600s',
+        use_ephemeral_ssd=False,
     )
 
     self.assertCountEqual(spec, expected_spec)
@@ -556,9 +594,26 @@ class GetSpecsFromConfigTest(unittest.TestCase):
         platform='LINUX',
         name=job_name).put()
 
-    spec = batch_service._get_specs_from_config(
-        [remote_task_types.RemoteTask('fuzz', job_name, None)])
-    self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
+    spec = _get_spec_from_config('fuzz', job_name)
+    self.assertEqual(spec.disk_size_gb, overridden_size)
+
+  def test_get_specs_from_config_with_ssd(self):
+    """Tests that use_ephemeral_ssd is True when the feature flag is enabled."""
+    data_types.FeatureFlag(id='gcp_batch_ephemeral_ssd', enabled=True).put()
+    spec = _get_spec_from_config('fuzz', self.job.name)
+    self.assertTrue(spec.use_ephemeral_ssd)
+
+    # Verify allocation policy
+    policy = batch_service._get_allocation_policy(spec)
+    self.assertEqual(policy.instances[0].policy.boot_disk.size_gb, 75)
+    self.assertEqual(policy.instances[0].policy.boot_disk.type_, 'local-ssd')
+    self.assertEqual(len(policy.instances[0].policy.disks), 0)
+
+    # Verify task spec
+    task_spec = batch_service._get_task_spec(spec)
+    self.assertEqual(len(task_spec.runnables), 2)
+    self.assertIn('mkdir -p /var/scratch0 && chmod a+w /var/scratch0',
+                  task_spec.runnables[0].script.text)
 
   @mock.patch('clusterfuzz._internal.batch.service.utils.is_oss_fuzz')
   @mock.patch('clusterfuzz._internal.datastore.data_types.OssFuzzProject.query')
@@ -620,6 +675,7 @@ class GetSpecsFromConfigTest(unittest.TestCase):
 
 
 def _get_spec_from_config(command, job_name):
+  """Returns a spec from config for a given command and job name."""
   return list(
       batch_service._get_specs_from_config(
           [remote_task_types.RemoteTask(command, job_name, None)]).values())[0]

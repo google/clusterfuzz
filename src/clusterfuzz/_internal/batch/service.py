@@ -30,6 +30,7 @@ import uuid
 import google.auth.transport.requests
 from google.cloud import batch_v1 as batch
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
@@ -62,6 +63,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'priority',
     'max_run_duration',
     'retry',
+    'use_ephemeral_ssd',
 ])
 
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
@@ -102,6 +104,7 @@ def _batch_client():
 
 
 def get_job_name():
+  """Returns a unique job name."""
   return 'j-' + str(uuid.uuid4()).lower()
 
 
@@ -120,7 +123,15 @@ def _get_task_spec(batch_workload_spec):
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
-  task_spec.runnables = [runnable]
+  if batch_workload_spec.use_ephemeral_ssd:
+    mount_runnable = batch.Runnable()
+    mount_runnable.script = batch.Runnable.Script()
+    mount_runnable.script.text = (
+        'mkdir -p /var/scratch0 && chmod a+w /var/scratch0')
+    task_spec.runnables = [mount_runnable, runnable]
+  else:
+    task_spec.runnables = [runnable]
+
   if batch_workload_spec.retry:
     # Tasks in general have 6 hours to run (except pruning which has 24).
     # Our signed URLs last 24 hours. Therefore, the maxiumum number of retries
@@ -133,6 +144,7 @@ def _get_task_spec(batch_workload_spec):
 
 
 def _set_preemptible(instance_policy, batch_workload_spec) -> None:
+  """Sets the provisioning model for the instance policy."""
   if batch_workload_spec.preemptible:
     instance_policy.provisioning_model = (
         batch.AllocationPolicy.ProvisioningModel.PREEMPTIBLE)
@@ -146,11 +158,16 @@ def _get_allocation_policy(spec):
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
   disk.size_gb = spec.disk_size_gb
-  disk.type = spec.disk_type
+  if spec.use_ephemeral_ssd:
+    disk.type = 'local-ssd'
+  else:
+    disk.type = spec.disk_type
+
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
   instance_policy.machine_type = spec.machine_type
   _set_preemptible(instance_policy, spec)
+
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
 
@@ -177,6 +194,7 @@ def _get_allocation_policy(spec):
     delay=2,
     function='google_cloud_utils.batch._send_create_job_request')
 def _send_create_job_request(create_request):
+  """Sends a create job request to the batch service."""
   return _batch_client().create_job(create_request)
 
 
@@ -298,6 +316,7 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
 
 
 def _get_subconfig(batch_config, instance_spec):
+  """Returns a subconfig based on the batch config and instance spec."""
   all_subconfigs = batch_config.get('subconfigs', {})
   instance_subconfigs = instance_spec['subconfigs']
 
@@ -387,13 +406,17 @@ def _get_specs_from_config(
 
     disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
     subconfig = subconfig_map[config_name]
+    use_ephemeral_ssd = feature_flags.FeatureFlags.GCP_BATCH_EPHEMERAL_SSD.enabled
+    preemptible = (
+        feature_flags.FeatureFlags.GCP_BATCH_PREEMPTIBLE.enabled or
+        instance_spec['preemptible'])
     spec = BatchWorkloadSpec(
         docker_image=docker_image_uri,
         disk_size_gb=disk_size_gb,
         disk_type=instance_spec['disk_type'],
         user_data=instance_spec['user_data'],
         service_account_email=instance_spec['service_account_email'],
-        preemptible=instance_spec['preemptible'],
+        preemptible=preemptible,
         machine_type=instance_spec['machine_type'],
         gce_region=subconfig['region'],
         network=subconfig['network'],
@@ -403,6 +426,7 @@ def _get_specs_from_config(
         priority=priority,
         max_run_duration=max_run_duration,
         retry=should_retry,
+        use_ephemeral_ssd=use_ephemeral_ssd,
     )
     specs[(task.command, task.job_type)] = spec
   return specs
