@@ -240,6 +240,65 @@ class UploadOAuthTest(unittest.TestCase):
         'uploader_email': 'uploader@email'
     }, metadata._to_dict())
 
+  def test_upload_skip_minimization(self):
+    """Test upload with skip_minimization."""
+    email = 'uploader@email'
+    data_types.Config(privileged_users=email).put()
+    data_types.ExternalUserPermission(
+        email=email,
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+    data_types.Job(
+        name='libfuzzer_proj',
+        environment_string='PROJECT_NAME = proj\nJOB_NAME = libfuzzer_proj',
+        platform='LINUX').put()
+
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj',
+              'target': 'target',
+              'revision': '1337',
+              'file': (io.BytesIO(b'contents'), 'file'),
+              'skip_minimization': 'true',
+          })
+
+    self.assertEqual(200, response.status_code, response.data)
+    testcase = data_handler.get_testcase_by_id(response.json['id'])
+    self.assertTrue(testcase.get_metadata('skip_minimization'))
+
+  def test_upload_default_no_skip_minimization(self):
+    """Test upload without skip_minimization (default)."""
+    email = 'uploader@email'
+    data_types.Config(privileged_users=email).put()
+    data_types.ExternalUserPermission(
+        email=email,
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+    data_types.Job(
+        name='libfuzzer_proj',
+        environment_string='PROJECT_NAME = proj\nJOB_NAME = libfuzzer_proj',
+        platform='LINUX').put()
+
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj',
+              'target': 'target',
+              'revision': '1337',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+
+    self.assertEqual(200, response.status_code, response.data)
+    testcase = data_handler.get_testcase_by_id(response.json['id'])
+    self.assertIsNone(testcase.get_metadata('skip_minimization'))
+
   def test_external_upload_uaf(self):
     """Test external upload (uaf)."""
     stacktrace = self._read_test_data('uaf.txt')
