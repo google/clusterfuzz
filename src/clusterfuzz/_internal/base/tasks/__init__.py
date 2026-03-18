@@ -104,7 +104,7 @@ PREPROCESS_QUEUE = 'preprocess'
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_QUEUE_PULL_SECONDS = 150
+UTASK_QUEUE_PULL_SECONDS = 10
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
@@ -690,7 +690,7 @@ def get_utask_mains() -> List[PubSubTask]:
     queue_name = f'{queue_name}-{base_os_version}'
 
   pubsub_puller = PubSubPuller(queue_name)
-  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
+  messages = pubsub_puller.get_messages_time_limited(10,
                                                      UTASK_QUEUE_PULL_SECONDS)
   return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
 

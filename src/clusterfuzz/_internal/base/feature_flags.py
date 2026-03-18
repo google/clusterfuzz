@@ -33,8 +33,6 @@ class FeatureFlags(Enum):
 
   GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
-  GCP_BATCH_EPHEMERAL_SSD = 'gcp_batch_ephemeral_ssd'
-
   GCP_BATCH_PREEMPTIBLE = 'gcp_batch_preemptible'
 
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
@@ -52,6 +50,10 @@ class FeatureFlags(Enum):
   @property
   def enabled(self):
     """Check if a feature flag is enabled."""
+
+    if self == FeatureFlags.GCP_BATCH_PREEMPTIBLE:
+      return True
+
     flag = self.flag
     if not flag:
       return False

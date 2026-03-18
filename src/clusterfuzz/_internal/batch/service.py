@@ -63,7 +63,6 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'priority',
     'max_run_duration',
     'retry',
-    'use_ephemeral_ssd',
 ])
 
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
@@ -123,14 +122,7 @@ def _get_task_spec(batch_workload_spec):
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
-  if batch_workload_spec.use_ephemeral_ssd:
-    mount_runnable = batch.Runnable()
-    mount_runnable.script = batch.Runnable.Script()
-    mount_runnable.script.text = (
-        'mkdir -p /var/scratch0 && chmod a+w /var/scratch0')
-    task_spec.runnables = [mount_runnable, runnable]
-  else:
-    task_spec.runnables = [runnable]
+  task_spec.runnables = [runnable]
 
   if batch_workload_spec.retry:
     # Tasks in general have 6 hours to run (except pruning which has 24).
@@ -158,10 +150,7 @@ def _get_allocation_policy(spec):
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
   disk.size_gb = spec.disk_size_gb
-  if spec.use_ephemeral_ssd:
-    disk.type = 'local-ssd'
-  else:
-    disk.type = spec.disk_type
+  disk.type = spec.disk_type
 
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
@@ -232,12 +221,12 @@ def get_region_load(project: str, region: str) -> int:
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req) as response:
       if response.status != 200:
-        logs.error(
+        print(
             f'Batch countByState failed: {response.status} {response.read()}')
         return 0
 
       data = json.loads(response.read())
-      logs.info(f'Batch countByState response for {region}: {data}')
+      print(f'Batch countByState response for {region}: {data}')
       # The API returns a list of state counts.
       # Example: { "jobCounts": { "QUEUED": "10" } }
       total = 0
@@ -250,11 +239,11 @@ def get_region_load(project: str, region: str) -> int:
         if state == 'QUEUED':
           total += count
         else:
-          logs.error(f'Unknown state: {state}')
+          print(f'Unknown state: {state}')
 
       return total
   except Exception as e:
-    logs.error(f'Failed to get region load for {region}: {e}')
+    print(f'Failed to get region load for {region}: {e}')
     return 0
 
 
@@ -287,7 +276,7 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   config_map = {}
   for task in batch_tasks:
     if task.job_type not in job_map:
-      logs.error(f'{task.job_type} doesn\'t exist.')
+      print(f'{task.job_type} doesn\'t exist.')
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -322,7 +311,7 @@ def _get_subconfig(batch_config, instance_spec):
 
   queue_check_regions = batch_config.get('queue_check_regions')
   if not queue_check_regions:
-    logs.info(
+    print(
         'Skipping batch load check because queue_check_regions is not configured.'
     )
     weighted_subconfigs = [
@@ -343,15 +332,15 @@ def _get_subconfig(batch_config, instance_spec):
 
     if region in queue_check_regions:
       load = get_region_load(project, region)
-      logs.info(f'Region {region} has {load} queued jobs.')
+      print(f'Region {region} has {load} queued jobs.')
       if load >= MAX_QUEUE_SIZE:
-        logs.info(f'Region {region} overloaded (load={load}). Skipping.')
+        print(f'Region {region} overloaded (load={load}). Skipping.')
         continue
 
     healthy_subconfigs.append(name)
 
   if not healthy_subconfigs:
-    logs.error('All candidate regions are overloaded.')
+    print('All candidate regions are overloaded.')
     raise AllRegionsOverloadedError('All candidate regions are overloaded.')
 
   # Randomly pick one from healthy regions to avoid thundering herd.
@@ -378,7 +367,7 @@ def _get_specs_from_config(
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
       raise ValueError(f'No mapping for {config_name}')
-
+    print(instance_spec, task)
     # Decide which docker image to use.
     versioned_images_map = instance_spec.get('versioned_docker_images')
     if (base_os_version and versioned_images_map and
@@ -406,10 +395,10 @@ def _get_specs_from_config(
 
     disk_size_gb = (disk_size_gb or instance_spec['disk_size_gb'])
     subconfig = subconfig_map[config_name]
-    use_ephemeral_ssd = feature_flags.FeatureFlags.GCP_BATCH_EPHEMERAL_SSD.enabled
-    preemptible = (
-        feature_flags.FeatureFlags.GCP_BATCH_PREEMPTIBLE.enabled or
-        instance_spec['preemptible'])
+    preemptible = instance_spec['preemptible']
+    if feature_flags.FeatureFlags.GCP_BATCH_PREEMPTIBLE.enabled:
+      preemptible = False
+
     spec = BatchWorkloadSpec(
         docker_image=docker_image_uri,
         disk_size_gb=disk_size_gb,
@@ -426,7 +415,6 @@ def _get_specs_from_config(
         priority=priority,
         max_run_duration=max_run_duration,
         retry=should_retry,
-        use_ephemeral_ssd=use_ephemeral_ssd,
     )
     specs[(task.command, task.job_type)] = spec
   return specs
@@ -508,11 +496,11 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
       return remote_tasks
 
     for remote_task in remote_tasks:
-      logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
+      print(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
       spec = specs[(remote_task.command, remote_task.job_type)]
       job_specs[spec].append(remote_task.input_download_url)
 
-    logs.info('Creating batch jobs.')
+    print('Creating batch jobs.')
 
     for spec, input_urls in job_specs.items():
       for input_urls_portion in utils.batched(input_urls,
