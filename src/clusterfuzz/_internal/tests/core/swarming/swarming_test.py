@@ -21,6 +21,7 @@ from google.protobuf import json_format
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -37,6 +38,7 @@ class SwarmingTest(unittest.TestCase):
         'google.auth.transport.requests.Request',
         'clusterfuzz._internal.swarming.FeatureFlags',
     ])
+    helpers.patch_environ(self)
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
     self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
     self.maxDiff = None
@@ -336,3 +338,41 @@ class SwarmingTest(unittest.TestCase):
     job.environment_string = ''
     job.put()
     self.assertFalse(swarming.is_swarming_task('fuzz', job.name))
+
+  def test_get_task_dimensions_with_env_var(self):
+    """Tests that _get_task_dimensions handles SWARMING_DIMENSIONS env var."""
+    environment.set_value('SWARMING_DIMENSIONS', {
+        'cpu': 'x86',
+        'os': 'windows'
+    })
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    dimensions = swarming._get_task_dimensions(job, [])  # pylint: disable=protected-access
+
+    expected_dimensions = [
+        swarming_pb2.StringPair(key='os', value='windows'),
+        swarming_pb2.StringPair(key='pool', value='pool-name'),
+        swarming_pb2.StringPair(key='cpu', value='x86'),
+    ]
+    self.assertCountEqual(dimensions, expected_dimensions)
+
+  def test_get_task_dimensions_job_precedence(self):
+    """Tests that job swarming dimensions have more precedence than platform ones."""
+    # Use 'MAC' platform which has static dimensions (key1, key2) in swarming.yaml.
+    job = data_types.Job(name='mac_job', platform='MAC')
+    job.put()
+
+    # Platform dimensions for MAC are: key1: value1, key2: value2.
+    # We set SWARMING_DIMENSIONS in the environment to override key1.
+    environment.set_value('SWARMING_DIMENSIONS', {'key1': 'job_value1'})
+
+    spec = swarming._get_new_task_spec(  # pylint: disable=protected-access
+        'fuzz', job.name, 'https://download_url')
+    dimensions = spec.task_slices[0].properties.dimensions
+
+    expected_dimensions = [
+        swarming_pb2.StringPair(key='os', value='MAC'),
+        swarming_pb2.StringPair(key='pool', value='pool-name'),
+        swarming_pb2.StringPair(key='key1', value='job_value1'),
+        swarming_pb2.StringPair(key='key2', value='value2'),
+    ]
+    self.assertCountEqual(dimensions, expected_dimensions)
