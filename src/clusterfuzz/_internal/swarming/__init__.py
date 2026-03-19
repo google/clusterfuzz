@@ -61,6 +61,30 @@ def _get_swarming_config():
   return local_config.SwarmingConfig()
 
 
+def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
+                        ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
+  """ Gets all swarming dimensions for a task.
+  Job dimensions have more precedence than static dimensions"""
+  unique_dimensions = {}
+  unique_dimensions['os'] = job.platform
+  unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
+
+  for dimension in platform_specific_dimensions:
+    unique_dimensions[dimension['key'].lower()] = dimension['value']
+
+  swarming_dimensions = environment.get_value('SWARMING_DIMENSIONS')
+  if isinstance(swarming_dimensions, dict):
+    for key, value in swarming_dimensions.items():
+      unique_dimensions[key.lower()] = value
+
+  task_dimensions = []
+  for dimension, value in unique_dimensions.items():
+    task_dimensions.append(
+        swarming_pb2.StringPair(  # pylint: disable=no-member
+            key=dimension, value=value))
+  return task_dimensions
+
+
 def _env_vars_to_json(
     env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
   """
@@ -83,7 +107,6 @@ def _get_new_task_spec(command: str, job_name: str,
   instance_spec = swarming_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
-  swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
   logs_project_id = swarming_config.get('logs_project_id')
   priority = instance_spec['priority']
@@ -126,18 +149,7 @@ def _get_new_task_spec(command: str, job_name: str,
   swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
   swarming_bot_environment.extend(default_task_environment)
 
-  task_dimensions = [
-      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
-  ]
-
-  dimensions = instance_spec.get('dimensions', None)
-  if dimensions:
-    for dimension in dimensions:
-      task_dimensions.append(
-          swarming_pb2.StringPair(  # pylint: disable=no-member
-              key=dimension['key'],
-              value=dimension['value']))
+  dimensions = instance_spec.get('dimensions', [])
 
   cas_input_root = instance_spec.get('cas_input_root', {})
 
@@ -151,7 +163,7 @@ def _get_new_task_spec(command: str, job_name: str,
               expiration_secs=expiration_secs,
               properties=swarming_pb2.TaskProperties(  # pylint: disable=no-member
                   command=startup_command,
-                  dimensions=task_dimensions,
+                  dimensions=_get_task_dimensions(job, dimensions),
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
