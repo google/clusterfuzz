@@ -26,6 +26,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.system import environment
 
 _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
@@ -148,9 +149,7 @@ def _get_new_task_spec(command: str, job_name: str,
         swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
   swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
   swarming_bot_environment.extend(default_task_environment)
-
   dimensions = instance_spec.get('dimensions', [])
-
   cas_input_root = instance_spec.get('cas_input_root', {})
 
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member

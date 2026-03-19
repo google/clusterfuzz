@@ -22,11 +22,12 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
+from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
-import clusterfuzz._internal.swarming as swarming
 
 
 class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
@@ -117,6 +118,23 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
+  def __create_utask_main_swarming_jobs(
+      self, remote_tasks: list[remote_task_types.RemoteTask]
+  ) -> list[remote_task_types.RemoteTask]:
+    """Handles Swarming tasks"""
+    unscheduled_tasks = []
+    for task in remote_tasks:
+      if not swarming.is_swarming_task(task.command, task.job_type):
+        raise ValueError(
+            f"Task {task.command} for {task.job_type} is not a swarming task.")
+      try:
+        swarming.push_swarming_task(task.command, task.job_type,
+                                    task.input_download_url)
+      except Exception:  # pylint: disable=broad-except
+        unscheduled_tasks.append(task)
+
+    return unscheduled_tasks
+
   def create_utask_main_jobs(self,
                              remote_tasks: list[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
@@ -130,12 +148,28 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
        exactly 70 tasks to one backend and 30 to the other.
     """
     tasks_by_adapter = collections.defaultdict(list)
+    unscheduled_tasks = []
 
-    if len(remote_tasks) == 1:
+    if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+      swarming_tasks = [
+          task for task in remote_tasks
+          if swarming.is_swarming_task(task.command, task.job_type)
+      ]
+      if swarming_tasks:
+        swarming_unscheduled_tasks = self.__create_utask_main_swarming_jobs(
+            swarming_tasks)
+        unscheduled_tasks.extend(swarming_unscheduled_tasks)
+        # Remove ALL swarming-eligible tasks from the distribution pool.
+        remote_tasks = [
+            task for task in remote_tasks if task not in swarming_tasks
+        ]
+
+    if not remote_tasks:
+      pass
+    elif len(remote_tasks) == 1:
       # For a single task, use a random distribution.
       adapter_id = self._get_adapter()
       tasks_by_adapter[adapter_id].extend(remote_tasks)
-      unscheduled_tasks = []
     else:
       # For multiple tasks, use deterministic slicing to ensure the
       # distribution precisely matches the frequency configuration.
@@ -154,9 +188,8 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
         for i, task in enumerate(remaining_tasks):
           adapter_id = list(frequencies.keys())[i % len(frequencies)]
           tasks_by_adapter[adapter_id].append(task)
-        unscheduled_tasks = []
       else:
-        unscheduled_tasks = list(remaining_tasks)
+        unscheduled_tasks.extend(remaining_tasks)
 
     for adapter_id, tasks in tasks_by_adapter.items():
       if tasks:

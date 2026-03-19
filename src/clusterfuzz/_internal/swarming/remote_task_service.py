@@ -13,12 +13,13 @@
 # limitations under the License.
 """Swarming service."""
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.remote_task import remote_task_types
-import clusterfuzz._internal.swarming as swarming
 
 
 class RemoteTaskSwarmingService(remote_task_types.RemoteTaskInterface):
+  """Remote task service implementation for Swarming."""
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
