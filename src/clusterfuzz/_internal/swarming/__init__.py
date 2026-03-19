@@ -14,8 +14,10 @@
 """Swarming helpers."""
 
 import base64
+import json
 import uuid
 
+from google.auth.transport import requests
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
@@ -25,6 +27,11 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
+
+_SWARMING_SCOPES = [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/userinfo.email'
+]
 
 
 def is_swarming_task(command: str, job_name: str):
@@ -53,6 +60,19 @@ def _get_task_name():
 def _get_swarming_config():
   """Returns the swarming config."""
   return local_config.SwarmingConfig()
+
+
+def _env_vars_to_json(
+    env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
+  """
+  Compresses all env variables into a single JSON string , which will be used
+  to set up the env variables in swarming bots that launch clusterfuzz 
+  using a docker container.
+  """
+  env_vars_dict = {pair.key: pair.value for pair in env_vars}
+  return swarming_pb2.StringPair(  # pylint: disable=no-member
+      key='DOCKER_ENV_VARS',
+      value=json.dumps(env_vars_dict))
 
 
 def _get_new_task_spec(command: str, job_name: str,
@@ -86,7 +106,7 @@ def _get_new_task_spec(command: str, job_name: str,
   # env_prefixes allows the modification of existing environment variables by
   # adding the values as prefixes to the env variable.
   env_prefixes = instance_spec.get('env_prefixes', {})
-  task_environment = [
+  default_task_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
@@ -95,17 +115,17 @@ def _get_new_task_spec(command: str, job_name: str,
           value=logs_project_id),
   ]
 
-  env = instance_spec.get('env', None)
-  if env:
-    for var in env:
-      task_environment.append(
-          swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
-
-  if instance_spec.get('docker_image'):
-    task_environment.append(
-        swarming_pb2.StringPair(  # pylint: disable=no-member
-            key='DOCKER_IMAGE',
-            value=instance_spec['docker_image']))
+  platform_specific_env = instance_spec.get('env', [])
+  swarming_bot_environment = []
+  swarming_bot_environment.append(
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='DOCKER_IMAGE',
+          value=instance_spec.get('docker_image', '')))
+  for var in platform_specific_env:
+    swarming_bot_environment.append(
+        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+  swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
+  swarming_bot_environment.extend(default_task_environment)
 
   os_task_dimension = job.get_environment().get('SWARMING_OS_DIMENSION')
   if not os_task_dimension:
@@ -140,7 +160,7 @@ def _get_new_task_spec(command: str, job_name: str,
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=task_environment,
+                  env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
@@ -155,11 +175,15 @@ def push_swarming_task(command, download_url, job_type):
     raise ValueError('invalid job_name')
 
   task_spec = _get_new_task_spec(command, job_type, download_url)
-  creds, _ = credentials.get_default()
+  creds, _ = credentials.get_default(_SWARMING_SCOPES)
+
+  if not creds.token:
+    creds.refresh(requests.Request())
+
   headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': creds.token
+      'Authorization': f'Bearer {creds.token}'
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
