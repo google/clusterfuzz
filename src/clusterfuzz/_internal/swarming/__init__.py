@@ -69,7 +69,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   unique_dimensions = {}
   unique_dimensions['os'] = job.platform
   unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
-  
+
   os_task_dimension = job.get_environment().get('SWARMING_OS_DIMENSION')
   if os_task_dimension:
     unique_dimensions['os'] = os_task_dimension
