@@ -376,3 +376,17 @@ class SwarmingTest(unittest.TestCase):
         swarming_pb2.StringPair(key='key2', value='value2'),
     ]
     self.assertCountEqual(dimensions, expected_dimensions)
+
+  def test_get_task_dimensions_with_os_env_var(self):
+    """Tests that _get_task_dimensions handles SWARMING_OS_DIMENSION env var."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan',
+        platform='LINUX',
+        environment_string='SWARMING_OS_DIMENSION = windows')
+    dimensions = swarming._get_task_dimensions(job, [])  # pylint: disable=protected-access
+
+    expected_dimensions = [
+        swarming_pb2.StringPair(key='os', value='windows'),
+        swarming_pb2.StringPair(key='pool', value='pool-name'),
+    ]
+    self.assertCountEqual(dimensions, expected_dimensions)

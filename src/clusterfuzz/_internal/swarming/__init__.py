@@ -70,8 +70,13 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   unique_dimensions['os'] = job.platform
   unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
 
-  for dimension in platform_specific_dimensions:
-    unique_dimensions[dimension['key'].lower()] = dimension['value']
+  os_task_dimension = job.get_environment().get('SWARMING_OS_DIMENSION')
+  if os_task_dimension:
+    unique_dimensions['os'] = os_task_dimension
+
+  if platform_specific_dimensions:
+    for dimension in platform_specific_dimensions:
+      unique_dimensions[dimension['key'].lower()] = dimension['value']
 
   swarming_dimensions = environment.get_value('SWARMING_DIMENSIONS')
   if isinstance(swarming_dimensions, dict):
@@ -149,7 +154,6 @@ def _get_new_task_spec(command: str, job_name: str,
         swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
   swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
   swarming_bot_environment.extend(default_task_environment)
-
   dimensions = instance_spec.get('dimensions', [])
 
   cas_input_root = instance_spec.get('cas_input_root', {})
