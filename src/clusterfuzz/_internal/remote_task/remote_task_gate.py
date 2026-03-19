@@ -118,7 +118,7 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
-  def __create_utask_main_swarming_jobs(
+  def _create_utask_main_swarming_jobs(
       self, remote_tasks: list[remote_task_types.RemoteTask]
   ) -> list[remote_task_types.RemoteTask]:
     """Handles Swarming tasks"""
@@ -156,7 +156,7 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
           if swarming.is_swarming_task(task.command, task.job_type)
       ]
       if swarming_tasks:
-        swarming_unscheduled_tasks = self.__create_utask_main_swarming_jobs(
+        swarming_unscheduled_tasks = self._create_utask_main_swarming_jobs(
             swarming_tasks)
         unscheduled_tasks.extend(swarming_unscheduled_tasks)
         # Remove ALL swarming-eligible tasks from the distribution pool.
