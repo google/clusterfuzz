@@ -29,6 +29,7 @@ class SwarmingServiceTest(unittest.TestCase):
         'clusterfuzz._internal.swarming.is_swarming_task',
         'clusterfuzz._internal.swarming.push_swarming_task',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
     self.service = remote_task_service.SwarmingService()
 
@@ -126,3 +127,5 @@ class SwarmingServiceTest(unittest.TestCase):
 
     self.assertEqual(len(unscheduled), 1)
     self.assertEqual(unscheduled[0].job_type, 'job1')
+    self.mock.error.assert_called_once_with(
+        'Failed to push task to Swarming: fuzz, job1.')

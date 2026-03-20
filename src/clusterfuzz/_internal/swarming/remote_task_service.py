@@ -15,6 +15,7 @@
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
 
 
@@ -50,5 +51,8 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
         swarming.push_swarming_task(task.command, task.input_download_url,
                                     task.job_type)
       except Exception:  # pylint: disable=broad-except
+        logs.error(
+            f'Failed to push task to Swarming: {task.command}, {task.job_type}.'
+        )
         unscheduled_tasks.append(task)
     return unscheduled_tasks
