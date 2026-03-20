@@ -18,7 +18,7 @@ from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.remote_task import remote_task_types
 
 
-class RemoteTaskSwarmingService(remote_task_types.RemoteTaskInterface):
+class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
 
   def create_utask_main_job(self, module: str, job_type: str,

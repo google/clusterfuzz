@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for RemoteTaskSwarmingService."""
+"""Tests for SwarmingService."""
 
 import unittest
 from unittest import mock
@@ -21,8 +21,8 @@ from clusterfuzz._internal.swarming import remote_task_service
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
-class RemoteTaskSwarmingServiceTest(unittest.TestCase):
-  """Tests for RemoteTaskSwarmingService."""
+class SwarmingServiceTest(unittest.TestCase):
+  """Tests for SwarmingService."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -30,7 +30,7 @@ class RemoteTaskSwarmingServiceTest(unittest.TestCase):
         'clusterfuzz._internal.swarming.push_swarming_task',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
     ])
-    self.service = remote_task_service.RemoteTaskSwarmingService()
+    self.service = remote_task_service.SwarmingService()
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""

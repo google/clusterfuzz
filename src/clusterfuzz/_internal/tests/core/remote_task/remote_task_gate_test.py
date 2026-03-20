@@ -24,7 +24,7 @@ from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming.remote_task_service import \
-    RemoteTaskSwarmingService
+    SwarmingService
 
 
 class RemoteTaskGateTest(unittest.TestCase):
@@ -34,7 +34,7 @@ class RemoteTaskGateTest(unittest.TestCase):
     super().setUp()
     self.mock_k8s_service = mock.Mock(spec=KubernetesService)
     self.mock_gcp_batch_service = mock.Mock(spec=GcpBatchService)
-    self.mock_swarming_service = mock.Mock(spec=RemoteTaskSwarmingService)
+    self.mock_swarming_service = mock.Mock(spec=SwarmingService)
 
     self.mock_k8s_service.create_utask_main_jobs.return_value = []
     self.mock_gcp_batch_service.create_utask_main_jobs.return_value = []
