@@ -96,61 +96,90 @@ class RemoteTaskGateTest(unittest.TestCase):
         ['kubernetes', 'gcp_batch', 'swarming'], [0.3, 0.7, 0.0])
     self.assertEqual(selected_adapter, 'gcp_batch')
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
-      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
-  def test_create_utask_main_job_swarming_priority(self, mock_get_command,
-                                                   mock_is_swarming):
-    """Tests that create_utask_main_job prioritizes Swarming tasks."""
-    mock_get_command.return_value = 'fuzz'
-    mock_is_swarming.return_value = True
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
+  def test_create_utask_main_job_swarming_priority(self, mock_swarming_flag):
+    """Tests that create_utask_main_job prioritizes Swarming tasks when
+    flag is enabled."""
+    mock_swarming_flag.return_value = True
+    self.mock_swarming_service.create_utask_main_job.return_value = None
 
     gate = remote_task_gate.RemoteTaskGate()
-    gate.create_utask_main_job('module', 'job', 'url')
+    result = gate.create_utask_main_job('module', 'job', 'url')
 
+    self.assertIsNone(result)
     self.mock_swarming_service.create_utask_main_job.assert_called_once_with(
         'module', 'job', 'url')
     self.mock_k8s_service.create_utask_main_job.assert_not_called()
     self.mock_gcp_batch_service.create_utask_main_job.assert_not_called()
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
-      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
   def test_create_utask_main_job_kubernetes(self, mock_get_adapter,
-                                            mock_get_command, mock_is_swarming):
+                                            mock_swarming_flag):
     """Tests that create_utask_main_job calls the Kubernetes service
-    when kubernetes adapter is chosen and it's not a swarming task."""
-    mock_get_command.return_value = 'fuzz'
-    mock_is_swarming.return_value = False
+    when kubernetes adapter is chosen and swarming service returns the task."""
+    mock_swarming_flag.return_value = True
+    # Swarming service returns the task (not scheduled)
+    task = remote_task_types.RemoteTask('fuzz', 'job', 'url')
+    self.mock_swarming_service.create_utask_main_job.return_value = task
+
     mock_get_adapter.return_value = 'kubernetes'
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_job('module', 'job', 'url')
+
+    self.mock_swarming_service.create_utask_main_job.assert_called_once_with(
+        'module', 'job', 'url')
     self.mock_k8s_service.create_utask_main_job.assert_called_once_with(
         'module', 'job', 'url')
     self.mock_gcp_batch_service.create_utask_main_job.assert_not_called()
-    self.mock_swarming_service.create_utask_main_job.assert_not_called()
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
-      'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module')
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
   def test_create_utask_main_job_gcp_batch(self, mock_get_adapter,
-                                           mock_get_command, mock_is_swarming):
+                                           mock_swarming_flag):
     """Tests that create_utask_main_job calls the GCP Batch service
-    when gcp_batch adapter is chosen and it's not a swarming task."""
-    mock_get_command.return_value = 'fuzz'
-    mock_is_swarming.return_value = False
+    when gcp_batch adapter is chosen and swarming service returns the task."""
+    mock_swarming_flag.return_value = True
+    # Swarming service returns the task (not scheduled)
+    task = remote_task_types.RemoteTask('fuzz', 'job', 'url')
+    self.mock_swarming_service.create_utask_main_job.return_value = task
+
     mock_get_adapter.return_value = 'gcp_batch'
     gate = remote_task_gate.RemoteTaskGate()
     gate.create_utask_main_job('module', 'job', 'url')
+
+    self.mock_swarming_service.create_utask_main_job.assert_called_once_with(
+        'module', 'job', 'url')
     self.mock_gcp_batch_service.create_utask_main_job.assert_called_once_with(
         'module',
         'job',
         'url',
     )
     self.mock_k8s_service.create_utask_main_job.assert_not_called()
+
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
+  def test_create_utask_main_job_swarming_disabled(self, mock_get_adapter,
+                                                  mock_swarming_flag):
+    """Tests that create_utask_main_job does NOT call Swarming when flag
+    is disabled."""
+    mock_swarming_flag.return_value = False
+    mock_get_adapter.return_value = 'kubernetes'
+
+    gate = remote_task_gate.RemoteTaskGate()
+    gate.create_utask_main_job('module', 'job', 'url')
+
     self.mock_swarming_service.create_utask_main_job.assert_not_called()
+    self.mock_k8s_service.create_utask_main_job.assert_called_once_with(
+        'module', 'job', 'url')
 
   @mock.patch(
       'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
