@@ -134,18 +134,11 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     unscheduled_tasks = []
 
     if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-      swarming_tasks = [
-          task for task in remote_tasks
-          if swarming.is_swarming_task(task.command, task.job_type)
-      ]
-      if swarming_tasks:
-        swarming_unscheduled_tasks = self._service_map[
-            'swarming'].create_utask_main_jobs(swarming_tasks)
-        unscheduled_tasks.extend(swarming_unscheduled_tasks)
-        # Remove ALL swarming-eligible tasks from the distribution pool.
-        remote_tasks = [
-            task for task in remote_tasks if task not in swarming_tasks
-        ]
+      # TODO(jardondiego): SwarmingService
+      # returns all tasks that weren't scheduled, which includes both
+      # failed swarming tasks AND non-swarming tasks.
+      remote_tasks = self._service_map['swarming'].create_utask_main_jobs(
+          remote_tasks)
 
     if not remote_tasks:
       pass

@@ -339,14 +339,13 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(tasks)
     self.assertEqual(result, unscheduled_tasks)
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
       'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
       new_callable=mock.PropertyMock)
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   def test_create_utask_main_jobs_swarming_remote_execution_enabled(
-      self, mock_get_job_frequency, mock_swarming_flag, mock_is_swarming):
-    """Tests that create_utask_main_jobs intercepts swarming tasks when the
+      self, mock_get_job_frequency, mock_swarming_flag):
+    """Tests that create_utask_main_jobs passes tasks to swarming service when the
     feature flag is enabled."""
     tasks = [
         remote_task_types.RemoteTask('swarming_cmd', 'job1', 'url1'),
@@ -354,7 +353,9 @@ class RemoteTaskGateTest(unittest.TestCase):
     ]
 
     mock_swarming_flag.return_value = True
-    mock_is_swarming.side_effect = lambda cmd, job: cmd == 'swarming_cmd'
+    # SwarmingService should process the swarming task and return the regular task.
+    self.mock_swarming_service.create_utask_main_jobs.return_value = [tasks[1]]
+
     mock_get_job_frequency.return_value = {
         'kubernetes': 1.0,
         'gcp_batch': 0.0,
@@ -364,23 +365,22 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate = remote_task_gate.RemoteTaskGate()
     result = gate.create_utask_main_jobs(tasks)
 
-    # Swarming task should be sent to SwarmingService.
+    # ALL tasks should be sent to SwarmingService initially.
     self.mock_swarming_service.create_utask_main_jobs.assert_called_once_with(
-        [tasks[0]])
+        tasks)
 
-    # Regular task should be routed to Kubernetes.
+    # The regular task returned by SwarmingService should be routed to Kubernetes.
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(
         [tasks[1]])
 
     # No tasks should be unscheduled.
     self.assertEqual(result, [])
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
       'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
       new_callable=mock.PropertyMock)
   def test_create_utask_main_jobs_swarming_remote_execution_all_swarming(
-      self, mock_swarming_flag, mock_is_swarming):
+      self, mock_swarming_flag):
     """Tests that create_utask_main_jobs handles the case where all tasks
     are swarming tasks."""
     tasks = [
@@ -389,7 +389,8 @@ class RemoteTaskGateTest(unittest.TestCase):
     ]
 
     mock_swarming_flag.return_value = True
-    mock_is_swarming.return_value = True
+    # All tasks successfully scheduled as swarming.
+    self.mock_swarming_service.create_utask_main_jobs.return_value = []
 
     gate = remote_task_gate.RemoteTaskGate()
     result = gate.create_utask_main_jobs(tasks)
@@ -403,13 +404,12 @@ class RemoteTaskGateTest(unittest.TestCase):
     # No tasks should be unscheduled.
     self.assertEqual(result, [])
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
       'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
       new_callable=mock.PropertyMock)
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   def test_create_utask_main_jobs_swarming_failure_preservation(
-      self, mock_get_job_frequency, mock_swarming_flag, mock_is_swarming):
+      self, mock_get_job_frequency, mock_swarming_flag):
     """Tests that failed swarming tasks are correctly included in
     unscheduled_tasks."""
     tasks = [
@@ -419,9 +419,10 @@ class RemoteTaskGateTest(unittest.TestCase):
     ]
 
     mock_swarming_flag.return_value = True
-    mock_is_swarming.side_effect = lambda cmd, job: cmd.startswith('swarming')
-    # Mock one success, one failure (by returning it as unscheduled)
-    self.mock_swarming_service.create_utask_main_jobs.return_value = [tasks[1]]
+    # Mock one success, one failure (by returning it as unscheduled) and one regular task.
+    self.mock_swarming_service.create_utask_main_jobs.return_value = [
+        tasks[1], tasks[2]
+    ]
 
     mock_get_job_frequency.return_value = {
         'kubernetes': 1.0,
@@ -432,31 +433,29 @@ class RemoteTaskGateTest(unittest.TestCase):
     gate = remote_task_gate.RemoteTaskGate()
     result = gate.create_utask_main_jobs(tasks)
 
-    # Swarming tasks sent to SwarmingService.
+    # All tasks sent to SwarmingService.
     self.mock_swarming_service.create_utask_main_jobs.assert_called_once_with(
-        [tasks[0], tasks[1]])
+        tasks)
 
-    # Regular task sent to k8s.
+    # The tasks returned by SwarmingService (failed swarming + regular) sent to k8s.
     self.mock_k8s_service.create_utask_main_jobs.assert_called_once_with(
-        [tasks[2]])
+        [tasks[1], tasks[2]])
 
-    # The failed swarming task should be returned as unscheduled.
-    self.assertEqual(result, [tasks[1]])
+    # Both should be successfully processed by K8s (mocked to return [] by default).
+    self.assertEqual(result, [])
 
-  @mock.patch('clusterfuzz._internal.swarming.is_swarming_task')
   @mock.patch(
       'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
       new_callable=mock.PropertyMock)
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   def test_create_utask_main_jobs_swarming_remote_execution_disabled(
-      self, mock_get_job_frequency, mock_swarming_flag, mock_is_swarming):
+      self, mock_get_job_frequency, mock_swarming_flag):
     """Tests that swarming tasks are NOT intercepted when the flag is disabled."""
     tasks = [
         remote_task_types.RemoteTask('swarming_cmd', 'job1', 'url1'),
     ]
 
     mock_swarming_flag.return_value = False
-    mock_is_swarming.return_value = True
     mock_get_job_frequency.return_value = {
         'kubernetes': 1.0,
         'gcp_batch': 0.0,
