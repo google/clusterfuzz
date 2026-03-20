@@ -121,7 +121,17 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
   def _create_utask_main_swarming_jobs(
       self, remote_tasks: list[remote_task_types.RemoteTask]
   ) -> list[remote_task_types.RemoteTask]:
-    """Handles Swarming tasks"""
+    """Pushes the given remote tasks to Swarming.
+
+    Args:
+      remote_tasks: A list of RemoteTask objects to be pushed to Swarming.
+
+    Returns:
+      A list of RemoteTask objects that failed to be scheduled.
+
+    Raises:
+      ValueError: If any of the provided tasks is not a valid Swarming task.
+    """
     unscheduled_tasks = []
     for task in remote_tasks:
       if not swarming.is_swarming_task(task.command, task.job_type):
