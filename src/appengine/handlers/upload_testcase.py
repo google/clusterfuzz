@@ -672,6 +672,7 @@ class UploadHandlerCommon:
     trusted_agreement_signed = request.get(
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
     testcase_metadata = request.get('metadata')
+    # TODO: Consider using utils.is_string to handle "false" properly.
     skip_minimization = bool(request.get('skip_minimization'))
 
     return self._handle_upload(
