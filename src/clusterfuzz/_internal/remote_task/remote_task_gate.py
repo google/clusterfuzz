@@ -122,13 +122,21 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
                              remote_tasks: list[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
 
-    This method handles two cases:
-    1. If there is only one task, it uses a weighted random choice to select
-       a backend, similar to `create_utask_main_job`.
-    2. If there are multiple tasks, it distributes them deterministically
-       across the available backends based on their configured frequencies.
-       This ensures that a batch of 100 tasks with a 70/30 split sends
-       exactly 70 tasks to one backend and 30 to the other.
+    This method manages the distribution of tasks in two stages:
+
+    1. Swarming Interception (Optional): If the `SWARMING_REMOTE_EXECUTION`
+       feature flag is enabled, all tasks are first passed to the Swarming
+       service. The service schedules swarming-eligible tasks and returns
+       any tasks that it didn't schedule (e.g., non-swarming tasks or those
+       it failed to schedule).
+
+    2. Weighted Distribution: Any remaining tasks are then distributed across
+       the available remote adapters based on their configured frequencies:
+       - If only one task remains, it is assigned using a weighted random
+         choice to maintain overall distribution over time.
+       - If multiple tasks remain, they are distributed deterministically
+         according to their frequencies. This ensures precise adherence to
+         the distribution ratios (e.g., exactly 70/30 split for 100 tasks).
     """
     tasks_by_adapter = collections.defaultdict(list)
     unscheduled_tasks = []
