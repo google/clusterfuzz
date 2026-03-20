@@ -34,9 +34,22 @@ then
 fi
 
 # Make sure mounted volume doesn't have noexec,nosuid,nodev
-# Running this in k8s environment will cause mounting errors
-if [[ -z "$IS_K8S_ENV" ]]
-then
+# Running this in k8s or swarming environment will cause mounting errors
+should_mount() {
+  # Skip if running in Kubernetes
+  if [[ -n "$IS_K8S_ENV" ]]; then
+    return 1
+  fi
+
+  # Skip if running as a Swarming Job
+  if [[ "$SWARMING_BOT" == "True" ]] || [[ "$SWARMING_BOT" == "1" ]] || [[ "$SWARMING_BOT" == "true" ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+if should_mount; then
   mount /mnt/scratch0 -o remount,exec,suid,dev
 fi
 
