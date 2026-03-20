@@ -118,33 +118,6 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
 
-  def _create_utask_main_swarming_jobs(
-      self, remote_tasks: list[remote_task_types.RemoteTask]
-  ) -> list[remote_task_types.RemoteTask]:
-    """Pushes the given remote tasks to Swarming.
-
-    Args:
-      remote_tasks: A list of RemoteTask objects to be pushed to Swarming.
-
-    Returns:
-      A list of RemoteTask objects that failed to be scheduled.
-
-    Raises:
-      ValueError: If any of the provided tasks is not a valid Swarming task.
-    """
-    unscheduled_tasks = []
-    for task in remote_tasks:
-      if not swarming.is_swarming_task(task.command, task.job_type):
-        raise ValueError(
-            f"Task {task.command} for {task.job_type} is not a swarming task.")
-      try:
-        swarming.push_swarming_task(task.command, task.job_type,
-                                    task.input_download_url)
-      except Exception:  # pylint: disable=broad-except
-        unscheduled_tasks.append(task)
-
-    return unscheduled_tasks
-
   def create_utask_main_jobs(self,
                              remote_tasks: list[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
@@ -166,8 +139,8 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
           if swarming.is_swarming_task(task.command, task.job_type)
       ]
       if swarming_tasks:
-        swarming_unscheduled_tasks = self._create_utask_main_swarming_jobs(
-            swarming_tasks)
+        swarming_unscheduled_tasks = self._service_map[
+            'swarming'].create_utask_main_jobs(swarming_tasks)
         unscheduled_tasks.extend(swarming_unscheduled_tasks)
         # Remove ALL swarming-eligible tasks from the distribution pool.
         remote_tasks = [
