@@ -209,8 +209,17 @@ def _allow_unprivileged_metadata(testcase_metadata):
     # deadlines. Do not let these be editable.
     return False
 
-  # Allow *only* issue labels to be set.
-  return len(testcase_metadata) == 1 and 'issue_labels' in testcase_metadata
+  # Allow *only* issue labels and skip_minimization to be set.
+  # issue_labels must be present if any metadata is provided.
+  if 'issue_labels' not in testcase_metadata:
+    return False
+
+  if len(testcase_metadata) == 1:
+    # skip_minimization does not need to be set.
+    return True
+
+  return len(
+      testcase_metadata) == 2 and 'skip_minimization' in testcase_metadata
 
 
 class Handler(base_handler.Handler):
@@ -326,7 +335,8 @@ class UploadHandlerCommon:
                      multiple_testcases=None,
                      trusted_agreement_signed=False,
                      testcase_id=None,
-                     testcase_metadata=None) -> str:
+                     testcase_metadata=None,
+                     skip_minimization=False) -> str:
     """Holds the logic for actually performing a testcase upload."""
     if testcase_id and not uploaded_file:
       testcase = helpers.get_testcase(testcase_id)
@@ -439,6 +449,12 @@ class UploadHandlerCommon:
         raise helpers.EarlyExitError('Invalid metadata JSON.', 400) from e
       if not isinstance(testcase_metadata, dict):
         raise helpers.EarlyExitError('Metadata is not a JSON object.', 400)
+    if not testcase_metadata:
+      testcase_metadata = {}
+
+    if skip_minimization:
+      testcase_metadata['skip_minimization'] = True
+
     if issue_labels:
       testcase_metadata['issue_labels'] = issue_labels
 
@@ -655,7 +671,9 @@ class UploadHandlerCommon:
     stacktrace = request.get('stacktrace')
     trusted_agreement_signed = request.get(
         'trustedAgreement') == TRUSTED_AGREEMENT_TEXT.strip()
-    testcase_metadata = request.get('metadata', {})
+    testcase_metadata = request.get('metadata')
+    # TODO: Consider using utils.is_string to handle "false" properly.
+    skip_minimization = bool(request.get('skip_minimization'))
 
     return self._handle_upload(
         uploaded_file=uploaded_file,
@@ -680,6 +698,7 @@ class UploadHandlerCommon:
         stacktrace=stacktrace,
         trusted_agreement_signed=trusted_agreement_signed,
         testcase_metadata=testcase_metadata,
+        skip_minimization=skip_minimization,
     )
 
 
