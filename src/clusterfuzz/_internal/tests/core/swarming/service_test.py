@@ -17,7 +17,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.remote_task import remote_task_types
-from clusterfuzz._internal.swarming import remote_task_service
+from clusterfuzz._internal.swarming import service
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -31,7 +31,7 @@ class SwarmingServiceTest(unittest.TestCase):
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',
     ])
-    self.service = remote_task_service.SwarmingService()
+    self.service = service.SwarmingService()
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""

@@ -23,7 +23,7 @@ from clusterfuzz._internal.k8s.service import KubernetesService
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
-from clusterfuzz._internal.swarming.remote_task_service import SwarmingService
+from clusterfuzz._internal.swarming.service import SwarmingService
 
 
 class RemoteTaskGateTest(unittest.TestCase):
@@ -168,7 +168,7 @@ class RemoteTaskGateTest(unittest.TestCase):
       new_callable=mock.PropertyMock)
   @mock.patch.object(remote_task_gate.RemoteTaskGate, '_get_adapter')
   def test_create_utask_main_job_swarming_disabled(self, mock_get_adapter,
-                                                  mock_swarming_flag):
+                                                   mock_swarming_flag):
     """Tests that create_utask_main_job does NOT call Swarming when flag
     is disabled."""
     mock_swarming_flag.return_value = False

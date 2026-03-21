@@ -22,9 +22,7 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
-from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import feature_flags
-from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types

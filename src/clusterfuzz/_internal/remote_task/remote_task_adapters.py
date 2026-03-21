@@ -18,7 +18,7 @@ from enum import Enum
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.k8s import service as k8s_service
-from clusterfuzz._internal.swarming.remote_task_service import SwarmingService
+from clusterfuzz._internal.swarming.service import SwarmingService
 
 
 class RemoteTaskAdapters(Enum):
