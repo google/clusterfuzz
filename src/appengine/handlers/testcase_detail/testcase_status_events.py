@@ -31,6 +31,11 @@ EventInfo: TypeAlias = dict[str, str | None]
 _BASE_LOGS_URL = 'https://console.cloud.google.com/logs/viewer'
 
 
+def _quote_logging_filter_value(value: str) -> str:
+  """Formats a string literal for a Cloud Logging query filter."""
+  return json.dumps(value)
+
+
 def _format_timestamp(timestamp: datetime.datetime) -> str:
   """Formats a timestamp."""
   return timestamp.strftime('%Y-%m-%d %H:%M:%S.%f UTC')
@@ -221,9 +226,10 @@ class TestcaseEventHistory:
 
   def _get_task_log_query_filter(self, task_id: str, task_name: str) -> str:
     """Returns the filter string for querying task logs."""
-    query = (f'jsonPayload.extras.task_id="{task_id}" AND '
-             f'jsonPayload.extras.testcase_id="{self._testcase_id}" AND '
-             f'jsonPayload.extras.task_name="{task_name}"')
+    query = (f'jsonPayload.extras.task_id={_quote_logging_filter_value(task_id)} AND '
+             'jsonPayload.extras.testcase_id='
+             f'{_quote_logging_filter_value(str(self._testcase_id))} AND '
+             f'jsonPayload.extras.task_name={_quote_logging_filter_value(task_name)}')
     query += f' AND {self._get_time_range_filter(days=31)}'
     return query
 
