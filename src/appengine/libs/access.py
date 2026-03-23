@@ -21,6 +21,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.metrics import logs
 from libs import auth
 from libs import helpers
 
@@ -47,12 +48,16 @@ def _is_privileged_user(email):
         utils.is_service_account(privileged_group)):
       continue
 
-    group_id = google_groups.get_group_id(privileged_group)
-    if not group_id:
-      continue
+    try:
+      group_id = google_groups.get_group_id(privileged_group)
+      if not group_id:
+        continue
 
-    if google_groups.check_transitive_group_membership(group_id, email):
-      return True
+      if google_groups.check_transitive_group_membership(group_id, email):
+        return True
+    except:
+      logs.error(f'Failed to check privileged group membership for {email}')
+      return False
 
   return False
 
