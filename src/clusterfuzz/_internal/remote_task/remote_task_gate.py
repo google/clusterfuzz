@@ -22,7 +22,9 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -55,6 +57,21 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     population = list(frequencies.keys())
     weights = list(frequencies.values())
     return random.choices(population, weights)[0]
+
+  def _is_swarming_applicable(self):
+    return feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
+
+  def _is_swarming_task(self, module, job_type):
+    return swarming.is_swarming_task(
+        task_utils.get_command_from_module(module), job_type)
+
+  def _handle_swarming_job(self, module, job_type, input_download_url):
+    return self._service_map['swarming'].create_utask_main_job(
+        module, job_type, input_download_url)
+
+  def _handle_swarming_jobs(self,
+                            remote_tasks: list[remote_task_types.RemoteTask]):
+    return self._service_map['swarming'].create_utask_main_jobs(remote_tasks)
 
   def get_job_frequency(self):
     """Returns the frequency distribution for all remote task adapters.
@@ -107,11 +124,9 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
 
   def create_utask_main_job(self, module, job_type, input_download_url):
     """Creates a single remote task, selecting a backend dynamically."""
-    if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-      result = self._service_map['swarming'].create_utask_main_job(
-          module, job_type, input_download_url)
-      if result is None:
-        return None
+    if self._is_swarming_applicable() and self._is_swarming_task(
+        module, job_type):
+      return self._handle_swarming_job(module, job_type, input_download_url)
 
     adapter_id = self._get_adapter()
     service = self._service_map[adapter_id]
@@ -140,12 +155,8 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     tasks_by_adapter = collections.defaultdict(list)
     unscheduled_tasks = []
 
-    if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-      # TODO(jardondiego): SwarmingService
-      # returns all tasks that weren't scheduled, which includes both
-      # failed swarming tasks AND non-swarming tasks.
-      remote_tasks = self._service_map['swarming'].create_utask_main_jobs(
-          remote_tasks)
+    if self._is_swarming_applicable():
+      remote_tasks = self._handle_swarming_jobs(remote_tasks)
 
     if not remote_tasks:
       pass
