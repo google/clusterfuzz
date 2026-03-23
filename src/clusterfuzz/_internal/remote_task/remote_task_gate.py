@@ -22,7 +22,9 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -107,11 +109,11 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
 
   def create_utask_main_job(self, module, job_type, input_download_url):
     """Creates a single remote task, selecting a backend dynamically."""
-    if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-      result = self._service_map['swarming'].create_utask_main_job(
+    command = task_utils.get_command_from_module(module)
+    if (feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled and
+        swarming.is_swarming_task(command, job_type)):
+      return self._service_map['swarming'].create_utask_main_job(
           module, job_type, input_download_url)
-      if result is None:
-        return None
 
     adapter_id = self._get_adapter()
     service = self._service_map[adapter_id]
