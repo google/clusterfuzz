@@ -219,10 +219,12 @@ class TrackFuzzTimeTest(unittest.TestCase):
 
   def _test(self, timeout):
     """Test helper."""
-    time_module = helpers.MockTime()
+    time_module = helpers.MockTime(start_time=0)
     with fuzz_task._TrackFuzzTime('fuzzer', 'job', time_module) as tracker:
       time_module.advance(5)
       tracker.timeout = timeout
+
+    self.assertEqual(5, tracker.duration)
 
     fuzzer_total_time = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.get({
         'fuzzer': 'fuzzer',
@@ -1280,6 +1282,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
                      crashes[0].application_command_line)
     self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
                      crashes[1].application_command_line)
+    self.assertGreaterEqual(session.fuzz_task_output.total_fuzzing_time_seconds,
+                            0)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1298,8 +1302,11 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
         'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
+        'time.time',
     ])
     test_utils.set_up_pyfakefs(self)
+    self.time = helpers.MockTime(start_time=0)
+    self.mock.time.side_effect = self.time.time
 
     os.environ['JOB_NAME'] = 'libfuzzer_asan_test'
     os.environ['FUZZ_INPUTS'] = '/fuzz-inputs'
@@ -1358,8 +1365,13 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
             'strategy_1': 1,
             'strategy_2': 50,
         })
-    engine_impl.fuzz.side_effect = lambda *_: engine.FuzzResult(
-        'logs', ['cmd'], expected_crashes, {'stat': 1}, 42.0)
+
+    def mock_fuzz(*_args, **_kwargs):
+      self.time.advance(10)
+      return engine.FuzzResult('logs', ['cmd'], expected_crashes, {'stat': 1},
+                               42.0)
+
+    engine_impl.fuzz.side_effect = mock_fuzz
     engine_impl.fuzz_additional_processing_timeout.return_value = 1337
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
@@ -1377,6 +1389,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'issue_owners':
             'owner1@email.com',
     }, fuzzer_metadata)
+    self.assertEqual(20, session.fuzz_task_output.total_fuzzing_time_seconds)
 
     self.assertEqual(2, len(crashes))
     for i in range(2):

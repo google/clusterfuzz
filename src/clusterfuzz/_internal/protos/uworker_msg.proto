@@ -266,6 +266,8 @@ message FuzzTaskOutput {
   optional string build_key = 17;
   optional string build_url = 18;
   optional string gn_args = 19;
+  // Actual fuzzing time, excluding preparing the binary or generating testcases
+  optional int64 total_fuzzing_time_seconds = 20;
 }
 
 message MinimizeTaskOutput {

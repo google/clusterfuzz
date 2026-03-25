@@ -1207,6 +1207,8 @@ def _emit_build_age_metric(gcs_path):
       # the gcs api returns string, and the local filesystem implementation
       # returns a datetime.datetime object normalized for UTC.
       last_update_time = datetime.datetime.fromisoformat(last_update_time)
+    if last_update_time.tzinfo is None:
+      last_update_time = last_update_time.replace(tzinfo=datetime.timezone.utc)
     now = datetime.datetime.now(datetime.timezone.utc)
     elapsed_time = now - last_update_time
     elapsed_time_in_hours = elapsed_time.total_seconds() / 3600

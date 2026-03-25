@@ -86,7 +86,7 @@ class MockTime:
   """Mock time because we cannot really mock time.time()."""
 
   def __init__(self, start_time=None):
-    self.current_time = start_time or time.time()
+    self.current_time = start_time if start_time is not None else time.time()
 
   def advance(self, delta):
     """Move the time by delta."""

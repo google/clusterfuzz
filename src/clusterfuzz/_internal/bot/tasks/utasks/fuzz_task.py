@@ -412,6 +412,7 @@ class _TrackFuzzTime:
     self.time = time_module
     self.start_time = None
     self.timeout = None
+    self.duration = 0
 
   def __enter__(self):
     self.start_time = self.time.time()
@@ -419,9 +420,9 @@ class _TrackFuzzTime:
     return self
 
   def __exit__(self, exc_type, value, traceback):
-    duration = self.time.time() - self.start_time
+    self.duration = self.time.time() - self.start_time
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
+        int(self.duration), {
             'fuzzer': self.fuzzer_name,
             'timeout': self.timeout,
             'platform': environment.platform(),
@@ -429,7 +430,7 @@ class _TrackFuzzTime:
             'runtime': environment.get_runtime().value,
         })
     monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
+        int(self.duration), {
             'job': self.job_type,
             'timeout': self.timeout,
             'platform': environment.platform(),
@@ -1643,6 +1644,8 @@ class FuzzingSession:
               self.testcase_directory)
           # Timeouts are only accounted for in libfuzzer, this can be None
           tracker.timeout = bool(result.timed_out)
+        self.fuzz_task_output.total_fuzzing_time_seconds += int(
+            tracker.duration)
       except FuzzTargetNotFoundError:
         # Ocassionally fuzz targets are deleted. This is pretty rare. Since
         # ClusterFuzz did nothing wrong, don't bubble up an exception, consider
@@ -1834,6 +1837,7 @@ class FuzzingSession:
       with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
                           job_type) as tracker:
         tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
+      self.fuzz_task_output.total_fuzzing_time_seconds += int(tracker.duration)
 
       # Allow for some time to finish processing before terminating the
       # processes.
@@ -2054,7 +2058,9 @@ class FuzzingSession:
     fuzz_task_output = uworker_output.fuzz_task_output
     postprocess_store_fuzzer_run_results(uworker_output)
     logs.info('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
-              f'{fuzz_task_output.fully_qualified_fuzzer_name}')
+              f'{fuzz_task_output.fully_qualified_fuzzer_name}. '
+              'Total fuzzing time seconds: '
+              f'{fuzz_task_output.total_fuzzing_time_seconds}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
     postprocess_sample_testcases(uworker_input, uworker_output)
@@ -2072,6 +2078,9 @@ class FuzzingSession:
 
     _upload_testcase_run_jsons(
         uworker_output.fuzz_task_output.testcase_run_jsons)
+    # TODO(dylanj): Upload total fuzzing time to big query
+    logs.info(
+        f"Total fuzzing time {fuzz_task_output.total_fuzzing_time_seconds}")
     testcase_manager.update_build_metadata(
         uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
 
