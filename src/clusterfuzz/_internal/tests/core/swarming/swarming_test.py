@@ -35,6 +35,7 @@ class SwarmingTest(unittest.TestCase):
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
         'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
+        'clusterfuzz._internal.google_cloud_utils.credentials.get_scoped_service_account_credentials',
         'google.auth.transport.requests.Request',
         'clusterfuzz._internal.swarming.FeatureFlags',
     ])
@@ -62,7 +63,8 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './linux_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(
+                            key='os', value=str(job.platform).capitalize()),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
                     cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
@@ -82,12 +84,13 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
@@ -126,7 +129,8 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './mac_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(
+                            key='os', value=str(job.platform).capitalize()),
                         swarming_pb2.StringPair(key='pool', value='pool-name'),
                         swarming_pb2.StringPair(key='key1', value='value1'),
                         swarming_pb2.StringPair(key='key2', value='value2'),
@@ -155,12 +159,13 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
@@ -196,7 +201,8 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './linux_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(
+                            key='os', value=str(job.platform).capitalize()),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
                     cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
@@ -216,12 +222,13 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
@@ -234,7 +241,7 @@ class SwarmingTest(unittest.TestCase):
     """Tests that push_swarming_task works as expected."""
     mock_creds = mock.MagicMock()
     mock_creds.token = 'fake_token'
-    self.mock.get_default.return_value = (mock_creds, None)
+    self.mock.get_scoped_service_account_credentials.return_value = mock_creds
 
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
@@ -253,7 +260,8 @@ class SwarmingTest(unittest.TestCase):
                         'luci-auth', 'context', '--', './linux_entry_point.sh'
                     ],
                     dimensions=[
-                        swarming_pb2.StringPair(key='os', value=job.platform),
+                        swarming_pb2.StringPair(
+                            key='os', value=str(job.platform).capitalize()),
                         swarming_pb2.StringPair(key='pool', value='pool-name')
                     ],
                     cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
@@ -273,12 +281,13 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
+                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
                         ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                     ],
@@ -286,7 +295,8 @@ class SwarmingTest(unittest.TestCase):
                         'https://download_url'.encode('utf-8'))))
         ])
 
-    self.mock.get_default.assert_called_with(swarming._SWARMING_SCOPES)  # pylint: disable=protected-access
+    self.mock.get_scoped_service_account_credentials.assert_called_with(
+        swarming._SWARMING_SCOPES)  # pylint: disable=protected-access
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -302,7 +312,7 @@ class SwarmingTest(unittest.TestCase):
     """Tests that push_swarming_task refreshes credentials if token is missing."""
     mock_creds = mock.MagicMock()
     mock_creds.token = None
-    self.mock.get_default.return_value = (mock_creds, None)
+    self.mock.get_scoped_service_account_credentials.return_value = mock_creds
 
     def refresh_side_effect(_):
       mock_creds.token = 'refreshed_token'
@@ -370,7 +380,7 @@ class SwarmingTest(unittest.TestCase):
     dimensions = spec.task_slices[0].properties.dimensions
 
     expected_dimensions = [
-        swarming_pb2.StringPair(key='os', value='MAC'),
+        swarming_pb2.StringPair(key='os', value='Mac'),
         swarming_pb2.StringPair(key='pool', value='pool-name'),
         swarming_pb2.StringPair(key='key1', value='job_value1'),
         swarming_pb2.StringPair(key='key2', value='value2'),

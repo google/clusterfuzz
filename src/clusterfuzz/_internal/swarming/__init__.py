@@ -25,6 +25,7 @@ from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
@@ -67,7 +68,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   """ Gets all swarming dimensions for a task.
   Job dimensions have more precedence than static dimensions"""
   unique_dimensions = {}
-  unique_dimensions['os'] = job.platform
+  unique_dimensions['os'] = str(job.platform).capitalize()
   unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
 
   for dimension in platform_specific_dimensions:
@@ -133,6 +134,7 @@ def _get_new_task_spec(command: str, job_name: str,
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(  # pylint: disable=no-member
           key='LOGGING_CLOUD_PROJECT_ID',
           value=logs_project_id),
@@ -181,7 +183,11 @@ def push_swarming_task(command, download_url, job_type):
     raise ValueError('invalid job_name')
 
   task_spec = _get_new_task_spec(command, job_type, download_url)
-  creds, _ = credentials.get_default(_SWARMING_SCOPES)
+  creds = credentials.get_scoped_service_account_credentials(_SWARMING_SCOPES)
+  if not creds:
+    logs.error(
+        '[Swarming] Failed to push task into swarming. Reason: No credentials.')
+    return
 
   if not creds.token:
     creds.refresh(requests.Request())
@@ -193,5 +199,8 @@ def push_swarming_task(command, download_url, job_type):
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  utils.post_url(
-      url=url, data=json_format.MessageToJson(task_spec), headers=headers)
+  message_body = json_format.MessageToJson(task_spec)
+  logs.info(f"""[Swarming] Pushing task to {url}
+            as {creds.service_account_email} with {message_body}""")
+  response = utils.post_url(url=url, data=message_body, headers=headers)
+  logs.info(f'[Swarming] Response: {response}')
