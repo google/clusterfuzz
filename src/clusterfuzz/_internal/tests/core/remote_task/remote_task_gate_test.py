@@ -518,15 +518,13 @@ class RemoteTaskGateProcessingTest(unittest.TestCase):
     mock_swarming_flag.return_value = False
     self.assertFalse(self.gate._is_swarming_applicable())
 
-  @mock.patch('clusterfuzz._internal.remote_task.remote_task_gate.task_utils')
   @mock.patch('clusterfuzz._internal.remote_task.remote_task_gate.swarming')
-  def test_is_swarming_task(self, mock_swarming, mock_task_utils):
+  def test_is_swarming_task(self, mock_swarming):
     """Tests _is_swarming_task."""
-    mock_task_utils.get_command_from_module.return_value = 'fuzz'
     mock_swarming.is_swarming_task.return_value = True
 
-    self.assertTrue(self.gate._is_swarming_task('module', 'job'))
-    mock_swarming.is_swarming_task.assert_called_once_with('fuzz', 'job')
+    self.assertTrue(self.gate._is_swarming_task('job'))
+    mock_swarming.is_swarming_task.assert_called_once_with('job')
 
   def test_handle_swarming_job(self):
     """Tests _handle_swarming_job."""
