@@ -138,6 +138,19 @@ class IsPrivilegedUserTest(unittest.TestCase):
     self.mock.check_transitive_group_membership.assert_called_with(
         1, 'usertest@google.com')
 
+  def test_not_member_google_group_exception(self):
+    """Test failed access if user not member of privileged group."""
+    self.mock.get_value.side_effect = self._get_value_mock
+    self.mock.get_identity_api.return_value = None
+    self.mock.get_group_id.return_value = 1
+    self.mock.check_transitive_group_membership.return_value = True
+    self.mock.check_transitive_group_membership.side_effect = Exception()
+
+    self.assertFalse(access._is_privileged_user('usertest@google.com'))
+    self.mock.get_group_id.assert_called_with('test@group.com')
+    self.mock.check_transitive_group_membership.assert_called_with(
+        1, 'usertest@google.com')
+
 
 class IsDomainAllowedTest(unittest.TestCase):
   """Test _is_domain_allowed."""

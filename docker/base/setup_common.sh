@@ -33,10 +33,22 @@ then
   export PREEMPTIBLE=True
 fi
 
+is_truthy() {
+  [[ "$1" =~ ^([Tt]rue|1)$ ]]
+}
+
 # Make sure mounted volume doesn't have noexec,nosuid,nodev
-# Running this in k8s environment will cause mounting errors
-if [[ -z "$IS_K8S_ENV" ]]
-then
+# Running this in k8s or swarming environment will cause mounting errors
+should_mount() {
+  # Skip if running in Kubernetes or as a Swarming Job
+  if is_truthy "$IS_K8S_ENV" || is_truthy "$SWARMING_BOT"; then
+    return 1
+  fi
+
+  return 0
+}
+
+if should_mount; then
   mount /mnt/scratch0 -o remount,exec,suid,dev
 fi
 

@@ -22,6 +22,9 @@ the task creation logic to a specific implementation.
 import collections
 import random
 
+from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -54,6 +57,21 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     population = list(frequencies.keys())
     weights = list(frequencies.values())
     return random.choices(population, weights)[0]
+
+  def _is_swarming_applicable(self):
+    return feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
+
+  def _is_swarming_task(self, module, job_type):
+    return swarming.is_swarming_task(
+        task_utils.get_command_from_module(module), job_type)
+
+  def _handle_swarming_job(self, module, job_type, input_download_url):
+    return self._service_map['swarming'].create_utask_main_job(
+        module, job_type, input_download_url)
+
+  def _handle_swarming_jobs(self,
+                            remote_tasks: list[remote_task_types.RemoteTask]):
+    return self._service_map['swarming'].create_utask_main_jobs(remote_tasks)
 
   def get_job_frequency(self):
     """Returns the frequency distribution for all remote task adapters.
@@ -106,6 +124,10 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
 
   def create_utask_main_job(self, module, job_type, input_download_url):
     """Creates a single remote task, selecting a backend dynamically."""
+    if self._is_swarming_applicable() and self._is_swarming_task(
+        module, job_type):
+      return self._handle_swarming_job(module, job_type, input_download_url)
+
     adapter_id = self._get_adapter()
     service = self._service_map[adapter_id]
     return service.create_utask_main_job(module, job_type, input_download_url)
@@ -114,21 +136,34 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
                              remote_tasks: list[remote_task_types.RemoteTask]):
     """Creates a batch of remote tasks, distributing them across backends.
 
-    This method handles two cases:
-    1. If there is only one task, it uses a weighted random choice to select
-       a backend, similar to `create_utask_main_job`.
-    2. If there are multiple tasks, it distributes them deterministically
-       across the available backends based on their configured frequencies.
-       This ensures that a batch of 100 tasks with a 70/30 split sends
-       exactly 70 tasks to one backend and 30 to the other.
+    This method manages the distribution of tasks in two stages:
+
+    1. Swarming Interception (Optional): If the `SWARMING_REMOTE_EXECUTION`
+       feature flag is enabled, all tasks are first passed to the Swarming
+       service. The service schedules swarming-eligible tasks and returns
+       any tasks that it didn't schedule (e.g., non-swarming tasks or those
+       it failed to schedule).
+
+    2. Weighted Distribution: Any remaining tasks are then distributed across
+       the available remote adapters based on their configured frequencies:
+       - If only one task remains, it is assigned using a weighted random
+         choice to maintain overall distribution over time.
+       - If multiple tasks remain, they are distributed deterministically
+         according to their frequencies. This ensures precise adherence to
+         the distribution ratios (e.g., exactly 70/30 split for 100 tasks).
     """
     tasks_by_adapter = collections.defaultdict(list)
+    unscheduled_tasks = []
 
-    if len(remote_tasks) == 1:
+    if self._is_swarming_applicable():
+      remote_tasks = self._handle_swarming_jobs(remote_tasks)
+
+    if not remote_tasks:
+      pass
+    elif len(remote_tasks) == 1:
       # For a single task, use a random distribution.
       adapter_id = self._get_adapter()
       tasks_by_adapter[adapter_id].extend(remote_tasks)
-      unscheduled_tasks = []
     else:
       # For multiple tasks, use deterministic slicing to ensure the
       # distribution precisely matches the frequency configuration.
@@ -147,9 +182,8 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
         for i, task in enumerate(remaining_tasks):
           adapter_id = list(frequencies.keys())[i % len(frequencies)]
           tasks_by_adapter[adapter_id].append(task)
-        unscheduled_tasks = []
       else:
-        unscheduled_tasks = list(remaining_tasks)
+        unscheduled_tasks.extend(remaining_tasks)
 
     for adapter_id, tasks in tasks_by_adapter.items():
       if tasks:

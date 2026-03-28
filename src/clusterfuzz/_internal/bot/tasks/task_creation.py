@@ -248,15 +248,16 @@ def create_tasks(testcase):
     testcase.put()
     return
 
-  if environment.is_minimization_supported() or environment.get_value(
-      'MINIMIZE_FUZZER_OVERRIDE'):
+  if (not testcase.get_metadata('skip_minimization') and
+      (environment.is_minimization_supported() or
+       environment.get_value('MINIMIZE_FUZZER_OVERRIDE'))):
     # For supported environments, just create the minimize task for now.
     # Once minimization is complete, it automatically creates the rest of the
     # needed tasks.
     create_minimize_task_if_needed(testcase)
   else:
-    # Environments that don't support minimization skip directly to other
-    # tasks.
+    # Environments that don't support minimization (or if skip_minimization is
+    # set) skip directly to other tasks.
     testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.minimized_keys = 'NA'
     testcase.put()

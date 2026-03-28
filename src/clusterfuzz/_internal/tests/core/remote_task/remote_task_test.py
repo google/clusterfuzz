@@ -49,14 +49,17 @@ class RemoteTaskGateTest(unittest.TestCase):
 
     self.gate = remote_task_gate.RemoteTaskGate()
 
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_is_swarming_applicable')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
   def test_create_utask_main_jobs_k8s_limit_reached(
-      self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
+      self, mock_gcp_create, mock_k8s_create, mock_get_frequency,
+      mock_is_swarming_applicable):
     """Test delegation when K8s limit is reached (handled by service)."""
+    mock_is_swarming_applicable.return_value = False
     # Setup tasks to go to Kubernetes
     mock_get_frequency.return_value = {'kubernetes': 1.0}
 
@@ -76,14 +79,17 @@ class RemoteTaskGateTest(unittest.TestCase):
     # Verify result is empty list
     self.assertEqual(result, [])
 
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_is_swarming_applicable')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
   def test_create_utask_main_jobs_success(self, _, mock_k8s_create,
-                                          mock_get_frequency):
+                                          mock_get_frequency,
+                                          mock_is_swarming_applicable):
     """Test successful creation."""
+    mock_is_swarming_applicable.return_value = False
     mock_get_frequency.return_value = {'kubernetes': 1.0}
     mock_pubsub_task = mock.Mock()
     task = remote_task_types.RemoteTask(

@@ -641,6 +641,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Ignore error-throwing frames, the bug is in the caller.
     r'^blink::ReportV8FatalError',
     r'^v8::api_internal::ToLocalEmpty',
+    r'^v8::internal::Isolate::PushStackTraceAndDie',
+    r'^v8::internal::Isolate::PushParamsAndDie',
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',
