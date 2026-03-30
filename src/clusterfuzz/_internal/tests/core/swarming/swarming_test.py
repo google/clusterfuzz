@@ -38,10 +38,12 @@ class SwarmingTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.credentials.get_scoped_service_account_credentials',
         'google.auth.transport.requests.Request',
         'clusterfuzz._internal.swarming.FeatureFlags',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     helpers.patch_environ(self)
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
     self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
+    self.mock.get.return_value = None
     self.maxDiff = None
 
   def test_get_spec_from_config_with_docker_image(self):

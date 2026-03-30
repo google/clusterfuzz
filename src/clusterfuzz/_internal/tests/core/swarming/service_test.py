@@ -31,9 +31,11 @@ class SwarmingServiceTest(unittest.TestCase):
         'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     self.service = service.SwarmingService()
     self.mock.create_new_task_request.return_value = 'fake_request'
+    self.mock.get.return_value = None
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""

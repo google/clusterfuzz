@@ -29,9 +29,11 @@ class SwarmingConfigErrorTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.swarming.FeatureFlags',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     helpers.patch_environ(self)
     self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
+    self.mock.get.return_value = None
 
   def test_is_swarming_task_bad_config(self):
     """Tests that is_swarming_task returns False when there's a BadConfigError."""
