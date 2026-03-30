@@ -200,6 +200,10 @@ def push_swarming_task(command, download_url, job_type):
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
   message_body = json_format.MessageToJson(task_spec)
-  logs.info(f'[Swarming] Pushing task for {job_type} as {creds.service_account_email}', url=url,body=message_body)
+  logs.info(
+      f"""[Swarming] Pushing task for {job_type}
+            as {creds.service_account_email}""",
+      url=url,
+      body=message_body)
   response = utils.post_url(url=url, data=message_body, headers=headers)
   logs.info(f'[Swarming] Response from {job_type}', response=response)
