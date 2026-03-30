@@ -34,6 +34,7 @@ class SwarmingTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.post_url',
         'clusterfuzz._internal.swarming._get_task_name',
+        'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
         'clusterfuzz._internal.google_cloud_utils.credentials.get_scoped_service_account_credentials',
         'google.auth.transport.requests.Request',
         'clusterfuzz._internal.swarming.FeatureFlags',
