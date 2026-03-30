@@ -233,11 +233,11 @@ def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: di
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  message_body = json_format.MessageToJson(task_spec)
+  message_body = json_format.MessageToJson(task_request)
   logs.info(
-      f"""[Swarming] Pushing task for {job_type}
+      f"""[Swarming] Pushing task {task_request.name}
             as {creds.service_account_email}""",
       url=url,
       body=message_body)
   response = utils.post_url(url=url, data=message_body, headers=headers)
-  logs.info(f'[Swarming] Response from {job_type}', response=response)
+  logs.info(f'[Swarming] Response from {task_request.name}', response=response)
