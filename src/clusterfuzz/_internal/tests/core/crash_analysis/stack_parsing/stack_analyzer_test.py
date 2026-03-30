@@ -1346,6 +1346,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_error_with_small_number(self):
+    """Test a v8 error with a small number (see https://crbug.com/437859892)."""
+    data = self._read_test_data('v8_error_with_small_number.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = ('Funky failure at token NUMBER in bar.cc\n'
+                      'v8::internal::foo::Bar::Baz1<v8::internal::Isolate>\n'
+                      'v8::internal::foo::Bar::Baz2<v8::internal::Isolate>\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
