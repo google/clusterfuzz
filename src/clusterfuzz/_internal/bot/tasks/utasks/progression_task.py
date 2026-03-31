@@ -467,10 +467,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
         blob_name=blob_name,
         stacktrace_upload_url=blob_upload_url)
     # Setup testcase and its dependencies.
-    if uworker_env is not None:
-      job_app_args = data_handler.get_value_from_job_definition(
-          job_type, 'APP_ARGS', default='')
-      uworker_env['JOB_DEFAULT_APP_ARGS'] = job_app_args
+    setup.set_default_app_args(job_type, uworker_env)
 
     setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 

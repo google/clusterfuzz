@@ -608,9 +608,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-    job_app_args = data_handler.get_value_from_job_definition(
-        job_type, 'APP_ARGS', default='')
-    uworker_env['JOB_DEFAULT_APP_ARGS'] = job_app_args
+    setup.set_default_app_args(job_type, uworker_env)
 
     setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
