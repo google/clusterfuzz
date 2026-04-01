@@ -120,7 +120,7 @@ FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
-FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
+FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error(?: in (.*))?$')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
 FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
