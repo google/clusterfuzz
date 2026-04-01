@@ -186,7 +186,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     os.environ['CUSTOM_BINARY'] = 'some_value'
     testcase = test_utils.create_generic_testcase()
     result = progression_task.utask_preprocess(
-        str(testcase.key.id()), 'job_type', None)
+        str(testcase.key.id()), 'job_type', {})
     self.assertTrue(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
     returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
