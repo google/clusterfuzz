@@ -226,10 +226,12 @@ class TestcaseEventHistory:
 
   def _get_task_log_query_filter(self, task_id: str, task_name: str) -> str:
     """Returns the filter string for querying task logs."""
-    query = (f'jsonPayload.extras.task_id={_quote_logging_filter_value(task_id)} AND '
+    query = ('jsonPayload.extras.task_id='
+             f'{_quote_logging_filter_value(task_id)} AND '
              'jsonPayload.extras.testcase_id='
              f'{_quote_logging_filter_value(str(self._testcase_id))} AND '
-             f'jsonPayload.extras.task_name={_quote_logging_filter_value(task_name)}')
+             'jsonPayload.extras.task_name='
+             f'{_quote_logging_filter_value(task_name)}')
     query += f' AND {self._get_time_range_filter(days=31)}'
     return query
 

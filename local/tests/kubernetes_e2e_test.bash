@@ -20,7 +20,7 @@ pip install pipenv
 
 # Install dependencies.
 pipenv --python 3.11
-pipenv install
+pipenv sync --dev
 
 ./local/install_deps.bash
 

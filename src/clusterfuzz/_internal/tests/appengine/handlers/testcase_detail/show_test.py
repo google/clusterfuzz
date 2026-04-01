@@ -611,6 +611,7 @@ class GetTestcaseTest(unittest.TestCase):
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
 
+
 @test_utils.with_cloud_emulators('datastore')
 class TaskLogHandlerTest(unittest.TestCase):
   """Tests for TaskLogHandler."""
@@ -627,11 +628,13 @@ class TaskLogHandlerTest(unittest.TestCase):
 
   def test_get(self):
     """Ensure the handler checks testcase access before returning logs."""
-    response = self.app.get('/?testcase_id=123&task_id=task-1&task_name=minimize')
+    response = self.app.get(
+        '/?testcase_id=123&task_id=task-1&task_name=minimize')
 
     self.assertEqual(200, response.status_int)
     self.assertEqual('task log content', response.text)
-    self.assertEqual('text/plain; charset=utf-8', response.headers['Content-Type'])
+    self.assertEqual('text/plain; charset=utf-8',
+                     response.headers['Content-Type'])
     self.assertEqual('attachment; filename="task_task-1_log.txt"',
                      response.headers['Content-Disposition'])
     self.mock.check_access_and_get_testcase.assert_called_once_with(123)
