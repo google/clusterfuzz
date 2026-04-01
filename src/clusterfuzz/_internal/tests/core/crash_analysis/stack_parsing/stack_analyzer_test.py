@@ -1366,7 +1366,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('v8_fatal_error_no_file.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = '!is_null()\n'
+    expected_state = (
+        '!is_null()\n'
+        'v8::internal::WasmModuleObject::ExtractUtf8StringFromModuleBytes\n'
+        'v8::internal::wasm::InstanceBuilder::SanitizeImports\n'
+    )
     expected_stacktrace = data
     expected_security_flag = False
 
