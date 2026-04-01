@@ -1369,8 +1369,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = (
         '!is_null()\n'
         'v8::internal::WasmModuleObject::ExtractUtf8StringFromModuleBytes\n'
-        'v8::internal::wasm::InstanceBuilder::SanitizeImports\n'
-    )
+        'v8::internal::wasm::InstanceBuilder::SanitizeImports\n')
     expected_stacktrace = data
     expected_security_flag = False
 
