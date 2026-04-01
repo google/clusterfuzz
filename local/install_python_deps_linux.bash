@@ -25,6 +25,12 @@ $PYTHON -m pipenv --python $PYTHON
 $PYTHON -m pipenv sync --dev
 source "$(${PYTHON} -m pipenv --venv)/bin/activate"
 
+# Bootstrap later invokes `python3.11 -m pipenv`, so make sure the activated
+# interpreter can import pipenv even if it wasn't installed into this venv.
+if ! python -m pip show pipenv > /dev/null 2>&1; then
+  python -m pip install pipenv
+fi
+
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
   ANDROID_SDK_REVISION=4333796
