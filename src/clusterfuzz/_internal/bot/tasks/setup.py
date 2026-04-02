@@ -242,6 +242,8 @@ def preprocess_setup_testcase(testcase,
   if testcase.uploader_email:
     _set_timeout_value_from_user_upload(testcase_id, uworker_env)
 
+  set_default_app_args(uworker_env['JOB_NAME'], uworker_env)
+
   # Override APP_ARGS with minimized arguments (if available). Don't do this
   # for variant task since other job types can have its own set of required
   # arguments, so use the full set of arguments of that job.

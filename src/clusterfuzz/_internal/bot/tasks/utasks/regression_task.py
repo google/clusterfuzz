@@ -608,8 +608,6 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-    setup.set_default_app_args(job_type, uworker_env)
-
     setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
     task_input = uworker_msg_pb2.RegressionTaskInput(  # pylint: disable=no-member
