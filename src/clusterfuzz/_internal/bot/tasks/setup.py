@@ -60,6 +60,13 @@ def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
     uworker_env['TEST_TIMEOUT'] = str(metadata.timeout)
 
 
+def set_default_app_args(job_type, uworker_env):
+  """Sets default app args for the job in the uworker environment."""
+  job_app_args = data_handler.get_value_from_job_definition(
+      job_type, 'APP_ARGS', default='')
+  uworker_env['JOB_DEFAULT_APP_ARGS'] = job_app_args
+
+
 def _copy_testcase_to_device_and_setup_environment(testcase,
                                                    testcase_file_path):
   """Android specific setup steps for testcase."""
@@ -234,6 +241,8 @@ def preprocess_setup_testcase(testcase,
         leak_blacklist.get_global_blacklisted_functions())
   if testcase.uploader_email:
     _set_timeout_value_from_user_upload(testcase_id, uworker_env)
+
+  set_default_app_args(uworker_env['JOB_NAME'], uworker_env)
 
   # Override APP_ARGS with minimized arguments (if available). Don't do this
   # for variant task since other job types can have its own set of required
