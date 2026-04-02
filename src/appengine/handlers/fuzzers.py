@@ -195,7 +195,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.external_contribution = bool(external_contribution)
     fuzzer.differential = bool(differential)
     fuzzer.additional_environment_string = environment_string
-    fuzzer.timestamp = datetime.datetime.utcnow()
+    fuzzer.timestamp = datetime.datetime.now(tz=datetime.timezone.utc).replace(
+        tzinfo=None)
     fuzzer.data_bundle_name = data_bundle_name
 
     # Update only if a new archive is provided.

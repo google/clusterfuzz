@@ -103,7 +103,6 @@ class CreateHandlerTest(unittest.TestCase):
     self.mock.apply_fuzzer_changes.assert_called_once()
 
     fuzzer = self.mock.apply_fuzzer_changes.call_args[0][1]
-    upload_info = self.mock.apply_fuzzer_changes.call_args[0][2]
 
     self.assertEqual(fuzzer.name, fuzzer_name)
     self.assertEqual(fuzzer.revision, 0)
