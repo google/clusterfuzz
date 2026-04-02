@@ -251,6 +251,8 @@ class CreateHandler(BaseEditHandler):
     fuzzer = data_types.Fuzzer()
     fuzzer.name = name
     fuzzer.revision = 0
+    fuzzer.created_at = datetime.datetime.now(tz=datetime.timezone.utc).replace(
+        tzinfo=None)
     return self.apply_fuzzer_changes(fuzzer, upload_info)
 
 
