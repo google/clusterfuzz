@@ -40,6 +40,8 @@ CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
     field_spec=[
         monitor.StringField('build_id'),
+        monitor.StringField('instance_id'),
+        monitor.BooleanField('is_candidate'),
         monitor.BooleanField('is_succeeded'),
     ])
 
@@ -95,6 +97,7 @@ FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -104,6 +107,7 @@ FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
@@ -113,6 +117,7 @@ JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
@@ -122,6 +127,7 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ])
 
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
@@ -133,6 +139,7 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
         monitor.IntegerField('return_code'),
         monitor.StringField('platform'),
         monitor.StringField('job'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -144,7 +151,10 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
-        monitor.StringField('is_batch')
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -158,6 +168,7 @@ FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
         monitor.StringField('job'),
         monitor.StringField('platform'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -169,7 +180,10 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
         monitor.BooleanField('timeout'),
         monitor.StringField('platform'),
-        monitor.StringField('is_batch')
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
     ],
 )
 
@@ -348,8 +362,7 @@ ANDROID_UPTIME = monitor.CounterMetric(
 CHROME_TEST_SYNCER_SUCCESS = monitor.CounterMetric(
     'chrome_test_syncer_success',
     description='Counter for successful test syncer exits.',
-    field_spec=[],
-)
+    field_spec=[])
 
 # Metrics related to issue lifecycle
 

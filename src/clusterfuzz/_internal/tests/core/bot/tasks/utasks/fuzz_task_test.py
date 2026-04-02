@@ -60,6 +60,9 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
     self.mock.platform.return_value = 'some_platform'
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.get_runtime'])
+    self.mock.get_runtime.return_value = environment.UtaskMainRuntime.KATA_CONTAINER
 
   def test_fuzzer_run_result(self):
     """Ensure _track_fuzzer_run_result set the right metrics."""
@@ -77,6 +80,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': 2,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
     self.assertEqual(
         1,
@@ -85,6 +89,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': 0,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
     self.assertEqual(
         1,
@@ -93,6 +98,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
             'return_code': -1,
             'platform': 'some_platform',
             'job': 'job',
+            'runtime': 'kata_container'
         }))
 
     testcase_count_ratio = (
@@ -143,6 +149,9 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
     monitor.metrics_store().reset_for_testing()
     helpers.patch(self, ['clusterfuzz._internal.system.environment.platform'])
     self.mock.platform.return_value = 'some_platform'
+    helpers.patch(self,
+                  ['clusterfuzz._internal.system.environment.get_runtime'])
+    self.mock.get_runtime.return_value = environment.UtaskMainRuntime.KATA_CONTAINER
 
   def test_testcase_run_result(self):
     """Ensure _track_testcase_run_result sets the right metrics."""
@@ -154,24 +163,28 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
         monitoring_metrics.JOB_NEW_CRASH_COUNT.get({
             'job': 'job',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         15,
         monitoring_metrics.JOB_KNOWN_CRASH_COUNT.get({
             'job': 'job',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         7,
         monitoring_metrics.FUZZER_NEW_CRASH_COUNT.get({
             'fuzzer': 'fuzzer',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
     self.assertEqual(
         15,
         monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.get({
             'fuzzer': 'fuzzer',
             'platform': 'some_platform',
+            'runtime': 'kata_container',
         }))
 
 
@@ -215,7 +228,8 @@ class TrackFuzzTimeTest(unittest.TestCase):
         'fuzzer': 'fuzzer',
         'timeout': timeout,
         'platform': 'some_platform',
-        'is_batch': environment.is_uworker()
+        'is_batch': environment.is_uworker(),
+        'runtime': environment.get_runtime().value,
     })
     self.assertEqual(5, fuzzer_total_time)
 
@@ -1504,15 +1518,18 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   """Tests for preprocess_store_fuzzer_run_results."""
 
   SIGNED_URL = 'https://signed'
+  BLOB_KEY = 'blob_key'
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
         'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name'
     ])
     self.mock._sign_url.side_effect = (
         lambda remote_path, method, minutes: remote_path)
     self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
+    self.mock.generate_new_blob_name.return_value = self.BLOB_KEY
     helpers.patch_environ(self)
     os.environ['JOB_NAME'] = 'linux_chrome_asan'
 
@@ -1521,8 +1538,9 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
     self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
                      self.SIGNED_URL)
-
+    self.assertEqual(fuzz_task_input.sample_testcase_upload_key, self.BLOB_KEY)
     self.assertEqual(fuzz_task_input.script_log_upload_url, self.SIGNED_URL)
+    self.assertEqual(fuzz_task_input.script_log_upload_key, self.BLOB_KEY)
 
 
 @test_utils.with_cloud_emulators('datastore')

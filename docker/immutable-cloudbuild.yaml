@@ -80,15 +80,41 @@ steps:
     echo "Computed revision: $${REVISION}"
     echo "$${REVISION}" > /workspace/revision.txt
 
-- id: build immutable image
+- id: build immutable image legacy
   name: gcr.io/cloud-builders/docker
   entrypoint: bash
+  waitFor: ['compute revision']
   args:
   - -ex
   - docker/build-immutable.sh
   - ${_CLUSTERFUZZ_REVISION}
   - ${_PUSH_IMAGES}
   - ${PROJECT_ID}
+  - legacy
+
+- id: build immutable image ubuntu-20-04
+  name: gcr.io/cloud-builders/docker
+  entrypoint: bash
+  waitFor: ['compute revision']
+  args:
+  - -ex
+  - docker/build-immutable.sh
+  - ${_CLUSTERFUZZ_REVISION}
+  - ${_PUSH_IMAGES}
+  - ${PROJECT_ID}
+  - ubuntu-20-04
+
+- id: build immutable image ubuntu-24-04
+  name: gcr.io/cloud-builders/docker
+  entrypoint: bash
+  waitFor: ['compute revision']
+  args:
+  - -ex
+  - docker/build-immutable.sh
+  - ${_CLUSTERFUZZ_REVISION}
+  - ${_PUSH_IMAGES}
+  - ${PROJECT_ID}
+  - ubuntu-24-04
 
 timeout: 14400s
 options:

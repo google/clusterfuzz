@@ -92,3 +92,4 @@ python butler.py format
 ```
 
 This will format the changed code in your current branch.
+It's possible to get into a state where linting and formatting contradict each other. In this case, STOP, the human will fix it.

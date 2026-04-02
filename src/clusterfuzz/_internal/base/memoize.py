@@ -17,6 +17,7 @@ import collections
 import functools
 import json
 import threading
+import time
 
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
@@ -87,6 +88,30 @@ class FifoInMemory:
   def get_key(self, func, args, kwargs):
     """Get a key name based on function, arguments and keyword arguments."""
     return _default_key(func, args, kwargs)
+
+
+class InMemory(FifoInMemory):
+  """In-memory caching engine with TTL."""
+
+  def __init__(self, ttl_in_seconds, capacity=1000):
+    super().__init__(capacity)
+    self.ttl_in_seconds = ttl_in_seconds
+
+  def put(self, key, value):
+    """Put (key, value) into cache."""
+    super().put(key, (value, time.time() + self.ttl_in_seconds))
+
+  def get(self, key):
+    """Get the value from cache."""
+    entry = super().get(key)
+    if entry is None:
+      return None
+
+    value, expiry = entry
+    if expiry < time.time():
+      return None
+
+    return value
 
 
 class FifoOnDisk:

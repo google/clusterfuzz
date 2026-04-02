@@ -20,7 +20,7 @@ import subprocess
 import sys
 import time
 
-GSUTIL_CMD = 'gsutil'
+GCLOUD_STORAGE_CMD = ['gcloud', 'storage']
 RETRY_COUNT = 5
 SLEEP_WAIT = 60
 
@@ -30,15 +30,8 @@ with the same content, copy the first experimental bucket over to the others to
 make sure that contents of the buckets will be exactly the same."""
 
 
-def _run_command(command, gsutil_command_name=None):
+def _run_command(command):
   """Runs a command and prints it."""
-  if gsutil_command_name and environment.get_value(
-      f'USE_GCLOUD_STORAGE_{gsutil_command_name.upper()}'):
-    command[0] = 'gcloud'
-    command.insert(1, 'storage')
-    if gsutil_command_name == 'ls':
-      command[2] = 'ls'
-
   print(
       'Running command [{time}]:'.format(
           time=datetime.datetime.now().strftime('%H:%M:%S')),
@@ -60,13 +53,13 @@ def _run_command(command, gsutil_command_name=None):
 def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
   """Copy corpus from a source bucket to target bucket, keeping their project
   names into account."""
-  # Ensure that gsutil is installed.
-  subprocess.check_call([GSUTIL_CMD, '-v'])
+  # Ensure that gcloud is installed.
+  subprocess.check_call([GCLOUD_STORAGE_CMD[0], '-v'])
 
-  source_urls_fetch_command = [
-      GSUTIL_CMD, 'ls', 'gs://{bucket}/*/'.format(bucket=source_bucket)
+  source_urls_fetch_command = GCLOUD_STORAGE_CMD + [
+      'ls', f'gs://{source_bucket}/*/'
   ]
-  source_urls = _run_command(source_urls_fetch_command, 'ls').splitlines()
+  source_urls = _run_command(source_urls_fetch_command).splitlines()
   filtered_source_urls = [
       s.rstrip('/') for s in source_urls if s.strip() and not s.endswith(':')
   ]
@@ -86,9 +79,11 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
                                 'gs://%s' % target_bucket)
     target_url = '%s/%s' % (url_part, fuzz_target)
 
-    _run_command(
-        [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url],
-        'rsync')
+    rsync_cmd = GCLOUD_STORAGE_CMD + [
+        'rsync', source_url, target_url, '--recursive',
+        '--delete-unmatched-destination-objects'
+    ]
+    _run_command(rsync_cmd)
 
   print('Copy corpus finished successfully.')
 

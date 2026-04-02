@@ -22,6 +22,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import fuzz_target_utils
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 
 # Used to prepare targets to be passed to utils.random_weighted_choice.
@@ -133,9 +134,16 @@ def get_fuzz_task_payload(platform=None):
 
   platforms = [platform]
   base_platform = platform.split(':')[0]
-  # Generalized queue for platforms with a base platform (e.g. ANDROID)
-  if base_platform != platform:
-    platforms.append(base_platform)
+
+  # Conditionally append the base platform (e.g. ANDROID) as a job filter,
+  # unless the platform is restricted or is the base platform itself.
+  if platform != base_platform:
+    if platform not in constants.DEVICES_WITH_NO_FALLBACK_QUEUE_LIST:
+      platforms.append(base_platform)
+    else:
+      logs.info(f'{platform} is part of devices with no fallback list. '
+                f'Hence skipping inclusion of the generic platform '
+                f'({base_platform}) while querying.')
 
   if environment.is_production():
     query = data_types.FuzzerJobs.query()

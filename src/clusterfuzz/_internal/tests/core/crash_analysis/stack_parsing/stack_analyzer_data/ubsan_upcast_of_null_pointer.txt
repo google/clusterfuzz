@@ -1,0 +1,24 @@
+src/test.cpp:777:44: runtime error: upcast of null pointer of type 'Type::Exp'
+    #0 0x56f7022adc48 in Test::Ex::operator()(Test::List*) /src/lib/src/test.cpp:777:27
+    #1 0x56f7022ca6a6 in Test::Ex::operator()(Test::Function_Call*) /src/lib/src/test.cpp:1234:22
+    #2 0x56f7022ad260 in Test::Ex::operator()(Test::List*) /src/lib/src/test.cpp:777:27
+    #3 0x56f70230f0cb in Test::Expemple::operator()(Test::Declaration*) /src/lib/src/exemple.cpp:123:31
+    #4 0x56f702306083 in Test::Exemple::aaaaa(Test::BBBB*) /src/lib/src/exemple.cpp:123:32
+    #5 0x56f7023057af in Test::Exemple::operator()(Test::BBBB*) /src/lib/src/exemple.cpp:321:11
+    #6 0x56f702308297 in Test::Exemple::operator()(Test::SSSS*) /src/lib/src/exemple.cpp:432:27
+    #7 0x56f702306083 in Test::Exemple::aaaaa(Test::BBBB*) /src/lib/src/exemple.cpp:123:32
+    #8 0x56f7023057af in Test::Exemple::operator()(Test::BBBB*) /src/lib/src/exemple.cpp:321:11
+    #9 0x56f702115ffa in Test::Context::compile() /src/lib/src/context.cpp:653:12
+    #10 0x56f702115249 in Test::Data_Context::parse() /src/lib/src/context.cpp:624:12
+    #11 0x56f70204c1c6 in Test::test_block(T_Comp*) /src/lib/src/test_context.cpp:182:31
+    #12 0x56f70204bfbe in test_parse /src/lib/src/test_context.cpp:436:22
+    #13 0x56f70204bc67 in test_context(Test_Context*, Test::Context*) /src/lib/src/test_context.cpp:319:7
+    #14 0x56f70204a5ed in LLVMFuzzerTestOneInput /src/test_fuzzer.cc:22:1
+    #15 0x56f701fa18ed in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:619:13
+    #16 0x56f701f8c662 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:329:6
+    #17 0x56f701f92530 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:865:9
+    #18 0x56f701fbe062 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #19 0x79e011082082 in __libc_start_main /build/glibc-B3wQXB/glibc-2.31/csu/libc-start.c:308:16
+    #20 0x56f701f8574d in _start
+
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior src/test.cpp:777:18

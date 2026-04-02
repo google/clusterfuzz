@@ -178,7 +178,7 @@ class StackParser:
                             state_from_group=None,
                             address_filter=lambda s: s,
                             type_filter=lambda s: s,
-                            reset=False) -> re.Match or None:
+                            reset=False) -> re.Match | None:
     """Update the specified parts of the state if we have a match."""
 
     match = compiled_regex.match(line)
@@ -615,6 +615,17 @@ class StackParser:
             new_type='Bad-cast',
             new_frame_count=0)
 
+      # Golang stacktraces. Needs to be done before the other UBSan crash as
+      # it uses the same pattern of "runtime error:".
+      if state.is_golang:
+        for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
+          if self.update_state_on_match(
+              golang_crash_regex, line, state, new_type=golang_crash_type):
+            state.found_golang_crash = True
+            state.crash_state = ''
+            state.frame_count = 0
+            continue
+
       # Other UndefinedBehavior Sanitizer crash.
       ubsan_runtime_match = UBSAN_RUNTIME_ERROR_REGEX.match(line)
       if ubsan_runtime_match and not state.crash_type and self.include_ubsan:
@@ -627,7 +638,10 @@ class StackParser:
             break
 
         if state.crash_type == 'UNKNOWN':
-          logs.error('Unknown UBSan crash type: {reason}'.format(reason=reason))
+          logs.error(
+              f'Unknown UBSan crash type: {reason}',
+              crash_line=line,
+              is_golang=state.is_golang)
 
         state.crash_address = ''
         state.crash_state = ''
@@ -641,16 +655,6 @@ class StackParser:
           new_type='Memcpy-param-overlap',
           reset=True,
           address_from_group=2)
-
-      # Golang stacktraces.
-      if state.is_golang:
-        for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
-          if self.update_state_on_match(
-              golang_crash_regex, line, state, new_type=golang_crash_type):
-            state.found_golang_crash = True
-            state.crash_state = ''
-            state.frame_count = 0
-            continue
 
       # Python stacktraces.
       if state.is_python:
@@ -795,7 +799,26 @@ class StackParser:
           if process_name_match:
             state.process_name = process_name_match.group(1).capitalize()
 
-      # Android SIGABRT handling.
+      if (state.crash_type not in
+          IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS):
+        # Android SIGTRAP handling
+        mte_match = ANDROID_SIGTRAP_REGEX.search(line)
+        self.update_state_on_match(
+            ANDROID_SIGTRAP_REGEX,
+            line,
+            state,
+            new_type='Trap',
+            new_address=(mte_match.group(1) if mte_match else ''))
+
+        # Android SIGABRT handling.
+        self.update_state_on_match(
+            ANDROID_SIGABRT_REGEX,
+            line,
+            state,
+            new_type='Abort',
+            new_address='')
+
+      #Android Abort handling
       android_abort_match = self.update_state_on_match(
           ANDROID_ABORT_REGEX,
           line,
@@ -1043,7 +1066,9 @@ class StackParser:
             FATAL_ERROR_REGEX, line, state, new_type='Fatal error', reset=True)
         if fatal_error_match:
           state.fatal_error_occurred = True
-          state.crash_state = _filter_stack_frame(fatal_error_match.group(1))
+          filename = fatal_error_match.group(1)
+          if filename is not None:
+            state.crash_state = _filter_stack_frame(filename)
 
         if state.is_golang:
           golang_fatal_error_match = self.update_state_on_match(
@@ -1380,10 +1405,12 @@ def filter_addresses_and_numbers(stack_frame):
   # Cases that we are avoiding:
   # - source.cc:1234
   # - libsomething-1.0.so (to avoid things like NUMBERso in replacements)
-  number_expression = r'''(?<![:0-9.])         # not preceeded by any of these
-                          (?:[0-9.]{4,}        # either >= 4 digits
-                             |(?<=[@#])[0-9]+) # or preceeded by @ or #
-                          (?![A-Za-z0-9.])     # not followed by any of these
+  # - very small integer comparisons, e.g. "x >= NUMBER" for "x >= 1"
+  number_expression = r'''(?<![:0-9.])          # not preceeded by any of these
+                          (?:[0-9.]{4,}         # either >= 4 digits
+                             |(?<=\ )[0-9]{2,}  # or >= 2 digits after space
+                             |(?<=[@#])[0-9]+)  # or preceeded by @ or #
+                          (?![A-Za-z0-9.])      # not followed by any of these
                           '''
   return re.sub(number_expression, 'NUMBER', result, flags=re.X)
 

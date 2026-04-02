@@ -33,6 +33,7 @@ APPENGINE_TEST_DIRECTORY = os.path.join('src', 'clusterfuzz', '_internal',
                                         'tests', 'appengine')
 CORE_TEST_DIRECTORY = os.path.join('src', 'clusterfuzz', '_internal', 'tests',
                                    'core')
+CLI_TEST_DIRECTORY = os.path.join('cli', 'casp', 'src', 'casp', 'tests')
 SLOW_TEST_THRESHOLD = 2  # In seconds.
 TESTS_TIMEOUT = 20 * 60  # In seconds.
 
@@ -250,6 +251,9 @@ def execute(args):
 
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
+  elif args.target == 'cli':
+    test_directory = CLI_TEST_DIRECTORY
+    top_level_dir = None
   else:
     # Config module tests.
     os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir

@@ -21,6 +21,6 @@ The package lists for all three images are identical to their respective base im
 
 ## Dockerfile Analysis
 
-The `oss-fuzz-host-high-end` Dockerfile is a minimal "wrapper" image. Its only purpose is to inherit from a `clusterfuzz/oss-fuzz/host` image and set a few environment variables. It does not install any packages or perform any configurations itself.
+The `oss-fuzz-host-high-end` Dockerfile is a minimal "wrapper" image. Its only purpose is to inherit from a `clusterfuzz/oss-fuzz/base` image and set a few environment variables. It does not install any packages or perform any configurations itself.
 
 Because of this simplicity, the only change required to upgrade from `latest`/`ubuntu20` to `ubuntu24` is updating the `FROM` instruction to point to the corresponding `ubuntu24-04` tag of the host image. All package differences are inherited directly from this base image change.

@@ -1,0 +1,198 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Remote task interface.
+
+This module defines the interface for a remote task execution client. This
+abstraction allows ClusterFuzz to support multiple remote execution
+environments, such as GCP Batch and Kubernetes, without tightly coupling
+the task creation logic to a specific implementation.
+"""
+
+import collections
+import random
+
+from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.remote_task import remote_task_adapters
+from clusterfuzz._internal.remote_task import remote_task_types
+
+
+class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
+  """A generic dispatcher for remote task execution.
+
+  This class acts as a high-level manager that abstracts away the specific
+  details of the underlying remote execution backends. It uses the frequencies
+  defined in this module to dynamically choose a backend for each task,
+  allowing for flexible distribution and A/B testing.
+  """
+
+  def __init__(self):
+    # Instantiate and cache the service clients for each defined adapter.
+    self._service_map = {
+        adapter.id: adapter.service()
+        for adapter in remote_task_adapters.RemoteTaskAdapters
+    }
+    self._adapters = remote_task_adapters.RemoteTaskAdapters
+
+  def _get_adapter(self) -> str:
+    """Performs a weighted random choice to select a remote backend.
+
+    This method is used when creating a single task, ensuring that the
+    distribution of tasks over time aligns with the configured frequencies.
+    """
+    frequencies = self.get_job_frequency()
+    population = list(frequencies.keys())
+    weights = list(frequencies.values())
+    return random.choices(population, weights)[0]
+
+  def _is_swarming_applicable(self):
+    return feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
+
+  def _is_swarming_task(self, module, job_type):
+    return swarming.is_swarming_task(
+        task_utils.get_command_from_module(module), job_type)
+
+  def _handle_swarming_job(self, module, job_type, input_download_url):
+    return self._service_map['swarming'].create_utask_main_job(
+        module, job_type, input_download_url)
+
+  def _handle_swarming_jobs(self,
+                            remote_tasks: list[remote_task_types.RemoteTask]):
+    return self._service_map['swarming'].create_utask_main_jobs(remote_tasks)
+
+  def get_job_frequency(self):
+    """Returns the frequency distribution for all remote task adapters.
+
+    This function calculates the proportion of tasks that should be sent to each
+    remote backend defined in the `RemoteTaskAdapters` enum. The calculation
+    is based on feature flags, default weights, and ensures the total
+    distribution sums to 1.0.
+
+    The order of adapters in the enum matters, as this function processes them
+    sequentially, and any remaining weight to sum to 1.0 is assigned to the
+    last adapter.
+
+    Returns:
+      A dictionary mapping each adapter's ID (e.g., 'gcp_batch') to its
+      calculated frequency (a float between 0.0 and 1.0).
+    """
+    frequencies = {adapter.id: 0.0 for adapter in self._adapters}
+    total_weight = 0.0
+
+    for adapter in self._adapters:
+      default_weight = adapter.default_weight
+      feature_flag = adapter.feature_flag
+      weight = default_weight
+
+      # A feature flag can override the default weight for an adapter, allowing
+      # for dynamic adjustments to task distribution.
+      if (feature_flag and feature_flag.enabled and
+          isinstance(feature_flag.content, float)):
+        feature_flag_weight = feature_flag.content
+        if 0 <= feature_flag_weight <= 1:
+          weight = feature_flag_weight
+
+      if total_weight >= 1.0 and weight > 0.0:
+        logs.warning(
+            'Total weight for jobs frequency bigger than 1.0. Adapter starving',
+            adapter=adapter.id)
+        break
+
+      # Ensure the cumulative weight does not exceed 1.0. If adding the
+      # current weight would push the total over, we cap it.
+      if weight + total_weight > 1.0:
+        weight = 1.0 - total_weight
+
+      total_weight += weight
+      frequencies[adapter.id] = weight if weight >= 0 else 0.0
+
+    logs.info('Job frequencies', frequencies=frequencies)
+    return frequencies
+
+  def create_utask_main_job(self, module, job_type, input_download_url):
+    """Creates a single remote task, selecting a backend dynamically."""
+    if self._is_swarming_applicable() and self._is_swarming_task(
+        module, job_type):
+      return self._handle_swarming_job(module, job_type, input_download_url)
+
+    adapter_id = self._get_adapter()
+    service = self._service_map[adapter_id]
+    return service.create_utask_main_job(module, job_type, input_download_url)
+
+  def create_utask_main_jobs(self,
+                             remote_tasks: list[remote_task_types.RemoteTask]):
+    """Creates a batch of remote tasks, distributing them across backends.
+
+    This method manages the distribution of tasks in two stages:
+
+    1. Swarming Interception (Optional): If the `SWARMING_REMOTE_EXECUTION`
+       feature flag is enabled, all tasks are first passed to the Swarming
+       service. The service schedules swarming-eligible tasks and returns
+       any tasks that it didn't schedule (e.g., non-swarming tasks or those
+       it failed to schedule).
+
+    2. Weighted Distribution: Any remaining tasks are then distributed across
+       the available remote adapters based on their configured frequencies:
+       - If only one task remains, it is assigned using a weighted random
+         choice to maintain overall distribution over time.
+       - If multiple tasks remain, they are distributed deterministically
+         according to their frequencies. This ensures precise adherence to
+         the distribution ratios (e.g., exactly 70/30 split for 100 tasks).
+    """
+    tasks_by_adapter = collections.defaultdict(list)
+    unscheduled_tasks = []
+
+    if self._is_swarming_applicable():
+      remote_tasks = self._handle_swarming_jobs(remote_tasks)
+
+    if not remote_tasks:
+      pass
+    elif len(remote_tasks) == 1:
+      # For a single task, use a random distribution.
+      adapter_id = self._get_adapter()
+      tasks_by_adapter[adapter_id].extend(remote_tasks)
+    else:
+      # For multiple tasks, use deterministic slicing to ensure the
+      # distribution precisely matches the frequency configuration.
+      frequencies = self.get_job_frequency()
+      start_index = 0
+      for adapter_id, frequency in frequencies.items():
+        count = int(len(remote_tasks) * frequency)
+        tasks_by_adapter[adapter_id].extend(
+            remote_tasks[start_index:start_index + count])
+        start_index += count
+
+      remaining_tasks = remote_tasks[start_index:]
+      if sum(frequencies.values()) >= 0.999:
+        # Distribute any remainder tasks (due to rounding) one by one. This
+        # ensures that all tasks are assigned to a backend.
+        for i, task in enumerate(remaining_tasks):
+          adapter_id = list(frequencies.keys())[i % len(frequencies)]
+          tasks_by_adapter[adapter_id].append(task)
+      else:
+        unscheduled_tasks.extend(remaining_tasks)
+
+    for adapter_id, tasks in tasks_by_adapter.items():
+      if tasks:
+        try:
+          logs.info(f'Sending {len(tasks)} tasks to {adapter_id}.')
+          service = self._service_map[adapter_id]
+          unscheduled_tasks.extend(service.create_utask_main_jobs(tasks))
+        except Exception:  # pylint: disable=broad-except
+          logs.error(f'Failed to send {len(tasks)} tasks to {adapter_id}.')
+          unscheduled_tasks.extend(tasks)
+
+    return unscheduled_tasks

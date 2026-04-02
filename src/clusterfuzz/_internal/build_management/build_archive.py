@@ -14,6 +14,7 @@
 """Build Archive manager."""
 
 import abc
+import json
 import os
 from typing import BinaryIO
 from typing import Callable
@@ -219,29 +220,144 @@ class DefaultBuildArchive(BuildArchive):
 
 class ChromeBuildArchive(DefaultBuildArchive):
   """Handles chrome build archives. This special cases the default behaviour by
-  looking at the content of the `.runtime_deps` file, in order to unpack all the
-  fuzzer dependencies correctly.
-  In case something goes wrong, this defaults to using the default unpacker.
+  looking at the content of the `.runtime_deps` file for each fuzzer target in
+  order to unpack all of its dependencies correctly.
+
+  Expects a manifest file named `clusterfuzz_manifest.json` in the root of the
+  archive to decide which schema version to use when interpreting its contents.
+  The legacy schema is applied to archives with no manifest. Defaults to using
+  the default unpacker in case something goes wrong.
+
+  Under the legacy schema, fuzz targets were assumed to be at the root of the
+  archive while runtime_deps starting with `../../` were remapped to
+  `/src_root/`.
+
+  Given the following runtime_deps:
+
+  my_fuzzer.runtime_deps:
+  ==========
+  ./my_fuzzer
+  my_fuzzer.options
+  my_fuzzer.owners
+  my_fuzzer.runtime_deps
+  ./libbase.so
+  ./libatomic.so
+  ../../.vpython3
+  ../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib
+    /lib/
+
+
+  The legacy schema would expect an archive with the following structure:
+  ==========
+  my_fuzzer
+  my_fuzzer.options
+  my_ruzzer.owners
+  my_fuzzer.runtime_deps
+  libbase.so
+  libatomic.so
+  # etc. for all fuzz targets
+  src_root/
+    .vpython3
+    third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
+      # all instrumented libs
+    # etc. for other deps
+
+  Schema version 1 does away with `/src_root/` and interprets runtime_deps
+  entries as file paths relative to the runtime_deps file, which lives in the
+  build directory along with fuzz target binaries.
+
+  Expected archive structure with the same runtime_deps:
+  ==========
+  out/build/my_fuzzer
+  out/build/my_fuzzer.options
+  out/build/my_fuzzer.owners
+  out/build/my_fuzzer.runtime_deps
+  out/build/libbase.so
+  out/build/libatomic.so
+  # etc. for all fuzz targets and deps in the build directory
+  .vpython3
+  third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/
+    # all instrumented libs
+  # etc. for other deps
   """
+
+  def __init__(self,
+               reader: archive.ArchiveReader,
+               default_archive_schema_version: int = 0):
+    """Initializes a `ChromiumBuildArchive` with the given reader.
+
+    Arguments:
+      reader: See `DefaultBuildArchive`.
+      default_archive_schema_version: Specifies which version of a build archive
+        to expect if `clusterfuzz_manifest.json` is missing or badly formatted.
+    """
+    super().__init__(reader)
+    # The manifest may not exist for earlier versions of archives. In this
+    # case, default to schema version 0.
+    manifest_path = 'clusterfuzz_manifest.json'
+    if self.file_exists(manifest_path):
+      with self.open(manifest_path) as f:
+        manifest = json.load(f)
+      self._archive_schema_version = manifest.get('archive_schema_version')
+      if self._archive_schema_version is None:
+        logs.warning(
+            'clusterfuzz_manifest.json was incorrectly formatted or missing an '
+            'archive_schema_version field')
+        self._archive_schema_version = default_archive_schema_version
+    else:
+      self._archive_schema_version = default_archive_schema_version
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
       self._root_dir = super().root_dir()  # pylint: disable=attribute-defined-outside-init
     return self._root_dir
 
-  def to_archive_path(self, path: str) -> str:
-    """Deps are relative to the Chrome root directory. However, there might be
-    a common root directory in the archive, which means we need to make sure
-    the file path is correct.
+  def archive_schema_version(self) -> int:
+    """Returns the schema version number for this archive."""
+    return self._archive_schema_version
+
+  def get_dependency_path(self, path: str, deps_file_path: str) -> str:
+    """Deps are given as paths relative to the deps file where they are listed,
+    so we need to translate them to the corresponding paths relative to the
+    archive root.
 
     Args:
-        path: the dependency path relative to Chrome's root directory.
+        path: the dependency path relative to the deps file.
+        deps_file_path: the path to the deps file, relative to the archive root.
 
     Returns:
-        the path relative to the archive.
+        the dependency path relative to the archive root.
     """
-    path = os.path.normpath(path)
 
+    # Archive schema version 0 represents legacy behavior. For newer archive
+    # versions, runtime_deps that were formerly stored under
+    # {self.root_dir()}/src_root/ are now stored in the root directory, while
+    # the build artifacts formerly stored in the root directory are now stored
+    # in the build directory.
+
+    if self._archive_schema_version > 0:
+      # Assumes the dependency path is relative to the deps file and
+      # transforms it into into a full path relative to the archive root. For
+      # example:
+      #
+      # deps_file_path: "/A/B/fuzz_target.runtime_deps"
+      # os.path.dirname(deps_file_path) => "/A/B/" (call this DEPS_DIR)
+      # path1: "./my_dep"
+      # path2: "../../C/my_dep2"
+      # path3: "D/my_dep3"
+      #
+      # os.path.join(DEPS_DIR, path1) => "/A/B/./my_dep"
+      # os.path.join(DEPS_DIR, path2) => "/A/B/../../C/my_dep2"
+      # os.path.join(DEPS_DIR, path3) => "/A/B/D/my_dep3"
+      #
+      # os.path.normpath(os.path.join(DEPS_DIR, path1)) => "/A/B/my_dep"
+      # os.path.normpath(os.path.join(DEPS_DIR, path2)) => "/C/my_dep2"
+      # os.path.normpath(os.path.join(DEPS_DIR, path3)) => "/A/B/D/my_dep3"
+      return os.path.normpath(
+          os.path.join(os.path.dirname(deps_file_path), path))
+
+    # Legacy behavior. Remap `../../` to `src_root/`.
+    path = os.path.normpath(path)
     if path.startswith('../../'):
       path = path.replace('../../', 'src_root/')
 
@@ -271,7 +387,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   def get_target_dependencies(
       self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
-    target_path = self.to_archive_path(fuzz_target)
+    target_path = self.get_path_for_target(fuzz_target)
     deps_file = f'{target_path}.runtime_deps'
     if not self.file_exists(deps_file):
       logs.warning(f'runtime_deps file not found for {target_path}')
@@ -280,7 +396,10 @@ class ChromeBuildArchive(DefaultBuildArchive):
     res = []
     matchers = []
     with self.open(deps_file) as f:
-      deps = [self.to_archive_path(l.decode()) for l in f.read().splitlines()]
+      deps = [
+          self.get_dependency_path(l.decode(), deps_file)
+          for l in f.read().splitlines()
+      ]
       for dep in deps:
         # We need to match the file prefixes here, because some of the deps are
         # globering the whole directory. Same for files, on mac platform, we

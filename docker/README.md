@@ -75,8 +75,6 @@ graph TD
 
     subgraph OSS-Fuzz
         H(oss-fuzz/base)
-        N(oss-fuzz/worker)
-        O(oss-fuzz/host)
         P(oss-fuzz/host-high-end)
     end
 
@@ -103,8 +101,5 @@ graph TD
     F --> L;
     F --> M;
 
-    H --> N;
-    H --> O;
-
-    O --> P;
+    H --> P;
 ```

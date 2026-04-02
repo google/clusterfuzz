@@ -27,7 +27,7 @@ RUN apt-get update && \
         google-cloud-sdk-pubsub-emulator \
         kubectl \
         liblzma-dev \
-        openjdk-11-jdk
+        openjdk-21-jdk
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \

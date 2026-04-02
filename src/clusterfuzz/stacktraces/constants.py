@@ -44,6 +44,9 @@ ANDROID_KERNEL_TIME_REGEX = re.compile(r'^\[\s*\d+\.\d+\]\s')
 # Parentheses are optional.
 ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
 ANDROID_SEGV_REGEX = re.compile(r'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
+ANDROID_SIGABRT_REGEX = re.compile(r'.*signal.*\(SIGABRT.*fault addr --------')
+ANDROID_SIGTRAP_REGEX = re.compile(
+    r'.*signal.*\(SIGTRAP.*fault addr ([^ ]*)(.*)')
 ASAN_INVALID_FREE_REGEX = re.compile(
     r'.*AddressSanitizer: '
     r'attempting free on address which was not malloc\(\)-ed: '
@@ -117,7 +120,7 @@ FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
-FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
+FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error(?: in (.*))?$')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
 FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
@@ -256,6 +259,8 @@ SYMBOL_NOT_FOUND_REGEX = re.compile(
     r'.*: cannot locate symbol ([`\'"])(.*)\1 referenced by')
 TRUSTY_STACK_FRAME_REGEX = re.compile(
     r'(uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16}) in (\w+)')
+UBSAN_ASSUMPTION_VIOLATION = re.compile(
+    r'.*assumption is violated during execution.*')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
@@ -295,6 +300,7 @@ UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
 UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
 UBSAN_UNREACHABLE_REGEX = re.compile(
     r'.*execution reached an unreachable program point.*')
+UBSAN_UPCAST_OF_NULL_POINTER = re.compile(r'.*upcast of null pointer of type.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
     r'.*variable length array bound evaluates to non-positive value.*')
 UBSAN_VPTR_REGEX = re.compile(
@@ -334,15 +340,20 @@ WYCHEPROOF_JAVA_EXCEPTION = re.compile(
 
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
-    r'^panic: runtime error: integer divide by zero.*')
+    r'^(?:.* )?panic( in .*)?: runtime error: integer divide by zero.*',
+    re.IGNORECASE)
 GOLANG_INDEX_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: index out of range.*')
+    r'^(?:.* )?panic( in .*)?: runtime error: index out of range.*',
+    re.IGNORECASE)
 GOLANG_INVALID_MEMORY_ADDRESS_REGEX = re.compile(
-    r'^panic: runtime error: invalid memory address.*')
+    r'^(?:.* )?panic( in .*)?: runtime error: invalid memory address.*',
+    re.IGNORECASE)
 GOLANG_MAKESLICE_LEN_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: makeslice: len out of range.*')
+    r'^(?:.* )?panic( in .*)?: runtime error: makeslice: len out of range.*',
+    re.IGNORECASE)
 GOLANG_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: slice bounds out of range.*')
+    r'^(?:.* )?panic( in .*)?: runtime error: slice bounds out of range.*',
+    re.IGNORECASE)
 GOLANG_STACK_OVERFLOW_REGEX = re.compile(r'^fatal error: stack overflow.*')
 
 GOLANG_CRASH_TYPES_MAP = [
@@ -630,6 +641,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Ignore error-throwing frames, the bug is in the caller.
     r'^blink::ReportV8FatalError',
     r'^v8::api_internal::ToLocalEmpty',
+    r'^v8::internal::Isolate::PushStackTraceAndDie',
+    r'^v8::internal::Isolate::PushParamsAndDie',
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',
@@ -693,12 +706,14 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
     (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
     (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
+    (UBSAN_UPCAST_OF_NULL_POINTER, 'Upcast-of-null-pointer'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
 
     # The following types are supersets of other types, and should be placed
     # at the end to avoid subsuming crashes from the more specialized types.
     (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
     (UBSAN_INTEGER_OVERFLOW_REGEX, 'Integer-overflow'),
+    (UBSAN_ASSUMPTION_VIOLATION, 'Assumption-violation'),
 ]
 
 # Additional regexes for cleaning up format.

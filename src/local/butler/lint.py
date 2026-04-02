@@ -51,7 +51,7 @@ _LICENSE_CHECK_STRING = 'http://www.apache.org/licenses/LICENSE-2.0'
 _LICENSE_CHECK_IGNORE = 'LICENSE_CHECK_IGNORE'
 _PY_TEST_SUFFIX = '_test.py'
 _PY_INIT_FILENAME = '__init__.py'
-_YAML_EXCEPTIONS = ['bad.yaml']
+_YAML_EXCEPTIONS = ['bad.yaml', 'job_template.yaml']
 
 _error_occurred = False
 
@@ -175,8 +175,9 @@ def execute(args):
   third_party_path = os.path.join(module_parent_path, 'third_party')
   os.environ['PYTHONPATH'] = ':'.join(
       [third_party_path, module_parent_path, pythonpath])
-
-  if 'GOOGLE_CLOUDBUILD' in os.environ:
+  if args.path:
+    diff_command = f'git ls-files {os.path.abspath(args.path)}'
+  elif 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
     diff_command = 'git diff --name-only master FETCH_HEAD'
   else:

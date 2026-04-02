@@ -69,3 +69,22 @@ class StacktracesTest(unittest.TestCase):
     self.assertEqual('0x007df3228300', crash_info.crash_address)
     self.assertEqual('Read\n', crash_info.crash_state)
     self.assertEqual(stacktrace, crash_info.crash_stacktrace)
+
+  def test_mte_sigabrt_crash(self):
+    """Test for MTE stack trace parsing issue."""
+    stacktrace = _load_test_data('mte_sigabrt_crash_stacktrace.txt')
+    parser = clusterfuzz.stacktraces.StackParser()
+    crash_info = parser.parse(stacktrace)
+
+    self.assertEqual('Abort', crash_info.crash_type)
+    self.assertEqual(stacktrace, crash_info.crash_stacktrace)
+
+  def test_mte_sigtrap_crash(self):
+    """Test for MTE stack trace parsing issue."""
+    stacktrace = _load_test_data('mte_sigtrap_crash_stacktrace.txt')
+    parser = clusterfuzz.stacktraces.StackParser()
+    crash_info = parser.parse(stacktrace)
+
+    self.assertEqual('Trap', crash_info.crash_type)
+    self.assertEqual('0x005d9fdb4188', crash_info.crash_address)
+    self.assertEqual(stacktrace, crash_info.crash_stacktrace)

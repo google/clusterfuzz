@@ -21,21 +21,36 @@ directory, in a JSON format at '~/.casp/config.json'.
 
 import json
 import os
+import sys
+from typing import Any
+
+import click
 
 CONFIG_DIR = os.path.expanduser('~/.casp')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
 
-def save_config(data):
+def save_config(data: dict[str, Any]) -> None:
   """Saves configuration data."""
   os.makedirs(CONFIG_DIR, exist_ok=True)
   with open(CONFIG_FILE, 'w') as f:
     json.dump(data, f)
 
 
-def load_config():
+def load_config() -> dict[str, Any]:
   """Loads configuration data."""
   if not os.path.exists(CONFIG_FILE):
     return {}
   with open(CONFIG_FILE) as f:
     return json.load(f)
+
+
+def load_and_validate_config() -> dict[str, Any]:
+  """Loads and validates the configuration."""
+  cfg = load_config()
+  if not cfg or 'gcloud_credentials_path' not in cfg:
+    click.secho(
+        'Error: gcloud credentials not found. Please run "casp init".',
+        fg='red')
+    sys.exit(1)
+  return cfg

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Build archive tests."""
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -152,8 +153,18 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
               name=file, is_dir=False, size_bytes=0, mode=0))
     self.mock.open.return_value.list_members.return_value = res
 
-  def _generate_possible_fuzzer_dependencies(self, dir_prefix, fuzz_target):
-    """Generates all possible dependencies for the given target."""
+  def _generate_possible_fuzzer_dependencies_legacy(self, dir_prefix,
+                                                    fuzz_target):
+    """Generates all possible dependencies for the given target.
+
+    This implementation represents the legacy archive schema prior to version 1
+    and should not be used for new tests; we keep it around for backwards
+    compatibility.
+
+    New tests should use a combination of
+    `_generate_possible_fuzzer_dependencies()` and
+    `_resolve_relative_dependency_paths()`.
+    """
     needed_files = [
         f'{fuzz_target}',
         f'{fuzz_target}.exe',
@@ -175,6 +186,40 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     ]
     return [os.path.join(dir_prefix, file) for file in needed_files]
 
+  def _generate_possible_fuzzer_dependencies(self, fuzz_target):
+    """Returns a list of dependencies as file paths relative to
+    {fuzz_target}.runtime_deps, as they appear in runtime_deps files in real
+    archives.
+    """
+    return [
+        f'./{fuzz_target}',
+        f'{fuzz_target}.owners',
+        f'{fuzz_target}.runtime_deps',
+        f'{fuzz_target}.dSYM/Contents/Resources/DWARF/some_dependency',
+        './libbase.so',
+        '../../tools/valgrind/asan/',
+        '../../third_party/llvm-build/Release+Asserts/bin/llvm-symbolizer',
+        '../../third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib',
+        'third_party/instrumented_libs/binaries/msan-chained-origins-noble-lib/lib/ld-linux-x86-64.so.2',
+        './libatomic.so',
+        'icudtl.dat',
+        f'bin/run_{fuzz_target}',
+        '../../testing/location_tags.json',
+    ]
+
+  def _resolve_relative_dependency_paths(self, deps_paths):
+    """Returns a list of dependencies as normalized file paths, i.e. with
+    relative path separators like './' and '../' resolved to their true
+    directory names.
+    """
+
+    # Runtime deps include file paths that begin with ../../ so the build
+    # directory is assumed to be two levels deep into the file tree.
+    return [
+        os.path.normpath(os.path.join('out/build/', file))
+        for file in deps_paths
+    ]
+
   def _generate_runtime_deps(self, deps):
 
     def _mock_open(_):
@@ -189,12 +234,19 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
   def _declare_fuzzers(self, fuzzers):
     self._declared_fuzzers = fuzzers
 
+  def _set_archive_schema_version(self, version):
+    self.build = build_archive.ChromeBuildArchive(self.mock.open.return_value,
+                                                  version)
+
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_possible_dependencies(self, dir_prefix):
+  def test_possible_dependencies_legacy(self, dir_prefix):
     """Tests that all the necessary dependencies are correctly extracted from
-    the runtime_deps file."""
-    deps_files = self._generate_possible_fuzzer_dependencies('', 'my_fuzzer')
-    needed_files = self._generate_possible_fuzzer_dependencies(
+    the runtime_deps file, using the legacy archive schema where dependency
+    paths are interpreted as relative to the archive root and `../../` is
+    remapped to `src_root/`."""
+    deps_files = self._generate_possible_fuzzer_dependencies_legacy(
+        '', 'my_fuzzer')
+    needed_files = self._generate_possible_fuzzer_dependencies_legacy(
         dir_prefix, 'my_fuzzer')
     self._add_files_to_archive(needed_files)
     self._generate_runtime_deps(deps_files)
@@ -204,29 +256,13 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self.assertCountEqual(to_extract, needed_files)
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_possible_dependencies_archive_without_normalized_path(
+  def test_possible_dependencies_deps_without_normalized_path_legacy(
       self, dir_prefix):
     """Tests that the chrome build handler correctly handles mixed-up
     normalized and not normalized path."""
-    deps_files = self._generate_possible_fuzzer_dependencies('', 'my_fuzzer')
-    needed_files = self._generate_possible_fuzzer_dependencies(
-        dir_prefix, 'my_fuzzer')
-    self._add_files_to_archive(needed_files)
-
-    # we want our runtime_deps to have normalized path so that they do not
-    # exactly match the archive paths.
-    self._generate_runtime_deps(deps_files)
-    self._declare_fuzzers(['my_fuzzer'])
-    to_extract = self.build.get_target_dependencies('my_fuzzer')
-    to_extract = [f.name for f in to_extract]
-    self.assertCountEqual(to_extract, needed_files)
-
-  @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_possible_dependencies_deps_without_normalized_path(self, dir_prefix):
-    """Tests that the chrome build handler correctly handles mixed-up
-    normalized and not normalized path."""
-    deps_files = self._generate_possible_fuzzer_dependencies('', 'my_fuzzer')
-    needed_files = self._generate_possible_fuzzer_dependencies(
+    deps_files = self._generate_possible_fuzzer_dependencies_legacy(
+        '', 'my_fuzzer')
+    needed_files = self._generate_possible_fuzzer_dependencies_legacy(
         dir_prefix, 'my_fuzzer')
     self._add_files_to_archive([os.path.normpath(f) for f in needed_files])
     self._generate_runtime_deps(deps_files)
@@ -237,13 +273,14 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
                           [os.path.normpath(f) for f in needed_files])
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_other_fuzzer_not_extracted(self, dir_prefix):
+  def test_other_fuzzer_not_extracted_legacy(self, dir_prefix):
     """Tests that the chrome build handler only unpacks dependencies for the
     requested fuzzer, even if other fuzzers exist in the build."""
-    deps_files = self._generate_possible_fuzzer_dependencies('', 'my_fuzzer')
-    needed_files = self._generate_possible_fuzzer_dependencies(
+    deps_files = self._generate_possible_fuzzer_dependencies_legacy(
+        '', 'my_fuzzer')
+    needed_files = self._generate_possible_fuzzer_dependencies_legacy(
         dir_prefix, 'my_fuzzer')
-    other_fuzzer = self._generate_possible_fuzzer_dependencies(
+    other_fuzzer = self._generate_possible_fuzzer_dependencies_legacy(
         dir_prefix, 'other_fuzzer')
     self._add_files_to_archive(list(set(needed_files + other_fuzzer)))
     self._generate_runtime_deps(deps_files)
@@ -253,10 +290,10 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     self.assertCountEqual(to_extract, needed_files)
 
   @parameterized.parameterized.expand(['/b/build/', 'build/', ''])
-  def test_dsyms_are_correctly_unpacked(self, dir_prefix):
+  def test_dsyms_are_correctly_unpacked_legacy(self, dir_prefix):
     """Tests that even if not listed in the runtime deps, dSYMs are correctly unpacked.
     """
-    needed_files = self._generate_possible_fuzzer_dependencies(
+    needed_files = self._generate_possible_fuzzer_dependencies_legacy(
         dir_prefix, 'my_fuzzer')
     self._add_files_to_archive(needed_files)
     self._generate_runtime_deps(['my_fuzzer'])
@@ -265,3 +302,110 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     dsym_path = os.path.join(
         dir_prefix, 'my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency')
     self.assertIn(dsym_path, to_extract)
+
+  def test_possible_dependencies(self):
+    """Tests that all the necessary dependencies are correctly extracted from
+    the runtime_deps file.
+
+    Under archive schema version 1, dependency paths in `runtime_deps` files
+    are interpreted as being relative to the file itself, meaning that they must
+    be normalized to the equivalent path relative to the archive root before
+    they can be extracted.
+    """
+    self._set_archive_schema_version(1)
+    deps_entries = self._generate_possible_fuzzer_dependencies('my_fuzzer')
+    deps_files = self._resolve_relative_dependency_paths(deps_entries)
+    self._add_files_to_archive(deps_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertCountEqual(to_extract, deps_files)
+
+  def test_other_fuzzer_not_extracted(self):
+    """Tests that the chrome build handler only unpacks dependencies for the
+    requested fuzzer, even if other fuzzers exist in the build."""
+    self._set_archive_schema_version(1)
+    deps_entries = self._generate_possible_fuzzer_dependencies('my_fuzzer')
+    needed_files = self._resolve_relative_dependency_paths(deps_entries)
+    other_fuzzer = self._resolve_relative_dependency_paths(
+        self._generate_possible_fuzzer_dependencies('other_fuzzer'))
+    self._add_files_to_archive(list(set(needed_files + other_fuzzer)))
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer', 'other_fuzzer'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertCountEqual(to_extract, needed_files)
+
+  def test_dsyms_are_correctly_unpacked(self):
+    """Tests that even if not listed in the runtime deps, dSYMs are correctly
+    unpacked."""
+    self._set_archive_schema_version(1)
+    needed_files = self._resolve_relative_dependency_paths(
+        self._generate_possible_fuzzer_dependencies('my_fuzzer'))
+    self._add_files_to_archive(needed_files)
+    self._generate_runtime_deps(['my_fuzzer'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn(
+        'out/build/my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency',
+        to_extract)
+
+
+class ChromeBuildArchiveManifestTest(unittest.TestCase):
+  """Test for reading clusterfuzz_manifest.json for Chrome archives."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.archive.ArchiveReader.file_exists',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
+        'clusterfuzz._internal.system.archive.open',
+    ])
+    self.mock.file_exists.return_value = False
+
+  def _generate_manifest(self, archive_schema_version):
+    """Mocks open calls so that they return a buffer containing valid JSON for
+    the given archive schema version."""
+
+    def _mock_open(_):
+      buffer = io.BytesIO(b'')
+      buffer.write(
+          json.dumps({
+              'archive_schema_version': archive_schema_version
+          }).encode())
+      buffer.seek(0)
+      return buffer
+
+    self.mock.open.return_value.open.side_effect = _mock_open
+
+  def _generate_invalid_manifest(self):
+    """Mocks open calls so that they return a buffer containing invalid contents
+    for clusterfuzz_manifest.json."""
+
+    def _mock_open(_):
+      buffer = io.BytesIO(b'')
+      buffer.write(json.dumps({'my_field': 1}).encode())
+      buffer.seek(0)
+      return buffer
+
+    self.mock.open.return_value.open.side_effect = _mock_open
+
+  def test_manifest_is_correctly_read(self):
+    """Tests that the manifest is correctly read and used to set the archive
+    schema version if it exists and that the cases of a missing or invalid
+    manifest are handled correctly."""
+
+    # No manifest exists; should default to archive schema version 0 (legacy).
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive.archive_schema_version(), 0)
+
+    # Invalid manifest; should default to version 0.
+    self.mock.file_exists.return_value = True
+    self._generate_invalid_manifest()
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive.archive_schema_version(), 0)
+
+    # Valid manifest.
+    self._generate_manifest(1)
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive.archive_schema_version(), 1)

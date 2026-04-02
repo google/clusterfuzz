@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export CLOUDSDK_PYTHON=python3.11
+
 if [ -z "$DEPLOYMENT_BUCKET" ]; then
   # Get deployment bucket from project metadata.
   export DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
@@ -50,7 +52,7 @@ fi
 # set up mounts in this case.
 if [[ -z "$DISABLE_MOUNTS" ]]; then
   # Setup Tmpfs dirs for frequently accessed files to save disk I/O.
-  mount -t tmpfs -o size=250M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases/
+  mount -t tmpfs -o size=1280M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases/
   mount -t tmpfs -o size=10M,mode=777 tmpfs $INSTALL_DIRECTORY/clusterfuzz/bot/logs/
   mount -t tmpfs -o size=90M,mode=777 tmpfs $BOT_TMPDIR
 

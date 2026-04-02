@@ -1731,6 +1731,12 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
     self.assertCountEqual(['target1', 'target3'], targets_list)
 
+  def test_setup_split_build_no_targets_list(self):
+    """Test that BuildNotFoundError is raised when the targets list is missing."""
+    self.mock.read_data.return_value = None
+    with self.assertRaises(errors.BuildNotFoundError):
+      build_manager.setup_build(fuzz_target='target3')
+
   def test_target_no_longer_built(self):
     """Test a target that's not longer listed in target.list."""
     test_helpers.patch(self, [

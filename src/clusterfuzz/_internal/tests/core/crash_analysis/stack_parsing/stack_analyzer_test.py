@@ -277,6 +277,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
     actual_state = stack_analyzer.get_crash_data(data)
     self.assertEqual(actual_state.crash_state, expected_state)
 
+  def test_ubsan_assumption_violated(self):
+    """Test the ubsan assumption violation format."""
+    data = self._read_test_data('ubsan_assumption_violation.txt')
+    expected_type = 'Assumption-violation'
+    expected_address = ''
+    expected_state = ('project::v3::impl::func_ex::func::f_key\n'
+                      'project::v3::impl::func_ex::func::f_header\n'
+                      'project::v3::impl::func_ex::func::f_document\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ubsan_bad_cast_downcast(self):
     """Test the ubsan bad cast downcast format."""
     data = self._read_test_data('ubsan_bad_cast_downcast.txt')
@@ -565,6 +580,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('courgette::DisassemblerWin32::ParseRelocs\n'
                       'courgette::DisassemblerWin32::ExtractAbs32Locations\n'
                       'courgette::Disassembler::CreateProgram\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ubsan_upcast_null_pointer(self):
+    """Test the ubsan upcast of null pointer format."""
+    data = self._read_test_data('ubsan_upcast_of_null_pointer.txt')
+    expected_type = 'Upcast-of-null-pointer'
+    expected_address = ''
+    expected_state = ('Test::Ex::operator\n'
+                      'Test::Ex::operator\n'
+                      'Test::Ex::operator\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1293,6 +1323,53 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'v8::internal::maglev::CheckValueInputIs\n'
         'v8::internal::maglev::ProcessResult v8::internal::maglev::MaglevGraphVerifier::P\n'
     )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_isolate_pushstacktraceanddie(self):
+    """Test a crash in v8::internal::Isolate::PushStackTraceAndDie.
+    That frame itself should be excluded from the crash state."""
+    data = self._read_test_data('v8_isolate_pushstacktraceanddie.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x0539000001f2'
+    expected_state = ('v8::internal::LookupIterator::GetRootForNonJSReceiver\n'
+                      'void v8::internal::LookupIterator::Start<false>\n'
+                      'v8::internal::LoadIC::Load\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_error_with_small_number(self):
+    """Test a v8 error with a small number (see https://crbug.com/437859892)."""
+    data = self._read_test_data('v8_error_with_small_number.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = ('Funky failure at token NUMBER in bar.cc\n'
+                      'v8::internal::foo::Bar::Baz1<v8::internal::Isolate>\n'
+                      'v8::internal::foo::Bar::Baz2<v8::internal::Isolate>\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_fatal_error_no_file(self):
+    """Test a V8 fatal error where the file name is missing."""
+    data = self._read_test_data('v8_fatal_error_no_file.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        '!is_null()\n'
+        'v8::internal::WasmModuleObject::ExtractUtf8StringFromModuleBytes\n'
+        'v8::internal::wasm::InstanceBuilder::SanitizeImports\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -3221,6 +3298,19 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_golang_panic_runtime_error_not_ubsan(self):
+    """Test golang stacktrace with panic not considered ubsan unknown type."""
+    data = self._read_test_data('golang_not_ubsan.txt')
+    expected_type = 'Index out of range'
+    expected_address = ''
+    expected_state = 'vm.(*VM).execute.f2\nvm.(*thread).Pop\nruntime.Fuzz\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+    self.mock.error.assert_not_called()
+
   def test_golang_panic_runtime_error_index_out_of_range_with_msan(self):
     """Test golang stacktrace with panic caused by index out of range
     with memory sanitizer."""
@@ -3246,6 +3336,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('json.(*decodeState).unquoteBytes\n'
                       'json.(*decodeState).literalStore\n'
                       'json.(*decodeState).object\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_golang_panic_runtime_error_slice_bounds_oor_with_log_header(self):
+    """Test go stacktrace with panic by slice bounds oor with log header."""
+    data = self._read_test_data(
+        'golang_panic_runtime_error_slice_bounds_with_log_header.txt')
+    expected_type = 'Slice bounds out of range'
+    expected_address = ''
+    expected_state = 'strings.ToLower\n'
 
     expected_stacktrace = data
     expected_security_flag = False
@@ -3392,7 +3496,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     self.mock.error.assert_called_once_with(
         'Unknown UBSan crash type: '
-        'unsupported ubsan error that needs a new signature')
+        'unsupported ubsan error that needs a new signature',
+        crash_line='../../third_party/freetype/src/src/cff/cffload.c:2060:51:'
+        ' runtime error: unsupported ubsan error that needs a new signature',
+        is_golang=False)
 
   def test_libfuzzer_overwrites_const_input(self):
     """Test for libFuzzer when target tries to overwrite const input."""

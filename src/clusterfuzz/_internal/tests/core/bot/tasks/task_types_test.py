@@ -18,6 +18,7 @@ import os
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.datastore import data_types
@@ -134,3 +135,60 @@ class TrustedTaskEventTest(unittest.TestCase):
     self.assertTrue(self.mock.emit.call_count, 2)
     self.mock.emit.assert_any_call(event_started)
     self.mock.emit.assert_any_call(event_finished)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskExecuteTest(unittest.TestCase):
+  """Tests for UTask execution."""
+
+  def setUp(self):
+    self.mock_module = mock.Mock()
+    self.mock_module.__name__ = 'module'
+    self.utask = task_types.UTask(self.mock_module)
+
+    patchers = [
+        mock.patch(
+            'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
+            return_value='command'),
+        mock.patch(
+            'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+            return_value=True),
+        mock.patch('clusterfuzz._internal.metrics.logs.info'),
+    ]
+    for patcher in patchers:
+      patcher.start()
+      self.addCleanup(patcher.stop)
+
+  def test_execute_raises_queue_limit_reached(self):
+    """Tests that QueueLimitReachedError is raised when limit is exceeded."""
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.task_types.tasks.get_utask_main_queue_size'
+    ) as mock_size:
+      mock_size.return_value = 10001
+
+      with mock.patch(
+          'clusterfuzz._internal.bot.tasks.task_types.is_remote_utask',
+          return_value=True):
+        with mock.patch(
+            'clusterfuzz._internal.bot.tasks.task_types.environment.is_tworker',
+            return_value=False):
+          with self.assertRaises(errors.QueueLimitReachedError):
+            self.utask.execute('arg', 'job', {})
+
+  def test_execute_proceeds_below_limit(self):
+    """Tests that execution proceeds when queue size is within limit."""
+    self.utask.preprocess = mock.Mock(return_value=None)  # Stop execution flow
+
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.task_types.tasks.get_utask_main_queue_size'
+    ) as mock_size:
+      mock_size.return_value = 9999
+
+      with mock.patch(
+          'clusterfuzz._internal.bot.tasks.task_types.is_remote_utask',
+          return_value=True):
+        with mock.patch(
+            'clusterfuzz._internal.bot.tasks.task_types.environment.is_tworker',
+            return_value=False):
+          self.utask.execute('arg', 'job', {})
+          self.utask.preprocess.assert_called()

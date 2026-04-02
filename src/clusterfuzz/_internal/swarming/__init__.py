@@ -14,30 +14,39 @@
 """Swarming helpers."""
 
 import base64
+import json
 import uuid
 
+from google.auth.transport import requests
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import credentials
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
-
-def _requires_gpu() -> bool:
-  """Checks whether the REQUIRES_GPU env variable is set. This means
-  that the current job needs a gpu enabled device."""
-  requires_gpu = environment.get_value('REQUIRES_GPU')
-  return bool(utils.string_is_true(requires_gpu))
+_SWARMING_SCOPES = [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/userinfo.email'
+]
 
 
 def is_swarming_task(command: str, job_name: str):
   """Returns True if the task is supposed to run on swarming."""
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not _requires_gpu():
+  if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
     return False
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  if not job:
+    return False
+
+  job_environment = job.get_environment()
+  if not utils.string_is_true(job_environment.get('IS_SWARMING_JOB')):
+    return False
+
   try:
     _get_new_task_spec(command, job_name, '')
     return True
@@ -54,6 +63,43 @@ def _get_swarming_config():
   return local_config.SwarmingConfig()
 
 
+def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
+                        ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
+  """ Gets all swarming dimensions for a task.
+  Job dimensions have more precedence than static dimensions"""
+  unique_dimensions = {}
+  unique_dimensions['os'] = str(job.platform).capitalize()
+  unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
+
+  for dimension in platform_specific_dimensions:
+    unique_dimensions[dimension['key'].lower()] = dimension['value']
+
+  swarming_dimensions = environment.get_value('SWARMING_DIMENSIONS')
+  if isinstance(swarming_dimensions, dict):
+    for key, value in swarming_dimensions.items():
+      unique_dimensions[key.lower()] = value
+
+  task_dimensions = []
+  for dimension, value in unique_dimensions.items():
+    task_dimensions.append(
+        swarming_pb2.StringPair(  # pylint: disable=no-member
+            key=dimension, value=value))
+  return task_dimensions
+
+
+def _env_vars_to_json(
+    env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
+  """
+  Compresses all env variables into a single JSON string , which will be used
+  to set up the env variables in swarming bots that launch clusterfuzz 
+  using a docker container.
+  """
+  env_vars_dict = {pair.key: pair.value for pair in env_vars}
+  return swarming_pb2.StringPair(  # pylint: disable=no-member
+      key='DOCKER_ENV_VARS',
+      value=json.dumps(env_vars_dict))
+
+
 def _get_new_task_spec(command: str, job_name: str,
                        download_url: str) -> swarming_pb2.NewTaskRequest:  # pylint: disable=no-member
   """Gets the configured specifications for a swarming task."""
@@ -63,7 +109,6 @@ def _get_new_task_spec(command: str, job_name: str,
   instance_spec = swarming_config.get('mapping').get(config_name, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {config_name}')
-  swarming_pool = swarming_config.get('swarming_pool')
   swarming_realm = swarming_config.get('swarming_realm')
   logs_project_id = swarming_config.get('logs_project_id')
   priority = instance_spec['priority']
@@ -85,40 +130,28 @@ def _get_new_task_spec(command: str, job_name: str,
   # env_prefixes allows the modification of existing environment variables by
   # adding the values as prefixes to the env variable.
   env_prefixes = instance_spec.get('env_prefixes', {})
-  task_environment = [
+  default_task_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(  # pylint: disable=no-member
           key='LOGGING_CLOUD_PROJECT_ID',
           value=logs_project_id),
   ]
 
-  env = instance_spec.get('env', None)
-  if env:
-    for var in env:
-      task_environment.append(
-          swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
-
-  if instance_spec.get('docker_image'):
-    task_environment.append(
-        swarming_pb2.StringPair(  # pylint: disable=no-member
-            key='DOCKER_IMAGE',
-            value=instance_spec['docker_image']))
-
-  task_dimensions = [
-      swarming_pb2.StringPair(key='os', value=job.platform),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='pool', value=swarming_pool)  # pylint: disable=no-member
-  ]
-
-  dimensions = instance_spec.get('dimensions', None)
-  if dimensions:
-    for dimension in dimensions:
-      task_dimensions.append(
-          swarming_pb2.StringPair(  # pylint: disable=no-member
-              key=dimension['key'],
-              value=dimension['value']))
-
+  platform_specific_env = instance_spec.get('env', [])
+  swarming_bot_environment = []
+  swarming_bot_environment.append(
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='DOCKER_IMAGE',
+          value=instance_spec.get('docker_image', '')))
+  for var in platform_specific_env:
+    swarming_bot_environment.append(
+        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+  swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
+  swarming_bot_environment.extend(default_task_environment)
+  dimensions = instance_spec.get('dimensions', [])
   cas_input_root = instance_spec.get('cas_input_root', {})
 
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
@@ -131,11 +164,11 @@ def _get_new_task_spec(command: str, job_name: str,
               expiration_secs=expiration_secs,
               properties=swarming_pb2.TaskProperties(  # pylint: disable=no-member
                   command=startup_command,
-                  dimensions=task_dimensions,
+                  dimensions=_get_task_dimensions(job, dimensions),
                   cipd_input=cipd_input,
                   cas_input_root=cas_input_root,
                   execution_timeout_secs=execution_timeout_secs,
-                  env=task_environment,
+                  env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
                   secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
       ])
@@ -150,13 +183,27 @@ def push_swarming_task(command, download_url, job_type):
     raise ValueError('invalid job_name')
 
   task_spec = _get_new_task_spec(command, job_type, download_url)
-  creds, _ = credentials.get_default()
+  creds = credentials.get_scoped_service_account_credentials(_SWARMING_SCOPES)
+  if not creds:
+    logs.error(
+        '[Swarming] Failed to push task into swarming. Reason: No credentials.')
+    return
+
+  if not creds.token:
+    creds.refresh(requests.Request())
+
   headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': creds.token
+      'Authorization': f'Bearer {creds.token}'
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  utils.post_url(
-      url=url, data=json_format.MessageToJson(task_spec), headers=headers)
+  message_body = json_format.MessageToJson(task_spec)
+  logs.info(
+      f"""[Swarming] Pushing task for {job_type}
+            as {creds.service_account_email}""",
+      url=url,
+      body=message_body)
+  response = utils.post_url(url=url, data=message_body, headers=headers)
+  logs.info(f'[Swarming] Response from {job_type}', response=response)

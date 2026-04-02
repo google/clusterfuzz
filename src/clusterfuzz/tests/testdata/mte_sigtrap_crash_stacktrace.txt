@@ -1,0 +1,83 @@
+Fatal signal 5 (SIGTRAP), code 1 (TRAP_BRKPT), fault addr 0x5d9fdb4188 in tid 27246 (example_mte_fuz), pid 27246 (example_mte_fuz)
+--------- google_battery (25129):
+MSC_DSG vbatt_idx:2->2 vt=4350000 fv_uv=4350000 vb=4276250 ib=-232500 cv_cnt=3 ov_cnt=0
+--------- BatteryDefender (960):
+Failed to read /sys/class/typec/
+--------- audit (960):
+audit_lost=171620 audit_rate_limit=5 audit_backlog_limit=64
+rate limit exceeded
+--------- BatteryDefender (960):
+Failed to read /sys/class/typec/
+--------- healthd (960):
+battery l=92 v=4276 t=27.5 h=2 st=4 c=-232500 fc=4648000 cc=230 chg=u
+--------- BatteryDefender (960):
+Failed to read /sys/class/typec/
+--------- max77759-charger i2c-max77759chrg (307):
+max77759_wcin_inlim_work_en: en: 0
+--------- crash_dump64 (27250):
+obtaining output fd from tombstoned, type: kDebuggerdTombstoneProto
+--------- tombstoned (699):
+received crash request for pid 27246
+--------- google_charger (24708):
+usbchg=USB typec=PD usbv=5050 usbc=6 usbMv=5000 usbMc=3000 usbOc=6
+--------- crash_dump64 (27250):
+performing dump of process 27246 (target tid = 27246)
+--------- google_battery (24708):
+MSC_DIN chg_state=bb810b401030001 f=0x1 chg_s=Not Charging chg_t=N/A vchg=4276 icl=3000
+MSC_DSG vbatt_idx:2->2 vt=4350000 fv_uv=4350000 vb=4276250 ib=-232500 cv_cnt=3 ov_cnt=0
+--------- BatteryDefender (960):
+Failed to read /sys/class/typec/
+--------- healthd (960):
+battery l=92 v=4276 t=27.5 h=2 st=4 c=-232500 fc=4648000 cc=230 chg=u
+--------- google_charger (24708):
+usbchg=USB typec=PD usbv=5025 usbc=6 usbMv=5000 usbMc=3000 usbOc=6
+--------- google_battery (24708):
+MSC_DIN chg_state=bb810b401030001 f=0x1 chg_s=Not Charging chg_t=N/A vchg=4276 icl=3000
+MSC_DSG vbatt_idx:2->2 vt=4350000 fv_uv=4350000 vb=4274062 ib=-232500 cv_cnt=3 ov_cnt=0
+--------- BatteryDefender (960):
+Failed to read /sys/class/typec/
+Failed to read /sys/class/typec/
+--------- healthd (960):
+battery l=92 v=4274 t=27.5 h=2 st=4 c=-277187 fc=4648000 cc=230 chg=u
+--------- BatteryDefender (960):
+Failed to read /sys/class/typec/
+--------- logd (27214):
+logdr: UID=0 GID=0 PID=27250 n tail=500 logMask=8 pid=27246 start=0ns deadline=0ns
+logdr: UID=0 GID=0 PID=27250 n tail=500 logMask=1 pid=27246 start=0ns deadline=0ns
+--------- max77759-charger i2c-max77759chrg (307):
+max77759_wcin_inlim_work_en: en: 0
+--------- DEBUG (27250):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'google/shiba_fullmte/shiba:Baklava/ZP1A.251016.003/14277783:userdebug/dev-keys'
+Kernel Release: '6.1.145-android14-11-g4b828d3a3ad9-ab14145256'
+Revision: 'MP1.0'
+ABI: 'arm64'
+Timestamp: 2025-11-19 16:15:20.171148391+0530
+Process uptime: 1s
+Executable: /data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-android_asan_example_mte_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/example_mte_fuzzer
+Cmdline: /data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-android_asan_example_mte_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/example_mte_fuzzer -timeout=25 -rss_limit_mb=2560 -use_value_profile=1 -artifact_prefix=/data/fuzz/bot/inputs/fuzzer-testcases/ -max_total_time=6600 -print_final_stats=1 /data/fuzz/bot/inputs/disk/temp-2904190/new /data/fuzz/bot/inputs/data-bundles/example_mte_fuzzer
+pid: 27246, tid: 27246, name: example_mte_fuz  >>> /data/fuzz/bot/builds/test-blobs-bucket_fuzzers_target-android_asan_example_mte_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/example_mte_fuzzer <<<
+uid: 0
+tagged_addr_ctrl: 000000000007fff3 (PR_TAGGED_ADDR_ENABLE, PR_MTE_TCF_SYNC, mask 0xfffe)
+pac_enabled_keys: 000000000000000f (PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY)
+signal 5 (SIGTRAP), code 1 (TRAP_BRKPT), fault addr 0x0000005d9fdb4188 (read)
+    x0  0000000000000000  x1  0000000000000001  x2  0000000000000003  x3  0000000000000001
+    x4  0000005d9fe180ab  x5  0000000000000004  x6  000000000000000a  x7  0000000000000001
+    x8  0000005d9fe18000  x9  0000000000000001  x10 0000000000000002  x11 0000000000000000
+    x12 0000000000000001  x13 0000000000000298  x14 0000005d9fe4aa00  x15 0000000000000001
+    x16 0000000000000000  x17 0000007be8c88d00  x18 0000007be9bbc000  x19 0000000000000001
+    x20 0f00007b84a841f0  x21 0000000000000001  x22 0e00007b84a840d0  x23 0000005d9fe19200
+    x24 0000005d9fe18208  x25 0000005d9fe18428  x26 0000005d9fe18430  x27 0000005d9fe19000
+    x28 0000000000000000  x29 0000007fc6077210
+    lr  0000005d9fdb414c  sp  0000007fc6077210  pc  0000005d9fdb4188  pst 0000000080001000
+    esr 0000000000000000
+8 total frames
+backtrace:
+    #0 0x0000000000018188 in example_mte_fuzzer
+    #1 0x0000000000031ebc in example_mte_fuzzer
+    #2 0x0000000000031630 in example_mte_fuzzer
+    #3 0x0000000000033550 in example_mte_fuzzer
+    #4 0x0000000000033a10 in example_mte_fuzzer
+    #5 0x0000000000022ef0 in example_mte_fuzzer
+    #6 0x000000000004bf00 in example_mte_fuzzer
+    #7 0x000000000006b36c in __libc_init bionic/libc/bionic/libc_init_dynamic.cpp:173:8

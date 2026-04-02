@@ -14,6 +14,7 @@
 """Environment functions."""
 
 import ast
+import enum
 import functools
 import os
 import re
@@ -54,6 +55,13 @@ COMMON_SANITIZER_OPTIONS = {
     'print_summary': 1,
     'use_sigaltstack': 1,
 }
+
+
+class UtaskMainRuntime(enum.Enum):
+
+  BATCH = 'batch'
+  KATA_CONTAINER = 'kata_container'
+  INSTANCE_GROUP = 'instance_group'
 
 
 def _eval_value(value_string):
@@ -358,7 +366,6 @@ def get_llvm_symbolizer_path():
         stderr=subprocess.DEVNULL)
     if return_code == 0:
       # llvm-symbolize works, return it.
-      logs.info(f'Environment Symbolizer Path :- {llvm_symbolizer_path}')
       return llvm_symbolizer_path
 
   # Either
@@ -369,12 +376,10 @@ def get_llvm_symbolizer_path():
 
   # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
-    logs.info(f'None Symbolizer Path :- {llvm_symbolizer_path}')
     return None
 
   # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
-  logs.info(f'Default Symbolizer Path :- {llvm_symbolizer_path}')
   return llvm_symbolizer_path
 
 
@@ -726,6 +731,24 @@ def is_uworker():
   return get_value('UWORKER')
 
 
+def get_runtime() -> UtaskMainRuntime:
+  """
+  Get the current runtime for running the tasks.
+  It can be KATA_CONTAINER, BATCH or INSTANCE_GROUP.
+
+  :return: Enum UtaskMainRuntime with one of KATA_CONTAINER,
+  BATCH or INSTANCE_GROUP
+  :rtype: UtaskMainRuntime
+  """
+  if is_uworker() and is_running_on_k8s():
+    return UtaskMainRuntime.KATA_CONTAINER
+
+  if is_uworker() and not is_running_on_k8s():
+    return UtaskMainRuntime.BATCH
+
+  return UtaskMainRuntime.INSTANCE_GROUP
+
+
 def is_swarming_bot():
   """Return whether or not the current bot is a swarming bot."""
   return get_value('SWARMING_BOT')
@@ -953,6 +976,7 @@ def set_bot_environment():
   else:
     os.environ['BUILDS_DIR'] = os.path.join(bot_dir, 'builds')
 
+  os.environ['BOT_DIR'] = bot_dir
   os.environ['BUILD_URLS_DIR'] = os.path.join(bot_dir, 'build-urls')
   os.environ['LOG_DIR'] = os.path.join(bot_dir, 'logs')
   os.environ['CACHE_DIR'] = os.path.join(bot_dir, 'cache')
@@ -996,6 +1020,12 @@ def set_bot_environment():
   # Set environment variable from local project configuration.
   from clusterfuzz._internal.config import local_config
   local_config.ProjectConfig().set_environment()
+
+  # Tmp: set gcloud_storage flag for android/MAC bots
+  # to validate the gsutil migration on these platforms.
+  if is_android() or platform() == 'MAC':
+    os.environ['USE_GCLOUD_STORAGE_CP'] = 'True'
+    os.environ['USE_GCLOUD_STORAGE_RSYNC'] = '1'
 
   # Success.
   return True

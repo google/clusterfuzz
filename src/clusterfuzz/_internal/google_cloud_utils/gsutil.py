@@ -42,7 +42,16 @@ def get_gcloud_path():
   if gcloud_absolute_path:
     return gcloud_absolute_path
 
-  logs.error('Cannot locate gcloud in PATH.')
+  # TEMP: use GSUTIL_PATH as fallback to find the gcloud bin directory.
+  # This seems to only be used by mac and android.
+  gcloud_directory = environment.get_value('GSUTIL_PATH')
+  if gcloud_directory:
+    gcloud_absolute_path = os.path.join(gcloud_directory, gcloud_executable)
+    if os.path.exists(gcloud_absolute_path):
+      logs.info(f'Using gcloud executable from GSUTIL_PATH: {gcloud_directory}')
+      return gcloud_absolute_path
+
+  logs.error('Cannot locate gcloud in PATH or it does not exist.')
   return None
 
 
@@ -67,6 +76,7 @@ def get_gsutil_path():
                'containing gsutil binary.')
     return None
 
+  logs.info(f'Using gsutil executable from GSUTIL_PATH: {gsutil_directory}')
   gsutil_absolute_path = os.path.join(gsutil_directory, gsutil_executable)
   return gsutil_absolute_path
 
@@ -136,14 +146,21 @@ class GSUtilRunner:
     """Run GSUtil or gcloud storage."""
     runner, additional_args = self._get_runner_and_args(use_gcloud_storage,
                                                         quiet)
+    cmd = arguments[0] if arguments else 'unknown'
     arguments = additional_args + arguments
 
     tool_name = 'gcloud storage' if use_gcloud_storage else 'gsutil'
+    arg_str = ' '.join(arguments)
+    try:
+      cwd = os.getcwd()
+    except OSError:
+      cwd = 'unknown'
     logs.info(
-        f'Running {tool_name}.',
+        f'Running {cmd} with {tool_name}.',
         tool_name=tool_name,
-        cwd=os.getcwd(),
-        cmd=arguments)
+        cmd=cmd,
+        cwd=cwd,
+        arguments=arg_str)
 
     env = os.environ.copy()
     if not use_gcloud_storage and 'PYTHONPATH' in env:
@@ -154,18 +171,22 @@ class GSUtilRunner:
     try:
       result = runner.run_and_wait(arguments, env=env, **kwargs)
       logs.info(
-          f'Finished running {tool_name}.',
+          f'Finished running {cmd} with {tool_name}.',
           tool_name=tool_name,
+          cmd=cmd,
+          cwd=cwd,
+          arguments=arg_str,
           return_code=result.return_code,
           timed_out=result.timed_out,
           output=result.output)
       return result
-    except Exception as e:
+    except Exception:
       logs.error(
-          f'Failed to run {tool_name}.',
+          f'Failed to run {cmd} with {tool_name}.',
           tool_name=tool_name,
-          cmd=arguments,
-          error=str(e))
+          cmd=cmd,
+          cwd=cwd,
+          arguments=arg_str)
       raise
 
   def rsync(self,
@@ -177,8 +198,7 @@ class GSUtilRunner:
     """Rsync with gsutil or gcloud storage."""
     use_gcloud = use_gcloud_for_command('rsync')
     if use_gcloud:
-      command = ['rsync']
-      # gcloud storage rsync is recursive by default.
+      command = ['rsync', '-r']
       if delete:
         command.append('--delete-unmatched-destination-objects')
       if exclusion_pattern:

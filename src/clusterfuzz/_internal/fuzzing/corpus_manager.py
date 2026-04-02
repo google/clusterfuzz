@@ -479,7 +479,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     """Syncs a corpus from GCS to disk."""
     shell.create_directory(directory, create_intermediates=True)
     if corpus.backup_url:
-      tmpdir = environment.get_value('BOT_TMPDIR')
+      tmpdir = environment.get_value('FUZZ_INPUTS')
       with tempfile.NamedTemporaryFile(
           dir=tmpdir, suffix='.zip') as temp_zipfile:
         try:

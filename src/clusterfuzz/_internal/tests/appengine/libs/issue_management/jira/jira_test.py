@@ -183,3 +183,44 @@ class JiraTests(unittest.TestCase):
     self.mock.client.add_comment.assert_called_with(self.mock_issue.jira_issue,
                                                     'test comments')
     self.assertEqual(issue.status, 'Closed')
+
+  def test_issue_save_only_update_missing_watchers(self):
+    """Test save only update missing watchers for existing issue."""
+    self.mock.get_issue.return_value = self.mock_issue
+    self.mock_issue.ccs.add('idontexist@cc.com')
+    self.mock_issue.ccs.add('idontexistalso@cc.com')
+    self.mock.get_watchers.return_value = ['cc@cc.com']
+    issue = self.issue_tracker.get_issue('VSEC-3112')
+    issue.save(new_comment='test comments')
+    self.mock.get_watchers.assert_called()
+    self.mock.client.add_comment.assert_called_with(self.mock_issue.jira_issue,
+                                                    'test comments')
+    self.mock.client.add_watcher.assert_has_calls(
+        [
+            unittest.mock.call(self.mock_issue.jira_issue,
+                               'idontexistalso@cc.com'),
+            unittest.mock.call(self.mock_issue.jira_issue, 'idontexist@cc.com')
+        ],
+        any_order=True)
+
+  def test_issue_save_bad_watcher(self):
+    """Test save still works if a watcher doesn't exist."""
+    self.mock.get_issue.return_value = self.mock_issue
+
+    # Simulate adding a watcher that doesn't exist.
+    def side_affect_func(watcher):
+      if watcher == 'idontexist@cc.com':
+        raise jira.exceptions.JIRAError(
+            text=
+            'The user "idontexist@cc.com" does not have permission to view this issue. This user will not be added to the watch list.',
+            status_code=401)
+
+    self.mock_issue.ccs.add('idontexist@cc.com')
+    self.mock.client.add_watcher.side_effect = side_affect_func
+
+    issue = self.issue_tracker.get_issue('VSEC-3112')
+    issue.status = 'Closed'
+    issue.save(new_comment='test comments')
+    self.mock.client.add_comment.assert_called_with(self.mock_issue.jira_issue,
+                                                    'test comments')
+    self.assertEqual(issue.status, 'Closed')

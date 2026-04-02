@@ -934,6 +934,9 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
     elif error_reason and 'is of type "group"' in error_reason:
       logs.warning('Failed to set IAM policy for %s bucket for a group: %s.' %
                    (bucket_name, error_reason))
+    elif error_reason and 'does not exist' in error_reason:
+      logs.warning('Failed to set IAM policy for bucket %s: %s' %
+                   (bucket_name, error_reason))
     else:
       logs.error('Failed to set IAM policies for bucket %s.' % bucket_name)
 

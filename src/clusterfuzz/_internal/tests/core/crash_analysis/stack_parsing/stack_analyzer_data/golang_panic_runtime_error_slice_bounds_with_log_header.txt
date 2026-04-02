@@ -1,0 +1,50 @@
+project/test/test2/l/f.go:161 (0x5b3aeab02b34)
+project/test/test2/m.go:313 (0x5b3aeaa88f15)
+project/test/test2/m.go:72 (0x5b3aeaa89423)
+project/test/test2/r.go:22 (0x5b3aeaa8c0d5)
+project/test/test2/c.go:421 (0x5b3aeaa83384)
+project/test/test2/i.go:22 (0x5b3aeaa9c00f)
+project/test/test2/fs/h/h.go:25 (0x5b3aeaa9bf9a)
+project/test/hi.go:519 (0x5b3aeab171fd)
+project/test/rer/rer.go:166 (0x5b3aea9391f0)
+project/test/a/a.go:505 (0x5b3aea8eb356)
+project/test/a/a.go:511 (0x5b3aea8eb59d)
+project/test/a/a.go:500 (0x5b3aea938fd3)
+project/test/rer/rer.go:161 (0x5b3aea938db0)
+project/test/m.go:118 (0x5b3aea9449a5)
+code.project.io/project/modules/mp/m/m.go:75 (0x5b3aeab61aab)
+code.project.io/project/modules/mp/m/m.go:228 (0x5b3aeab61a08)
+code.project.io/project/modules/mp/m/m.go:289 (0x5b3aeab622f3)
+runtime/asm_amd64.s:1693 (0x5b3aea3d9400)
+2026/01/26 09:04:35 .../m/m.go:210:r.1() [E] Panic in m: runtime error: slice bounds out of range [:-1]
+runtime/panic.go:129 (0x5b3aea398e53)
+project/test/test2/l/filer.go:1310 (0x5b3aeab01459)
+project/test/test2/l/filer.go:486 (0x5b3aeaaf5174)
+project/test/test2/m.go:33 (0x5b3aeaa88f15)
+project/test/test2/r.go:266 (0x5b3aeaa8c0d5)
+project/test/test2/i.go:36 (0x5b3aeaa87ca1)
+project/test/test2/r.go:207 (0x5b3aeaa8bd6e)
+project/test/test2/c.go:15 (0x5b3aeaa83384)
+project/test/test2/i.go:15 (0x5b3aeaa9c00f)
+project/test/test2/fs/h/h.go:225 (0x5b3aeaa9bf9a)
+project/test/hi.go:519 (0x5b3aeab171fd)
+project/test/rer/rer.go:166 (0x5b3aea9391f0)
+project/test/a/a.go:505 (0x5b3aea8eb356)
+project/test/a/a.go:511 (0x5b3aea8eb59d)
+project/test/a/a.go:500 (0x5b3aea938fd3)
+project/test/rer/rer.go:161 (0x5b3aea938db0)
+project/test/m.go:118 (0x5b3aea9449a5)
+code.project.io/project/modules/mp/m/m.go:75 (0x5b3aeab61aab)
+code.project.io/project/modules/mp/m/m.go:228 (0x5b3aeab61a08)
+code.project.io/project/modules/mp/m/m.go:289 (0x5b3aeab622f3)
+runtime/asm_amd64.s:1693 (0x5b3aea3d9400)
+ALARM: working on the last Unit for 28 seconds
+       and the timeout value is 25 (use -timeout=N to change)
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+artifact_prefix='/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test unit written to /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/timeout-aaa
+==280== ERROR: libFuzzer: timeout after 28 seconds
+    #0 0x5b3aea321f51 in __sanitizer_print_stack_trace /src/llvm-project/compiler-rt/lib/asan/asan_stack.cpp:87:3
+    #1 0x5b3aea213cf8 in fuzzer::PrintStackTrace() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerUtil.cpp:210:5
+    #2 0x5b3aea1f67cd in fuzzer::Fuzzer::AlarmCallback() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:304:5
+    #3 0x7a3eccdc441f in libpthread.so.0
+    #4 0x5b3aea41127d in strings.ToLower strings/strings.go:735

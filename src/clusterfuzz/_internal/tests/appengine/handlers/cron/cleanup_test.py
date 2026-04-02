@@ -1450,12 +1450,12 @@ class UpdateComponentsTest(unittest.TestCase):
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
 
   def test_component_id_added(self):
-    """Ensure that we a component_id when applicable."""
+    """Ensure that we set a component_id when applicable."""
     self.testcase.set_metadata(
         'predator_result', {
             'result': {
                 'suspected_components': ['A', 'B>C'],
-                'suspected_buganizer_component_id': 123456,
+                'suspected_buganizer_component_id': '123456',
             }
         })
 
@@ -1463,8 +1463,52 @@ class UpdateComponentsTest(unittest.TestCase):
                                            self.issue)
     self.assertIn('A', self.issue.components)
     self.assertIn('B>C', self.issue.components)
-    self.assertEqual(123456, self.issue.component_id)
+    self.assertEqual('123456', self.issue.component_id)
     self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
+
+  def test_component_id_without_suspected_components(self):
+    """Ensure we set a component_id even when missing suspected components."""
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': '123456'
+        }})
+
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertEqual('123456', self.issue.component_id)
+    self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
+
+  def test_component_id_changed(self):
+    """Ensure we update the component_id if it has changed."""
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': '111111'
+        }})
+    setattr(self.issue, 'component_id', '123456')
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertEqual('111111', self.issue.component_id)
+    self.assertIn('Test-Predator-Auto-Components', self.issue.labels)
+
+  def test_component_id_already_set(self):
+    """Ensure we do not make an API call if the component ID has not changed."""
+    helpers.patch(
+        self,
+        ['clusterfuzz._internal.issue_management.monorail.issue.Issue.save'])
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': '123456'
+        }})
+    setattr(self.issue, 'component_id', '123456')
+
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertNotIn('Test-Predator-Auto-Components', self.issue.labels)
+    self.assertEqual('123456', self.issue.component_id)
+    self.mock.save.assert_not_called()
 
   def test_components_not_reapplied(self):
     """Ensure that we don't re-add components once applied."""

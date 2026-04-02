@@ -1,0 +1,135 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Cron to sync OSS-Fuzz projects groups used as CC in the issue tracker."""
+
+from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import google_groups
+from clusterfuzz._internal.metrics import logs
+
+_CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
+_CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
+_API_DELAY = 3  # 3s delay to avoid cloud identity api rate limits.
+
+
+def normalize_email_for_group(email):
+  """Normalize an email address for google groups."""
+  email = email.strip().lower()
+
+  parts = email.split('@')
+  if len(parts) != 2:
+    logs.error(f'Email with unexpected format: {email}')
+    return None
+  local, domain = parts
+
+  # Convert googlemail to gmail
+  if domain in 'googlemail.com':
+    domain = 'gmail.com'
+
+  # Remove dots if domain is gmail
+  if domain == 'gmail.com':
+    local = local.replace('.', '')
+
+  # Remove pluses alias/tags as it is not supported by cloud identity api.
+  local = local.split('+', 1)[0]
+
+  return f'{local}@{domain}'
+
+
+@retry.wrap(
+    retries=3,
+    delay=_API_DELAY,
+    function='cron.oss_fuzz_cc_groups._add_member_with_retry',
+    retry_on_false=True)
+def _add_member_with_retry(group_id, member):
+  """Add a member to a group with retry."""
+  return google_groups.add_member_to_group(group_id, member)
+
+
+@retry.wrap(
+    retries=3,
+    delay=_API_DELAY,
+    function='cron.oss_fuzz_cc_groups._delete_member_with_retry',
+    retry_on_false=True)
+def _delete_member_with_retry(group_id, member, membership_name):
+  """Delete a member from a group with retry."""
+  return google_groups.delete_google_group_membership(group_id, member,
+                                                      membership_name)
+
+
+def sync_project_cc_group(project_name: str, ccs: list[str]):
+  """Sync the project's google group used for CCing in the issue tracker."""
+  group_name = f'{project_name}{_CC_GROUP_SUFFIX}'
+
+  group_id = google_groups.get_group_id(group_name)
+  # Create the group and bail out since the CIG API might delay to create a
+  # new group. Add members will be done in the next cron run.
+  if not group_id:
+    group_description = f'{_CC_GROUP_DESC}: {project_name}'
+    created = google_groups.create_google_group(
+        group_name, group_description=group_description)
+    if not created:
+      logs.warning('Failed to create or retrieve the issue tracker CC group '
+                   f'for {project_name}')
+      return
+    logs.info(f'Created issue tracker CC group for {project_name}. '
+              'Skipping adding members as group may still not exist.')
+    return
+
+  group_memberships = google_groups.get_google_group_memberships(group_id)
+  if group_memberships is None:
+    logs.warning(
+        f'Failed to get list of group members for {project_name}. Skipping.')
+    return
+
+  if len(group_memberships) <= 1:
+    # If only the SA is a member, we know that the group has just been created
+    # and we need to update settings to allow external members.
+    if not google_groups.set_oss_fuzz_access_settings(group_name):
+      logs.warning(f'Failed to allow external members for {group_name}')
+      return
+
+  ccs_norm = {normalize_email_for_group(cc) for cc in ccs}
+  group_memberships_norm = {
+      normalize_email_for_group(k): v for k, v in group_memberships.items()
+  }
+  to_add = ccs_norm - group_memberships_norm.keys()
+  to_delete = group_memberships_norm.keys() - ccs_norm
+
+  for member in to_add:
+    if not member:
+      continue
+    _add_member_with_retry(group_id, member)
+
+  for member in to_delete:
+    # Ignore the SA that created the group from members to delete.
+    if not member or utils.is_service_account(member):
+      continue
+    membership_name = group_memberships_norm[member]
+    _delete_member_with_retry(group_id, member, membership_name)
+
+
+def main():
+  """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
+  logs.info('OSS-Fuzz CC groups sync started.')
+
+  for project in ndb_utils.get_all_from_model(data_types.OssFuzzProject):
+    project_name = project.name
+    ccs = project.ccs
+    sync_project_cc_group(project_name, ccs)
+
+  logs.info('OSS-Fuzz CC groups sync succeeded.')
+  return True
