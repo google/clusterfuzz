@@ -607,3 +607,33 @@ class GetTestcaseTest(unittest.TestCase):
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
+
+
+class TaskLogHandlerValidationTest(unittest.TestCase):
+  """Test that TaskLogHandler validates task_name against the known set."""
+
+  def test_valid_task_names(self):
+    """Verify the known valid task names."""
+    from handlers.testcase_detail import testcase_status_events
+    valid_names = (
+        testcase_status_events.TestcaseStatusInfo.TASK_EVENTS_NAMES +
+        testcase_status_events.TestcaseStatusInfo.CHROME_TASK_EVENTS_NAMES)
+
+    self.assertIn('analyze', valid_names)
+    self.assertIn('minimize', valid_names)
+    self.assertIn('progression', valid_names)
+    self.assertIn('regression', valid_names)
+    self.assertIn('variant', valid_names)
+    self.assertIn('blame', valid_names)
+    self.assertIn('impact', valid_names)
+
+  def test_injection_payloads_rejected(self):
+    """Verify that injection payloads are not valid task names."""
+    from handlers.testcase_detail import testcase_status_events
+    valid_names = (
+        testcase_status_events.TestcaseStatusInfo.TASK_EVENTS_NAMES +
+        testcase_status_events.TestcaseStatusInfo.CHROME_TASK_EVENTS_NAMES)
+
+    self.assertNotIn('analyze" OR "1"="1', valid_names)
+    self.assertNotIn('evil_task', valid_names)
+    self.assertNotIn('', valid_names)

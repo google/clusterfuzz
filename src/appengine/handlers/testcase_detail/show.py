@@ -640,9 +640,21 @@ class TaskLogHandler(base_handler.Handler):
   @handler.get(handler.TEXT)
   def get(self):
     """Serve the task log."""
+    testcase_id = flask.request.args.get('testcase_id')
+
+    # Verify the user is authenticated and has access to this testcase.
+    testcase = access.check_access_and_get_testcase(testcase_id)
+
     task_id = flask.request.args.get('task_id')
     task_name = flask.request.args.get('task_name')
-    testcase_id = flask.request.args.get('testcase_id')
+
+    # Validate task_name against the known set to prevent filter injection.
+    valid_task_names = (
+        testcase_status_events.TestcaseStatusInfo.TASK_EVENTS_NAMES +
+        testcase_status_events.TestcaseStatusInfo.CHROME_TASK_EVENTS_NAMES)
+    if task_name and task_name not in valid_task_names:
+      raise helpers.EarlyExitError('Invalid task name.', 400)
+
     log_content = testcase_status_events.get_task_log(testcase_id, task_id,
                                                       task_name)
 

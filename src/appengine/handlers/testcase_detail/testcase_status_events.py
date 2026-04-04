@@ -219,11 +219,21 @@ class TestcaseEventHistory:
     start_time = utils.utcnow() - datetime.timedelta(days=days)
     return f'timestamp >= "{start_time.isoformat()}Z"'
 
+  @staticmethod
+  def _sanitize_filter_value(value: str) -> str:
+    """Sanitize a value for use in a Cloud Logging filter string.
+
+    Escapes double quotes and backslashes to prevent filter injection."""
+    return value.replace('\\', '\\\\').replace('"', '\\"')
+
   def _get_task_log_query_filter(self, task_id: str, task_name: str) -> str:
     """Returns the filter string for querying task logs."""
-    query = (f'jsonPayload.extras.task_id="{task_id}" AND '
-             f'jsonPayload.extras.testcase_id="{self._testcase_id}" AND '
-             f'jsonPayload.extras.task_name="{task_name}"')
+    safe_task_id = self._sanitize_filter_value(task_id)
+    safe_task_name = self._sanitize_filter_value(task_name)
+    safe_testcase_id = self._sanitize_filter_value(str(self._testcase_id))
+    query = (f'jsonPayload.extras.task_id="{safe_task_id}" AND '
+             f'jsonPayload.extras.testcase_id="{safe_testcase_id}" AND '
+             f'jsonPayload.extras.task_name="{safe_task_name}"')
     query += f' AND {self._get_time_range_filter(days=31)}'
     return query
 

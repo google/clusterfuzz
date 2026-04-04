@@ -834,3 +834,34 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     self.assertLess(
         result.find('"payload": "log1"'), result.find('"payload": "log2"'))
     self.assertEqual(result.count('\n'), 5)
+
+
+class SanitizeFilterValueTest(unittest.TestCase):
+  """Test _sanitize_filter_value for Cloud Logging filter injection."""
+
+  def test_normal_value(self):
+    """Test that normal values pass through unchanged."""
+    self.assertEqual(
+        testcase_status_events.TestcaseEventHistory._sanitize_filter_value(
+            'analyze'),
+        'analyze')
+
+  def test_double_quote_escaped(self):
+    """Test that double quotes are escaped to prevent filter injection."""
+    self.assertEqual(
+        testcase_status_events.TestcaseEventHistory._sanitize_filter_value(
+            'analyze" OR resource.type="global'),
+        'analyze\\" OR resource.type=\\"global')
+
+  def test_backslash_escaped(self):
+    """Test that backslashes are escaped."""
+    self.assertEqual(
+        testcase_status_events.TestcaseEventHistory._sanitize_filter_value(
+            'test\\value'),
+        'test\\\\value')
+
+  def test_empty_string(self):
+    """Test empty string."""
+    self.assertEqual(
+        testcase_status_events.TestcaseEventHistory._sanitize_filter_value(''),
+        '')
