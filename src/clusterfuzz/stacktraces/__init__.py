@@ -1066,7 +1066,9 @@ class StackParser:
             FATAL_ERROR_REGEX, line, state, new_type='Fatal error', reset=True)
         if fatal_error_match:
           state.fatal_error_occurred = True
-          state.crash_state = _filter_stack_frame(fatal_error_match.group(1))
+          filename = fatal_error_match.group(1)
+          if filename is not None:
+            state.crash_state = _filter_stack_frame(filename)
 
         if state.is_golang:
           golang_fatal_error_match = self.update_state_on_match(

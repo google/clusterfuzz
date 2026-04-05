@@ -591,7 +591,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     an invalid testcase ID."""
     testcase_id = 11
     with self.assertRaises(errors.InvalidTestcaseError):
-      regression_task.utask_preprocess(testcase_id, None, None)
+      regression_task.utask_preprocess(testcase_id, None, {})
 
   def test_already_regressed_testcase(self):
     """Verifies that if the testcase already has regression information stored,
@@ -601,7 +601,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     testcase.put()
 
     self.assertIsNone(
-        regression_task.utask_preprocess(testcase.key.id(), None, None))
+        regression_task.utask_preprocess(testcase.key.id(), None, {}))
 
   def test_custom_binary(self):
     """Verifies that if the testcase concerns a custom binary, a new regression
@@ -612,7 +612,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
 
     self.assertIsNone(
-        regression_task.utask_preprocess(testcase.key.id(), None, None))
+        regression_task.utask_preprocess(testcase.key.id(), None, {}))
 
     testcase = testcase.key.get()
     self.assertEqual(testcase.regression, 'NA')
