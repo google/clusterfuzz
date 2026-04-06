@@ -110,8 +110,13 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
             key=dimension, value=value))
   return task_dimensions
 
-def _append_metadata_env_var(env_vars: list[swarming_pb2.StringPair], env_var_name: str, metadata_path: str):  # pylint: disable=no-member
-  """Attempts to get a variable from the environment or metadata and appends it."""
+
+def _append_metadata_env_var(
+    env_vars: list[swarming_pb2.StringPair],  # pylint: disable=no-member
+    env_var_name: str,
+    metadata_path: str):
+  """Attempts to get a variable from the environment
+  or metadata and appends it."""
   value = environment.get_value(env_var_name)
   if not value:
     try:
@@ -127,7 +132,8 @@ def _append_metadata_env_var(env_vars: list[swarming_pb2.StringPair], env_var_na
     logs.warning(f'{env_var_name} is not set or cannot be fetched.')
 
 
-def _get_env_vars(logs_project_id: str, instance_spec: dict) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
+def _get_env_vars(logs_project_id: str,
+                  instance_spec: dict) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """Retrieve required environment variables from metadata and config."""
   default_task_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
@@ -154,13 +160,13 @@ def _get_env_vars(logs_project_id: str, instance_spec: dict) -> list[swarming_pb
 
   platform_specific_env = instance_spec.get('env', [])
   for var in platform_specific_env:
-    env_vars.append(
-        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+    env_vars.append(swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
 
   env_vars.append(_env_vars_to_json(default_task_environment))
   env_vars.extend(default_task_environment)
 
   return env_vars
+
 
 def _env_vars_to_json(
     env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
