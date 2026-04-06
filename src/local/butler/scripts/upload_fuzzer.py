@@ -13,26 +13,36 @@
 # limitations under the License.
 """Script to upload a local fuzzer with a JSON config."""
 
+import argparse
 import json
 import os
+
 import requests
 
+from appengine.libs import form
+from appengine.libs import gcs
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.system import environment
-from libs import form
-from libs import gcs
+
+_FUZZERS_ENDPOINT = 'http://localhost:9000/fuzzers'
 
 
 def execute(args):
   """Upload a local fuzzer."""
-  if args.script_args is None or len(args.script_args) < 3:
-    print('Usage: butler.py run -c configs/test --local --non-dry-run upload_fuzzer --script_args FUZZER_NAME FUZZER_ARCHIVE_PATH CONFIG_PATH')
-    print('Example: butler.py run -c configs/test --local --non-dry-run upload_fuzzer --script_args test_fuzzer dummy.zip config.json')
-    return
+  # TODO: Explain the config.json required args
+  parser = argparse.ArgumentParser(prog='upload_fuzzer')
+  parser.add_argument('--fuzzer-name', required=True, help='Name of the fuzzer')
+  parser.add_argument(
+      '--fuzzer-archive-path',
+      required=True,
+      help='Path to the fuzzer archive (.zip)')
+  parser.add_argument(
+      '--config-path', required=True, help='Path to the fuzzer config (.json)')
 
-  fuzzer_name = args.script_args[0]
-  fuzzer_archive_path = args.script_args[1]
-  config_path = args.script_args[2]
+  script_args = parser.parse_args(args.script_args or [])
+
+  fuzzer_name = script_args.fuzzer_name
+  fuzzer_archive_path = script_args.fuzzer_archive_path
+  config_path = script_args.config_path
 
   if not args.non_dry_run:
     print('Running in dry-run mode. Fuzzer will NOT be uploaded/created.')
@@ -46,11 +56,11 @@ def execute(args):
     config_data = json.load(f)
 
   # 2. Check if fuzzer already exists to determine if we edit or create
-  existing_fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
+  existing_fuzzer = data_types.Fuzzer.query(
+      data_types.Fuzzer.name == fuzzer_name).get()
   is_edit = existing_fuzzer is not None
 
   # 3. Generate CSRF token and GCS upload info
-  # Environment should be LOCAL_DEVELOPMENT, which defaults to user@localhost
   csrf_token = form.generate_csrf_token()
   upload_info = gcs.prepare_blob_upload()
 
@@ -72,10 +82,12 @@ def execute(args):
 
   with open(fuzzer_archive_path, 'rb') as f:
     files = {'file': (os.path.basename(fuzzer_archive_path), f)}
-    response = requests.post(upload_info.url, data=gcs_data, files=files)
+    response = requests.post(
+        upload_info.url, data=gcs_data, files=files, timeout=60)
 
   if response.status_code not in (200, 204):
-    print(f'Failed to upload archive to GCS: {response.status_code} - {response.text}')
+    print(f'Failed to upload archive to GCS: {response.status_code}\n'
+          f'Response: {response.text}')
     return
 
   print('Archive successfully uploaded to GCS.')
@@ -91,17 +103,19 @@ def execute(args):
 
   if is_edit:
     payload['key'] = existing_fuzzer.key.id()
-    endpoint = 'http://localhost:9000/fuzzers/edit'
+    endpoint = _FUZZERS_ENDPOINT + '/edit'
   else:
-    endpoint = 'http://localhost:9000/fuzzers/create'
+    endpoint = _FUZZERS_ENDPOINT + '/create'
 
   print(f'Endpoint: {endpoint}')
   print(f'Payload: {payload}')
 
   # Make the request to the local server
-  response = requests.post(endpoint, json=payload)
+  response = requests.post(endpoint, json=payload, timeout=60)
 
   if response.status_code == 200:
-    print(f"Successfully uploaded and {'edited' if is_edit else 'created'} fuzzer '{fuzzer_name}'.")
+    print(f"Successfully {'edited' if is_edit else 'created'} fuzzer "
+          f"'{fuzzer_name}'.")
   else:
-    print(f"Failed to submit fuzzer config: {response.status_code} - {response.text}")
+    print(f"Failed to submit fuzzer config: {response.status_code}\n"
+          f"Response: {response.text}")
