@@ -184,7 +184,7 @@ def _get_url_content(url):
     # Fetch a regular url without authentication.
     try:
       url_content = utils.fetch_url(url)
-    except Exception as e:
+    except Exception:
       logs.error(f'Failed to fetch URL {url}')
       return None
 
