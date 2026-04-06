@@ -15,13 +15,20 @@
 
 from clusterfuzz._internal.base import tasks
 
+
 def execute(args):
   """Inject a task directly into the PREPROCESS_QUEUE."""
-  
+
   if args.script_args is None or len(args.script_args) < 2:
-    print('Usage:   butler.py run -c <CONFIG_DIR> schedule_tworker_fuzz --script_args FUZZER_NAME JOB_NAME')
-    print('Example: butler.py run -c ~/configs/chrome-dev/ schedule_tworker_fuzz --script_args libFuzzer libfuzzer_asan_linux')
-    print('Note:    Pass the --non-dry-run flag before the script name to actually schedule the task.')
+    print(
+        'Usage:   butler.py run -c <CONFIG_DIR> schedule_tworker_fuzz --script_args FUZZER_NAME JOB_NAME'
+    )
+    print(
+        'Example: butler.py run -c ~/configs/chrome-dev/ schedule_tworker_fuzz --script_args libFuzzer libfuzzer_asan_linux'
+    )
+    print(
+        'Note:    Pass the --non-dry-run flag before the script name to actually schedule the task.'
+    )
     return
 
   fuzzer_name = args.script_args[0]
@@ -41,6 +48,5 @@ def execute(args):
         argument=fuzzer_name,
         job_type=job_name,
         queue=tasks.PREPROCESS_QUEUE,
-        wait_time=0
-    )
+        wait_time=0)
     print(f"Successfully scheduled '{command}' task!")
