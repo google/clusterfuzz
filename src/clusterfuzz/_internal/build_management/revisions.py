@@ -40,7 +40,7 @@ CLANK_REVISION_FILE_COMPONENT_REGEX = re.compile(
 COMPONENT_NAMES_BLACKLIST = [
     'api', 'bin', 'data', 'dist', 'lib', 'pylib', 'source', 'src'
 ]
-DISK_CACHE_SIZE = 5000
+DISK_CACHE_SIZE = 1000
 SOURCE_MAP_EXTENSION = '.srcmap.json'
 FIND_BRANCHED_FROM = re.compile(
     r'Cr-Branched-From:.*(?:master|main)@\{#(\d+)\}')
@@ -185,7 +185,7 @@ def _get_url_content(url):
     try:
       url_content = utils.fetch_url(url)
     except Exception as e:
-      logs.error('Failed to fetch URL %s: %s' % (url, e))
+      logs.error(f'Failed to fetch URL {url}')
       return None
 
     # Urls on googlesource.com return file data as base64 encoded to avoid

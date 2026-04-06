@@ -181,7 +181,7 @@ class RevisionsTestcase(unittest.TestCase):
   def test_get_url_content_exception(self, mock_fetch_url):
     """Test that _get_url_content returns None when fetch_url raises an exception."""
     mock_fetch_url.side_effect = Exception('Network error')
-    result = revisions._get_url_content('https://example.com/api') # pylint: disable=protected-access
+    result = revisions._get_url_content('https://example.com/api')  # pylint: disable=protected-access
     self.assertIsNone(result)
 
   @mock.patch('clusterfuzz._internal.config.db_config.get')
