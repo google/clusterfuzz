@@ -497,21 +497,25 @@ class GrouperTest(unittest.TestCase):
     self.testcases[2].project_name = 'project1'
     self.testcases[2].crash_type = 'crash_type3'
     self.testcases[2].crash_state = 'x2'
+    self.testcases[2].security_flag = True
 
     self.testcases.append(test_utils.create_generic_testcase())
     self.testcases[3].project_name = 'project1'
     self.testcases[3].crash_type = 'crash_type4'
     self.testcases[3].crash_state = 'y3'
+    self.testcases[3].security_flag = True
 
     self.testcases.append(test_utils.create_generic_testcase())
     self.testcases[4].project_name = 'project1'
     self.testcases[4].crash_type = 'crash_type5'
     self.testcases[4].crash_state = 'z4'
+    self.testcases[4].security_flag = True
 
     self.testcases.append(test_utils.create_generic_testcase())
     self.testcases[5].project_name = 'project1'
     self.testcases[5].crash_type = 'crash_type6'
     self.testcases[5].crash_state = 'w5'
+    self.testcases[5].security_flag = True
 
     for t in self.testcases:
       t.put()
