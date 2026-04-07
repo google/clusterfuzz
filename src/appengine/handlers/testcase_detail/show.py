@@ -640,9 +640,11 @@ class TaskLogHandler(base_handler.Handler):
   @handler.get(handler.TEXT)
   def get(self):
     """Serve the task log."""
+    testcase_id = flask.request.args.get('testcase_id')
+    access.check_access_and_get_testcase(testcase_id)
+
     task_id = flask.request.args.get('task_id')
     task_name = flask.request.args.get('task_name')
-    testcase_id = flask.request.args.get('testcase_id')
     log_content = testcase_status_events.get_task_log(testcase_id, task_id,
                                                       task_name)
 

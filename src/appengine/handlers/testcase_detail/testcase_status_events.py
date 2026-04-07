@@ -15,6 +15,7 @@
 from dataclasses import asdict
 import datetime
 import json
+import re
 from typing import Iterator
 from typing import Mapping
 from typing import TypeAlias
@@ -219,11 +220,21 @@ class TestcaseEventHistory:
     start_time = utils.utcnow() - datetime.timedelta(days=days)
     return f'timestamp >= "{start_time.isoformat()}Z"'
 
+  @staticmethod
+  def _sanitize_log_filter_value(value: str) -> str:
+    """Sanitize a value for use in a Cloud Logging filter query.
+
+    Removes characters that could break out of the quoted string context
+    to prevent query injection."""
+    return re.sub(r'["\\\n\r]', '', value)
+
   def _get_task_log_query_filter(self, task_id: str, task_name: str) -> str:
     """Returns the filter string for querying task logs."""
-    query = (f'jsonPayload.extras.task_id="{task_id}" AND '
+    safe_task_id = self._sanitize_log_filter_value(task_id)
+    safe_task_name = self._sanitize_log_filter_value(task_name)
+    query = (f'jsonPayload.extras.task_id="{safe_task_id}" AND '
              f'jsonPayload.extras.testcase_id="{self._testcase_id}" AND '
-             f'jsonPayload.extras.task_name="{task_name}"')
+             f'jsonPayload.extras.task_name="{safe_task_name}"')
     query += f' AND {self._get_time_range_filter(days=31)}'
     return query
 
