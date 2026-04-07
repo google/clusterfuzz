@@ -266,6 +266,10 @@ message FuzzTaskOutput {
   optional string build_key = 17;
   optional string build_url = 18;
   optional string gn_args = 19;
+  optional int64 testcases_generated = 20;
+  optional float testcase_generation_time = 21;
+  optional float testcase_execution_time = 22;
+  optional float fuzzing_duration = 23;
 }
 
 message MinimizeTaskOutput {
