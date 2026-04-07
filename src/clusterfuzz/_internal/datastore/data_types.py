@@ -351,6 +351,20 @@ class Fuzzer(Model):
   # on disk |FUZZ_INPUTS_DISK|, rather than smaller tmpfs one (FUZZ_INPUTS).
   has_large_testcases = ndb.BooleanProperty(default=False)
 
+  def get_config_dict(self):
+    """Returns a dict containing the required config to upload a fuzzer."""
+
+    return {
+        'jobs': self.jobs,
+        'data_bundle_name': self.data_bundle_name,
+        'timeout': self.timeout,
+        'max_testcases': self.max_testcases,
+        'external_contribution': self.external_contribution,
+        'additional_environment_string': self.additional_environment_string,
+        'executable_path': self.executable_path,
+        'launcher_script': self.launcher_script,
+    }
+
 
 class BuildCrashStatsJobHistory(Model):
   """Represents the record of build_crash_stats run."""

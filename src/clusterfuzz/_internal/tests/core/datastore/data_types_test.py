@@ -20,6 +20,42 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @test_utils.with_cloud_emulators('datastore')
+class FuzzerTest(unittest.TestCase):
+  """Test Fuzzer."""
+
+  def test_get_config_dict(self):
+    """Test get_config_dict()."""
+
+    fuzzer = data_types.Fuzzer(
+        name='fuzzer',
+        jobs=['job1', 'job2'],
+        data_bundle_name='data_bundle',
+        timeout=10,
+        max_testcases=100,
+        external_contribution=True,
+        additional_environment_string='A=1\nB=2',
+        executable_path='path/to/exec',
+        launcher_script='path/to/launcher',
+    )
+
+    config_dict = fuzzer.get_config_dict()
+
+    self.assertDictEqual(
+        {
+            'jobs': ['job1', 'job2'],
+            'data_bundle_name': 'data_bundle',
+            'timeout': 10,
+            'max_testcases': 100,
+            'external_contribution': True,
+            'additional_environment_string': 'A=1\nB=2',
+            'executable_path': 'path/to/exec',
+            'launcher_script': 'path/to/launcher',
+        },
+        config_dict,
+    )
+
+
+@test_utils.with_cloud_emulators('datastore')
 class TestcaseTest(unittest.TestCase):
   """Test Testcase."""
 
