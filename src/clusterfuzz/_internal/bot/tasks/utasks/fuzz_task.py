@@ -1738,6 +1738,9 @@ class FuzzingSession:
     testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
+    self.fuzz_task_output.testcase_generation_time = time.time(
+    ) - testcase_generation_start
+
     if not generate_result.success:
       return None, None, None, None
 
@@ -1765,6 +1768,7 @@ class FuzzingSession:
     # Create a dict to store metadata specific to each testcase.
     testcases_metadata = {}
     testcase_file_paths = generate_result.testcase_file_paths
+    self.fuzz_task_output.testcases_generated = len(testcase_file_paths)
 
     for testcase_file_path in testcase_file_paths:
       testcases_metadata[testcase_file_path] = {}
@@ -1792,6 +1796,7 @@ class FuzzingSession:
               f'{testcase_manager.get_command_line_for_application()}.')
 
     # Start processing the testcases.
+    testcase_execution_start = time.time()
     while test_number < len(testcase_file_paths):
       thread_index = 0
       threads = []
@@ -1852,6 +1857,9 @@ class FuzzingSession:
       logs.info(f'Upto {test_number}')
       if thread_error_occurred:
         break
+
+    self.fuzz_task_output.testcase_execution_time = time.time(
+    ) - testcase_execution_start
 
     # Pull testcase directory to host. The testcase file contents could have
     # been changed (by e.g. libFuzzer) and stats files could have been written.
@@ -2045,6 +2053,7 @@ class FuzzingSession:
             'platform': environment.platform(),
             'runtime': environment.get_runtime().value,
         })
+    self.fuzz_task_output.fuzzing_duration = fuzzing_session_duration
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 

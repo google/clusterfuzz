@@ -96,6 +96,22 @@ JOB_RUN_SCHEMA = {
         'name': 'kind',
         'type': 'STRING',
         'mode': 'NULLABLE'
+    }, {
+        'name': 'testcases_generated',
+        'type': 'INTEGER',
+        'mode': 'NULLABLE'
+    }, {
+        'name': 'testcase_generation_time',
+        'type': 'FLOAT',
+        'mode': 'NULLABLE'
+    }, {
+        'name': 'testcase_execution_time',
+        'type': 'FLOAT',
+        'mode': 'NULLABLE'
+    }, {
+        'name': 'fuzzing_duration',
+        'type': 'FLOAT',
+        'mode': 'NULLABLE'
     }]
 }
 
