@@ -107,6 +107,7 @@ def _add_run_subparser(toplevel_subparsers):
       help='The script module name under `./local/butler/scripts`.')
   parser_run.add_argument(
       '--script_args',
+      action='extend',
       nargs=argparse.REMAINDER,
       help='Script specific arguments')
   parser_run.add_argument(
