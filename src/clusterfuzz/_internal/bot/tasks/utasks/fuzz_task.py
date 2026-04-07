@@ -713,15 +713,24 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
-def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
-                         timestamp: float, new_crash_count: int,
-                         known_crash_count: int, testcases_executed: int,
-                         groups: List[Dict[str, Any]]):
+def upload_job_run_stats(fuzzer_name: str,
+                         job_type: str,
+                         revision: int,
+                         timestamp: float,
+                         new_crash_count: int,
+                         known_crash_count: int,
+                         testcases_executed: int,
+                         groups: List[Dict[str, Any]],
+                         testcases_generated: int = None,
+                         testcase_generation_time: float = None,
+                         testcase_execution_time: float = None,
+                         fuzzing_duration: float = None):
   """Upload job run stats."""
   # New format.
-  job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
-                                testcases_executed, new_crash_count,
-                                known_crash_count, groups)
+  job_run = fuzzer_stats.JobRun(
+      fuzzer_name, job_type, revision, timestamp, testcases_executed,
+      new_crash_count, known_crash_count, groups, testcases_generated,
+      testcase_generation_time, testcase_execution_time, fuzzing_duration)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
@@ -986,11 +995,24 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
 
   # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
   # `fuzz_task_input.fuzz_target` instead.
-  upload_job_run_stats(fuzz_task_output.fully_qualified_fuzzer_name,
-                       uworker_input.job_type, fuzz_task_output.crash_revision,
-                       fuzz_task_output.job_run_timestamp, new_crash_count,
-                       known_crash_count, fuzz_task_output.testcases_executed,
-                       crash_groups_for_stats)
+  upload_job_run_stats(
+      fuzz_task_output.fully_qualified_fuzzer_name,
+      uworker_input.job_type,
+      fuzz_task_output.crash_revision,
+      fuzz_task_output.job_run_timestamp,
+      new_crash_count,
+      known_crash_count,
+      fuzz_task_output.testcases_executed,
+      crash_groups_for_stats,
+      # TODO: Fix this awful None handling
+      fuzz_task_output.testcases_generated
+      if fuzz_task_output.HasField('testcases_generated') else None,
+      fuzz_task_output.testcase_generation_time
+      if fuzz_task_output.HasField('testcase_generation_time') else None,
+      fuzz_task_output.testcase_execution_time
+      if fuzz_task_output.HasField('testcase_execution_time') else None,
+      fuzz_task_output.fuzzing_duration
+      if fuzz_task_output.HasField('fuzzing_duration') else None)
 
   logs.info(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
             f'known crashes: {known_crash_count}, '

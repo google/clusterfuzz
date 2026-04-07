@@ -201,7 +201,10 @@ class BaseRun:
         result = JobRun(data['fuzzer'], data['job'], data['build_revision'],
                         data['timestamp'], data['testcases_executed'],
                         data['new_crashes'], data['known_crashes'],
-                        data.get('crashes'))
+                        data.get('crashes'), data.get('testcases_generated'),
+                        data.get('testcase_generation_time'),
+                        data.get('testcase_execution_time'),
+                        data.get('fuzzing_duration'))
     except KeyError:
       return None
 
@@ -216,8 +219,19 @@ class JobRun(BaseRun):
   SCHEMA = JOB_RUN_SCHEMA
 
   # `crashes` is a new field that will replace `new_crashes` and `old_crashes`.
-  def __init__(self, fuzzer, job, build_revision, timestamp,
-               number_of_testcases, new_crashes, known_crashes, crashes):
+  def __init__(self,
+               fuzzer,
+               job,
+               build_revision,
+               timestamp,
+               number_of_testcases,
+               new_crashes,
+               known_crashes,
+               crashes,
+               testcases_generated=None,
+               testcase_generation_time=None,
+               testcase_execution_time=None,
+               fuzzing_duration=None):
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
@@ -226,6 +240,14 @@ class JobRun(BaseRun):
         'known_crashes': known_crashes,
         'crashes': crashes
     })
+    if testcases_generated is not None:
+      self._stats_data['testcases_generated'] = testcases_generated
+    if testcase_generation_time is not None:
+      self._stats_data['testcase_generation_time'] = testcase_generation_time
+    if testcase_execution_time is not None:
+      self._stats_data['testcase_execution_time'] = testcase_execution_time
+    if fuzzing_duration is not None:
+      self._stats_data['fuzzing_duration'] = fuzzing_duration
 
 
 class TestcaseRun(BaseRun):

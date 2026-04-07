@@ -182,6 +182,22 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                       'type': 'STRING',
                                       'name': 'kind',
                                       'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'testcases_generated',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'FLOAT',
+                                      'name': 'testcase_generation_time',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'FLOAT',
+                                      'name': 'testcase_execution_time',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'FLOAT',
+                                      'name': 'fuzzing_duration',
+                                      'mode': 'NULLABLE'
                                   }]
                               },
                           }
