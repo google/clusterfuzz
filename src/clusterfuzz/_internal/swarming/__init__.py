@@ -55,8 +55,10 @@ def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
 
   swarming_config = _get_swarming_config()
   if swarming_config is None:
-    logs.warning('[Swarming DEBUG] current task is not suitable for swarming. ' \
-    'Reason: failed to retrieve config.')
+    logs.warning(
+        """[Swarming DEBUG] current task is not suitable for swarming. 
+    'Reason: failed to retrieve config.""",
+        job_name=job_name)
     return False
 
   return _get_instance_spec(swarming_config, job) is not None
