@@ -261,6 +261,10 @@ class Blacklist(Model):
 class Fuzzer(Model):
   """Represents a fuzzer."""
 
+  # Created at timestamp. Not set for fuzzers created before this field was
+  # added.
+  created_at = ndb.DateTimeProperty()
+
   # Additionally allows '.' and '@' over NAME_CHECK_REGEX.
   VALID_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_@.-]+$')
 
