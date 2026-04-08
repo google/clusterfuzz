@@ -722,15 +722,16 @@ def upload_job_run_stats(fuzzer_name: str,
                          testcases_executed: int,
                          groups: List[Dict[str, Any]],
                          testcases_generated: int = None,
-                         testcase_generation_time: float = None,
-                         testcase_execution_time: float = None,
-                         fuzzing_duration: float = None):
+                         testcase_generation_time_seconds: float = None,
+                         testcase_execution_time_seconds: float = None,
+                         fuzzing_duration_seconds: float = None):
   """Upload job run stats."""
   # New format.
   job_run = fuzzer_stats.JobRun(
       fuzzer_name, job_type, revision, timestamp, testcases_executed,
       new_crash_count, known_crash_count, groups, testcases_generated,
-      testcase_generation_time, testcase_execution_time, fuzzing_duration)
+      testcase_generation_time_seconds, testcase_execution_time_seconds,
+      fuzzing_duration_seconds)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
@@ -996,16 +997,10 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
   # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
   # `fuzz_task_input.fuzz_target` instead.
   upload_job_run_stats(
-      fuzz_task_output.fully_qualified_fuzzer_name,
-      uworker_input.job_type,
-      fuzz_task_output.crash_revision,
-      fuzz_task_output.job_run_timestamp,
-      new_crash_count,
-      known_crash_count,
-      fuzz_task_output.testcases_executed,
-      crash_groups_for_stats,
-      # TODO: Fix this awful None handling
-      fuzz_task_output.testcases_generated
+      fuzz_task_output.fully_qualified_fuzzer_name, uworker_input.job_type,
+      fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
+      new_crash_count, known_crash_count, fuzz_task_output.testcases_executed,
+      crash_groups_for_stats, fuzz_task_output.testcases_generated
       if fuzz_task_output.HasField('testcases_generated') else None,
       fuzz_task_output.testcase_generation_time
       if fuzz_task_output.HasField('testcase_generation_time') else None,
@@ -1718,13 +1713,11 @@ class FuzzingSession:
 
   def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
                                             fuzzer, job):
-
-    # TODO: We could pass the already calculated time to be consistent.
+    """Emits the average testcase generation time metric to GCP."""
     testcase_generation_finish = time.time()
     elapsed_testcase_generation_time = testcase_generation_finish
     elapsed_testcase_generation_time -= start_time
     # Avoid division by zero.
-    # TODO: This is requested test cases, not actual
     if testcase_count:
       average_time_per_testcase = elapsed_testcase_generation_time
       average_time_per_testcase = average_time_per_testcase / testcase_count
@@ -1763,15 +1756,15 @@ class FuzzingSession:
     testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
-    self.fuzz_task_output.testcase_generation_time = time.time(
-    ) - testcase_generation_start
-    print(f'{generate_result}')
 
     if not generate_result.success:
       return None, None, None, None
 
+    self.fuzz_task_output.testcase_generation_time_seconds = time.time(
+    ) - testcase_generation_start
     self._emit_testcase_generation_time_metric(
-        testcase_generation_start, testcase_count, fuzzer.name, job_type)
+        testcase_generation_start, testcase_count,
+        fuzzer.name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
@@ -1885,13 +1878,11 @@ class FuzzingSession:
       if thread_error_occurred:
         break
 
-    self.fuzz_task_output.testcase_execution_time = time.time(
-    ) - testcase_execution_start
     # TODO(dylanj): Handle cases where the blackbox fuzzer executes multiple
     # logical testcases per test file and we'd like to factor that multiplier
     # into the testcase execution count.
-    # self.fuzz_task_output.testcases_executed = test_number
-    print(f'tests executed: {test_number}')
+    self.fuzz_task_output.testcase_execution_time_seconds = time.time(
+    ) - testcase_execution_start
 
     # Pull testcase directory to host. The testcase file contents could have
     # been changed (by e.g. libFuzzer) and stats files could have been written.
@@ -2054,7 +2045,6 @@ class FuzzingSession:
             data_directory=self.data_directory),
         upload_urls=list(self.uworker_input.fuzz_task_input.crash_upload_urls))
 
-
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
     # unclear if needed but it is kept because it is not harmful.
@@ -2063,7 +2053,6 @@ class FuzzingSession:
 
     # This is zero for engine fuzzers and testcase execution rate need to be
     # calculated from TestcaseRun data.
-    print(f'test case files: {testcase_file_paths}')
     testcases_executed = len(testcase_file_paths)
 
     # Explicit cleanup for large vars.
@@ -2089,7 +2078,7 @@ class FuzzingSession:
             'platform': environment.platform(),
             'runtime': environment.get_runtime().value,
         })
-    self.fuzz_task_output.fuzzing_duration = fuzzing_session_duration
+    self.fuzz_task_output.fuzzing_duration_seconds = fuzzing_session_duration
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 

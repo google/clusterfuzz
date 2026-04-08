@@ -1357,6 +1357,10 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
 
     actual = fuzz_task.utask_main(uworker_input)
 
+    self.assertGreater(actual.fuzz_task_output.fuzzing_duration, 0)
+    self.assertGreater(actual.fuzz_task_output.testcase_generation_time, 0)
+    self.assertGreater(actual.fuzz_task_output.testcase_execution_time, 0)
+    self.assertEqual(3, actual.fuzz_task_output.testcases_generated)
     self.assertEqual(3, actual.fuzz_task_output.testcases_executed)
 
 
