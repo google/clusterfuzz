@@ -45,19 +45,21 @@ def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
   if job is None:
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     if not job:
-      logs.info('[DEBUG] Job not found', job_name=job_name)
+      logs.info('[Swarming DEBUG] Job not found', job_name=job_name)
       return False
 
   job_environment = job.get_environment()
   if not utils.string_is_true(job_environment.get(
       'IS_SWARMING_JOB')) and not job_environment.get('SWARMING_DIMENSIONS'):
-    logs.info('[DEBUG] No swarming env var', job_name=job_name)
+    logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
     return False
 
   swarming_config = _get_swarming_config()
   if swarming_config is None:
-    logs.warning('[Swarming] current task is not suitable for swarming. ' \
-    'Reason: failed to retrieve config.')
+    logs.warning(
+        """[Swarming DEBUG] current task is not suitable for swarming. 
+    'Reason: failed to retrieve config.""",
+        job_name=job_name)
     return False
 
   return _get_instance_spec(swarming_config, job) is not None
@@ -67,9 +69,12 @@ def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
                        job: data_types.Job) -> dict | None:
   return swarming_config.get('mapping').get(job.platform, None)
 
+def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
+                       job: data_types.Job) -> dict | None:
+  return swarming_config.get('mapping').get(job.platform, None)
 
 def _get_task_name(job_name: str):
-  return 't-' + str(uuid.uuid4()).lower() + '-' + job_name
+  return f't-{str(uuid.uuid4()).lower()}-{job_name}'
 
 
 def _get_swarming_config() -> local_config.SwarmingConfig | None:
@@ -87,7 +92,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   Job dimensions have more precedence than static dimensions"""
   swarming_config = _get_swarming_config()
   if not swarming_config:
-    logs.warning(
+    logs.error(
         '[Swarming] No dimensions set. Reason: failed to retrieve config')
     return []
 
