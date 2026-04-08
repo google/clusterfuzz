@@ -25,7 +25,7 @@ python -m grpc_tools.protoc \
   $SCRIPT_DIR/*.proto
 
 read -r -d '' COPYRIGHT_HEADER <<EOF
-# Copyright 2026 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
