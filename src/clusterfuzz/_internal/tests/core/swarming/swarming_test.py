@@ -13,6 +13,7 @@
 # limitations under the License.
 """Swarming tests."""
 import base64
+import os
 import unittest
 from unittest import mock
 
@@ -45,6 +46,10 @@ class SwarmingTest(unittest.TestCase):
     self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
     self.mock.get.return_value = None
     self.maxDiff = None
+    os.environ.pop('DEPLOYMENT_ZIP', None)
+    os.environ.pop('DEPLOYMENT_BUCKET', None)
+    os.environ.pop('PROJECT_NAME', None)
+    os.environ.pop('HOST_JOB_SELECTION', None)
 
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that create_new_task_request works as expected."""

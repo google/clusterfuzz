@@ -69,7 +69,7 @@ def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
 
 
 def _get_task_name(job_name: str):
-  return 't-' + str(uuid.uuid4()).lower() + ' ' + job_name
+  return 't-' + str(uuid.uuid4()).lower() + '-' + job_name
 
 
 def _get_swarming_config() -> local_config.SwarmingConfig | None:
