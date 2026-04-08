@@ -69,9 +69,6 @@ def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
                        job: data_types.Job) -> dict | None:
   return swarming_config.get('mapping').get(job.platform, None)
 
-def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
-                       job: data_types.Job) -> dict | None:
-  return swarming_config.get('mapping').get(job.platform, None)
 
 def _get_task_name(job_name: str):
   return f't-{str(uuid.uuid4()).lower()}-{job_name}'
