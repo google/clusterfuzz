@@ -155,8 +155,20 @@ class FuzzerStatsTest(unittest.TestCase):
         'crash_state': 's1',
         'security_flag': True
     }]
-    fuzzer_run = fuzzer_stats.JobRun('fuzzer', 'job', 123, 1472846341.017923,
-                                     9001, 0, 1, crashes, 100, 10.5, 20.5, 31.0)
+
+    fuzzer_run = fuzzer_stats.JobRun(
+        'fuzzer',
+        'job',
+        123,
+        1472846341.017923,
+        9001,
+        0,
+        1,
+        crashes,
+        100,
+        datetime.timedelta(seconds=10.5),
+        datetime.timedelta(seconds=20.5),
+        datetime.timedelta(seconds=31.0))
 
     fuzzer_stats.upload_stats([fuzzer_run], filename='upload.json')
 
@@ -172,9 +184,9 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcases_executed': 9001,
         'crashes': crashes,
         'testcases_generated': 100,
-        'testcase_generation_time': 10.5,
-        'testcase_execution_time': 20.5,
-        'fuzzing_duration': 31.0
+        'testcase_generation_duration': "INTERVAL '0 10.500000' DAY TO SECOND",
+        'testcase_execution_duration': "INTERVAL '0 20.500000' DAY TO SECOND",
+        'fuzzing_duration': "INTERVAL '0 31.000000' DAY TO SECOND"
     }, json.loads(self.mock.write_data.call_args[0][0]))
 
     self.assertEqual(
@@ -230,9 +242,9 @@ class FuzzerStatsTest(unittest.TestCase):
             'test': 'crash'
         }],
         'testcases_generated': 100,
-        'testcase_generation_time': 10.5,
-        'testcase_execution_time': 20.5,
-        'fuzzing_duration': 31.0
+        'testcase_generation_duration': "INTERVAL '0 10.500000' DAY TO SECOND",
+        'testcase_execution_duration': "INTERVAL '0 20.500000' DAY TO SECOND",
+        'fuzzing_duration': "INTERVAL '0 31.000000' DAY TO SECOND"
     })
     job_run = fuzzer_stats.BaseRun.from_json(data)
     self.assertIsNotNone(job_run)
@@ -246,9 +258,12 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcases_executed'], 9001)
     self.assertEqual(job_run['crashes'], [{'test': 'crash'}])
     self.assertEqual(job_run['testcases_generated'], 100)
-    self.assertEqual(job_run['testcase_generation_time'], 10.5)
-    self.assertEqual(job_run['testcase_execution_time'], 20.5)
-    self.assertEqual(job_run['fuzzing_duration'], 31.0)
+    self.assertEqual(job_run['testcase_generation_duration'],
+                     "INTERVAL '0 10.500000' DAY TO SECOND")
+    self.assertEqual(job_run['testcase_execution_duration'],
+                     "INTERVAL '0 20.500000' DAY TO SECOND")
+    self.assertEqual(job_run['fuzzing_duration'],
+                     "INTERVAL '0 31.000000' DAY TO SECOND")
 
   def test_fuzz_task_upload_job_run_stats(self):
     """Tests that fuzz_task.upload_job_run_stats uploads stats."""
@@ -273,9 +288,19 @@ class FuzzerStatsTest(unittest.TestCase):
         'security_flag': group.main_crash.security_flag,
     } for group in groups]
 
-    fuzz_task.upload_job_run_stats('fuzzer', 'job', 123, 1472846341.017923, 1,
-                                   2, 1337, crash_groups_for_stats, 100, 10.5,
-                                   20.5, 31.0)
+    fuzz_task.upload_job_run_stats(
+        'fuzzer',
+        'job',
+        123,
+        1472846341.017923,
+        1,
+        2,
+        1337,
+        crash_groups_for_stats,
+        100,
+        datetime.timedelta(seconds=10.5),
+        datetime.timedelta(seconds=20.5),
+        datetime.timedelta(seconds=31.0))
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':
@@ -312,12 +337,12 @@ class FuzzerStatsTest(unittest.TestCase):
         ],
         'testcases_generated':
             100,
-        'testcase_generation_time':
-            10.5,
-        'testcase_execution_time':
-            20.5,
+        'testcase_generation_duration':
+            "INTERVAL '0 10.500000' DAY TO SECOND",
+        'testcase_execution_duration':
+            "INTERVAL '0 20.500000' DAY TO SECOND",
         'fuzzing_duration':
-            31.0
+            "INTERVAL '0 31.000000' DAY TO SECOND"
     }, json.loads(self.mock.write_data.call_args[0][0]))
 
 

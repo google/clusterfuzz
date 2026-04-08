@@ -18,6 +18,7 @@ package uworker_msg;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 
 message SetupInput {
   optional google.protobuf.Any fuzzer = 1;
@@ -266,12 +267,13 @@ message FuzzTaskOutput {
   optional string build_key = 17;
   optional string build_url = 18;
   optional string gn_args = 19;
-  # TODO(dylanj): Documentation and use duration or add _seconds to the name
-  # Also fix the year in the proto generator
+  // Number of testcases generated. Only applicable to blackbox fuzzers
   optional int64 testcases_generated = 20;
-  optional float testcase_generation_time = 21;
-  optional float testcase_execution_time = 22;
-  optional float fuzzing_duration = 23;
+  optional google.protobuf.Duration testcase_generation_duration = 21;
+  optional google.protobuf.Duration testcase_execution_duration = 22;
+  // Total fuzzing session time. Includes time spent updating the fuzzer, build
+  // and test corpus set up, and crash processing.
+  optional google.protobuf.Duration fuzzing_duration = 23;
 }
 
 message MinimizeTaskOutput {

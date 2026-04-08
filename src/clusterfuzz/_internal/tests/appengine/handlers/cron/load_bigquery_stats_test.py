@@ -187,15 +187,15 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                       'name': 'testcases_generated',
                                       'mode': 'NULLABLE'
                                   }, {
-                                      'type': 'FLOAT',
-                                      'name': 'testcase_generation_time',
+                                      'type': 'INTERVAL',
+                                      'name': 'testcase_generation_duration',
                                       'mode': 'NULLABLE'
                                   }, {
-                                      'type': 'FLOAT',
-                                      'name': 'testcase_execution_time',
+                                      'type': 'INTERVAL',
+                                      'name': 'testcase_execution_duration',
                                       'mode': 'NULLABLE'
                                   }, {
-                                      'type': 'FLOAT',
+                                      'type': 'INTERVAL',
                                       'name': 'fuzzing_duration',
                                       'mode': 'NULLABLE'
                                   }]

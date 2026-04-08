@@ -19,6 +19,7 @@ import builtins
 import collections.abc
 import google.protobuf.any_pb2
 import google.protobuf.descriptor
+import google.protobuf.duration_pb2
 import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
@@ -1250,8 +1251,8 @@ class FuzzTaskOutput(google.protobuf.message.Message):
     BUILD_URL_FIELD_NUMBER: builtins.int
     GN_ARGS_FIELD_NUMBER: builtins.int
     TESTCASES_GENERATED_FIELD_NUMBER: builtins.int
-    TESTCASE_GENERATION_TIME_FIELD_NUMBER: builtins.int
-    TESTCASE_EXECUTION_TIME_FIELD_NUMBER: builtins.int
+    TESTCASE_GENERATION_DURATION_FIELD_NUMBER: builtins.int
+    TESTCASE_EXECUTION_DURATION_FIELD_NUMBER: builtins.int
     FUZZING_DURATION_FIELD_NUMBER: builtins.int
     fully_qualified_fuzzer_name: builtins.str
     """TODO(metzman): Remove this since tworkers should know what this is based on
@@ -1279,9 +1280,16 @@ class FuzzTaskOutput(google.protobuf.message.Message):
     build_url: builtins.str
     gn_args: builtins.str
     testcases_generated: builtins.int
-    testcase_generation_time: builtins.float
-    testcase_execution_time: builtins.float
-    fuzzing_duration: builtins.float
+    """Number of testcases generated. Only applicable to blackbox fuzzers"""
+    @property
+    def testcase_generation_duration(self) -> google.protobuf.duration_pb2.Duration: ...
+    @property
+    def testcase_execution_duration(self) -> google.protobuf.duration_pb2.Duration: ...
+    @property
+    def fuzzing_duration(self) -> google.protobuf.duration_pb2.Duration:
+        """Total fuzzing session time. Includes time spent updating the fuzzer, build
+        and test corpus set up, and crash processing.
+        """
     def __init__(
         self,
         *,
@@ -1302,12 +1310,12 @@ class FuzzTaskOutput(google.protobuf.message.Message):
         build_url: builtins.str | None = ...,
         gn_args: builtins.str | None = ...,
         testcases_generated: builtins.int | None = ...,
-        testcase_generation_time: builtins.float | None = ...,
-        testcase_execution_time: builtins.float | None = ...,
-        fuzzing_duration: builtins.float | None = ...,
+        testcase_generation_duration: google.protobuf.duration_pb2.Duration | None = ...,
+        testcase_execution_duration: google.protobuf.duration_pb2.Duration | None = ...,
+        fuzzing_duration: google.protobuf.duration_pb2.Duration | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_time", b"_testcase_execution_time", "_testcase_generation_time", b"_testcase_generation_time", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_execution_time", b"testcase_execution_time", "testcase_generation_time", b"testcase_generation_time", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_time", b"_testcase_execution_time", "_testcase_generation_time", b"_testcase_generation_time", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_groups", b"crash_groups", "crash_revision", b"crash_revision", "engine_outputs", b"engine_outputs", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzz_targets", b"fuzz_targets", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_execution_time", b"testcase_execution_time", "testcase_generation_time", b"testcase_generation_time", "testcase_run_jsons", b"testcase_run_jsons", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_duration", b"_testcase_execution_duration", "_testcase_generation_duration", b"_testcase_generation_duration", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_execution_duration", b"testcase_execution_duration", "testcase_generation_duration", b"testcase_generation_duration", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_duration", b"_testcase_execution_duration", "_testcase_generation_duration", b"_testcase_generation_duration", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_groups", b"crash_groups", "crash_revision", b"crash_revision", "engine_outputs", b"engine_outputs", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzz_targets", b"fuzz_targets", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_execution_duration", b"testcase_execution_duration", "testcase_generation_duration", b"testcase_generation_duration", "testcase_run_jsons", b"testcase_run_jsons", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_app_revision", b"_app_revision"]) -> typing_extensions.Literal["app_revision"] | None: ...
     @typing.overload
@@ -1333,9 +1341,9 @@ class FuzzTaskOutput(google.protobuf.message.Message):
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_new_targets_count", b"_new_targets_count"]) -> typing_extensions.Literal["new_targets_count"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcase_execution_time", b"_testcase_execution_time"]) -> typing_extensions.Literal["testcase_execution_time"] | None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcase_execution_duration", b"_testcase_execution_duration"]) -> typing_extensions.Literal["testcase_execution_duration"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcase_generation_time", b"_testcase_generation_time"]) -> typing_extensions.Literal["testcase_generation_time"] | None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcase_generation_duration", b"_testcase_generation_duration"]) -> typing_extensions.Literal["testcase_generation_duration"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_testcases_executed", b"_testcases_executed"]) -> typing_extensions.Literal["testcases_executed"] | None: ...
     @typing.overload

@@ -101,16 +101,16 @@ JOB_RUN_SCHEMA = {
         'type': 'INTEGER',
         'mode': 'NULLABLE'
     }, {
-        'name': 'testcase_generation_time',
-        'type': 'FLOAT',
+        'name': 'testcase_generation_duration',
+        'type': 'INTERVAL',
         'mode': 'NULLABLE'
     }, {
-        'name': 'testcase_execution_time',
-        'type': 'FLOAT',
+        'name': 'testcase_execution_duration',
+        'type': 'INTERVAL',
         'mode': 'NULLABLE'
     }, {
         'name': 'fuzzing_duration',
-        'type': 'FLOAT',
+        'type': 'INTERVAL',
         'mode': 'NULLABLE'
     }]
 }
@@ -118,6 +118,15 @@ JOB_RUN_SCHEMA = {
 
 class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
+
+
+def _timedelta_to_interval_string(time_delta):
+  """Converts a datetime.timedelta to BigQuery INTERVAL string."""
+  if isinstance(time_delta, str):
+    return time_delta
+
+  return (f"INTERVAL '{time_delta.days} {time_delta.seconds}"
+          f".{time_delta.microseconds:06}' DAY TO SECOND")
 
 
 class BaseRun:
@@ -202,8 +211,8 @@ class BaseRun:
                         data['timestamp'], data['testcases_executed'],
                         data['new_crashes'], data['known_crashes'],
                         data.get('crashes'), data.get('testcases_generated'),
-                        data.get('testcase_generation_time'),
-                        data.get('testcase_execution_time'),
+                        data.get('testcase_generation_duration'),
+                        data.get('testcase_execution_duration'),
                         data.get('fuzzing_duration'))
     except KeyError:
       return None
@@ -229,8 +238,8 @@ class JobRun(BaseRun):
                known_crashes,
                crashes,
                testcases_generated=None,
-               testcase_generation_time=None,
-               testcase_execution_time=None,
+               testcase_generation_duration=None,
+               testcase_execution_duration=None,
                fuzzing_duration=None):
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
@@ -242,12 +251,17 @@ class JobRun(BaseRun):
     })
     if testcases_generated is not None:
       self._stats_data['testcases_generated'] = testcases_generated
-    if testcase_generation_time is not None:
-      self._stats_data['testcase_generation_time'] = testcase_generation_time
-    if testcase_execution_time is not None:
-      self._stats_data['testcase_execution_time'] = testcase_execution_time
+    if testcase_generation_duration is not None:
+      self._stats_data[
+          'testcase_generation_duration'] = _timedelta_to_interval_string(
+              testcase_generation_duration)
+    if testcase_execution_duration is not None:
+      self._stats_data[
+          'testcase_execution_duration'] = _timedelta_to_interval_string(
+              testcase_execution_duration)
     if fuzzing_duration is not None:
-      self._stats_data['fuzzing_duration'] = fuzzing_duration
+      self._stats_data['fuzzing_duration'] = _timedelta_to_interval_string(
+          fuzzing_duration)
 
 
 class TestcaseRun(BaseRun):
