@@ -28,10 +28,12 @@ class SwarmingServiceTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.swarming.is_swarming_task',
         'clusterfuzz._internal.swarming.push_swarming_task',
+        'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',
     ])
     self.service = service.SwarmingService()
+    self.mock.create_new_task_request.return_value = 'fake_request'
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""
@@ -44,8 +46,7 @@ class SwarmingServiceTest(unittest.TestCase):
     # Success returns None in this interface (consistent with GcpBatchService)
     self.assertIsNone(result)
 
-    self.mock.push_swarming_task.assert_called_once_with(
-        'fuzz', 'http://url', 'job_type')
+    self.mock.push_swarming_task.assert_called_once_with('fake_request')
 
   def test_create_utask_main_job_failure(self):
     """Test creating a single task that is not a swarming task."""
@@ -78,8 +79,8 @@ class SwarmingServiceTest(unittest.TestCase):
 
     self.assertEqual(self.mock.push_swarming_task.call_count, 2)
     self.mock.push_swarming_task.assert_has_calls([
-        mock.call('fuzz', 'url1', 'job1'),
-        mock.call('fuzz', 'url3', 'job3'),
+        mock.call('fake_request'),
+        mock.call('fake_request'),
     ])
 
   def test_create_utask_main_jobs_all_success(self):

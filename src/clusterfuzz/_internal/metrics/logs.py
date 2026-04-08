@@ -1013,6 +1013,7 @@ class Stage(enum.Enum):
   MAIN = 'main'
   POSTPROCESS = 'postprocess'
   UNKNOWN = 'unknown'
+  SCHEDULER = 'scheduler'
   NA = 'n/a'
 
 
