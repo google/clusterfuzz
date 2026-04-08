@@ -1718,10 +1718,13 @@ class FuzzingSession:
 
   def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
                                             fuzzer, job):
+
+    # TODO: We could pass the already calculated time to be consistent.
     testcase_generation_finish = time.time()
     elapsed_testcase_generation_time = testcase_generation_finish
     elapsed_testcase_generation_time -= start_time
     # Avoid division by zero.
+    # TODO: This is requested test cases, not actual
     if testcase_count:
       average_time_per_testcase = elapsed_testcase_generation_time
       average_time_per_testcase = average_time_per_testcase / testcase_count
@@ -1762,6 +1765,7 @@ class FuzzingSession:
         fuzzer, job_type, fuzzer_directory, testcase_count)
     self.fuzz_task_output.testcase_generation_time = time.time(
     ) - testcase_generation_start
+    print(f'{generate_result}')
 
     if not generate_result.success:
       return None, None, None, None
@@ -1818,6 +1822,7 @@ class FuzzingSession:
               f'{testcase_manager.get_command_line_for_application()}.')
 
     # Start processing the testcases.
+    # This execution time includes the overhead to manage threads
     testcase_execution_start = time.time()
     while test_number < len(testcase_file_paths):
       thread_index = 0
@@ -1882,6 +1887,11 @@ class FuzzingSession:
 
     self.fuzz_task_output.testcase_execution_time = time.time(
     ) - testcase_execution_start
+    # TODO(dylanj): Handle cases where the blackbox fuzzer executes multiple
+    # logical testcases per test file and we'd like to factor that multiplier
+    # into the testcase execution count.
+    # self.fuzz_task_output.testcases_executed = test_number
+    print(f'tests executed: {test_number}')
 
     # Pull testcase directory to host. The testcase file contents could have
     # been changed (by e.g. libFuzzer) and stats files could have been written.
@@ -2044,12 +2054,16 @@ class FuzzingSession:
             data_directory=self.data_directory),
         upload_urls=list(self.uworker_input.fuzz_task_input.crash_upload_urls))
 
+
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
     # unclear if needed but it is kept because it is not harmful.
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
+    # This is zero for engine fuzzers and testcase execution rate need to be
+    # calculated from TestcaseRun data.
+    print(f'test case files: {testcase_file_paths}')
     testcases_executed = len(testcase_file_paths)
 
     # Explicit cleanup for large vars.

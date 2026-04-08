@@ -1321,6 +1321,12 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(2, len(crashes))
     self.assertEqual('/app/app_1 -r=3 -x -y /tests/0',
                      crashes[0].application_command_line)
+
+    # testcases_executed is not set in do_blackbox_fuzzing but during the
+    # FuzzingSession.
+    self.assertEqual(3, session.fuzz_task_output.testcases_generated)
+    self.assertTrue(session.fuzz_task_output.testcase_generation_time > 0)
+    self.assertTrue(session.fuzz_task_output.testcase_execution_time > 0)
     self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
                      crashes[1].application_command_line)
 
