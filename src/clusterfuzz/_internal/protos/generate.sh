@@ -25,7 +25,7 @@ python -m grpc_tools.protoc \
   $SCRIPT_DIR/*.proto
 
 read -r -d '' COPYRIGHT_HEADER <<EOF
-# Copyright 2023 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,9 @@ read -r -d '' COPYRIGHT_HEADER <<EOF
 EOF
 
 for generated in $SCRIPT_DIR/*pb2*.py{,i}; do
-  echo -e "$COPYRIGHT_HEADER\n" > /tmp/cf_pb2_temp
-  cat "$generated" >> /tmp/cf_pb2_temp
-  mv /tmp/cf_pb2_temp "$generated"
+  if ! grep -q "Copyright .* Google LLC" "$generated"; then
+    echo -e "$COPYRIGHT_HEADER\n" > /tmp/cf_pb2_temp
+    cat "$generated" >> /tmp/cf_pb2_temp
+    mv /tmp/cf_pb2_temp "$generated"
+  fi
 done
