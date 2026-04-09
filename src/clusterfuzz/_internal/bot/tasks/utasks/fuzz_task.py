@@ -1880,9 +1880,6 @@ class FuzzingSession:
       if thread_error_occurred:
         break
 
-    # TODO(dylanj): Handle cases where the blackbox fuzzer executes multiple
-    # logical testcases per test file and we'd like to factor that multiplier
-    # into the testcase execution count.
     execution_time = datetime.timedelta(seconds=time.time() -
                                         testcase_execution_start)
     self.fuzz_task_output.testcase_execution_duration.FromTimedelta(
@@ -2055,7 +2052,10 @@ class FuzzingSession:
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
-    # This is zero for engine fuzzers and testcase execution rate need to be
+    # TODO(dylanj): Handle cases where the blackbox fuzzer executes multiple
+    # logical testcases per test file and we'd like to factor that multiplier
+    # into the testcase execution count.
+    # This is zero for engine fuzzers and testcase execution rate needs to be
     # calculated from TestcaseRun data.
     testcases_executed = len(testcase_file_paths)
 
