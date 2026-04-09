@@ -24,8 +24,10 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from libs import auth
 from libs import helpers
+from libs import request_cache
 
 
+@request_cache.wrap(100)
 def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
   if local_config.AuthConfig().get('all_users_privileged'):
@@ -88,6 +90,7 @@ def get_user_job_type():
   return None
 
 
+@request_cache.wrap(100)
 def _is_domain_allowed(email):
   """Check if the email's domain is allowed."""
   domains = local_config.AuthConfig().get('whitelisted_domains', default=[])
