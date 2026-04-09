@@ -35,6 +35,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
 
     return result[0]
 
+  @logs.task_stage_context(logs.Stage.SCHEDULER)
   def create_utask_main_jobs(self,
                              remote_tasks: list[remote_task_types.RemoteTask]
                             ) -> list[remote_task_types.RemoteTask]:
@@ -42,14 +43,15 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
        Returns the tasks that couldn't be created.
     """
     unscheduled_tasks = []
+    logs.info(f'[Swarming] Pushing {len(remote_tasks)} tasks trough service.')
     for task in remote_tasks:
       try:
-        if not swarming.is_swarming_task(task.command, task.job_type):
+        if not swarming.is_swarming_task(task.job_type):
           unscheduled_tasks.append(task)
           continue
-
-        swarming.push_swarming_task(task.command, task.input_download_url,
-                                    task.job_type)
+        if request := swarming.create_new_task_request(
+            task.command, task.job_type, task.argument):
+          swarming.push_swarming_task(request)
       except Exception:  # pylint: disable=broad-except
         logs.error(
             f'Failed to push task to Swarming: {task.command}, {task.job_type}.'

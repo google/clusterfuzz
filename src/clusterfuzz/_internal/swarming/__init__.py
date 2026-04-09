@@ -21,6 +21,7 @@ from google.auth.transport import requests
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.errors import BadConfigError
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
@@ -35,38 +36,62 @@ _SWARMING_SCOPES = [
 ]
 
 
-def is_swarming_task(command: str, job_name: str):
+def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
   """Returns True if the task is supposed to run on swarming."""
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    logs.info('[DEBUG] Flag is disabled', job_name=job_name)
     return False
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job:
-    return False
+  if job is None:
+    job = data_types.Job.query(data_types.Job.name == job_name).get()
+    if not job:
+      logs.info('[Swarming DEBUG] Job not found', job_name=job_name)
+      return False
 
   job_environment = job.get_environment()
-  if not utils.string_is_true(job_environment.get('IS_SWARMING_JOB')):
+  if not utils.string_is_true(job_environment.get(
+      'IS_SWARMING_JOB')) and not job_environment.get('SWARMING_DIMENSIONS'):
+    logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
     return False
 
-  try:
-    _get_new_task_spec(command, job_name, '')
-    return True
-  except ValueError:
+  swarming_config = _get_swarming_config()
+  if swarming_config is None:
+    logs.warning(
+        """[Swarming DEBUG] current task is not suitable for swarming. 
+    'Reason: failed to retrieve config.""",
+        job_name=job_name)
     return False
 
-
-def _get_task_name():
-  return 't-' + str(uuid.uuid4()).lower()
+  return _get_instance_spec(swarming_config, job) is not None
 
 
-def _get_swarming_config():
+def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
+                       job: data_types.Job) -> dict | None:
+  return swarming_config.get('mapping').get(job.platform, None)
+
+
+def _get_task_name(job_name: str):
+  return f't-{str(uuid.uuid4()).lower()}-{job_name}'
+
+
+def _get_swarming_config() -> local_config.SwarmingConfig | None:
   """Returns the swarming config."""
-  return local_config.SwarmingConfig()
+  try:
+    return local_config.SwarmingConfig()
+  except (BadConfigError, ValueError) as e:
+    logs.error(f'[Swarming] Failed to retrieve config: {e}')
+    return None
 
 
 def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
                         ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """ Gets all swarming dimensions for a task.
   Job dimensions have more precedence than static dimensions"""
+  swarming_config = _get_swarming_config()
+  if not swarming_config:
+    logs.error(
+        '[Swarming] No dimensions set. Reason: failed to retrieve config')
+    return []
+
   unique_dimensions = {}
   unique_dimensions['os'] = str(job.platform).capitalize()
   unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
@@ -100,16 +125,27 @@ def _env_vars_to_json(
       value=json.dumps(env_vars_dict))
 
 
-def _get_new_task_spec(command: str, job_name: str,
-                       download_url: str) -> swarming_pb2.NewTaskRequest:  # pylint: disable=no-member
-  """Gets the configured specifications for a swarming task."""
+def create_new_task_request(command: str, job_name: str, download_url: str
+                           ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
+  """Gets the configured specifications for a swarming task. 
+  Returns None if the task should'nt be executed on swarming 
+  or if the SWARMING_REMOTE_EXECUTION flag is disabled."""
+  if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    return None
+
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  config_name = job.platform
+  if job is None:
+    return None
+
   swarming_config = _get_swarming_config()
-  instance_spec = swarming_config.get('mapping').get(config_name, None)
+  if not swarming_config:
+    return None
+
+  instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
-    raise ValueError(f'No mapping for {config_name}')
-  swarming_realm = swarming_config.get('swarming_realm')
+    return None
+
+  swarming_realm = swarming_config.get('swarming_realm',)
   logs_project_id = swarming_config.get('logs_project_id')
   priority = instance_spec['priority']
   startup_command = instance_spec['command']
@@ -155,7 +191,7 @@ def _get_new_task_spec(command: str, job_name: str,
   cas_input_root = instance_spec.get('cas_input_root', {})
 
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
-      name=_get_task_name(),
+      name=_get_task_name(job_name),
       priority=priority,
       realm=swarming_realm,
       service_account=service_account,
@@ -176,13 +212,13 @@ def _get_new_task_spec(command: str, job_name: str,
   return new_task_request
 
 
-def push_swarming_task(command, download_url, job_type):
+def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
   """Schedules a task on swarming."""
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
-  if not job:
-    raise ValueError('invalid job_name')
-
-  task_spec = _get_new_task_spec(command, job_type, download_url)
+  swarming_config = _get_swarming_config()
+  if not swarming_config:
+    logs.error(
+        '[Swarming] Failed to push task into swarming. Reason: No config.')
+    return
   creds = credentials.get_scoped_service_account_credentials(_SWARMING_SCOPES)
   if not creds:
     logs.error(
@@ -199,11 +235,11 @@ def push_swarming_task(command, download_url, job_type):
   }
   swarming_server = _get_swarming_config().get('swarming_server')
   url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  message_body = json_format.MessageToJson(task_spec)
+  message_body = json_format.MessageToJson(task_request)
   logs.info(
-      f"""[Swarming] Pushing task for {job_type}
+      f"""[Swarming] Pushing task {task_request.name}
             as {creds.service_account_email}""",
       url=url,
       body=message_body)
   response = utils.post_url(url=url, data=message_body, headers=headers)
-  logs.info(f'[Swarming] Response from {job_type}', response=response)
+  logs.info(f'[Swarming] Response from {task_request.name}', response=response)
