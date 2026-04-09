@@ -24,8 +24,12 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 from libs import auth
 from libs import helpers
+from libs import request_cache
+
+PRIVILEGED_USER_CACHE_CAPACITY = 10
 
 
+@request_cache.wrap(PRIVILEGED_USER_CACHE_CAPACITY)
 def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
   if local_config.AuthConfig().get('all_users_privileged'):
