@@ -336,6 +336,23 @@ def _add_weights_subparser(toplevel_subparsers):
   _add_weights_target_subparser(subparsers)
 
 
+def _add_schedule_tworker_fuzz_subparser(toplevel_subparsers):
+  """Adds a parser for the `schedule_tworker_fuzz` command."""
+  parser = toplevel_subparsers.add_parser(
+      'schedule_tworker_fuzz', help='Inject a task directly into the tworker PREPROCESS_QUEUE.')
+  parser.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+  parser.add_argument(
+      '--non-dry-run',
+      action='store_true',
+      help='Run with actual datastore writes. Default to dry-run.')
+  parser.add_argument(
+      '--script_args',
+      action='extend',
+      nargs='+',
+      help='Script specific arguments (FUZZER_NAME JOB_NAME)')
+
+
 def _add_reproduce_subparser(toplevel_subparsers):
   """Adds a parser for the `reproduce` command."""
   parser = toplevel_subparsers.add_parser(
@@ -472,13 +489,18 @@ def main():
   _add_integration_tests_subparsers(subparsers)
   _add_weights_subparser(subparsers)
   _add_reproduce_subparser(subparsers)
+  _add_schedule_tworker_fuzz_subparser(subparsers)
   args = parser.parse_args()
   if not args.command:
     parser.print_help()
     return 0
 
   _setup(args)
-  command = importlib.import_module(f'local.butler.{args.command}')
+  if args.command == 'schedule_tworker_fuzz':
+    command = importlib.import_module(
+        'local.butler.scripts.schedule_tworker_fuzz')
+  else:
+    command = importlib.import_module(f'local.butler.{args.command}')
   return command.execute(args)
 
 
