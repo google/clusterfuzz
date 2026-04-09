@@ -27,7 +27,10 @@ from libs import helpers
 from libs import request_cache
 
 
-@request_cache.wrap(10)
+PRIVILEGED_USER_CACHE_CAPACITY = 10
+
+
+@request_cache.wrap(PRIVILEGED_USER_CACHE_CAPACITY)
 def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
   if local_config.AuthConfig().get('all_users_privileged'):
