@@ -116,9 +116,14 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
 def _append_metadata_env_var(
     env_vars: list[swarming_pb2.StringPair],  # pylint: disable=no-member
     env_var_name: str,
-    metadata_path: str):
-  """Attempts to get a variable from the environment
-  or metadata and appends it."""
+    metadata_path: str) -> None:
+  """Attempts to get a variable from the environment or metadata and appends it.
+
+  Args:
+    env_vars: The list of string pairs to append the retrieved value to.
+    env_var_name: The name of the environment variable to check and set.
+    metadata_path: The path in the compute metadata to check if not set in env.
+  """
   value = environment.get_value(env_var_name)
   if not value:
     try:
