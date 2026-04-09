@@ -28,7 +28,7 @@ from clusterfuzz._internal.metrics import logs
 
 _FAIL_RETRIES = 3
 GROUP_ID_CACHE_TTL = 12 * 60 * 60  # 12 hours.
-GROUP_MEMBERSHIP_CACHE_TTL = 15 * 60  # 15 minutes.
+GROUP_MEMBERSHIP_CACHE_TTL = 60 * 60  # 1 hour.
 
 _local = threading.local()
 
