@@ -1229,6 +1229,49 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+  def _setup_utask_env(self):
+    """Sets up the utask environment for fuzzing."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.process_crashes',
+        'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
+        'clusterfuzz._internal.build_management.build_manager.setup_build',
+        'clusterfuzz._internal.bot.tasks.update_task.update_tests_if_needed',
+    ])
+
+    os.environ['TEST_TIMEOUT'] = '10'
+    os.environ['APP_REVISION'] = '1234'
+    os.environ['FUZZ_INPUTS'] = '/tmp/fuzz-inputs'
+    os.environ['FUZZERS_DIR'] = '/tmp/fuzzers'
+    os.environ['DATA_BUNDLES_DIR'] = '/tmp/data-bundles'
+    os.environ['FUZZ_DATA'] = '/tmp/fuzz-data'
+    os.environ['BOT_NAME'] = 'test-bot'
+
+    self.fs.create_dir('/tmp/fuzz-data')
+    self.fs.create_dir('/tmp/data-bundles')
+
+    # Skip build set up/checks and crash processing due to GCS dependencies.
+    self.mock.setup_build.return_value = mock.MagicMock()
+    self.mock.check_for_bad_build.return_value = uworker_msg_pb2.BuildData(
+        is_bad_build=False)
+    self.mock.process_crashes.return_value = []
+
+  def _create_test_fuzzer(self):
+    """Creates a fake test fuzzer in the Datastore."""
+    fuzzer = data_types.Fuzzer(
+        name='fantasy_fuzz',
+        filename='fantasy_fuzz.zip',
+        blobstore_key='fake_key',
+        revision=1)
+    fuzzer.put()
+
+    # Create the correct version file to make the fuzzer appear up-to-date on disk
+    # This avoids network calls to GCS in update_fuzzer_and_data_bundles.
+    self.fs.create_dir('/tmp/fuzzers/fantasy_fuzz')
+    self.fs.create_file(
+        '/tmp/fuzzers/fantasy_fuzz/.fantasy_fuzz_version', contents='1')
+
+    return fuzzer
+
   def test_trials(self):
     """Test fuzzing session with trials."""
     data_types.Trial(app_name='app_1', probability=0.5, app_args='-y').put()
@@ -1280,6 +1323,35 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
                      crashes[0].application_command_line)
     self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
                      crashes[1].application_command_line)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_blackbox_fuzzer(self, mock_generate_blackbox_testcases):
+    """Test utask_main processing for a blackbox fuzzer."""
+    self._setup_utask_env()
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input)
+
+    # Mock out actual test-case generation for 3 tests.
+    expected_testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, expected_testcase_file_paths,
+            {'fuzzer_binary_name': fuzzer.name}))
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    self.assertEqual(3, actual.fuzz_task_output.testcases_executed)
 
 
 @test_utils.with_cloud_emulators('datastore')
