@@ -26,7 +26,6 @@ from libs import auth
 from libs import helpers
 from libs import request_cache
 
-
 PRIVILEGED_USER_CACHE_CAPACITY = 10
 
 
