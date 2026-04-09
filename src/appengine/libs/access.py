@@ -90,7 +90,6 @@ def get_user_job_type():
   return None
 
 
-@request_cache.wrap(100)
 def _is_domain_allowed(email):
   """Check if the email's domain is allowed."""
   domains = local_config.AuthConfig().get('whitelisted_domains', default=[])
