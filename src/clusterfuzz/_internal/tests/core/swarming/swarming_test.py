@@ -13,6 +13,7 @@
 # limitations under the License.
 """Swarming tests."""
 import base64
+import os
 import unittest
 from unittest import mock
 
@@ -38,11 +39,17 @@ class SwarmingTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.credentials.get_scoped_service_account_credentials',
         'google.auth.transport.requests.Request',
         'clusterfuzz._internal.swarming.FeatureFlags',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     helpers.patch_environ(self)
     self.mock._get_task_name.return_value = 'task_name'  # pylint: disable=protected-access
     self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
+    self.mock.get.return_value = None
     self.maxDiff = None
+    os.environ.pop('DEPLOYMENT_ZIP', None)
+    os.environ.pop('DEPLOYMENT_BUCKET', None)
+    os.environ.pop('PROJECT_NAME', None)
+    os.environ.pop('HOST_JOB_SELECTION', None)
 
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that create_new_task_request works as expected."""
@@ -430,3 +437,37 @@ class SwarmingTest(unittest.TestCase):
         swarming_pb2.StringPair(key='key2', value='value2'),
     ]
     self.assertCountEqual(dimensions, expected_dimensions)
+
+  def test_get_env_vars_with_metadata_server(self):
+    """Tests that _get_env_vars uses values from the metadata server when available."""
+
+    def metadata_get(path):
+      if path == 'project/attributes/deployment-bucket':
+        return 'test-bucket-from-metadata'
+      return None
+
+    self.mock.get.side_effect = metadata_get
+    instance_spec = {
+        "docker_image": "gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654"
+    }
+    env = swarming._get_env_vars('project_id', instance_spec)  # pylint: disable=protected-access
+
+    expected_env = [
+        swarming_pb2.StringPair(
+            key='DOCKER_IMAGE',
+            value='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'),
+        swarming_pb2.StringPair(
+            key='DOCKER_ENV_VARS',
+            value=
+            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DEPLOYMENT_BUCKET": "test-bucket-from-metadata"}'
+        ),
+        swarming_pb2.StringPair(key='UWORKER', value='True'),
+        swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),
+        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
+        swarming_pb2.StringPair(
+            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+        swarming_pb2.StringPair(
+            key='DEPLOYMENT_BUCKET', value='test-bucket-from-metadata'),
+    ]
+    self.assertEqual(env, expected_env)
