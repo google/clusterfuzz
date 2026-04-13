@@ -184,9 +184,9 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcases_executed': 9001,
         'crashes': crashes,
         'testcases_generated': 100,
-        'testcase_generation_duration': "INTERVAL '0 10.500000' DAY TO SECOND",
-        'testcase_execution_duration': "INTERVAL '0 20.500000' DAY TO SECOND",
-        'fuzzing_duration': "INTERVAL '0 31.000000' DAY TO SECOND"
+        'testcase_generation_duration': "P0DT0H0M10.500000S",
+        'testcase_execution_duration': "P0DT0H0M20.500000S",
+        'fuzzing_duration': "P0DT0H0M31.000000S"
     }, json.loads(self.mock.write_data.call_args[0][0]))
 
     self.assertEqual(
@@ -242,9 +242,9 @@ class FuzzerStatsTest(unittest.TestCase):
             'test': 'crash'
         }],
         'testcases_generated': 100,
-        'testcase_generation_duration': "INTERVAL '0 10.500000' DAY TO SECOND",
-        'testcase_execution_duration': "INTERVAL '0 20.500000' DAY TO SECOND",
-        'fuzzing_duration': "INTERVAL '0 31.000000' DAY TO SECOND"
+        'testcase_generation_duration': "P0DT0H0M10.500000S",
+        'testcase_execution_duration': "P0DT0H0M20.500000S",
+        'fuzzing_duration': "P0DT0H0M31.000000S"
     })
     job_run = fuzzer_stats.BaseRun.from_json(data)
     self.assertIsNotNone(job_run)
@@ -259,11 +259,10 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['crashes'], [{'test': 'crash'}])
     self.assertEqual(job_run['testcases_generated'], 100)
     self.assertEqual(job_run['testcase_generation_duration'],
-                     "INTERVAL '0 10.500000' DAY TO SECOND")
+                     "P0DT0H0M10.500000S")
     self.assertEqual(job_run['testcase_execution_duration'],
-                     "INTERVAL '0 20.500000' DAY TO SECOND")
-    self.assertEqual(job_run['fuzzing_duration'],
-                     "INTERVAL '0 31.000000' DAY TO SECOND")
+                     "P0DT0H0M20.500000S")
+    self.assertEqual(job_run['fuzzing_duration'], "P0DT0H0M31.000000S")
 
   def test_fuzz_task_upload_job_run_stats(self):
     """Tests that fuzz_task.upload_job_run_stats uploads stats."""
@@ -338,11 +337,11 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcases_generated':
             100,
         'testcase_generation_duration':
-            "INTERVAL '0 10.500000' DAY TO SECOND",
+            "P0DT0H0M10.500000S",
         'testcase_execution_duration':
-            "INTERVAL '0 20.500000' DAY TO SECOND",
+            "P0DT0H0M20.500000S",
         'fuzzing_duration':
-            "INTERVAL '0 31.000000' DAY TO SECOND"
+            "P0DT0H0M31.000000S"
     }, json.loads(self.mock.write_data.call_args[0][0]))
 
 
