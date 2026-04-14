@@ -18,6 +18,9 @@ import datetime
 import os
 import unittest
 
+import flask
+import webtest
+
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -497,6 +500,45 @@ class GetTestcaseTest(unittest.TestCase):
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TaskLogHandlerTest(unittest.TestCase):
+  """Tests for TaskLogHandler."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'handlers.testcase_detail.show.access.check_access_and_get_testcase',
+        'handlers.testcase_detail.show.testcase_status_events.get_task_log',
+    ])
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=show.TaskLogHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
+    self.mock.get_task_log.return_value = 'task log content'
+
+  def test_get(self):
+    """Ensure the handler checks testcase access before returning logs."""
+    response = self.app.get(
+        '/?testcase_id=123&task_id=task-1&task_name=minimize')
+
+    self.assertEqual(200, response.status_int)
+    self.assertEqual('task log content', response.text)
+    self.assertEqual('text/plain; charset=utf-8',
+                     response.headers['Content-Type'])
+    self.assertEqual('attachment; filename="task_task-1_log.txt"',
+                     response.headers['Content-Disposition'])
+    self.mock.check_access_and_get_testcase.assert_called_once_with(123)
+    self.mock.get_task_log.assert_called_once_with(123, 'task-1', 'minimize')
+
+  def test_invalid_testcase_id(self):
+    """Ensure invalid testcase IDs are rejected before querying logs."""
+    response = self.app.get(
+        '/?testcase_id=abc&task_id=task-1&task_name=minimize',
+        expect_errors=True)
+
+    self.assertEqual(400, response.status_int)
+    self.mock.check_access_and_get_testcase.assert_not_called()
+    self.mock.get_task_log.assert_not_called()
 
   def test_unreproducible_get(self):
     """Test valid unreproducible testcase."""
