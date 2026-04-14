@@ -28,6 +28,13 @@ from handlers.testcase_detail import show
 from libs import helpers
 
 
+def assert_dict_contains_subset(test_case, expected_subset, actual):
+  """Compatibility helper for the removed assertDictContainsSubset."""
+  for key, expected_value in expected_subset.items():
+    test_case.assertIn(key, actual)
+    test_case.assertEqual(expected_value, actual[key])
+
+
 class ParseSuspectedClsTest(unittest.TestCase):
   """Test _parse_suspected_cls."""
 
@@ -491,54 +498,15 @@ class GetTestcaseTest(unittest.TestCase):
     }
 
     self.maxDiff = None
-    self.assertDictContainsSubset(expected_subset, result)
+    assert_dict_contains_subset(self, expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 
-    self.assertDictContainsSubset({
-        'lines': [show.Line(1, 'crash_stacktrace', False)]
-    }, result['crash_stacktrace'])
-    self.assertDictContainsSubset({
-        'lines': [show.Line(1, 'crash_stacktrace', False)]
-    }, result['last_tested_crash_stacktrace'])
-
-
-@test_utils.with_cloud_emulators('datastore')
-class TaskLogHandlerTest(unittest.TestCase):
-  """Tests for TaskLogHandler."""
-
-  def setUp(self):
-    test_helpers.patch(self, [
-        'handlers.testcase_detail.show.access.check_access_and_get_testcase',
-        'handlers.testcase_detail.show.testcase_status_events.get_task_log',
-    ])
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule('/', view_func=show.TaskLogHandler.as_view('/'))
-    self.app = webtest.TestApp(flaskapp)
-    self.mock.get_task_log.return_value = 'task log content'
-
-  def test_get(self):
-    """Ensure the handler checks testcase access before returning logs."""
-    response = self.app.get(
-        '/?testcase_id=123&task_id=task-1&task_name=minimize')
-
-    self.assertEqual(200, response.status_int)
-    self.assertEqual('task log content', response.text)
-    self.assertEqual('text/plain; charset=utf-8',
-                     response.headers['Content-Type'])
-    self.assertEqual('attachment; filename="task_task-1_log.txt"',
-                     response.headers['Content-Disposition'])
-    self.mock.check_access_and_get_testcase.assert_called_once_with(123)
-    self.mock.get_task_log.assert_called_once_with(123, 'task-1', 'minimize')
-
-  def test_invalid_testcase_id(self):
-    """Ensure invalid testcase IDs are rejected before querying logs."""
-    response = self.app.get(
-        '/?testcase_id=abc&task_id=task-1&task_name=minimize',
-        expect_errors=True)
-
-    self.assertEqual(400, response.status_int)
-    self.mock.check_access_and_get_testcase.assert_not_called()
-    self.mock.get_task_log.assert_not_called()
+    assert_dict_contains_subset(
+        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
+        result['crash_stacktrace'])
+    assert_dict_contains_subset(
+        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
+        result['last_tested_crash_stacktrace'])
 
   def test_unreproducible_get(self):
     """Test valid unreproducible testcase."""
@@ -640,12 +608,53 @@ class TaskLogHandlerTest(unittest.TestCase):
     }
 
     self.maxDiff = None
-    self.assertDictContainsSubset(expected_subset, result)
+    assert_dict_contains_subset(self, expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 
-    self.assertDictContainsSubset({
-        'lines': [show.Line(1, 'crash_stacktrace', False)]
-    }, result['crash_stacktrace'])
-    self.assertDictContainsSubset({
-        'lines': [show.Line(1, 'crash_stacktrace', False)]
-    }, result['last_tested_crash_stacktrace'])
+    assert_dict_contains_subset(
+        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
+        result['crash_stacktrace'])
+    assert_dict_contains_subset(
+        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
+        result['last_tested_crash_stacktrace'])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TaskLogHandlerTest(unittest.TestCase):
+  """Tests for TaskLogHandler."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'handlers.testcase_detail.show.access.check_access_and_get_testcase',
+        'handlers.testcase_detail.show.testcase_status_events.get_task_log',
+    ])
+    self.flaskapp = flask.Flask('testflask')
+    self.flaskapp.add_url_rule('/', view_func=show.TaskLogHandler.as_view('/'))
+    self.app = webtest.TestApp(self.flaskapp)
+    self.mock.get_task_log.return_value = 'task log content'
+
+  def test_get(self):
+    """Ensure the handler checks testcase access before returning logs."""
+    response = self.app.get(
+        '/?testcase_id=123&task_id=task-1&task_name=minimize')
+
+    self.assertEqual(200, response.status_int)
+    self.assertEqual('task log content', response.text)
+    self.assertEqual('text/plain', response.headers['Content-Type'])
+    self.assertEqual('attachment; filename="task_task-1_log.txt"',
+                     response.headers['Content-Disposition'])
+    self.mock.check_access_and_get_testcase.assert_called_once_with(123)
+    self.mock.get_task_log.assert_called_once_with(123, 'task-1', 'minimize')
+
+  def test_invalid_testcase_id(self):
+    """Ensure invalid testcase IDs are rejected before querying logs."""
+    with self.flaskapp.test_request_context(
+        '/?testcase_id=abc&task_id=task-1&task_name=minimize'):
+      with self.assertRaises(helpers.EarlyExitError) as cm:
+        show.TaskLogHandler().get()
+
+    self.assertEqual(400, cm.exception.status)
+    self.assertEqual("The param 'testcase_id' is not a number.",
+                     str(cm.exception))
+    self.mock.check_access_and_get_testcase.assert_not_called()
+    self.mock.get_task_log.assert_not_called()
