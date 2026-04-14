@@ -1171,7 +1171,21 @@ def check_for_bad_build(job_type: str,
         build_run_console_output='')
 
   # Create a blank command line with no file to run and no http.
-  command = get_command_line_for_application(file_to_run='', needs_http=False)
+  # Use job default arguments instead of testcase-specific flags to be able to
+  # bisect test cases that fail on incompatible arguments even with empty input.
+  orig_app_args = os.environ.get('APP_ARGS')
+  job_default_args = os.environ.get('JOB_DEFAULT_APP_ARGS')
+
+  if job_default_args is not None:
+    os.environ['APP_ARGS'] = job_default_args
+
+  try:
+    command = get_command_line_for_application(file_to_run='', needs_http=False)
+  finally:
+    if orig_app_args is not None:
+      os.environ['APP_ARGS'] = orig_app_args
+    elif job_default_args is not None:
+      del os.environ['APP_ARGS']
 
   # When checking for bad builds, we use the default window size.
   # We don't want to pick a custom size since it can potentially cause a

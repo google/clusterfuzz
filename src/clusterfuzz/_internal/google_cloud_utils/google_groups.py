@@ -19,6 +19,7 @@ from urllib import parse
 from googleapiclient import discovery
 from googleapiclient import errors
 
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
@@ -26,6 +27,8 @@ from clusterfuzz._internal.metrics import logs
 # pylint: disable=no-member
 
 _FAIL_RETRIES = 3
+GROUP_ID_CACHE_TTL = 12 * 60 * 60  # 12 hours.
+GROUP_MEMBERSHIP_CACHE_TTL = 60 * 60  # 1 hour.
 
 _local = threading.local()
 
@@ -51,6 +54,7 @@ def get_group_settings_api() -> discovery.Resource | None:
   return _local.groups_settings_service
 
 
+@memoize.wrap(memoize.Memcache(GROUP_ID_CACHE_TTL))
 def get_group_id(group_name: str, exists_check: bool = False) -> str | None:
   """Retrive a google group ID."""
   identity_service = get_identity_api()
@@ -64,6 +68,7 @@ def get_group_id(group_name: str, exists_check: bool = False) -> str | None:
     return None
 
 
+@memoize.wrap(memoize.Memcache(GROUP_MEMBERSHIP_CACHE_TTL))
 def check_transitive_group_membership(group_id: str, member: str) -> bool:
   """Check if an user is a member of a google group."""
   identity_service = get_identity_api()

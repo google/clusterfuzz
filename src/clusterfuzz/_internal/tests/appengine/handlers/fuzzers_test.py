@@ -17,8 +17,14 @@
 import datetime
 import unittest
 
+import flask
+import webtest
+
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import fuzzers
+from libs import form
 
 
 class BaseEditHandlerTest(unittest.TestCase):
@@ -56,3 +62,48 @@ class BaseEditHandlerTest(unittest.TestCase):
     self.assertNotIn('sample_testcase:', state_str)
     self.assertNotIn('stats_columns:', state_str)
     self.assertNotIn('stats_column_descriptions:', state_str)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class CreateHandlerTest(unittest.TestCase):
+  """Tests CreateHandler creates a new Fuzzer"""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'libs.access.has_access',
+        'libs.auth.get_current_user',
+        'libs.helpers.get_user_email',
+        'handlers.fuzzers.datetime',
+        'handlers.fuzzers.CreateHandler.get_upload',
+        'handlers.fuzzers.CreateHandler.apply_fuzzer_changes',
+    ])
+    self.mock.has_access.return_value = True
+    self.mock.get_current_user().email = 'test@user.com'
+    self.mock.get_user_email.return_value = 'test@user.com'
+
+    self.mock_time = datetime.datetime(2026, 1, 1, tzinfo=None)
+    self.mock.datetime.datetime.now.return_value = self.mock_time
+    self.mock.datetime.timezone = datetime.timezone
+
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=fuzzers.CreateHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
+
+  def test_create_fuzzer(self):
+    """Test create fuzzer with basic properties."""
+    fuzzer_name = 'test_fuzzer'
+
+    resp = self.app.post_json('/', {
+        'csrf_token': form.generate_csrf_token(),
+        'name': fuzzer_name,
+    })
+
+    self.assertEqual(200, resp.status_int)
+
+    self.mock.apply_fuzzer_changes.assert_called_once()
+
+    fuzzer = self.mock.apply_fuzzer_changes.call_args[0][1]
+
+    self.assertEqual(fuzzer.name, fuzzer_name)
+    self.assertEqual(fuzzer.revision, 0)
+    self.assertEqual(fuzzer.created_at, self.mock_time)

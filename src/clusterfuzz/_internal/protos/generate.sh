@@ -41,7 +41,9 @@ read -r -d '' COPYRIGHT_HEADER <<EOF
 EOF
 
 for generated in $SCRIPT_DIR/*pb2*.py{,i}; do
-  echo -e "$COPYRIGHT_HEADER\n" > /tmp/cf_pb2_temp
-  cat "$generated" >> /tmp/cf_pb2_temp
-  mv /tmp/cf_pb2_temp "$generated"
+  if ! grep -q "Copyright .* Google LLC" "$generated"; then
+    echo -e "$COPYRIGHT_HEADER\n" > /tmp/cf_pb2_temp
+    cat "$generated" >> /tmp/cf_pb2_temp
+    mv /tmp/cf_pb2_temp "$generated"
+  fi
 done

@@ -238,6 +238,11 @@ def _check_variant_grouping_candidate(testcase_1: TestcaseAttributes,
   if testcase_1.one_time_crasher_flag or testcase_2.one_time_crasher_flag:
     return
 
+  # Rule: Avoid grouping security and functional bugs, regardless of variants
+  # having the same security flag.
+  if testcase_1.security_flag != testcase_2.security_flag:
+    return
+
   # Rule: Group testcase with similar variants.
   # For each testcase2, get the related variant1 and check for equivalence.
   candidate_variant = data_handler.get_testcase_variant(testcase_1_id,

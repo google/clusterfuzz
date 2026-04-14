@@ -1361,6 +1361,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_fatal_error_no_file(self):
+    """Test a V8 fatal error where the file name is missing."""
+    data = self._read_test_data('v8_fatal_error_no_file.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        '!is_null()\n'
+        'v8::internal::WasmModuleObject::ExtractUtf8StringFromModuleBytes\n'
+        'v8::internal::wasm::InstanceBuilder::SanitizeImports\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
