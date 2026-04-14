@@ -28,13 +28,6 @@ from handlers.testcase_detail import show
 from libs import helpers
 
 
-def assert_dict_contains_subset(test_case, expected_subset, actual):
-  """Compatibility helper for the removed assertDictContainsSubset."""
-  for key, expected_value in expected_subset.items():
-    test_case.assertIn(key, actual)
-    test_case.assertEqual(expected_value, actual[key])
-
-
 class ParseSuspectedClsTest(unittest.TestCase):
   """Test _parse_suspected_cls."""
 
@@ -498,15 +491,15 @@ class GetTestcaseTest(unittest.TestCase):
     }
 
     self.maxDiff = None
-    assert_dict_contains_subset(self, expected_subset, result)
+    self.assertDictContainsSubset(expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 
-    assert_dict_contains_subset(
-        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
-        result['crash_stacktrace'])
-    assert_dict_contains_subset(
-        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
-        result['last_tested_crash_stacktrace'])
+    self.assertDictContainsSubset({
+        'lines': [show.Line(1, 'crash_stacktrace', False)]
+    }, result['crash_stacktrace'])
+    self.assertDictContainsSubset({
+        'lines': [show.Line(1, 'crash_stacktrace', False)]
+    }, result['last_tested_crash_stacktrace'])
 
   def test_unreproducible_get(self):
     """Test valid unreproducible testcase."""
@@ -608,15 +601,15 @@ class GetTestcaseTest(unittest.TestCase):
     }
 
     self.maxDiff = None
-    assert_dict_contains_subset(self, expected_subset, result)
+    self.assertDictContainsSubset(expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 
-    assert_dict_contains_subset(
-        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
-        result['crash_stacktrace'])
-    assert_dict_contains_subset(
-        self, {'lines': [show.Line(1, 'crash_stacktrace', False)]},
-        result['last_tested_crash_stacktrace'])
+    self.assertDictContainsSubset({
+        'lines': [show.Line(1, 'crash_stacktrace', False)]
+    }, result['crash_stacktrace'])
+    self.assertDictContainsSubset({
+        'lines': [show.Line(1, 'crash_stacktrace', False)]
+    }, result['last_tested_crash_stacktrace'])
 
 
 @test_utils.with_cloud_emulators('datastore')
