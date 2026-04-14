@@ -640,10 +640,8 @@ class TaskLogHandler(base_handler.Handler):
   @handler.get(handler.TEXT)
   def get(self):
     """Serve the task log."""
-    testcase_id = helpers.cast(
-        flask.request.args.get('testcase_id'), int,
-        "The param 'testcase_id' is not a number.")
-    access.check_access_and_get_testcase(testcase_id)
+    testcase = access.check_access_and_get_testcase(
+        flask.request.args.get('testcase_id'))
 
     task_id = flask.request.args.get('task_id')
     if not task_id:
@@ -653,8 +651,8 @@ class TaskLogHandler(base_handler.Handler):
     if not task_name:
       raise helpers.EarlyExitError('No task name provided.', 400)
 
-    log_content = testcase_status_events.get_task_log(testcase_id, task_id,
-                                                      task_name)
+    log_content = testcase_status_events.get_task_log(testcase.key.id(),
+                                                      task_id, task_name)
 
     response = flask.make_response(log_content)
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'

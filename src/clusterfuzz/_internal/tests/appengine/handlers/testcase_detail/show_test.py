@@ -631,6 +631,7 @@ class TaskLogHandlerTest(unittest.TestCase):
     self.flaskapp = flask.Flask('testflask')
     self.flaskapp.add_url_rule('/', view_func=show.TaskLogHandler.as_view('/'))
     self.app = webtest.TestApp(self.flaskapp)
+    self.mock.check_access_and_get_testcase.return_value.key.id.return_value = 123
     self.mock.get_task_log.return_value = 'task log content'
 
   def test_get(self):
@@ -643,18 +644,20 @@ class TaskLogHandlerTest(unittest.TestCase):
     self.assertEqual('text/plain', response.headers['Content-Type'])
     self.assertEqual('attachment; filename="task_task-1_log.txt"',
                      response.headers['Content-Disposition'])
-    self.mock.check_access_and_get_testcase.assert_called_once_with(123)
+    self.mock.check_access_and_get_testcase.assert_called_once_with('123')
     self.mock.get_task_log.assert_called_once_with(123, 'task-1', 'minimize')
 
   def test_invalid_testcase_id(self):
-    """Ensure invalid testcase IDs are rejected before querying logs."""
+    """Ensure invalid testcase IDs are rejected by the access helper."""
+    self.mock.check_access_and_get_testcase.side_effect = (
+        helpers.EarlyExitError('Invalid test case!', 404))
+
     with self.flaskapp.test_request_context(
         '/?testcase_id=abc&task_id=task-1&task_name=minimize'):
       with self.assertRaises(helpers.EarlyExitError) as cm:
         show.TaskLogHandler().get()
 
-    self.assertEqual(400, cm.exception.status)
-    self.assertEqual("The param 'testcase_id' is not a number.",
-                     str(cm.exception))
-    self.mock.check_access_and_get_testcase.assert_not_called()
+    self.assertEqual(404, cm.exception.status)
+    self.assertEqual('Invalid test case!', str(cm.exception))
+    self.mock.check_access_and_get_testcase.assert_called_once_with('abc')
     self.mock.get_task_log.assert_not_called()
