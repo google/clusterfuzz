@@ -44,6 +44,37 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
+def _patch_google_auth_for_bots():
+  """Patch google.auth to use explicit Compute Engine credentials."""
+  if not os.getenv('SWARMING_BOT'):
+    # Only applicable when explicitly deployed as a Swarming task worker.
+    return
+
+  try:
+    import google.auth
+    from google.auth import compute_engine
+    import requests
+
+    def patched_default(*args, **kwargs):
+      project_id = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get('APPLICATION_ID')
+      if not project_id and os.environ.get('GCE_METADATA_HOST'):
+        try:
+          url = f"http://{os.environ['GCE_METADATA_HOST']}/computeMetadata/v1/project/project-id"
+          project_id = requests.get(url, headers={"Metadata-Flavor": "Google"}, timeout=2).text.strip()
+        except Exception:
+          pass
+
+      if not project_id:
+        print('[Swarming] [Error] Failed to patch google.auth.default. Reason: failed to get project ID')
+        return
+
+      return compute_engine.Credentials(), project_id
+
+    google.auth.default = patched_default
+  except ImportError:
+    pass
+
+
 def fix_module_search_paths():
   """Add directories that we must be able to import from to path."""
   root_directory = os.environ['ROOT_DIR']
@@ -75,3 +106,4 @@ def fix_module_search_paths():
 
   # TODO(ochang): Remove this once SDK is removed from images.
   _patch_appengine_modules_for_bots()
+  _patch_google_auth_for_bots()
