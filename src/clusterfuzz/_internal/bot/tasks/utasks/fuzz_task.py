@@ -713,15 +713,26 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
-def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
-                         timestamp: float, new_crash_count: int,
-                         known_crash_count: int, testcases_executed: int,
-                         groups: List[Dict[str, Any]]):
+def upload_job_run_stats(
+    fuzzer_name: str,
+    job_type: str,
+    revision: int,
+    timestamp: float,
+    new_crash_count: int,
+    known_crash_count: int,
+    testcases_executed: int,
+    groups: List[Dict[str, Any]],
+    testcases_generated: int = None,
+    testcase_generation_duration: datetime.timedelta = None,
+    testcase_execution_duration: datetime.timedelta = None,
+    fuzzing_duration: datetime.timedelta = None):
   """Upload job run stats."""
   # New format.
   job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
                                 testcases_executed, new_crash_count,
-                                known_crash_count, groups)
+                                known_crash_count, groups, testcases_generated,
+                                testcase_generation_duration,
+                                testcase_execution_duration, fuzzing_duration)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
@@ -986,11 +997,18 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
 
   # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
   # `fuzz_task_input.fuzz_target` instead.
-  upload_job_run_stats(fuzz_task_output.fully_qualified_fuzzer_name,
-                       uworker_input.job_type, fuzz_task_output.crash_revision,
-                       fuzz_task_output.job_run_timestamp, new_crash_count,
-                       known_crash_count, fuzz_task_output.testcases_executed,
-                       crash_groups_for_stats)
+  upload_job_run_stats(
+      fuzz_task_output.fully_qualified_fuzzer_name, uworker_input.job_type,
+      fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
+      new_crash_count, known_crash_count, fuzz_task_output.testcases_executed,
+      crash_groups_for_stats, fuzz_task_output.testcases_generated
+      if fuzz_task_output.HasField('testcases_generated') else None,
+      fuzz_task_output.testcase_generation_duration.ToTimedelta()
+      if fuzz_task_output.HasField('testcase_generation_duration') else None,
+      fuzz_task_output.testcase_execution_duration.ToTimedelta()
+      if fuzz_task_output.HasField('testcase_execution_duration') else None,
+      fuzz_task_output.fuzzing_duration.ToTimedelta()
+      if fuzz_task_output.HasField('fuzzing_duration') else None)
 
   logs.info(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
             f'known crashes: {known_crash_count}, '
@@ -1696,6 +1714,7 @@ class FuzzingSession:
 
   def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
                                             fuzzer, job):
+    """Emits the average testcase generation time metric to GCP."""
     testcase_generation_finish = time.time()
     elapsed_testcase_generation_time = testcase_generation_finish
     elapsed_testcase_generation_time -= start_time
@@ -1738,9 +1757,14 @@ class FuzzingSession:
     testcase_generation_start = time.time()
     generate_result = self.generate_blackbox_testcases(
         fuzzer, job_type, fuzzer_directory, testcase_count)
+
     if not generate_result.success:
       return None, None, None, None
 
+    generation_time = datetime.timedelta(seconds=time.time() -
+                                         testcase_generation_start)
+    self.fuzz_task_output.testcase_generation_duration.FromTimedelta(
+        generation_time)
     self._emit_testcase_generation_time_metric(
         testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
@@ -1765,6 +1789,7 @@ class FuzzingSession:
     # Create a dict to store metadata specific to each testcase.
     testcases_metadata = {}
     testcase_file_paths = generate_result.testcase_file_paths
+    self.fuzz_task_output.testcases_generated = len(testcase_file_paths)
 
     for testcase_file_path in testcase_file_paths:
       testcases_metadata[testcase_file_path] = {}
@@ -1792,6 +1817,8 @@ class FuzzingSession:
               f'{testcase_manager.get_command_line_for_application()}.')
 
     # Start processing the testcases.
+    # This execution time includes the overhead to manage threads
+    testcase_execution_start = time.time()
     while test_number < len(testcase_file_paths):
       thread_index = 0
       threads = []
@@ -1852,6 +1879,11 @@ class FuzzingSession:
       logs.info(f'Upto {test_number}')
       if thread_error_occurred:
         break
+
+    execution_time = datetime.timedelta(seconds=time.time() -
+                                        testcase_execution_start)
+    self.fuzz_task_output.testcase_execution_duration.FromTimedelta(
+        execution_time)
 
     # Pull testcase directory to host. The testcase file contents could have
     # been changed (by e.g. libFuzzer) and stats files could have been written.
@@ -2020,6 +2052,11 @@ class FuzzingSession:
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
+    # TODO(dylanj): Handle cases where the blackbox fuzzer executes multiple
+    # logical testcases per test file and we'd like to factor that multiplier
+    # into the testcase execution count.
+    # This is zero for engine fuzzers and testcase execution rate needs to be
+    # calculated from TestcaseRun data.
     testcases_executed = len(testcase_file_paths)
 
     # Explicit cleanup for large vars.
@@ -2037,14 +2074,17 @@ class FuzzingSession:
     self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
-    fuzzing_session_duration = time.time() - start_time
+    fuzzing_session_duration_seconds = time.time() - start_time
     monitoring_metrics.FUZZING_SESSION_DURATION.add(
-        fuzzing_session_duration, {
+        fuzzing_session_duration_seconds, {
             'fuzzer': self.fuzzer_name,
             'job': self.job_type,
             'platform': environment.platform(),
             'runtime': environment.get_runtime().value,
         })
+
+    self.fuzz_task_output.fuzzing_duration.FromTimedelta(
+        datetime.timedelta(seconds=fuzzing_session_duration_seconds))
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 

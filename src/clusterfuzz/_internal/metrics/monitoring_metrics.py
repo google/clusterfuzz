@@ -159,7 +159,7 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
 )
 
 # This metric tracks fuzzer setup and data bundle update,
-# fuzzing time and the time to upload results to datastore
+# fuzzing time and crash processing on the worker
 FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
     'task/fuzz/session/duration',
     bucketer=monitor.GeometricBucketer(),
