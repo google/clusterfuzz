@@ -122,6 +122,7 @@ class FuzzerStatsError(ValueError):
 
 def _timedelta_to_duration_string(time_delta):
   """Converts a datetime.timedelta to ISO8601 duration string.
+
   BigQuery Load API requires the ISO8601 duration string rather than an INTERVAL
   type.
   https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-json#data_types
