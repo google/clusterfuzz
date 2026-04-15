@@ -44,8 +44,13 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
-def _patch_google_auth_for_bots():
-  """Patch google.auth to use explicit Compute Engine credentials."""
+def _patch_google_auth_for_bots() -> None:
+  """Patch google.auth.default to use explicit credentials via GCE metadata.
+
+  This is required for Swarming bots to authenticate with GCP services
+  since they do not always have application default credentials configured
+  in their environment.
+  """
   if not os.getenv('SWARMING_BOT'):
     # Only applicable when explicitly deployed as a Swarming task worker.
     return
@@ -55,24 +60,32 @@ def _patch_google_auth_for_bots():
     from google.auth import compute_engine
     import requests
 
-    def patched_default(*args, **kwargs):
-      project_id = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get('APPLICATION_ID')
+    def patched_default_credentials(
+        *args, **kwargs) -> tuple[compute_engine.Credentials, str] | None:
+      # pylint: disable=unused-argument
+      url = f"http://{os.environ['GCE_METADATA_HOST']}/computeMetadata/v1/" \
+            "project/project-id"
+      project_id = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get(
+          'APPLICATION_ID')
       if not project_id and os.environ.get('GCE_METADATA_HOST'):
         try:
-          url = f"http://{os.environ['GCE_METADATA_HOST']}/computeMetadata/v1/project/project-id"
-          project_id = requests.get(url, headers={"Metadata-Flavor": "Google"}, timeout=2).text.strip()
+          project_id = requests.get(
+              url, headers={
+                  "Metadata-Flavor": "Google"
+              }, timeout=2).text.strip()
         except Exception:
           pass
 
       if not project_id:
-        print('[Swarming] [Error] Failed to patch google.auth.default. Reason: failed to get project ID')
-        return
+        print('''[Swarming] [Error] Failed to patch google.auth.default.
+            Reason: failed to get project ID''')
+        return None
 
       return compute_engine.Credentials(), project_id
 
-    google.auth.default = patched_default
-  except ImportError:
-    pass
+    google.auth.default = patched_default_credentials
+  except ImportError as e:
+    print(f'[Swarming] [Error] Failed to patch google.auth.default. {e.msg}')
 
 
 def fix_module_search_paths():
