@@ -261,6 +261,27 @@ class Blacklist(Model):
 class Fuzzer(Model):
   """Represents a fuzzer."""
 
+  _EXCLUDED_FIELDS_FOR_CONFIG = (
+      'created_at',
+      'timestamp',
+      'name',
+      'filename',
+      'blobstore_key',
+      'file_size',
+      'supported_platforms',
+      'result',
+      'result_timestamp',
+      'console_output',
+      'return_code',
+      'sample_testcase',
+      'untrusted_content',
+      'stats_columns',
+      'stats_column_descriptions',
+      'builtin',
+      'differential',
+      'has_large_testcases',
+  )
+
   # Created at timestamp. Not set for fuzzers created before this field was
   # added.
   created_at = ndb.DateTimeProperty()
@@ -354,16 +375,7 @@ class Fuzzer(Model):
   def get_config_dict(self):
     """Returns a dict containing the required config to upload a fuzzer."""
 
-    return {
-        'jobs': self.jobs,
-        'data_bundle_name': self.data_bundle_name,
-        'timeout': self.timeout,
-        'max_testcases': self.max_testcases,
-        'external_contribution': self.external_contribution,
-        'additional_environment_string': self.additional_environment_string,
-        'executable_path': self.executable_path,
-        'launcher_script': self.launcher_script,
-    }
+    return self.to_dict(exclude=self._EXCLUDED_FIELDS_FOR_CONFIG)
 
 
 class BuildCrashStatsJobHistory(Model):

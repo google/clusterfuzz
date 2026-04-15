@@ -36,6 +36,8 @@ class FuzzerTest(unittest.TestCase):
         additional_environment_string='A=1\nB=2',
         executable_path='path/to/exec',
         launcher_script='path/to/launcher',
+        revision=3,
+        source='author',
     )
 
     config_dict = fuzzer.get_config_dict()
@@ -50,6 +52,8 @@ class FuzzerTest(unittest.TestCase):
             'additional_environment_string': 'A=1\nB=2',
             'executable_path': 'path/to/exec',
             'launcher_script': 'path/to/launcher',
+            'revision': 3,
+            'source': 'author',
         },
         config_dict,
     )
