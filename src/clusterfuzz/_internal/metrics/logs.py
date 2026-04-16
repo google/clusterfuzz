@@ -99,9 +99,10 @@ def _file_logging_enabled():
   This is disabled if we are running in app engine or kubernetes as these have
     their dedicated loggers, see configure_appengine() and configure_k8s().
   """
+  from clusterfuzz._internal.system import environment
   return bool(os.getenv(
-      'LOG_TO_FILE',
-      'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+      'LOG_TO_FILE', 'True')) and not _is_running_on_app_engine() and (
+          not _is_running_on_k8s() or environment._is_running_on_swarming())  # pylint: disable=protected-access
 
 
 def _cloud_logging_enabled():
@@ -110,9 +111,11 @@ def _cloud_logging_enabled():
   This is disabled for local development and if we are running in a app engine
     or kubernetes as these have their dedicated loggers, see
     configure_appengine() and configure_k8s()."""
+  from clusterfuzz._internal.system import environment
   return (bool(os.getenv('LOG_TO_GCP', 'True')) and
           not os.getenv("PY_UNITTESTS") and not _is_local() and
-          not _is_running_on_app_engine() and not _is_running_on_k8s())
+          not _is_running_on_app_engine() and
+          (not _is_running_on_k8s() or environment._is_running_on_swarming()))  # pylint: disable=protected-access
 
 
 def suppress_unwanted_warnings():
@@ -554,11 +557,41 @@ def configure_cloud_logging():
   logging.getLogger().addHandler(handler)
 
 
+def configure_swarming(name, extras=None):
+  """Configure logging for swarming bots."""
+  if extras is None:
+    extras = {}
+  extras['task_id'] = os.getenv('TASK_ID')
+  extras['instance_id'] = os.getenv('BOT_NAME')
+  extras['platform'] = 'swarming'
+
+  global _default_extras
+  _default_extras = extras
+
+  if _console_logging_enabled():
+    logging.basicConfig(level=logging.INFO)
+  if _file_logging_enabled():
+    config.dictConfig(get_logging_config_dict(name))
+  if _cloud_logging_enabled():
+    configure_cloud_logging()
+
+  logger = logging.getLogger(name)
+  logger.setLevel(logging.INFO)
+  set_logger(logger)
+
+  sys.excepthook = uncaught_exception_handler
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
+
+  from clusterfuzz._internal.system import environment
+  if environment._is_running_on_swarming():  # pylint: disable=protected-access
+    configure_swarming(name, extras)
+    return
 
   if _is_running_on_k8s():
     configure_k8s()

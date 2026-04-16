@@ -749,9 +749,10 @@ def get_runtime() -> UtaskMainRuntime:
   return UtaskMainRuntime.INSTANCE_GROUP
 
 
-def is_swarming_bot():
+def _is_running_on_swarming():
   """Return whether or not the current bot is a swarming bot."""
-  return get_value('SWARMING_BOT')
+  value = get_value('SWARMING_BOT')
+  return value is True or value == 'true'
 
 
 def is_running_on_app_engine():
