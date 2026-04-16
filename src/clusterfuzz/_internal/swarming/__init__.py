@@ -147,6 +147,7 @@ def _get_env_vars(logs_project_id: str,
       swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='DISABLE_MOUNTS', value='True'),  # pylint: disable=no-member
       swarming_pb2.StringPair(  # pylint: disable=no-member
           key='LOGGING_CLOUD_PROJECT_ID',
           value=logs_project_id or ''),
@@ -159,20 +160,21 @@ def _get_env_vars(logs_project_id: str,
   _append_metadata_env_var(default_task_environment, 'DEPLOYMENT_ZIP',
                            'project/attributes/deployment-zip')
 
-  env_vars = []
-  env_vars.append(
+  swarming_bot_env = []
+  swarming_bot_env.append(
       swarming_pb2.StringPair(  # pylint: disable=no-member
           key='DOCKER_IMAGE',
           value=instance_spec.get('docker_image', '')))
 
   platform_specific_env = instance_spec.get('env', [])
   for var in platform_specific_env:
-    env_vars.append(swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+    swarming_bot_env.append(
+        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
 
-  env_vars.append(_env_vars_to_json(default_task_environment))
-  env_vars.extend(default_task_environment)
+  swarming_bot_env.extend(default_task_environment)
+  swarming_bot_env.append(_env_vars_to_json(swarming_bot_env))
 
-  return env_vars
+  return swarming_bot_env
 
 
 def _env_vars_to_json(
