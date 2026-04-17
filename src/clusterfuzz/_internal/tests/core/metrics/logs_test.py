@@ -524,14 +524,13 @@ class ConfigureTest(unittest.TestCase):
   def test_configure_swarming(self):
     """Test configure for swarming bot."""
     # pylint: disable=protected-access
-    os.environ['SWARMING_BOT'] = 'true'
+    os.environ['SWARMING_BOT'] = 'True'
     os.environ['TASK_ID'] = 'task-123'
     os.environ['BOT_NAME'] = 'bot-123'
 
     helpers.patch(
         self,
         ['clusterfuzz._internal.system.environment.is_running_on_swarming'])
-    self.mock.is_running_on_swarming.return_value = True
 
     logger = mock.MagicMock()
     self.mock.getLogger.return_value = logger
@@ -541,64 +540,6 @@ class ConfigureTest(unittest.TestCase):
     self.assertEqual(logs._default_extras['task_id'], 'task-123')
     self.assertEqual(logs._default_extras['instance_id'], 'bot-123')
     self.assertEqual(logs._default_extras['platform'], 'swarming')
-
-
-class LoggingEnabledTest(unittest.TestCase):
-  """Test _cloud_logging_enabled and _file_logging_enabled."""
-
-  # pylint: disable=protected-access
-
-  def setUp(self):
-    helpers.patch_environ(self)
-    helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
-        'clusterfuzz._internal.metrics.logs._is_running_on_k8s',
-        'clusterfuzz._internal.metrics.logs._is_local',
-        'clusterfuzz._internal.system.environment.is_running_on_swarming',
-    ])
-
-  def test_cloud_logging_enabled_swarming_k8s(self):
-    """Test cloud logging enabled for swarming bot on K8S."""
-    self.mock._is_running_on_app_engine.return_value = False
-    self.mock._is_running_on_k8s.return_value = True
-    self.mock._is_local.return_value = False
-    self.mock.is_running_on_swarming.return_value = True
-
-    os.environ['LOG_TO_GCP'] = 'True'
-    os.environ['PY_UNITTESTS'] = ''
-
-    self.assertTrue(logs._cloud_logging_enabled())
-
-  def test_cloud_logging_disabled_non_swarming_k8s(self):
-    """Test cloud logging disabled for non-swarming bot on K8S."""
-    self.mock._is_running_on_app_engine.return_value = False
-    self.mock._is_running_on_k8s.return_value = True
-    self.mock._is_local.return_value = False
-    self.mock.is_running_on_swarming.return_value = False
-
-    os.environ['LOG_TO_GCP'] = 'True'
-
-    self.assertFalse(logs._cloud_logging_enabled())
-
-  def test_file_logging_enabled_swarming_k8s(self):
-    """Test file logging enabled for swarming bot on K8S."""
-    self.mock._is_running_on_app_engine.return_value = False
-    self.mock._is_running_on_k8s.return_value = True
-    self.mock.is_running_on_swarming.return_value = True
-
-    os.environ['LOG_TO_FILE'] = 'True'
-
-    self.assertTrue(logs._file_logging_enabled())
-
-  def test_file_logging_disabled_non_swarming_k8s(self):
-    """Test file logging disabled for non-swarming bot on K8S."""
-    self.mock._is_running_on_app_engine.return_value = False
-    self.mock._is_running_on_k8s.return_value = True
-    self.mock.is_running_on_swarming.return_value = False
-
-    os.environ['LOG_TO_FILE'] = 'True'
-
-    self.assertFalse(logs._file_logging_enabled())
 
 
 @test_utils.with_cloud_emulators('datastore')

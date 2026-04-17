@@ -208,13 +208,10 @@ class UworkerMainTest(unittest.TestCase):
   @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
   def test_uworker_main(self, execution_mode: utasks.Mode):
     """Tests that uworker_main works as intended."""
-    # pylint: disable=protected-access
     start_time_ns = time.time_ns()
 
-    if execution_mode == utasks.Mode.SWARMING:
-      self.mock.is_running_on_swarming.return_value = True
-    else:
-      self.mock.is_running_on_swarming.return_value = False
+    self.mock.is_running_on_swarming.return_value = (
+        execution_mode == utasks.Mode.SWARMING)
 
     preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
     preprocess_start_timestamp = timestamp_pb2.Timestamp()
