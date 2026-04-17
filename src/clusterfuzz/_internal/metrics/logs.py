@@ -102,7 +102,7 @@ def _file_logging_enabled():
   from clusterfuzz._internal.system import environment
   return bool(os.getenv(
       'LOG_TO_FILE', 'True')) and not _is_running_on_app_engine() and (
-          not _is_running_on_k8s() or environment._is_running_on_swarming())  # pylint: disable=protected-access
+          not _is_running_on_k8s() or environment.is_running_on_swarming())
 
 
 def _cloud_logging_enabled():
@@ -115,7 +115,7 @@ def _cloud_logging_enabled():
   return (bool(os.getenv('LOG_TO_GCP', 'True')) and
           not os.getenv("PY_UNITTESTS") and not _is_local() and
           not _is_running_on_app_engine() and
-          (not _is_running_on_k8s() or environment._is_running_on_swarming()))  # pylint: disable=protected-access
+          (not _is_running_on_k8s() or environment.is_running_on_swarming()))
 
 
 def suppress_unwanted_warnings():
@@ -589,7 +589,7 @@ def configure(name, extras=None):
   suppress_unwanted_warnings()
 
   from clusterfuzz._internal.system import environment
-  if environment._is_running_on_swarming():  # pylint: disable=protected-access
+  if environment.is_running_on_swarming():
     configure_swarming(name, extras)
     return
 

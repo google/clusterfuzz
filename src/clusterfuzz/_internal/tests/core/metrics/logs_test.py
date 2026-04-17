@@ -530,8 +530,8 @@ class ConfigureTest(unittest.TestCase):
 
     helpers.patch(
         self,
-        ['clusterfuzz._internal.system.environment._is_running_on_swarming'])
-    self.mock._is_running_on_swarming.return_value = True
+        ['clusterfuzz._internal.system.environment.is_running_on_swarming'])
+    self.mock.is_running_on_swarming.return_value = True
 
     logger = mock.MagicMock()
     self.mock.getLogger.return_value = logger
@@ -554,7 +554,7 @@ class LoggingEnabledTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
         'clusterfuzz._internal.metrics.logs._is_running_on_k8s',
         'clusterfuzz._internal.metrics.logs._is_local',
-        'clusterfuzz._internal.system.environment._is_running_on_swarming',
+        'clusterfuzz._internal.system.environment.is_running_on_swarming',
     ])
 
   def test_cloud_logging_enabled_swarming_k8s(self):
@@ -562,7 +562,7 @@ class LoggingEnabledTest(unittest.TestCase):
     self.mock._is_running_on_app_engine.return_value = False
     self.mock._is_running_on_k8s.return_value = True
     self.mock._is_local.return_value = False
-    self.mock._is_running_on_swarming.return_value = True
+    self.mock.is_running_on_swarming.return_value = True
 
     os.environ['LOG_TO_GCP'] = 'True'
     os.environ['PY_UNITTESTS'] = ''
@@ -574,7 +574,7 @@ class LoggingEnabledTest(unittest.TestCase):
     self.mock._is_running_on_app_engine.return_value = False
     self.mock._is_running_on_k8s.return_value = True
     self.mock._is_local.return_value = False
-    self.mock._is_running_on_swarming.return_value = False
+    self.mock.is_running_on_swarming.return_value = False
 
     os.environ['LOG_TO_GCP'] = 'True'
 
@@ -584,7 +584,7 @@ class LoggingEnabledTest(unittest.TestCase):
     """Test file logging enabled for swarming bot on K8S."""
     self.mock._is_running_on_app_engine.return_value = False
     self.mock._is_running_on_k8s.return_value = True
-    self.mock._is_running_on_swarming.return_value = True
+    self.mock.is_running_on_swarming.return_value = True
 
     os.environ['LOG_TO_FILE'] = 'True'
 
@@ -594,7 +594,7 @@ class LoggingEnabledTest(unittest.TestCase):
     """Test file logging disabled for non-swarming bot on K8S."""
     self.mock._is_running_on_app_engine.return_value = False
     self.mock._is_running_on_k8s.return_value = True
-    self.mock._is_running_on_swarming.return_value = False
+    self.mock.is_running_on_swarming.return_value = False
 
     os.environ['LOG_TO_FILE'] = 'True'
 
