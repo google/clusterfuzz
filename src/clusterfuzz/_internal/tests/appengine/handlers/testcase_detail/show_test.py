@@ -18,6 +18,9 @@ import datetime
 import os
 import unittest
 
+import flask
+import webtest
+
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -607,3 +610,47 @@ class GetTestcaseTest(unittest.TestCase):
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TaskLogHandlerTest(unittest.TestCase):
+  """Tests for TaskLogHandler."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'handlers.testcase_detail.show.access.check_access_and_get_testcase',
+        'handlers.testcase_detail.show.testcase_status_events.get_task_log',
+    ])
+    self.flaskapp = flask.Flask('testflask')
+    self.flaskapp.add_url_rule('/', view_func=show.TaskLogHandler.as_view('/'))
+    self.app = webtest.TestApp(self.flaskapp)
+    self.mock.check_access_and_get_testcase.return_value.key.id.return_value = 123
+    self.mock.get_task_log.return_value = 'task log content'
+
+  def test_get(self):
+    """Ensure the handler checks testcase access before returning logs."""
+    response = self.app.get(
+        '/?testcase_id=123&task_id=task-1&task_name=minimize')
+
+    self.assertEqual(200, response.status_int)
+    self.assertEqual('task log content', response.text)
+    self.assertEqual('text/plain', response.headers['Content-Type'])
+    self.assertEqual('attachment; filename="task_task-1_log.txt"',
+                     response.headers['Content-Disposition'])
+    self.mock.check_access_and_get_testcase.assert_called_once_with('123')
+    self.mock.get_task_log.assert_called_once_with(123, 'task-1', 'minimize')
+
+  def test_invalid_testcase_id(self):
+    """Ensure invalid testcase IDs are rejected by the access helper."""
+    self.mock.check_access_and_get_testcase.side_effect = (
+        helpers.EarlyExitError('Invalid test case!', 404))
+
+    with self.flaskapp.test_request_context(
+        '/?testcase_id=abc&task_id=task-1&task_name=minimize'):
+      with self.assertRaises(helpers.EarlyExitError) as cm:
+        show.TaskLogHandler().get()
+
+    self.assertEqual(404, cm.exception.status)
+    self.assertEqual('Invalid test case!', str(cm.exception))
+    self.mock.check_access_and_get_testcase.assert_called_once_with('abc')
+    self.mock.get_task_log.assert_not_called()

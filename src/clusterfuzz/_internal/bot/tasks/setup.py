@@ -614,7 +614,11 @@ def _update_fuzzer(
     update_input: uworker_msg_pb2.SetupInput,  # pylint: disable=no-member
     fuzzer_directory: str,
     version_file: str) -> bool:
-  """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
+  """Updates the fuzzer.
+
+  Returns True if the fuzzer is valid and up to date, False if there was a
+  problem updating the fuzzer.
+  """
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
   fuzzer_name = update_input.fuzzer_name

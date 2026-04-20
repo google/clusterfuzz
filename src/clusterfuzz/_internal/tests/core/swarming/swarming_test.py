@@ -88,18 +88,23 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_ENV_VARS',
-                            value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
-                        ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
                         swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
+                            key='DISABLE_MOUNTS', value='True'),
+                        swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(
+                            key='DOCKER_ENV_VARS',
+                            value=
+                            ('{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
+                             'base:a2f4dd6-202202070654", "UWORKER": "True", '
+                             '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
+                             '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
+                             '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -160,18 +165,23 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(key='DOCKER_IMAGE', value=''),
                         swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
                         swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_ENV_VARS',
-                            value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
-                        ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
                         swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
+                            key='DISABLE_MOUNTS', value='True'),
+                        swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(
+                            key='DOCKER_ENV_VARS',
+                            value=(
+                                '{"DOCKER_IMAGE": "", "ENV_VAR1": "VALUE1", '
+                                '"ENV_VAR2": "VALUE2", "UWORKER": "True", '
+                                '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
+                                '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
+                                '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
                     env_prefixes=[
                         swarming_pb2.StringListPair(
@@ -223,18 +233,23 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_ENV_VARS',
-                            value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
-                        ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
                         swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
+                            key='DISABLE_MOUNTS', value='True'),
+                        swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(
+                            key='DOCKER_ENV_VARS',
+                            value=
+                            ('{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
+                             'base:a2f4dd6-202202070654", "UWORKER": "True", '
+                             '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
+                             '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
+                             '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -284,18 +299,23 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_ENV_VARS',
-                            value=
-                            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id"}'
-                        ),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
                         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
                         swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
                         swarming_pb2.StringPair(
+                            key='DISABLE_MOUNTS', value='True'),
+                        swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(
+                            key='DOCKER_ENV_VARS',
+                            value=
+                            ('{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
+                             'base:a2f4dd6-202202070654", "UWORKER": "True", '
+                             '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
+                             '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
+                             '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
                     secret_bytes=base64.b64encode(
                         'https://download_url'.encode('utf-8'))))
@@ -456,18 +476,22 @@ class SwarmingTest(unittest.TestCase):
         swarming_pb2.StringPair(
             key='DOCKER_IMAGE',
             value='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'),
-        swarming_pb2.StringPair(
-            key='DOCKER_ENV_VARS',
-            value=
-            '{"UWORKER": "True", "SWARMING_BOT": "True", "LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "LOGGING_CLOUD_PROJECT_ID": "project_id", "DEPLOYMENT_BUCKET": "test-bucket-from-metadata"}'
-        ),
         swarming_pb2.StringPair(key='UWORKER', value='True'),
         swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),
         swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
         swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
+        swarming_pb2.StringPair(key='DISABLE_MOUNTS', value='True'),
         swarming_pb2.StringPair(
             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
         swarming_pb2.StringPair(
             key='DEPLOYMENT_BUCKET', value='test-bucket-from-metadata'),
+        swarming_pb2.StringPair(
+            key='DOCKER_ENV_VARS',
+            value=(
+                '{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/base:a2f4dd6-'
+                '202202070654", "UWORKER": "True", "SWARMING_BOT": "True", '
+                '"LOG_TO_GCP": "True", "IS_K8S_ENV": "True", "DISABLE_MOUNTS": '
+                '"True", "LOGGING_CLOUD_PROJECT_ID": "project_id", '
+                '"DEPLOYMENT_BUCKET": "test-bucket-from-metadata"}')),
     ]
     self.assertEqual(env, expected_env)
