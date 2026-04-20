@@ -51,6 +51,35 @@ class EnvironmentTest(unittest.TestCase):
     self.assertEqual(environment.get_value('VERSION_PATTERN'), '')
     self.assertEqual(environment.get_value('WATCH_FOR_PROCESS_EXIT'), False)
 
+  def test_get_runtime_instance_group(self):
+    """Tests that get_runtime() returns INSTANCE_GROUP when not a uworker."""
+    environment.set_value('UWORKER', False)
+    self.assertEqual(environment.get_runtime(),
+                     environment.UtaskMainRuntime.INSTANCE_GROUP)
+
+  def test_get_runtime_kata_container(self):
+    """Tests that get_runtime() returns KATA_CONTAINER when running on k8s."""
+    environment.set_value('UWORKER', True)
+    environment.set_value('IS_K8S_ENV', 'True')
+    self.assertEqual(environment.get_runtime(),
+                     environment.UtaskMainRuntime.KATA_CONTAINER)
+
+  def test_get_runtime_swarming(self):
+    """Tests that get_runtime() returns SWARMING when running on swarming."""
+    environment.set_value('UWORKER', True)
+    environment.set_value('IS_K8S_ENV', 'False')
+    environment.set_value('SWARMING_BOT', True)
+    self.assertEqual(environment.get_runtime(),
+                     environment.UtaskMainRuntime.SWARMING)
+
+  def test_get_runtime_batch(self):
+    """Tests that get_runtime() returns BATCH as fallback."""
+    environment.set_value('UWORKER', True)
+    environment.set_value('IS_K8S_ENV', 'False')
+    environment.set_value('SWARMING_BOT', False)
+    self.assertEqual(environment.get_runtime(),
+                     environment.UtaskMainRuntime.BATCH)
+
 
 class GetExecutableFileNameTest(unittest.TestCase):
   """Tests for get_executable_filename."""
