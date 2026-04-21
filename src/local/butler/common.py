@@ -93,7 +93,7 @@ def _get_clusterfuzz_config_commit_sha():
 
 def _compute_revision(timestamp, is_staging=False):
   """Return a source code revision.
-   
+
   This revision contains the timestamp, git-sha, user, config git-sha, and
   appengine release (prod or staging). The ordinality of revision is crucial
   for updating source code. Later revision *must* be greater than earlier
@@ -372,8 +372,7 @@ def symlink(src, target):
   else:
     os.symlink(src, target)
 
-  assert os.path.lexists(
-      target), f'Failed to create {target} symlink for {src}.'
+  assert os.path.exists(target), f'Failed to create {target} symlink for {src}.'
 
   print(f'Created symlink: source: {src}, target {target}.')
 
