@@ -548,7 +548,7 @@ def configure_cloud_logging():
   logging.getLogger().addHandler(handler)
 
 
-def configure_swarming(name: str, extras: dict[str, str] = None) -> None:
+def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
   """Configure logging for swarming bots."""
   if extras is None:
     extras = {}
