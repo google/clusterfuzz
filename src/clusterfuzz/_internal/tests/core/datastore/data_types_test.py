@@ -38,6 +38,7 @@ class FuzzerTest(unittest.TestCase):
         launcher_script='path/to/launcher',
         revision=3,
         source='author',
+        last_edited_by='editor',
     )
 
     config_dict = fuzzer.get_config_dict()
@@ -54,6 +55,7 @@ class FuzzerTest(unittest.TestCase):
             'launcher_script': 'path/to/launcher',
             'revision': 3,
             'source': 'author',
+            'last_edited_by': 'editor',
         },
         config_dict,
     )

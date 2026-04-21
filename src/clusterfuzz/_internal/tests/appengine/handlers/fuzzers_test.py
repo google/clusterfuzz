@@ -78,6 +78,7 @@ class CreateHandlerTest(unittest.TestCase):
         'handlers.fuzzers.CreateHandler.get_upload',
         'handlers.fuzzers.CreateHandler.apply_fuzzer_changes',
     ])
+
     self.mock.has_access.return_value = True
     self.mock.get_current_user().email = 'test@user.com'
     self.mock.get_user_email.return_value = 'test@user.com'
@@ -108,6 +109,7 @@ class CreateHandlerTest(unittest.TestCase):
     self.assertEqual(fuzzer.name, fuzzer_name)
     self.assertEqual(fuzzer.revision, 0)
     self.assertEqual(fuzzer.created_at, self.mock_time)
+    self.assertEqual(fuzzer.source, 'test@user.com')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -125,8 +127,8 @@ class EditHandlerTest(unittest.TestCase):
         'handlers.fuzzers.EditHandler._get_launcher_script',
     ])
     self.mock.has_access.return_value = True
-    self.mock.get_current_user().email = 'test@user.com'
-    self.mock.get_user_email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'editor@example.com'
+    self.mock.get_user_email.return_value = 'editor@example.com'
     self.mock.get_upload.return_value = storage.GcsBlobInfo(
         bucket='test-bucket', object_path='key', filename='file.zip', size=123)
 
@@ -150,6 +152,7 @@ class EditHandlerTest(unittest.TestCase):
         name=fuzzer_name,
         jobs=[],
         revision=1,
+        source='original@example.com',
         timeout=10,
     )
     fuzzer.put()
@@ -177,10 +180,11 @@ class EditHandlerTest(unittest.TestCase):
             'data_bundle_name': 'test_bundle',
             'external_contribution': True,
             'executable_path': 'executable',
+            'last_edited_by': 'editor@example.com',
             'launcher_script': 'launcher',
             'jobs': [],
             'max_testcases': 100,
             'revision': 2,
-            'source': 'test@user.com',
+            'source': 'original@example.com',
             'timeout': 30,
         })
