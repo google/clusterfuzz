@@ -109,7 +109,12 @@ def flash_to_latest_build_if_needed():
     return
 
   run_timeout = environment.get_value('RUN_TIMEOUT')
-  if run_timeout:
+  force_flashing = utils.string_is_true(
+      environment.get_value('FORCE_ANDROID_FLASHING'))
+
+  if run_timeout and not force_flashing:
+    logs.info('Skipping reimage: RUN_TIMEOUT is set. '
+              'And FORCE_ANDROID_FLASHING is false')
     # If we have a run timeout, then we are already scheduled to bail out and
     # will be probably get re-imaged. E.g. using frameworks like Tradefed.
     return
@@ -121,6 +126,9 @@ def flash_to_latest_build_if_needed():
   needs_flash = last_flash_time is None or dates.time_has_expired(
       last_flash_time, seconds=FLASH_INTERVAL)
   if not needs_flash:
+    logs.info(
+        f'Skipping reimage: FLASH_INTERVAL ({FLASH_INTERVAL}s) has not expired '
+        f'since last flash ({last_flash_time:%Y-%m-%d %H:%M:%S}).')
     return
 
   is_google_device = settings.is_google_device()
