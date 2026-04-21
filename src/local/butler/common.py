@@ -351,7 +351,7 @@ def install_dependencies(platform_name=None):
 
 def remove_symlink(target):
   """Removes a symlink."""
-  if not os.path.exists(target):
+  if not os.path.lexists(target):
     return
 
   if os.path.isdir(target) and get_platform() == 'windows':
@@ -372,7 +372,8 @@ def symlink(src, target):
   else:
     os.symlink(src, target)
 
-  assert os.path.exists(target), f'Failed to create {target} symlink for {src}.'
+  assert os.path.lexists(
+      target), f'Failed to create {target} symlink for {src}.'
 
   print(f'Created symlink: source: {src}, target {target}.')
 
