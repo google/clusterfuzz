@@ -1236,3 +1236,8 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
 
 def is_tworker():
   return get_value('TWORKER', False)
+
+
+def is_running_unit_tests() -> bool:
+  """Returns whether or not we're running unit tests."""
+  return get_value('PY_UNITTESTS', False)

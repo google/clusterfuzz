@@ -104,9 +104,8 @@ def _file_logging_enabled() -> bool:
 def _cloud_logging_enabled() -> bool:
   """Return bool True where Google Cloud Logging is enabled.
   This is enabled by default but disabled for local development."""
-  return environment.get_value('LOG_TO_GCP',
-                               True) and (not os.getenv('PY_UNITTESTS') and
-                                          not _is_local())
+  return (environment.get_value('LOG_TO_GCP', True) and
+          not environment.is_running_unit_tests() and not _is_local())
 
 
 def suppress_unwanted_warnings():
@@ -412,7 +411,7 @@ def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
 
-  if os.getenv('LOCAL_DEVELOPMENT') or os.getenv('PY_UNITTESTS'):
+  if os.getenv('LOCAL_DEVELOPMENT') or environment.is_running_unit_tests():
     return
 
   import google.cloud.logging
