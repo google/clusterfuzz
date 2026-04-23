@@ -251,7 +251,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
                   execution_timeout_secs=execution_timeout_secs,
                   env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
-                  secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
+                  secret_bytes=download_url.encode('utf-8')))
       ])
 
   return new_task_request
