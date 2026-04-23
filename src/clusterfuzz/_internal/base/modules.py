@@ -61,8 +61,7 @@ def _patch_google_auth_for_bots() -> None:
     import requests
 
     def patched_default_credentials(
-        *args, **kwargs) -> tuple[compute_engine.Credentials, str] | None:
-      # pylint: disable=unused-argument
+        *_args, **_kwargs) -> tuple[compute_engine.Credentials, str] | None:
       url = f"http://{os.environ['GCE_METADATA_HOST']}/computeMetadata/v1/" \
             "project/project-id"
       project_id = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get(
