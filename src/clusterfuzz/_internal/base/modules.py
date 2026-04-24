@@ -118,4 +118,4 @@ def fix_module_search_paths():
 
   # TODO(ochang): Remove this once SDK is removed from images.
   _patch_appengine_modules_for_bots()
-  _patch_google_auth_for_bots()
+  _patch_google_auth_for_swarming_bots()
