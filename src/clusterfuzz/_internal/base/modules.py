@@ -44,7 +44,7 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
-def _patch_google_auth_for_bots() -> None:
+def _patch_google_auth_for_swarming_bots() -> None:
   """Patch google.auth.default to use explicit credentials via GCE metadata.
 
   This is required for Swarming bots to authenticate with GCP services
