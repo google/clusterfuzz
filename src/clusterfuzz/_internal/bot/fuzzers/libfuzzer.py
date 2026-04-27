@@ -1120,6 +1120,71 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
+class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
+  """Android APK libFuzzer runner."""
+
+  def __init__(self, executable_path, build_directory, default_args=None):
+    super().__init__(executable_path=android.adb.get_adb_path(), default_args=[])
+    self.apk_path = executable_path
+    self.package_name = android.app.get_package_name(self.apk_path)
+    if not self.package_name:
+      raise LibFuzzerError(f'Failed to get package name for {self.apk_path}')
+
+    android.app.install(self.apk_path)
+    self.instrumentation_runner = self._get_instrumentation_runner(self.apk_path)
+    self.launchable_activity = self._get_launchable_activity(self.apk_path)
+
+  def _get_launchable_activity(self, apk_path):
+    aapt_binary_path = os.path.join(
+        environment.get_platform_resources_directory(), 'aapt')
+    aapt_command = '%s dump badging %s' % (aapt_binary_path, apk_path)
+    output = android.adb.execute_command(aapt_command, timeout=60)
+    if not output:
+      return None
+    match = re.search(r"launchable-activity: name='([^']+)'", output)
+    if match:
+      return match.group(1)
+    return None
+
+  def _get_instrumentation_runner(self, apk_path):
+    aapt_binary_path = os.path.join(
+        environment.get_platform_resources_directory(), 'aapt')
+    aapt_command = '%s dump xmltree %s AndroidManifest.xml' % (aapt_binary_path, apk_path)
+    output = android.adb.execute_command(aapt_command, timeout=60)
+    if not output:
+      return None
+      
+    lines = output.splitlines()
+    found_instrumentation = False
+    for line in lines:
+      if 'E: instrumentation' in line:
+        found_instrumentation = True
+        continue
+      if found_instrumentation and 'android:name' in line:
+        match = re.search(r'="([^"]+)"', line)
+        if match:
+          return match.group(1)
+    return None
+
+  def fuzz(self, corpus_directories, fuzz_timeout, artifact_prefix=None, additional_args=None, extra_env=None):
+    if self.instrumentation_runner:
+      args = ['shell', 'am', 'instrument', '-w', f'{self.package_name}/{self.instrumentation_runner}']
+      logs.info(f'Starting Instrumentation: {self.package_name}/{self.instrumentation_runner}')
+    elif self.launchable_activity:
+      args = ['shell', 'am', 'start', '-n', f'{self.package_name}/{self.launchable_activity}']
+      logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity}')
+    else:
+      raise LibFuzzerError('No launchable activity or instrumentation found.')
+      
+    result = self.run_and_wait(
+        additional_args=args,
+        timeout=self.get_total_timeout(fuzz_timeout),
+        max_stdout_len=MAX_OUTPUT_LEN)
+        
+    result.output = f'{result.output}\n\nLogcat:\n{android.logger.log_output()}'
+    return result
+
+
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
@@ -1183,7 +1248,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
       raise undercoat.UndercoatError('Instance handle not provided.')
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
-    runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
+    if fuzzer_path.endswith('.apk'):
+      runner = AndroidApkLibFuzzerRunner(fuzzer_path, build_dir)
+    else:
+      runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 

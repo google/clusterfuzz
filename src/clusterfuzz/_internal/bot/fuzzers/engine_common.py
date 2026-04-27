@@ -290,7 +290,8 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   for root, _, files in shell.walk(build_directory):
     for filename in files:
       if (legacy_name_prefix + filename == fuzzer_name or
-          filename == fuzzer_filename):
+          filename == fuzzer_filename or
+          filename == fuzzer_name + '.apk'):
         return os.path.join(root, filename)
 
   # This is an expected case when doing regression testing with old builds
