@@ -521,6 +521,26 @@ class ConfigureTest(unittest.TestCase):
     logs.configure('test')
     self.assertEqual(0, self.mock.dictConfig.call_count)
 
+  def test_configure_swarming(self):
+    """Test configure for swarming bot."""
+    # pylint: disable=protected-access
+    os.environ['SWARMING_BOT'] = 'True'
+    os.environ['TASK_ID'] = 'task-123'
+    os.environ['BOT_NAME'] = 'bot-123'
+
+    helpers.patch(
+        self,
+        ['clusterfuzz._internal.system.environment.is_running_on_swarming'])
+
+    logger = mock.MagicMock()
+    self.mock.getLogger.return_value = logger
+
+    logs.configure('test')
+
+    self.assertEqual(logs._default_extras['task_id'], 'task-123')
+    self.assertEqual(logs._default_extras['instance_id'], 'bot-123')
+    self.assertEqual(logs._default_extras['platform'], 'swarming')
+
 
 @test_utils.with_cloud_emulators('datastore')
 class EmitTest(unittest.TestCase):

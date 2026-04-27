@@ -32,6 +32,8 @@ from typing import Any
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
+from clusterfuzz._internal.system import environment
+
 # This is needed to avoid circular import
 if TYPE_CHECKING:
   from clusterfuzz._internal.cron.grouper import TestcaseAttributes
@@ -93,26 +95,17 @@ def _console_logging_enabled():
 
 # TODO(pmeuleman) Revert the changeset that added these once
 # https://github.com/google/clusterfuzz/pull/3422 lands.
-def _file_logging_enabled():
+def _file_logging_enabled() -> bool:
   """Return bool True when logging to files (bot/logs/*.log) is enabled.
-  This is enabled by default.
-  This is disabled if we are running in app engine or kubernetes as these have
-    their dedicated loggers, see configure_appengine() and configure_k8s().
-  """
-  return bool(os.getenv(
-      'LOG_TO_FILE',
-      'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+  This is enabled by default."""
+  return environment.get_value('LOG_TO_FILE', True)
 
 
-def _cloud_logging_enabled():
+def _cloud_logging_enabled() -> bool:
   """Return bool True where Google Cloud Logging is enabled.
-  This is enabled by default.
-  This is disabled for local development and if we are running in a app engine
-    or kubernetes as these have their dedicated loggers, see
-    configure_appengine() and configure_k8s()."""
-  return (bool(os.getenv('LOG_TO_GCP', 'True')) and
-          not os.getenv("PY_UNITTESTS") and not _is_local() and
-          not _is_running_on_app_engine() and not _is_running_on_k8s())
+  This is enabled by default but disabled for local development."""
+  return (environment.get_value('LOG_TO_GCP', True) and
+          not environment.is_running_unit_tests() and not _is_local())
 
 
 def suppress_unwanted_warnings():
@@ -418,7 +411,7 @@ def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
 
-  if os.getenv('LOCAL_DEVELOPMENT') or os.getenv('PY_UNITTESTS'):
+  if os.getenv('LOCAL_DEVELOPMENT') or environment.is_running_unit_tests():
     return
 
   import google.cloud.logging
@@ -554,11 +547,37 @@ def configure_cloud_logging():
   logging.getLogger().addHandler(handler)
 
 
+def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
+  """Configure logging for swarming bots."""
+  if extras is None:
+    extras = {}
+  extras['task_id'] = os.getenv('TASK_ID')
+  extras['instance_id'] = os.getenv('BOT_NAME')
+  extras['platform'] = 'swarming'
+
+  global _default_extras
+  _default_extras = extras
+
+  logging.basicConfig(level=logging.INFO)
+  if _cloud_logging_enabled():
+    configure_cloud_logging()
+
+  logger = logging.getLogger(name)
+  logger.setLevel(logging.INFO)
+  set_logger(logger)
+
+  sys.excepthook = uncaught_exception_handler
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
+
+  if environment.is_running_on_swarming():
+    configure_swarming(name, extras)
+    return
 
   if _is_running_on_k8s():
     configure_k8s()
@@ -792,7 +811,6 @@ def get_common_log_context() -> dict[str, str]:
   """Return common context to be propagated by logs."""
   # Avoid circular imports on the top level.
   from clusterfuzz._internal.base import utils
-  from clusterfuzz._internal.system import environment
 
   try:
     os_type = environment.platform()
