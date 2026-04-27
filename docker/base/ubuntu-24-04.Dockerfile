@@ -104,11 +104,11 @@ RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
     ln -s /usr/bin/python3.11 /usr/bin/python3
 
-# Install Node.js 19.x from binary to maintain version consistency
+# Install Node.js 20.x from binary to maintain version consistency
 RUN cd /tmp && \
-    curl -sSL https://nodejs.org/dist/v19.9.0/node-v19.9.0-linux-x64.tar.xz -o node.tar.xz && \
+    curl -sSL https://nodejs.org/dist/v20.12.2/node-v20.12.2-linux-x64.tar.xz -o node.tar.xz && \
     tar -xJf node.tar.xz && \
-    mv node-v19.9.0-linux-x64 /usr/local/node && \
+    mv node-v20.12.2-linux-x64 /usr/local/node && \
     rm node.tar.xz
 ENV PATH="/usr/local/node/bin:${PATH}"
 
