@@ -67,7 +67,8 @@ RUN apt-get update && \
         util-linux \
         wget \
         zip \
-        zlib1g-dev
+        zlib1g-dev \
+        gnupg
 
 COPY --from=xenial \
     /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
@@ -127,8 +128,10 @@ RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11
 
 # Install Node.js
-COPY setup_19.x /data
-RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && apt-get install nodejs -y
 
 # Support i386.
 RUN dpkg --add-architecture i386
