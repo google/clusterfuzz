@@ -20,12 +20,12 @@
 
 # An array of Docker image names to be built.
 IMAGES=(
-  gcr.io/clusterfuzz-immutable-images/base/immutable
-  gcr.io/clusterfuzz-immutable-images/chromium/base/immutable
-  gcr.io/clusterfuzz-immutable-images/chromium/builder/immutable
-  gcr.io/clusterfuzz-immutable-images/tworker/immutable
-  gcr.io/clusterfuzz-immutable-images/utask-main-scheduler/immutable
-  gcr.io/clusterfuzz-immutable-images/fuchsia/immutable
+  us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/base/immutable
+  us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/chromium/base/immutable
+  us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/chromium/builder/immutable
+  us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/tworker/immutable
+  us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/utask-main-scheduler/immutable
+  us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/fuchsia/immutable
 )
 
 if [ "$3" == "google.com:cluster-fuzz" ]; then
@@ -60,7 +60,7 @@ for image_name in "${IMAGES[@]}"; do
   CURRENT_CLUSTERFUZZ_REVISION="$(cat /workspace/revision.txt)"
 
   # Determine the directory containing the Dockerfile and related build context.
-  project_dir=docker/${image_name#gcr.io/clusterfuzz-immutable-images/}
+  project_dir=docker/${image_name#us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/}
   if [ "$3" == "google.com:cluster-fuzz" ]; then
     project_dir=docker/google/${image_name#gcr.io/google.com/cluster-fuzz/}
   fi
