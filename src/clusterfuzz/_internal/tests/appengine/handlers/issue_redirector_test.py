@@ -16,10 +16,12 @@
 import unittest
 from unittest import mock
 
+import flask
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from handlers import issue_redirector
 
 
 class HandlerTest(unittest.TestCase):
@@ -28,19 +30,20 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
-        'libs.helpers.get_testcase',
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'libs.access.check_access_and_get_testcase',
     ])
-    self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
 
-    import server
-    self.app = webtest.TestApp(server.app)
+    self.flaskapp = flask.Flask('testflask')
+    self.flaskapp.add_url_rule(
+        '/issue/<testcase_id>',
+        view_func=issue_redirector.Handler.as_view('/issue/'))
+    self.app = webtest.TestApp(self.flaskapp)
 
   def test_succeed(self):
     """Test redirection succeeds."""
     testcase = data_types.Testcase()
     testcase.bug_information = '456789'
-    self.mock.get_testcase.return_value = testcase
+    self.mock.check_access_and_get_testcase.return_value = testcase
     self.mock.get_issue_url.return_value = 'http://google.com/456789'
 
     response = self.app.get('/issue/12345')
@@ -48,13 +51,30 @@ class HandlerTest(unittest.TestCase):
     self.assertEqual(302, response.status_int)
     self.assertEqual('http://google.com/456789', response.headers['Location'])
 
-    self.mock.get_testcase.assert_has_calls([mock.call('12345')])
+    self.mock.check_access_and_get_testcase.assert_has_calls(
+        [mock.call('12345')])
     self.mock.get_issue_url.assert_has_calls([mock.call(testcase)])
 
   def test_no_issue_url(self):
     """Test no issue url."""
-    self.mock.get_testcase.return_value = data_types.Testcase()
+    self.mock.check_access_and_get_testcase.return_value = data_types.Testcase()
     self.mock.get_issue_url.return_value = ''
 
-    response = self.app.get('/issue/12345', expect_errors=True)
+    response = self.app.get(
+        '/issue/12345',
+        headers={'Accept': 'application/json'},
+        expect_errors=True)
     self.assertEqual(404, response.status_int)
+
+  def test_access_denied(self):
+    """Access denied returns 403 instead of leaking the issue URL."""
+    from libs import helpers as libs_helpers
+    self.mock.check_access_and_get_testcase.side_effect = (
+        libs_helpers.AccessDeniedError('Access denied'))
+
+    response = self.app.get(
+        '/issue/12345',
+        headers={'Accept': 'application/json'},
+        expect_errors=True)
+    self.assertEqual(403, response.status_int)
+    self.mock.get_issue_url.assert_not_called()

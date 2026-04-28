@@ -15,6 +15,9 @@
 import datetime
 import unittest
 
+import flask
+import webtest
+
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -63,3 +66,66 @@ class CoverageReportTest(unittest.TestCase):
     report_url = coverage_report.get_report_url('job', 'fake_job', 'latest')
     expected_url = None
     self.assertEqual(expected_url, report_url)
+
+
+class HandlerAccessTest(unittest.TestCase):
+  """Ensure the Handler enforces an access check before resolving the URL."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'libs.access.has_access',
+        'handlers.coverage_report._get_project_report_url',
+    ])
+
+    self.flaskapp = flask.Flask('testflask')
+    self.flaskapp.add_url_rule(
+        '/coverage-report/<report_type>/<argument>/<date>',
+        view_func=coverage_report.Handler.as_view('/coverage-report/'))
+    self.app = webtest.TestApp(self.flaskapp)
+
+  def test_access_check_runs_before_resolving_url(self):
+    """Access denied returns 403, the URL is never resolved."""
+    self.mock.has_access.return_value = False
+
+    response = self.app.get(
+        '/coverage-report/job/job1/latest',
+        headers={'Accept': 'application/json'},
+        expect_errors=True)
+
+    self.assertEqual(403, response.status_int)
+    self.mock.has_access.assert_called_once_with(job_type='job1')
+    self.mock._get_project_report_url.assert_not_called()
+
+  def test_access_granted_resolves_url(self):
+    """Access granted forwards to the URL resolver."""
+    self.mock.has_access.return_value = True
+    self.mock._get_project_report_url.return_value = (
+        'https://report.example/index.html')
+
+    response = self.app.get('/coverage-report/job/job1/latest')
+
+    self.assertEqual(302, response.status_int)
+    self.assertEqual('https://report.example/index.html',
+                     response.headers['Location'])
+    self.mock.has_access.assert_called_once_with(job_type='job1')
+
+  def test_invalid_job_name_rejected_before_access_check(self):
+    """Invalid job names return 400 without invoking the access check."""
+    response = self.app.get(
+        '/coverage-report/job/bad name!/latest',
+        headers={'Accept': 'application/json'},
+        expect_errors=True)
+
+    self.assertEqual(400, response.status_int)
+    self.mock.has_access.assert_not_called()
+
+  def test_invalid_report_type_rejected(self):
+    """Non-job report types return 400."""
+    response = self.app.get(
+        '/coverage-report/fuzzer/job1/latest',
+        headers={'Accept': 'application/json'},
+        expect_errors=True)
+
+    self.assertEqual(400, response.status_int)
+    self.mock.has_access.assert_not_called()
