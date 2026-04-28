@@ -179,6 +179,10 @@ class Engine(engine.Engine):
     if options:
       arguments = options.get_engine_arguments('centipede')
 
+    if constants.RSS_LIMIT_MB_FLAGNAME not in arguments and (
+        utils.is_chromium() or utils.default_project_name() == "google"):
+      arguments[constants.RSS_LIMIT_MB_FLAGNAME] = 0
+
     # We ignore this parameter in the options file because it doesn't really
     # make sense not to crash on errors.
     arguments[constants.EXIT_ON_CRASH_FLAGNAME] = 1
@@ -426,15 +430,14 @@ class Engine(engine.Engine):
 
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
+      rss_limit = constants.RSS_LIMIT_MB_DEFAULT
       if constants.RSS_LIMIT_MB_FLAGNAME in fuzzer_arguments:
         rss_limit = fuzzer_arguments[constants.RSS_LIMIT_MB_FLAGNAME]
-      elif (utils.is_chromium() or utils.default_project_name() == 'google'):
-        rss_limit = 0
-      else:
-        rss_limit = constants.RSS_LIMIT_MB_DEFAULT
+
       timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
       if constants.TIMEOUT_PER_INPUT_FLAGNAME in fuzzer_arguments:
         timeout = fuzzer_arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
+
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
           f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
           f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
