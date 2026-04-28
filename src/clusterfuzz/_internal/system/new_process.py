@@ -246,12 +246,14 @@ class ProcessRunner:
     executable_path: Path to the executable to be run.
     default_args: An optional sequence of arguments that are always passed to
         the executable when run.
+    cwd: Optional current working directory for the process.
   """
 
-  def __init__(self, executable_path, default_args=None):
+  def __init__(self, executable_path, default_args=None, cwd=None):
     """Inits ProcessRunner."""
     self._executable_path = executable_path
     self._default_args = []
+    self.cwd = cwd
 
     if default_args:
       self.default_args.extend(default_args)
@@ -331,6 +333,10 @@ class ProcessRunner:
     env = popen_args.pop('env', os.environ.copy())
     if extra_env is not None:
       env.update(extra_env)
+
+    if self.cwd and 'cwd' not in popen_args:
+      logs.info(f'Executing process with custom cwd: {self.cwd}')
+      popen_args['cwd'] = self.cwd
 
     return ChildProcess(
         subprocess.Popen(
