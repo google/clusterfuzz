@@ -54,17 +54,11 @@ _is_already_handling_uncaught = False
 _default_extras = {}
 
 
-def _is_running_on_k8s():
-  """Returns whether or not we're running on K8s."""
-  # We do this here to avoid circular imports with environment.
-  return os.getenv('IS_K8S_ENV') == 'true'
-
-
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_running_on_k8s():
+  if environment.is_running_on_k8s():
     task_name = 'k8s'
-  elif _is_running_on_app_engine():
+  elif environment.is_running_on_app_engine():
     task_name = 'appengine'
   else:
     task_name = os.getenv('TASK_NAME', 'unknown')
@@ -77,15 +71,6 @@ def _is_local():
   """Return whether or not in a local development environment."""
   return (bool(os.getenv('LOCAL_DEVELOPMENT')) or
           os.getenv('SERVER_SOFTWARE', '').startswith('Development/'))
-
-
-def _is_running_on_app_engine():
-  """Return whether or not we're running on App Engine (production or
-  development)."""
-  return os.getenv('GAE_ENV') or (
-      os.getenv('SERVER_SOFTWARE') and
-      (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
-       os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
 def _console_logging_enabled():
@@ -579,11 +564,11 @@ def configure(name, extras=None):
     configure_swarming(name, extras)
     return
 
-  if _is_running_on_k8s():
+  if environment.is_running_on_k8s():
     configure_k8s()
     return
 
-  if _is_running_on_app_engine():
+  if environment.is_running_on_app_engine():
     configure_appengine()
     return
 
@@ -613,7 +598,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine() or _is_running_on_k8s():
+  if environment.is_running_on_app_engine() or environment.is_running_on_k8s():
     # Running on App Engine.
     set_logger(logging.getLogger())
 
@@ -645,7 +630,7 @@ def get_source_location():
 
 def _add_appengine_trace(extras):
   """Add App Engine tracing information."""
-  if not _is_running_on_app_engine():
+  if not environment.is_running_on_app_engine():
     return
 
   from libs import auth
@@ -724,7 +709,7 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
-  if _is_running_on_app_engine():
+  if environment.is_running_on_app_engine():
     if exc_info == (None, None, None):
       # Don't pass exc_info at all, as otherwise cloud logging will append
       # "NoneType: None" to the message.

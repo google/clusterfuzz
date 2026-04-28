@@ -791,7 +791,10 @@ def parse_environment_definition(environment_string):
 
 def is_running_on_k8s() -> bool:
   """Returns whether or not we're running on K8s."""
-  return get_value('IS_K8S_ENV', False)
+  env_value = get_value('IS_K8S_ENV', False)
+  if isinstance(env_value, str):
+    return env_value.lower() == 'true'
+  return bool(env_value)
 
 
 def base_platform(override):
