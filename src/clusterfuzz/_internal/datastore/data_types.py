@@ -313,6 +313,9 @@ class Fuzzer(Model):
   # Fuzzer's source (for accountability).
   source = ndb.StringProperty()
 
+  # Last person to make changes to the Fuzzer code or configuration.
+  last_edited_by = ndb.StringProperty()
+
   # Testcase timeout.
   timeout = ndb.IntegerProperty()
 

@@ -186,7 +186,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     fuzzer.jobs = jobs
     fuzzer.revision = fuzzer.revision + 1
-    fuzzer.source = helpers.get_user_email()
+    fuzzer.last_edited_by = helpers.get_user_email()
     fuzzer.timeout = timeout
     fuzzer.max_testcases = max_testcases
     fuzzer.result = None
@@ -254,6 +254,8 @@ class CreateHandler(BaseEditHandler):
     fuzzer.revision = 0
     fuzzer.created_at = datetime.datetime.now(tz=datetime.timezone.utc).replace(
         tzinfo=None)
+    fuzzer.source = helpers.get_user_email()
+
     return self.apply_fuzzer_changes(fuzzer, upload_info)
 
 
