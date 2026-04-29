@@ -147,7 +147,9 @@ class PosixProcessTest(unittest.TestCase):
     with mock.patch('subprocess.Popen') as mock_popen:
       runner = new_process.ProcessRunner(
           '/test/path', default_args=['-arg1'], cwd='/working/dir')
+
       runner.run()
+
       mock_popen.assert_called_with(
           ['/test/path', '-arg1'],
           env=mock.ANY,
