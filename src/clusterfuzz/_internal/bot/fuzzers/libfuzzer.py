@@ -1148,11 +1148,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
 
   is_chromeos_system_job = environment.is_chromeos_system_job()
 
-  if cwd and (use_minijail or is_chromeos_system_job or is_fuchsia or
-              is_android):
-    logs.warning('FUZZ_TARGET_CWD_IS_BUILD_DIR is only supported for standard '
-                 'LibFuzzerRunner and will be ignored.')
-
   if is_chromeos_system_job:
     minijail_chroot = minijail.ChromeOSChroot(build_dir)
   elif use_minijail:
@@ -1198,6 +1193,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
+
+  if cwd and not isinstance(runner, LibFuzzerRunner):
+    logs.warning('FUZZ_TARGET_CWD_IS_BUILD_DIR is only supported for standard '
+                 'LibFuzzerRunner and will be ignored.')
 
   return runner
 

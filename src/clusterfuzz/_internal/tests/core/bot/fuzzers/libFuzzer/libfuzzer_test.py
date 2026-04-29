@@ -191,7 +191,9 @@ class GetRunnerTest(unittest.TestCase):
     environment.set_value('BUILD_DIR', '/build/dir')
     environment.set_value('FUZZ_TARGET_CWD_IS_BUILD_DIR', True)
     environment.set_value('USE_MINIJAIL', False)
+
     runner = libfuzzer.get_runner('/fake/path')
+
     self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
     self.assertEqual(runner.cwd, '/build/dir')
 
@@ -200,7 +202,9 @@ class GetRunnerTest(unittest.TestCase):
     """Test that cwd is None when FUZZ_TARGET_CWD_IS_BUILD_DIR is not set."""
     environment.set_value('BUILD_DIR', '/build/dir')
     environment.set_value('USE_MINIJAIL', False)
+
     runner = libfuzzer.get_runner('fake/path')
+
     self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
     self.assertIsNone(runner.cwd)
 

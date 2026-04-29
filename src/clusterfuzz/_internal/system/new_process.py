@@ -334,9 +334,13 @@ class ProcessRunner:
     if extra_env is not None:
       env.update(extra_env)
 
-    if self.cwd and 'cwd' not in popen_args:
-      logs.info(f'Executing process with custom cwd: {self.cwd}')
-      popen_args['cwd'] = self.cwd
+    if self.cwd:
+      if 'cwd' in popen_args:
+        logs.warning(f'Detected two cwd arguments for popen ({self.cwd} and '
+                     f'{popen_args["cwd"]}). Using {popen_args["cwd"]}')
+      else:
+        logs.info(f'Executing process with custom cwd: {self.cwd}')
+        popen_args['cwd'] = self.cwd
 
     return ChildProcess(
         subprocess.Popen(
