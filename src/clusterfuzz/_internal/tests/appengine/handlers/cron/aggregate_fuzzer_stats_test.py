@@ -49,11 +49,6 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.mock_api_client = mock.MagicMock()
     self.mock.get_api_client.return_value = self.mock_api_client
 
-    # Mock tables().get() to throw 404 (simulate table doesn't exist)
-    resp = httplib2.Response({'status': 404})
-    self.mock_api_client.tables().get().execute.side_effect = HttpError(
-        resp, b'Not found')
-
     self.mock_client_instance = mock.MagicMock()
     self.mock.Client.return_value = self.mock_client_instance
 
@@ -135,3 +130,35 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.assertEqual(uploaded_dict['testcase_generation_duration'],
                      'P0DT1H15M33S')
     self.assertEqual(uploaded_dict['fuzzing_duration'], 'P0DT12H49M49S')
+
+  def test_aggregate_fuzzer_stats_ignoring_409(self):
+    """Tests that execution successfully proceeds past HTTP 409 Conflict scenarios."""
+    resp = httplib2.Response({'status': 409})
+    self.mock_api_client.datasets().insert().execute.side_effect = HttpError(
+        resp, b'Already exists')
+
+    self.mock_client_instance.query.return_value = QueryResult(
+        rows=[{
+            'fuzzer_name': 'ochang_js_fuzzer',
+            'date': '2026-04-29',
+            'testcases_executed': 10495,
+            'testcase_execution_duration': 'P0DT11H12M11S',
+            'testcases_generated': 10495,
+            'testcase_generation_duration': 'P0DT1H15M33S',
+            'fuzzing_duration': 'P0DT12H49M49S'
+        }],
+        total_count=1)
+
+    aggregate_fuzzer_stats.main(['--non-dry-run'])
+
+    # Should attempt inserting the table nonetheless
+    self.mock_api_client.tables().insert.assert_called_once()
+
+  def test_aggregate_fuzzer_stats_raises_non_409(self):
+    """Tests that unexpected HTTP errors cause job failures."""
+    resp = httplib2.Response({'status': 500})
+    self.mock_api_client.datasets().insert().execute.side_effect = HttpError(
+        resp, b'Internal Server Error')
+
+    with self.assertRaises(HttpError):
+      aggregate_fuzzer_stats.main(['--non-dry-run'])
