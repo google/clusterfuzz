@@ -543,7 +543,6 @@ def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
   global _default_extras
   _default_extras = extras
 
-  logging.basicConfig(level=logging.INFO)
   if _cloud_logging_enabled():
     configure_cloud_logging()
 
