@@ -71,7 +71,7 @@ def _create_dataset_if_needed(bigquery, dataset_id):
       },
   }
   try:
-    bigquery.datasets().insert(  # pylint: disable=no-member
+    bigquery.datasets().insert(
         projectId=project_id, body=dataset_body).execute()
     logs.info(f'Created dataset {dataset_id}.')
   except Exception as e:
@@ -97,13 +97,13 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
 
   try:
     # Validate that existing partitioned state holds right parameters
-    table_info = bigquery.tables().get(  # pylint: disable=no-member
+    table_info = bigquery.tables().get(
         projectId=project_id, datasetId=dataset_id, tableId=table_id).execute()
     time_partitioning = table_info.get('timePartitioning')
     if not time_partitioning or time_partitioning.get('field') != 'date':
       logs.info(f'Table {dataset_id}.{table_id} exists but is unpartitioned or '
                 f'configured differently. Re-creating.')
-      bigquery.tables().delete(  # pylint: disable=no-member
+      bigquery.tables().delete(
           projectId=project_id, datasetId=dataset_id,
           tableId=table_id).execute()
 
@@ -115,7 +115,7 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
       return
 
   try:
-    bigquery.tables().insert(  # pylint: disable=no-member
+    bigquery.tables().insert(
         projectId=project_id, datasetId=dataset_id, body=table_body).execute()
     logs.info(f'Created table {dataset_id}.{table_id}.')
   except Exception as e:
@@ -125,11 +125,11 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
 
 def _poll_completion(bigquery, project_id, job_id):
   """Poll for completion."""
-  response = bigquery.jobs().get(  # pylint: disable=no-member
+  response = bigquery.jobs().get(
       projectId=project_id, jobId=job_id).execute(num_retries=2)
   while response['status']['state'] == 'RUNNING':
     time.sleep(5)
-    response = bigquery.jobs().get(  # pylint: disable=no-member
+    response = bigquery.jobs().get(
         projectId=project_id, jobId=job_id).execute(num_retries=2)
 
   return response
@@ -140,6 +140,9 @@ def main(argv):
   parser = argparse.ArgumentParser(prog='aggregate_fuzzer_stats')
   parser.add_argument(
       '--non-dry-run', action='store_true', help='Whether to write to BigQuery')
+  # parser.add_argument(
+  #     '--force-replace', action='store_true', help='Force replace the existing date partition rather than returning a successful no-op by generating a unique BigQuery'
+  # )
   args = parser.parse_args(argv)
 
   logs.info('Starting fuzzer stats aggregation cron.')
@@ -253,7 +256,7 @@ def main(argv):
             }
         }
 
-        request = bigquery_client.jobs().insert(  # pylint: disable=no-member
+        request = bigquery_client.jobs().insert(
             projectId=project_id, body=body, media_body=media_body)
         response = request.execute(num_retries=2)
         job_id = response['jobReference']['jobId']

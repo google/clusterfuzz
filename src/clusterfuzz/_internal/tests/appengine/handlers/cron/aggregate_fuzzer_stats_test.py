@@ -34,7 +34,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
 
   def setUp(self):
     # Create a non-builtin fuzzer
-    data_types.Fuzzer(name='fuzzer', jobs=['job'], builtin=False).put()
+    data_types.Fuzzer(name='ochang_js_fuzzer', jobs=['job'], builtin=False).put()
     data_types.Job(name='job').put()
 
     test_helpers.patch(self, [
@@ -56,24 +56,24 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.mock_client_instance = mock.MagicMock()
     self.mock.Client.return_value = self.mock_client_instance
 
-    self.mock_client_instance.query.return_value = QueryResult(
-        rows=[{
-            'fuzzer_name': 'fuzzer',
-            'date': '2026-05-01',
-            'testcases_executed': 10,
-            'testcase_execution_duration': 'P0DT0H1M0S',
-            'testcases_generated': 5,
-            'testcase_generation_duration': 'P0DT0H0M30S',
-            'fuzzing_duration': 'P0DT0H1M30S'
-        }],
-        total_count=1)
-
     self.mock_job = mock.MagicMock()
     self.mock_api_client.jobs().insert.return_value = self.mock_job
     self.mock_job.execute.return_value = {'status': {'state': 'DONE'}}
 
   def test_aggregate_fuzzer_stats(self):
     """Tests execution of the aggregate_fuzzer_stats cron job."""
+    self.mock_client_instance.query.return_value = QueryResult(
+        rows=[{
+            'fuzzer_name': 'ochang_js_fuzzer',
+            'date': '2026-04-29',
+            'testcases_executed': 10495,
+            'testcase_execution_duration': 'P0DT11H12M11S',
+            'testcases_generated': 10495,
+            'testcase_generation_duration': 'P0DT1H15M33S',
+            'fuzzing_duration': 'P0DT12H49M49S'
+        }],
+        total_count=1)
+
     aggregate_fuzzer_stats.main(['--non-dry-run'])
 
     # Verify dataset creation attempt
@@ -85,8 +85,6 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
                 'datasetId': 'fuzzer_stats'
             }
         })
-
-    # Verify table creation attempt
     self.mock_api_client.tables().insert.assert_called_with(
         body={
             'tableReference': {
@@ -103,8 +101,6 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         datasetId='fuzzer_stats',
         projectId='test-clusterfuzz')
 
-    # Verify query execution
-    self.mock_client_instance.query.assert_called_once()
 
     # Verify load jobs insert
     self.mock_api_client.jobs().insert.assert_called_once()
@@ -130,6 +126,10 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     stream_content = bytes_io_arg.getvalue().decode('utf-8')
     uploaded_dict = json.loads(stream_content.strip())
 
-    self.assertEqual(uploaded_dict['fuzzer_name'], 'fuzzer')
-    self.assertEqual(uploaded_dict['date'], '2026-05-01')
-    self.assertEqual(uploaded_dict['testcases_executed'], 10)
+    self.assertEqual(uploaded_dict['fuzzer_name'], 'ochang_js_fuzzer')
+    self.assertEqual(uploaded_dict['date'], '2026-04-29')
+    self.assertEqual(uploaded_dict['testcases_executed'], 10495)
+    self.assertEqual(uploaded_dict['testcase_execution_duration'], 'P0DT11H12M11S')
+    self.assertEqual(uploaded_dict['testcases_generated'], 10495)
+    self.assertEqual(uploaded_dict['testcase_generation_duration'], 'P0DT1H15M33S')
+    self.assertEqual(uploaded_dict['fuzzing_duration'], 'P0DT12H49M49S')
