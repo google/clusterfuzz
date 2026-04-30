@@ -34,7 +34,8 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
 
   def setUp(self):
     # Create a non-builtin fuzzer
-    data_types.Fuzzer(name='ochang_js_fuzzer', jobs=['job'], builtin=False).put()
+    data_types.Fuzzer(
+        name='ochang_js_fuzzer', jobs=['job'], builtin=False).put()
     data_types.Job(name='job').put()
 
     test_helpers.patch(self, [
@@ -101,7 +102,6 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         datasetId='fuzzer_stats',
         projectId='test-clusterfuzz')
 
-
     # Verify load jobs insert
     self.mock_api_client.jobs().insert.assert_called_once()
     call_kwargs = self.mock_api_client.jobs().insert.call_args[1]
@@ -129,7 +129,9 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.assertEqual(uploaded_dict['fuzzer_name'], 'ochang_js_fuzzer')
     self.assertEqual(uploaded_dict['date'], '2026-04-29')
     self.assertEqual(uploaded_dict['testcases_executed'], 10495)
-    self.assertEqual(uploaded_dict['testcase_execution_duration'], 'P0DT11H12M11S')
+    self.assertEqual(uploaded_dict['testcase_execution_duration'],
+                     'P0DT11H12M11S')
     self.assertEqual(uploaded_dict['testcases_generated'], 10495)
-    self.assertEqual(uploaded_dict['testcase_generation_duration'], 'P0DT1H15M33S')
+    self.assertEqual(uploaded_dict['testcase_generation_duration'],
+                     'P0DT1H15M33S')
     self.assertEqual(uploaded_dict['fuzzing_duration'], 'P0DT12H49M49S')
