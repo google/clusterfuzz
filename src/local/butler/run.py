@@ -19,9 +19,9 @@ import os
 import sys
 
 from local.butler import constants
+from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.datastore import ndb_init
-from src.clusterfuzz._internal.base import utils
 
 
 def execute(args):

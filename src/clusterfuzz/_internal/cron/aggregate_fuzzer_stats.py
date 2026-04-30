@@ -1,7 +1,23 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Cron job to aggregate fuzzer stats onto a daily_stats BigQuery table."""
+
 import argparse
 import datetime
 import io
 import json
+import time
 
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -11,8 +27,6 @@ from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
-
-# pylint: disable=no-member
 
 DAILY_STATS_SCHEMA = {
     'fields': [{
@@ -45,10 +59,6 @@ DAILY_STATS_SCHEMA = {
         'mode': 'NULLABLE'
     }]
 }
-
-
-class TableConfigurationError(Exception):
-  """Exception raised for structural mismatches in target databases."""
 
 
 def _create_dataset_if_needed(bigquery, dataset_id):
@@ -91,16 +101,14 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
         projectId=project_id, datasetId=dataset_id, tableId=table_id).execute()
     time_partitioning = table_info.get('timePartitioning')
     if not time_partitioning or time_partitioning.get('field') != 'date':
-      logs.info(
-          f'Table {dataset_id}.{table_id} exists but is unpartitioned or '
-          f'configured differently. Re-creating.'
-      )
+      logs.info(f'Table {dataset_id}.{table_id} exists but is unpartitioned or '
+                f'configured differently. Re-creating.')
       bigquery.tables().delete(
-          projectId=project_id,
-          datasetId=dataset_id,
+          projectId=project_id, datasetId=dataset_id,
           tableId=table_id).execute()
-      raise TableConfigurationError('Table dropped for re-creation')
+
   except Exception as e:
+    # TODO: Use real exceptions from the API instead of string matching codes
     if '404' not in str(e) and 'dropped for re-creation' not in str(e):
       logs.error(
           f'Error checking metadata for table {dataset_id}.{table_id}: {e}')
@@ -115,6 +123,87 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
       logs.error(f'Failed to create table {dataset_id}.{table_id}: {e}')
 
 
+def _parse_bq_interval_string(s):
+  """Parses canonical BigQuery INTERVAL string representation to ISO 8601."""
+  if not s:
+    return s
+
+  s = s.strip()
+  if s.startswith('P') or s.startswith('-P'):
+    return s
+
+  try:
+    parts = s.split()
+    years = 0
+    months = 0
+    days = 0
+    hours = 0
+    minutes = 0
+    seconds = 0.0
+
+    for p in parts:
+      if '-' in p:
+        is_neg = p.startswith('-')
+        if is_neg or p.startswith('+'):
+          p = p[1:]
+        sub_parts = p.split('-')
+        if len(sub_parts) == 2:
+          years = int(sub_parts[0])
+          months = int(sub_parts[1])
+          if is_neg:
+            years = -years
+            months = -months
+      elif ':' in p:
+        is_neg = p.startswith('-')
+        if is_neg or p.startswith('+'):
+          p = p[1:]
+        sub_parts = p.split(':')
+        if len(sub_parts) >= 3:
+          hours = int(sub_parts[0])
+          minutes = int(sub_parts[1])
+          seconds = float(sub_parts[2])
+          if is_neg:
+            hours = -hours
+            minutes = -minutes
+            seconds = -seconds
+      else:
+        days = int(p)
+
+    is_negative_duration = (
+        years < 0 or months < 0 or days < 0 or hours < 0 or minutes < 0 or
+        seconds < 0)
+
+    abs_years = abs(years)
+    abs_months = abs(months)
+    abs_days = abs(days)
+    abs_hours = abs(hours)
+    abs_minutes = abs(minutes)
+    abs_seconds = abs(seconds)
+
+    secs = int(abs_seconds)
+    microseconds = int(round((abs_seconds - secs) * 1000000))
+
+    duration = '-' if is_negative_duration else ''
+    duration += 'P'
+
+    return f"{duration}{abs_days}DT{abs_hours}H{abs_minutes}M{secs}.{microseconds:06d}S"
+
+  except Exception:
+    return s
+
+
+def _poll_completion(bigquery, project_id, job_id):
+  """Poll for completion."""
+  response = bigquery.jobs().get(
+      projectId=project_id, jobId=job_id).execute(num_retries=2)
+  while response['status']['state'] == 'RUNNING':
+    time.sleep(5)
+    response = bigquery.jobs().get(
+        projectId=project_id, jobId=job_id).execute(num_retries=2)
+
+  return response
+
+
 def main(argv):
   """Main entry point for the aggregate_fuzzer_stats cron job."""
   parser = argparse.ArgumentParser(prog='aggregate_fuzzer_stats')
@@ -125,10 +214,8 @@ def main(argv):
   logs.info('Starting fuzzer stats aggregation cron.')
 
   if environment.is_local_development():
-    logs.error(
-        'BigQuery requires a cloud project to run. '
-        'This cron job cannot run locally.'
-    )
+    logs.error('BigQuery requires a cloud project to run. '
+               'This cron job cannot run locally.')
     return
 
   bigquery_client = big_query.get_api_client()
@@ -143,13 +230,16 @@ def main(argv):
   # pylint: disable=singleton-comparison
   fuzzers = data_types.Fuzzer.query(data_types.Fuzzer.builtin == False)
 
-  yesterday = (datetime.datetime.utcnow().date() - datetime.timedelta(days=1))
+  yesterday = utils.utcnow().date() - datetime.timedelta(days=1)
   date_partition_str = yesterday.strftime('%Y%m%d')
 
   all_rows = []
 
   for fuzzer in fuzzers:
     logs.info(f'Processing stats for fuzzer: {fuzzer.name}')
+
+    if fuzzer.name != 'ochang_js_fuzzer':
+      continue
 
     dataset_id = fuzzer_stats.dataset_name(fuzzer.name)
     table_id = 'JobRun'
@@ -188,21 +278,24 @@ def main(argv):
   if all_rows:
     if not args.non_dry_run:
       logs.info(
-          f'DRY RUN: Would insert {len(all_rows)} rows across all fuzzers.'
-      )
+          f'DRY RUN: Would insert {len(all_rows)} rows across all fuzzers.')
       logs.info(all_rows)
     else:
       try:
         output = io.StringIO()
         for row in all_rows:
-          output.write(json.dumps(row) + '\n')
+          row_dict = dict(row)
+          for field in ('testcase_execution_duration',
+                        'testcase_generation_duration', 'fuzzing_duration'):
+            if field in row_dict and row_dict[field] is not None:
+              row_dict[field] = _parse_bq_interval_string(row_dict[field])
+          output.write(json.dumps(row_dict) + '\n')
 
         content = output.getvalue().encode('utf-8')
         media_body = MediaIoBaseUpload(
             io.BytesIO(content),
             mimetype='application/octet-stream',
-            resumable=False
-        )
+            resumable=False)
 
         body = {
             'configuration': {
@@ -220,15 +313,19 @@ def main(argv):
         }
 
         request = bigquery_client.jobs().insert(
-            projectId=project_id,
-            body=body,
-            media_body=media_body
-        )
+            projectId=project_id, body=body, media_body=media_body)
         response = request.execute(num_retries=2)
-        logs.info(
-            f'Successfully loaded data to '
-            f'daily_stats${date_partition_str}: {response}'
-        )
+        job_id = response['jobReference']['jobId']
+
+        logs.info(f'Monitoring completion for load job id: {job_id}')
+        poll_response = _poll_completion(bigquery_client, project_id, job_id)
+
+        errors = poll_response['status'].get('errors')
+        if errors:
+          logs.error(f'Failed load for {job_id} with errors: {str(errors)})')
+        else:
+          logs.info(f'Successfully loaded data to '
+                    f'daily_stats${date_partition_str}: {poll_response}')
 
       except Exception as e:
         logs.error(f'Failed to execute batch load job in BigQuery: {e}')
