@@ -56,7 +56,9 @@ _default_extras = {}
 
 def _increment_error_count():
   """"Increment the error count metric."""
-  if environment.is_running_on_k8s():
+  if environment.is_running_on_swarming():
+    task_name = 'swarming'
+  elif environment.is_running_on_k8s():
     task_name = 'k8s'
   elif environment.is_running_on_app_engine():
     task_name = 'appengine'
