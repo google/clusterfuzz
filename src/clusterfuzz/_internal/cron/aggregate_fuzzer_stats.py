@@ -71,7 +71,7 @@ def _create_dataset_if_needed(bigquery, dataset_id):
       },
   }
   try:
-    bigquery.datasets().insert(
+    bigquery.datasets().insert(  # pylint: disable=no-member
         projectId=project_id, body=dataset_body).execute()
     logs.info(f'Created dataset {dataset_id}.')
   except Exception as e:
@@ -97,13 +97,13 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
 
   try:
     # Validate that existing partitioned state holds right parameters
-    table_info = bigquery.tables().get(
+    table_info = bigquery.tables().get(  # pylint: disable=no-member
         projectId=project_id, datasetId=dataset_id, tableId=table_id).execute()
     time_partitioning = table_info.get('timePartitioning')
     if not time_partitioning or time_partitioning.get('field') != 'date':
       logs.info(f'Table {dataset_id}.{table_id} exists but is unpartitioned or '
                 f'configured differently. Re-creating.')
-      bigquery.tables().delete(
+      bigquery.tables().delete(  # pylint: disable=no-member
           projectId=project_id, datasetId=dataset_id,
           tableId=table_id).execute()
 
@@ -115,7 +115,7 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
       return
 
   try:
-    bigquery.tables().insert(
+    bigquery.tables().insert(  # pylint: disable=no-member
         projectId=project_id, datasetId=dataset_id, body=table_body).execute()
     logs.info(f'Created table {dataset_id}.{table_id}.')
   except Exception as e:
@@ -123,82 +123,13 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
       logs.error(f'Failed to create table {dataset_id}.{table_id}: {e}')
 
 
-def _parse_bq_interval_string(s):
-  """Parses canonical BigQuery INTERVAL string representation to ISO 8601."""
-  if not s:
-    return s
-
-  s = s.strip()
-  if s.startswith('P') or s.startswith('-P'):
-    return s
-
-  try:
-    parts = s.split()
-    years = 0
-    months = 0
-    days = 0
-    hours = 0
-    minutes = 0
-    seconds = 0.0
-
-    for p in parts:
-      if '-' in p:
-        is_neg = p.startswith('-')
-        if is_neg or p.startswith('+'):
-          p = p[1:]
-        sub_parts = p.split('-')
-        if len(sub_parts) == 2:
-          years = int(sub_parts[0])
-          months = int(sub_parts[1])
-          if is_neg:
-            years = -years
-            months = -months
-      elif ':' in p:
-        is_neg = p.startswith('-')
-        if is_neg or p.startswith('+'):
-          p = p[1:]
-        sub_parts = p.split(':')
-        if len(sub_parts) >= 3:
-          hours = int(sub_parts[0])
-          minutes = int(sub_parts[1])
-          seconds = float(sub_parts[2])
-          if is_neg:
-            hours = -hours
-            minutes = -minutes
-            seconds = -seconds
-      else:
-        days = int(p)
-
-    is_negative_duration = (
-        years < 0 or months < 0 or days < 0 or hours < 0 or minutes < 0 or
-        seconds < 0)
-
-    abs_years = abs(years)
-    abs_months = abs(months)
-    abs_days = abs(days)
-    abs_hours = abs(hours)
-    abs_minutes = abs(minutes)
-    abs_seconds = abs(seconds)
-
-    secs = int(abs_seconds)
-    microseconds = int(round((abs_seconds - secs) * 1000000))
-
-    duration = '-' if is_negative_duration else ''
-    duration += 'P'
-
-    return f"{duration}{abs_days}DT{abs_hours}H{abs_minutes}M{secs}.{microseconds:06d}S"
-
-  except Exception:
-    return s
-
-
 def _poll_completion(bigquery, project_id, job_id):
   """Poll for completion."""
-  response = bigquery.jobs().get(
+  response = bigquery.jobs().get(  # pylint: disable=no-member
       projectId=project_id, jobId=job_id).execute(num_retries=2)
   while response['status']['state'] == 'RUNNING':
     time.sleep(5)
-    response = bigquery.jobs().get(
+    response = bigquery.jobs().get(  # pylint: disable=no-member
         projectId=project_id, jobId=job_id).execute(num_retries=2)
 
   return response
@@ -238,9 +169,6 @@ def main(argv):
   for fuzzer in fuzzers:
     logs.info(f'Processing stats for fuzzer: {fuzzer.name}')
 
-    if fuzzer.name != 'ochang_js_fuzzer':
-      continue
-
     dataset_id = fuzzer_stats.dataset_name(fuzzer.name)
     table_id = 'JobRun'
 
@@ -249,10 +177,28 @@ def main(argv):
       '{fuzzer.name}' as fuzzer_name,
       CAST(DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) AS STRING) as date,
       SUM(testcases_executed) as testcases_executed,
-      CAST(SUM(testcase_execution_duration) AS STRING) as testcase_execution_duration,
+      CONCAT(
+        'P',
+        CAST(EXTRACT(DAY FROM SUM(testcase_execution_duration)) AS STRING), 'DT',
+        CAST(EXTRACT(HOUR FROM SUM(testcase_execution_duration)) AS STRING), 'H',
+        CAST(EXTRACT(MINUTE FROM SUM(testcase_execution_duration)) AS STRING), 'M',
+        CAST(EXTRACT(SECOND FROM SUM(testcase_execution_duration)) AS STRING), 'S'
+      ) as testcase_execution_duration,
       SUM(testcases_generated) as testcases_generated,
-      CAST(SUM(testcase_generation_duration) AS STRING) as testcase_generation_duration,
-      CAST(SUM(fuzzing_duration) AS STRING) as fuzzing_duration
+      CONCAT(
+        'P',
+        CAST(EXTRACT(DAY FROM SUM(testcase_generation_duration)) AS STRING), 'DT',
+        CAST(EXTRACT(HOUR FROM SUM(testcase_generation_duration)) AS STRING), 'H',
+        CAST(EXTRACT(MINUTE FROM SUM(testcase_generation_duration)) AS STRING), 'M',
+        CAST(EXTRACT(SECOND FROM SUM(testcase_generation_duration)) AS STRING), 'S'
+      ) as testcase_generation_duration,
+      CONCAT(
+        'P',
+        CAST(EXTRACT(DAY FROM SUM(fuzzing_duration)) AS STRING), 'DT',
+        CAST(EXTRACT(HOUR FROM SUM(fuzzing_duration)) AS STRING), 'H',
+        CAST(EXTRACT(MINUTE FROM SUM(fuzzing_duration)) AS STRING), 'M',
+        CAST(EXTRACT(SECOND FROM SUM(fuzzing_duration)) AS STRING), 'S'
+      ) as fuzzing_duration
     FROM
       `{project_id}.{dataset_id}.{table_id}`
     WHERE
@@ -284,12 +230,7 @@ def main(argv):
       try:
         output = io.StringIO()
         for row in all_rows:
-          row_dict = dict(row)
-          for field in ('testcase_execution_duration',
-                        'testcase_generation_duration', 'fuzzing_duration'):
-            if field in row_dict and row_dict[field] is not None:
-              row_dict[field] = _parse_bq_interval_string(row_dict[field])
-          output.write(json.dumps(row_dict) + '\n')
+          output.write(json.dumps(row) + '\n')
 
         content = output.getvalue().encode('utf-8')
         media_body = MediaIoBaseUpload(
@@ -312,7 +253,7 @@ def main(argv):
             }
         }
 
-        request = bigquery_client.jobs().insert(
+        request = bigquery_client.jobs().insert(  # pylint: disable=no-member
             projectId=project_id, body=body, media_body=media_body)
         response = request.execute(num_retries=2)
         job_id = response['jobReference']['jobId']
