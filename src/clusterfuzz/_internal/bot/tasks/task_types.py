@@ -178,8 +178,12 @@ class UTask(BaseUTask):
       return
 
     logs.info('Queueing utask for remote execution.', download_url=download_url)
-    assert batch_service.is_remote_task(command, job_type)
-    tasks.add_utask_main(command, download_url, job_type)
+    if swarming.is_swarming_task(job_type):
+      swarming.push_swarming_task(swarming.create_new_task_request(
+        command, job_type, download_url))
+    else:
+      assert batch_service.is_remote_task(command, job_type)
+      tasks.add_utask_main(command, download_url, job_type)
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def preprocess(self, task_argument, job_type, uworker_env):
