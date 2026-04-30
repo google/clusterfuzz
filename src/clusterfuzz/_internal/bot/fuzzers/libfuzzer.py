@@ -1166,13 +1166,54 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
           return match.group(1)
     return None
 
+  def _get_device_corpus_paths(self, corpus_directories):
+    return [self._get_device_path(path) for path in corpus_directories]
+
+  def _get_device_path(self, local_path):
+    root_directory = environment.get_root_directory()
+    return os.path.join(android.constants.DEVICE_FUZZING_DIR,
+                        os.path.relpath(local_path, root_directory))
+
+  def _copy_local_directories_to_device(self, local_directories):
+    for local_directory in sorted(set(local_directories)):
+      self.copy_local_directory_to_device(local_directory)
+
+  def copy_local_directory_to_device(self, local_directory):
+    device_directory = self._get_device_path(local_directory)
+    android.adb.remove_directory(device_directory, recreate=True)
+    android.adb.copy_local_directory_to_remote(local_directory,
+                                               device_directory)
+
+  def _copy_local_directories_from_device(self, local_directories):
+    for local_directory in sorted(set(local_directories)):
+      device_directory = self._get_device_path(local_directory)
+      shell.remove_directory(local_directory, recreate=True)
+      android.adb.copy_remote_directory_to_local(device_directory,
+                                                 local_directory)
+
   def fuzz(self, corpus_directories, fuzz_timeout, artifact_prefix=None, additional_args=None, extra_env=None):
+    sync_directories = list(corpus_directories)
+    if artifact_prefix:
+      sync_directories.append(artifact_prefix)
+
+    self._copy_local_directories_to_device(sync_directories)
+    device_corpus_dirs = self._get_device_corpus_paths(corpus_directories)
+
+    if artifact_prefix:
+      artifact_prefix = self._get_device_path(artifact_prefix)
+
+    fuzzer_args = []
+    if additional_args:
+      fuzzer_args.extend(additional_args)
+    fuzzer_args.extend(device_corpus_dirs)
+    fuzzer_args_str = ' '.join(fuzzer_args)
+
     if self.instrumentation_runner:
-      args = ['shell', 'am', 'instrument', '-w', f'{self.package_name}/{self.instrumentation_runner}']
-      logs.info(f'Starting Instrumentation: {self.package_name}/{self.instrumentation_runner}')
+      args = ['shell', 'am', 'instrument', '-w', '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"', f'{self.package_name}/{self.instrumentation_runner}']
+      logs.info(f'Starting Instrumentation: {self.package_name}/{self.instrumentation_runner} with args: {fuzzer_args_str}')
     elif self.launchable_activity:
-      args = ['shell', 'am', 'start', '-n', f'{self.package_name}/{self.launchable_activity}']
-      logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity}')
+      args = ['shell', 'am', 'start', '-n', f'{self.package_name}/{self.launchable_activity}', '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"']
+      logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity} with args: {fuzzer_args_str}')
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
       
@@ -1182,7 +1223,9 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
         max_stdout_len=MAX_OUTPUT_LEN)
         
     result.output = f'{result.output}\n\nLogcat:\n{android.logger.log_output()}'
+    self._copy_local_directories_from_device(sync_directories)
     return result
+
 
 
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
