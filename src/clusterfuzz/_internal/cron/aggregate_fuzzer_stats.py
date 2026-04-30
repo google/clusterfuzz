@@ -19,21 +19,26 @@ from concurrent.futures import ThreadPoolExecutor
 import datetime
 import io
 import json
+import random
 import time
 
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
+import httplib2
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_types, ndb_utils
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-# Limit orker count to 4 concurrent threads to prevents exhaustion of
+# Limit worker count to 4 concurrent threads to prevent exhaustion of
 # project-wide queued interactive queries quota (1,000 maximum). See
 # https://cloud.google.com/bigquery/quotas#query_jobs
 NUM_THREADS = 4
+NUM_RETRIES = 2
+RETRY_SLEEP_TIME = 5
 
 DAILY_STATS_SCHEMA = {
     'fields': [{
@@ -68,6 +73,29 @@ DAILY_STATS_SCHEMA = {
 }
 
 
+def _execute_insert_request(request):
+  """Executes a table/dataset insert request, retrying on transport errors."""
+  for i in range(NUM_RETRIES + 1):
+    try:
+      request.execute()
+      return
+    except HttpError as e:
+      if e.resp.status == 409:
+        # 409 Conflict: Returned when the resource already exists. This is
+        # expected in after the first execution because tables are created
+        # exactly once.
+        return
+
+      logs.error('Failed to insert table/dataset.', exception=e)
+      raise
+    except httplib2.HttpLib2Error as e:
+      # Network or transport error, retry operation with exponential back-off.
+      if i == NUM_RETRIES:
+        logs.error('Failed to insert table/dataset after retries.', exception=e)
+        raise
+      time.sleep(random.uniform(0, (1 << i) * RETRY_SLEEP_TIME))
+
+
 def _create_dataset_if_needed(bigquery, dataset_id):
   """Create a new dataset if necessary."""
   project_id = utils.get_application_id()
@@ -77,13 +105,10 @@ def _create_dataset_if_needed(bigquery, dataset_id):
           'projectId': project_id,
       },
   }
-  try:
-    bigquery.datasets().insert(
-        projectId=project_id, body=dataset_body).execute()
-    logs.info(f'Created dataset {dataset_id}.')
-  except Exception as e:
-    if '409' not in str(e):
-      logs.error(f'Failed to create dataset {dataset_id}: {e}')
+  dataset_insert = bigquery.datasets().insert(
+      projectId=project_id, body=dataset_body)
+
+  _execute_insert_request(dataset_insert)
 
 
 def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
@@ -102,32 +127,9 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
       'schema': schema
   }
 
-  try:
-    # Validate that existing partitioned state holds right parameters
-    table_info = bigquery.tables().get(
-        projectId=project_id, datasetId=dataset_id, tableId=table_id).execute()
-    time_partitioning = table_info.get('timePartitioning')
-    if not time_partitioning or time_partitioning.get('field') != 'date':
-      logs.info(f'Table {dataset_id}.{table_id} exists but is unpartitioned or '
-                f'configured differently. Re-creating.')
-      bigquery.tables().delete(
-          projectId=project_id, datasetId=dataset_id,
-          tableId=table_id).execute()
-
-  except Exception as e:
-    # TODO: Use real exceptions from the API instead of string matching codes
-    if '404' not in str(e) and 'dropped for re-creation' not in str(e):
-      logs.error(
-          f'Error checking metadata for table {dataset_id}.{table_id}: {e}')
-      return
-
-  try:
-    bigquery.tables().insert(
-        projectId=project_id, datasetId=dataset_id, body=table_body).execute()
-    logs.info(f'Created table {dataset_id}.{table_id}.')
-  except Exception as e:
-    if '409' not in str(e):
-      logs.error(f'Failed to create table {dataset_id}.{table_id}: {e}')
+  table_insert = bigquery.tables().insert(
+      projectId=project_id, datasetId=dataset_id, body=table_body)
+  _execute_insert_request(table_insert)
 
 
 def _poll_completion(bigquery, project_id, job_id):
@@ -193,8 +195,16 @@ def _query_fuzzer_stats(fuzzer_name, project_id):
 
     return list(result.rows)
 
+  except HttpError as e:
+    if e.resp.status == 404:
+      logs.info(
+          f'JobRun table or dataset does not exist for {fuzzer_name}. Skipping.'
+      )
+      return []
+    else:
+      raise  # fallback to general exception
   except Exception as e:
-    logs.error(f'Failed to process {fuzzer_name}: {e}')
+    logs.error(f'Failed to process {fuzzer_name}', exception=e)
     return []
 
 
@@ -214,7 +224,7 @@ def _gather_all_stats(fuzzers, project_id):
         if rows:
           all_rows.extend(rows)
       except Exception as e:
-        logs.error(f'Task execution crashed for {fuzzer.name}: {e}')
+        logs.error(f'Task execution crashed for {fuzzer.name}', exception=e)
 
   return all_rows
 
@@ -273,7 +283,7 @@ def _persist_daily_stats(all_rows, bigquery_client, project_id,
                 f'daily_stats${date_partition_str}: {poll_response}')
 
   except Exception as e:
-    logs.error(f'Failed to execute batch load job in BigQuery: {e}')
+    logs.error('Failed to execute batch load job in BigQuery', exception=e)
 
 
 def main(argv):
@@ -298,9 +308,9 @@ def main(argv):
     _create_table_if_needed(bigquery_client, 'fuzzer_stats', 'daily_stats',
                             DAILY_STATS_SCHEMA)
 
-  # The linter suggests a comparison that isn't supported by query() filters.
-  # pylint: disable=singleton-comparison
-  fuzzers = list(data_types.Fuzzer.query(data_types.Fuzzer.builtin == False))
+  fuzzers = list(data_types.Fuzzer.query(
+      ndb_utils.is_false(data_types.Fuzzer.builtin)))
+
 
   yesterday = utils.utcnow().date() - datetime.timedelta(days=1)
   date_partition_str = yesterday.strftime('%Y%m%d')
