@@ -70,15 +70,10 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
 
     self.mock_job = mock.MagicMock()
     self.mock_api_client.jobs().insert.return_value = self.mock_job
-    self.mock_job.execute.return_value = {
-        'status': {
-            'state': 'DONE'
-        }
-    }
+    self.mock_job.execute.return_value = {'status': {'state': 'DONE'}}
 
-  def test_aggregate(self):
+  def test_aggregate_fuzzer_stats(self):
     """Tests execution of the aggregate_fuzzer_stats cron job."""
-    # Pass argv list instead of mock args object
     aggregate_fuzzer_stats.main(['--non-dry-run'])
 
     # Verify dataset creation attempt
@@ -118,15 +113,15 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
 
     body = call_kwargs['body']
     load_config = body['configuration']['load']
-    self.assertEqual(
-        load_config['destinationTable']['datasetId'], 'fuzzer_stats')
+    self.assertEqual(load_config['destinationTable']['datasetId'],
+                     'fuzzer_stats')
     self.assertEqual(load_config['writeDisposition'], 'WRITE_TRUNCATE')
     self.assertEqual(load_config['sourceFormat'], 'NEWLINE_DELIMITED_JSON')
 
     yesterday = (datetime.datetime.utcnow().date() - datetime.timedelta(days=1))
     expected_table_id = f"daily_stats${yesterday.strftime('%Y%m%d')}"
-    self.assertEqual(
-        load_config['destinationTable']['tableId'], expected_table_id)
+    self.assertEqual(load_config['destinationTable']['tableId'],
+                     expected_table_id)
 
     # Verify JSON uploaded media content using the patched wrapper inputs
     self.mock.MediaIoBaseUpload.assert_called_once()
@@ -138,5 +133,3 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.assertEqual(uploaded_dict['fuzzer_name'], 'fuzzer')
     self.assertEqual(uploaded_dict['date'], '2026-05-01')
     self.assertEqual(uploaded_dict['testcases_executed'], 10)
-
-
