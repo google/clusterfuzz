@@ -354,6 +354,19 @@ def _add_schedule_tworker_fuzz_subparser(toplevel_subparsers):
       help='Script specific arguments (FUZZER_NAME JOB_NAME)')
 
 
+def _add_uworker_preprocess_subparser(toplevel_subparsers):
+  """Adds a parser for the `uworker_preprocess` command."""
+  parser = toplevel_subparsers.add_parser(
+      'uworker_preprocess',
+      help='Run the preprocess step of a fuzz task locally.')
+  parser.add_argument(
+      '--fuzzer', required=True, help='The name of the fuzzer.')
+  parser.add_argument(
+      '--job', required=True, help='The job name.')
+  parser.add_argument(
+      '-c', '--config-dir', required=True, help='Path to application config.')
+
+
 def _add_reproduce_subparser(toplevel_subparsers):
   """Adds a parser for the `reproduce` command."""
   parser = toplevel_subparsers.add_parser(
@@ -491,6 +504,7 @@ def main():
   _add_weights_subparser(subparsers)
   _add_reproduce_subparser(subparsers)
   _add_schedule_tworker_fuzz_subparser(subparsers)
+  _add_uworker_preprocess_subparser(subparsers)
   args = parser.parse_args()
   if not args.command:
     parser.print_help()
