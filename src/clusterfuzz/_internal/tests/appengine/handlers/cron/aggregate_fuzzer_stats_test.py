@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for aggregate_fuzzer_stats."""
+"""Tests for aggregate_fuzzer_stats cron job"""
 
 import datetime
 import json
@@ -33,7 +33,6 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
   """Test AggregateFuzzerStats."""
 
   def setUp(self):
-    # Create a non-builtin fuzzer
     data_types.Fuzzer(
         name='ochang_js_fuzzer', jobs=['job'], builtin=False).put()
     data_types.Job(name='job').put()
@@ -42,7 +41,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.big_query.get_api_client',
         'clusterfuzz._internal.google_cloud_utils.big_query.Client',
         'clusterfuzz._internal.base.utils.get_application_id',
-        'googleapiclient.http.MediaIoBaseUpload',
+        'clusterfuzz._internal.cron.aggregate_fuzzer_stats.MediaIoBaseUpload',
     ])
 
     self.mock.get_application_id.return_value = 'test-clusterfuzz'
@@ -132,7 +131,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.assertEqual(uploaded_dict['fuzzing_duration'], 'P0DT12H49M49S')
 
   def test_aggregate_fuzzer_stats_ignoring_409(self):
-    """Tests that execution successfully proceeds past HTTP 409 Conflict scenarios."""
+    """Tests that execution successfully proceeds when the table already exists."""
     resp = httplib2.Response({'status': 409})
     self.mock_api_client.datasets().insert().execute.side_effect = HttpError(
         resp, b'Already exists')
@@ -156,9 +155,9 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
 
   def test_aggregate_fuzzer_stats_raises_non_409(self):
     """Tests that unexpected HTTP errors cause job failures."""
-    resp = httplib2.Response({'status': 500})
+    response = httplib2.Response({'status': 500})
     self.mock_api_client.datasets().insert().execute.side_effect = HttpError(
-        resp, b'Internal Server Error')
+        response, b'Internal Server Error')
 
     with self.assertRaises(HttpError):
       aggregate_fuzzer_stats.main(['--non-dry-run'])
