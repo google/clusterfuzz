@@ -27,7 +27,8 @@ from googleapiclient.http import MediaIoBaseUpload
 import httplib2
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.datastore import data_types, ndb_utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
@@ -82,8 +83,8 @@ def _execute_insert_request(request):
     except HttpError as e:
       if e.resp.status == 409:
         # 409 Conflict: Returned when the resource already exists. This is
-        # expected in after the first execution because tables are created
-        # exactly once.
+        # expected after the first execution because tables are created exactly
+        # once.
         return
 
       logs.error('Failed to insert table/dataset.', exception=e)
@@ -96,7 +97,7 @@ def _execute_insert_request(request):
       time.sleep(random.uniform(0, (1 << i) * RETRY_SLEEP_TIME))
 
 
-def _create_dataset_if_needed(bigquery, dataset_id):
+def _create_dataset_if_needed(bigquery_client, dataset_id):
   """Create a new dataset if necessary."""
   project_id = utils.get_application_id()
   dataset_body = {
@@ -105,13 +106,13 @@ def _create_dataset_if_needed(bigquery, dataset_id):
           'projectId': project_id,
       },
   }
-  dataset_insert = bigquery.datasets().insert(
+  dataset_insert = bigquery_client.datasets().insert(
       projectId=project_id, body=dataset_body)
 
   _execute_insert_request(dataset_insert)
 
 
-def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
+def _create_table_if_needed(bigquery_client, dataset_id, table_id, schema):
   """Create a new table if needed."""
   project_id = utils.get_application_id()
   table_body = {
@@ -127,18 +128,18 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
       'schema': schema
   }
 
-  table_insert = bigquery.tables().insert(
+  table_insert = bigquery_client.tables().insert(
       projectId=project_id, datasetId=dataset_id, body=table_body)
   _execute_insert_request(table_insert)
 
 
-def _poll_completion(bigquery, project_id, job_id):
+def _poll_completion(bigquery_client, project_id, job_id):
   """Poll for completion."""
-  response = bigquery.jobs().get(
+  response = bigquery_client.jobs().get(
       projectId=project_id, jobId=job_id).execute(num_retries=2)
   while response['status']['state'] == 'RUNNING':
     time.sleep(5)
-    response = bigquery.jobs().get(
+    response = bigquery_client.jobs().get(
         projectId=project_id, jobId=job_id).execute(num_retries=2)
 
   return response
@@ -308,9 +309,8 @@ def main(argv):
     _create_table_if_needed(bigquery_client, 'fuzzer_stats', 'daily_stats',
                             DAILY_STATS_SCHEMA)
 
-  fuzzers = list(data_types.Fuzzer.query(
-      ndb_utils.is_false(data_types.Fuzzer.builtin)))
-
+  fuzzers = list(
+      data_types.Fuzzer.query(ndb_utils.is_false(data_types.Fuzzer.builtin)))
 
   yesterday = utils.utcnow().date() - datetime.timedelta(days=1)
   date_partition_str = yesterday.strftime('%Y%m%d')
