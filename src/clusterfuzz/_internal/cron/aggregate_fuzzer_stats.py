@@ -98,7 +98,6 @@ def _execute_insert_request(request):
 
 
 def _create_dataset_if_needed(bigquery_client, dataset_id):
-  """Create a new dataset if necessary."""
   project_id = utils.get_application_id()
   dataset_body = {
       'datasetReference': {
@@ -113,7 +112,6 @@ def _create_dataset_if_needed(bigquery_client, dataset_id):
 
 
 def _create_table_if_needed(bigquery_client, dataset_id, table_id, schema):
-  """Create a new table if needed."""
   project_id = utils.get_application_id()
   table_body = {
       'tableReference': {
@@ -134,7 +132,7 @@ def _create_table_if_needed(bigquery_client, dataset_id, table_id, schema):
 
 
 def _poll_completion(bigquery_client, project_id, job_id):
-  """Poll for completion."""
+  """Poll bigquery for job completion."""
   response = bigquery_client.jobs().get(
       projectId=project_id, jobId=job_id).execute(num_retries=2)
   while response['status']['state'] == 'RUNNING':
@@ -145,12 +143,11 @@ def _poll_completion(bigquery_client, project_id, job_id):
   return response
 
 
-def _query_fuzzer_stats(fuzzer_name, project_id):
-  """Queries single fuzzer stats for yesterday."""
+def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
+  """Queries single fuzzer stats for the given target date."""
   dataset_id = fuzzer_stats.dataset_name(fuzzer_name)
   table_id = 'JobRun'
 
-  # TODO: Pass timestamp from an optional flag with default value for yesterday
   query = f"""
   SELECT
     '{fuzzer_name}' as fuzzer_name,
@@ -181,7 +178,7 @@ def _query_fuzzer_stats(fuzzer_name, project_id):
   FROM
     `{project_id}.{dataset_id}.{table_id}`
   WHERE
-    DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+    DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) = '{target_date_str}'
   GROUP BY
     date
   """
@@ -191,31 +188,28 @@ def _query_fuzzer_stats(fuzzer_name, project_id):
     result = source_client.query(query)
 
     if not result.rows:
-      logs.info(f'No data for {fuzzer_name} for yesterday.')
+      logs.info(f'No data for {fuzzer_name} for {target_date_str}.')
       return []
 
     return list(result.rows)
 
   except HttpError as e:
     if e.resp.status == 404:
-      logs.info(
-          f'JobRun table or dataset does not exist for {fuzzer_name}. Skipping.'
-      )
+      logs.info(f'JobRun table does not exist for {fuzzer_name}. Skipping.')
       return []
-    else:
-      raise  # fallback to general exception
+    raise  # fallback to general exception
   except Exception as e:
     logs.error(f'Failed to process {fuzzer_name}', exception=e)
     return []
 
 
-def _gather_all_stats(fuzzers, project_id):
+def _gather_all_stats(fuzzers, project_id, target_date_str):
   """Gathers fuzzer statistics concurrently using a thread pool."""
   all_rows = []
   with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
     future_to_fuzzer = {
-        executor.submit(_query_fuzzer_stats, fuzzer.name, project_id): fuzzer
-        for fuzzer in fuzzers
+        executor.submit(_query_fuzzer_stats, fuzzer.name, project_id,
+                        target_date_str): fuzzer for fuzzer in fuzzers
     }
 
     for future in as_completed(future_to_fuzzer):
@@ -292,9 +286,23 @@ def main(argv):
   parser = argparse.ArgumentParser(prog='aggregate_fuzzer_stats')
   parser.add_argument(
       '--non-dry-run', action='store_true', help='Whether to write to BigQuery')
+  parser.add_argument(
+      '--date',
+      help=('Date for fuzzer stats aggregation (YYYY-MM-DD). Defaults to today '
+            'UTC.'),
+      type=str)
   args = parser.parse_args(argv)
 
   logs.info('Starting fuzzer stats aggregation cron.')
+
+  if args.date:
+    try:
+      target_date = datetime.datetime.strptime(args.date, '%Y-%m-%d').date()
+    except ValueError:
+      parser.error(f'Invalid date format: {args.date}. Expected YYYY-MM-DD.')
+  else:
+    # Default to yesterday.
+    target_date = utils.utcnow().date() - datetime.timedelta(days=1)
 
   if environment.is_local_development():
     logs.error('BigQuery requires a cloud project to run. '
@@ -312,10 +320,10 @@ def main(argv):
   fuzzers = list(
       data_types.Fuzzer.query(ndb_utils.is_false(data_types.Fuzzer.builtin)))
 
-  yesterday = utils.utcnow().date() - datetime.timedelta(days=1)
-  date_partition_str = yesterday.strftime('%Y%m%d')
+  date_partition_str = target_date.strftime('%Y%m%d')
+  target_date_str = target_date.strftime('%Y-%m-%d')
 
-  all_rows = _gather_all_stats(fuzzers, project_id)
+  all_rows = _gather_all_stats(fuzzers, project_id, target_date_str)
 
   _persist_daily_stats(
       all_rows=all_rows,
