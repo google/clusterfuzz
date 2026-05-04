@@ -19,7 +19,6 @@ import os
 import sys
 
 from local.butler import constants
-from src.clusterfuzz._internal.base import utils
 from src.clusterfuzz._internal.config import local_config
 from src.clusterfuzz._internal.datastore import ndb_init
 
@@ -34,16 +33,6 @@ def execute(args):
       0, os.path.abspath(os.path.join('src', 'appengine', 'third_party')))
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(args.config_dir)
   local_config.ProjectConfig().set_environment()
-
-  app_id = utils.get_application_id()
-  # Required to use the correct project ID when interacting with the BigQuery client.
-  if app_id:
-    # os.environ['GOOGLE_CLOUD_PROJECT'] = app_id
-    if 'GOOGLE_CLOUD_PROJECT' not in os.environ:
-      print('empty google cloud project')
-    else:
-      print(f'google cloud project {os.environ["GOOGLE_CLOUD_PROJECT"]}')
-    print(f'app id {app_id}')
 
   if args.local:
     os.environ['DATASTORE_EMULATOR_HOST'] = constants.DATASTORE_EMULATOR_HOST
