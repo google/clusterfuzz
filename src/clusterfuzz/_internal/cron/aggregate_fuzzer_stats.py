@@ -98,6 +98,7 @@ def _execute_insert_request(request):
 
 
 def _create_dataset_if_needed(bigquery_client, dataset_id):
+  """Writes a dataset for the `dataset_id`. No-op if it already exists"""
   project_id = utils.get_application_id()
   dataset_body = {
       'datasetReference': {
@@ -112,6 +113,7 @@ def _create_dataset_if_needed(bigquery_client, dataset_id):
 
 
 def _create_table_if_needed(bigquery_client, dataset_id, table_id, schema):
+  """Writes a table for the `table_id`. No-op if it already exists"""
   project_id = utils.get_application_id()
   table_body = {
       'tableReference': {
