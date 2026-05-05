@@ -24,6 +24,6 @@ def get(secret_id, project):
   """Returns the value of the secret identified by |secret_id| in
     |project|."""
   client = get_secret_manager_client()
-  name = f'projects/{project}/secrets/{secret_id}/versions/1'
+  name = f'projects/{project}/secrets/{secret_id}/versions/latest'
   response = client.access_secret_version(request={'name': name})
   return response.payload.data
