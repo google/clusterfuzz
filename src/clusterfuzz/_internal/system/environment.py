@@ -60,6 +60,7 @@ class UtaskMainRuntime(enum.Enum):
   BATCH = 'batch'
   KATA_CONTAINER = 'kata_container'
   INSTANCE_GROUP = 'instance_group'
+  SWARMING = 'swarming'
 
 
 def _eval_value(value_string):
@@ -723,7 +724,7 @@ def is_untrusted_worker():
   return get_value('UNTRUSTED_WORKER')
 
 
-def is_uworker():
+def is_uworker() -> bool:
   """Return whether or not the current bot is a uworker. This is not the same as
   OSS-Fuzz's untrusted worker."""
   return get_value('UWORKER')
@@ -732,19 +733,22 @@ def is_uworker():
 def get_runtime() -> UtaskMainRuntime:
   """
   Get the current runtime for running the tasks.
-  It can be KATA_CONTAINER, BATCH or INSTANCE_GROUP.
+  It can be KATA_CONTAINER, BATCH, SWARMING or INSTANCE_GROUP.
 
   :return: Enum UtaskMainRuntime with one of KATA_CONTAINER,
-  BATCH or INSTANCE_GROUP
+  BATCH, SWARMING or INSTANCE_GROUP
   :rtype: UtaskMainRuntime
   """
-  if is_uworker() and is_running_on_k8s():
+  if not is_uworker():
+    return UtaskMainRuntime.INSTANCE_GROUP
+
+  if is_running_on_swarming():
+    return UtaskMainRuntime.SWARMING
+
+  if is_running_on_k8s():
     return UtaskMainRuntime.KATA_CONTAINER
 
-  if is_uworker() and not is_running_on_k8s():
-    return UtaskMainRuntime.BATCH
-
-  return UtaskMainRuntime.INSTANCE_GROUP
+  return UtaskMainRuntime.BATCH
 
 
 def is_running_on_swarming() -> bool:
@@ -785,9 +789,12 @@ def parse_environment_definition(environment_string):
   return values
 
 
-def is_running_on_k8s():
+def is_running_on_k8s() -> bool:
   """Returns whether or not we're running on K8s."""
-  return os.getenv('IS_K8S_ENV') == 'true'
+  env_value = get_value('IS_K8S_ENV', False)
+  if isinstance(env_value, str):
+    return env_value.lower() == 'true'
+  return bool(env_value)
 
 
 def base_platform(override):
