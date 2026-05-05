@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""uworker_preprocess.py runs the preprocess step of a fuzz task locally."""
+"""preprocess.py runs the preprocess step of a fuzz task locally."""
 
 import os
 import sys
@@ -43,21 +43,19 @@ def _get_fuzzer_environment(fuzzer_name, job_name):
     
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer:
-    print(f"Error: Fuzzer {fuzzer_name} not found in Datastore.")
-    sys.exit(1)
-
+    return {}
     
   additional_default_variables = ''
   additional_variables_for_job = ''
   
-  if fuzzer.additional_environment_string:
-    for env_variable_line in fuzzer.additional_environment_string.splitlines():
-      if '=' in env_variable_line and ':' in env_variable_line.split('=', 1)[0]:
-        fuzzer_job_name, environment_definition = env_variable_line.split(':', 1)
+  if hasattr(fuzzer, 'additional_environment_string') and fuzzer.additional_environment_string:
+    for line in fuzzer.additional_environment_string.splitlines():
+      if '=' in line and ':' in line.split('=', 1)[0]:
+        fuzzer_job_name, environment_definition = line.split(':', 1)
         if fuzzer_job_name == job_name:
           additional_variables_for_job += '\n%s' % environment_definition
         continue
-      additional_default_variables += '\n%s' % env_variable
+      additional_default_variables += '\n%s' % line
       
   env_string = additional_default_variables + additional_variables_for_job
   return environment.parse_environment_definition(env_string)
@@ -95,7 +93,7 @@ def _early_setup(args):
 
 
 def execute(args):
-  """Executes the uworker_preprocess command."""
+  """Executes the preprocess command."""
   _early_setup(args)
   
   print(f'Running preprocess for fuzzer: {args.fuzzer}, job: {args.job}')
