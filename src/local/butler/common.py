@@ -243,25 +243,40 @@ def _pip():
   return 'pip3'
 
 
+def _pipenv():
+  """Get the pipenv command."""
+  if shutil.which('pipenv'):
+    return 'pipenv'
+
+  return 'python3.11 -m pipenv'
+
+
 def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
   """Output a requirements.txt given a locked Pipfile."""
   dev_arg = ''
   if dev:
     dev_arg = '--dev'
 
+  pipenv_command = _pipenv()
   return_code, output = execute(
-      f'python3.11 -m pipenv requirements {dev_arg}',
+      f'{pipenv_command} requirements {dev_arg}',
       exit_on_error=False,
       cwd=pipfile_dir,
-      extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
+      extra_environments={
+          'PIPENV_IGNORE_VIRTUALENVS': '1',
+          'PIPENV_NOSPIN': '1'
+      },
       stderr=subprocess.DEVNULL)
   if return_code != 0:
     # Older pipenv version.
     return_code, output = execute(
-        f'python3.11 -m pipenv lock -r --no-header {dev_arg}',
+        f'{pipenv_command} lock -r --no-header {dev_arg}',
         exit_on_error=False,
         cwd=pipfile_dir,
-        extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
+        extra_environments={
+            'PIPENV_IGNORE_VIRTUALENVS': '1',
+            'PIPENV_NOSPIN': '1'
+        },
         stderr=subprocess.DEVNULL)
 
   if return_code != 0:
