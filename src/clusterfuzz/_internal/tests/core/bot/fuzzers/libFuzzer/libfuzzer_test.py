@@ -17,12 +17,14 @@
 import os
 import shutil
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.fuzzing import strategy
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'libfuzzer_test_data')
@@ -175,6 +177,36 @@ class ShouldSetForkFlagTest(unittest.TestCase):
 
     self.assertFalse(
         libfuzzer.should_set_fork_flag(existing_arguments, MockPool()))
+
+
+class GetRunnerTest(unittest.TestCase):
+  """Tests for get_runner."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
+  @mock.patch('os.chmod')
+  def test_cwd_is_build_dir(self, _):
+    """Test that FUZZ_TARGET_CWD_IS_BUILD_DIR causes cwd to be set to BUILD_DIR"""
+    environment.set_value('BUILD_DIR', '/build/dir')
+    environment.set_value('FUZZ_TARGET_CWD_IS_BUILD_DIR', True)
+    environment.set_value('USE_MINIJAIL', False)
+
+    runner = libfuzzer.get_runner('/fake/path')
+
+    self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
+    self.assertEqual(runner.cwd, '/build/dir')
+
+  @mock.patch('os.chmod')
+  def test_no_default_cwd(self, _):
+    """Test that cwd is None when FUZZ_TARGET_CWD_IS_BUILD_DIR is not set."""
+    environment.set_value('BUILD_DIR', '/build/dir')
+    environment.set_value('USE_MINIJAIL', False)
+
+    runner = libfuzzer.get_runner('fake/path')
+
+    self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
+    self.assertIsNone(runner.cwd)
 
 
 if __name__ == '__main__':
