@@ -357,12 +357,9 @@ def _add_schedule_tworker_fuzz_subparser(toplevel_subparsers):
 def _add_preprocess_subparser(toplevel_subparsers):
   """Adds a parser for the `preprocess` command."""
   parser = toplevel_subparsers.add_parser(
-      'preprocess',
-      help='Run the preprocess step of a fuzz task locally.')
-  parser.add_argument(
-      '--fuzzer', required=True, help='The name of the fuzzer.')
-  parser.add_argument(
-      '--job', required=True, help='The job name.')
+      'preprocess', help='Run the preprocess step of a fuzz task locally.')
+  parser.add_argument('--fuzzer', required=True, help='The name of the fuzzer.')
+  parser.add_argument('--job', required=True, help='The job name.')
   parser.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
 
