@@ -366,7 +366,7 @@ class Fuzzer(Model):
   stats_column_descriptions = ndb.TextProperty(indexed=False)
 
   # Whether this is a builtin fuzzer.
-  builtin = ndb.BooleanProperty(indexed=False, default=False)
+  builtin = ndb.BooleanProperty(default=False)
 
   # Whether this is a differential fuzzer.
   differential = ndb.BooleanProperty(default=False)
