@@ -495,14 +495,14 @@ class ConfigureTest(unittest.TestCase):
         'clusterfuzz._internal.metrics.logs.set_logger',
         'logging.config.dictConfig',
         'logging.getLogger',
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'clusterfuzz._internal.system.environment.is_running_on_app_engine',
         'clusterfuzz._internal.metrics.logs.suppress_unwanted_warnings',
         'google.cloud.logging.Client',
     ])
 
   def test_configure(self):
     """Test configure."""
-    self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
+    self.mock.is_running_on_app_engine.return_value = False
     logs._logger = None  # pylint: disable=protected-access
     logger = mock.MagicMock()
     self.mock.getLogger.return_value = logger
@@ -517,7 +517,7 @@ class ConfigureTest(unittest.TestCase):
 
   def test_configure_appengine(self):
     """Test configure on App Engine."""
-    self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
+    self.mock.is_running_on_app_engine.return_value = True
     logs.configure('test')
     self.assertEqual(0, self.mock.dictConfig.call_count)
 
@@ -549,7 +549,7 @@ class EmitTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.metrics.logs.get_logger',
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'clusterfuzz._internal.system.environment.is_running_on_app_engine',
         'clusterfuzz._internal.datastore.data_types.Testcase.get_fuzz_target',
         'clusterfuzz._internal.base.utils.get_instance_name',
     ])
@@ -578,7 +578,7 @@ class EmitTest(unittest.TestCase):
     # Reset the `common_ctx` metadata as it may be setted by other test runs.
     logs.log_contexts.delete_metadata('common_ctx')
     logs.log_contexts.clear()
-    self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
+    self.mock.is_running_on_app_engine.return_value = False
 
   def tearDown(self):
     os.environ.clear()
