@@ -19,13 +19,13 @@ from concurrent.futures import ThreadPoolExecutor
 import datetime
 import io
 import json
-import random
 import time
 
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 import httplib2
 
+from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -74,27 +74,26 @@ DAILY_STATS_SCHEMA = {
 }
 
 
+@retry.wrap(
+    retries=NUM_RETRIES,
+    delay=RETRY_SLEEP_TIME,
+    function=
+    'clusterfuzz._internal.cron.aggregate_fuzzer_stats._execute_insert_request',
+    backoff=2,
+    exception_types=[httplib2.HttpLib2Error])
 def _execute_insert_request(request):
   """Executes a table/dataset insert request, retrying on transport errors."""
-  for i in range(NUM_RETRIES + 1):
-    try:
-      request.execute()
+  try:
+    request.execute()
+  except HttpError as e:
+    if e.resp.status == 409:
+      # 409 Conflict: Returned when the resource already exists. This is
+      # expected after the first execution because tables are created exactly
+      # once.
       return
-    except HttpError as e:
-      if e.resp.status == 409:
-        # 409 Conflict: Returned when the resource already exists. This is
-        # expected after the first execution because tables are created exactly
-        # once.
-        return
 
-      logs.error('Failed to insert table/dataset.', exception=e)
-      raise
-    except httplib2.HttpLib2Error as e:
-      # Network or transport error, retry operation with exponential back-off.
-      if i == NUM_RETRIES:
-        logs.error('Failed to insert table/dataset after retries.', exception=e)
-        raise
-      time.sleep(random.uniform(0, (1 << i) * RETRY_SLEEP_TIME))
+    logs.error('Failed to insert table/dataset.', exception=e)
+    raise
 
 
 def _create_dataset_if_needed(bigquery_client, dataset_id):
