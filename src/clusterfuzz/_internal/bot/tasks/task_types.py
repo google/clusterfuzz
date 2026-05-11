@@ -179,8 +179,8 @@ class UTask(BaseUTask):
 
     logs.info('Queueing utask for remote execution.', download_url=download_url)
     if swarming.is_swarming_task(job_type):
-      swarming.push_swarming_task(swarming.create_new_task_request(
-        command, job_type, download_url))
+      swarming.push_swarming_task(
+          swarming.create_new_task_request(command, job_type, download_url))
     else:
       assert batch_service.is_remote_task(command, job_type)
       tasks.add_utask_main(command, download_url, job_type)
