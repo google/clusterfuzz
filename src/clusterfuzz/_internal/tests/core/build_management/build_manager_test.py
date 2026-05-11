@@ -434,16 +434,24 @@ class RegularBuildUnpackTest(fake_filesystem_unittest.TestCase):
 
   def test_unpack_build_fails_when_out_of_space(self):
     """Test that _unpack_build returns False when out of space."""
-    with mock.patch('clusterfuzz._internal.build_management.build_manager._make_space', return_value=False):
-      with mock.patch('clusterfuzz._internal.build_management.build_manager.Build._open_build_archive') as mock_open:
+    with mock.patch(
+        'clusterfuzz._internal.build_management.build_manager._make_space',
+        return_value=False):
+      with mock.patch(
+          'clusterfuzz._internal.build_management.build_manager.Build._open_build_archive'
+      ) as mock_open:
         archive_mock = mock.MagicMock()
         archive_mock.unpacked_size.return_value = 100
         mock_open.return_value.__enter__.return_value = archive_mock
-        
-        build = build_manager.RegularBuild('/builds/build4', 1, 'gs://fake_bucket/fake.zip')
-        
-        with mock.patch('clusterfuzz._internal.system.shell.remove_directory', return_value=True):
-          result = build._unpack_build('/builds/build4', '/builds/build4/dir', 'gs://fake_bucket/fake.zip')
+
+        build = build_manager.RegularBuild('/builds/build4', 1,
+                                           'gs://fake_bucket/fake.zip')
+
+        with mock.patch(
+            'clusterfuzz._internal.system.shell.remove_directory',
+            return_value=True):
+          result = build._unpack_build('/builds/build4', '/builds/build4/dir',
+                                       'gs://fake_bucket/fake.zip')
           self.assertFalse(result)
 
 
