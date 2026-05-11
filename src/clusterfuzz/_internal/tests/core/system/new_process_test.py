@@ -142,6 +142,22 @@ class PosixProcessTest(unittest.TestCase):
       self.assertLess(abs(results.time_executed - 0.5), self.TIME_ERROR)
       self.assertTrue(results.timed_out)
 
+  def test_cwd(self):
+    """Test that cwd is passed to Popen."""
+    with mock.patch('subprocess.Popen') as mock_popen:
+      runner = new_process.ProcessRunner(
+          '/test/path', default_args=['-arg1'], cwd='/working/dir')
+
+      runner.run()
+
+      mock_popen.assert_called_with(
+          ['/test/path', '-arg1'],
+          env=mock.ANY,
+          stdin=mock.ANY,
+          stdout=mock.ANY,
+          stderr=mock.ANY,
+          cwd='/working/dir')
+
   def test_timeout(self):
     """Tests timeout signals."""
     with mock.patch('subprocess.Popen', mock_popen_factory(1.0, '',
