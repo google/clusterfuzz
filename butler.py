@@ -509,6 +509,7 @@ def _setup(args):
   """Set up configs and import paths."""
   os.environ['ROOT_DIR'] = os.path.abspath('.')
   os.environ['PYTHONIOENCODING'] = 'UTF-8'
+  os.environ['CLOUDSDK_PYTHON'] = sys.executable
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
   from clusterfuzz._internal.base import modules
