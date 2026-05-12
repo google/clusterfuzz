@@ -120,6 +120,7 @@ def task_loop():
   from clusterfuzz._internal.bot.tasks import commands
 
   clean_exit = False
+  execution_count = 0
   while True:
     stacktrace = ''
     exception_occurred = False
@@ -189,6 +190,13 @@ def task_loop():
       # Prevent looping too quickly. See: crbug.com/644830
       failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(utils.random_number(1, failure_wait_interval))
+      break
+
+    execution_count += 1
+    max_executions = environment.get_value('MAX_EXECUTIONS')
+    if max_executions and execution_count >= int(max_executions):
+      logs.info('Reached MAX_EXECUTIONS limit (%s). Exiting.', max_executions)
+      clean_exit = True
       break
 
   task_payload = task.payload() if task else None

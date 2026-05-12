@@ -107,6 +107,18 @@ class TaskLoopTest(unittest.TestCase):
     self.assertFalse(clean_exit)
     self.assertEqual('payload', payload)
 
+  def test_max_executions(self):
+    """Test that the loop breaks after MAX_EXECUTIONS iterations."""
+    os.environ['MAX_EXECUTIONS'] = '3'
+    # Use side_effect to avoid raising an exception so it loops cleanly.
+    self.mock.process_command.side_effect = None
+    
+    exception, clean_exit, payload = run_bot.task_loop()
+    
+    self.assertEqual(3, self.mock.process_command.call_count)
+    self.assertTrue(clean_exit)
+    self.assertEqual('payload', payload)
+
 
 class LeaseAllTasksTest(unittest.TestCase):
   """Tests for lease_all_tasks."""
