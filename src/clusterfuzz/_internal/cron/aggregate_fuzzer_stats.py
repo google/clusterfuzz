@@ -226,15 +226,10 @@ def _gather_all_stats(fuzzers, project_id, target_date_str):
 
 
 def _persist_daily_stats(all_rows, bigquery_client, project_id,
-                         date_partition_str, non_dry_run):
+                         date_partition_str):
   """Writes gathered row statistics to destination table."""
   if not all_rows:
     logs.error(f'No data to write to daily_stats on {date_partition_str}')
-    return
-
-  if not non_dry_run:
-    logs.info(f'DRY RUN: Would insert {len(all_rows)} rows across all fuzzers.')
-    logs.info(all_rows)
     return
 
   try:
@@ -282,17 +277,15 @@ def _persist_daily_stats(all_rows, bigquery_client, project_id,
     logs.error('Failed to execute batch load job in BigQuery', exception=e)
 
 
-def main(argv):
+def main(argv=None):
   """Main entry point for the aggregate_fuzzer_stats cron job."""
   parser = argparse.ArgumentParser(prog='aggregate_fuzzer_stats')
-  parser.add_argument(
-      '--non-dry-run', action='store_true', help='Whether to write to BigQuery')
   parser.add_argument(
       '--date',
       help=('Date for fuzzer stats aggregation (YYYY-MM-DD). Defaults to today '
             'UTC.'),
       type=str)
-  args = parser.parse_args(argv)
+  args = parser.parse_args(argv if argv is not None else [])
 
   logs.info('Starting fuzzer stats aggregation cron.')
 
@@ -313,10 +306,9 @@ def main(argv):
   bigquery_client = big_query.get_api_client()
   project_id = utils.get_application_id()
 
-  if args.non_dry_run:
-    _create_dataset_if_needed(bigquery_client, 'fuzzer_stats')
-    _create_table_if_needed(bigquery_client, 'fuzzer_stats', 'daily_stats',
-                            DAILY_STATS_SCHEMA)
+  _create_dataset_if_needed(bigquery_client, 'fuzzer_stats')
+  _create_table_if_needed(bigquery_client, 'fuzzer_stats', 'daily_stats',
+                          DAILY_STATS_SCHEMA)
 
   fuzzers = list(
       data_types.Fuzzer.query(ndb_utils.is_false(data_types.Fuzzer.builtin)))
@@ -330,7 +322,6 @@ def main(argv):
       all_rows=all_rows,
       bigquery_client=bigquery_client,
       project_id=project_id,
-      date_partition_str=date_partition_str,
-      non_dry_run=args.non_dry_run)
+      date_partition_str=date_partition_str)
 
   logs.info('Fuzzer stats aggregation cron complete.')

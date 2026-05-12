@@ -72,7 +72,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--non-dry-run'])
+    aggregate_fuzzer_stats.main()
 
     self.mock_api_client.datasets().insert.assert_called_with(
         projectId='test-clusterfuzz',
@@ -153,7 +153,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--non-dry-run'])
+    aggregate_fuzzer_stats.main()
 
     self.mock_api_client.tables().insert.assert_called_once()
 
@@ -164,7 +164,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         response, b'Internal Server Error')
 
     with self.assertRaises(HttpError):
-      aggregate_fuzzer_stats.main(['--non-dry-run'])
+      aggregate_fuzzer_stats.main()
 
   def test_aggregate_fuzzer_stats_with_date_flag(self):
     """Tests execution of the cron job with a specific --date flag."""
@@ -180,7 +180,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--non-dry-run', '--date', '2026-04-30'])
+    aggregate_fuzzer_stats.main(['--date', '2026-04-30'])
 
     call_kwargs = self.mock_api_client.jobs().insert.call_args[1]
     load_config = call_kwargs['body']['configuration']['load']
@@ -195,4 +195,4 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
   def test_aggregate_fuzzer_stats_with_invalid_date_flag(self):
     """Tests that an invalid --date format causes argument parsing error."""
     with self.assertRaises(SystemExit):
-      aggregate_fuzzer_stats.main(['--non-dry-run', '--date', 'invalid-date'])
+      aggregate_fuzzer_stats.main(['--date', 'invalid-date'])
