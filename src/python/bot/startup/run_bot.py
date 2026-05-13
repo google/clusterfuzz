@@ -194,10 +194,15 @@ def task_loop():
 
     execution_count += 1
     max_executions = environment.get_value('MAX_EXECUTIONS')
-    if max_executions and execution_count >= int(max_executions):
-      logs.info(f'Reached MAX_EXECUTIONS limit ({max_executions}). Exiting.')
-      clean_exit = True
-      break
+    if max_executions:
+      try:
+        if execution_count >= int(max_executions):
+          logs.info(f'Reached MAX_EXECUTIONS limit ({max_executions}). Exiting.')
+          clean_exit = True
+          break
+      except ValueError:
+        logs.error(f'Invalid value for MAX_EXECUTIONS: {max_executions}')
+        environment.remove_key('MAX_EXECUTIONS')
 
   task_payload = task.payload() if task else None
   return stacktrace, clean_exit, task_payload
