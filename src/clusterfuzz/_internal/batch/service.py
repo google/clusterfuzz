@@ -318,7 +318,7 @@ def _get_subconfig(batch_config, instance_spec):
 
   # Check load for configured regions.
   healthy_subconfigs = []
-  project = batch_config.get('project-number') or batch_config.get('project')
+  project = batch_config.get('project')
 
   for subconfig in instance_subconfigs:
     name = subconfig['name']
