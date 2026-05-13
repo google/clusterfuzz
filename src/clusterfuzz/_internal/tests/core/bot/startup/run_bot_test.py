@@ -89,7 +89,9 @@ class TaskLoopTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.commands.process_command',
         'clusterfuzz._internal.bot.tasks.update_task.run',
         'clusterfuzz._internal.bot.tasks.update_task.track_revision',
+        'python.bot.startup.run_bot.update_task_enabled',
     ])
+    self.mock.update_task_enabled.return_value = True
 
     self.task = mock.MagicMock()
     self.task.payload.return_value = 'payload'
@@ -109,6 +111,8 @@ class TaskLoopTest(unittest.TestCase):
 
   def test_max_executions(self):
     """Test that the loop breaks after MAX_EXECUTIONS iterations."""
+    from clusterfuzz._internal.system import environment
+    environment._initial_environment = None
     os.environ['MAX_EXECUTIONS'] = '3'
     # Use side_effect to avoid raising an exception so it loops cleanly.
     self.mock.process_command.side_effect = None

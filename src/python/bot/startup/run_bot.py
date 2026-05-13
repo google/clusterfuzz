@@ -195,7 +195,7 @@ def task_loop():
     execution_count += 1
     max_executions = environment.get_value('MAX_EXECUTIONS')
     if max_executions and execution_count >= int(max_executions):
-      logs.info('Reached MAX_EXECUTIONS limit (%s). Exiting.', max_executions)
+      logs.info(f'Reached MAX_EXECUTIONS limit ({max_executions}). Exiting.')
       clean_exit = True
       break
 
