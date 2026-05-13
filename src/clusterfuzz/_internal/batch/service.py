@@ -46,24 +46,26 @@ from clusterfuzz._internal.system import environment
 # A named tuple that defines the execution environment for a batch workload.
 # This includes details about the machine, disk, network, and container image,
 # as well as ClusterFuzz-specific settings.
-BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release',
-    'disk_size_gb',
-    'disk_type',
-    'docker_image',
-    'user_data',
-    'service_account_email',
-    'subnetwork',
-    'preemptible',
-    'project',
-    'machine_type',
-    'network',
-    'gce_region',
-    'priority',
-    'max_run_duration',
-    'retry',
-    'project_number',
-], defaults=(None,))
+BatchWorkloadSpec = collections.namedtuple(
+    'BatchWorkloadSpec', [
+        'clusterfuzz_release',
+        'disk_size_gb',
+        'disk_type',
+        'docker_image',
+        'user_data',
+        'service_account_email',
+        'subnetwork',
+        'preemptible',
+        'project',
+        'machine_type',
+        'network',
+        'gce_region',
+        'priority',
+        'max_run_duration',
+        'retry',
+        'project_number',
+    ],
+    defaults=(None,))
 
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
                                            ['name', 'weight'])
