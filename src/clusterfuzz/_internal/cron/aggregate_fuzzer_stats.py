@@ -301,7 +301,7 @@ def main(argv=None):
   if environment.is_local_development():
     logs.error('BigQuery requires a cloud project to run. '
                'This cron job cannot run locally.')
-    return
+    return False
 
   bigquery_client = big_query.get_api_client()
   project_id = utils.get_application_id()
@@ -325,3 +325,4 @@ def main(argv=None):
       date_partition_str=date_partition_str)
 
   logs.info('Fuzzer stats aggregation cron complete.')
+  return True

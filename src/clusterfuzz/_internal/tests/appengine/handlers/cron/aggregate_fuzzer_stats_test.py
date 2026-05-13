@@ -72,7 +72,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main()
+    self.assertTrue(aggregate_fuzzer_stats.main())
 
     self.mock_api_client.datasets().insert.assert_called_with(
         projectId='test-clusterfuzz',
@@ -180,7 +180,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--date', '2026-04-30'])
+    self.assertTrue(aggregate_fuzzer_stats.main(['--date', '2026-04-30']))
 
     call_kwargs = self.mock_api_client.jobs().insert.call_args[1]
     load_config = call_kwargs['body']['configuration']['load']
