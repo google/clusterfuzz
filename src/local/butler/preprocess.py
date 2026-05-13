@@ -80,7 +80,7 @@ def _get_uworker_env(args):
   return uworker_env
 
 
-def _early_setup(args):
+def _setup(args):
   """Early setup needed for config and logs."""
   sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
   sys.path.insert(
@@ -95,7 +95,7 @@ def _early_setup(args):
 
 def execute(args):
   """Executes the preprocess command."""
-  _early_setup(args)
+  _setup(args)
 
   print(f'Running preprocess for fuzzer: {args.fuzzer}, job: {args.job}')
 
