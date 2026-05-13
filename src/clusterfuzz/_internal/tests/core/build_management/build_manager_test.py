@@ -417,6 +417,44 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
 
 
+class RegularBuildUnpackTest(fake_filesystem_unittest.TestCase):
+  """Tests for RegularBuild._unpack_build specifically (unmocked)."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+        'time.time',
+    ])
+    test_helpers.patch_environ(self)
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['JOB_NAME'] = 'job'
+
+  def test_unpack_build_fails_when_out_of_space(self):
+    """Test that _unpack_build returns False when out of space."""
+    with mock.patch(
+        'clusterfuzz._internal.build_management.build_manager._make_space',
+        return_value=False):
+      with mock.patch(
+          'clusterfuzz._internal.build_management.build_manager.Build._open_build_archive'
+      ) as mock_open:
+        archive_mock = mock.MagicMock()
+        archive_mock.unpacked_size.return_value = 100
+        mock_open.return_value.__enter__.return_value = archive_mock
+
+        build = build_manager.RegularBuild('/builds/build4', 1,
+                                           'gs://fake_bucket/fake.zip')
+
+        with mock.patch(
+            'clusterfuzz._internal.system.shell.remove_directory',
+            return_value=True):
+          result = build._unpack_build('/builds/build4', '/builds/build4/dir',
+                                       'gs://fake_bucket/fake.zip')
+          self.assertFalse(result)
+
+
 class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for regular libFuzzer build setup."""
 
