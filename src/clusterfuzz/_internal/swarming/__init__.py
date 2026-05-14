@@ -26,6 +26,7 @@ from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.swarming.api import SwarmingAPI
 from clusterfuzz._internal.system import environment
 
 
