@@ -21,6 +21,7 @@ from google.protobuf import json_format
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.swarming import api
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -317,7 +318,7 @@ class SwarmingTest(unittest.TestCase):
         ])
 
     self.mock.get_scoped_service_account_credentials.assert_called_with(
-        swarming._SWARMING_SCOPES)  # pylint: disable=protected-access
+        api._SWARMING_SCOPES)  # pylint: disable=protected-access
     expected_headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',

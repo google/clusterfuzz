@@ -17,9 +17,6 @@ import base64
 import json
 import uuid
 
-from google.auth.transport import requests
-from google.protobuf import json_format
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.errors import BadConfigError
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
@@ -29,12 +26,18 @@ from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.swarming.api import SwarmingAPI
 from clusterfuzz._internal.system import environment
 
-_SWARMING_SCOPES = [
-    'https://www.googleapis.com/auth/cloud-platform',
-    'https://www.googleapis.com/auth/userinfo.email'
-]
+_api = None
+
+
+def _get_api() -> SwarmingAPI:
+  """Returns a module-wide instance of SwarmingAPI."""
+  global _api
+  if _api is None:
+    _api = SwarmingAPI()
+  return _api
 
 
 def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
@@ -259,32 +262,4 @@ def create_new_task_request(command: str, job_name: str, download_url: str
 
 def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
   """Schedules a task on swarming."""
-  swarming_config = _get_swarming_config()
-  if not swarming_config:
-    logs.error(
-        '[Swarming] Failed to push task into swarming. Reason: No config.')
-    return
-  creds = credentials.get_scoped_service_account_credentials(_SWARMING_SCOPES)
-  if not creds:
-    logs.error(
-        '[Swarming] Failed to push task into swarming. Reason: No credentials.')
-    return
-
-  if not creds.token:
-    creds.refresh(requests.Request())
-
-  headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': f'Bearer {creds.token}'
-  }
-  swarming_server = _get_swarming_config().get('swarming_server')
-  url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  message_body = json_format.MessageToJson(task_request)
-  logs.info(
-      f"""[Swarming] Pushing task {task_request.name}
-            as {creds.service_account_email}""",
-      url=url,
-      body=message_body)
-  response = utils.post_url(url=url, data=message_body, headers=headers)
-  logs.info(f'[Swarming] Response from {task_request.name}', response=response)
+  _get_api().push_task(task_request)
