@@ -27,7 +27,7 @@ class SwarmingServiceTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.swarming.is_swarming_task',
-        'clusterfuzz._internal.swarming.service._get_api',
+        'clusterfuzz._internal.swarming.service.SwarmingService._get_api',
         'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',

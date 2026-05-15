@@ -37,7 +37,8 @@ class SwarmingAPI:
 
   def __init__(self):
     self._config = get_swarming_config()
-    self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
+    if self._config:
+      self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
 
   def _get_headers(self) -> dict[str, str]:
     """Checks config and returns headers for pRPC request.
