@@ -19,19 +19,17 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming.api import SwarmingAPI
 
-_api = None
-
-
-def _get_api() -> SwarmingAPI:
-  """Returns a module-wide instance of SwarmingAPI."""
-  global _api
-  if _api is None:
-    _api = SwarmingAPI()
-  return _api
-
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
+
+  _api: SwarmingAPI = None
+
+  def _get_api(self) -> SwarmingAPI:
+    """Returns the Swarming API instance."""
+    if not self._api:
+      self._api = SwarmingAPI()
+    return self._api
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -62,7 +60,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
           continue
         if request := swarming.create_new_task_request(
             task.command, task.job_type, task.argument):
-          _get_api().push_task(request)
+          self._get_api().push_task(request)
       except Exception:  # pylint: disable=broad-except
         logs.error(
             f'Failed to push task to Swarming: {task.command}, {task.job_type}.'
