@@ -19,7 +19,6 @@ from unittest import mock
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import swarming_pb2
-from clusterfuzz._internal.swarming import api
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils

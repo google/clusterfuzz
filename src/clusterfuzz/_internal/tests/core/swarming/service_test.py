@@ -49,6 +49,8 @@ class SwarmingServiceTest(unittest.TestCase):
     self.mock.get.return_value = None
     self.mock_api = mock.MagicMock()
     self.mock._get_api.return_value = self.mock_api  # pylint: disable=protected-access
+    self.mock_api = mock.MagicMock()
+    self.mock._get_api.return_value = self.mock_api  # pylint: disable=protected-access
     self.mock_api.count_tasks.return_value = '{"count": 0}'
 
   def test_create_utask_main_job_success(self):
