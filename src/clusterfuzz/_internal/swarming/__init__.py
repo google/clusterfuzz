@@ -26,18 +26,7 @@ from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
-from clusterfuzz._internal.swarming.api import SwarmingAPI
 from clusterfuzz._internal.system import environment
-
-_api = None
-
-
-def _get_api() -> SwarmingAPI:
-  """Returns a module-wide instance of SwarmingAPI."""
-  global _api
-  if _api is None:
-    _api = SwarmingAPI()
-  return _api
 
 
 def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
@@ -57,7 +46,7 @@ def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
     logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
     return False
 
-  swarming_config = _get_swarming_config()
+  swarming_config = get_swarming_config()
   if swarming_config is None:
     logs.warning(
         """[Swarming DEBUG] current task is not suitable for swarming. 
@@ -77,7 +66,7 @@ def _get_task_name(job_name: str):
   return f't-{str(uuid.uuid4()).lower()}-{job_name}'
 
 
-def _get_swarming_config() -> local_config.SwarmingConfig | None:
+def get_swarming_config() -> local_config.SwarmingConfig | None:
   """Returns the swarming config."""
   try:
     return local_config.SwarmingConfig()
@@ -90,7 +79,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
                         ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """ Gets all swarming dimensions for a task.
   Job dimensions have more precedence than static dimensions"""
-  swarming_config = _get_swarming_config()
+  swarming_config = get_swarming_config()
   if not swarming_config:
     logs.error(
         '[Swarming] No dimensions set. Reason: failed to retrieve config')
@@ -98,7 +87,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
 
   unique_dimensions = {}
   unique_dimensions['os'] = str(job.platform).capitalize()
-  unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
+  unique_dimensions['pool'] = get_swarming_config().get('swarming_pool')
 
   for dimension in platform_specific_dimensions:
     unique_dimensions[dimension['key'].lower()] = dimension['value']
@@ -205,7 +194,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   if job is None:
     return None
 
-  swarming_config = _get_swarming_config()
+  swarming_config = get_swarming_config()
   if not swarming_config:
     return None
 
@@ -258,8 +247,3 @@ def create_new_task_request(command: str, job_name: str, download_url: str
       ])
 
   return new_task_request
-
-
-def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
-  """Schedules a task on swarming."""
-  _get_api().push_task(task_request)

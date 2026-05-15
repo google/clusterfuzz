@@ -17,11 +17,11 @@ from google.auth.transport import requests
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.base.errors import BadConfigError
-from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.config.local_config import SwarmingConfig
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.swarming import get_swarming_config
 
 _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
@@ -32,21 +32,21 @@ _SWARMING_SCOPES = [
 class SwarmingAPI:
   """Client for Swarming pRPC API."""
 
-  def __init__(self):
-    try:
-      self.config = local_config.SwarmingConfig()
-    except (BadConfigError, ValueError) as e:
-      logs.error(f'[Swarming] Failed to retrieve config: {e}')
-      self.config = None
+  _config: SwarmingConfig = None
+  _base_url: str = ""
 
-  def _get_headers(self) -> dict:
+  def __init__(self):
+    self._config = get_swarming_config()
+    self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
+
+  def _get_headers(self) -> dict[str, str]:
     """Checks config and returns headers for pRPC request.
     
     Returns:
       A dict containing headers, or empty dict if config is missing or
       auth fails.
     """
-    if not self.config:
+    if not self._config:
       logs.error('[Swarming] No config available.')
       return {}
 
@@ -64,6 +64,28 @@ class SwarmingAPI:
         'Authorization': f'Bearer {creds.token}'
     }
 
+  def _make_request(self, endpoint: str, body: str) -> str | None:
+    """Makes a pRPC request to the Swarming API.
+
+    Args:
+      endpoint: The pRPC endpoint (e.g. "swarming.v2.Tasks/NewTask").
+      body: The JSON body of the request.
+      
+    Returns:
+      The raw JSON response string from the server, or None if the request
+      could not be made (e.g. missing config, auth failure) or failed.
+    """
+    headers = self._get_headers()
+    if not headers:
+      return None
+
+    url = f'{self._base_url}{endpoint}'
+    response = utils.post_url(url=url, data=body, headers=headers)
+    if not response:
+      logs.error(f"[Swarming] Failed to make request to {url}")
+      return None
+    return response
+
   def push_task(self, task_request: swarming_pb2.NewTaskRequest) -> str | None:  # pylint: disable=no-member
     """Schedules a task on swarming.
     
@@ -74,20 +96,13 @@ class SwarmingAPI:
       The raw JSON response string from the server, or None if the request
       could not be made (e.g. missing config, auth failure) or failed.
     """
-    headers = self._get_headers()
-    if not headers:
-      return None
-
-    swarming_server = self.config.get('swarming_server')
-    url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
     message_body = json_format.MessageToJson(task_request)
-
     logs.info(
         f"[Swarming] Pushing task {task_request.name}",
-        url=url,
+        url=self._base_url,
         body=message_body)
 
-    response = utils.post_url(url=url, data=message_body, headers=headers)
+    response = self._make_request('swarming.v2.Tasks/NewTask', message_body)
     logs.info(
         f'[Swarming] Response from {task_request.name}', response=response)
     return response
@@ -103,16 +118,12 @@ class SwarmingAPI:
       The raw JSON response string from the server, or None if the request
       could not be made (e.g. missing config, auth failure) or failed.
     """
-    headers = self._get_headers()
-    if not headers:
-      return None
-
-    swarming_server = self.config.get('swarming_server')
-    url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/CountTasks'
     message_body = json_format.MessageToJson(count_request)
+    logs.info(
+        "[Swarming] Counting tasks in queue",
+        url=self._base_url,
+        body=message_body)
 
-    logs.info("[Swarming] Counting tasks", url=url, body=message_body)
-
-    response = utils.post_url(url=url, data=message_body, headers=headers)
+    response = self._make_request('swarming.v2.Tasks/CountTasks', message_body)
     logs.info('[Swarming] Response from CountTasks', response=response)
     return response
