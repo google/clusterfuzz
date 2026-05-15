@@ -195,9 +195,9 @@ def configure_system_build_properties():
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   if current_md5 is None:
     logs.error('Unable to find %s on device.' % BUILD_PROP_PATH)
-    return
+    return False
   if old_md5 == current_md5:
-    return
+    return False
 
   # Pull to tmp file.
   bot_tmp_directory = environment.get_value('BOT_TMPDIR')
@@ -205,7 +205,7 @@ def configure_system_build_properties():
   adb.run_command(['pull', BUILD_PROP_PATH, old_build_prop_path])
   if not os.path.exists(old_build_prop_path):
     logs.error('Unable to fetch %s from device.' % BUILD_PROP_PATH)
-    return
+    return False
 
   # Write new build.prop.
   new_build_prop_path = os.path.join(bot_tmp_directory, 'new.prop')
@@ -228,11 +228,13 @@ def configure_system_build_properties():
 
   # Keep verified boot disabled for M and higher releases. This makes it easy
   # to modify system's app_process to load asan libraries.
+  reboot_done = False
   build_version = settings.get_build_version()
   if is_build_at_least(build_version, 'M'):
     adb.run_as_root()
     adb.run_command('disable-verity')
     reboot()
+    reboot_done = True
 
   # Make /system writable.
   adb.run_as_root()
@@ -254,6 +256,8 @@ def configure_system_build_properties():
   # Set persistent cache key containing and md5sum.
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   persistent_cache.set_value(constants.BUILD_PROP_MD5_KEY, current_md5)
+
+  return reboot_done
 
 
 def get_debug_props_and_values():
@@ -306,16 +310,17 @@ def initialize_device():
   adb.setup_adb()
 
   # General device configuration settings.
-  configure_system_build_properties()
+  reboot_done = configure_system_build_properties()
   configure_device_settings()
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  sanitizer.setup_asan_if_needed()
+  reboot_done = sanitizer.setup_asan_if_needed() or reboot_done
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  reboot()
+  if not reboot_done:
+    reboot()
 
   # Make sure we are running as root after restart.
   adb.run_as_root()

@@ -880,7 +880,7 @@ def write_command_line_file(command_line, app_path):
   write_data_to_file(command_line_file_contents, command_line_path)
 
 
-def write_data_to_file(contents, file_path):
+def write_data_to_file(contents, file_path, wait_for_reboot=True):
   """Writes content to file."""
   # If this is a file in /system, we need to remount /system as read-write and
   # after file is written, revert it back to read-only.
@@ -895,6 +895,6 @@ def write_data_to_file(contents, file_path):
   # Make command line file is readable.
   run_shell_command('chmod 0644 %s' % file_path, root=True)
 
-  if is_system_file:
+  if is_system_file and wait_for_reboot:
     reboot()
     wait_until_fully_booted()
