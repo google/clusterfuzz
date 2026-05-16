@@ -310,12 +310,12 @@ def initialize_device():
   adb.setup_adb()
 
   # General device configuration settings.
-  reboot_done = configure_system_build_properties()
+  configure_system_build_properties()
   configure_device_settings()
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  reboot_done = sanitizer.setup_asan_if_needed() or reboot_done
+  reboot_done = sanitizer.setup_asan_if_needed()
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
