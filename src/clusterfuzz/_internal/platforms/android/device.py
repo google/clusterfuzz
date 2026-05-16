@@ -308,19 +308,16 @@ def initialize_device():
   adb.setup_adb()
 
   # General device configuration settings.
-  needs_reboot = configure_system_build_properties()
+  needs_full_reboot = configure_system_build_properties()
   configure_device_settings()
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  if sanitizer.setup_asan_if_needed():
-    # ASan setup script performs a shell restart and waits for boot.
-    # This satisfies any pending reboot requirements from earlier steps.
-    needs_reboot = False
+  asan_reboot_done = sanitizer.setup_asan_if_needed()
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  if needs_reboot:
+  if needs_full_reboot or not asan_reboot_done:
     reboot()
 
   # Make sure we are running as root after restart.
