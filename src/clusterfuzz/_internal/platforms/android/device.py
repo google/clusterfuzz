@@ -228,13 +228,11 @@ def configure_system_build_properties():
 
   # Keep verified boot disabled for M and higher releases. This makes it easy
   # to modify system's app_process to load asan libraries.
-  reboot_done = False
   build_version = settings.get_build_version()
   if is_build_at_least(build_version, 'M'):
     adb.run_as_root()
     adb.run_command('disable-verity')
     reboot()
-    reboot_done = True
 
   # Make /system writable.
   adb.run_as_root()
@@ -257,7 +255,7 @@ def configure_system_build_properties():
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   persistent_cache.set_value(constants.BUILD_PROP_MD5_KEY, current_md5)
 
-  return reboot_done
+  return True
 
 
 def get_debug_props_and_values():
@@ -310,16 +308,16 @@ def initialize_device():
   adb.setup_adb()
 
   # General device configuration settings.
-  reboot_done = configure_system_build_properties()
+  needs_reboot = configure_system_build_properties()
   configure_device_settings()
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  reboot_done = sanitizer.setup_asan_if_needed() or reboot_done
+  needs_reboot |= sanitizer.setup_asan_if_needed()
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  if not reboot_done:
+  if needs_reboot:
     reboot()
 
   # Make sure we are running as root after restart.
