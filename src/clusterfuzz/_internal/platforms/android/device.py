@@ -313,7 +313,10 @@ def initialize_device():
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  needs_reboot |= sanitizer.setup_asan_if_needed()
+  if sanitizer.setup_asan_if_needed():
+    # ASan setup script performs a shell restart and waits for boot.
+    # This satisfies any pending reboot requirements from earlier steps.
+    needs_reboot = False
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
