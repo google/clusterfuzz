@@ -45,7 +45,7 @@ from libs import helpers
 # https://github.com/google/closure-library/blob/
 # 3037e09cc471bfe99cb8f0ee22d9366583a20c28/closure/goog/html/safeurl.js
 _SAFE_URL_PATTERN = re.compile(
-    r'^(?:(?:https?|mailto|ftp):|[^:/?#]*(?:[/?#]|$))', flags=re.IGNORECASE)
+    r'^(?:(?:https?|mailto|ftp):|(?!//)[^:/?#]*(?:[/?#]|$))', flags=re.IGNORECASE)
 
 
 def add_jinja2_filter(name, fn):
