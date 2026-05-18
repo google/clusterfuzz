@@ -65,10 +65,10 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
             'fuzzer_name': 'ochang_js_fuzzer',
             'date': '2026-04-30',
             'testcases_executed': 10495,
-            'testcase_execution_duration': 'P0DT11H12M11S',
+            'testcase_execution_duration_seconds': 40331.0,
             'testcases_generated': 10495,
-            'testcase_generation_duration': 'P0DT1H15M33S',
-            'fuzzing_duration': 'P0DT12H49M49S'
+            'testcase_generation_duration_seconds': 4533.0,
+            'fuzzing_duration_seconds': 46189.0
         }],
         total_count=1)
 
@@ -128,12 +128,12 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.assertEqual(uploaded_dict['fuzzer_name'], 'ochang_js_fuzzer')
     self.assertEqual(uploaded_dict['date'], '2026-04-30')
     self.assertEqual(uploaded_dict['testcases_executed'], 10495)
-    self.assertEqual(uploaded_dict['testcase_execution_duration'],
-                     'P0DT11H12M11S')
+    self.assertEqual(uploaded_dict['testcase_execution_duration_seconds'],
+                     40331.0)
     self.assertEqual(uploaded_dict['testcases_generated'], 10495)
-    self.assertEqual(uploaded_dict['testcase_generation_duration'],
-                     'P0DT1H15M33S')
-    self.assertEqual(uploaded_dict['fuzzing_duration'], 'P0DT12H49M49S')
+    self.assertEqual(uploaded_dict['testcase_generation_duration_seconds'],
+                     4533.0)
+    self.assertEqual(uploaded_dict['fuzzing_duration_seconds'], 46189.0)
 
   def test_aggregate_fuzzer_stats_ignoring_409(self):
     """Tests that execution successfully proceeds when the table already exists."""
@@ -146,10 +146,10 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
             'fuzzer_name': 'ochang_js_fuzzer',
             'date': '2026-04-30',
             'testcases_executed': 10495,
-            'testcase_execution_duration': 'P0DT11H12M11S',
+            'testcase_execution_duration_seconds': 40331.0,
             'testcases_generated': 10495,
-            'testcase_generation_duration': 'P0DT1H15M33S',
-            'fuzzing_duration': 'P0DT12H49M49S'
+            'testcase_generation_duration_seconds': 4533.0,
+            'fuzzing_duration_seconds': 46189.0
         }],
         total_count=1)
 
@@ -173,10 +173,10 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
             'fuzzer_name': 'ochang_js_fuzzer',
             'date': '2026-04-30',
             'testcases_executed': 100,
-            'testcase_execution_duration': 'P0DT1H0M0S',
+            'testcase_execution_duration_seconds': 3600.0,
             'testcases_generated': 100,
-            'testcase_generation_duration': 'P0DT0H10M0S',
-            'fuzzing_duration': 'P0DT1H10M0S'
+            'testcase_generation_duration_seconds': 600.0,
+            'fuzzing_duration_seconds': 4200.0
         }],
         total_count=1)
 

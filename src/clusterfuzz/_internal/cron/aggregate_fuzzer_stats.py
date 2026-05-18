@@ -55,20 +55,20 @@ DAILY_STATS_SCHEMA = {
         'type': 'INTEGER',
         'mode': 'NULLABLE'
     }, {
-        'name': 'testcase_execution_duration',
-        'type': 'INTERVAL',
+        'name': 'testcase_execution_duration_seconds',
+        'type': 'FLOAT',
         'mode': 'NULLABLE'
     }, {
         'name': 'testcases_generated',
         'type': 'INTEGER',
         'mode': 'NULLABLE'
     }, {
-        'name': 'testcase_generation_duration',
-        'type': 'INTERVAL',
+        'name': 'testcase_generation_duration_seconds',
+        'type': 'FLOAT',
         'mode': 'NULLABLE'
     }, {
-        'name': 'fuzzing_duration',
-        'type': 'INTERVAL',
+        'name': 'fuzzing_duration_seconds',
+        'type': 'FLOAT',
         'mode': 'NULLABLE'
     }]
 }
@@ -151,33 +151,23 @@ def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
 
   query = f"""
   SELECT
-    '{fuzzer_name}' as fuzzer_name,
-    CAST(DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) AS STRING) as date,
-    SUM(testcases_executed) as testcases_executed,
-    CONCAT(
-      'P',
-      CAST(EXTRACT(DAY FROM SUM(testcase_execution_duration)) AS STRING), 'DT',
-      CAST(EXTRACT(HOUR FROM SUM(testcase_execution_duration)) AS STRING), 'H',
-      CAST(EXTRACT(MINUTE FROM SUM(testcase_execution_duration)) AS STRING), 'M',
-      CAST(EXTRACT(SECOND FROM SUM(testcase_execution_duration)) AS STRING), 'S'
-    ) as testcase_execution_duration,
-    SUM(testcases_generated) as testcases_generated,
-    CONCAT(
-      'P',
-      CAST(EXTRACT(DAY FROM SUM(testcase_generation_duration)) AS STRING), 'DT',
-      CAST(EXTRACT(HOUR FROM SUM(testcase_generation_duration)) AS STRING), 'H',
-      CAST(EXTRACT(MINUTE FROM SUM(testcase_generation_duration)) AS STRING), 'M',
-      CAST(EXTRACT(SECOND FROM SUM(testcase_generation_duration)) AS STRING), 'S'
-    ) as testcase_generation_duration,
-    CONCAT(
-      'P',
-      CAST(EXTRACT(DAY FROM SUM(fuzzing_duration)) AS STRING), 'DT',
-      CAST(EXTRACT(HOUR FROM SUM(fuzzing_duration)) AS STRING), 'H',
-      CAST(EXTRACT(MINUTE FROM SUM(fuzzing_duration)) AS STRING), 'M',
-      CAST(EXTRACT(SECOND FROM SUM(fuzzing_duration)) AS STRING), 'S'
-    ) as fuzzing_duration
-  FROM
-    `{project_id}.{dataset_id}.{table_id}`
+  '{fuzzer_name}' as fuzzer_name,
+  CAST(DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) AS STRING) as date,
+  SUM(testcases_executed) as testcases_executed,
+  (EXTRACT(DAY FROM SUM(testcase_execution_duration)) * 86400 +
+   EXTRACT(HOUR FROM SUM(testcase_execution_duration)) * 3600 +
+   EXTRACT(MINUTE FROM SUM(testcase_execution_duration)) * 60 +
+   EXTRACT(SECOND FROM SUM(testcase_execution_duration))) AS testcase_execution_duration_seconds,
+  SUM(testcases_generated) as testcases_generated,
+  (EXTRACT(DAY FROM SUM(testcase_generation_duration)) * 86400 +
+   EXTRACT(HOUR FROM SUM(testcase_generation_duration)) * 3600 +
+   EXTRACT(MINUTE FROM SUM(testcase_generation_duration)) * 60 +
+   EXTRACT(SECOND FROM SUM(testcase_generation_duration))) AS testcase_generation_duration_seconds,
+  (EXTRACT(DAY FROM SUM(fuzzing_duration)) * 86400 +
+   EXTRACT(HOUR FROM SUM(fuzzing_duration)) * 3600 +
+   EXTRACT(MINUTE FROM SUM(fuzzing_duration)) * 60 +
+   EXTRACT(SECOND FROM SUM(fuzzing_duration))) AS fuzzing_duration_seconds
+  FROM    `{project_id}.{dataset_id}.{table_id}`
   WHERE
     DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) = '{target_date_str}'
   GROUP BY
