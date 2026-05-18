@@ -28,6 +28,8 @@ _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
+__COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
+__NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
 
 class SwarmingAPI:
   """Client for Swarming pRPC API."""
@@ -101,9 +103,10 @@ class SwarmingAPI:
     logs.info(
         f"[Swarming] Pushing task {task_request.name}",
         url=self._base_url,
+        endpoint=__NEW_TASK_ENDPOINT,
         body=message_body)
 
-    response = self._make_request('swarming.v2.Tasks/NewTask', message_body)
+    response = self._make_request(__NEW_TASK_ENDPOINT, message_body)
     logs.info(
         f'[Swarming] Response from {task_request.name}', response=response)
     return response
@@ -123,8 +126,9 @@ class SwarmingAPI:
     logs.info(
         "[Swarming] Counting tasks in queue",
         url=self._base_url,
+        endpoint= __COUNT_TASKS_ENDPOINT,
         body=message_body)
 
-    response = self._make_request('swarming.v2.Tasks/CountTasks', message_body)
+    response = self._make_request(__COUNT_TASKS_ENDPOINT, message_body)
     logs.info('[Swarming] Response from CountTasks', response=response)
     return response
