@@ -13,15 +13,11 @@
 # limitations under the License.
 """preprocess.py runs the preprocess step of a fuzz task locally."""
 
-import os
-import sys
 import uuid
 
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
