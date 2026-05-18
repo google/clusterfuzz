@@ -74,8 +74,12 @@ def set_options(sanitizer_tool_name, sanitizer_options):
       sanitizer_options, sanitizer_options_file_path, wait_for_reboot=False)
 
 
-def setup_asan_if_needed():
-  """Set up asan on device."""
+def setup_asan_if_needed() -> bool:
+  """Set up asan on device.
+  
+  Returns:
+    True if the device was rebooted or restarted during setup, False otherwise.
+  """
   if not environment.get_value('ASAN_DEVICE_SETUP'):
     # Only do this step if explicitly enabled in the job type. This cannot be
     # determined from libraries in application directory since they can go

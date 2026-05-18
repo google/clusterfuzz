@@ -183,9 +183,13 @@ def configure_device_settings():
   adb.write_data_to_file(local_properties_file_contents, LOCAL_PROP_PATH)
 
 
-def configure_system_build_properties():
+def configure_system_build_properties() -> bool:
   """Modifies system build properties in /system/build.prop for better boot
-  speed and power use."""
+  speed and power use.
+  
+  Returns:
+    True if the device was rebooted during configuration, False otherwise.
+  """
   adb.run_as_root()
 
   # Check md5 checksum of build.prop to see if already updated,
