@@ -13,22 +13,25 @@
 # limitations under the License.
 """Cron job to schedule fuzz tasks that run on batch."""
 
+from abc import ABC
+from abc import abstractmethod
 import collections
 import random
 import time
 
 from google.cloud import monitoring_v3
 
-from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 
 PREPROCESS_TARGET_SIZE_DEFAULT = 10000
+SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 5
 
 
 @memoize.wrap(memoize.InMemory(60))
@@ -62,14 +65,54 @@ def get_queue_size(creds, project_id, subscription_id):
   return 0
 
 
-class BaseFuzzTaskScheduler:
+class BaseFuzzTaskScheduler(ABC):
   """Base fuzz task scheduler for any deployment of ClusterFuzz."""
 
-  def __init__(self, num_tasks):
-    self.num_tasks = num_tasks
-
-  def get_fuzz_tasks(self):
+  @abstractmethod
+  def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
     raise NotImplementedError('Child class must implement.')
+
+  def schedule_fuzz_tasks(self) -> bool:
+    """Schedules fuzz tasks."""
+    return self._schedule_fuzz_tasks()
+
+  def _schedule_fuzz_tasks(
+      self,
+      queue: str = tasks.PREPROCESS_QUEUE,
+      default_target_size: int = PREPROCESS_TARGET_SIZE_DEFAULT,
+      target_size_flag: FeatureFlags = FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT
+  ) -> bool:
+    """Internal method to schedule fuzz tasks."""
+    project = utils.get_application_id()
+    start = time.time()
+    creds = credentials.get_default()[0]
+    preprocess_queue_size = get_queue_size(creds, project, queue)
+
+    target_size = default_target_size
+    if target_size_flag.enabled and target_size_flag.content:
+      target_size = int(target_size_flag.content)
+
+    num_tasks = target_size - preprocess_queue_size
+    logs.info(f'Queue {queue} size: {preprocess_queue_size}. '
+              f'Target: {target_size}. Needed: {num_tasks}.')
+
+    if num_tasks <= 0:
+      logs.info('Queue size met or exceeded. Not scheduling tasks.')
+      return False
+
+    fuzz_tasks = self.get_fuzz_tasks(num_tasks)
+    if not fuzz_tasks:
+      logs.error('No fuzz tasks found to schedule.')
+      return False
+
+    logs.info(f'Adding {len(fuzz_tasks)} tasks to queue {queue}.')
+    tasks.bulk_add_tasks(fuzz_tasks, queue=queue, eta_now=True)
+    logs.info(f'Scheduled {len(fuzz_tasks)} tasks on queue {queue}.')
+
+    end = time.time()
+    total = end - start
+    logs.info(f'Task scheduling took {total} seconds.')
+    return True
 
 
 class FuzzTaskCandidate:
@@ -101,7 +144,7 @@ class FuzzTaskCandidate:
 class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
   """Fuzz task scheduler for OSS-Fuzz."""
 
-  def get_fuzz_tasks(self) -> list[tasks.Task]:
+  def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
     # TODO(metzman): Handle high end.
     # A job's weight is determined by its own weight and the weight of the
     # project is a part of. First get project weights.
@@ -164,11 +207,9 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
     for fuzz_task_candidate in fuzz_task_candidates:
       weights.append(fuzz_task_candidate.weight)
 
-    fuzz_tasks_count = self.num_tasks
-    logs.info(f'Scheduling {fuzz_tasks_count} fuzz tasks for OSS-Fuzz.')
+    logs.info(f'Scheduling {num_tasks} fuzz tasks for OSS-Fuzz.')
 
-    choices = random.choices(
-        fuzz_task_candidates, weights=weights, k=fuzz_tasks_count)
+    choices = random.choices(fuzz_task_candidates, weights=weights, k=num_tasks)
     fuzz_tasks = [
         tasks.Task(
             'fuzz',
@@ -186,7 +227,7 @@ class OssfuzzFuzzTaskScheduler(BaseFuzzTaskScheduler):
 class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
   """Fuzz task scheduler for Chrome."""
 
-  def get_fuzz_tasks(self) -> list[tasks.Task]:
+  def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
     """Returns fuzz tasks for chrome, weighted by job weight."""
     logs.info('Getting jobs for Chrome.')
 
@@ -214,14 +255,12 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
       fuzz_task_candidates.append(fuzz_task_candidate)
 
     weights = [candidate.weight for candidate in fuzz_task_candidates]
-    fuzz_tasks_count = self.num_tasks
-    logs.info(f'Scheduling {fuzz_tasks_count} fuzz tasks for Chrome.')
+    logs.info(f'Scheduling {num_tasks} fuzz tasks for Chrome.')
 
     if not fuzz_task_candidates:
       return []
 
-    choices = random.choices(
-        fuzz_task_candidates, weights=weights, k=fuzz_tasks_count)
+    choices = random.choices(fuzz_task_candidates, weights=weights, k=num_tasks)
     fuzz_tasks = [
         tasks.Task(
             'fuzz',
@@ -232,51 +271,28 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
     ]
     return fuzz_tasks
 
+  def _schedule_swarming_fuzz_tasks(self) -> bool:
+    if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+      return False
 
-def get_fuzz_tasks(num_tasks: int) -> list[tasks.Task]:
-  if utils.is_oss_fuzz():
-    scheduler = OssfuzzFuzzTaskScheduler(num_tasks)
-  else:
-    scheduler = ChromeFuzzTaskScheduler(num_tasks)
-  fuzz_tasks = scheduler.get_fuzz_tasks()
-  return fuzz_tasks
+    swarming_preprocess_queue = tasks.SWARMING_QUEUES[tasks.PREPROCESS_QUEUE]
+    return self._schedule_fuzz_tasks(
+        queue=swarming_preprocess_queue,
+        default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
+        target_size_flag=FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT)
 
+  def _schedule_batch_fuzz_tasks(self) -> bool:
+    return self._schedule_fuzz_tasks()
 
-def schedule_fuzz_tasks() -> bool:
-  """Schedules fuzz tasks."""
-
-  project = utils.get_application_id()
-  start = time.time()
-  creds = credentials.get_default()[0]
-  preprocess_queue_size = get_queue_size(creds, project, tasks.PREPROCESS_QUEUE)
-
-  target_size = PREPROCESS_TARGET_SIZE_DEFAULT
-  target_size_flag = feature_flags.FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT
-  if target_size_flag.enabled and target_size_flag.content:
-    target_size = int(target_size_flag.content)
-
-  num_tasks = target_size - preprocess_queue_size
-  logs.info(f'Preprocess queue size: {preprocess_queue_size}. '
-            f'Target: {target_size}. Needed: {num_tasks}.')
-
-  if num_tasks <= 0:
-    logs.info('Queue size met or exceeded. Not scheduling tasks.')
-    return False
-
-  fuzz_tasks = get_fuzz_tasks(num_tasks)
-  if not fuzz_tasks:
-    logs.error('No fuzz tasks found to schedule.')
-    return False
-
-  logs.info(f'Adding {fuzz_tasks} to preprocess queue.')
-  tasks.bulk_add_tasks(fuzz_tasks, queue=tasks.PREPROCESS_QUEUE, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} fuzz tasks.')
-
-  end = time.time()
-  total = end - start
-  logs.info(f'Task scheduling took {total} seconds.')
-  return True
+  def schedule_fuzz_tasks(self) -> bool:
+    self._schedule_swarming_fuzz_tasks()
+    self._schedule_batch_fuzz_tasks()
+    return True
 
 
 def main():
-  return schedule_fuzz_tasks()
+  if utils.is_oss_fuzz():
+    scheduler = OssfuzzFuzzTaskScheduler()
+  else:
+    scheduler = ChromeFuzzTaskScheduler()
+  return scheduler.schedule_fuzz_tasks()

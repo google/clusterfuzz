@@ -67,8 +67,8 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
     num_tasks = 5
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks)
-    tasks = scheduler.get_fuzz_tasks()
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler()
+    tasks = scheduler.get_fuzz_tasks(num_tasks)
     comparable_results = []
     for task in tasks:
       comparable_results.append((task.command, task.argument, task.job))
@@ -108,8 +108,8 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
         name=project_name, base_os_version='project-version').put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks=1)
-    tasks = scheduler.get_fuzz_tasks()
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler()
+    tasks = scheduler.get_fuzz_tasks(num_tasks=1)
     self.assertEqual(len(tasks), 1)
     task = tasks[0]
 
@@ -147,8 +147,8 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     data_types.OssFuzzProject(name=project_name).put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks=1)
-    tasks = scheduler.get_fuzz_tasks()
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler()
+    tasks = scheduler.get_fuzz_tasks(num_tasks=1)
     self.assertEqual(len(tasks), 1)
     task = tasks[0]
 
@@ -186,8 +186,8 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     data_types.OssFuzzProject(name=project_name).put()
     data_types.OssFuzzProject(name='dead_project', cpu_weight=0.0).put()
 
-    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler(num_tasks=1)
-    tasks = scheduler.get_fuzz_tasks()
+    scheduler = schedule_fuzz.OssfuzzFuzzTaskScheduler()
+    tasks = scheduler.get_fuzz_tasks(num_tasks=1)
     self.assertEqual(len(tasks), 1)
     task = tasks[0]
 
@@ -216,8 +216,8 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
 
   def _run_and_get_task(self):
     """Runs the scheduler and returns the single task created."""
-    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler(num_tasks=1)
-    tasks = scheduler.get_fuzz_tasks()
+    scheduler = schedule_fuzz.ChromeFuzzTaskScheduler()
+    tasks = scheduler.get_fuzz_tasks(num_tasks=1)
     self.assertEqual(len(tasks), 1)
     return tasks[0]
 
