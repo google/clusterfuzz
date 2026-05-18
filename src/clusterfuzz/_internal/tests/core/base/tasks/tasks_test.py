@@ -493,6 +493,21 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
     tasks.get_utask_mains()
     mock_puller.assert_called_with('utask_main-ubuntu-24-04')
 
+  def test_get_utask_mains_with_custom_queue(self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the custom queue."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
+    mock_env_get.return_value = None
+    tasks.get_utask_mains(queue_name='custom_queue')
+    mock_puller.assert_called_with('custom_queue')
+
+  def test_get_utask_mains_with_custom_queue_and_os_version(
+      self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the custom queue with OS suffix."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
+    mock_env_get.return_value = 'ubuntu-24-04'
+    tasks.get_utask_mains(queue_name='custom_queue')
+    mock_puller.assert_called_with('custom_queue-ubuntu-24-04')
+
 
 @mock.patch('clusterfuzz._internal.system.environment.get_value')
 @mock.patch('clusterfuzz._internal.system.environment.platform')
@@ -535,3 +550,35 @@ class QueueNameGenerationTest(unittest.TestCase):
     }.get(key, default)
     mock_platform.return_value = 'MAC'
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetTargetRuntimeTest(unittest.TestCase):
+  """Tests for get_target_runtime."""
+
+  def test_job_type_none(self):
+    """Test that job_type='none' returns BATCH."""
+    self.assertEqual(tasks.get_target_runtime('none'), 'batch')
+
+  def test_job_not_found(self):
+    """Test that a non-existent job returns BATCH."""
+    self.assertEqual(tasks.get_target_runtime('nonexistent_job'), 'batch')
+
+  def test_swarming_job(self):
+    """Test that a job with IS_SWARMING_JOB=True returns SWARMING."""
+    job = data_types.Job(
+        name='swarming_job', environment_string='IS_SWARMING_JOB = True')
+    job.put()
+    self.assertEqual(tasks.get_target_runtime('swarming_job'), 'swarming')
+
+  def test_k8s_job(self):
+    """Test that a job with IS_K8S_ENV=True returns KATA_CONTAINER."""
+    job = data_types.Job(name='k8s_job', environment_string='IS_K8S_ENV = True')
+    job.put()
+    self.assertEqual(tasks.get_target_runtime('k8s_job'), 'kata_container')
+
+  def test_default_batch_job(self):
+    """Test that a job without special env vars returns BATCH."""
+    job = data_types.Job(name='default_job', environment_string='FOO = BAR')
+    job.put()
+    self.assertEqual(tasks.get_target_runtime('default_job'), 'batch')

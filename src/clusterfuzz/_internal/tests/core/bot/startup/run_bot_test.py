@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 from python.bot.startup import run_bot
 
 
@@ -128,6 +129,7 @@ class LeaseAllTasksTest(unittest.TestCase):
     lease.assert_called_with()
 
 
+@test_utils.with_cloud_emulators('datastore')
 class ScheduleUtaskMainsTest(unittest.TestCase):
   """Tests for schedule_utask_mains."""
 
@@ -136,6 +138,12 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
         'clusterfuzz._internal.base.tasks.get_utask_mains',
         'clusterfuzz._internal.remote_task.remote_task_gate.RemoteTaskGate',
     ])
+    patcher = mock.patch(
+        'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+        new_callable=mock.PropertyMock)
+    self.mock_swarming_enabled = patcher.start()
+    self.mock_swarming_enabled.return_value = False
+    self.addCleanup(patcher.stop)
 
   def test_schedule_tasks_requeue_uncreated(self):
     """Test that uncreated tasks are not acked."""
@@ -146,7 +154,7 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     mock_task.lease.return_value.__enter__.return_value = None
     mock_task.lease.return_value.__exit__.return_value = None
 
-    self.mock.get_utask_mains.return_value = [mock_task]
+    self.mock.get_utask_mains.side_effect = [[mock_task], []]
 
     # Simulate that the tasks were not created and returned back.
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.side_effect = lambda tasks: tasks
@@ -168,10 +176,40 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     mock_task.lease.return_value.__enter__.return_value = None
     mock_task.lease.return_value.__exit__.return_value = None
 
-    self.mock.get_utask_mains.return_value = [mock_task]
+    self.mock.get_utask_mains.side_effect = [[mock_task], []]
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
 
     run_bot.schedule_utask_mains()
 
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
     )
+
+  def test_schedule_tasks_both_queues(self):
+    """Test scheduling tasks from both queues."""
+    mock_task1 = mock.MagicMock()
+    mock_task1.command = 'command1'
+    mock_task1.job = 'job1'
+    mock_task1.argument = 'argument1'
+    mock_task1.lease.return_value.__enter__.return_value = None
+    mock_task1.lease.return_value.__exit__.return_value = None
+
+    mock_task2 = mock.MagicMock()
+    mock_task2.command = 'command2'
+    mock_task2.job = 'job2'
+    mock_task2.argument = 'argument2'
+    mock_task2.lease.return_value.__enter__.return_value = None
+    mock_task2.lease.return_value.__exit__.return_value = None
+
+    self.mock.get_utask_mains.side_effect = [[mock_task1], [mock_task2]]
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
+
+    self.mock_swarming_enabled.return_value = True
+    run_bot.schedule_utask_mains()
+
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )
+    call_args = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args[
+        0][0]
+    self.assertEqual(len(call_args), 2)
+    self.assertEqual(call_args[0].pubsub_task, mock_task1)
+    self.assertEqual(call_args[1].pubsub_task, mock_task2)
