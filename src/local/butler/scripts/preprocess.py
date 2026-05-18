@@ -61,55 +61,48 @@ def _get_fuzzer_environment(fuzzer_name, job_name):
   return environment.parse_environment_definition(env_string)
 
 
-def _get_uworker_env(args):
+def _get_uworker_env(fuzzer, job):
   """Prepares the complete environment variables for the payload."""
-  uworker_env = _get_job_environment(args.job)
-  uworker_env.update(_get_fuzzer_environment(args.fuzzer, args.job))
+  uworker_env = _get_job_environment(job)
+  uworker_env.update(_get_fuzzer_environment(fuzzer, job))
 
   # Replicate what process_command_impl does in a real tworker
   uworker_env['TASK_NAME'] = 'fuzz'
-  uworker_env['TASK_ARGUMENT'] = args.fuzzer
-  uworker_env['JOB_NAME'] = args.job
+  uworker_env['TASK_ARGUMENT'] = fuzzer
+  uworker_env['JOB_NAME'] = job
 
   # Add logging metadata to be carried over to uworker_main
   uworker_env['CF_TASK_NAME'] = 'fuzz'
-  uworker_env['CF_TASK_JOB_NAME'] = args.job
-  uworker_env['CF_TASK_ARGUMENT'] = args.fuzzer
+  uworker_env['CF_TASK_JOB_NAME'] = job
+  uworker_env['CF_TASK_ARGUMENT'] = fuzzer
   uworker_env['CF_TASK_ID'] = str(uuid.uuid4())
 
   return uworker_env
 
 
-def _setup(args):
-  """Early setup needed for config and logs."""
-  sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
-  sys.path.insert(
-      0, os.path.abspath(os.path.join('src', 'appengine', 'third_party')))
-
-  environment.set_value('CONFIG_DIR_OVERRIDE',
-                        os.path.abspath(os.path.expanduser(args.config_dir)))
-  environment.set_value('LOG_TO_CONSOLE', True)
-  local_config.ProjectConfig().set_environment()
-  logs.configure('run_bot')
-
-
 def execute(args):
   """Executes the preprocess command."""
-  _setup(args)
+  if not args.script_args or len(args.script_args) < 2:
+    print('Usage: python butler.py run preprocess <fuzzer> <job>')
+    return
 
-  print(f'Running preprocess for fuzzer: {args.fuzzer}, job: {args.job}')
+  fuzzer = args.script_args[0]
+  job = args.script_args[1]
 
-  with ndb_init.context():
-    uworker_env = _get_uworker_env(args)
+  environment.set_value('LOG_TO_CONSOLE', True)
+  logs.configure('run_bot')
 
-    # tworker_preprocess expects: (module, task_argument, job_type, uworker_env)
-    # For fuzz task, task_argument is fuzzer_name.
-    result = utasks.tworker_preprocess(fuzz_task, args.fuzzer, args.job,
-                                       uworker_env)
+  print(f'Running preprocess for fuzzer: {fuzzer}, job: {job}')
 
-    if result:
-      download_url, _ = result
-      print('\nPreprocess successful!')
-      print(f'Input Download URL: {download_url}')
-    else:
-      print('\nPreprocess failed or returned no result.')
+  uworker_env = _get_uworker_env(fuzzer, job)
+
+  # tworker_preprocess expects: (module, task_argument, job_type, uworker_env)
+  # For fuzz task, task_argument is fuzzer_name.
+  result = utasks.tworker_preprocess(fuzz_task, fuzzer, job, uworker_env)
+
+  if result:
+    download_url, _ = result
+    print('\nPreprocess successful!')
+    print(f'Input Download URL: {download_url}')
+  else:
+    print('\nPreprocess failed or returned no result.')
