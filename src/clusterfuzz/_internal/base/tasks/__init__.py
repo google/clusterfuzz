@@ -102,8 +102,8 @@ UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
 
 SWARMING_QUEUES = {
-    PREPROCESS_QUEUE: 'preprocess_swarming',
-    UTASK_MAIN_QUEUE: 'utask_main_swarming',
+    PREPROCESS_QUEUE: 'preprocess-swarming',
+    UTASK_MAIN_QUEUE: 'utask_main-swarming',
 }
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
