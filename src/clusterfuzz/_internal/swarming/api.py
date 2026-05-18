@@ -158,6 +158,7 @@ class SwarmingApi:
     logs.info(
         "[Swarming] Counting tasks in queue",
         url=self._base_url,
+        endpoint= __COUNT_TASKS_ENDPOINT,
         body=message_body)
 
     response = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
