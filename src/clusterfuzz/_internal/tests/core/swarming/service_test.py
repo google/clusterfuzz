@@ -34,10 +34,18 @@ class SwarmingServiceTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     self.service = service.SwarmingService()
-    self.mock.create_new_task_request.return_value = 'fake_request'
+
+    self.mock_request = mock.MagicMock()
+    mock_dimension = mock.MagicMock()
+    mock_dimension.key = 'os'
+    mock_dimension.value = 'Linux'
+    self.mock_request.task_slices[0].properties.dimensions = [mock_dimension]
+    self.mock.create_new_task_request.return_value = self.mock_request
+
     self.mock.get.return_value = None
     self.mock_api = mock.MagicMock()
     self.mock._get_api.return_value = self.mock_api  # pylint: disable=protected-access
+    self.mock_api.count_tasks.return_value = '{"count": 0}'
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""
@@ -50,7 +58,7 @@ class SwarmingServiceTest(unittest.TestCase):
     # Success returns None in this interface (consistent with GcpBatchService)
     self.assertIsNone(result)
 
-    self.mock_api.push_task.assert_called_once_with('fake_request')
+    self.mock_api.push_task.assert_called_once_with(self.mock_request)
 
   def test_create_utask_main_job_failure(self):
     """Test creating a single task that is not a swarming task."""
@@ -83,8 +91,8 @@ class SwarmingServiceTest(unittest.TestCase):
 
     self.assertEqual(self.mock_api.push_task.call_count, 2)
     self.mock_api.push_task.assert_has_calls([
-        mock.call('fake_request'),
-        mock.call('fake_request'),
+        mock.call(self.mock_request),
+        mock.call(self.mock_request),
     ])
 
   def test_create_utask_main_jobs_all_success(self):
@@ -134,3 +142,38 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled[0].job_type, 'job1')
     self.mock.error.assert_called_once_with(
         'Failed to push task to Swarming: fuzz, job1.')
+
+  def test_create_utask_main_jobs_backpressure(self):
+    """Test that backpressure stops scheduling."""
+    tasks = [
+        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
+        remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
+    ]
+    self.mock.is_swarming_task.return_value = True
+
+    self.mock_api.count_tasks.side_effect = ['{"count": 10}', '{"count": 50}']
+
+    unscheduled = self.service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(len(unscheduled), 1)
+    self.assertEqual(unscheduled[0].job_type, 'job2')
+
+    self.assertEqual(self.mock_api.push_task.call_count, 1)
+    self.mock_api.push_task.assert_called_once_with(self.mock_request)
+
+  def test_create_utask_main_jobs_count_tasks_failure(self):
+    """Test that count_tasks failure fails closed."""
+    tasks = [
+        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
+        remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
+    ]
+    self.mock.is_swarming_task.return_value = True
+    self.mock_api.count_tasks.side_effect = Exception('api error')
+
+    unscheduled = self.service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(len(unscheduled), 2)
+    self.assertEqual(unscheduled[0].job_type, 'job1')
+    self.assertEqual(unscheduled[1].job_type, 'job2')
+
+    self.mock_api.push_task.assert_not_called()
