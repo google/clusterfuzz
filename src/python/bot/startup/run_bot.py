@@ -114,16 +114,16 @@ def schedule_utask_mains():
         task.pubsub_task.cancel_lease_ack()
 
 
-def _get_max_executions():
-  """Returns the MAX_EXECUTIONS limit as an int, or None if invalid/unset."""
-  val = environment.get_value('MAX_EXECUTIONS')
+def _get_max_task_executions():
+  """Returns the MAX_TASK_EXECUTIONS limit as an int, or None if invalid/unset."""
+  val = environment.get_value('MAX_TASK_EXECUTIONS')
   if not val:
     return None
   try:
     return int(val)
   except ValueError:
-    logs.error(f'Invalid value for MAX_EXECUTIONS: {val}')
-    environment.remove_key('MAX_EXECUTIONS')
+    logs.error(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
+    environment.remove_key('MAX_TASK_EXECUTIONS')
     return None
 
 
@@ -206,9 +206,9 @@ def task_loop():
       break
 
     execution_count += 1
-    max_executions = _get_max_executions()
-    if max_executions and execution_count >= max_executions:
-      logs.info(f'Reached MAX_EXECUTIONS limit ({max_executions}). Exiting.')
+    max_task_executions = _get_max_task_executions()
+    if max_task_executions and execution_count >= max_task_executions:
+      logs.info(f'Reached MAX_TASK_EXECUTIONS limit ({max_task_executions}). Exiting.')
       clean_exit = True
       break
 
