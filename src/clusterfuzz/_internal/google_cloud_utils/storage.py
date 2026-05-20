@@ -18,6 +18,7 @@ import collections
 from concurrent import futures
 import copy
 import datetime
+import io
 import json
 import os
 import shutil
@@ -1302,12 +1303,16 @@ def str_to_bytes(data):
   return bytes(data, 'utf-8')
 
 
-def download_signed_url_to_file(url, filepath):
-  contents = download_signed_url(url)
+def download_signed_url_to_filepath(url, filepath: str):
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
-    fp.write(contents)
-  return filepath
+    download_signed_url_to_file(url, fp)
+    return filepath
+
+
+def download_signed_url_to_file(url, file: io.IOBase):
+  contents = download_signed_url(url)
+  file.write(contents)
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1327,7 +1332,7 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 def _error_tolerant_download_signed_url_to_file(url_and_path) -> bool:
   url, path = url_and_path
   try:
-    download_signed_url_to_file(url, path)
+    download_signed_url_to_filepath(url, path)
     return True
   except Exception:
     return False
