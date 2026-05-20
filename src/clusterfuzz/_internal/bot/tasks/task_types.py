@@ -177,9 +177,16 @@ class UTask(BaseUTask):
     if download_url is None:
       return
 
-    logs.info('Queueing utask for remote execution.', download_url=download_url)
     assert batch_service.is_remote_task(command, job_type)
-    tasks.add_utask_main(command, download_url, job_type)
+    queue_name = tasks.UTASK_MAIN_QUEUE
+    if swarming.is_swarming_task(job_type):
+      queue_name = tasks.SWARMING_QUEUES[tasks.UTASK_MAIN_QUEUE]
+
+    logs.info(
+        'Queueing utask for remote execution.',
+        queue_name=queue_name,
+        download_url=download_url)
+    tasks.add_utask_main(command, download_url, job_type, queue_name)
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def preprocess(self, task_argument, job_type, uworker_env):

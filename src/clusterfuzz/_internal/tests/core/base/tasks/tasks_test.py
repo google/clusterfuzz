@@ -550,35 +550,3 @@ class QueueNameGenerationTest(unittest.TestCase):
     }.get(key, default)
     mock_platform.return_value = 'MAC'
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
-
-
-@test_utils.with_cloud_emulators('datastore')
-class GetTargetRuntimeTest(unittest.TestCase):
-  """Tests for get_target_runtime."""
-
-  def test_job_type_none(self):
-    """Test that job_type='none' returns BATCH."""
-    self.assertEqual(tasks.get_target_runtime('none'), 'batch')
-
-  def test_job_not_found(self):
-    """Test that a non-existent job returns BATCH."""
-    self.assertEqual(tasks.get_target_runtime('nonexistent_job'), 'batch')
-
-  def test_swarming_job(self):
-    """Test that a job with IS_SWARMING_JOB=True returns SWARMING."""
-    job = data_types.Job(
-        name='swarming_job', environment_string='IS_SWARMING_JOB = True')
-    job.put()
-    self.assertEqual(tasks.get_target_runtime('swarming_job'), 'swarming')
-
-  def test_k8s_job(self):
-    """Test that a job with IS_K8S_ENV=True returns KATA_CONTAINER."""
-    job = data_types.Job(name='k8s_job', environment_string='IS_K8S_ENV = True')
-    job.put()
-    self.assertEqual(tasks.get_target_runtime('k8s_job'), 'kata_container')
-
-  def test_default_batch_job(self):
-    """Test that a job without special env vars returns BATCH."""
-    job = data_types.Job(name='default_job', environment_string='FOO = BAR')
-    job.put()
-    self.assertEqual(tasks.get_target_runtime('default_job'), 'batch')

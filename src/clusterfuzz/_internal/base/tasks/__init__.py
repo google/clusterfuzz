@@ -854,40 +854,21 @@ class _PubSubLeaserThread(threading.Thread):
         logs.error('Leaser thread failed.')
 
 
-def get_target_runtime(job_type: str) -> str:
-  """Returns the target runtime for a job type."""
-  target_runtime = environment.UtaskMainRuntime.BATCH.value
-
-  if job_type != 'none':
-    job = data_types.Job.query(data_types.Job.name == job_type).get()
-    if job:
-      job_environment = job.get_environment()
-      if utils.string_is_true(job_environment.get('IS_SWARMING_JOB')):
-        target_runtime = environment.UtaskMainRuntime.SWARMING.value
-      elif utils.string_is_true(job_environment.get('IS_K8S_ENV')):
-        target_runtime = environment.UtaskMainRuntime.KATA_CONTAINER.value
-
-  return target_runtime
-
-
 def add_utask_main(command: str,
                    input_url: str,
                    job_type: str,
-                   wait_time: Optional[int] = None) -> None:
+                   wait_time: Optional[int] = None,
+                   queue_name: str = UTASK_MAIN_QUEUE) -> None:
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
   initial_command = environment.get_value('TASK_PAYLOAD')
-  target_runtime = get_target_runtime(job_type)
   add_task(
       command,
       input_url,
       job_type,
-      queue=UTASK_MAIN_QUEUE,
+      queue=queue_name,
       wait_time=wait_time,
-      extra_info={
-          'initial_command': initial_command,
-          'target_runtime': target_runtime,
-      })
+      extra_info={'initial_command': initial_command})
 
 
 def bulk_add_tasks(tasks, queue=None, eta_now=False):
