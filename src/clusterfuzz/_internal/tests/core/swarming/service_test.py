@@ -27,17 +27,17 @@ class SwarmingServiceTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.swarming.is_swarming_task',
-        'clusterfuzz._internal.swarming.service.SwarmingService._get_api',
+        'clusterfuzz._internal.swarming.api.SwarmingApi.create',
         'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
+    self.mock_api = mock.MagicMock()
+    self.mock.create.return_value = self.mock_api
     self.service = service.SwarmingService()
     self.mock.create_new_task_request.return_value = 'fake_request'
     self.mock.get.return_value = None
-    self.mock_api = mock.MagicMock()
-    self.mock._get_api.return_value = self.mock_api  # pylint: disable=protected-access
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""
@@ -133,4 +133,6 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(len(unscheduled), 1)
     self.assertEqual(unscheduled[0].job_type, 'job1')
     self.mock.error.assert_called_once_with(
-        'Failed to push task to Swarming: fuzz, job1.')
+        '''Failed to push task to Swarming: fuzz, job1
+            . Unexpected exception: error.
+            ''')

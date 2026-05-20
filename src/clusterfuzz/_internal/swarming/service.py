@@ -12,24 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Swarming service."""
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
-from clusterfuzz._internal.swarming.api import SwarmingAPI
+from clusterfuzz._internal.swarming.api import SwarmingApi
 
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
 
-  _api: SwarmingAPI = None
+  _api: SwarmingApi | None = None
 
-  def _get_api(self) -> SwarmingAPI:
-    """Returns the Swarming API instance."""
+  def __init__(self):
     if not self._api:
-      self._api = SwarmingAPI()
-    return self._api
+      self._api = SwarmingApi.create()
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -60,10 +59,17 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
           continue
         if request := swarming.create_new_task_request(
             task.command, task.job_type, task.argument):
-          self._get_api().push_task(request)
-      except Exception:  # pylint: disable=broad-except
+          self._api.push_task(request)
+      except HTTPError as api_failure:
         logs.error(
-            f'Failed to push task to Swarming: {task.command}, {task.job_type}.'
-        )
+            f'''Failed to push task to Swarming: {task.command}, {task.job_type}
+            . Reason: {api_failure}.
+            ''')
+        unscheduled_tasks.append(task)
+      except Exception as e:  # pylint: disable=broad-except
+        logs.error(
+            f'''Failed to push task to Swarming: {task.command}, {task.job_type}
+            . Unexpected exception: {e}.
+            ''')
         unscheduled_tasks.append(task)
     return unscheduled_tasks
