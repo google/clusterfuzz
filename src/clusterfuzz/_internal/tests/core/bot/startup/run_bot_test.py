@@ -114,7 +114,6 @@ class TaskLoopTest(unittest.TestCase):
     from clusterfuzz._internal.system import environment
     environment._initial_environment = None
     os.environ['MAX_TASK_EXECUTIONS'] = '3'
-    self.mock.process_command.return_value = None
 
     _, clean_exit, payload = run_bot.task_loop()
 
@@ -133,7 +132,8 @@ class TaskLoopTest(unittest.TestCase):
     with self.assertRaises(SystemExit):
       run_bot.task_loop()
 
-    mock_log_fatal_and_exit.assert_any_call('Invalid value for MAX_TASK_EXECUTIONS: invalid')
+    mock_log_fatal_and_exit.assert_any_call(
+        'Invalid value for MAX_TASK_EXECUTIONS: invalid')
     self.assertEqual(0, self.mock.process_command.call_count)
 
 

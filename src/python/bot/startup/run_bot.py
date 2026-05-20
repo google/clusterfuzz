@@ -115,7 +115,8 @@ def schedule_utask_mains():
 
 
 def _get_max_task_executions():
-  """Returns the MAX_TASK_EXECUTIONS limit as an int, or None if invalid/unset."""
+  """Returns the MAX_TASK_EXECUTIONS limit as an int, or None if
+  invalid/unset."""
   val = environment.get_value('MAX_TASK_EXECUTIONS')
   if not val:
     return None
@@ -123,6 +124,7 @@ def _get_max_task_executions():
     return int(val)
   except ValueError:
     logs.log_fatal_and_exit(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
+    return None
 
 
 def task_loop():
@@ -207,8 +209,9 @@ def task_loop():
 
     execution_count += 1
     if max_task_executions and execution_count >= max_task_executions:
-      logs.info('Reached MAX_TASK_EXECUTIONS limit. Exiting.',
-                max_task_executions=max_task_executions)
+      logs.info(
+          'Reached MAX_TASK_EXECUTIONS limit. Exiting.',
+          max_task_executions=max_task_executions)
       clean_exit = True
       break
 
