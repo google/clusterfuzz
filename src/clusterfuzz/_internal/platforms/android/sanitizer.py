@@ -71,7 +71,7 @@ def set_options(sanitizer_tool_name, sanitizer_options):
 
   # Skip reboot as the app will pick up the options file on restart.
   adb.write_data_to_file(
-      sanitizer_options, sanitizer_options_file_path, wait_for_reboot=False)
+      sanitizer_options, sanitizer_options_file_path, should_reboot=False)
 
 
 def setup_asan_if_needed() -> bool:
