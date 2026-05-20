@@ -114,8 +114,7 @@ class TaskLoopTest(unittest.TestCase):
     from clusterfuzz._internal.system import environment
     environment._initial_environment = None
     os.environ['MAX_TASK_EXECUTIONS'] = '3'
-    # Use side_effect to avoid raising an exception so it loops cleanly.
-    self.mock.process_command.side_effect = None
+    self.mock.process_command.return_value = None
 
     _, clean_exit, payload = run_bot.task_loop()
 
@@ -123,21 +122,19 @@ class TaskLoopTest(unittest.TestCase):
     self.assertTrue(clean_exit)
     self.assertEqual('payload', payload)
 
-  @mock.patch('clusterfuzz._internal.metrics.logs.error')
-  def test_max_executions_invalid(self, mock_error):
-    """Test that an invalid MAX_TASK_EXECUTIONS logs an error and is removed."""
+  @mock.patch('clusterfuzz._internal.metrics.logs.log_fatal_and_exit')
+  def test_max_executions_invalid(self, mock_log_fatal_and_exit):
+    """Test that an invalid MAX_TASK_EXECUTIONS logs a fatal error and exits."""
     from clusterfuzz._internal.system import environment
     environment._initial_environment = None
     os.environ['MAX_TASK_EXECUTIONS'] = 'invalid'
+    mock_log_fatal_and_exit.side_effect = SystemExit
 
-    # We need the loop to exit otherwise it will run indefinitely because we removed the limit.
-    # We can make process_command succeed once, then raise an exception so it exits.
-    self.mock.process_command.side_effect = [None, Exception('exit')]
+    with self.assertRaises(SystemExit):
+      run_bot.task_loop()
 
-    _, _, _ = run_bot.task_loop()
-
-    mock_error.assert_any_call('Invalid value for MAX_TASK_EXECUTIONS: invalid')
-    self.assertEqual(2, self.mock.process_command.call_count)
+    mock_log_fatal_and_exit.assert_any_call('Invalid value for MAX_TASK_EXECUTIONS: invalid')
+    self.assertEqual(0, self.mock.process_command.call_count)
 
 
 class LeaseAllTasksTest(unittest.TestCase):

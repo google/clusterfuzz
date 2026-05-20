@@ -122,9 +122,7 @@ def _get_max_task_executions():
   try:
     return int(val)
   except ValueError:
-    logs.error(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
-    environment.remove_key('MAX_TASK_EXECUTIONS')
-    return None
+    logs.log_fatal_and_exit(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
 
 
 def task_loop():
@@ -134,6 +132,8 @@ def task_loop():
 
   clean_exit = False
   execution_count = 0
+  max_task_executions = _get_max_task_executions()
+
   while True:
     stacktrace = ''
     exception_occurred = False
@@ -206,9 +206,9 @@ def task_loop():
       break
 
     execution_count += 1
-    max_task_executions = _get_max_task_executions()
     if max_task_executions and execution_count >= max_task_executions:
-      logs.info(f'Reached MAX_TASK_EXECUTIONS limit ({max_task_executions}). Exiting.')
+      logs.info('Reached MAX_TASK_EXECUTIONS limit. Exiting.',
+                max_task_executions=max_task_executions)
       clean_exit = True
       break
 
