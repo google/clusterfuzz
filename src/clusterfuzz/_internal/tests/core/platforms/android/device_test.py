@@ -14,7 +14,6 @@
 """Tests for device functions."""
 
 import unittest
-from unittest import mock
 
 from clusterfuzz._internal.platforms.android import device
 from clusterfuzz._internal.tests.test_libs import android_helpers
@@ -32,77 +31,37 @@ class InitializeDeviceRebootLogicTest(unittest.TestCase):
   """Tests the reboot batching logic in initialize_device."""
 
   def setUp(self):
-    # Mock environment to bypass the engine fuzzer check
-    mock.patch(
+    from clusterfuzz._internal.tests.test_libs import helpers
+    helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_engine_fuzzer_job',
-        return_value=False).start()
+        'clusterfuzz._internal.platforms.android.adb.setup_adb',
+        'clusterfuzz._internal.platforms.android.adb.run_as_root',
+        'clusterfuzz._internal.platforms.android.device.configure_system_build_properties',
+        'clusterfuzz._internal.platforms.android.device.configure_device_settings',
+        'clusterfuzz._internal.platforms.android.device.add_test_accounts_if_needed',
+        'clusterfuzz._internal.platforms.android.sanitizer.setup_asan_if_needed',
+        'clusterfuzz._internal.platforms.android.device.reboot',
+        'clusterfuzz._internal.platforms.android.wifi.configure',
+        'clusterfuzz._internal.platforms.android.device.setup_host_and_device_forwarder_if_needed',
+        'clusterfuzz._internal.platforms.android.settings.change_se_linux_to_permissive_mode',
+        'clusterfuzz._internal.platforms.android.app.wait_until_optimization_complete',
+        'clusterfuzz._internal.platforms.android.ui.clear_notifications',
+        'clusterfuzz._internal.platforms.android.ui.unlock_screen',
+    ])
+    self.mock.is_engine_fuzzer_job.return_value = False
 
-    # Mock all the setup steps so we don't actually run ADB commands
-    self.mock_setup_adb = mock.patch(
-        'clusterfuzz._internal.platforms.android.adb.setup_adb').start()
-    self.mock_run_as_root = mock.patch(
-        'clusterfuzz._internal.platforms.android.adb.run_as_root').start()
-    self.mock_config_props = mock.patch(
-        'clusterfuzz._internal.platforms.android.device.configure_system_build_properties'
-    ).start()
-    self.mock_config_settings = mock.patch(
-        'clusterfuzz._internal.platforms.android.device.configure_device_settings'
-    ).start()
-    self.mock_add_accounts = mock.patch(
-        'clusterfuzz._internal.platforms.android.device.add_test_accounts_if_needed'
-    ).start()
-    self.mock_setup_asan = mock.patch(
-        'clusterfuzz._internal.platforms.android.sanitizer.setup_asan_if_needed'
-    ).start()
-
-    # Mock the reboot function we are trying to track
-    self.mock_reboot = mock.patch(
-        'clusterfuzz._internal.platforms.android.device.reboot').start()
-
-    # Mock the post-reboot steps
-    mock.patch('clusterfuzz._internal.platforms.android.wifi.configure').start()
-    mock.patch(
-        'clusterfuzz._internal.platforms.android.device.setup_host_and_device_forwarder_if_needed'
-    ).start()
-    mock.patch(
-        'clusterfuzz._internal.platforms.android.settings.change_se_linux_to_permissive_mode'
-    ).start()
-    mock.patch(
-        'clusterfuzz._internal.platforms.android.app.wait_until_optimization_complete'
-    ).start()
-    mock.patch('clusterfuzz._internal.platforms.android.ui.clear_notifications'
-              ).start()
-    mock.patch(
-        'clusterfuzz._internal.platforms.android.ui.unlock_screen').start()
-
-  def tearDown(self):
-    mock.patch.stopall()
-
-  def test_reboot_if_props_changed(self):
-    """Test that `initialize_device()` reboots the device if
-    `configure_system_build_properties()` did, and the ASan setup script did not."""
-    self.mock_config_props.return_value = True
-    self.mock_setup_asan.return_value = False
+  def test_reboot_if_asan_did_not_run(self):
+    """Test that `initialize_device()` calls `reboot()` if the ASan setup
+    script did not."""
+    self.mock.setup_asan_if_needed.return_value = False
 
     device.initialize_device()
-    self.mock_reboot.assert_called_once()
+    self.mock.reboot.assert_called_once()
 
   def test_no_reboot_if_asan_ran(self):
-    """Test that `initialize_device()` skips calling `reboot()` if
-    `configure_system_build_properties()` did not cause a reboot but the ASan
+    """Test that `initialize_device()` skips calling `reboot()` if the ASan
     setup script did."""
-    # If build.prop didn't change, the ASan restart handles the clean state.
-    self.mock_config_props.return_value = False
-    self.mock_setup_asan.return_value = True
+    self.mock.setup_asan_if_needed.return_value = True
 
     device.initialize_device()
-    self.mock_reboot.assert_not_called()
-
-  def test_reboot_if_clean_slate_needed(self):
-    """Test that `initialize_device()` calls `reboot()` if neither
-    `configure_system_build_properties()` nor the ASan setup script did."""
-    self.mock_config_props.return_value = False
-    self.mock_setup_asan.return_value = False
-
-    device.initialize_device()
-    self.mock_reboot.assert_called_once()
+    self.mock.reboot.assert_not_called()

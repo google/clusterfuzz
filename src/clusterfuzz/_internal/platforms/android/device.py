@@ -183,13 +183,9 @@ def configure_device_settings():
   adb.write_data_to_file(local_properties_file_contents, LOCAL_PROP_PATH)
 
 
-def configure_system_build_properties() -> bool:
+def configure_system_build_properties():
   """Modifies system build properties in /system/build.prop for better boot
-  speed and power use.
-  
-  Returns:
-    True if the device was rebooted during configuration, False otherwise.
-  """
+  speed and power use."""
   adb.run_as_root()
 
   # Check md5 checksum of build.prop to see if already updated,
@@ -199,9 +195,9 @@ def configure_system_build_properties() -> bool:
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   if current_md5 is None:
     logs.error('Unable to find %s on device.' % BUILD_PROP_PATH)
-    return False
+    return
   if old_md5 == current_md5:
-    return False
+    return
 
   # Pull to tmp file.
   bot_tmp_directory = environment.get_value('BOT_TMPDIR')
@@ -209,7 +205,7 @@ def configure_system_build_properties() -> bool:
   adb.run_command(['pull', BUILD_PROP_PATH, old_build_prop_path])
   if not os.path.exists(old_build_prop_path):
     logs.error('Unable to fetch %s from device.' % BUILD_PROP_PATH)
-    return False
+    return
 
   # Write new build.prop.
   new_build_prop_path = os.path.join(bot_tmp_directory, 'new.prop')
@@ -258,8 +254,6 @@ def configure_system_build_properties() -> bool:
   # Set persistent cache key containing and md5sum.
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   persistent_cache.set_value(constants.BUILD_PROP_MD5_KEY, current_md5)
-
-  return True
 
 
 def get_debug_props_and_values():
@@ -312,7 +306,7 @@ def initialize_device():
   adb.setup_adb()
 
   # General device configuration settings.
-  needs_full_reboot = configure_system_build_properties()
+  configure_system_build_properties()
   configure_device_settings()
   add_test_accounts_if_needed()
 
@@ -321,7 +315,7 @@ def initialize_device():
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  if needs_full_reboot or not asan_reboot_done:
+  if not asan_reboot_done:
     reboot()
 
   # Make sure we are running as root after restart.
