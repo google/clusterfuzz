@@ -65,14 +65,14 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
             'fuzzer_name': 'ochang_js_fuzzer',
             'date': '2026-04-30',
             'testcases_executed': 10495,
-            'testcase_execution_duration': 'P0DT11H12M11S',
+            'testcase_execution_duration_seconds': 40331.0,
             'testcases_generated': 10495,
-            'testcase_generation_duration': 'P0DT1H15M33S',
-            'fuzzing_duration': 'P0DT12H49M49S'
+            'testcase_generation_duration_seconds': 4533.0,
+            'fuzzing_duration_seconds': 46189.0
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--non-dry-run'])
+    self.assertTrue(aggregate_fuzzer_stats.main())
 
     self.mock_api_client.datasets().insert.assert_called_with(
         projectId='test-clusterfuzz',
@@ -128,12 +128,12 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
     self.assertEqual(uploaded_dict['fuzzer_name'], 'ochang_js_fuzzer')
     self.assertEqual(uploaded_dict['date'], '2026-04-30')
     self.assertEqual(uploaded_dict['testcases_executed'], 10495)
-    self.assertEqual(uploaded_dict['testcase_execution_duration'],
-                     'P0DT11H12M11S')
+    self.assertEqual(uploaded_dict['testcase_execution_duration_seconds'],
+                     40331.0)
     self.assertEqual(uploaded_dict['testcases_generated'], 10495)
-    self.assertEqual(uploaded_dict['testcase_generation_duration'],
-                     'P0DT1H15M33S')
-    self.assertEqual(uploaded_dict['fuzzing_duration'], 'P0DT12H49M49S')
+    self.assertEqual(uploaded_dict['testcase_generation_duration_seconds'],
+                     4533.0)
+    self.assertEqual(uploaded_dict['fuzzing_duration_seconds'], 46189.0)
 
   def test_aggregate_fuzzer_stats_ignoring_409(self):
     """Tests that execution successfully proceeds when the table already exists."""
@@ -146,14 +146,14 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
             'fuzzer_name': 'ochang_js_fuzzer',
             'date': '2026-04-30',
             'testcases_executed': 10495,
-            'testcase_execution_duration': 'P0DT11H12M11S',
+            'testcase_execution_duration_seconds': 40331.0,
             'testcases_generated': 10495,
-            'testcase_generation_duration': 'P0DT1H15M33S',
-            'fuzzing_duration': 'P0DT12H49M49S'
+            'testcase_generation_duration_seconds': 4533.0,
+            'fuzzing_duration_seconds': 46189.0
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--non-dry-run'])
+    aggregate_fuzzer_stats.main()
 
     self.mock_api_client.tables().insert.assert_called_once()
 
@@ -164,7 +164,7 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
         response, b'Internal Server Error')
 
     with self.assertRaises(HttpError):
-      aggregate_fuzzer_stats.main(['--non-dry-run'])
+      aggregate_fuzzer_stats.main()
 
   def test_aggregate_fuzzer_stats_with_date_flag(self):
     """Tests execution of the cron job with a specific --date flag."""
@@ -173,14 +173,14 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
             'fuzzer_name': 'ochang_js_fuzzer',
             'date': '2026-04-30',
             'testcases_executed': 100,
-            'testcase_execution_duration': 'P0DT1H0M0S',
+            'testcase_execution_duration_seconds': 3600.0,
             'testcases_generated': 100,
-            'testcase_generation_duration': 'P0DT0H10M0S',
-            'fuzzing_duration': 'P0DT1H10M0S'
+            'testcase_generation_duration_seconds': 600.0,
+            'fuzzing_duration_seconds': 4200.0
         }],
         total_count=1)
 
-    aggregate_fuzzer_stats.main(['--non-dry-run', '--date', '2026-04-30'])
+    self.assertTrue(aggregate_fuzzer_stats.main(['--date', '2026-04-30']))
 
     call_kwargs = self.mock_api_client.jobs().insert.call_args[1]
     load_config = call_kwargs['body']['configuration']['load']
@@ -195,4 +195,4 @@ class AggregateFuzzerStatsTest(unittest.TestCase):
   def test_aggregate_fuzzer_stats_with_invalid_date_flag(self):
     """Tests that an invalid --date format causes argument parsing error."""
     with self.assertRaises(SystemExit):
-      aggregate_fuzzer_stats.main(['--non-dry-run', '--date', 'invalid-date'])
+      aggregate_fuzzer_stats.main(['--date', 'invalid-date'])

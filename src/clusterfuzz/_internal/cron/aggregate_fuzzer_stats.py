@@ -55,20 +55,20 @@ DAILY_STATS_SCHEMA = {
         'type': 'INTEGER',
         'mode': 'NULLABLE'
     }, {
-        'name': 'testcase_execution_duration',
-        'type': 'INTERVAL',
+        'name': 'testcase_execution_duration_seconds',
+        'type': 'FLOAT',
         'mode': 'NULLABLE'
     }, {
         'name': 'testcases_generated',
         'type': 'INTEGER',
         'mode': 'NULLABLE'
     }, {
-        'name': 'testcase_generation_duration',
-        'type': 'INTERVAL',
+        'name': 'testcase_generation_duration_seconds',
+        'type': 'FLOAT',
         'mode': 'NULLABLE'
     }, {
-        'name': 'fuzzing_duration',
-        'type': 'INTERVAL',
+        'name': 'fuzzing_duration_seconds',
+        'type': 'FLOAT',
         'mode': 'NULLABLE'
     }]
 }
@@ -151,33 +151,23 @@ def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
 
   query = f"""
   SELECT
-    '{fuzzer_name}' as fuzzer_name,
-    CAST(DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) AS STRING) as date,
-    SUM(testcases_executed) as testcases_executed,
-    CONCAT(
-      'P',
-      CAST(EXTRACT(DAY FROM SUM(testcase_execution_duration)) AS STRING), 'DT',
-      CAST(EXTRACT(HOUR FROM SUM(testcase_execution_duration)) AS STRING), 'H',
-      CAST(EXTRACT(MINUTE FROM SUM(testcase_execution_duration)) AS STRING), 'M',
-      CAST(EXTRACT(SECOND FROM SUM(testcase_execution_duration)) AS STRING), 'S'
-    ) as testcase_execution_duration,
-    SUM(testcases_generated) as testcases_generated,
-    CONCAT(
-      'P',
-      CAST(EXTRACT(DAY FROM SUM(testcase_generation_duration)) AS STRING), 'DT',
-      CAST(EXTRACT(HOUR FROM SUM(testcase_generation_duration)) AS STRING), 'H',
-      CAST(EXTRACT(MINUTE FROM SUM(testcase_generation_duration)) AS STRING), 'M',
-      CAST(EXTRACT(SECOND FROM SUM(testcase_generation_duration)) AS STRING), 'S'
-    ) as testcase_generation_duration,
-    CONCAT(
-      'P',
-      CAST(EXTRACT(DAY FROM SUM(fuzzing_duration)) AS STRING), 'DT',
-      CAST(EXTRACT(HOUR FROM SUM(fuzzing_duration)) AS STRING), 'H',
-      CAST(EXTRACT(MINUTE FROM SUM(fuzzing_duration)) AS STRING), 'M',
-      CAST(EXTRACT(SECOND FROM SUM(fuzzing_duration)) AS STRING), 'S'
-    ) as fuzzing_duration
-  FROM
-    `{project_id}.{dataset_id}.{table_id}`
+  '{fuzzer_name}' as fuzzer_name,
+  CAST(DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) AS STRING) as date,
+  SUM(testcases_executed) as testcases_executed,
+  (EXTRACT(DAY FROM SUM(testcase_execution_duration)) * 86400 +
+   EXTRACT(HOUR FROM SUM(testcase_execution_duration)) * 3600 +
+   EXTRACT(MINUTE FROM SUM(testcase_execution_duration)) * 60 +
+   EXTRACT(SECOND FROM SUM(testcase_execution_duration))) AS testcase_execution_duration_seconds,
+  SUM(testcases_generated) as testcases_generated,
+  (EXTRACT(DAY FROM SUM(testcase_generation_duration)) * 86400 +
+   EXTRACT(HOUR FROM SUM(testcase_generation_duration)) * 3600 +
+   EXTRACT(MINUTE FROM SUM(testcase_generation_duration)) * 60 +
+   EXTRACT(SECOND FROM SUM(testcase_generation_duration))) AS testcase_generation_duration_seconds,
+  (EXTRACT(DAY FROM SUM(fuzzing_duration)) * 86400 +
+   EXTRACT(HOUR FROM SUM(fuzzing_duration)) * 3600 +
+   EXTRACT(MINUTE FROM SUM(fuzzing_duration)) * 60 +
+   EXTRACT(SECOND FROM SUM(fuzzing_duration))) AS fuzzing_duration_seconds
+  FROM    `{project_id}.{dataset_id}.{table_id}`
   WHERE
     DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) = '{target_date_str}'
   GROUP BY
@@ -226,15 +216,10 @@ def _gather_all_stats(fuzzers, project_id, target_date_str):
 
 
 def _persist_daily_stats(all_rows, bigquery_client, project_id,
-                         date_partition_str, non_dry_run):
+                         date_partition_str):
   """Writes gathered row statistics to destination table."""
   if not all_rows:
     logs.error(f'No data to write to daily_stats on {date_partition_str}')
-    return
-
-  if not non_dry_run:
-    logs.info(f'DRY RUN: Would insert {len(all_rows)} rows across all fuzzers.')
-    logs.info(all_rows)
     return
 
   try:
@@ -282,17 +267,15 @@ def _persist_daily_stats(all_rows, bigquery_client, project_id,
     logs.error('Failed to execute batch load job in BigQuery', exception=e)
 
 
-def main(argv):
+def main(argv=None):
   """Main entry point for the aggregate_fuzzer_stats cron job."""
   parser = argparse.ArgumentParser(prog='aggregate_fuzzer_stats')
-  parser.add_argument(
-      '--non-dry-run', action='store_true', help='Whether to write to BigQuery')
   parser.add_argument(
       '--date',
       help=('Date for fuzzer stats aggregation (YYYY-MM-DD). Defaults to today '
             'UTC.'),
       type=str)
-  args = parser.parse_args(argv)
+  args = parser.parse_args(argv if argv is not None else [])
 
   logs.info('Starting fuzzer stats aggregation cron.')
 
@@ -308,15 +291,14 @@ def main(argv):
   if environment.is_local_development():
     logs.error('BigQuery requires a cloud project to run. '
                'This cron job cannot run locally.')
-    return
+    return False
 
   bigquery_client = big_query.get_api_client()
   project_id = utils.get_application_id()
 
-  if args.non_dry_run:
-    _create_dataset_if_needed(bigquery_client, 'fuzzer_stats')
-    _create_table_if_needed(bigquery_client, 'fuzzer_stats', 'daily_stats',
-                            DAILY_STATS_SCHEMA)
+  _create_dataset_if_needed(bigquery_client, 'fuzzer_stats')
+  _create_table_if_needed(bigquery_client, 'fuzzer_stats', 'daily_stats',
+                          DAILY_STATS_SCHEMA)
 
   fuzzers = list(
       data_types.Fuzzer.query(ndb_utils.is_false(data_types.Fuzzer.builtin)))
@@ -330,7 +312,7 @@ def main(argv):
       all_rows=all_rows,
       bigquery_client=bigquery_client,
       project_id=project_id,
-      date_partition_str=date_partition_str,
-      non_dry_run=args.non_dry_run)
+      date_partition_str=date_partition_str)
 
   logs.info('Fuzzer stats aggregation cron complete.')
+  return True
