@@ -114,7 +114,7 @@ def schedule_utask_mains():
         task.pubsub_task.cancel_lease_ack()
 
 
-def _get_max_task_executions():
+def _get_max_task_executions():  # pylint: disable=inconsistent-return-statements
   """Returns the MAX_TASK_EXECUTIONS limit as an int, or None if
   invalid/unset."""
   val = environment.get_value('MAX_TASK_EXECUTIONS')
@@ -124,7 +124,6 @@ def _get_max_task_executions():
     return int(val)
   except ValueError:
     logs.log_fatal_and_exit(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
-    return None
 
 
 def task_loop():
