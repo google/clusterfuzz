@@ -881,7 +881,14 @@ def write_command_line_file(command_line, app_path):
 
 
 def write_data_to_file(contents, file_path, should_reboot=True):
-  """Writes content to file."""
+  """Writes content to file.
+  
+  Args:
+    contents: The string content to write.
+    file_path: The path to the file on the Android device.
+    should_reboot: Whether to reboot the device if a system file is modified.
+        Defaults to True.
+  """
   # If this is a file in /system, we need to remount /system as read-write and
   # after file is written, revert it back to read-only.
   is_system_file = file_path.startswith('/system')
