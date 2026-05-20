@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,70 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file is based on https://source.chromium.org/chromium/infra/infra/+/main:luci/appengine/swarming/proto/api_v2/swarming.proto
+// This file is based on https://source.chromium.org/chromium/infra/infra_superproject/+/main:infra/luci/appengine/swarming/proto/api_v2/swarming.proto
 // This includes necessary messages to construct a NewTaskRequest
 syntax = "proto3";
 
 package swarming.v2;
+
+import "google/protobuf/timestamp.proto";
+
+// Enums
+
+// Use one of the values in this enum to query for tasks in one of the
+// specified state.
+//
+// Use 'ALL' to not use any filtering based on task state.
+//
+// As an example, this enum enables querying for all tasks with state COMPLETED
+// but non-zero exit code via COMPLETED_FAILURE.
+//
+// Do not confuse StateQuery and TaskState. StateQuery is to query tasks
+// via the API. TaskState is the current task state.
+enum StateQuery {
+  // Query for all tasks currently TaskState.PENDING.
+  QUERY_PENDING = 0;
+  // Query for all tasks currently TaskState.RUNNING. This includes tasks
+  // currently in the overhead phase; mapping input files or archiving outputs
+  // back to the server.
+  QUERY_RUNNING = 1;
+  // Query for all tasks currently TaskState.PENDING or TaskState.RUNNING. This
+  // is the query for the 'active' tasks.
+  QUERY_PENDING_RUNNING = 2;
+  // Query for all tasks that completed normally as TaskState.COMPLETED,
+  // independent of the process exit code.
+  QUERY_COMPLETED = 3;
+  // Query for all tasks that completed normally as TaskState.COMPLETED and that
+  // had exit code 0.
+  QUERY_COMPLETED_SUCCESS = 4;
+  // Query for all tasks that completed normally as TaskState.COMPLETED and that
+  // had exit code not 0.
+  QUERY_COMPLETED_FAILURE = 5;
+  // Query for all tasks that are TaskState.EXPIRED.
+  QUERY_EXPIRED = 6;
+  // Query for all tasks that are TaskState.TIMED_OUT.
+  QUERY_TIMED_OUT = 7;
+  // Query for all tasks that are TaskState.BOT_DIED.
+  QUERY_BOT_DIED = 8;
+  // Query for all tasks that are TaskState.CANCELED.
+  QUERY_CANCELED = 9;
+  // Query for all tasks, independent of the task state.
+  //
+  // In hindsight, this constant should have been the value 0. Sorry, the
+  // original author was young and foolish.
+  QUERY_ALL = 10;
+  // Query for all tasks that are TaskState.COMPLETED but that actually didn't
+  // run due to TaskProperties.idempotent being True *and* that a previous task
+  // with the exact same TaskProperties had successfully run before, aka
+  // COMPLETED_SUCCESS.
+  QUERY_DEDUPED = 11;
+  // Query for all tasks that are TaskState.KILLED.
+  QUERY_KILLED = 12;
+  // Query for all tasks that are TaskState.NO_RESOURCE.
+  QUERY_NO_RESOURCE = 13;
+  // Query for all tasks that are TaskState.CLIENT_ERROR.
+  QUERY_CLIENT_ERROR = 14;
+}
 
 // Messages
 
@@ -345,4 +404,17 @@ message NewTaskRequest {
   // Task realm.
   // See api/swarming.proto for more details.
   string realm = 18;
+}
+
+message TasksCountRequest {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+  StateQuery state = 3;
+  repeated string tags = 4;
+}
+
+// Returns the count, as requested.
+message TasksCount {
+  int32 count = 1;
+  google.protobuf.Timestamp now = 2;
 }
