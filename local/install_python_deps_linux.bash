@@ -37,14 +37,13 @@ if [ $install_android_emulator ]; then
   mkdir -p $ANDROID_SDK_INSTALL_DIR
   curl https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_REVISION}_latest.zip \
       --output $ANDROID_SDK_INSTALL_DIR/cmdline-tools.zip
-  unzip -d $ANDROID_SDK_INSTALL_DIR $ANDROID_SDK_INSTALL_DIR/cmdline-tools.zip
+  unzip -d $ANDROID_SDK_INSTALL_DIR/temp $ANDROID_SDK_INSTALL_DIR/cmdline-tools.zip
   
   # The new cmdline-tools expects to be in a directory named 'latest' or 'version'
   # to find its own root.
-  mv $ANDROID_SDK_INSTALL_DIR/cmdline-tools $ANDROID_SDK_INSTALL_DIR/temp
-  mkdir -p $ANDROID_SDK_INSTALL_DIR/cmdline-tools/latest
-  mv $ANDROID_SDK_INSTALL_DIR/temp/* $ANDROID_SDK_INSTALL_DIR/cmdline-tools/latest/
-  rm -rf $ANDROID_SDK_INSTALL_DIR/temp
+  mkdir -p $ANDROID_SDK_INSTALL_DIR/cmdline-tools
+  mv $ANDROID_SDK_INSTALL_DIR/temp/cmdline-tools $ANDROID_SDK_INSTALL_DIR/cmdline-tools/latest
+  rmdir $ANDROID_SDK_INSTALL_DIR/temp
 
   yes | $ANDROID_TOOLS_BIN/sdkmanager --licenses
   $ANDROID_TOOLS_BIN/sdkmanager "emulator"
