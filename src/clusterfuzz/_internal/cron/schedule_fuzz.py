@@ -232,8 +232,9 @@ class ChromeFuzzTaskScheduler(BaseFuzzTaskScheduler):
     logs.info('Getting jobs for Chrome.')
 
     candidates_by_job = {}
-    # Only consider linux jobs for chrome fuzzing.
-    job_query = data_types.Job.query(data_types.Job.platform == 'LINUX')
+    # Only consider LINUX or ANDROID jobs
+    job_query = data_types.Job.query(
+        data_types.Job.platform.IN(['LINUX', 'ANDROID']))
     for job in ndb_utils.get_all_from_query(job_query):
       base_os_version = None
       if job.base_os_version:
