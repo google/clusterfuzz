@@ -79,7 +79,8 @@ class InitializeDeviceRebootLogicTest(unittest.TestCase):
     mock.patch.stopall()
 
   def test_reboot_if_props_changed(self):
-    """Test that it reboots if build.prop changed, even if ASan didn't run."""
+    """Test that `initialize_device()` reboots the device if
+    `configure_system_build_properties()` did, and the ASan setup script did not."""
     self.mock_config_props.return_value = True
     self.mock_setup_asan.return_value = False
 
@@ -87,7 +88,9 @@ class InitializeDeviceRebootLogicTest(unittest.TestCase):
     self.mock_reboot.assert_called_once()
 
   def test_no_reboot_if_asan_ran(self):
-    """Test that the final reboot is skipped if ASan setup performed a shell restart."""
+    """Test that `initialize_device()` skips calling `reboot()` if
+    `configure_system_build_properties()` did not cause a reboot but the ASan
+    setup script did."""
     # If build.prop didn't change, the ASan restart handles the clean state.
     self.mock_config_props.return_value = False
     self.mock_setup_asan.return_value = True
@@ -96,7 +99,8 @@ class InitializeDeviceRebootLogicTest(unittest.TestCase):
     self.mock_reboot.assert_not_called()
 
   def test_reboot_if_clean_slate_needed(self):
-    """Test that it still reboots to ensure a clean state if no other steps restarted it."""
+    """Test that `initialize_device()` calls `reboot()` if neither
+    `configure_system_build_properties()` nor the ASan setup script did."""
     self.mock_config_props.return_value = False
     self.mock_setup_asan.return_value = False
 
