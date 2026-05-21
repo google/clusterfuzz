@@ -17,6 +17,7 @@ import unittest
 
 from clusterfuzz._internal.platforms.android import device
 from clusterfuzz._internal.tests.test_libs import android_helpers
+from clusterfuzz._internal.tests.test_libs import helpers
 
 
 class InitializeEnvironmentTest(android_helpers.AndroidTest):
@@ -31,7 +32,6 @@ class InitializeDeviceRebootLogicTest(unittest.TestCase):
   """Tests the reboot batching logic in initialize_device."""
 
   def setUp(self):
-    from clusterfuzz._internal.tests.test_libs import helpers
     helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_engine_fuzzer_job',
         'clusterfuzz._internal.platforms.android.adb.setup_adb',
