@@ -27,8 +27,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
   _api: SwarmingApi | None = None
 
   def __init__(self):
-    if not self._api:
-      self._api = SwarmingApi.create()
+    self._api = SwarmingApi.create()
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -61,15 +60,9 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
             task.command, task.job_type, task.argument):
           self._api.push_task(request)
       except HTTPError as api_failure:
-        logs.error(
+        logs.warning(
             f'''Failed to push task to Swarming: {task.command}, {task.job_type}
             . Reason: {api_failure}.
-            ''')
-        unscheduled_tasks.append(task)
-      except Exception as e:  # pylint: disable=broad-except
-        logs.error(
-            f'''Failed to push task to Swarming: {task.command}, {task.job_type}
-            . Unexpected exception: {e}.
             ''')
         unscheduled_tasks.append(task)
     return unscheduled_tasks

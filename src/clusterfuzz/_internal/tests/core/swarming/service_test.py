@@ -128,11 +128,5 @@ class SwarmingServiceTest(unittest.TestCase):
     self.mock.is_swarming_task.return_value = True
     self.mock_api.push_task.side_effect = Exception('error')
 
-    unscheduled = self.service.create_utask_main_jobs(tasks)
-
-    self.assertEqual(len(unscheduled), 1)
-    self.assertEqual(unscheduled[0].job_type, 'job1')
-    self.mock.error.assert_called_once_with(
-        '''Failed to push task to Swarming: fuzz, job1
-            . Unexpected exception: error.
-            ''')
+    with self.assertRaises(Exception):
+      self.service.create_utask_main_jobs(tasks)

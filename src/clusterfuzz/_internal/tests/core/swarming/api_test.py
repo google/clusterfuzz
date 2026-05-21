@@ -31,14 +31,13 @@ class SwarmingAPITest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.credentials.get_scoped_service_account_credentials',
         'google.auth.transport.requests.Request',
     ])
+    helpers.patch_environ(self)
 
     self.mock_creds = mock.MagicMock()
     self.mock_creds.token = 'fake_token'
     self.mock.get_scoped_service_account_credentials.return_value = self.mock_creds
 
-    self.mock_config = mock.MagicMock()
-    self.mock_config.get.return_value = 'server-name'
-    self.api = SwarmingApi(self.mock_config)
+    self.api = SwarmingApi.create()
 
   def test_push_task(self):
     """Tests that push_task works as expected."""

@@ -16,7 +16,6 @@
 from typing import Optional
 
 from google.auth import exceptions as auth_exceptions
-from google.auth.transport import requests
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
@@ -67,10 +66,7 @@ class SwarmingApi:
         logs.error('[Swarming] Failed to get credentials. None found.')
         return ""
 
-      if not creds.token:
-        creds.refresh(requests.Request())
-
-      return creds.token or ""
+      return creds.token
     except (auth_exceptions.DefaultCredentialsError,
             auth_exceptions.RefreshError, auth_exceptions.TransportError) as e:
       logs.error(f'[Swarming] Failed to get token with: {e}.')
@@ -137,8 +133,6 @@ class SwarmingApi:
     message_body = json_format.MessageToJson(task_request)
 
     response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
-    logs.info(
-        f'[Swarming] Response from {task_request.name}', response=response)
     return response
 
   def count_tasks(self,
@@ -159,5 +153,4 @@ class SwarmingApi:
     message_body = json_format.MessageToJson(count_request)
 
     response = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
-    logs.info('[Swarming] Response from CountTasks', response=response)
     return response
