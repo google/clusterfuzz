@@ -65,11 +65,12 @@ class InitializeDeviceRebootLogicTest(unittest.TestCase):
 
     device.initialize_device()
     self.mock.reboot.assert_not_called()
+
+
 class AddTestAccountsIfNeededTest(unittest.TestCase):
   """Tests for add_test_accounts_if_needed."""
 
   def setUp(self):
-    from clusterfuzz._internal.tests.test_libs import helpers
     helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_uworker',
         'clusterfuzz._internal.base.persistent_cache.get_value',
