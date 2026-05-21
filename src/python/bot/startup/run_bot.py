@@ -114,12 +114,27 @@ def schedule_utask_mains():
         task.pubsub_task.cancel_lease_ack()
 
 
+def _get_max_task_executions():  # pylint: disable=inconsistent-return-statements
+  """Returns the MAX_TASK_EXECUTIONS limit as an int, or None if
+  invalid/unset."""
+  val = environment.get_value('MAX_TASK_EXECUTIONS')
+  if not val:
+    return None
+  try:
+    return int(val)
+  except ValueError:
+    logs.log_fatal_and_exit(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
   from clusterfuzz._internal.bot.tasks import commands
 
   clean_exit = False
+  execution_count = 0
+  max_task_executions = _get_max_task_executions()
+
   while True:
     stacktrace = ''
     exception_occurred = False
@@ -189,6 +204,14 @@ def task_loop():
       # Prevent looping too quickly. See: crbug.com/644830
       failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(utils.random_number(1, failure_wait_interval))
+      break
+
+    execution_count += 1
+    if max_task_executions and execution_count >= max_task_executions:
+      logs.info(
+          f'Reached MAX_TASK_EXECUTIONS limit ({max_task_executions}). Exiting.'
+      )
+      clean_exit = True
       break
 
   task_payload = task.payload() if task else None
