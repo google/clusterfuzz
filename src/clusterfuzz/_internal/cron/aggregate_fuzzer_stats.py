@@ -149,6 +149,8 @@ def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
   dataset_id = fuzzer_stats.dataset_name(fuzzer_name)
   table_id = 'JobRun'
 
+  # We ignore rows where testcases_generated is NULL because those are rows
+  # created by an old revision of Clusterfuzz which are missing the durations.
   query = f"""
   SELECT
   '{fuzzer_name}' as fuzzer_name,
@@ -170,6 +172,7 @@ def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
   FROM    `{project_id}.{dataset_id}.{table_id}`
   WHERE
     DATE(TIMESTAMP_SECONDS(CAST(timestamp AS INT64))) = '{target_date_str}'
+    AND testcases_generated IS NOT NULL
   GROUP BY
     date
   """
