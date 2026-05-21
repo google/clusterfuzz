@@ -54,6 +54,20 @@ Now you are ready to install the project's dependencies. Run the following comma
 ./local/install_deps.bash
 ```
 
+## Using Butler
+Before each time you use the `butler.py` script, verify that you are inside the virtual environment, if not activate it by running `python -m pipenv shell`, or pre append any `python butler.py` call with
+`pipenv run`
+
+For instance:
+```bash
+pipenv run python butler.py lint
+```
+Is the same as running
+```bash
+python butler.py lint
+```
+if you are inside a virtual environment.
+
 ## Testing
 
 To run all unit tests, execute the following commands:
