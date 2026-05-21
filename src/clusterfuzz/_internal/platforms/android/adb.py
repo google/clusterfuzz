@@ -902,6 +902,10 @@ def write_data_to_file(contents, file_path, should_reboot=True):
   # Make command line file is readable.
   run_shell_command('chmod 0644 %s' % file_path, root=True)
 
-  if is_system_file and should_reboot:
-    reboot()
-    wait_until_fully_booted()
+  if is_system_file:
+    if should_reboot:
+      reboot()
+      wait_until_fully_booted()
+    else:
+      # Manually revert /system to read-only since we aren't rebooting.
+      run_shell_command('mount -o ro,remount /system', root=True)
