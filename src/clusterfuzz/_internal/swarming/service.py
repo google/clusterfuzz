@@ -58,7 +58,17 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
           continue
         if request := swarming.create_new_task_request(
             task.command, task.job_type, task.argument):
-          self._api.push_task(request)
+          response = self._api.push_task(request)
+          if not response or not response.task_id:
+            logs.warning(
+                '[Swarming] task not scheduled, no task_id in response',
+                response=response)
+            unscheduled_tasks.append(task)
+            continue
+          task_id = response.task_id
+          logs.info(
+              f'[Swarming] task {task_id} scheduled successfully',
+              task_id=task_id)
       except HTTPError as api_failure:
         logs.warning(
             f'''Failed to push task to Swarming: {task.command}, {task.job_type}

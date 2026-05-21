@@ -41,8 +41,8 @@ class SwarmingAPITest(unittest.TestCase):
 
   def test_push_task(self):
     """Tests that push_task works as expected."""
-    expected_response = '{"taskId": "123"}'
-    self.mock.post_url.return_value = expected_response
+    raw_response = '{"taskId": "123"}'
+    self.mock.post_url.return_value = raw_response
     task_request = swarming_pb2.NewTaskRequest(
         name='test_task',
         priority=1,
@@ -76,7 +76,16 @@ class SwarmingAPITest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(task_request),
         headers=expected_headers)
+
+    expected_response = swarming_pb2.TaskRequestResponse(task_id='123')
     self.assertEqual(response, expected_response)
+
+  def test_push_task_empty_response(self):
+    """Tests that push_task returns None when response is empty."""
+    self.mock.post_url.return_value = None
+    task_request = swarming_pb2.NewTaskRequest()
+    response = self.api.push_task(task_request)
+    self.assertIsNone(response)
 
   def test_count_tasks(self):
     """Tests that count_tasks works as expected."""
@@ -109,6 +118,7 @@ class SwarmingAPITest(unittest.TestCase):
   def test_push_task_no_credentials(self):
     """Tests that push_task gets called with an empty token when credentials are missing."""
     self.mock.get_scoped_service_account_credentials.return_value = None
+    self.mock.post_url.return_value = None
     self.api.push_task(swarming_pb2.NewTaskRequest())
 
     _, kwargs = self.mock.post_url.call_args
@@ -148,6 +158,7 @@ class SwarmingAPITest(unittest.TestCase):
     self.mock.get_scoped_service_account_credentials.side_effect = DefaultCredentialsError(
         "No creds")
 
+    self.mock.post_url.return_value = None
     self.api.push_task(swarming_pb2.NewTaskRequest())
 
     _, kwargs = self.mock.post_url.call_args

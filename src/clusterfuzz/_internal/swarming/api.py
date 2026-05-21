@@ -86,7 +86,7 @@ class SwarmingApi:
         'Authorization': f'Bearer {token}'
     }
 
-  def _make_request(self, endpoint: str, body: str) -> str | None:
+  def _make_request(self, endpoint: str, body: str) -> str:
     """Makes a pRPC request to the Swarming API.
 
     Args:
@@ -116,15 +116,18 @@ class SwarmingApi:
       return None
     return response
 
-  def push_task(self, task_request: swarming_pb2.NewTaskRequest) -> str | None:  # pylint: disable=no-member
+  def push_task(
+      self,
+      task_request: swarming_pb2.NewTaskRequest  # pylint: disable=no-member
+  ) -> swarming_pb2.TaskRequestResponse | None:  # pylint: disable=no-member
     """Schedules a task on swarming.
     
     Args:
       task_request: The NewTaskRequest proto message.
       
     Returns:
-      The raw JSON response string from the server, or None if the response is
-      empty.
+      The TaskRequestResponse proto message from the server, or None if the
+      response is empty.
 
     Raises:
       requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
@@ -132,8 +135,13 @@ class SwarmingApi:
     """
     message_body = json_format.MessageToJson(task_request)
 
-    response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
-    return response
+    raw_response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
+    if not raw_response:
+      return None
+
+    task_response = swarming_pb2.TaskRequestResponse()  # pylint: disable=no-member
+    json_format.Parse(raw_response, task_response)
+    return task_response
 
   def count_tasks(self,
                   count_request: swarming_pb2.TasksCountRequest) -> str | None:  # pylint: disable=no-member

@@ -798,6 +798,90 @@ class NewTaskRequest(google.protobuf.message.Message):
 global___NewTaskRequest = NewTaskRequest
 
 @typing_extensions.final
+class TaskRequestResponse(google.protobuf.message.Message):
+    """Description of a task request as registered by the server.
+    This message is used when retrieving information about an existing task.
+    See NewTaskRequest for more details.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TASK_ID_FIELD_NUMBER: builtins.int
+    EXPIRATION_SECS_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    PARENT_TASK_ID_FIELD_NUMBER: builtins.int
+    PRIORITY_FIELD_NUMBER: builtins.int
+    PROPERTIES_FIELD_NUMBER: builtins.int
+    TAGS_FIELD_NUMBER: builtins.int
+    CREATED_TS_FIELD_NUMBER: builtins.int
+    USER_FIELD_NUMBER: builtins.int
+    AUTHENTICATED_FIELD_NUMBER: builtins.int
+    TASK_SLICES_FIELD_NUMBER: builtins.int
+    SERVICE_ACCOUNT_FIELD_NUMBER: builtins.int
+    REALM_FIELD_NUMBER: builtins.int
+    RESULTDB_FIELD_NUMBER: builtins.int
+    PUBSUB_TOPIC_FIELD_NUMBER: builtins.int
+    PUBSUB_USERDATA_FIELD_NUMBER: builtins.int
+    BOT_PING_TOLERANCE_SECS_FIELD_NUMBER: builtins.int
+    RBE_INSTANCE_FIELD_NUMBER: builtins.int
+    task_id: builtins.str
+    expiration_secs: builtins.int
+    name: builtins.str
+    parent_task_id: builtins.str
+    priority: builtins.int
+    @property
+    def properties(self) -> global___TaskProperties:
+        """For some amount of time, the properties will be copied into the
+        task_slices and vice-versa, to give time to the clients to update.
+        Eventually, only task_slices will be supported.
+        """
+    @property
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def created_ts(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    user: builtins.str
+    authenticated: builtins.str
+    """User name of whoever posted this task, extracted from the credentials."""
+    @property
+    def task_slices(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___TaskSlice]: ...
+    service_account: builtins.str
+    """Indicates what OAuth2 credentials the task uses when calling other services."""
+    realm: builtins.str
+    @property
+    def resultdb(self) -> global___ResultDBCfg:
+        """Configuration of Swarming:ResultDB integration."""
+    pubsub_topic: builtins.str
+    pubsub_userdata: builtins.str
+    bot_ping_tolerance_secs: builtins.int
+    rbe_instance: builtins.str
+    def __init__(
+        self,
+        *,
+        task_id: builtins.str = ...,
+        expiration_secs: builtins.int = ...,
+        name: builtins.str = ...,
+        parent_task_id: builtins.str = ...,
+        priority: builtins.int = ...,
+        properties: global___TaskProperties | None = ...,
+        tags: collections.abc.Iterable[builtins.str] | None = ...,
+        created_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        user: builtins.str = ...,
+        authenticated: builtins.str = ...,
+        task_slices: collections.abc.Iterable[global___TaskSlice] | None = ...,
+        service_account: builtins.str = ...,
+        realm: builtins.str = ...,
+        resultdb: global___ResultDBCfg | None = ...,
+        pubsub_topic: builtins.str = ...,
+        pubsub_userdata: builtins.str = ...,
+        bot_ping_tolerance_secs: builtins.int = ...,
+        rbe_instance: builtins.str = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["created_ts", b"created_ts", "properties", b"properties", "resultdb", b"resultdb"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["authenticated", b"authenticated", "bot_ping_tolerance_secs", b"bot_ping_tolerance_secs", "created_ts", b"created_ts", "expiration_secs", b"expiration_secs", "name", b"name", "parent_task_id", b"parent_task_id", "priority", b"priority", "properties", b"properties", "pubsub_topic", b"pubsub_topic", "pubsub_userdata", b"pubsub_userdata", "rbe_instance", b"rbe_instance", "realm", b"realm", "resultdb", b"resultdb", "service_account", b"service_account", "tags", b"tags", "task_id", b"task_id", "task_slices", b"task_slices", "user", b"user"]) -> None: ...
+
+global___TaskRequestResponse = TaskRequestResponse
+
+@typing_extensions.final
 class TasksCountRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
