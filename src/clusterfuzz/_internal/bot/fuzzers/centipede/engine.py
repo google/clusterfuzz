@@ -432,9 +432,10 @@ class Engine(engine.Engine):
         rss_limit = 0
       else:
         rss_limit = constants.RSS_LIMIT_MB_DEFAULT
-      timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
-      if constants.TIMEOUT_PER_INPUT_FLAGNAME in fuzzer_arguments:
-        timeout = fuzzer_arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
+      # Override fuzzer-defined timeouts to match libfuzzer's behavior in
+      # https://github.com/google/clusterfuzz/blob/d15a65e7753c6c6579f4b395c40e6d45a7bde262/src/clusterfuzz/_internal/bot/fuzzers/libfuzzer.py#L1255
+      test_timeout = environment.get_value('TEST_TIMEOUT', constants.TIMEOUT_PER_INPUT_REPR_DEFAULT)
+      timeout = max(1, test_timeout - 5)
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
           f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
           f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
