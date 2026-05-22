@@ -443,9 +443,9 @@ class Build(BaseBuild):
     if archive_size is not None and not _make_space(archive_size,
                                                     base_build_dir):
       shell.clear_data_directories()
-      logs.log_fatal_and_exit(
-          'Failed to make space for download. '
-          'Cleared all data directories to free up space, exiting.')
+      logs.error('Failed to make space for download. '
+                 'Cleared all data directories to free up space.')
+      raise BuildManagerError('Failed to make space for download.')
 
     logs.info(f'Downloading build from {build_url} to {build_local_archive}.')
     try:
@@ -541,9 +541,9 @@ class Build(BaseBuild):
 
         if not _make_space(extracted_size, current_build_dir=base_build_dir):
           shell.clear_data_directories()
-          logs.log_fatal_and_exit(
-              'Failed to make space for build. '
-              'Cleared all data directories to free up space, exiting.')
+          logs.error('Failed to make space for build. '
+                     'Cleared all data directories to free up space.')
+          raise BuildManagerError('Failed to make space for build.')
 
         # Unpack the local build archive.
         logs.info(f'Unpacking build archive {build_url} to {build_dir}.')
@@ -924,7 +924,8 @@ class CustomBuild(Build):
         build.close()
         shell.remove_file(build_local_archive)
 
-        logs.log_fatal_and_exit('Could not make space for build.')
+        logs.error('Could not make space for build.')
+        return False
 
       try:
         # Unpack belongs to the BuildArchive class

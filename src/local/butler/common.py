@@ -93,7 +93,7 @@ def _get_clusterfuzz_config_commit_sha():
 
 def _compute_revision(timestamp, is_staging=False):
   """Return a source code revision.
-   
+
   This revision contains the timestamp, git-sha, user, config git-sha, and
   appengine release (prod or staging). The ordinality of revision is crucial
   for updating source code. Later revision *must* be greater than earlier
@@ -351,7 +351,7 @@ def install_dependencies(platform_name=None):
 
 def remove_symlink(target):
   """Removes a symlink."""
-  if not os.path.exists(target):
+  if not os.path.lexists(target):
     return
 
   if os.path.isdir(target) and get_platform() == 'windows':

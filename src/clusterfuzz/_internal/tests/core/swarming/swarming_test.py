@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Swarming tests."""
-import base64
 import os
 import unittest
 from unittest import mock
@@ -106,8 +105,7 @@ class SwarmingTest(unittest.TestCase):
                              '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
                              '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
 
@@ -191,8 +189,7 @@ class SwarmingTest(unittest.TestCase):
                                 'package_install_path/bin'
                             ])
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
 
@@ -251,8 +248,7 @@ class SwarmingTest(unittest.TestCase):
                              '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
                              '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
 
@@ -317,8 +313,7 @@ class SwarmingTest(unittest.TestCase):
                              '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
                              '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
 
     self.mock.get_scoped_service_account_credentials.assert_called_with(
