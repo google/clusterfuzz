@@ -320,6 +320,7 @@ def file_issue(testcase,
   logs.info(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
+  fuzzer = None
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
@@ -482,7 +483,10 @@ def file_issue(testcase,
       testcase.one_time_crasher_flag and policy.unreproducible_component):
     issue.components.add(policy.unreproducible_component)
 
-  issue.reporter = user_email
+  if fuzzer and fuzzer.external_contribution and fuzzer.primary_owner:
+    issue.reporter = fuzzer.primary_owner
+  else:
+    issue.reporter = user_email
 
   if issue_tracker.project in ('chromium', 'chromium-testing'):
     logs.info(

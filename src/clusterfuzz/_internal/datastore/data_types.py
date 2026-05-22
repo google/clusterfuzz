@@ -347,6 +347,9 @@ class Fuzzer(Model):
   # reward flags.
   external_contribution = ndb.BooleanProperty(default=False)
 
+  # Primary owner for VRP reasons.
+  primary_owner = ndb.StringProperty()
+
   # Max testcases to generate for this fuzzer.
   max_testcases = ndb.IntegerProperty()
 
