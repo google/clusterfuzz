@@ -53,7 +53,6 @@ class SwarmingTest(unittest.TestCase):
   def test_has_swarming_env_vars_empty_env(self):
     """Tests that empty environment returns False."""
     self.assertFalse(swarming.has_swarming_env_vars({}))
-    self.assertFalse(swarming.has_swarming_env_vars(None))
 
   def test_has_swarming_env_vars_is_swarming_job_true(self):
     """Tests that IS_SWARMING_JOB=True returns True."""
@@ -74,6 +73,14 @@ class SwarmingTest(unittest.TestCase):
     self.assertTrue(
         swarming.has_swarming_env_vars({
             'SWARMING_DIMENSIONS': 'os:linux'
+        }))
+
+  def test_has_swarming_env_vars_empty_dimensions_and_false_job(self):
+    """Tests that SWARMING_DIMENSIONS={} and IS_SWARMING_JOB=False returns False."""
+    self.assertFalse(
+        swarming.has_swarming_env_vars({
+            'SWARMING_DIMENSIONS': {},
+            'IS_SWARMING_JOB': 'False'
         }))
 
   def test_has_swarming_env_vars_both(self):

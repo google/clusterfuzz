@@ -13,6 +13,8 @@
 # limitations under the License.
 """Cron job to schedule fuzz tasks that run on batch."""
 
+from abc import ABC
+from abc import abstractmethod
 import collections
 from dataclasses import dataclass
 import random
@@ -36,6 +38,7 @@ SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 5
 
 @dataclass
 class Queue:
+  """Data class that holds information about a pub/subqueue."""
   name: str
   default_target_size: int
   target_size_flag: FeatureFlags
@@ -54,17 +57,16 @@ _SWARMING_QUEUE = Queue(
 )
 
 
-def _get_jobs_for_platform(platform: str) -> list[data_types.Job]:
-  """Returns all jobs for the given platform."""
+def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
+  """Returns all jobs for the given platforms."""
   return ndb_utils.get_all_from_query(
-      data_types.Job.query(data_types.Job.platform == platform))
+      data_types.Job.query(data_types.Job.platform.IN(platforms)))
 
 
 def _get_swarming_jobs():
   """Returns all jobs that have swarming environment variables."""
   jobs = []
-  jobs.extend(_get_jobs_for_platform('ANDROID'))
-  jobs.extend(_get_jobs_for_platform('LINUX'))
+  jobs.extend(_get_jobs_for_platforms(['ANDROID', 'LINUX']))
   return [
       job for job in jobs
       if swarming.has_swarming_env_vars(job.get_environment())
@@ -86,29 +88,6 @@ def _remaining_queue_capacity(queue: Queue) -> int:
             f'Target: {target_size}. Needed: {num_tasks}.')
 
   return num_tasks
-
-
-def _fill_queue(queue: Queue, provider: 'BaseFuzzTaskProvider'):
-  """Fills the given queue with tasks from the provider."""
-  start = time.time()
-  num_tasks = _remaining_queue_capacity(queue)
-
-  if num_tasks <= 0:
-    logs.info('Queue size met or exceeded. Not scheduling tasks.')
-    return
-
-  fuzz_tasks = provider.get_fuzz_tasks(num_tasks)
-  if not fuzz_tasks:
-    logs.error(f'No fuzz tasks found to schedule in queue {queue.name}.')
-    return
-
-  logs.info(f'Adding {len(fuzz_tasks)} tasks to queue {queue}.')
-  tasks.bulk_add_tasks(fuzz_tasks, queue=queue, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} tasks on queue {queue}.')
-
-  end = time.time()
-  total = end - start
-  logs.info(f'Task scheduling took {total} seconds.')
 
 
 @memoize.wrap(memoize.InMemory(60))
@@ -142,11 +121,12 @@ def get_queue_size(creds, project_id, subscription_id):
   return 0
 
 
-class BaseFuzzTaskProvider():
+class BaseFuzzTaskProvider(ABC):
   """Base fuzz task provider for any deployment of ClusterFuzz."""
 
+  @abstractmethod
   def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
-    raise NotImplementedError('Child class must implement.')
+    """Returns a list of fuzz tasks."""
 
 
 class FuzzTaskCandidate:
@@ -173,6 +153,55 @@ class FuzzTaskCandidate:
         fuzzer=self.fuzzer,
         weight=self.weight,
         base_os_version=self.base_os_version)
+
+
+def _fill_queue(queue: Queue, provider: BaseFuzzTaskProvider):
+  """Fills the given queue with tasks from the provider."""
+  start = time.time()
+  num_tasks = _remaining_queue_capacity(queue)
+
+  if num_tasks <= 0:
+    logs.info('Queue size met or exceeded. Not scheduling tasks.')
+    return
+
+  fuzz_tasks = provider.get_fuzz_tasks(num_tasks)
+  if not fuzz_tasks:
+    logs.error(f'No fuzz tasks found to schedule in queue {queue.name}.')
+    return
+
+  logs.info(f'Adding {len(fuzz_tasks)} tasks to queue {queue}.')
+  tasks.bulk_add_tasks(fuzz_tasks, queue=queue, eta_now=True)
+  logs.info(f'Scheduled {len(fuzz_tasks)} tasks on queue {queue}.')
+
+  end = time.time()
+  total = end - start
+  logs.info(f'Task scheduling took {total} seconds.')
+
+
+def _create_candidates_from_jobs(
+    jobs: list[data_types.Job]) -> list[FuzzTaskCandidate]:
+  """Create candidates from jobs & assign weights to them."""
+  candidates_by_job = {
+      job.name: FuzzTaskCandidate(
+          job=job.name,
+          project=job.project,
+          base_os_version=job.base_os_version) for job in jobs
+  }
+
+  if not candidates_by_job:
+    return []
+
+  fuzzer_job_query = ndb_utils.get_all_from_query(
+      data_types.FuzzerJob.query(
+          data_types.FuzzerJob.job.IN(list(candidates_by_job.keys()))))
+  fuzz_task_candidates = []
+  for fuzzer_job in fuzzer_job_query:
+    candidate = candidates_by_job[fuzzer_job.job].copy()
+    candidate.fuzzer = fuzzer_job.fuzzer
+    candidate.weight = fuzzer_job.actual_weight
+    fuzz_task_candidates.append(candidate)
+
+  return fuzz_task_candidates
 
 
 class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
@@ -263,41 +292,20 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
 
   _candidates: list[FuzzTaskCandidate]
 
-  def __init__(self, jobs: list[data_types.Job]):
-    self._candidates = [
-        FuzzTaskCandidate(
-            job=job.name,
-            project=job.project,
-            base_os_version=job.base_os_version)
-        for job in jobs
-        if job.platform in ['LINUX', 'ANDROID']
-    ]
+  def __init__(self, candidates: list[FuzzTaskCandidate]):
+    self._candidates = candidates
 
   def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
     """Returns fuzz tasks for chrome, weighted by job weight."""
     logs.info('Getting jobs for Chrome.')
 
-    candidates_by_job = {c.job: c for c in self._candidates}
-
-    fuzz_task_candidates = []
-    fuzzer_job_query = ndb_utils.get_all_from_query(
-        data_types.FuzzerJob.query())
-
-    for fuzzer_job in fuzzer_job_query:
-      if fuzzer_job.job not in candidates_by_job:
-        continue
-      fuzz_task_candidate = candidates_by_job[fuzzer_job.job].copy()
-      fuzz_task_candidate.fuzzer = fuzzer_job.fuzzer
-      fuzz_task_candidate.weight = fuzzer_job.actual_weight
-      fuzz_task_candidates.append(fuzz_task_candidate)
-
-    weights = [candidate.weight for candidate in fuzz_task_candidates]
+    weights = [candidate.weight for candidate in self._candidates]
     logs.info(f'Scheduling {num_tasks} fuzz tasks for Chrome.')
 
-    if not fuzz_task_candidates:
+    if not self._candidates:
       return []
 
-    choices = random.choices(fuzz_task_candidates, weights=weights, k=num_tasks)
+    choices = random.choices(self._candidates, weights=weights, k=num_tasks)
     fuzz_tasks = [
         tasks.Task(
             'fuzz',
@@ -311,13 +319,17 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
 
 def schedule_chrome_fuzz_tasks():
   """Schedules fuzz tasks for Chrome."""
-  default_provider = ChromeFuzzTaskProvider(_get_jobs_for_platform('LINUX'))
+  default_jobs = _get_jobs_for_platforms(['LINUX'])
+  default_candidates = _create_candidates_from_jobs(default_jobs)
+  default_provider = ChromeFuzzTaskProvider(default_candidates)
   _fill_queue(_DEFAULT_QUEUE, default_provider)
 
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
     return
 
-  swarming_provider = ChromeFuzzTaskProvider(_get_swarming_jobs())
+  swarming_jobs = _get_swarming_jobs()
+  swarming_candidates = _create_candidates_from_jobs(swarming_jobs)
+  swarming_provider = ChromeFuzzTaskProvider(swarming_candidates)
   _fill_queue(_SWARMING_QUEUE, swarming_provider)
 
 

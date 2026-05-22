@@ -217,7 +217,8 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
   def _run_and_get_task(self):
     """Runs the scheduler and returns the single task created."""
     jobs = list(data_types.Job.query())
-    provider = schedule_fuzz.ChromeFuzzTaskProvider(jobs)
+    candidates = schedule_fuzz._create_candidates_from_jobs(jobs)
+    provider = schedule_fuzz.ChromeFuzzTaskProvider(candidates)
     tasks = provider.get_fuzz_tasks(num_tasks=1)
     self.assertEqual(len(tasks), 1)
     return tasks[0]
@@ -233,20 +234,3 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
     self._setup_chrome_entities()
     task = self._run_and_get_task()
     self.assertIsNone(task.extra_info.get('base_os_version'))
-
-  def test_job_filtering(self):
-    """Tests that jobs are filtered by platform"""
-    # Test wrong platform.
-    data_types.Job(
-        name='windows_job',
-        project='chrome',
-        platform='WINDOWS',
-        environment_string='IS_SWARMING_JOB = True').put()
-    data_types.FuzzerJob(
-        job='windows_job', platform='WINDOWS', fuzzer='libFuzzer',
-        weight=1.0).put()
-
-    jobs = list(data_types.Job.query())
-    provider = schedule_fuzz.ChromeFuzzTaskProvider(jobs)
-    tasks = provider.get_fuzz_tasks(num_tasks=1)
-    self.assertEqual(len(tasks), 0)
