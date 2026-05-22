@@ -49,10 +49,10 @@ def disable_airplane_mode():
 
 def configure(force_enable=False):
   """Configure airplane mode and wifi on device."""
-  # Short-circuit: UWORKERs do not have Datastore access to retrieve Wi-Fi credentials.
+  # Short-circuit: UWORKERs do not have Datastore access for Wi-Fi credentials.
   if environment.is_uworker():
     return
-  
+
   # Airplane mode should be disabled in all cases. This can get inadvertently
   # turned on via gestures.
   disable_airplane_mode()
