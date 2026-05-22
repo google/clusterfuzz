@@ -886,8 +886,9 @@ def write_data_to_file(contents, file_path, should_reboot=True):
   Args:
     contents: The string content to write.
     file_path: The path to the file on the Android device.
-    should_reboot: Whether to reboot the device if a system file is modified.
-        Defaults to True.
+    should_reboot: Whether to reboot the device after writing the file.
+        Only applies if `file_path` is under `/system`, since we need to
+        remount that partition as read-write first.
   """
   # If this is a file in /system, we need to remount /system as read-write and
   # after file is written, revert it back to read-only.
