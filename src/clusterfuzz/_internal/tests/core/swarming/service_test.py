@@ -16,6 +16,8 @@
 import unittest
 from unittest import mock
 
+from requests.exceptions import HTTPError
+
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -130,3 +132,17 @@ class SwarmingServiceTest(unittest.TestCase):
 
     with self.assertRaises(Exception):
       self.service.create_utask_main_jobs(tasks)
+
+  def test_create_utask_main_jobs_handles_http_error(self):
+    """Test that an HTTPError raised by push_task is caught and the task is returned as unscheduled."""
+    tasks = [
+        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
+    ]
+
+    self.mock.is_swarming_task.return_value = True
+    self.mock_api.push_task.side_effect = HTTPError('http error')
+
+    unscheduled = self.service.create_utask_main_jobs(tasks)
+
+    # Assert that the task is returned as unscheduled because of the caught error.
+    self.assertEqual(unscheduled, tasks)
