@@ -38,7 +38,14 @@ SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 5
 
 @dataclass
 class Queue:
-  """Data class that holds information about a pub/subqueue."""
+  """Data class that holds information about a pub/sub queue.
+
+  Attributes:
+      name: The name of the Pub/Sub subscription associated with the queue.
+      default_target_size: Number of tasks that should be kept in the queue.
+      target_size_flag: Feature flag used to override the default target size.
+  """
+
   name: str
   default_target_size: int
   target_size_flag: FeatureFlags
@@ -210,8 +217,8 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
 
   _candidates: list[FuzzTaskCandidate]
 
-  def __init__(self, candidates: list[FuzzTaskCandidate]):
-    self._candidates = candidates
+  def __init__(self, jobs: list[data_types.Job]):
+    self._candidates = _create_candidates_from_jobs(jobs)
 
   def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
     """Returns fuzz tasks for chrome, weighted by job weight."""
@@ -292,25 +299,25 @@ def _fill_queue(queue: Queue, provider: BaseFuzzTaskProvider):
 def _create_candidates_from_jobs(
     jobs: list[data_types.Job]) -> list[FuzzTaskCandidate]:
   """Create candidates from jobs & assign weights to them."""
-  candidates_by_job = {
-      job.name: FuzzTaskCandidate(
-          job=job.name,
-          project=job.project,
-          base_os_version=job.base_os_version) for job in jobs
-  }
-
-  if not candidates_by_job:
+  if not jobs:
     return []
 
+  jobs_by_name = {job.name: job for job in jobs}
   fuzzer_job_query = ndb_utils.get_all_from_query(
       data_types.FuzzerJob.query(
-          data_types.FuzzerJob.job.IN(list(candidates_by_job.keys()))))
+          data_types.FuzzerJob.job.IN(list(jobs_by_name.keys()))))
   fuzz_task_candidates = []
+
   for fuzzer_job in fuzzer_job_query:
-    candidate = candidates_by_job[fuzzer_job.job].copy()
-    candidate.fuzzer = fuzzer_job.fuzzer
-    candidate.weight = fuzzer_job.actual_weight
-    fuzz_task_candidates.append(candidate)
+    job = jobs_by_name[fuzzer_job.job]
+    fuzz_task_candidate = FuzzTaskCandidate(
+        job=job.name,
+        project=job.project,
+        base_os_version=job.base_os_version,
+        fuzzer=fuzzer_job.fuzzer,
+        weight=fuzzer_job.actual_weight,
+    )
+    fuzz_task_candidates.append(fuzz_task_candidate)
 
   return fuzz_task_candidates
 
@@ -318,16 +325,14 @@ def _create_candidates_from_jobs(
 def schedule_chrome_fuzz_tasks():
   """Schedules fuzz tasks for Chrome."""
   default_jobs = _get_jobs_for_platforms(['LINUX'])
-  default_candidates = _create_candidates_from_jobs(default_jobs)
-  default_provider = ChromeFuzzTaskProvider(default_candidates)
+  default_provider = ChromeFuzzTaskProvider(default_jobs)
   _fill_queue(_DEFAULT_QUEUE, default_provider)
 
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
     return
 
   swarming_jobs = _get_swarming_jobs()
-  swarming_candidates = _create_candidates_from_jobs(swarming_jobs)
-  swarming_provider = ChromeFuzzTaskProvider(swarming_candidates)
+  swarming_provider = ChromeFuzzTaskProvider(swarming_jobs)
   _fill_queue(_SWARMING_QUEUE, swarming_provider)
 
 

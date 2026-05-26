@@ -217,8 +217,7 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
   def _run_and_get_task(self):
     """Runs the scheduler and returns the single task created."""
     jobs = list(data_types.Job.query())
-    candidates = schedule_fuzz._create_candidates_from_jobs(jobs)
-    provider = schedule_fuzz.ChromeFuzzTaskProvider(candidates)
+    provider = schedule_fuzz.ChromeFuzzTaskProvider(jobs)
     tasks = provider.get_fuzz_tasks(num_tasks=1)
     self.assertEqual(len(tasks), 1)
     return tasks[0]
