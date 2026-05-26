@@ -316,11 +316,12 @@ def initialize_device():
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  sanitizer.setup_asan_if_needed()
+  asan_reboot_done = sanitizer.setup_asan_if_needed()
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  reboot()
+  if not asan_reboot_done:
+    reboot()
 
   # Make sure we are running as root after restart.
   adb.run_as_root()
