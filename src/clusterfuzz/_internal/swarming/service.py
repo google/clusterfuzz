@@ -12,15 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Swarming service."""
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
+from clusterfuzz._internal.swarming.api import SwarmingApi
 
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
+
+  _api: SwarmingApi | None = None
+
+  def __init__(self):
+    self._api = SwarmingApi.create()
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -51,10 +58,11 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
           continue
         if request := swarming.create_new_task_request(
             task.command, task.job_type, task.argument):
-          swarming.push_swarming_task(request)
-      except Exception:  # pylint: disable=broad-except
-        logs.error(
-            f'Failed to push task to Swarming: {task.command}, {task.job_type}.'
-        )
+          self._api.push_task(request)
+      except HTTPError as api_failure:
+        logs.warning(
+            f'''Failed to push task to Swarming: {task.command}, {task.job_type}
+            . Reason: {api_failure}.
+            ''')
         unscheduled_tasks.append(task)
     return unscheduled_tasks
