@@ -136,15 +136,17 @@ class SwarmingApi:
     response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
     return response
 
-  def count_tasks(self,
-                  count_request: swarming_pb2.TasksCountRequest) -> str | None:  # pylint: disable=no-member
+  def count_tasks(
+      self,
+      count_request: swarming_pb2.TasksCountRequest,  # pylint: disable=no-member
+  ) -> swarming_pb2.TasksCount | None:  # pylint: disable=no-member
     """Counts tasks on swarming.
     
     Args:
       count_request: The TasksCountRequest proto message.
       
     Returns:
-      The TasksCountResponse parsed proto message from the server, or None
+      The TasksCount parsed proto message from the server, or None
       if the response is empty.
 
     Raises:
@@ -159,5 +161,5 @@ class SwarmingApi:
 
     return json_format.Parse(
         response_str,
-        swarming_pb2.TasksCountResponse()  # pylint: disable=no-member
+        swarming_pb2.TasksCount()  # pylint: disable=no-member
     )
