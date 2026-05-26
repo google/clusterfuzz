@@ -1262,6 +1262,11 @@ def get_value_from_job_definition(job_type, variable_pattern, default=None):
   if not job_type:
     return default
 
+  # Short-circuit: UWORKERs do not have Datastore access. The TWORKER has
+  # already injected all job variables into the local environment.
+  if environment.is_uworker():
+    return environment.get_value(variable_pattern, default)
+
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if not job:
     return default
