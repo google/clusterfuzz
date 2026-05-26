@@ -16,6 +16,8 @@
 import unittest
 from unittest import mock
 
+from requests.exceptions import HTTPError
+
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -27,12 +29,14 @@ class SwarmingServiceTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.swarming.is_swarming_task',
-        'clusterfuzz._internal.swarming.push_swarming_task',
+        'clusterfuzz._internal.swarming.api.SwarmingApi.create',
         'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
+    self.mock_api = mock.MagicMock()
+    self.mock.create.return_value = self.mock_api
     self.service = service.SwarmingService()
     self.mock.create_new_task_request.return_value = 'fake_request'
     self.mock.get.return_value = None
@@ -48,7 +52,7 @@ class SwarmingServiceTest(unittest.TestCase):
     # Success returns None in this interface (consistent with GcpBatchService)
     self.assertIsNone(result)
 
-    self.mock.push_swarming_task.assert_called_once_with('fake_request')
+    self.mock_api.push_task.assert_called_once_with('fake_request')
 
   def test_create_utask_main_job_failure(self):
     """Test creating a single task that is not a swarming task."""
@@ -61,7 +65,7 @@ class SwarmingServiceTest(unittest.TestCase):
     # Failure returns the task itself
     self.assertIsInstance(result, remote_task_types.RemoteTask)
     self.assertEqual(result.command, 'fuzz')
-    self.mock.push_swarming_task.assert_not_called()
+    self.mock_api.push_task.assert_not_called()
 
   def test_create_utask_main_jobs_mixed_results(self):
     """Test creating multiple tasks with mixed success/failure."""
@@ -79,8 +83,8 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(len(unscheduled), 1)
     self.assertEqual(unscheduled[0].job_type, 'job2')
 
-    self.assertEqual(self.mock.push_swarming_task.call_count, 2)
-    self.mock.push_swarming_task.assert_has_calls([
+    self.assertEqual(self.mock_api.push_task.call_count, 2)
+    self.mock_api.push_task.assert_has_calls([
         mock.call('fake_request'),
         mock.call('fake_request'),
     ])
@@ -96,7 +100,7 @@ class SwarmingServiceTest(unittest.TestCase):
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
     self.assertEqual(unscheduled, [])
-    self.assertEqual(self.mock.push_swarming_task.call_count, 2)
+    self.assertEqual(self.mock_api.push_task.call_count, 2)
 
   def test_create_utask_main_jobs_all_fail(self):
     """Test creating multiple tasks where all fail."""
@@ -109,13 +113,13 @@ class SwarmingServiceTest(unittest.TestCase):
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
     self.assertEqual(unscheduled, tasks)
-    self.mock.push_swarming_task.assert_not_called()
+    self.mock_api.push_task.assert_not_called()
 
   def test_create_utask_main_jobs_empty(self):
     """Test creating tasks with an empty list."""
     unscheduled = self.service.create_utask_main_jobs([])
     self.assertEqual(unscheduled, [])
-    self.mock.push_swarming_task.assert_not_called()
+    self.mock_api.push_task.assert_not_called()
 
   def test_create_utask_main_jobs_exception(self):
     """Test creating tasks when push_swarming_task raises an exception."""
@@ -124,11 +128,21 @@ class SwarmingServiceTest(unittest.TestCase):
     ]
 
     self.mock.is_swarming_task.return_value = True
-    self.mock.push_swarming_task.side_effect = Exception('error')
+    self.mock_api.push_task.side_effect = Exception('error')
+
+    with self.assertRaises(Exception):
+      self.service.create_utask_main_jobs(tasks)
+
+  def test_create_utask_main_jobs_handles_http_error(self):
+    """Test that an HTTPError raised by push_task is caught and the task is returned as unscheduled."""
+    tasks = [
+        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
+    ]
+
+    self.mock.is_swarming_task.return_value = True
+    self.mock_api.push_task.side_effect = HTTPError('http error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
-    self.assertEqual(len(unscheduled), 1)
-    self.assertEqual(unscheduled[0].job_type, 'job1')
-    self.mock.error.assert_called_once_with(
-        'Failed to push task to Swarming: fuzz, job1.')
+    # Assert that the task is returned as unscheduled because of the caught error.
+    self.assertEqual(unscheduled, tasks)
