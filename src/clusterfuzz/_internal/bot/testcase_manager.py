@@ -424,6 +424,26 @@ def _get_testcase_time(testcase_path):
   return None
 
 
+class FuzzerRunResult(
+    collections.namedtuple(
+        'FuzzerRunResult',
+        'crash log_output return_code log_time testcase_data')):
+  """homogenous payload sent over IPC representing 
+     a single fuzzer run execution."""
+
+
+def read_testcase_data(testcase_path):
+  """Reads the binary contents of the testcase from disk."""
+  if not testcase_path or not os.path.exists(testcase_path):
+    return None
+  try:
+    with open(testcase_path, 'rb') as f:
+      return f.read()
+  except Exception:
+    logs.error(f'Failed to read testcase file {testcase_path}.')
+    return None
+
+
 def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
@@ -432,10 +452,7 @@ def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
 
   assert not (testcase_path and testcase_data)
   if testcase_path:
-    if not os.path.exists(testcase_path):
-      return
-    with open(testcase_path, 'rb') as file_handle:
-      testcase_data = file_handle.read()
+    testcase_data = read_testcase_data(testcase_path)
 
   if not testcase_data:
     return
@@ -509,11 +526,13 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
     crash_output = _get_crash_output(output)
     crash_result = CrashResult(return_code, crash_time, crash_output)
 
+    log_time = None
     # To provide consistency between stats and logs, we use timestamp taken
     # from stats when uploading logs and testcase.
     if upload_output:
       log_time = _get_testcase_time(file_path)
 
+    crash_obj = None
     if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
@@ -526,25 +545,55 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
                                      utils.string_hash(file_path))
       utils.write_data_to_file(crash_output, stack_file_path)
 
-      # Put crash/no-crash results in the crash queue.
-      crash_queue.put(
-          Crash(
-              file_path=file_path,
-              crash_time=crash_time,
-              return_code=return_code,
-              resource_list=resource_list,
-              gestures=gestures,
-              stack_file_path=stack_file_path))
+      crash_obj = Crash(
+          file_path=file_path,
+          crash_time=crash_time,
+          return_code=return_code,
+          resource_list=resource_list,
+          gestures=gestures,
+          stack_file_path=stack_file_path)
 
-      # Don't upload uninteresting testcases (no crash) or if there is no log to
-      # correlate it with (not upload_output).
-      if upload_output:
-        upload_testcase(file_path, None, log_time)
-
+    # Include full output for uploaded logs (crash output, merge output, etc).
+    log_data = None
     if upload_output:
-      # Include full output for uploaded logs (crash output, merge output, etc).
       crash_result_full = CrashResult(return_code, crash_time, output)
-      upload_log(crash_result_full.get_stacktrace(), return_code, log_time)
+      log_data = crash_result_full.get_stacktrace()
+
+    # Determine IPC payload parameters.
+    # Standard long-lived bots perform direct uploads and do not
+    # transmit GCS payloads back through the queue.
+    testcase_data = None
+    ipc_log_data = None
+    ipc_return_code = None
+    ipc_log_time = None
+
+    if environment.is_uworker():
+      ipc_log_data = log_data
+      ipc_return_code = return_code
+      ipc_log_time = log_time
+      if crash_obj:
+        testcase_data = read_testcase_data(file_path)
+
+      # TODO:(paulovlb) remove this after validating in dev
+      logs.info(f"[Blackbox fuzzer logs] Untrusted worker GCS bypass. "
+                f"Packaged run result: "
+                f"has_crash={bool(crash_obj)}, "
+                f"log_len={len(log_data) if log_data else 0}, "
+                f"testcase_bytes={len(testcase_data) if testcase_data else 0}")
+    else:
+      if crash_obj and upload_output:
+        upload_testcase(file_path, None, log_time)
+      if upload_output:
+        upload_log(log_data, return_code, log_time)
+
+    # Put homogeneous results in the crash queue
+    crash_queue.put(
+        FuzzerRunResult(
+            crash=crash_obj,
+            log_output=ipc_log_data,
+            return_code=ipc_return_code,
+            log_time=ipc_log_time,
+            testcase_data=testcase_data))
   except Exception:
     logs.error('Exception occurred while running '
                'run_testcase_and_return_result_in_queue.')
