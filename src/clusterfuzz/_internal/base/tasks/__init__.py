@@ -372,6 +372,10 @@ def tworker_get_task():
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
+  queue_override = environment.get_value('OVERRIDE_QUEUE')
+  if queue_override:
+    return get_regular_task(queue=queue_override)
+
   if random.random() < .5:
     # Pick either one with equal probability so we don't hurt the
     # throughput of one compared to the other.
