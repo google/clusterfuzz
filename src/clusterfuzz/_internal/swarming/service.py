@@ -15,8 +15,6 @@
 
 from requests.exceptions import HTTPError
 
-import json
-
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.base.tasks import task_utils

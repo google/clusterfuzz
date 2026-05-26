@@ -38,9 +38,6 @@ _NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
 class SwarmingApi:
   """Client for Swarming pRPC API."""
 
-  _config: SwarmingConfig = None
-  _base_url: str = ""
-
   _config: SwarmingConfig
   _base_url: str = ""
 
@@ -155,11 +152,6 @@ class SwarmingApi:
         status code.
     """
     message_body = json_format.MessageToJson(count_request)
-    logs.info(
-        "[Swarming] Counting tasks in queue",
-        url=self._base_url,
-        endpoint=_COUNT_TASKS_ENDPOINT,
-        body=message_body)
 
     response_str = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
     if response_str is None:
