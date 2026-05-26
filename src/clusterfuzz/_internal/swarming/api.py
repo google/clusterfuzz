@@ -13,7 +13,9 @@
 # limitations under the License.
 """Swarming pRPC API client."""
 
-from google.auth.transport import requests
+from typing import Optional
+
+from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
 
 from clusterfuzz._internal.base import utils
@@ -23,6 +25,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming import get_swarming_config
 
+# TODO(b/516627559): Move scopes to config file
 _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/userinfo.email'
@@ -32,40 +35,56 @@ _COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
 _NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
 
 
-class SwarmingAPI:
+class SwarmingApi:
   """Client for Swarming pRPC API."""
 
-  _config: SwarmingConfig = None
+  _config: SwarmingConfig
   _base_url: str = ""
 
-  def __init__(self):
-    self._config = get_swarming_config()
-    if self._config:
-      self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
+  def __init__(self, config: SwarmingConfig):
+    self._config = config
+    self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
+
+  @staticmethod
+  def create() -> Optional['SwarmingApi']:
+    """Creates a SwarmingApi instance if config is available.
+
+    Returns:
+      A SwarmingApi instance if config is available, None otherwise.
+    """
+    config = get_swarming_config()
+    if config is None:
+      return None
+
+    return SwarmingApi(config)
+
+  def _get_token(self) -> str:
+    """Gets a valid token for the Swarming API.  Returns "" if it fails."""
+    try:
+      creds = credentials.get_scoped_service_account_credentials(
+          _SWARMING_SCOPES)
+      if not creds:
+        logs.error('[Swarming] Failed to get credentials. None found.')
+        return ""
+
+      return creds.token
+    except (auth_exceptions.DefaultCredentialsError,
+            auth_exceptions.RefreshError, auth_exceptions.TransportError) as e:
+      logs.error(f'[Swarming] Failed to get token with: {e}.')
+      return ""
 
   def _get_headers(self) -> dict[str, str]:
     """Checks config and returns headers for pRPC request.
     
     Returns:
-      A dict containing headers, or empty dict if config is missing or
-      auth fails.
+      A dict containing headers.
     """
-    if not self._config:
-      logs.error('[Swarming] No config available.')
-      return {}
-
-    creds = credentials.get_scoped_service_account_credentials(_SWARMING_SCOPES)
-    if not creds:
-      logs.error('[Swarming] Failed to get credentials.')
-      return {}
-
-    if not creds.token:
-      creds.refresh(requests.Request())
+    token = self._get_token()
 
     return {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {creds.token}'
+        'Authorization': f'Bearer {token}'
     }
 
   def _make_request(self, endpoint: str, body: str) -> str | None:
@@ -76,17 +95,25 @@ class SwarmingAPI:
       body: The JSON body of the request.
       
     Returns:
-      The raw JSON response string from the server, or None if the request
-      could not be made (e.g. missing config, auth failure) or failed.
+      The raw JSON response string from the server, or None if the response is
+      empty.
+
+    Raises:
+      requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
+        status code.
     """
     headers = self._get_headers()
-    if not headers:
-      return None
 
     url = f'{self._base_url}{endpoint}'
+    logs.info(
+        f"[Swarming] Making request to {url}",
+        url=self._base_url,
+        endpoint=endpoint,
+        body=body,
+        headers=headers)
     response = utils.post_url(url=url, data=body, headers=headers)
     if not response:
-      logs.error(f"[Swarming] Failed to make request to {url}")
+      logs.error(f"[Swarming] Failed to make request to {url}. Empty response")
       return None
     return response
 
@@ -97,19 +124,16 @@ class SwarmingAPI:
       task_request: The NewTaskRequest proto message.
       
     Returns:
-      The raw JSON response string from the server, or None if the request
-      could not be made (e.g. missing config, auth failure) or failed.
+      The raw JSON response string from the server, or None if the response is
+      empty.
+
+    Raises:
+      requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
+        status code.
     """
     message_body = json_format.MessageToJson(task_request)
-    logs.info(
-        f"[Swarming] Pushing task {task_request.name}",
-        url=self._base_url,
-        endpoint=_NEW_TASK_ENDPOINT,
-        body=message_body)
 
     response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
-    logs.info(
-        f'[Swarming] Response from {task_request.name}', response=response)
     return response
 
   def count_tasks(self,
@@ -120,16 +144,14 @@ class SwarmingAPI:
       count_request: The TasksCountRequest proto message.
       
     Returns:
-      The raw JSON response string from the server, or None if the request
-      could not be made (e.g. missing config, auth failure) or failed.
+      The raw JSON response string from the server, or None if the response is
+      empty.
+
+    Raises:
+      requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
+        status code.
     """
     message_body = json_format.MessageToJson(count_request)
-    logs.info(
-        "[Swarming] Counting tasks in queue",
-        url=self._base_url,
-        endpoint=_COUNT_TASKS_ENDPOINT,
-        body=message_body)
 
     response = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
-    logs.info('[Swarming] Response from CountTasks', response=response)
     return response

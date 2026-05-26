@@ -16,6 +16,8 @@
 import unittest
 from unittest import mock
 
+from requests.exceptions import HTTPError
+
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -27,12 +29,14 @@ class SwarmingServiceTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.swarming.is_swarming_task',
-        'clusterfuzz._internal.swarming.service.SwarmingService._get_api',
+        'clusterfuzz._internal.swarming.api.SwarmingApi.create',
         'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
         'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
+    self.mock_api = mock.MagicMock()
+    self.mock.create.return_value = self.mock_api
     self.service = service.SwarmingService()
 
     self.mock_request = mock.MagicMock()
@@ -58,7 +62,7 @@ class SwarmingServiceTest(unittest.TestCase):
     # Success returns None in this interface (consistent with GcpBatchService)
     self.assertIsNone(result)
 
-    self.mock_api.push_task.assert_called_once_with(self.mock_request)
+    self.mock_api.push_task.assert_called_once_with('fake_request')
 
   def test_create_utask_main_job_failure(self):
     """Test creating a single task that is not a swarming task."""
@@ -91,8 +95,8 @@ class SwarmingServiceTest(unittest.TestCase):
 
     self.assertEqual(self.mock_api.push_task.call_count, 2)
     self.mock_api.push_task.assert_has_calls([
-        mock.call(self.mock_request),
-        mock.call(self.mock_request),
+        mock.call('fake_request'),
+        mock.call('fake_request'),
     ])
 
   def test_create_utask_main_jobs_all_success(self):
@@ -136,44 +140,19 @@ class SwarmingServiceTest(unittest.TestCase):
     self.mock.is_swarming_task.return_value = True
     self.mock_api.push_task.side_effect = Exception('error')
 
-    unscheduled = self.service.create_utask_main_jobs(tasks)
+    with self.assertRaises(Exception):
+      self.service.create_utask_main_jobs(tasks)
 
-    self.assertEqual(len(unscheduled), 1)
-    self.assertEqual(unscheduled[0].job_type, 'job1')
-    self.mock.error.assert_called_once_with(
-        'Failed to push task to Swarming: fuzz, job1.')
-
-  def test_create_utask_main_jobs_backpressure(self):
-    """Test that backpressure stops scheduling."""
+  def test_create_utask_main_jobs_handles_http_error(self):
+    """Test that an HTTPError raised by push_task is caught and the task is returned as unscheduled."""
     tasks = [
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
-        remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
-    self.mock.is_swarming_task.return_value = True
 
-    self.mock_api.count_tasks.side_effect = ['{"count": 10}', '{"count": 50}']
+    self.mock.is_swarming_task.return_value = True
+    self.mock_api.push_task.side_effect = HTTPError('http error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
-    self.assertEqual(len(unscheduled), 1)
-    self.assertEqual(unscheduled[0].job_type, 'job2')
-
-    self.assertEqual(self.mock_api.push_task.call_count, 1)
-    self.mock_api.push_task.assert_called_once_with(self.mock_request)
-
-  def test_create_utask_main_jobs_count_tasks_failure(self):
-    """Test that count_tasks failure fails closed."""
-    tasks = [
-        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
-        remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
-    ]
-    self.mock.is_swarming_task.return_value = True
-    self.mock_api.count_tasks.side_effect = Exception('api error')
-
-    unscheduled = self.service.create_utask_main_jobs(tasks)
-
-    self.assertEqual(len(unscheduled), 2)
-    self.assertEqual(unscheduled[0].job_type, 'job1')
-    self.assertEqual(unscheduled[1].job_type, 'job2')
-
-    self.mock_api.push_task.assert_not_called()
+    # Assert that the task is returned as unscheduled because of the caught error.
+    self.assertEqual(unscheduled, tasks)

@@ -18,7 +18,7 @@ from unittest import mock
 from google.protobuf import json_format
 
 from clusterfuzz._internal.protos import swarming_pb2
-from clusterfuzz._internal.swarming.api import SwarmingAPI
+from clusterfuzz._internal.swarming.api import SwarmingApi
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -31,17 +31,40 @@ class SwarmingAPITest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.credentials.get_scoped_service_account_credentials',
         'google.auth.transport.requests.Request',
     ])
+    helpers.patch_environ(self)
 
     self.mock_creds = mock.MagicMock()
     self.mock_creds.token = 'fake_token'
     self.mock.get_scoped_service_account_credentials.return_value = self.mock_creds
 
-    self.api = SwarmingAPI()
+    self.api = SwarmingApi.create()
 
   def test_push_task(self):
     """Tests that push_task works as expected."""
-    task_request = swarming_pb2.NewTaskRequest(name='test_task')
-    self.api.push_task(task_request)
+    expected_response = '{"taskId": "123"}'
+    self.mock.post_url.return_value = expected_response
+    task_request = swarming_pb2.NewTaskRequest(
+        name='test_task',
+        priority=1,
+        realm='realm-name',
+        service_account='test-account@google.com',
+        task_slices=[
+            swarming_pb2.TaskSlice(
+                expiration_secs=86400,
+                properties=swarming_pb2.TaskProperties(
+                    command=['./run.sh'],
+                    dimensions=[
+                        swarming_pb2.StringPair(key='os', value='Linux'),
+                        swarming_pb2.StringPair(key='pool', value='test-pool')
+                    ],
+                    execution_timeout_secs=3600,
+                    env=[
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                    ],
+                    secret_bytes=b'secret_data'))
+        ])
+
+    response = self.api.push_task(task_request)
 
     expected_headers = {
         'Accept': 'application/json',
@@ -53,12 +76,12 @@ class SwarmingAPITest(unittest.TestCase):
         url=expected_url,
         data=json_format.MessageToJson(task_request),
         headers=expected_headers)
+    self.assertEqual(response, expected_response)
 
   def test_count_tasks(self):
     """Tests that count_tasks works as expected."""
     count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
 
-    # Mock response from post_url
     self.mock.post_url.return_value = '{"count": 42}'
 
     response = self.api.count_tasks(count_request)
@@ -76,23 +99,56 @@ class SwarmingAPITest(unittest.TestCase):
 
     self.assertEqual(response, '{"count": 42}')
 
-  def test_push_task_no_config(self):
-    """Tests that push_task fails when config is missing."""
-    with mock.patch('clusterfuzz._internal.config.local_config.SwarmingConfig'
-                   ) as mock_config:
-      mock_config.side_effect = ValueError('Failed to load')
-      api = SwarmingAPI()
-      response = api.push_task(swarming_pb2.NewTaskRequest())
-      self.assertIsNone(response)
+  def test_create_no_config(self):
+    """Tests that create returns None when config is missing."""
+    with mock.patch('clusterfuzz._internal.swarming.api.get_swarming_config'
+                   ) as mock_get_config:
+      mock_get_config.return_value = None
+      self.assertIsNone(SwarmingApi.create())
 
   def test_push_task_no_credentials(self):
-    """Tests that push_task fails when credentials are missing."""
+    """Tests that push_task gets called with an empty token when credentials are missing."""
     self.mock.get_scoped_service_account_credentials.return_value = None
-    response = self.api.push_task(swarming_pb2.NewTaskRequest())
-    self.assertIsNone(response)
+    self.api.push_task(swarming_pb2.NewTaskRequest())
+
+    _, kwargs = self.mock.post_url.call_args
+    self.assertEqual(kwargs['headers']['Authorization'], 'Bearer ')
 
   def test_count_tasks_no_credentials(self):
-    """Tests that count_tasks fails when credentials are missing."""
+    """Tests that count_tasks gets called with an empty token when credentials are missing."""
     self.mock.get_scoped_service_account_credentials.return_value = None
-    response = self.api.count_tasks(swarming_pb2.TasksCountRequest())
-    self.assertIsNone(response)
+    self.api.count_tasks(swarming_pb2.TasksCountRequest())
+
+    _, kwargs = self.mock.post_url.call_args
+    self.assertEqual(kwargs['headers']['Authorization'], 'Bearer ')
+
+  def test_push_task_auth_error(self):
+    """Tests that push_task raises HTTPError on auth failure."""
+    from requests.exceptions import HTTPError
+    self.mock.get_scoped_service_account_credentials.return_value = None
+    self.mock.post_url.side_effect = HTTPError(
+        "Unauthorized", response=mock.Mock(status_code=401))
+
+    with self.assertRaises(HTTPError):
+      self.api.push_task(swarming_pb2.NewTaskRequest())
+
+  def test_count_tasks_auth_error(self):
+    """Tests that count_tasks raises HTTPError on auth failure."""
+    from requests.exceptions import HTTPError
+    self.mock.get_scoped_service_account_credentials.return_value = None
+    self.mock.post_url.side_effect = HTTPError(
+        "Unauthorized", response=mock.Mock(status_code=401))
+
+    with self.assertRaises(HTTPError):
+      self.api.count_tasks(swarming_pb2.TasksCountRequest())
+
+  def test_get_token_catches_default_credentials_error(self):
+    """Tests that _get_token catches DefaultCredentialsError and returns empty token."""
+    from google.auth.exceptions import DefaultCredentialsError
+    self.mock.get_scoped_service_account_credentials.side_effect = DefaultCredentialsError(
+        "No creds")
+
+    self.api.push_task(swarming_pb2.NewTaskRequest())
+
+    _, kwargs = self.mock.post_url.call_args
+    self.assertEqual(kwargs['headers']['Authorization'], 'Bearer ')

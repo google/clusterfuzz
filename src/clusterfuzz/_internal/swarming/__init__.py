@@ -87,7 +87,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
 
   unique_dimensions = {}
   unique_dimensions['os'] = str(job.platform).capitalize()
-  unique_dimensions['pool'] = get_swarming_config().get('swarming_pool')
+  unique_dimensions['pool'] = swarming_config.get('swarming_pool')
 
   for dimension in platform_specific_dimensions:
     unique_dimensions[dimension['key'].lower()] = dimension['value']
