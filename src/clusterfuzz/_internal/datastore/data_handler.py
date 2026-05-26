@@ -1078,8 +1078,12 @@ def get_value_from_fuzzer_environment_string(fuzzer_name,
                                              variable_pattern,
                                              default=None):
   """Get a specific environment variable's value for a fuzzer."""
+<<<<<<< HEAD
   # Short-circuit: UWORKERs do not have Datastore access. The TWORKER has
   # already injected all fuzzer variables into the local environment.
+=======
+  # Short-circuit: UWORKERs do not have Datastore access.
+>>>>>>> 86e360f17 (Add UWORKER Datastore short-circuits for component repository and fuzzer variables)
   if environment.is_uworker():
     return environment.get_value(variable_pattern, default)
 
@@ -1240,6 +1244,7 @@ def get_component_name(job_type):
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_repository_for_component(component):
   """Get the repository based on component."""
+  # Short-circuit: UWORKERs do not have Datastore access.
   if environment.is_uworker():
     return ''
 
