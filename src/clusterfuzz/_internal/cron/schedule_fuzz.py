@@ -237,14 +237,12 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
 
 def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
   """Returns all jobs for the given platforms."""
-  return ndb_utils.get_all_from_query(
-      data_types.Job.query(data_types.Job.platform.IN(platforms)))
+  return list(data_types.Job.query(data_types.Job.platform.IN(platforms)))
 
 
 def _get_swarming_jobs():
   """Returns all jobs that have swarming environment variables."""
-  jobs = []
-  jobs.extend(_get_jobs_for_platforms(['ANDROID', 'LINUX']))
+  jobs = _get_jobs_for_platforms(['ANDROID', 'LINUX'])
   return [
       job for job in jobs
       if swarming.has_swarming_env_vars(job.get_environment())
