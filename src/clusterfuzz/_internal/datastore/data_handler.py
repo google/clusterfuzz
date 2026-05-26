@@ -1214,6 +1214,11 @@ def bot_run_timed_out():
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_component_name(job_type):
   """Gets component name for a job type."""
+  # Short-circuit: UWORKERs do not have Datastore access. The TWORKER has
+  # already injected all job variables into the local environment.
+  if environment.is_uworker():
+    return environment.get_value('COMPONENT_NAME', '')
+
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if not job:
     return ''
