@@ -1078,6 +1078,11 @@ def get_value_from_fuzzer_environment_string(fuzzer_name,
                                              variable_pattern,
                                              default=None):
   """Get a specific environment variable's value for a fuzzer."""
+  # Short-circuit: UWORKERs do not have Datastore access. The TWORKER has
+  # already injected all fuzzer variables into the local environment.
+  if environment.is_uworker():
+    return environment.get_value(variable_pattern, default)
+
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer or not fuzzer.additional_environment_string:
     return default
@@ -1235,6 +1240,9 @@ def get_component_name(job_type):
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_repository_for_component(component):
   """Get the repository based on component."""
+  if environment.is_uworker():
+    return ''
+
   default_repository = ''
   repository = ''
   repository_mappings = db_config.get_value('component_repository_mappings')
