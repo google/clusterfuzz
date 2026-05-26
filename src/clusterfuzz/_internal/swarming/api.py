@@ -25,6 +25,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming import get_swarming_config
 
+# TODO(b/516627559): Move scopes to config file
 _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/userinfo.email'
