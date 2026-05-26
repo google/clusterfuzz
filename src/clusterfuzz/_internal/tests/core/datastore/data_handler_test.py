@@ -1223,3 +1223,26 @@ class GetEntitiesTest(unittest.TestCase):
         self.GetEntitiesTestModel, equality_filters={'value': 5})
     self.assertIsInstance(result, Generator)
     self.assertCountEqual(result, [])
+
+
+class GetValueFromJobDefinitionTest(unittest.TestCase):
+  """Tests for get_value_from_job_definition."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.system.environment.get_value',
+        'clusterfuzz._internal.datastore.data_types.Job.query',
+    ])
+
+  def test_uworker_bypass(self):
+    """Test that uworker environment skips Datastore and uses environment."""
+    self.mock.is_uworker.return_value = True
+    self.mock.get_value.return_value = 'env_value'
+
+    result = data_handler.get_value_from_job_definition(
+        'job_name', 'VAR_PATTERN', default='default_val')
+
+    self.assertEqual(result, 'env_value')
+    self.mock.get_value.assert_called_once_with('VAR_PATTERN', 'default_val')
+    self.mock.query.assert_not_called()
