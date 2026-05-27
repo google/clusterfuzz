@@ -1261,12 +1261,12 @@ class GetComponentNameTest(unittest.TestCase):
   def test_uworker_bypass(self):
     """Test that uworker environment skips Datastore and uses environment."""
     self.mock.is_uworker.return_value = True
-    
+
     def _mock_get_value(key, default=None):
-        if key == 'COMPONENT_NAME':
-            return 'custom_component'
-        return default
-        
+      if key == 'COMPONENT_NAME':
+        return 'custom_component'
+      return default
+
     self.mock.get_value.side_effect = _mock_get_value
 
     result = data_handler.get_component_name('job_name')
