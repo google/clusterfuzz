@@ -97,7 +97,7 @@ class SwarmingAPITest(unittest.TestCase):
         data=json_format.MessageToJson(count_request),
         headers=expected_headers)
 
-    self.assertEqual(response, '{"count": 42}')
+    self.assertEqual(response.count, 42)
 
   def test_create_no_config(self):
     """Tests that create returns None when config is missing."""
@@ -117,6 +117,7 @@ class SwarmingAPITest(unittest.TestCase):
   def test_count_tasks_no_credentials(self):
     """Tests that count_tasks gets called with an empty token when credentials are missing."""
     self.mock.get_scoped_service_account_credentials.return_value = None
+    self.mock.post_url.return_value = '{}'
     self.api.count_tasks(swarming_pb2.TasksCountRequest())
 
     _, kwargs = self.mock.post_url.call_args

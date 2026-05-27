@@ -136,16 +136,18 @@ class SwarmingApi:
     response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
     return response
 
-  def count_tasks(self,
-                  count_request: swarming_pb2.TasksCountRequest) -> str | None:  # pylint: disable=no-member
+  def count_tasks(
+      self,
+      count_request: swarming_pb2.TasksCountRequest,  # pylint: disable=no-member
+  ) -> swarming_pb2.TasksCount | None:  # pylint: disable=no-member
     """Counts tasks on swarming.
     
     Args:
       count_request: The TasksCountRequest proto message.
       
     Returns:
-      The raw JSON response string from the server, or None if the response is
-      empty.
+      The TasksCount parsed proto message from the server, or None
+      if the response is empty.
 
     Raises:
       requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
@@ -153,5 +155,11 @@ class SwarmingApi:
     """
     message_body = json_format.MessageToJson(count_request)
 
-    response = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
-    return response
+    response_str = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
+    if response_str is None:
+      return None
+
+    return json_format.Parse(
+        response_str,
+        swarming_pb2.TasksCount()  # pylint: disable=no-member
+    )
