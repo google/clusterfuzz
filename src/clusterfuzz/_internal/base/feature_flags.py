@@ -39,9 +39,6 @@ class FeatureFlags(Enum):
   # TODO(b/516630567): Set this value based off dev & stage metrics and tests.
   SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT = 'swarming_preprocess_queue_size_limit'
 
-  # TODO(b/516836939): Migrate feature flag to static config value.
-  SWARMING_MAX_PENDING_TASKS = 'swarming_max_pending_tasks'
-
   @property
   def flag(self):
     """Get the feature flag."""
