@@ -857,7 +857,7 @@ class _PubSubLeaserThread(threading.Thread):
 def add_utask_main(command: str,
                    input_url: str,
                    job_type: str,
-                   wait_time: Optional[int] = None,
+                   wait_time: Optional[int],
                    queue_name: str = UTASK_MAIN_QUEUE) -> None:
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
