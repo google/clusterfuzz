@@ -190,7 +190,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
     self.mock.is_swarming_task.return_value = True
-    self.mock_api.count_tasks.side_effect = Exception('api error')
+    self.mock_api.count_tasks.side_effect = HTTPError('api error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 

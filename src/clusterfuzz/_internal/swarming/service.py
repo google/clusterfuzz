@@ -29,7 +29,7 @@ _DEFAULT_MAX_PENDING_TASKS = 25
 class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
 
-  _api: SwarmingApi = None
+  _api: SwarmingApi | None = None
 
   def __init__(self):
     self._api = SwarmingApi.create()
@@ -67,8 +67,9 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
         return True
 
       return False
-    except Exception as e:
-      logs.error(f'[Swarming] Failed to check backpressure (Fail Closed): {e}')
+    except HTTPError as api_failure:
+      logs.error('[Swarming] Failed to check backpressure (Fail Closed): '
+                 f'{api_failure}')
       return True  #Always fail if swarming request fails
 
   def create_utask_main_job(self, module: str, job_type: str,
