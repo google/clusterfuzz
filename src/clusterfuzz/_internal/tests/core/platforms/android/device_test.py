@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for device functions."""
 
+import unittest
+
 from clusterfuzz._internal.platforms.android import device
 from clusterfuzz._internal.tests.test_libs import android_helpers
 
@@ -23,3 +25,20 @@ class InitializeEnvironmentTest(android_helpers.AndroidTest):
   def test(self):
     """Ensure that initialize_environment throws no exceptions."""
     device.initialize_environment()
+
+
+class AddTestAccountsIfNeededTest(unittest.TestCase):
+  """Tests for add_test_accounts_if_needed."""
+
+  def setUp(self):
+    from clusterfuzz._internal.tests.test_libs import helpers
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.base.persistent_cache.get_value',
+    ])
+
+  def test_uworker_bypass(self):
+    """Test that uworker environment skips test account setup."""
+    self.mock.is_uworker.return_value = True
+    device.add_test_accounts_if_needed()
+    self.mock.get_value.assert_not_called()

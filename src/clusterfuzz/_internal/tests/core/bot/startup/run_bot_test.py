@@ -90,7 +90,9 @@ class TaskLoopTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.commands.process_command',
         'clusterfuzz._internal.bot.tasks.update_task.run',
         'clusterfuzz._internal.bot.tasks.update_task.track_revision',
+        'python.bot.startup.run_bot.update_task_enabled',
     ])
+    self.mock.update_task_enabled.return_value = True
 
     self.task = mock.MagicMock()
     self.task.payload.return_value = 'payload'
@@ -107,6 +109,33 @@ class TaskLoopTest(unittest.TestCase):
     self.assertIn('Exception: text', exception)
     self.assertFalse(clean_exit)
     self.assertEqual('payload', payload)
+
+  def test_max_executions(self):
+    """Test that the loop breaks after MAX_TASK_EXECUTIONS iterations."""
+    from clusterfuzz._internal.system import environment
+    environment._initial_environment = None
+    os.environ['MAX_TASK_EXECUTIONS'] = '3'
+
+    _, clean_exit, payload = run_bot.task_loop()
+
+    self.assertEqual(3, self.mock.process_command.call_count)
+    self.assertTrue(clean_exit)
+    self.assertEqual('payload', payload)
+
+  @mock.patch('clusterfuzz._internal.metrics.logs.log_fatal_and_exit')
+  def test_max_executions_invalid(self, mock_log_fatal_and_exit):
+    """Test that an invalid MAX_TASK_EXECUTIONS logs a fatal error and exits."""
+    from clusterfuzz._internal.system import environment
+    environment._initial_environment = None
+    os.environ['MAX_TASK_EXECUTIONS'] = 'invalid'
+    mock_log_fatal_and_exit.side_effect = SystemExit
+
+    with self.assertRaises(SystemExit):
+      run_bot.task_loop()
+
+    mock_log_fatal_and_exit.assert_any_call(
+        'Invalid value for MAX_TASK_EXECUTIONS: invalid')
+    self.assertEqual(0, self.mock.process_command.call_count)
 
 
 class LeaseAllTasksTest(unittest.TestCase):
