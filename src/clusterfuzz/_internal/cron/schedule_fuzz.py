@@ -33,7 +33,7 @@ from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 
 PREPROCESS_TARGET_SIZE_DEFAULT = 10000
-SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 5
+SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 10
 
 
 @dataclass
