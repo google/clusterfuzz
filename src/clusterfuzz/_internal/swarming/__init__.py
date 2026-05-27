@@ -29,6 +29,13 @@ from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
 
+def has_swarming_env_vars(job_environment: dict) -> bool:
+  """Returns True if the job environment contains swarming env vars."""
+  return bool(
+      utils.string_is_true(job_environment.get('IS_SWARMING_JOB')) or
+      job_environment.get('SWARMING_DIMENSIONS'))
+
+
 def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
   """Returns True if the task is supposed to run on swarming."""
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
@@ -40,9 +47,7 @@ def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
       logs.info('[Swarming DEBUG] Job not found', job_name=job_name)
       return False
 
-  job_environment = job.get_environment()
-  if not utils.string_is_true(job_environment.get(
-      'IS_SWARMING_JOB')) and not job_environment.get('SWARMING_DIMENSIONS'):
+  if not has_swarming_env_vars(job.get_environment()):
     logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
     return False
 

@@ -48,6 +48,47 @@ class SwarmingTest(unittest.TestCase):
     os.environ.pop('PROJECT_NAME', None)
     os.environ.pop('HOST_JOB_SELECTION', None)
 
+  def test_has_swarming_env_vars_empty_env(self):
+    """Tests that empty environment returns False."""
+    self.assertFalse(swarming.has_swarming_env_vars({}))
+
+  def test_has_swarming_env_vars_is_swarming_job_true(self):
+    """Tests that IS_SWARMING_JOB=True returns True."""
+    self.assertTrue(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': 'True'}))
+    self.assertTrue(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': 'true'}))
+    self.assertTrue(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': '1'}))
+
+  def test_has_swarming_env_vars_is_swarming_job_false(self):
+    """Tests that IS_SWARMING_JOB=False returns False."""
+    self.assertFalse(
+        swarming.has_swarming_env_vars({
+            'IS_SWARMING_JOB': 'False'
+        }))
+    self.assertFalse(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': '0'}))
+
+  def test_has_swarming_env_vars_swarming_dimensions(self):
+    """Tests that SWARMING_DIMENSIONS returns True."""
+    self.assertTrue(
+        swarming.has_swarming_env_vars({
+            'SWARMING_DIMENSIONS': 'os:linux'
+        }))
+
+  def test_has_swarming_env_vars_empty_dimensions_and_false_job(self):
+    """Tests that SWARMING_DIMENSIONS={} and IS_SWARMING_JOB=False returns False."""
+    self.assertFalse(
+        swarming.has_swarming_env_vars({
+            'SWARMING_DIMENSIONS': {},
+            'IS_SWARMING_JOB': 'False'
+        }))
+
+  def test_has_swarming_env_vars_both(self):
+    """Tests that both variables return True."""
+    self.assertTrue(
+        swarming.has_swarming_env_vars({
+            'IS_SWARMING_JOB': 'True',
+            'SWARMING_DIMENSIONS': 'os:linux'
+        }))
+
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that create_new_task_request works as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
