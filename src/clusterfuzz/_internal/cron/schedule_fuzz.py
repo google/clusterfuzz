@@ -287,9 +287,9 @@ def _fill_queue(queue: Queue, provider: BaseFuzzTaskProvider):
     logs.error(f'No fuzz tasks found to schedule in queue {queue.name}.')
     return
 
-  logs.info(f'Adding {len(fuzz_tasks)} tasks to queue {queue}.')
-  tasks.bulk_add_tasks(fuzz_tasks, queue=queue, eta_now=True)
-  logs.info(f'Scheduled {len(fuzz_tasks)} tasks on queue {queue}.')
+  logs.info(f'Adding {len(fuzz_tasks)} tasks to queue {queue.name}.')
+  tasks.bulk_add_tasks(fuzz_tasks, queue=queue.name, eta_now=True)
+  logs.info(f'Scheduled {len(fuzz_tasks)} tasks on queue {queue.name}.')
 
   end = time.time()
   total = end - start
