@@ -102,48 +102,6 @@ class BaseFuzzTaskProvider(ABC):
   def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
     """Returns a list of fuzz tasks."""
 
-  def schedule_fuzz_tasks(self) -> bool:
-    """Schedules fuzz tasks."""
-    return self._schedule_fuzz_tasks()
-
-  def _schedule_fuzz_tasks(
-      self,
-      queue: str = tasks.PREPROCESS_QUEUE,
-      default_target_size: int = PREPROCESS_TARGET_SIZE_DEFAULT,
-      target_size_flag: FeatureFlags = FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT
-  ) -> bool:
-    """Internal method to schedule fuzz tasks."""
-    project = utils.get_application_id()
-    start = time.time()
-    creds = credentials.get_default()[0]
-    preprocess_queue_size = get_queue_size(creds, project, queue)
-
-    target_size = default_target_size
-    if target_size_flag.enabled and target_size_flag.content:
-      target_size = int(target_size_flag.content)
-
-    num_tasks = target_size - preprocess_queue_size
-    logs.info(f'Queue {queue} size: {preprocess_queue_size}. '
-              f'Target: {target_size}. Needed: {num_tasks}.')
-
-    if num_tasks <= 0:
-      logs.info('Queue size met or exceeded. Not scheduling tasks.')
-      return False
-
-    fuzz_tasks = self.get_fuzz_tasks(num_tasks)
-    if not fuzz_tasks:
-      logs.error('No fuzz tasks found to schedule.')
-      return False
-
-    logs.info(f'Adding {len(fuzz_tasks)} tasks to queue {queue}.')
-    tasks.bulk_add_tasks(fuzz_tasks, queue=queue, eta_now=True)
-    logs.info(f'Scheduled {len(fuzz_tasks)} tasks on queue {queue}.')
-
-    end = time.time()
-    total = end - start
-    logs.info(f'Task scheduling took {total} seconds.')
-    return True
-
 
 class FuzzTaskCandidate:
   """Data class that holds more info about FuzzerJobs than the ndb.Models do.
@@ -283,9 +241,6 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
     ]
     return fuzz_tasks
 
-  def _schedule_swarming_fuzz_tasks(self) -> bool:
-    if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-      return False
 
 def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
   """Returns all jobs for the given platforms."""
