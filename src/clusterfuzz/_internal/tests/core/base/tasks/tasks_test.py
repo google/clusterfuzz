@@ -549,12 +549,16 @@ class TworkerGetTaskTest(unittest.TestCase):
         'clusterfuzz._internal.base.tasks.get_postprocess_task',
         'clusterfuzz._internal.base.tasks.get_preprocess_task',
         'clusterfuzz._internal.base.tasks.random.random',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.is_gce',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     self.mock.is_tworker.return_value = True
+    self.mock.is_gce.return_value = False
 
   def test_override_queue_set(self):
     """Test that tworker_get_task returns a task from the override queue."""
     self.mock.get_value.return_value = 'override_queue'
+    tasks._get_tworker_queue_override(__memoize_force__=True)  # pylint: disable=protected-access
     mock_task = mock.Mock()
     self.mock.get_regular_task.return_value = mock_task
 
@@ -566,6 +570,7 @@ class TworkerGetTaskTest(unittest.TestCase):
   def test_override_queue_not_set(self):
     """Test that tworker_get_task falls back to random choice when override queue is not set."""
     self.mock.get_value.return_value = None
+    tasks._get_tworker_queue_override(__memoize_force__=True)  # pylint: disable=protected-access
     self.mock.random.return_value = 0.4
     mock_task = mock.Mock()
     self.mock.get_postprocess_task.return_value = mock_task
@@ -578,6 +583,7 @@ class TworkerGetTaskTest(unittest.TestCase):
   def test_override_queue_empty(self):
     """Test that tworker_get_task falls back to random choice when override queue is empty."""
     self.mock.get_value.return_value = ''
+    tasks._get_tworker_queue_override(__memoize_force__=True)  # pylint: disable=protected-access
     self.mock.random.return_value = 0.6
     mock_task = mock.Mock()
     self.mock.get_preprocess_task.return_value = mock_task
@@ -586,3 +592,34 @@ class TworkerGetTaskTest(unittest.TestCase):
 
     self.assertEqual(result, mock_task)
     self.mock.get_preprocess_task.assert_called_once()
+
+  def test_override_queue_from_metadata_success(self):
+    """Test that tworker_get_task returns a task from the override queue in metadata."""
+    self.mock.get_value.return_value = None
+    self.mock.is_gce.return_value = True
+    self.mock.get.return_value = ' metadata_override '
+    tasks._get_tworker_queue_override(__memoize_force__=True)  # pylint: disable=protected-access
+    mock_task = mock.Mock()
+    self.mock.get_regular_task.return_value = mock_task
+
+    result = tasks.tworker_get_task()
+
+    self.assertEqual(result, mock_task)
+    self.mock.get_regular_task.assert_called_once_with(
+        queue='metadata_override')
+
+  def test_override_queue_from_metadata_exception(self):
+    """Test that tworker_get_task falls back when metadata fetch fails."""
+    from requests import exceptions
+    self.mock.get_value.return_value = None
+    self.mock.is_gce.return_value = True
+    self.mock.get.side_effect = exceptions.RequestException("Failed")
+    tasks._get_tworker_queue_override(__memoize_force__=True)  # pylint: disable=protected-access
+    self.mock.random.return_value = 0.4
+    mock_task = mock.Mock()
+    self.mock.get_postprocess_task.return_value = mock_task
+
+    result = tasks.tworker_get_task()
+
+    self.assertEqual(result, mock_task)
+    self.mock.get_postprocess_task.assert_called_once()

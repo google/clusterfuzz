@@ -24,6 +24,7 @@ from typing import List
 from typing import Optional
 
 from google.cloud import monitoring_v3
+from requests import exceptions
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import memoize
@@ -34,6 +35,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -364,6 +366,28 @@ def get_preprocess_task():
   return task
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
+def _get_tworker_queue_override() -> str:
+  """Gets the tworker queue override from environment or metadata."""
+  queue_override = environment.get_value('OVERRIDE_QUEUE')
+  if queue_override:
+    return queue_override
+
+  if not compute_metadata.is_gce():
+    return ""
+
+  try:
+    queue_override = compute_metadata.get('instance/attributes/override_queue')
+    if queue_override:
+      return queue_override.strip()
+  except exceptions.RequestException as e:
+    if not (isinstance(e, exceptions.HTTPError) and
+            e.response.status_code == 404):
+      logs.warning(f'Error fetching override_queue metadata: {e}')
+
+  return ""
+
+
 def tworker_get_task():
   """Gets a task for a tworker to do."""
   assert environment.is_tworker()
@@ -372,8 +396,9 @@ def tworker_get_task():
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
-  queue_override = environment.get_value('OVERRIDE_QUEUE')
+  queue_override = _get_tworker_queue_override()
   if queue_override:
+    logs.info(f'Overriding default queue to {queue_override}')
     return get_regular_task(queue=queue_override)
 
   if random.random() < .5:
