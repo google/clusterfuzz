@@ -36,6 +36,8 @@ class FeatureFlags(Enum):
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
   SWARMING_REMOTE_EXECUTION = 'swarming_remote_execution'
+  # TODO(b/516630567): Set this value based off dev & stage metrics and tests.
+  SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT = 'swarming_preprocess_queue_size_limit'
 
   @property
   def flag(self):
