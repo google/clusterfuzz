@@ -103,6 +103,11 @@ POSTPROCESS_QUEUE = 'postprocess'
 UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
 
+SWARMING_QUEUES = {
+    PREPROCESS_QUEUE: 'preprocess-swarming',
+    UTASK_MAIN_QUEUE: 'utask_main-swarming',
+}
+
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
