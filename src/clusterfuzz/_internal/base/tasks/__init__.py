@@ -24,7 +24,6 @@ from typing import List
 from typing import Optional
 
 from google.cloud import monitoring_v3
-from requests import exceptions
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import memoize
