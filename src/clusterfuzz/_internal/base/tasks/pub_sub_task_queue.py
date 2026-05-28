@@ -45,31 +45,38 @@ class PubSubTaskQueue:
     return self.default_target_size
 
 
-_PREPROCESS_TARGET_SIZE_DEFAULT = 10000
-_UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 10000
-_SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 10
-_SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 25
+# Default target size for the preprocess queue.
+PREPROCESS_TARGET_SIZE_DEFAULT = 10000
+
+# Default limit for the utask main queue.
+UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 10000
+
+# Default target size for the swarming preprocess queue.
+SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 10
+
+# Default limit for the swarming utask main queue.
+SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 25
 
 PREPROCESS_QUEUE = PubSubTaskQueue(
     name=tasks.PREPROCESS_QUEUE,
-    default_target_size=_PREPROCESS_TARGET_SIZE_DEFAULT,
+    default_target_size=PREPROCESS_TARGET_SIZE_DEFAULT,
     target_size_flag=FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT,
 )
 
 SWARMING_PREPROCESS_QUEUE = PubSubTaskQueue(
     name=tasks.SWARMING_QUEUES[tasks.PREPROCESS_QUEUE],
-    default_target_size=_SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
+    default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
     target_size_flag=FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT,
 )
 
 UTASK_MAIN_QUEUE = PubSubTaskQueue(
     name=tasks.UTASK_MAIN_QUEUE,
-    default_target_size=_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
+    default_target_size=UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
     target_size_flag=FeatureFlags.UTASK_MAIN_QUEUE_LIMIT,
 )
 
 SWARMING_UTASK_MAIN_QUEUE = PubSubTaskQueue(
     name=tasks.SWARMING_QUEUES[tasks.UTASK_MAIN_QUEUE],
-    default_target_size=_SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
+    default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
     target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS,
 )
