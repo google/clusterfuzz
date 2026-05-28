@@ -186,7 +186,7 @@ class UTask(BaseUTask):
         'Queueing utask for remote execution.',
         queue_name=queue_name,
         download_url=download_url)
-    tasks.add_utask_main(command, download_url, job_type, queue_name)
+    tasks.add_utask_main(command, download_url, job_type, queue_name=queue_name)
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def preprocess(self, task_argument, job_type, uworker_env):
