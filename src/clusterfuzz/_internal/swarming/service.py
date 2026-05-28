@@ -16,8 +16,9 @@
 from requests.exceptions import HTTPError
 
 from clusterfuzz._internal import swarming
-from clusterfuzz._internal.base.queues import SWARMING_UTASK_MAIN_QUEUE
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.base.tasks.pubsub_task_queue import \
+    SWARMING_UTASK_MAIN_QUEUE
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types

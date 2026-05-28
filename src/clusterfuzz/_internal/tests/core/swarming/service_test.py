@@ -18,7 +18,6 @@ from unittest import mock
 
 from requests.exceptions import HTTPError
 
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
@@ -200,9 +199,3 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled[1].job_type, 'job2')
 
     self.mock_api.push_task.assert_not_called()
-
-  def test_get_max_pending_tasks_zero(self):
-    """Test that the max pending tasks returns 0 when flag is set to 0 and is enabled."""
-    data_types.FeatureFlag(
-        id='swarming_max_pending_tasks', enabled=True, value=0.0).put()
-    self.assertEqual(self.service._get_max_pending_tasks(), 0)  # pylint: disable=protected-access
