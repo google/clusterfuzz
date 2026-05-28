@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for pubsub_task_queue."""
+"""Tests for pub_sub_task_queue."""
 
 import unittest
 
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
-from clusterfuzz._internal.base.tasks.pubsub_task_queue import PubSubTaskQueue
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -25,15 +25,15 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 class PubSubTaskQueueTest(unittest.TestCase):
   """Tests for PubSubTaskQueue."""
 
-  def test_get_max_pending_size_without_feature_flag(self):
+  def test_get_max_target_size_without_feature_flag(self):
     """Test that the default max pending tasks is returned when flag is not set."""
     queue = PubSubTaskQueue(
         name='test-queue',
         default_target_size=25,
         target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS)
-    self.assertEqual(queue.get_max_pending_size(), 25)
+    self.assertEqual(queue.get_max_target_size(), 25)
 
-  def test_get_max_pending_size_with_zero_value(self):
+  def test_get_max_target_size_with_zero_value(self):
     """Test that the max pending tasks returns 0 when flag is set to 0 and is enabled"""
     data_types.FeatureFlag(
         id='swarming_max_pending_tasks', enabled=True, value=0.0).put()
@@ -42,9 +42,9 @@ class PubSubTaskQueueTest(unittest.TestCase):
         name='test-queue',
         default_target_size=25,
         target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS)
-    self.assertEqual(queue.get_max_pending_size(), 0)
+    self.assertEqual(queue.get_max_target_size(), 0)
 
-  def test_get_max_pending_size_with_value(self):
+  def test_get_max_target_size_with_value(self):
     """Test that the max pending tasks returns the flag value when set and enabled"""
     data_types.FeatureFlag(
         id='swarming_max_pending_tasks', enabled=True, value=50.0).put()
@@ -53,9 +53,9 @@ class PubSubTaskQueueTest(unittest.TestCase):
         name='test-queue',
         default_target_size=25,
         target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS)
-    self.assertEqual(queue.get_max_pending_size(), 50)
+    self.assertEqual(queue.get_max_target_size(), 50)
 
-  def test_get_max_pending_size_with_disabled_flag(self):
+  def test_get_max_target_size_with_disabled_flag(self):
     """Test that the default max pending tasks is returned when flag is disabled."""
     data_types.FeatureFlag(
         id='swarming_max_pending_tasks', enabled=False, value=50.0).put()
@@ -64,4 +64,4 @@ class PubSubTaskQueueTest(unittest.TestCase):
         name='test-queue',
         default_target_size=25,
         target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS)
-    self.assertEqual(queue.get_max_pending_size(), 25)
+    self.assertEqual(queue.get_max_target_size(), 25)

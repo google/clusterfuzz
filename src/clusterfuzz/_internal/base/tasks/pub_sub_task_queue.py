@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Queues module."""
+"""Module for Pub/Sub task queue definitions."""
 
 from dataclasses import dataclass
 
@@ -33,8 +33,8 @@ class PubSubTaskQueue:
   default_target_size: int
   target_size_flag: FeatureFlags
 
-  def get_max_pending_size(self) -> int:
-    """Get the effective maximum pending task size for this queue.
+  def get_max_target_size(self) -> int:
+    """Get the effective maximum target size for this queue.
 
     Uses the feature flag for the queue size limit if its enabled.
     Otherwise returns the default target size.
