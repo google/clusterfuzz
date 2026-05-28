@@ -16,7 +16,6 @@
 from abc import ABC
 from abc import abstractmethod
 import collections
-from dataclasses import dataclass
 import random
 import time
 
@@ -27,41 +26,13 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
+from clusterfuzz._internal.base.queues import PREPROCESS_QUEUE
+from clusterfuzz._internal.base.queues import Queue
+from clusterfuzz._internal.base.queues import SWARMING_PREPROCESS_QUEUE
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
-
-PREPROCESS_TARGET_SIZE_DEFAULT = 10000
-SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 10
-
-
-@dataclass
-class Queue:
-  """Data class that holds information about a pub/sub queue.
-
-  Attributes:
-      name: The name of the Pub/Sub subscription associated with the queue.
-      default_target_size: Number of tasks that should be kept in the queue.
-      target_size_flag: Feature flag used to override the default target size.
-  """
-
-  name: str
-  default_target_size: int
-  target_size_flag: FeatureFlags
-
-
-_DEFAULT_QUEUE = Queue(
-    name=tasks.PREPROCESS_QUEUE,
-    default_target_size=PREPROCESS_TARGET_SIZE_DEFAULT,
-    target_size_flag=FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT,
-)
-
-_SWARMING_QUEUE = Queue(
-    name=tasks.SWARMING_QUEUES[tasks.PREPROCESS_QUEUE],
-    default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
-    target_size_flag=FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT,
-)
 
 
 @memoize.wrap(memoize.InMemory(60))
@@ -326,20 +297,20 @@ def schedule_chrome_fuzz_tasks():
   """Schedules fuzz tasks for Chrome."""
   default_jobs = _get_jobs_for_platforms(['LINUX'])
   default_provider = ChromeFuzzTaskProvider(default_jobs)
-  _fill_queue(_DEFAULT_QUEUE, default_provider)
+  _fill_queue(PREPROCESS_QUEUE, default_provider)
 
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
     return
 
   swarming_jobs = _get_swarming_jobs()
   swarming_provider = ChromeFuzzTaskProvider(swarming_jobs)
-  _fill_queue(_SWARMING_QUEUE, swarming_provider)
+  _fill_queue(SWARMING_PREPROCESS_QUEUE, swarming_provider)
 
 
 def schedule_fuzz_tasks():
   """Schedules fuzz tasks based on deployment type."""
   if utils.is_oss_fuzz():
-    _fill_queue(_DEFAULT_QUEUE, OssfuzzFuzzTaskProvider())
+    _fill_queue(PREPROCESS_QUEUE, OssfuzzFuzzTaskProvider())
   else:
     schedule_chrome_fuzz_tasks()
 
