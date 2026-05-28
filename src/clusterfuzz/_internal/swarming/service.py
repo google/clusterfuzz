@@ -39,13 +39,6 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
         return dimension.value
     return ""
 
-  def _get_max_pending_tasks(self) -> int:
-    """Returns the maximum number of pending tasks allowed in Swarming queue"""
-    flag = SWARMING_UTASK_MAIN_QUEUE.target_size_flag
-    if flag.enabled and flag.content is not None:
-      return int(flag.content)
-    return SWARMING_UTASK_MAIN_QUEUE.default_target_size
-
   def _is_queue_full(self,
                      count_request: swarming_pb2.TasksCountRequest) -> bool:  # pylint: disable=no-member
     """Checks if the queue is full based on pending tasks count.
@@ -67,7 +60,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
       raise ValueError("Empty response from CountTasks")
 
     count = int(response.count)
-    max_pending_tasks = self._get_max_pending_tasks()
+    max_pending_tasks = SWARMING_UTASK_MAIN_QUEUE.get_max_pending_size()
     if count >= max_pending_tasks:
       logs.info(f'[Swarming] Backpressure applied. Queue size: {count}. '
                 'Stopping scheduling.')
