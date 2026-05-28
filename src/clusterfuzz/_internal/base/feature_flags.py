@@ -41,8 +41,6 @@ class FeatureFlags(Enum):
   # TODO(b/516836939): Migrate feature flag to static config value.
   SWARMING_MAX_PENDING_TASKS = 'swarming_max_pending_tasks'
 
-
-
   @property
   def flag(self):
     """Get the feature flag."""
