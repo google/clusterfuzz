@@ -90,3 +90,20 @@ class GetUtaskMainQueueSizeTest(unittest.TestCase):
     mock_client.list_time_series.side_effect = Exception("Boom")
     size = tasks.get_utask_main_queue_size(__memoize_force__=True)
     self.assertEqual(size, 0)
+
+  def test_get_size_with_custom_queue(self):
+    """Test retrieval of queue size with a custom queue name."""
+    mock_client = self.mock_monitoring.return_value
+    mock_point = mock.Mock()
+    mock_point.value.int64_value = 6789
+    mock_series = mock.Mock()
+    mock_series.points = [mock_point]
+    mock_client.list_time_series.return_value = [mock_series]
+
+    size = tasks.get_utask_main_queue_size(
+        queue_name='custom_queue', __memoize_force__=True)
+    self.assertEqual(size, 6789)
+
+    kwargs = mock_client.list_time_series.call_args[1]
+    self.assertIn('resource.labels.subscription_id="custom_queue"',
+                  kwargs['request']['filter'])

@@ -13,10 +13,11 @@
 # limitations under the License.
 """Queues module."""
 
+
+from clusterfuzz._internal.base.queues.definitions import \
+    SWARMING_PREPROCESS_QUEUE
+from clusterfuzz._internal.base.queues.definitions import \
+    SWARMING_UTASK_MAIN_QUEUE
 from clusterfuzz._internal.base.queues.definitions import PREPROCESS_QUEUE
-from clusterfuzz._internal.base.queues.definitions import (
-    SWARMING_PREPROCESS_QUEUE)
-from clusterfuzz._internal.base.queues.definitions import (
-    SWARMING_UTASK_MAIN_QUEUE)
 from clusterfuzz._internal.base.queues.definitions import UTASK_MAIN_QUEUE
 from clusterfuzz._internal.base.queues.queue import Queue

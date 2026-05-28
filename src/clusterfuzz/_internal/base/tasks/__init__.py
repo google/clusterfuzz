@@ -700,9 +700,8 @@ def get_utask_mains(queue_name: str = UTASK_MAIN_QUEUE) -> List[PubSubTask]:  # 
 
 
 @memoize.wrap(memoize.InMemory(60))
-def get_utask_main_queue_size():
+def get_utask_main_queue_size(queue_name: str = UTASK_MAIN_QUEUE) -> int:
   """Returns the size of the utask main queue."""
-  queue_name = UTASK_MAIN_QUEUE
   base_os_version = environment.get_value('BASE_OS_VERSION')
   if base_os_version:
     queue_name = f'{queue_name}-{base_os_version}'

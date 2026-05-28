@@ -17,17 +17,15 @@ on base/tasks.py (i.e. avoiding circular imports)."""
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base.queues import SWARMING_UTASK_MAIN_QUEUE
+from clusterfuzz._internal.base.queues import UTASK_MAIN_QUEUE
 from clusterfuzz._internal.base.tasks import task_utils
-from clusterfuzz._internal.base.tasks import UTASK_MAIN_QUEUE
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
-
-UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 10000
 
 
 class BaseTask:
@@ -159,18 +157,23 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
-    utask_main_queue_size = tasks.get_utask_main_queue_size()
+    queue = UTASK_MAIN_QUEUE
+    if swarming.is_swarming_task(job_type):
+      queue = SWARMING_UTASK_MAIN_QUEUE
 
-    utask_main_queue_limit = UTASK_MAIN_QUEUE_LIMIT_DEFAULT
-    utask_flag = feature_flags.FeatureFlags.UTASK_MAIN_QUEUE_LIMIT
-    if utask_flag.enabled and utask_flag.content:
-      utask_main_queue_limit = int(utask_flag.content)
+    utask_main_queue_size = tasks.get_utask_main_queue_size(queue.name)
+
+    utask_main_queue_limit = queue.default_target_size
+    flag = queue.target_size_flag
+    if flag.enabled and flag.content:
+      utask_main_queue_limit = int(flag.content)
 
     if utask_main_queue_size > utask_main_queue_limit:
       base_os_version = environment.get_value('BASE_OS_VERSION')
-      queue_name = UTASK_MAIN_QUEUE if not base_os_version else \
-        f'{UTASK_MAIN_QUEUE}-{base_os_version}'
-      raise errors.QueueLimitReachedError(utask_main_queue_size, queue_name)
+      display_queue_name = queue.name if not base_os_version else \
+        f'{queue.name}-{base_os_version}'
+      raise errors.QueueLimitReachedError(utask_main_queue_size,
+                                          display_queue_name)
 
     logs.info('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)
@@ -178,16 +181,13 @@ class UTask(BaseUTask):
       return
 
     assert batch_service.is_remote_task(command, job_type)
-    queue_name = tasks.UTASK_MAIN_QUEUE
-    if swarming.is_swarming_task(job_type):
-      queue_name = tasks.SWARMING_QUEUES[tasks.UTASK_MAIN_QUEUE]
 
     logs.info(
         'Queueing utask for remote execution.',
-        queue_name=queue_name,
+        queue_name=queue.name,
         download_url=download_url)
     tasks.add_utask_main(
-        command, download_url, job_type, wait_time=None, queue_name=queue_name)
+        command, download_url, job_type, wait_time=None, queue_name=queue.name)
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
   def preprocess(self, task_argument, job_type, uworker_env):
