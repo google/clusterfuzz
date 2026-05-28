@@ -234,9 +234,7 @@ def _remaining_queue_capacity(queue: PubSubTaskQueue) -> int:
   creds = credentials.get_default()[0]
   preprocess_queue_size = get_queue_size(creds, project, queue.name)
 
-  target_size = queue.default_target_size
-  if queue.target_size_flag.enabled and queue.target_size_flag.content:
-    target_size = int(queue.target_size_flag.content)
+  target_size = queue.get_max_pending_size()
 
   num_tasks = target_size - preprocess_queue_size
   logs.info(f'Queue {queue.name} size: {preprocess_queue_size}. '
