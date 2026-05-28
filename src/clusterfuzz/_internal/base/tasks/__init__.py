@@ -34,6 +34,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -369,7 +370,7 @@ def get_preprocess_task():
   return task
 
 
-def tworker_get_task():
+def tworker_get_task(override_queue: str = None):
   """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
@@ -377,6 +378,10 @@ def tworker_get_task():
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
+  if override_queue:
+    logs.info(f'Overriding default queue to {override_queue}')
+    return get_regular_task(queue=override_queue)
+
   if random.random() < .5:
     # Pick either one with equal probability so we don't hurt the
     # throughput of one compared to the other.
