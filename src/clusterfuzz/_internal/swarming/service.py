@@ -46,29 +46,34 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
       return int(flag.content)
     return SWARMING_UTASK_MAIN_QUEUE.default_target_size
 
-  def _is_backpressure_applied(
-      self, count_request: swarming_pb2.TasksCountRequest) -> bool:  # pylint: disable=no-member
-    """Checks if backpressure should be applied based on pending tasks count.
+  def _is_queue_full(self,
+                     count_request: swarming_pb2.TasksCountRequest) -> bool:  # pylint: disable=no-member
+    """Checks if the queue is full based on pending tasks count.
     
-    Returns True if backpressure is applied or if the check fails (Fail Closed).
+    Returns True if the queue is full or if the check fails (Fail Closed).
+
+    Raises:
+      ValueError: If failed to get pending tasks count.
     """
+    #TODO(b/517517107): Calculate backpressure for multiple target OS
     try:
       response = self._api.count_tasks(count_request)
-      if not response:
-        raise RuntimeError("Empty response from CountTasks")
-
-      count = int(response.count)
-      max_pending_tasks = self._get_max_pending_tasks()
-      if count >= max_pending_tasks:
-        logs.info(f'[Swarming] Backpressure applied. Queue size: {count}. '
-                  'Stopping scheduling.')
-        return True
-
-      return False
     except HTTPError as api_failure:
       logs.error('[Swarming] Failed to check backpressure (Fail Closed): '
                  f'{api_failure}')
-      return True  #Always fail if swarming request fails
+      return True
+
+    if not response:
+      raise ValueError("Empty response from CountTasks")
+
+    count = int(response.count)
+    max_pending_tasks = self._get_max_pending_tasks()
+    if count >= max_pending_tasks:
+      logs.info(f'[Swarming] Backpressure applied. Queue size: {count}. '
+                'Stopping scheduling.')
+      return True
+
+    return False
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -112,11 +117,18 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
           unscheduled_tasks.append(task)
           continue
 
+        # Since there are multiple concurrent scheduling sessions/bots, it is
+        # important to always check the queue size with Swarming to account for
+        # the possibility that the queue was empty in the first iteration but
+        # filled up on subsequent iterations due to other schedulers.
         count_request = swarming_pb2.TasksCountRequest(  # pylint: disable=no-member
             tags=['pool:chrome-sec-clusterfuzz', f'os:{os_val}'],
             state=swarming_pb2.QUERY_PENDING)  # pylint: disable=no-member
 
-        if self._is_backpressure_applied(count_request):
+        # If the queue is full, there is no sense in continuing to schedule
+        # tasks in this session, so we return the remaining tasks as
+        # unscheduled.
+        if self._is_queue_full(count_request):
           unscheduled_tasks.extend(remote_tasks[i:])
           break
 

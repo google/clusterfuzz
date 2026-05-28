@@ -99,6 +99,16 @@ class SwarmingAPITest(unittest.TestCase):
 
     self.assertEqual(response.count, 42)
 
+  def test_count_tasks_empty_response(self):
+    """Tests that count_tasks returns None on empty response."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+
+    self.mock.post_url.return_value = ''
+
+    response = self.api.count_tasks(count_request)
+
+    self.assertIsNone(response)
+
   def test_create_no_config(self):
     """Tests that create returns None when config is missing."""
     with mock.patch('clusterfuzz._internal.swarming.api.get_swarming_config'

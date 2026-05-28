@@ -19,6 +19,7 @@ from unittest import mock
 from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -52,7 +53,7 @@ class SwarmingServiceTest(unittest.TestCase):
     self.mock.get.return_value = None
     self.mock_api = mock.MagicMock()
     self.service._api = self.mock_api  # pylint: disable=protected-access
-    self.mock_api.count_tasks.return_value = mock.MagicMock(count=0)
+    self.mock_api.count_tasks.return_value = swarming_pb2.TasksCount(count=0)
 
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""
@@ -170,8 +171,8 @@ class SwarmingServiceTest(unittest.TestCase):
 
     # 25 is the limit
     self.mock_api.count_tasks.side_effect = [
-        mock.MagicMock(count=24),
-        mock.MagicMock(count=25)
+        swarming_pb2.TasksCount(count=24),
+        swarming_pb2.TasksCount(count=25)
     ]
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
@@ -200,19 +201,8 @@ class SwarmingServiceTest(unittest.TestCase):
 
     self.mock_api.push_task.assert_not_called()
 
-  def test_get_max_pending_tasks_with_feature_flag(self):
-    """Test that the max pending tasks priority is feature flag > default"""
-    data_types.FeatureFlag(
-        id='swarming_max_pending_tasks', enabled=True, value=50.0).put()
-    self.assertEqual(self.service._get_max_pending_tasks(), 50)  # pylint: disable=protected-access
-
-  def test_get_max_pending_tasks_without_feature_flag(self):
-    """Test that the default max pending tasks is returned when flag is not set."""
-    # Flag does not exist in DB, should return default.
-    self.assertEqual(self.service._get_max_pending_tasks(), 25)  # pylint: disable=protected-access
-
-  def test_get_max_pending_tasks_with_zero_value(self):
-    """Test that the max pending tasks returns 0 when flag is set to 0 and is enabled"""
+  def test_get_max_pending_tasks_zero(self):
+    """Test that the max pending tasks returns 0 when flag is set to 0 and is enabled."""
     data_types.FeatureFlag(
         id='swarming_max_pending_tasks', enabled=True, value=0.0).put()
     self.assertEqual(self.service._get_max_pending_tasks(), 0)  # pylint: disable=protected-access
