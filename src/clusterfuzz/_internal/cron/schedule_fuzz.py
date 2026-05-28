@@ -26,9 +26,10 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
-from clusterfuzz._internal.base.queues import PREPROCESS_QUEUE
-from clusterfuzz._internal.base.queues import Queue
-from clusterfuzz._internal.base.queues import SWARMING_PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks.pubsub_task_queue import \
+    SWARMING_PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks.pubsub_task_queue import PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks.pubsub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -227,15 +228,13 @@ def _get_swarming_jobs():
   ]
 
 
-def _remaining_queue_capacity(queue: Queue) -> int:
+def _remaining_queue_capacity(queue: PubSubTaskQueue) -> int:
   """Returns the remaining capacity of the given queue."""
   project = utils.get_application_id()
   creds = credentials.get_default()[0]
   preprocess_queue_size = get_queue_size(creds, project, queue.name)
 
-  target_size = queue.default_target_size
-  if queue.target_size_flag.enabled and queue.target_size_flag.content:
-    target_size = int(queue.target_size_flag.content)
+  target_size = queue.get_max_pending_size()
 
   num_tasks = target_size - preprocess_queue_size
   logs.info(f'Queue {queue.name} size: {preprocess_queue_size}. '
@@ -244,7 +243,7 @@ def _remaining_queue_capacity(queue: Queue) -> int:
   return num_tasks
 
 
-def _fill_queue(queue: Queue, provider: BaseFuzzTaskProvider):
+def _fill_queue(queue: PubSubTaskQueue, provider: BaseFuzzTaskProvider):
   """Fills the given queue with tasks from the provider."""
   start = time.time()
   num_tasks = _remaining_queue_capacity(queue)
