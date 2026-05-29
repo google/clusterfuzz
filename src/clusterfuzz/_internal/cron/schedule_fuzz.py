@@ -26,10 +26,10 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
-from clusterfuzz._internal.base.tasks.pubsub_task_queue import \
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import \
     SWARMING_PREPROCESS_QUEUE
-from clusterfuzz._internal.base.tasks.pubsub_task_queue import PREPROCESS_QUEUE
-from clusterfuzz._internal.base.tasks.pubsub_task_queue import PubSubTaskQueue
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -234,7 +234,7 @@ def _remaining_queue_capacity(queue: PubSubTaskQueue) -> int:
   creds = credentials.get_default()[0]
   preprocess_queue_size = get_queue_size(creds, project, queue.name)
 
-  target_size = queue.get_max_pending_size()
+  target_size = queue.get_max_target_size()
 
   num_tasks = target_size - preprocess_queue_size
   logs.info(f'Queue {queue.name} size: {preprocess_queue_size}. '

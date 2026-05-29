@@ -1246,3 +1246,72 @@ class GetValueFromJobDefinitionTest(unittest.TestCase):
     self.assertEqual(result, 'env_value')
     self.mock.get_value.assert_called_once_with('VAR_PATTERN', 'default_val')
     self.mock.query.assert_not_called()
+
+
+class GetComponentNameTest(unittest.TestCase):
+  """Tests for get_component_name."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.system.environment.get_value',
+        'clusterfuzz._internal.datastore.data_types.Job.query',
+    ])
+
+  def test_uworker_bypass(self):
+    """Test that uworker environment skips Datastore and uses environment."""
+    self.mock.is_uworker.return_value = True
+
+    def _mock_get_value(key, default=None):
+      if key == 'COMPONENT_NAME':
+        return 'custom_component'
+      return default
+
+    self.mock.get_value.side_effect = _mock_get_value
+
+    result = data_handler.get_component_name('job_name')
+
+    self.assertEqual(result, 'custom_component')
+    self.mock.query.assert_not_called()
+
+
+class GetRepositoryForComponentTest(unittest.TestCase):
+  """Tests for get_repository_for_component."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.config.db_config.get_value',
+    ])
+
+  def test_uworker_bypass(self):
+    """Test that uworker environment skips Datastore and returns empty string."""
+    self.mock.is_uworker.return_value = True
+
+    result = data_handler.get_repository_for_component('component_name')
+
+    self.assertEqual(result, '')
+    self.mock.get_value.assert_not_called()
+
+
+class GetValueFromFuzzerEnvironmentStringTest(unittest.TestCase):
+  """Tests for get_value_from_fuzzer_environment_string."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.system.environment.get_value',
+        'clusterfuzz._internal.datastore.data_types.Fuzzer.query',
+    ])
+
+  def test_uworker_bypass(self):
+    """Test that uworker environment skips Datastore and uses environment."""
+    self.mock.is_uworker.return_value = True
+    self.mock.get_value.return_value = 'fuzzer_env_value'
+
+    result = data_handler.get_value_from_fuzzer_environment_string(
+        'fuzzer_name', 'VAR_PATTERN', default='default_val')
+
+    self.assertEqual(result, 'fuzzer_env_value')
+    self.mock.get_value.assert_called_once_with('VAR_PATTERN', 'default_val')
+    self.mock.query.assert_not_called()
