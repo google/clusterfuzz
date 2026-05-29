@@ -53,7 +53,6 @@ GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
 CMD_KILL_CROSVM = 'pkill crosvm'
-CMD_KILL_RUN_CVD = 'pkill run_cvd'
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -445,15 +444,21 @@ def stop_cuttlefish_device():
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
   logs.info('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
 
-  if get_device_state() == 'device':
+  # Attempt a graceful shutdown.
+  try:
     execute_command(
         stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
     time.sleep(STOP_CVD_WAIT)
+  except Exception as e:
+    logs.warning('Graceful stop_cvd failed or timed out: %s' % str(e))
 
+  # Forcefully kill crosvm and all CVD helper processes to prevent port leaks.
   execute_command(
       CMD_KILL_CROSVM, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+
+  kill_helpers_cmd = f'pkill -f "{cvd_bin_dir}/"'
   execute_command(
-      CMD_KILL_RUN_CVD, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+      kill_helpers_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
 
 
 def restart_cuttlefish_device():
