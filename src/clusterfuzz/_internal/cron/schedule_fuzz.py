@@ -16,7 +16,6 @@
 from abc import ABC
 from abc import abstractmethod
 import collections
-from dataclasses import dataclass
 import random
 import time
 
@@ -27,41 +26,14 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import \
+    SWARMING_PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
-
-PREPROCESS_TARGET_SIZE_DEFAULT = 10000
-SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 10
-
-
-@dataclass
-class Queue:
-  """Data class that holds information about a pub/sub queue.
-
-  Attributes:
-      name: The name of the Pub/Sub subscription associated with the queue.
-      default_target_size: Number of tasks that should be kept in the queue.
-      target_size_flag: Feature flag used to override the default target size.
-  """
-
-  name: str
-  default_target_size: int
-  target_size_flag: FeatureFlags
-
-
-_DEFAULT_QUEUE = Queue(
-    name=tasks.PREPROCESS_QUEUE,
-    default_target_size=PREPROCESS_TARGET_SIZE_DEFAULT,
-    target_size_flag=FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT,
-)
-
-_SWARMING_QUEUE = Queue(
-    name=tasks.SWARMING_QUEUES[tasks.PREPROCESS_QUEUE],
-    default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
-    target_size_flag=FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT,
-)
 
 
 @memoize.wrap(memoize.InMemory(60))
@@ -256,15 +228,13 @@ def _get_swarming_jobs():
   ]
 
 
-def _remaining_queue_capacity(queue: Queue) -> int:
+def _remaining_queue_capacity(queue: PubSubTaskQueue) -> int:
   """Returns the remaining capacity of the given queue."""
   project = utils.get_application_id()
   creds = credentials.get_default()[0]
   preprocess_queue_size = get_queue_size(creds, project, queue.name)
 
-  target_size = queue.default_target_size
-  if queue.target_size_flag.enabled and queue.target_size_flag.content:
-    target_size = int(queue.target_size_flag.content)
+  target_size = queue.get_max_target_size()
 
   num_tasks = target_size - preprocess_queue_size
   logs.info(f'Queue {queue.name} size: {preprocess_queue_size}. '
@@ -273,7 +243,7 @@ def _remaining_queue_capacity(queue: Queue) -> int:
   return num_tasks
 
 
-def _fill_queue(queue: Queue, provider: BaseFuzzTaskProvider):
+def _fill_queue(queue: PubSubTaskQueue, provider: BaseFuzzTaskProvider):
   """Fills the given queue with tasks from the provider."""
   start = time.time()
   num_tasks = _remaining_queue_capacity(queue)
@@ -326,20 +296,20 @@ def schedule_chrome_fuzz_tasks():
   """Schedules fuzz tasks for Chrome."""
   default_jobs = _get_jobs_for_platforms(['LINUX'])
   default_provider = ChromeFuzzTaskProvider(default_jobs)
-  _fill_queue(_DEFAULT_QUEUE, default_provider)
+  _fill_queue(PREPROCESS_QUEUE, default_provider)
 
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
     return
 
   swarming_jobs = _get_swarming_jobs()
   swarming_provider = ChromeFuzzTaskProvider(swarming_jobs)
-  _fill_queue(_SWARMING_QUEUE, swarming_provider)
+  _fill_queue(SWARMING_PREPROCESS_QUEUE, swarming_provider)
 
 
 def schedule_fuzz_tasks():
   """Schedules fuzz tasks based on deployment type."""
   if utils.is_oss_fuzz():
-    _fill_queue(_DEFAULT_QUEUE, OssfuzzFuzzTaskProvider())
+    _fill_queue(PREPROCESS_QUEUE, OssfuzzFuzzTaskProvider())
   else:
     schedule_chrome_fuzz_tasks()
 
