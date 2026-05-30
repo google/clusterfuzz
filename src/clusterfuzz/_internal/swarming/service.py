@@ -49,7 +49,8 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
     Raises:
       ValueError: If failed to get pending tasks count.
     """
-    #TODO(b/517517107): Calculate backpressure for multiple target OS
+    # TODO(b/517517107): Improve backpressure calculation to account for
+    # differently-sized bot groups in swarming.
     try:
       response = self._api.count_tasks(count_request)
     except HTTPError as api_failure:
