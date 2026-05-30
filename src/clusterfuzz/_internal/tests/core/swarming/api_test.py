@@ -19,6 +19,7 @@ from google.protobuf import json_format
 
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming.api import SwarmingApi
+from clusterfuzz._internal.swarming.api import SwarmingApiError
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -108,6 +109,15 @@ class SwarmingAPITest(unittest.TestCase):
     response = self.api.count_tasks(count_request)
 
     self.assertIsNone(response)
+
+  def test_count_tasks_parse_error(self):
+    """Tests that count_tasks raises SwarmingApiError on parse failure."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+
+    self.mock.post_url.return_value = 'invalid json'
+
+    with self.assertRaises(SwarmingApiError):
+      self.api.count_tasks(count_request)
 
   def test_create_no_config(self):
     """Tests that create returns None when config is missing."""

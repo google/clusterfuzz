@@ -35,6 +35,10 @@ _COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
 _NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
 
 
+class SwarmingApiError(Exception):
+  """Exception raised for errors in the Swarming API."""
+
+
 class SwarmingApi:
   """Client for Swarming pRPC API."""
 
@@ -113,7 +117,8 @@ class SwarmingApi:
         headers=headers)
     response = utils.post_url(url=url, data=body, headers=headers)
     if not response:
-      logs.error(f"[Swarming] Failed to make request to {url}. Empty response")
+      logs.warning(
+          f"[Swarming] Failed to make request to {url}. Empty response")
       return None
     return response
 
@@ -152,6 +157,7 @@ class SwarmingApi:
     Raises:
       requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
         status code.
+      SwarmingApiError: If the response proto message parsing fails.
     """
     message_body = json_format.MessageToJson(count_request)
 
@@ -159,7 +165,10 @@ class SwarmingApi:
     if response_str is None:
       return None
 
-    return json_format.Parse(
-        response_str,
-        swarming_pb2.TasksCount()  # pylint: disable=no-member
-    )
+    try:
+      return json_format.Parse(
+          response_str,
+          swarming_pb2.TasksCount()  # pylint: disable=no-member
+      )
+    except (json_format.ParseError, AttributeError) as e:
+      raise SwarmingApiError(f"Failed to parse response: {e}") from e

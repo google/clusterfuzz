@@ -23,6 +23,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming.api import SwarmingApi
+from clusterfuzz._internal.swarming.api import SwarmingApiError
 
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
@@ -33,35 +34,35 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
   def __init__(self):
     self._api = SwarmingApi.create()
 
-  def _get_os_dimension(self, request: swarming_pb2.NewTaskRequest) -> str:  # pylint: disable=no-member
-    """Extracts the OS dimension from the task request."""
+  # pylint: disable=no-member
+  def _get_dimension(self, request: swarming_pb2.NewTaskRequest,
+                     key: str) -> str:
+    """Extracts a dimension value from the task request."""
     for dimension in request.task_slices[0].properties.dimensions:
-      if dimension.key == 'os':
+      if dimension.key == key:
         return dimension.value
     return ""
 
   def _is_queue_full(self,
                      count_request: swarming_pb2.TasksCountRequest) -> bool:  # pylint: disable=no-member
     """Checks if the queue is full based on pending tasks count.
-    
-    Returns True if the queue is full or if the check fails (Fail Closed).
 
-    Raises:
-      ValueError: If failed to get pending tasks count.
+    Returns True if the queue is full or if the check fails (Fail Closed).
     """
     # TODO(b/517517107): Improve backpressure calculation to account for
     # differently-sized bot groups in swarming.
     try:
       response = self._api.count_tasks(count_request)
-    except HTTPError as api_failure:
+    except (HTTPError, SwarmingApiError) as e:
       logs.error('[Swarming] Failed to check backpressure (Fail Closed): '
-                 f'{api_failure}')
+                 f'{e}')
       return True
 
     if not response:
-      raise ValueError("Empty response from CountTasks")
+      logs.warning('[Swarming] Got an empty response from Swarming CountTasks.')
+      return True
 
-    count = int(response.count)
+    count = response.count
     max_pending_tasks = SWARMING_UTASK_MAIN_QUEUE.get_max_pending_size()
     if count >= max_pending_tasks:
       logs.info(f'[Swarming] Backpressure applied. Queue size: {count}. '
@@ -104,11 +105,11 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
           unscheduled_tasks.append(task)
           continue
 
-        os_val = self._get_os_dimension(task_req)
-        if os_val == "":
-          logs.error(
-              f'[Swarming] Failed to find OS dimension for job {task.job_type}.'
-          )
+        os_val = self._get_dimension(task_req, 'os')
+        pool_val = self._get_dimension(task_req, 'pool')
+        if not os_val or not pool_val:
+          logs.error(f'[Swarming] Failed to find required dimension for job '
+                     f'{task.job_type}.')
           unscheduled_tasks.append(task)
           continue
 
@@ -117,7 +118,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
         # the possibility that the queue was empty in the first iteration but
         # filled up on subsequent iterations due to other schedulers.
         count_request = swarming_pb2.TasksCountRequest(  # pylint: disable=no-member
-            tags=['pool:chrome-sec-clusterfuzz', f'os:{os_val}'],
+            tags=[f'pool:{pool_val}', f'os:{os_val}'],
             state=swarming_pb2.QUERY_PENDING)  # pylint: disable=no-member
 
         # If the queue is full, there is no sense in continuing to schedule

@@ -42,11 +42,14 @@ class SwarmingServiceTest(unittest.TestCase):
     self.mock.create.return_value = self.mock_api
     self.service = service.SwarmingService()
 
-    self.mock_request = mock.MagicMock()
-    mock_dimension = mock.MagicMock()
-    mock_dimension.key = 'os'
-    mock_dimension.value = 'Linux'
-    self.mock_request.task_slices[0].properties.dimensions = [mock_dimension]
+    self.mock_request = swarming_pb2.NewTaskRequest(task_slices=[
+        swarming_pb2.TaskSlice(
+            properties=swarming_pb2.TaskProperties(dimensions=[
+                swarming_pb2.StringPair(key='os', value='Linux'),
+                swarming_pb2.StringPair(
+                    key='pool', value='chrome-sec-clusterfuzz'),
+            ]))
+    ])
     self.mock.create_new_task_request.return_value = self.mock_request
 
     self.mock.get.return_value = None
