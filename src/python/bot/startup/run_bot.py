@@ -28,10 +28,12 @@ import time
 import traceback
 
 import requests
+from requests import exceptions
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
@@ -41,6 +43,7 @@ from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -133,6 +136,29 @@ def _get_max_task_executions():  # pylint: disable=inconsistent-return-statement
     logs.log_fatal_and_exit(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
+def _get_tworker_queue_override() -> str:
+  """Gets the tworker queue override from environment or metadata."""
+  queue_override = environment.get_value('OVERRIDE_TWORKER_QUEUE')
+  if queue_override:
+    return queue_override
+
+  if not compute_metadata.is_gce():
+    return ""
+
+  try:
+    queue_override = compute_metadata.get(
+        'instance/attributes/override_tworker_queue')
+    if queue_override:
+      return queue_override.strip()
+  except exceptions.RequestException as e:
+    if not (isinstance(e, exceptions.HTTPError) and
+            e.response.status_code == 404):
+      logs.warning(f'Error fetching override_tworker_queue metadata: {e}')
+
+  return ""
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
@@ -177,7 +203,8 @@ def task_loop():
         continue
 
       if environment.is_tworker():
-        task = tasks.tworker_get_task()
+        task = tasks.tworker_get_task(
+            override_queue=_get_tworker_queue_override())
       else:
         task = tasks.get_task()
 

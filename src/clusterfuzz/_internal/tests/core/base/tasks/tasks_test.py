@@ -17,6 +17,7 @@ from unittest import mock
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
@@ -550,3 +551,40 @@ class QueueNameGenerationTest(unittest.TestCase):
     }.get(key, default)
     mock_platform.return_value = 'MAC'
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
+
+
+class TworkerGetTaskTest(unittest.TestCase):
+  """Tests for tworker_get_task."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_tworker',
+        'clusterfuzz._internal.base.tasks.get_regular_task',
+        'clusterfuzz._internal.base.tasks.get_postprocess_task',
+        'clusterfuzz._internal.base.tasks.get_preprocess_task',
+        'random.random',
+    ])
+    self.mock.is_tworker.return_value = True
+
+  def test_not_tworker(self):
+    """Test that assertion fails if not a tworker."""
+    self.mock.is_tworker.return_value = False
+    with self.assertRaises(AssertionError):
+      tasks.tworker_get_task()
+
+  def test_fallback_to_random_choice(self):
+    """Test that tworker_get_task falls back to random choice when override_queue is None or empty."""
+    self.mock.random.return_value = 0.4
+    self.mock.get_postprocess_task.return_value = 'task2'
+
+    # Test with None
+    self.assertEqual(tasks.tworker_get_task(override_queue=None), 'task2')
+    self.mock.get_postprocess_task.assert_called_once()
+    self.mock.get_preprocess_task.assert_not_called()
+
+    self.mock.get_postprocess_task.reset_mock()
+
+    # Test with empty string
+    self.assertEqual(tasks.tworker_get_task(override_queue=''), 'task2')
+    self.mock.get_postprocess_task.assert_called_once()
+    self.mock.get_preprocess_task.assert_not_called()
