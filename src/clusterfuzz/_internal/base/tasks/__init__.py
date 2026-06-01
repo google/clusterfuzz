@@ -691,7 +691,7 @@ def get_task_from_message(message, queue=None, can_defer=True,
   return task
 
 
-def get_utask_mains(queue_name: str = UTASK_MAIN_QUEUE) -> List[PubSubTask]:  # pylint: disable=dangerous-default-value
+def get_utask_mains(queue_name: str) -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
   base_os_version = environment.get_value('BASE_OS_VERSION')
@@ -705,7 +705,7 @@ def get_utask_mains(queue_name: str = UTASK_MAIN_QUEUE) -> List[PubSubTask]:  # 
 
 
 @memoize.wrap(memoize.InMemory(60))
-def get_utask_main_queue_size(queue_name: str = UTASK_MAIN_QUEUE) -> int:
+def get_utask_main_queue_size(queue_name: str) -> int:
   """Returns the size of the utask main queue."""
   base_os_version = environment.get_value('BASE_OS_VERSION')
   if base_os_version:
@@ -858,11 +858,8 @@ class _PubSubLeaserThread(threading.Thread):
         logs.error('Leaser thread failed.')
 
 
-def add_utask_main(command: str,
-                   input_url: str,
-                   job_type: str,
-                   wait_time: Optional[int],
-                   queue_name: str = UTASK_MAIN_QUEUE) -> None:
+def add_utask_main(command: str, input_url: str, job_type: str,
+                   wait_time: Optional[int], queue_name: str) -> None:
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
   initial_command = environment.get_value('TASK_PAYLOAD')

@@ -17,7 +17,10 @@ import os
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks as taskslib
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -167,12 +170,6 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
         'clusterfuzz._internal.base.tasks.get_utask_mains',
         'clusterfuzz._internal.remote_task.remote_task_gate.RemoteTaskGate',
     ])
-    patcher = mock.patch(
-        'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
-        new_callable=mock.PropertyMock)
-    self.mock_swarming_enabled = patcher.start()
-    self.mock_swarming_enabled.return_value = False
-    self.addCleanup(patcher.stop)
 
   def test_schedule_tasks_requeue_uncreated(self):
     """Test that uncreated tasks are not acked."""
@@ -219,18 +216,24 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
         command='command1', job='job1', argument='argument1')
     swarming_task = mock.MagicMock(
         command='command2', job='job2', argument='argument2')
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.value,
+        enabled=True).put()
 
     self.mock.get_utask_mains.side_effect = [[regular_task], [swarming_task]]
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
-    self.mock_swarming_enabled.return_value = True
 
     run_bot.schedule_utask_mains()
 
+    self.mock.get_utask_mains.assert_has_calls([
+        mock.call(pub_sub_task_queue.UTASK_MAIN_QUEUE.name),
+        mock.call(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name),
+    ])
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
     )
+
     args, _ = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args
     called_batch_tasks = args[0]
-
     self.assertEqual(len(called_batch_tasks), 2)
     self.assertEqual(called_batch_tasks[0].pubsub_task, regular_task)
     self.assertEqual(called_batch_tasks[1].pubsub_task, swarming_task)
