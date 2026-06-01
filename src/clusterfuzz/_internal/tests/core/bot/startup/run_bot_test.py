@@ -214,34 +214,27 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     )
 
   def test_schedule_tasks_both_queues(self):
-    """Test scheduling tasks from both queues."""
-    mock_task1 = mock.MagicMock()
-    mock_task1.command = 'command1'
-    mock_task1.job = 'job1'
-    mock_task1.argument = 'argument1'
-    mock_task1.lease.return_value.__enter__.return_value = None
-    mock_task1.lease.return_value.__exit__.return_value = None
+    """Test that schedule_utask_mains picks up tasks from both queues."""
+    regular_task = mock.MagicMock(
+        command='command1', job='job1', argument='argument1')
+    swarming_task = mock.MagicMock(
+        command='command2', job='job2', argument='argument2')
 
-    mock_task2 = mock.MagicMock()
-    mock_task2.command = 'command2'
-    mock_task2.job = 'job2'
-    mock_task2.argument = 'argument2'
-    mock_task2.lease.return_value.__enter__.return_value = None
-    mock_task2.lease.return_value.__exit__.return_value = None
-
-    self.mock.get_utask_mains.side_effect = [[mock_task1], [mock_task2]]
+    self.mock.get_utask_mains.side_effect = [[regular_task], [swarming_task]]
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
-
     self.mock_swarming_enabled.return_value = True
+
     run_bot.schedule_utask_mains()
 
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
     )
-    call_args = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args[
-        0][0]
-    self.assertEqual(len(call_args), 2)
-    self.assertEqual(call_args[0].pubsub_task, mock_task1)
-    self.assertEqual(call_args[1].pubsub_task, mock_task2)
+    args, _ = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args
+    called_batch_tasks = args[0]
+
+    self.assertEqual(len(called_batch_tasks), 2)
+    self.assertEqual(called_batch_tasks[0].pubsub_task, regular_task)
+    self.assertEqual(called_batch_tasks[1].pubsub_task, swarming_task)
+
 
 class TworkerGetTaskTest(unittest.TestCase):
   """Tests for tworker_get_task."""

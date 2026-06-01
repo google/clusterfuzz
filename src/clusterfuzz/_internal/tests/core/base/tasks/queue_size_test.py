@@ -92,7 +92,7 @@ class GetUtaskMainQueueSizeTest(unittest.TestCase):
     self.assertEqual(size, 0)
 
   def test_get_size_with_custom_queue(self):
-    """Test retrieval of queue size with a custom queue name."""
+    """Test that get_utask_main_queue_size correctly queries Cloud Monitoring for a custom queue name."""
     mock_client = self.mock_monitoring.return_value
     mock_point = mock.Mock()
     mock_point.value.int64_value = 6789
