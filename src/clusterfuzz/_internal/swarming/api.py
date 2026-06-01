@@ -17,6 +17,7 @@ from typing import Optional
 
 from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config.local_config import SwarmingConfig
@@ -155,15 +156,18 @@ class SwarmingApi:
       if the response is empty.
 
     Raises:
-      requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
-        status code.
-      SwarmingApiError: If the response proto message parsing fails.
+      SwarmingApiError: If the pRPC request fails or response parsing fails.
     """
     message_body = json_format.MessageToJson(count_request)
 
-    response_str = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
+    try:
+      response_str = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
+    except HTTPError as e:
+      raise SwarmingApiError(f"HTTP error calling count_tasks: {e}") from e
+
     if response_str is None:
-      return None
+      raise SwarmingApiError(
+          'RPC Contract failure, got an empty response from Swarming API.')
 
     try:
       return json_format.Parse(
@@ -171,4 +175,5 @@ class SwarmingApi:
           swarming_pb2.TasksCount()  # pylint: disable=no-member
       )
     except (json_format.ParseError, AttributeError) as e:
-      raise SwarmingApiError(f"Failed to parse response: {e}") from e
+      raise SwarmingApiError(
+          f'RPC Contract failure, failed to parse response: {e}') from e

@@ -21,6 +21,7 @@ from requests.exceptions import HTTPError
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
+from clusterfuzz._internal.swarming.api import SwarmingApiError
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -193,7 +194,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
     self.mock.is_swarming_task.return_value = True
-    self.mock_api.count_tasks.side_effect = HTTPError('api error')
+    self.mock_api.count_tasks.side_effect = SwarmingApiError('api error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 

@@ -16,6 +16,7 @@ import unittest
 from unittest import mock
 
 from google.protobuf import json_format
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming.api import SwarmingApi
@@ -101,14 +102,13 @@ class SwarmingAPITest(unittest.TestCase):
     self.assertEqual(response.count, 42)
 
   def test_count_tasks_empty_response(self):
-    """Tests that count_tasks returns None on empty response."""
+    """Tests that count_tasks raises SwarmingApiError on empty response."""
     count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
 
     self.mock.post_url.return_value = ''
 
-    response = self.api.count_tasks(count_request)
-
-    self.assertIsNone(response)
+    with self.assertRaises(SwarmingApiError):
+      self.api.count_tasks(count_request)
 
   def test_count_tasks_parse_error(self):
     """Tests that count_tasks raises SwarmingApiError on parse failure."""
@@ -145,7 +145,6 @@ class SwarmingAPITest(unittest.TestCase):
 
   def test_push_task_auth_error(self):
     """Tests that push_task raises HTTPError on auth failure."""
-    from requests.exceptions import HTTPError
     self.mock.get_scoped_service_account_credentials.return_value = None
     self.mock.post_url.side_effect = HTTPError(
         "Unauthorized", response=mock.Mock(status_code=401))
@@ -154,13 +153,12 @@ class SwarmingAPITest(unittest.TestCase):
       self.api.push_task(swarming_pb2.NewTaskRequest())
 
   def test_count_tasks_auth_error(self):
-    """Tests that count_tasks raises HTTPError on auth failure."""
-    from requests.exceptions import HTTPError
+    """Tests that count_tasks raises SwarmingApiError on auth failure."""
     self.mock.get_scoped_service_account_credentials.return_value = None
     self.mock.post_url.side_effect = HTTPError(
         "Unauthorized", response=mock.Mock(status_code=401))
 
-    with self.assertRaises(HTTPError):
+    with self.assertRaises(SwarmingApiError):
       self.api.count_tasks(swarming_pb2.TasksCountRequest())
 
   def test_get_token_catches_default_credentials_error(self):

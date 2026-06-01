@@ -40,7 +40,11 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
   # pylint: disable=no-member
   def _get_dimension(self, request: swarming_pb2.NewTaskRequest,
                      key: str) -> str:
-    """Extracts a dimension value from the task request."""
+    """Extracts a dimension value from the task request.
+
+    Returns:
+      The dimension value if found, or an empty string otherwise.
+    """
     for dimension in request.task_slices[0].properties.dimensions:
       if dimension.key == key:
         return dimension.value
@@ -56,13 +60,9 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
     # differently-sized bot groups in swarming.
     try:
       response = self._api.count_tasks(count_request)
-    except (HTTPError, SwarmingApiError) as e:
+    except SwarmingApiError as e:
       logs.error('[Swarming] Failed to check backpressure (Fail Closed): '
                  f'{e}')
-      return True
-
-    if not response:
-      logs.warning('[Swarming] Got an empty response from Swarming CountTasks.')
       return True
 
     count = response.count

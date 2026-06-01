@@ -82,6 +82,15 @@ SWARMING_UTASK_MAIN_QUEUE = PubSubTaskQueue(
 
 def get_max_size_for_queue(default_size: int,
                            size_limit_flag: FeatureFlags) -> int:
+  """Returns the maximum size for a queue, checking feature flags.
+
+  Args:
+    default_size: The default maximum size.
+    size_limit_flag: The feature flag to check for a custom limit.
+
+  Returns:
+    The maximum size as an integer.
+  """
   flag = size_limit_flag
   if flag.enabled and flag.content is not None:
     return int(flag.content)
