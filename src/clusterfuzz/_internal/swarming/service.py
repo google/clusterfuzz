@@ -16,14 +16,17 @@
 from requests.exceptions import HTTPError
 
 from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.base.tasks import task_utils
-from clusterfuzz._internal.base.tasks.pubsub_task_queue import \
-    SWARMING_UTASK_MAIN_QUEUE
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import \
+    get_max_size_for_queue
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming.api import SwarmingApi
 from clusterfuzz._internal.swarming.api import SwarmingApiError
+
+SWARMING_MAIN_QUEUE_LIMIT_DEFAULT = 25
 
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
@@ -63,7 +66,9 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
       return True
 
     count = response.count
-    max_pending_tasks = SWARMING_UTASK_MAIN_QUEUE.get_max_pending_size()
+    max_pending_tasks = get_max_size_for_queue(
+        SWARMING_MAIN_QUEUE_LIMIT_DEFAULT,
+        FeatureFlags.SWARMING_MAX_PENDING_TASKS)
     if count >= max_pending_tasks:
       logs.info(f'[Swarming] Backpressure applied. Queue size: {count}. '
                 'Stopping scheduling.')

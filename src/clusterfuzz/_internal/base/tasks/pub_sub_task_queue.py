@@ -39,10 +39,8 @@ class PubSubTaskQueue:
     Uses the feature flag for the queue size limit if its enabled.
     Otherwise returns the default target size.
     """
-    flag = self.target_size_flag
-    if flag.enabled and flag.content is not None:
-      return int(flag.content)
-    return self.default_target_size
+    return get_max_size_for_queue(self.default_target_size,
+                                  self.target_size_flag)
 
 
 # Default target size for the preprocess queue.
@@ -80,3 +78,11 @@ SWARMING_UTASK_MAIN_QUEUE = PubSubTaskQueue(
     default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
     target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS,
 )
+
+
+def get_max_size_for_queue(default_size: int,
+                           size_limit_flag: FeatureFlags) -> int:
+  flag = size_limit_flag
+  if flag.enabled and flag.content is not None:
+    return int(flag.content)
+  return default_size
