@@ -145,15 +145,14 @@ class SwarmingApi:
   def count_tasks(
       self,
       count_request: swarming_pb2.TasksCountRequest,  # pylint: disable=no-member
-  ) -> swarming_pb2.TasksCount | None:  # pylint: disable=no-member
+  ) -> swarming_pb2.TasksCount:  # pylint: disable=no-member
     """Counts tasks on swarming.
     
     Args:
       count_request: The TasksCountRequest proto message.
       
     Returns:
-      The TasksCount parsed proto message from the server, or None
-      if the response is empty.
+      The TasksCount parsed proto message from the server.
 
     Raises:
       SwarmingApiError: If the pRPC request fails or response parsing fails.
