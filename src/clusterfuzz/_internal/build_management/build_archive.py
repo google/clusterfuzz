@@ -141,17 +141,17 @@ class DefaultBuildArchive(BuildArchive):
 
   def __init__(self, reader: archive.ArchiveReader):
     super().__init__(reader)
-    self._fuzz_targets = {}
+    self._fuzz_targets = None
 
   def get_path_for_target(self, fuzz_target: str) -> str:
     """Returns the path in the archive of the fuzz_target if found.
     This is needed because target name normalization means we're losing
     information about the actual file reprensenting the fuzz_target.
     """
-    if not self._fuzz_targets:
+    if self._fuzz_targets is None:
       self.list_fuzz_targets()
 
-    if not fuzz_target in self._fuzz_targets:
+    if not self._fuzz_targets or fuzz_target not in self._fuzz_targets:
       return None
 
     return self._fuzz_targets[fuzz_target]
@@ -185,8 +185,10 @@ class DefaultBuildArchive(BuildArchive):
     return to_extract
 
   def list_fuzz_targets(self) -> List[str]:
-    if self._fuzz_targets:
+    if self._fuzz_targets is not None:
       return list(self._fuzz_targets.keys())
+
+    self._fuzz_targets = {}
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
@@ -304,6 +306,21 @@ class ChromeBuildArchive(DefaultBuildArchive):
             'clusterfuzz_manifest.json was incorrectly formatted or missing an '
             'archive_schema_version field')
         self._archive_schema_version = default_archive_schema_version
+
+      fuzz_targets_data = manifest.get('fuzz_targets')
+      if isinstance(fuzz_targets_data, list):
+        self._fuzz_targets = {}
+        from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+        for target_path in fuzz_targets_data:
+          if isinstance(target_path, str):
+            fuzz_target = fuzzer_utils.normalize_target_name(target_path)
+            self._fuzz_targets[fuzz_target] = target_path
+          else:
+            logs.error(
+                f'Entry in fuzz_targets (clusterfuzz_manifest.json) is not a '
+                f'string: {target_path}')
+      elif fuzz_targets_data is not None:
+        logs.error('fuzz_targets in clusterfuzz_manifest.json is not a list')
     else:
       self._archive_schema_version = default_archive_schema_version
 

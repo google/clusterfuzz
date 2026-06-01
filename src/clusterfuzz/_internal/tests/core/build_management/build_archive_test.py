@@ -409,3 +409,58 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self._generate_manifest(1)
     test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
     self.assertEqual(test_archive.archive_schema_version(), 1)
+
+  def _generate_manifest_with_fuzz_targets(self, archive_schema_version,
+                                           fuzz_targets):
+    """Mocks open calls so that they return a buffer containing valid JSON for
+    the given archive schema version and fuzz_targets."""
+
+    def _mock_open(_):
+      buffer = io.BytesIO(b'')
+      buffer.write(
+          json.dumps({
+              'archive_schema_version': archive_schema_version,
+              'fuzz_targets': fuzz_targets,
+          }).encode())
+      buffer.seek(0)
+      return buffer
+
+    self.mock.open.return_value.open.side_effect = _mock_open
+
+  def test_manifest_fuzz_targets_list(self):
+    """Tests that fuzz_targets specified as a list in the manifest correctly
+    populates self._fuzz_targets and bypasses discovery."""
+    self.mock.file_exists.return_value = True
+    self._generate_manifest_with_fuzz_targets(
+        1, ['out/build/my_fuzzer', 'out/build/other_fuzzer'])
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive.archive_schema_version(), 1)
+    self.assertCountEqual(test_archive.list_fuzz_targets(),
+                          ['my_fuzzer', 'other_fuzzer'])
+    self.assertEqual(
+        test_archive.get_path_for_target('my_fuzzer'), 'out/build/my_fuzzer')
+    # Ensure list_members was never called for fuzz target discovery.
+    self.mock.open.return_value.list_members.assert_not_called()
+
+  def test_manifest_fuzz_targets_invalid(self):
+    """Tests that invalid fuzz_targets (e.g. dict) in the manifest are ignored
+    and we fallback to discovery."""
+    self.mock.file_exists.return_value = True
+    self._generate_manifest_with_fuzz_targets(
+        1, {'my_fuzzer': 'out/build/my_fuzzer'})
+    self.mock.open.return_value.list_members.return_value = []
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive.archive_schema_version(), 1)
+    test_archive.list_fuzz_targets()
+    self.mock.open.return_value.list_members.assert_called_once()
+
+  def test_manifest_fuzz_targets_missing(self):
+    """Tests that missing fuzz_targets in the manifest are ignored
+    and we fallback to discovery."""
+    self.mock.file_exists.return_value = True
+    self._generate_manifest(1)
+    self.mock.open.return_value.list_members.return_value = []
+    test_archive = build_archive.ChromeBuildArchive(self.mock.open.return_value)
+    self.assertEqual(test_archive.archive_schema_version(), 1)
+    test_archive.list_fuzz_targets()
+    self.mock.open.return_value.list_members.assert_called_once()

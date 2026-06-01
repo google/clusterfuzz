@@ -532,6 +532,26 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         os.environ['BUILD_DIR'],
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
 
+  def test_setup_fuzz_discovery(self):
+    """Tests setting up a build during initial fuzz target discovery.
+
+    (fuzz_target=None).
+    """
+    os.environ['TASK_NAME'] = 'fuzz'
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    # Verify unpack() was never called because we skipped unpacking
+    # for discovery.
+    unpack_mock = self.mock.open.return_value.__enter__.return_value.unpack
+    self.assertEqual(unpack_mock.call_count, 0)
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
+
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_fuzz(self, unpack_all):
     """Tests setting up a build during fuzzing."""
@@ -741,7 +761,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['ALLOW_UNPACK_OVER_HTTP'] = "True"
     self.mock.unzip_over_http_compatible.return_value = True
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(2)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -756,7 +778,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # Test setting up build again.
     self.mock.time.return_value = 1005.0
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
 
     self.assertIsInstance(build, build_manager.RegularBuild)
 
@@ -778,7 +800,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'https://example.com/path/file-release-([0-9]+).zip')
     self.mock.unzip_over_http_compatible.return_value = True
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(2)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -791,7 +815,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
     self.mock.time.return_value = 1005.0
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
 
     self.assertIsInstance(build, build_manager.RegularBuild)
 
