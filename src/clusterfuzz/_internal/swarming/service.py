@@ -65,7 +65,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
                  f'{e}')
       return True
 
-    count = response.count
+    count = response.count if response.count else 0
     max_pending_tasks = get_max_size_for_queue(
         SWARMING_MAIN_QUEUE_LIMIT_DEFAULT,
         FeatureFlags.SWARMING_MAX_PENDING_TASKS)

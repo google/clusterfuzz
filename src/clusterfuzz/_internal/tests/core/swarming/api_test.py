@@ -85,7 +85,6 @@ class SwarmingAPITest(unittest.TestCase):
     count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
 
     self.mock.post_url.return_value = '{"count": 42}'
-
     response = self.api.count_tasks(count_request)
 
     expected_headers = {
@@ -94,12 +93,29 @@ class SwarmingAPITest(unittest.TestCase):
         'Authorization': 'Bearer fake_token'
     }
     expected_url = 'https://server-name/prpc/swarming.v2.Tasks/CountTasks'
+
+    expected_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+    json_format.Parse('"2026-06-01T00:00:00Z"', expected_request.start)
+
     self.mock.post_url.assert_called_with(
         url=expected_url,
-        data=json_format.MessageToJson(count_request),
+        data=json_format.MessageToJson(expected_request),
         headers=expected_headers)
 
     self.assertEqual(response.count, 42)
+
+  def test_count_tasks_default_start(self):
+    """Tests that count_tasks sets default start time if not provided."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+    self.mock.post_url.return_value = '{"count": 42}'
+
+    self.api.count_tasks(count_request)
+
+    kwargs = self.mock.post_url.call_args.kwargs
+    sent_data = kwargs['data']
+    sent_request = json_format.Parse(sent_data,
+                                     swarming_pb2.TasksCountRequest())
+    self.assertTrue(sent_request.HasField('start'))
 
   def test_count_tasks_empty_response(self):
     """Tests that count_tasks raises SwarmingApiError on empty response."""

@@ -17,6 +17,8 @@ from typing import Optional
 
 from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
+from google.protobuf.timestamp_pb2 import \
+    Timestamp  # pylint: disable=no-name-in-module
 from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
@@ -34,6 +36,10 @@ _SWARMING_SCOPES = [
 
 _COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
 _NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
+
+_MIN_TASK_START_TIME = "2026-06-01T00:00:00Z"
+_MIN_TASK_START_TIME_PROTO = json_format.Parse(f'"{_MIN_TASK_START_TIME}"',
+                                               Timestamp())
 
 
 class SwarmingApiError(Exception):
@@ -157,6 +163,8 @@ class SwarmingApi:
     Raises:
       SwarmingApiError: If the pRPC request fails or response parsing fails.
     """
+    if not count_request.HasField('start'):
+      count_request.start.CopyFrom(_MIN_TASK_START_TIME_PROTO)
     message_body = json_format.MessageToJson(count_request)
 
     try:
