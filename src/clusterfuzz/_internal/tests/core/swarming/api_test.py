@@ -104,6 +104,15 @@ class SwarmingAPITest(unittest.TestCase):
 
     self.assertEqual(response.count, 42)
 
+  def test_count_tasks_with_xssi_prefix(self):
+    """Tests that count_tasks handles XSSI prefix correctly."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+
+    self.mock.post_url.return_value = ')]}\'\n{"count": 42}'
+    response = self.api.count_tasks(count_request)
+
+    self.assertEqual(response.count, 42)
+
   def test_count_tasks_default_start(self):
     """Tests that count_tasks sets default start time if not provided."""
     count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])

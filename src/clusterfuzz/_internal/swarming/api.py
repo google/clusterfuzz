@@ -19,7 +19,6 @@ from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
 from google.protobuf.timestamp_pb2 import \
     Timestamp  # pylint: disable=no-name-in-module
-from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config.local_config import SwarmingConfig
@@ -127,6 +126,11 @@ class SwarmingApi:
       logs.warning(
           f"[Swarming] Failed to make request to {url}. Empty response")
       return None
+
+    # Strip XSSI prefix if present.
+    if response.startswith(")]}'\n"):
+      response = response[len(")]}'\n"):]
+
     return response
 
   def push_task(self, task_request: swarming_pb2.NewTaskRequest) -> str | None:  # pylint: disable=no-member
