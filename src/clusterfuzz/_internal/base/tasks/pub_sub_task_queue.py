@@ -78,5 +78,5 @@ UTASK_MAIN_QUEUE = PubSubTaskQueue(
 SWARMING_UTASK_MAIN_QUEUE = PubSubTaskQueue(
     name=tasks.SWARMING_QUEUES[tasks.UTASK_MAIN_QUEUE],
     default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
-    target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS,
+    target_size_flag=FeatureFlags.SWARMING_UTASK_MAIN_QUEUE_SIZE_LIMIT,
 )
