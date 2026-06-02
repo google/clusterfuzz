@@ -729,6 +729,23 @@ class RegularBuild(Build):
     self._pre_setup()
     environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
 
+    # Check for target discovery run
+    # (fuzz task with no selected target for an engine job).
+    if (not self.fuzz_target and not self._unpack_everything and
+        environment.is_engine_fuzzer_job() and
+        environment.get_value('TASK_NAME') == 'fuzz'):
+      logs.info('[Target Discovery] Fuzz task engine job target discovery.'
+                ' Listing targets from archive.')
+      try:
+        with self._open_build_archive(self.base_build_dir, self.build_dir,
+                                      self.build_url,
+                                      self.http_build_url) as build:
+          self._fuzz_targets = list(build.list_fuzz_targets())
+        return True
+      except Exception as e:
+        logs.error(f'Failed to open build archive to list targets: {e}')
+        return False
+
     logs.info(f'Retrieving build r{self.revision} from {self.build_url}.')
     build_update = not self.exists()
     if build_update:
