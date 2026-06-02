@@ -19,6 +19,7 @@ from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
 from google.protobuf.timestamp_pb2 import \
     Timestamp  # pylint: disable=no-name-in-module
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config.local_config import SwarmingConfig
