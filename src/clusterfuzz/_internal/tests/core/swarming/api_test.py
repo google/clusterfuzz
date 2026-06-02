@@ -16,9 +16,11 @@ import unittest
 from unittest import mock
 
 from google.protobuf import json_format
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming.api import SwarmingApi
+from clusterfuzz._internal.swarming.api import SwarmingApiError
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -83,7 +85,6 @@ class SwarmingAPITest(unittest.TestCase):
     count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
 
     self.mock.post_url.return_value = '{"count": 42}'
-
     response = self.api.count_tasks(count_request)
 
     expected_headers = {
@@ -92,12 +93,56 @@ class SwarmingAPITest(unittest.TestCase):
         'Authorization': 'Bearer fake_token'
     }
     expected_url = 'https://server-name/prpc/swarming.v2.Tasks/CountTasks'
+
+    expected_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+    json_format.Parse('"2026-06-01T00:00:00Z"', expected_request.start)
+
     self.mock.post_url.assert_called_with(
         url=expected_url,
-        data=json_format.MessageToJson(count_request),
+        data=json_format.MessageToJson(expected_request),
         headers=expected_headers)
 
-    self.assertEqual(response, '{"count": 42}')
+    self.assertEqual(response.count, 42)
+
+  def test_count_tasks_with_xssi_prefix(self):
+    """Tests that count_tasks handles XSSI prefix correctly."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+
+    self.mock.post_url.return_value = ')]}\'\n{"count": 42}'
+    response = self.api.count_tasks(count_request)
+
+    self.assertEqual(response.count, 42)
+
+  def test_count_tasks_default_start(self):
+    """Tests that count_tasks sets default start time if not provided."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+    self.mock.post_url.return_value = '{"count": 42}'
+
+    self.api.count_tasks(count_request)
+
+    kwargs = self.mock.post_url.call_args.kwargs
+    sent_data = kwargs['data']
+    sent_request = json_format.Parse(sent_data,
+                                     swarming_pb2.TasksCountRequest())
+    self.assertTrue(sent_request.HasField('start'))
+
+  def test_count_tasks_empty_response(self):
+    """Tests that count_tasks raises SwarmingApiError on empty response."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+
+    self.mock.post_url.return_value = ''
+
+    with self.assertRaises(SwarmingApiError):
+      self.api.count_tasks(count_request)
+
+  def test_count_tasks_parse_error(self):
+    """Tests that count_tasks raises SwarmingApiError on parse failure."""
+    count_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
+
+    self.mock.post_url.return_value = 'invalid json'
+
+    with self.assertRaises(SwarmingApiError):
+      self.api.count_tasks(count_request)
 
   def test_create_no_config(self):
     """Tests that create returns None when config is missing."""
@@ -117,6 +162,7 @@ class SwarmingAPITest(unittest.TestCase):
   def test_count_tasks_no_credentials(self):
     """Tests that count_tasks gets called with an empty token when credentials are missing."""
     self.mock.get_scoped_service_account_credentials.return_value = None
+    self.mock.post_url.return_value = '{}'
     self.api.count_tasks(swarming_pb2.TasksCountRequest())
 
     _, kwargs = self.mock.post_url.call_args
@@ -124,7 +170,6 @@ class SwarmingAPITest(unittest.TestCase):
 
   def test_push_task_auth_error(self):
     """Tests that push_task raises HTTPError on auth failure."""
-    from requests.exceptions import HTTPError
     self.mock.get_scoped_service_account_credentials.return_value = None
     self.mock.post_url.side_effect = HTTPError(
         "Unauthorized", response=mock.Mock(status_code=401))
@@ -133,13 +178,12 @@ class SwarmingAPITest(unittest.TestCase):
       self.api.push_task(swarming_pb2.NewTaskRequest())
 
   def test_count_tasks_auth_error(self):
-    """Tests that count_tasks raises HTTPError on auth failure."""
-    from requests.exceptions import HTTPError
+    """Tests that count_tasks raises SwarmingApiError on auth failure."""
     self.mock.get_scoped_service_account_credentials.return_value = None
     self.mock.post_url.side_effect = HTTPError(
         "Unauthorized", response=mock.Mock(status_code=401))
 
-    with self.assertRaises(HTTPError):
+    with self.assertRaises(SwarmingApiError):
       self.api.count_tasks(swarming_pb2.TasksCountRequest())
 
   def test_get_token_catches_default_credentials_error(self):
