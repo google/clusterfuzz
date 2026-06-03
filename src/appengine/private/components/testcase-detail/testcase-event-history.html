@@ -193,6 +193,16 @@
       toggle() {
         this.shouldPreview = !this.shouldPreview;
       },
+      _escapeHtml(value) {
+        const replacements = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        };
+        return String(value).replace(/[&<>"']/g, char => replacements[char]);
+      },
       _formatEvent(event) {
         if (!event) {
           return '';
@@ -203,11 +213,12 @@
         const keys = Object.keys(eventCopy).sort();
         let result = '{';
         result += keys.map(key => {
-          const value = JSON.stringify(eventCopy[key]);
+          const escapedKey = this._escapeHtml(key);
+          const escapedValue = this._escapeHtml(JSON.stringify(eventCopy[key]));
           if (boldKeys.includes(key)) {
-            return `<b>"${key}"</b>: <b>${value}</b>`;
+            return `<b>"${escapedKey}"</b>: <b>${escapedValue}</b>`;
           }
-          return `"${key}": ${value}`;
+          return `"${escapedKey}": ${escapedValue}`;
         }).join(', ');
         result += '}';
         return result;
