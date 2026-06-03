@@ -827,6 +827,78 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
+  def test_setup_blackbox_over_http(self):
+    """Tests setup blackbox (non-engine) build with compatible remote unzipping."""
+    os.environ['JOB_NAME'] = 'blackbox_job'
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['RELEASE_BUILD_URL_PATTERN'] = (
+        'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = 'True'
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    # We expect unpack to be called because it is not skipped for blackbox.
+    self.assertEqual(
+        1,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+    self.assertEqual(1, self.mock.unzip_over_http_compatible.call_count)
+
+    # Test setting up build again.
+    self.mock.time.return_value = 1005.0
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Since UNPACK_ALL_FUZZ_TARGETS_AND_FILES is not True, it was marked as partial,
+    # so it should be unpacked again.
+    self.assertEqual(
+        2,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+
+  def test_setup_blackbox_over_http_unpack_all(self):
+    """Tests setup blackbox build with compatible remote unzipping and unpack all."""
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
+    os.environ['JOB_NAME'] = 'blackbox_job'
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['RELEASE_BUILD_URL_PATTERN'] = (
+        'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = 'True'
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.assertEqual(
+        1,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+
+    # Test setting up build again.
+    self.mock.time.return_value = 1005.0
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Not a partial build, so unpack shouldn't be called again.
+    self.assertEqual(
+        1,
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.call_count
+    )
+
   def test_delete(self):
     """Test deleting this build."""
     os.environ['FUZZ_TARGET'] = 'fuzz_target'

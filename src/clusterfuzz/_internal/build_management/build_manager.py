@@ -522,27 +522,26 @@ class Build(BaseBuild):
       with self._open_build_archive(base_build_dir, build_dir, build_url,
                                     http_build_url) as build:
         unpack_start_time = time.time()
-        if environment.is_engine_fuzzer_job() and not self.fuzz_target:
-          # If no fuzz target is selected (e.g. during initial fuzz target
-          # discovery), we only need the list of fuzz targets. We get them
-          # from the build archive (which instantly reads
-          # clusterfuzz_manifest.json if present) and skip unpacking the
-          # archive to disk entirely to prevent out of disk space errors.
+        is_discovery = (
+            environment.is_engine_fuzzer_job() and not self.fuzz_target and
+            not self.build_prefix)
+        if is_discovery or not self._unpack_everything:
+          # We need the list of fuzz targets, either because we are performing
+          # initial fuzz target discovery, or because we are only unpacking
+          # selected fuzz targets.
           list_fuzz_target_start_time = time.time()
           self._fuzz_targets = list(build.list_fuzz_targets())
           _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
                                            'list_fuzz_targets',
                                            self._build_type)
+
+        if is_discovery:
+          # If no fuzz target is selected, we only needed the list of fuzz
+          # targets and can skip unpacking the archive entirely.
           logs.info('No fuzz target selected; skipping unpack for discovery.')
           return True
+
         if not self._unpack_everything:
-          # We will never unpack the full build so we need to get the targets
-          # from the build archive.
-          list_fuzz_target_start_time = time.time()
-          self._fuzz_targets = list(build.list_fuzz_targets())
-          _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
-                                           'list_fuzz_targets',
-                                           self._build_type)
           # We only want to unpack a single fuzz target if unpack_everything is
           # False.
           fuzz_target_to_unpack = self.fuzz_target
@@ -1349,7 +1348,8 @@ def setup_regular_build(revision,
 
   # Additional binaries to pull (for fuzzing engines such as Centipede).
   extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
-  if extra_bucket_path:
+  is_discovery = environment.is_engine_fuzzer_job() and not fuzz_target
+  if extra_bucket_path and not is_discovery:
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
     extra_build_urls = get_build_urls_list(extra_bucket_path)
@@ -1364,8 +1364,7 @@ def setup_regular_build(revision,
         build.build_dir,  # Store inside the main build.
         revision,
         extra_build_url,
-        build_prefix=fuzzer_utils.EXTRA_BUILD_DIR,
-        fuzz_target=fuzz_target)
+        build_prefix=fuzzer_utils.EXTRA_BUILD_DIR)
     if not build.setup():
       return None
 
