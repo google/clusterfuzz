@@ -1441,6 +1441,35 @@ class FuzzingSession:
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
 
+  def _process_blackbox_queue(self, queue, crashes):
+    """Consumes run results from the queue and packages logs for uworkers."""
+    while not queue.empty():
+      run_result = queue.get()
+      if run_result.crash:
+        crashes.append(run_result.crash)
+
+      # Ingest and package GCS upload logs
+      # (only populated on uworker execution runs)
+      if run_result.log_output:
+        log_output = run_result.log_output
+        if not isinstance(log_output, str):
+          log_output = str(log_output)
+
+        # TODO:(paulovlb) remove this after validating in dev
+        logs.info(
+            f"[Blackbox fuzzer logs] Main thread dequeued run result: "
+            f"has_crash={bool(run_result.crash)}, log_len={len(log_output)}, "
+            f"has_testcase_data={bool(run_result.testcase_data)}")
+
+        # Delegate formatting, warnings, timestamping, and packaging completely
+        blackbox_output = _to_fuzzer_run_output(
+            log_output,
+            run_result.return_code,
+            run_result.log_time,
+            testcase_data=run_result.testcase_data)
+
+        self.fuzz_task_output.fuzzer_run_outputs.append(blackbox_output)
+
   @property
   def fully_qualified_fuzzer_name(self):
     """Get the fully qualified fuzzer name."""
@@ -1692,8 +1721,8 @@ class FuzzingSession:
       else:
         result_crash = None
 
-      fuzzer_run_output = _to_fuzzer_run_output(output, result_crash,
-                                                return_code, log_time)
+      fuzzer_run_output = _to_fuzzer_run_output(
+          output, return_code, log_time, testcase_path=result_crash)
       self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
       add_additional_testcase_run_data(testcase_run,
@@ -1872,8 +1901,8 @@ class FuzzingSession:
         process_handler.terminate_stale_application_instances()
         needs_stale_process_cleanup = False
 
-      while not temp_queue.empty():
-        crashes.append(temp_queue.get())
+      # Process, extract, and package all parallel run execution results
+      self._process_blackbox_queue(temp_queue, crashes)
 
       process_handler.close_queue(temp_queue)
       logs.info(f'Upto {test_number}')
@@ -2304,12 +2333,18 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
-                          log_time: datetime.datetime):
+def _to_fuzzer_run_output(output,
+                          return_code,
+                          log_time,
+                          testcase_path=None,
+                          testcase_data=None):
   """Returns a FuzzerRunOutput proto."""
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
+
+  if not log_time:
+    log_time = datetime.datetime.utcnow()
 
   proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
   fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
@@ -2317,12 +2352,16 @@ def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
       return_code=return_code,
       timestamp=proto_timestamp)
 
-  if crash_path is None:
-    return fuzzer_run_output
-  if os.path.getsize(crash_path) > 10 * 1024**2:
-    return fuzzer_run_output
-  with open(crash_path, 'rb') as fp:
-    fuzzer_run_output.testcase = fp.read()
+  if testcase_data:
+    fuzzer_run_output.testcase = testcase_data
+  elif testcase_path:
+    if os.path.exists(
+        testcase_path) and os.path.getsize(testcase_path) <= 10 * 1024**2:
+      try:
+        with open(testcase_path, 'rb') as fp:
+          fuzzer_run_output.testcase = fp.read()
+      except Exception:
+        logs.error(f'Failed to read fuzzer testcase file: {testcase_path}')
 
   return fuzzer_run_output
 
@@ -2335,16 +2374,29 @@ def _add_build_metadata_to_output(
   fuzz_task_output.gn_args = data_handler.get_filtered_gn_args() or ''
 
 
-def _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name):
-  timestamp = uworker_io.proto_timestamp_to_timestamp(
-      fuzzer_run_output.timestamp)
+def _upload_fuzzer_run_output(run_output, fuzzer_name):
+  """Uploads fuzzer execution run logs and testcases to GCS.
+
+  This generalized function handles target execution output from both
+  engine fuzzers and blackbox fuzzers,
+  guaranteeing identical GCS formatting and path conventions.
+  """
+  timestamp = uworker_io.proto_timestamp_to_timestamp(run_output.timestamp)
+
+  # TODO:(paulovlb) remove this after validating in dev
+  fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
+  logs.info(f"[Blackbox fuzzer logs] Trusted Postprocess uploading run to "
+            f"bucket '{fuzz_logs_bucket}': "
+            f"log_bytes={len(run_output.output)}, "
+            f"testcase_bytes={len(run_output.testcase)}, "
+            f"timestamp={timestamp}")
   testcase_manager.upload_log(
-      fuzzer_run_output.output.decode(),
-      fuzzer_run_output.return_code,
+      run_output.output.decode(),
+      run_output.return_code,
       timestamp,
       fuzzer_name=fuzzer_name)
   testcase_manager.upload_testcase(
-      None, fuzzer_run_output.testcase, timestamp, fuzzer_name=fuzzer_name)
+      None, run_output.testcase, timestamp, fuzzer_name=fuzzer_name)
 
 
 def _utask_postprocess(output):
