@@ -801,6 +801,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
     os.environ['RELEASE_BUILD_URL_PATTERN'] = (
         'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = 'True'
     self.mock.unzip_over_http_compatible.return_value = True
     self.mock.time.return_value = 1000.0
     fuzz_target = build_manager.pick_random_fuzz_target(
@@ -813,7 +814,10 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
     self.assertEqual(
-        self.mock.open.return_value.__enter__.return_value.unpack.call_count, 1)
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
+    self.mock.open_uri.return_value.__enter__.return_value.unpacked_size.assert_called_with(
+        fuzz_target=None)
 
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
@@ -826,7 +830,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # Not a partial build, so unpack shouldn't be called again.
     self.assertEqual(
-        self.mock.open.return_value.__enter__.return_value.unpack.call_count, 1)
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
 
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 

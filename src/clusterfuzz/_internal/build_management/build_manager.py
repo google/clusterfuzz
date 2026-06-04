@@ -546,7 +546,7 @@ class Build(BaseBuild):
           fuzz_target_to_unpack = None
 
         # If the fuzz_target is None, this will return the full size.
-        extracted_size = build.unpacked_size(fuzz_target=self.fuzz_target)
+        extracted_size = build.unpacked_size(fuzz_target=fuzz_target_to_unpack)
 
         if not _make_space(extracted_size, current_build_dir=base_build_dir):
           shell.clear_data_directories()
