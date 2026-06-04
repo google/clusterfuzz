@@ -522,10 +522,7 @@ class Build(BaseBuild):
       with self._open_build_archive(base_build_dir, build_dir, build_url,
                                     http_build_url) as build:
         unpack_start_time = time.time()
-        is_discovery = (
-            environment.is_engine_fuzzer_job() and not self.fuzz_target and
-            not self.build_prefix)
-        if is_discovery or not self._unpack_everything:
+        if self.is_discovery or not self._unpack_everything:
           # We need the list of fuzz targets, either because we are performing
           # initial fuzz target discovery, or because we are only unpacking
           # selected fuzz targets.
@@ -535,7 +532,7 @@ class Build(BaseBuild):
                                            'list_fuzz_targets',
                                            self._build_type)
 
-        if is_discovery:
+        if self.is_discovery:
           # If no fuzz target is selected, we only needed the list of fuzz
           # targets and can skip unpacking the archive entirely.
           logs.info('No fuzz target selected; skipping unpack for discovery.')
@@ -605,6 +602,12 @@ class Build(BaseBuild):
   def build_dir(self):
     """The build directory. Usually a subdirectory of base_build_dir."""
     raise NotImplementedError
+
+  @property
+  def is_discovery(self):
+    """Return True if this is a discovery run."""
+    return (environment.is_engine_fuzzer_job() and not self.fuzz_target and
+            not self.build_prefix)
 
   @property
   def fuzz_targets(self):
@@ -1348,8 +1351,7 @@ def setup_regular_build(revision,
 
   # Additional binaries to pull (for fuzzing engines such as Centipede).
   extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
-  is_discovery = environment.is_engine_fuzzer_job() and not fuzz_target
-  if extra_bucket_path and not is_discovery:
+  if extra_bucket_path and not build.is_discovery:
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
     extra_build_urls = get_build_urls_list(extra_bucket_path)

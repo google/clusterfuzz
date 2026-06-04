@@ -88,16 +88,15 @@ class BuildArchive(archive.ArchiveReader):
     Returns:
         The list of fuzz targets.
     """
-    if self._fuzz_targets is not None:
-      return list(self._fuzz_targets.keys())
+    if self._fuzz_targets is None:
+      # Import here as this path is not available in App Engine context.
+      from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
-    # Import here as this path is not available in App Engine context.
-    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+      self._fuzz_targets = {
+          fuzzer_utils.normalize_target_name(path): path
+          for path in self.find_fuzz_targets()
+      }
 
-    self._fuzz_targets = {
-        fuzzer_utils.normalize_target_name(path): path
-        for path in self.find_fuzz_targets()
-    }
     return list(self._fuzz_targets.keys())
 
   @abc.abstractmethod
@@ -339,9 +338,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
       if isinstance(target_path, str):
         self._manifest_fuzz_targets.append(target_path)
       else:
-        logs.error(
-            f'Entry in fuzz_targets (clusterfuzz_manifest.json) is not a '
-            f'string: {target_path}')
+        logs.error('Entry in fuzz_targets (clusterfuzz_manifest.json) is not a '
+                   f'string: {target_path}')
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):

@@ -366,7 +366,7 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock.file_exists.return_value = False
     self.mock_archive_reader = self.mock.open.return_value
 
-  def _generate_manifest(self, contents):
+  def _generate_manifest(self, contents: any):
     """Mocks open calls so that they return a buffer containing the given
     contents serialized as JSON."""
     json_contents = json.dumps(contents).encode()
@@ -407,7 +407,9 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
         'archive_schema_version': 1,
         'fuzz_targets': ['out/build/my_fuzzer', 'out/build/other_fuzzer']
     })
+
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
     self.assertEqual(test_archive.archive_schema_version(), 1)
     self.assertCountEqual(test_archive.list_fuzz_targets(),
                           ['my_fuzzer', 'other_fuzzer'])
@@ -427,7 +429,9 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
         }
     })
     self.mock_archive_reader.list_members.return_value = []
+
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
     self.assertEqual(test_archive.archive_schema_version(), 1)
     test_archive.list_fuzz_targets()
     self.mock_archive_reader.list_members.assert_called_once()
@@ -438,7 +442,9 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock.file_exists.return_value = True
     self._generate_manifest({'archive_schema_version': 1})
     self.mock_archive_reader.list_members.return_value = []
+
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
     self.assertEqual(test_archive.archive_schema_version(), 1)
     test_archive.list_fuzz_targets()
     self.mock_archive_reader.list_members.assert_called_once()
@@ -449,7 +455,9 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock.file_exists.return_value = True
     self._generate_manifest({'archive_schema_version': 1, 'fuzz_targets': []})
     self.mock_archive_reader.list_members.return_value = []
+
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
     self.assertEqual(test_archive.archive_schema_version(), 1)
     test_archive.list_fuzz_targets()
     self.mock_archive_reader.list_members.assert_called_once()
@@ -463,7 +471,9 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
         'fuzz_targets': [1, 2]
     })
     self.mock_archive_reader.list_members.return_value = []
+
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
     self.assertEqual(test_archive.archive_schema_version(), 1)
     test_archive.list_fuzz_targets()
     self.mock_archive_reader.list_members.assert_called_once()
@@ -476,7 +486,9 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
         'archive_schema_version': 1,
         'fuzz_targets': ['out/build/my_fuzzer', 123]
     })
+
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
     self.assertEqual(test_archive.archive_schema_version(), 1)
     self.assertCountEqual(test_archive.list_fuzz_targets(), ['my_fuzzer'])
     self.assertEqual(
