@@ -605,7 +605,11 @@ class Build(BaseBuild):
 
   @property
   def is_discovery(self):
-    """Return True if this is a discovery run."""
+    """Return True if this is a discovery run.
+
+    A discovery run is an engine fuzzer job (e.g., LibFuzzer) with no fuzz
+    target selected. build_prefix is checked to exclude extra builds, which
+    don't set fuzz_target but need to be unpacked."""
     return (environment.is_engine_fuzzer_job() and not self.fuzz_target and
             not self.build_prefix)
 

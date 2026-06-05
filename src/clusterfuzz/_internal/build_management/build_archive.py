@@ -22,6 +22,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from typing_extensions import override
+
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import archive
 
@@ -198,12 +200,8 @@ class DefaultBuildArchive(BuildArchive):
 
     return to_extract
 
+  @override
   def find_fuzz_targets(self) -> List[str]:
-    """Finds fuzzing targets in the archive.
-
-    Returns:
-        The list of paths to fuzz targets in the archive.
-    """
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
@@ -350,6 +348,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     """Returns the schema version number for this archive."""
     return self._archive_schema_version
 
+  @override
   def find_fuzz_targets(self) -> List[str]:
     if self._manifest_fuzz_targets:
       return self._manifest_fuzz_targets
