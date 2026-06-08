@@ -32,10 +32,12 @@ from requests import exceptions
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
@@ -95,7 +97,14 @@ def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on remote backends."""
 
   logs.info('Attempting to combine batch tasks.')
-  utask_mains = tasks.get_utask_mains()
+  utask_mains = tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
+
+  if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    swarming_utask_mains = tasks.get_utask_mains(
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+    logs.info(f'Found {len(swarming_utask_mains)} swarming utask mains.')
+    utask_mains.extend(swarming_utask_mains)
+
   if not utask_mains:
     logs.info('No utask mains.')
     return

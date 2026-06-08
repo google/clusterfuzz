@@ -16,6 +16,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -484,15 +485,30 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
     """Tests that get_utask_mains selects the default queue."""
     mock_puller.return_value.get_messages_time_limited.return_value = []
     mock_env_get.return_value = None
-    tasks.get_utask_mains()
+    tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
     mock_puller.assert_called_with('utask_main')
 
   def test_get_utask_mains_with_os_version(self, mock_env_get, mock_puller):
     """Tests that get_utask_mains selects the suffixed queue."""
     mock_puller.return_value.get_messages_time_limited.return_value = []
     mock_env_get.return_value = 'ubuntu-24-04'
-    tasks.get_utask_mains()
+    tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
     mock_puller.assert_called_with('utask_main-ubuntu-24-04')
+
+  def test_get_utask_mains_with_custom_queue(self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the custom queue."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
+    mock_env_get.return_value = None
+    tasks.get_utask_mains('custom_queue')
+    mock_puller.assert_called_with('custom_queue')
+
+  def test_get_utask_mains_with_custom_queue_and_os_version(
+      self, mock_env_get, mock_puller):
+    """Tests that get_utask_mains selects the custom queue with OS suffix."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
+    mock_env_get.return_value = 'ubuntu-24-04'
+    tasks.get_utask_mains('custom_queue')
+    mock_puller.assert_called_with('custom_queue-ubuntu-24-04')
 
 
 @mock.patch('clusterfuzz._internal.system.environment.get_value')

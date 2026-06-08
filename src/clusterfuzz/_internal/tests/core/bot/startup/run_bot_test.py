@@ -17,10 +17,14 @@ import os
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks as taskslib
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 from python.bot.startup import run_bot
 
 
@@ -157,6 +161,7 @@ class LeaseAllTasksTest(unittest.TestCase):
     lease.assert_called_with()
 
 
+@test_utils.with_cloud_emulators('datastore')
 class ScheduleUtaskMainsTest(unittest.TestCase):
   """Tests for schedule_utask_mains."""
 
@@ -175,7 +180,7 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     mock_task.lease.return_value.__enter__.return_value = None
     mock_task.lease.return_value.__exit__.return_value = None
 
-    self.mock.get_utask_mains.return_value = [mock_task]
+    self.mock.get_utask_mains.side_effect = [[mock_task], []]
 
     # Simulate that the tasks were not created and returned back.
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.side_effect = lambda tasks: tasks
@@ -197,13 +202,41 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     mock_task.lease.return_value.__enter__.return_value = None
     mock_task.lease.return_value.__exit__.return_value = None
 
-    self.mock.get_utask_mains.return_value = [mock_task]
+    self.mock.get_utask_mains.side_effect = [[mock_task], []]
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
 
     run_bot.schedule_utask_mains()
 
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
     )
+
+  def test_schedule_tasks_both_queues(self):
+    """Test that schedule_utask_mains picks up tasks from both queues."""
+    regular_task = mock.MagicMock(
+        command='command1', job='job1', argument='argument1')
+    swarming_task = mock.MagicMock(
+        command='command2', job='job2', argument='argument2')
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.value,
+        enabled=True).put()
+
+    self.mock.get_utask_mains.side_effect = [[regular_task], [swarming_task]]
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.get_utask_mains.assert_has_calls([
+        mock.call(pub_sub_task_queue.UTASK_MAIN_QUEUE.name),
+        mock.call(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name),
+    ])
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )
+
+    args, _ = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args
+    called_batch_tasks = args[0]
+    self.assertEqual(len(called_batch_tasks), 2)
+    self.assertEqual(called_batch_tasks[0].pubsub_task, regular_task)
+    self.assertEqual(called_batch_tasks[1].pubsub_task, swarming_task)
 
 
 class TworkerGetTaskTest(unittest.TestCase):
