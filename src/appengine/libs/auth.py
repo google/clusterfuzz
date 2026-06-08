@@ -32,7 +32,8 @@ from clusterfuzz._internal.system import environment
 from libs import helpers
 from libs import request_cache
 
-User = collections.namedtuple('User', ['email', 'email_verified'], defaults=(True,))
+User = collections.namedtuple(
+    'User', ['email', 'email_verified'], defaults=(True,))
 BEARER_PREFIX = 'Bearer '
 
 
