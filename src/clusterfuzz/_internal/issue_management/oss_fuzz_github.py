@@ -141,6 +141,13 @@ def file_issue(testcase):
   if not _filing_enabled(testcase):
     return
 
+  # Never disclose an embargoed security testcase's id/report URL in a public
+  # GitHub issue. Public filing is for non-security bugs only.
+  if testcase.security_flag:
+    logs.info('Skipping public GitHub issue filing for security testcase '
+              f'{testcase.key.id()}.')
+    return
+
   if testcase.github_repo_id and testcase.github_issue_num:
     logs.info('Issue already filed under'
               f'issue number {testcase.github_issue_num} in '

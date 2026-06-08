@@ -123,6 +123,20 @@ class OSSFuzzGithubTests(unittest.TestCase):
     mock_github.Github().get_repo().create_issue.assert_not_called()
 
   @mock.patch('clusterfuzz._internal.issue_management.oss_fuzz_github.github')
+  def test_not_file_issue_security_flag(self, mock_github):
+    """A security testcase must not be filed as a public GitHub issue, even
+    when filing is enabled for the job."""
+    security_testcase = data_types.Testcase(
+        job_type='job1', bug_information='300', security_flag=True)
+    security_testcase.put()
+
+    oss_fuzz_github.file_issue(security_testcase)
+
+    mock_github.Github().get_repo().create_issue.assert_not_called()
+    self.assertIsNone(security_testcase.github_repo_id)
+    self.assertIsNone(security_testcase.github_issue_num)
+
+  @mock.patch('clusterfuzz._internal.issue_management.oss_fuzz_github.github')
   def test_file_issue_to_repo_disabled_issues(self, mock_github):
     """File an issue to a repo that has disabled issues."""
     mock_github.Github().get_repo.return_value = mock.MagicMock(
