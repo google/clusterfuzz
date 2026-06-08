@@ -880,8 +880,16 @@ def write_command_line_file(command_line, app_path):
   write_data_to_file(command_line_file_contents, command_line_path)
 
 
-def write_data_to_file(contents, file_path):
-  """Writes content to file."""
+def write_data_to_file(contents, file_path, should_reboot=True):
+  """Writes content to file.
+  
+  Args:
+    contents: The string content to write.
+    file_path: The path to the file on the Android device.
+    should_reboot: Whether to reboot the device after writing the file.
+        Only applies if `file_path` is under `/system`, since we need to
+        remount that partition as read-write first.
+  """
   # If this is a file in /system, we need to remount /system as read-write and
   # after file is written, revert it back to read-only.
   is_system_file = file_path.startswith('/system')
@@ -896,5 +904,9 @@ def write_data_to_file(contents, file_path):
   run_shell_command('chmod 0644 %s' % file_path, root=True)
 
   if is_system_file:
-    reboot()
-    wait_until_fully_booted()
+    if should_reboot:
+      reboot()
+      wait_until_fully_booted()
+    else:
+      # Manually revert /system to read-only since we aren't rebooting.
+      run_shell_command('mount -o ro,remount /system', root=True)

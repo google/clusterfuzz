@@ -17,6 +17,9 @@ from typing import Optional
 
 from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
+from google.protobuf.timestamp_pb2 import \
+    Timestamp  # pylint: disable=no-name-in-module
+from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config.local_config import SwarmingConfig
@@ -25,6 +28,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming import get_swarming_config
 
+# TODO(b/516627559): Move scopes to config file
 _SWARMING_SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/userinfo.email'
@@ -32,6 +36,14 @@ _SWARMING_SCOPES = [
 
 _COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
 _NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
+
+_MIN_TASK_START_TIME = "2026-06-01T00:00:00Z"
+_MIN_TASK_START_TIME_PROTO = json_format.Parse(f'"{_MIN_TASK_START_TIME}"',
+                                               Timestamp())
+
+
+class SwarmingApiError(Exception):
+  """Exception raised for errors in the Swarming API."""
 
 
 class SwarmingApi:
@@ -86,7 +98,7 @@ class SwarmingApi:
         'Authorization': f'Bearer {token}'
     }
 
-  def _make_request(self, endpoint: str, body: str) -> str:
+  def _make_request(self, endpoint: str, body: str) -> str | None:
     """Makes a pRPC request to the Swarming API.
 
     Args:
@@ -112,22 +124,25 @@ class SwarmingApi:
         headers=headers)
     response = utils.post_url(url=url, data=body, headers=headers)
     if not response:
-      logs.error(f"[Swarming] Failed to make request to {url}. Empty response")
+      logs.warning(
+          f"[Swarming] Failed to make request to {url}. Empty response")
       return None
+
+    # Strip XSSI prefix if present.
+    if response.startswith(")]}'\n"):
+      response = response[len(")]}'\n"):]
+
     return response
 
-  def push_task(
-      self,
-      task_request: swarming_pb2.NewTaskRequest  # pylint: disable=no-member
-  ) -> swarming_pb2.TaskRequestResponse | None:  # pylint: disable=no-member
+  def push_task(self, task_request: swarming_pb2.NewTaskRequest) -> str | None:  # pylint: disable=no-member
     """Schedules a task on swarming.
     
     Args:
       task_request: The NewTaskRequest proto message.
       
     Returns:
-      The TaskRequestResponse proto message from the server, or None if the
-      response is empty.
+      The raw JSON response string from the server, or None if the response is
+      empty.
 
     Raises:
       requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
@@ -143,22 +158,40 @@ class SwarmingApi:
     json_format.Parse(raw_response, task_response)
     return task_response
 
-  def count_tasks(self,
-                  count_request: swarming_pb2.TasksCountRequest) -> str | None:  # pylint: disable=no-member
+
+  def count_tasks(
+      self,
+      count_request: swarming_pb2.TasksCountRequest,  # pylint: disable=no-member
+  ) -> swarming_pb2.TasksCount:  # pylint: disable=no-member
     """Counts tasks on swarming.
     
     Args:
       count_request: The TasksCountRequest proto message.
       
     Returns:
-      The raw JSON response string from the server, or None if the response is
-      empty.
+      The TasksCount parsed proto message from the server.
 
     Raises:
-      requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
-        status code.
+      SwarmingApiError: If the pRPC request fails or response parsing fails.
     """
+    if not count_request.HasField('start'):
+      count_request.start.CopyFrom(_MIN_TASK_START_TIME_PROTO)
     message_body = json_format.MessageToJson(count_request)
 
-    response = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
-    return response
+    try:
+      response_str = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
+    except HTTPError as e:
+      raise SwarmingApiError(f"HTTP error calling count_tasks: {e}") from e
+
+    if response_str is None:
+      raise SwarmingApiError(
+          'RPC Contract failure, got an empty response from Swarming API.')
+
+    try:
+      return json_format.Parse(
+          response_str,
+          swarming_pb2.TasksCount()  # pylint: disable=no-member
+      )
+    except (json_format.ParseError, AttributeError) as e:
+      raise SwarmingApiError(
+          f'RPC Contract failure, failed to parse response: {e}') from e

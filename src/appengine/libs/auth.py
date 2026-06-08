@@ -32,7 +32,8 @@ from clusterfuzz._internal.system import environment
 from libs import helpers
 from libs import request_cache
 
-User = collections.namedtuple('User', ['email'])
+User = collections.namedtuple(
+    'User', ['email', 'email_verified'], defaults=(True,))
 BEARER_PREFIX = 'Bearer '
 
 
@@ -185,7 +186,8 @@ def get_current_user():
 
   cached_email = getattr(cache_backing, '_cached_email', None)
   if cached_email:
-    return User(cached_email)
+    return User(cached_email,
+                getattr(cache_backing, '_cached_email_verified', True))
 
   session_cookie = get_session_cookie()
   if not session_cookie:
@@ -209,9 +211,13 @@ def get_current_user():
   # Per https://docs.github.com/en/authentication/
   #       keeping-your-account-and-data-secure/authorizing-oauth-apps
   # GitHub requires emails to be verified before an OAuth app can be
-  # authorized, so we make an exception.
-  if (not decoded_claims.get('email_verified') and
-      sign_in_provider != 'github.com'):
+  # authorized, so we still allow GitHub sign-ins through here. However, the
+  # email itself may be unverified (e.g. GitHub Enterprise Managed Users can
+  # assert an arbitrary, GitHub-unverified email), so we carry the real
+  # email_verified state on the User and never trust an unverified email as a
+  # whitelisted domain (see libs/access.py).
+  email_verified = bool(decoded_claims.get('email_verified'))
+  if not email_verified and sign_in_provider != 'github.com':
     return None
 
   email = decoded_claims.get('email')
@@ -221,7 +227,8 @@ def get_current_user():
   # We cache the email for this request if we've validated the user to make
   # subsequent get_current_user() calls fast.
   setattr(cache_backing, '_cached_email', email)
-  return User(email)
+  setattr(cache_backing, '_cached_email_verified', email_verified)
+  return User(email, email_verified)
 
 
 def create_session_cookie(token, expires_in):

@@ -16,6 +16,7 @@
 import contextlib
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
@@ -39,7 +40,7 @@ def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
 
   print('Attempting to combine batch tasks.')
-  utask_mains = tasks.get_utask_mains()
+  utask_mains = tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
   if not utask_mains:
     print('No utask mains.')
     return []
