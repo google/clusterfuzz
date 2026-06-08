@@ -263,6 +263,7 @@ class DownloadTest(unittest.TestCase):
     # Privileged users should still be able to access everything.
     self.mock.get_user_email.return_value = 'a@user.com'
     self.mock.has_access.return_value = True
+    self.mock.can_user_access_testcase.return_value = True
 
     self._test_download(
         testcase_id=self.testcase.key.id(),
@@ -331,6 +332,7 @@ class DownloadTest(unittest.TestCase):
   def test_download_filename(self):
     """Test filename of downloaded files."""
     self.mock.has_access.return_value = True
+    self.mock.can_user_access_testcase.return_value = True
 
     expect_filename = 'file.ext'
     self._test_download(self.minimized_key, expect_filename=expect_filename)
