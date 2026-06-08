@@ -179,6 +179,36 @@ class IsDomainAllowedTest(unittest.TestCase):
     self.assertFalse(access._is_domain_allowed('test@test24234.com'))
 
 
+class IsTrustedDomainUserTest(unittest.TestCase):
+  """Test _is_trusted_domain_user."""
+
+  def setUp(self):
+    test_helpers.patch(self, ['libs.access._is_domain_allowed'])
+
+  def test_verified_allowed_domain(self):
+    """A verified email on an allowed domain is trusted."""
+    self.mock._is_domain_allowed.return_value = True
+    user = auth.User('test@test.com', email_verified=True)
+    self.assertTrue(access._is_trusted_domain_user(user))
+
+  def test_unverified_allowed_domain(self):
+    """An unverified email on an allowed domain is NOT trusted, even though the
+    domain matches (the GitHub/EMU TOCTOU bypass)."""
+    self.mock._is_domain_allowed.return_value = True
+    user = auth.User('test@test.com', email_verified=False)
+    self.assertFalse(access._is_trusted_domain_user(user))
+
+  def test_verified_disallowed_domain(self):
+    """A verified email on a non-allowed domain is not trusted."""
+    self.mock._is_domain_allowed.return_value = False
+    user = auth.User('test@test.com', email_verified=True)
+    self.assertFalse(access._is_trusted_domain_user(user))
+
+  def test_none_user(self):
+    """A missing user is not trusted."""
+    self.assertFalse(access._is_trusted_domain_user(None))
+
+
 class GetAccessTest(unittest.TestCase):
   """Test get_access."""
 
@@ -226,6 +256,20 @@ class GetAccessTest(unittest.TestCase):
         access.UserAccess.Allowed)
     self.assertEqual(
         access.get_access(need_privileged_access=True),
+        access.UserAccess.Denied)
+
+  def test_get_access_unverified_domain(self):
+    """For an allowed domain but an unverified email, ensure it denies: an
+    unverified federated email must not be trusted as a whitelisted domain."""
+    self.mock.get_current_user.return_value = auth.User(
+        'test@test.com', email_verified=False)
+    self.mock.is_current_user_admin.return_value = False
+    self.mock._is_privileged_user.return_value = False
+    self.mock._is_domain_allowed.return_value = True
+    self.mock.is_fuzzer_allowed_for_user.return_value = False
+    self.mock.is_job_allowed_for_user.return_value = False
+    self.assertEqual(
+        access.get_access(need_privileged_access=False),
         access.UserAccess.Denied)
 
   def test_get_access_external_fuzzer(self):
@@ -413,6 +457,20 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         data_types.Config(relax_testcase_restrictions=False))
     self.bug.add_cc(self.email)
     self._test_bug_access()
+
+  def test_not_relaxed_for_unverified_domain(self):
+    """Ensure an unverified email on the domain list does NOT get relaxed
+    (CC-based) bug access: only a verified domain email relaxes restrictions."""
+    self.mock.get_current_user.return_value = auth.User(
+        self.email, email_verified=False)
+    self.mock._is_domain_allowed.return_value = True
+    self.testcase.security_flag = True
+    self.mock.get.return_value = (
+        data_types.Config(relax_testcase_restrictions=False))
+    self.get_issue.return_value = self.bug
+    self.bug.add_cc(self.email)
+    self.testcase.bug_information = '1234'
+    self.assertFalse(access.can_user_access_testcase(self.testcase))
 
   def test_allowed_because_of_uploader(self):
     """Ensure it is allowed because the user is the uploader."""
