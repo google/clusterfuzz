@@ -4,10 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-cryptography = "==37.0.4"
+cryptography = "==44.0.1"
 crcmod = "==1.7"
-future = "==0.17.1"
-protobuf = "==4.23.4"
+future = "==1.0.0"
+protobuf = "==4.25.8"
 psutil = "==5.9.4"
 google-cloud-ndb = "==2.3.4"
 
