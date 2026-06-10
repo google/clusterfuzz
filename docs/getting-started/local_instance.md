@@ -43,6 +43,43 @@ Devcontainers provide a consistent and reproducible development environment by c
 python butler.py run_server --skip-install-deps
 ```
 
+### Using the Dev Containers CLI (Terminal Workflow)
+
+Alternatively, you can manage and interact with the development container directly from your terminal using the `@devcontainers/cli` tool. This is useful for terminal-only setups or editors other than VS Code.
+
+1. **Install the CLI:**
+   ```bash
+   npm install -g @devcontainers/cli
+   ```
+
+2. **Start the Container:**
+   Run the following command to build the image and start the container:
+   ```bash
+   devcontainer up --workspace-folder .
+   ```
+
+3. **Execute Commands inside the Container:**
+   Use the `exec` command to run any command inside the active dev container:
+   - **Running butler linter:**
+     ```bash
+     devcontainer exec --workspace-folder . pipenv run python butler.py lint
+     ```
+   - **Running unit tests:**
+     ```bash
+     devcontainer exec --workspace-folder . pipenv run python butler.py py_unittest -t core -m
+     ```
+
+### Apple Silicon (ARM64) Workaround
+
+When running the dev container on an Apple Silicon (ARM64) macOS host, the container starts as a native `aarch64` Linux container.
+
+1. **The Obstacle:** During container startup, the `postCreateCommand` runs [local/install_deps.bash](file:///Users/diego/Documents/clusterfuzz/local/install_deps.bash), which delegates to [local/install_deps_linux.bash](file:///Users/diego/Documents/clusterfuzz/local/install_deps_linux.bash). This script explicitly restricts installations to x86 architectures (lines 72-75) and exits early without installing the required Python and Node.js dependencies.
+2. **The Resolution:** To manually install Python and Node.js dependencies, execute the following command from your host machine:
+   ```bash
+   devcontainer exec --workspace-folder . env PYTHON=python3 bash local/install_python_deps_linux.bash
+   ```
+   This script initializes `pipenv`, resolves lockfile packages, installs Node/bower dependencies, and bootstraps the ClusterFuzz configuration.
+
 You can then run the local server or bot as described in the following sections.
 
 ## Running a local server
