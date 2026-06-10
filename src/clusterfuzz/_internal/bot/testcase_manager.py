@@ -572,13 +572,6 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
       uworker_log_time = log_time
       if crash_obj:
         testcase_data = read_testcase_data(file_path)
-
-      # TODO:(paulovlb) remove this after validating in dev
-      logs.info(f"[Blackbox fuzzer logs] Untrusted worker GCS bypass. "
-                f"Packaged run result: "
-                f"has_crash={bool(crash_obj)}, "
-                f"log_len={len(log_data) if log_data else 0}, "
-                f"testcase_bytes={len(testcase_data) if testcase_data else 0}")
     else:
       if crash_obj and upload_output:
         upload_testcase(file_path, None, log_time)
