@@ -733,7 +733,7 @@ class RegularBuild(Build):
     # (fuzz task with no selected target for an engine job).
     if (not self.fuzz_target and not self._unpack_everything and
         environment.is_engine_fuzzer_job() and
-        environment.get_value('TASK_NAME') == 'fuzz'):
+        environment.get_value('TASK_NAME') == 'fuzz' and not self.build_prefix):
       logs.info('[Target Discovery] Fuzz task engine job target discovery.'
                 ' Listing targets from archive.')
       try:
