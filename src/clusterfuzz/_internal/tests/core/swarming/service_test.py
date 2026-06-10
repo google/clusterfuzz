@@ -138,6 +138,12 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled, [])
     self.mock_api.push_task.assert_not_called()
 
+  def test_init_no_config(self):
+    """Test that __init__ raises ValueError when config is missing."""
+    self.mock.create.return_value = None
+    with self.assertRaises(ValueError):
+      service.SwarmingService()
+
   def test_create_utask_main_jobs_exception(self):
     """Test creating tasks when push_swarming_task raises an exception."""
     tasks = [
