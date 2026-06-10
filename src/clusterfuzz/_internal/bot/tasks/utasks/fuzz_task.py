@@ -1455,12 +1455,6 @@ class FuzzingSession:
         if not isinstance(log_output, str):
           log_output = str(log_output)
 
-        # TODO:(paulovlb) remove this after validating in dev
-        logs.info(
-            f"[Blackbox fuzzer logs] Main thread dequeued run result: "
-            f"has_crash={bool(run_result.crash)}, log_len={len(log_output)}, "
-            f"has_testcase_data={bool(run_result.testcase_data)}")
-
         # Delegate formatting, warnings, timestamping, and packaging completely
         blackbox_output = _to_fuzzer_run_output(
             log_output,
@@ -2383,13 +2377,6 @@ def _upload_fuzzer_run_output(run_output, fuzzer_name):
   """
   timestamp = uworker_io.proto_timestamp_to_timestamp(run_output.timestamp)
 
-  # TODO:(paulovlb) remove this after validating in dev
-  fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
-  logs.info(f"[Blackbox fuzzer logs] Trusted Postprocess uploading run to "
-            f"bucket '{fuzz_logs_bucket}': "
-            f"log_bytes={len(run_output.output)}, "
-            f"testcase_bytes={len(run_output.testcase)}, "
-            f"timestamp={timestamp}")
   testcase_manager.upload_log(
       run_output.output.decode(),
       run_output.return_code,
