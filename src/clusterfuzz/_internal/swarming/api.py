@@ -134,30 +134,40 @@ class SwarmingApi:
 
     return response
 
-  def push_task(self, task_request: swarming_pb2.NewTaskRequest) -> str | None:  # pylint: disable=no-member
+  def push_task(
+      self,
+      task_request: swarming_pb2.NewTaskRequest  # pylint: disable=no-member
+  ) -> swarming_pb2.TaskRequestResponse:  # pylint: disable=no-member
     """Schedules a task on swarming.
     
     Args:
       task_request: The NewTaskRequest proto message.
       
     Returns:
-      The raw JSON response string from the server, or None if the response is
-      empty.
+      The TaskRequestResponse parsed proto message from the server.
 
     Raises:
-      requests.exceptions.HTTPError: If the request fails with a 4xx or 5xx
-        status code.
+      SwarmingApiError: If the pRPC request fails or response parsing fails.
     """
     message_body = json_format.MessageToJson(task_request)
 
-    raw_response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
+    try:
+      raw_response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
+    except HTTPError as e:
+      raise SwarmingApiError(f'HTTP error calling push_task: {e}') from e
+
     if not raw_response:
-      return None
+      raise SwarmingApiError(
+          'RPC Contract failure, got an empty response from Swarming API.')
 
-    task_response = swarming_pb2.TaskRequestResponse()  # pylint: disable=no-member
-    json_format.Parse(raw_response, task_response)
-    return task_response
-
+    try:
+      return json_format.Parse(
+          raw_response,
+          swarming_pb2.TaskRequestResponse()  # pylint: disable=no-member
+      )
+    except (json_format.ParseError, AttributeError) as e:
+      raise SwarmingApiError(
+          f'RPC Contract failure, failed to parse response: {e}') from e
 
   def count_tasks(
       self,
