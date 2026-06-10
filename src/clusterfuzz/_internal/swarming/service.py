@@ -13,8 +13,6 @@
 # limitations under the License.
 """Swarming service."""
 
-from requests.exceptions import HTTPError
-
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.base.tasks import task_utils
@@ -99,42 +97,53 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
     unscheduled_tasks = []
     logs.info(f'[Swarming] Pushing {len(remote_tasks)} tasks trough service.')
     for i, task in enumerate(remote_tasks):
-      try:
-        if not swarming.is_swarming_task(task.job_type):
-          unscheduled_tasks.append(task)
-          continue
+      if not swarming.is_swarming_task(task.job_type):
+        unscheduled_tasks.append(task)
+        continue
 
-        task_req = swarming.create_new_task_request(task.command, task.job_type,
-                                                    task.argument)
-        if not task_req:
-          unscheduled_tasks.append(task)
-          continue
+      task_req = swarming.create_new_task_request(task.command, task.job_type,
+                                                  task.argument)
+      if not task_req:
+        unscheduled_tasks.append(task)
+        continue
 
-        os_val = self._get_dimension(task_req, 'os')
-        pool_val = self._get_dimension(task_req, 'pool')
-        if not os_val or not pool_val:
-          logs.error(f'[Swarming] Failed to find required dimension for job '
+      os_val = self._get_dimension(task_req, 'os')
+      pool_val = self._get_dimension(task_req, 'pool')
+      if not os_val or not pool_val:
+        logs.warning(f'[Swarming] Failed to find required dimension for job '
                      f'{task.job_type}.')
+        unscheduled_tasks.append(task)
+        continue
+
+      # Since there are multiple concurrent scheduling sessions/bots, it is
+      # important to always check the queue size with Swarming to account for
+      # the possibility that the queue was empty in the first iteration but
+      # filled up on subsequent iterations due to other schedulers.
+      count_request = swarming_pb2.TasksCountRequest(  # pylint: disable=no-member
+          tags=[f'pool:{pool_val}', f'os:{os_val}'],
+          state=swarming_pb2.QUERY_PENDING)  # pylint: disable=no-member
+
+      # If the queue is full, there is no sense in continuing to schedule
+      # tasks in this session, so we return the remaining tasks as
+      # unscheduled.
+      if self._is_queue_full(count_request):
+        unscheduled_tasks.extend(remote_tasks[i:])
+        break
+
+      try:
+        response = self._api.push_task(task_req)
+        if not response or not response.task_id:
+          logs.warning(
+              '[Swarming] task not scheduled, no task_id in response',
+              response=response,
+              job=task.job_type)
           unscheduled_tasks.append(task)
           continue
-
-        # Since there are multiple concurrent scheduling sessions/bots, it is
-        # important to always check the queue size with Swarming to account for
-        # the possibility that the queue was empty in the first iteration but
-        # filled up on subsequent iterations due to other schedulers.
-        count_request = swarming_pb2.TasksCountRequest(  # pylint: disable=no-member
-            tags=[f'pool:{pool_val}', f'os:{os_val}'],
-            state=swarming_pb2.QUERY_PENDING)  # pylint: disable=no-member
-
-        # If the queue is full, there is no sense in continuing to schedule
-        # tasks in this session, so we return the remaining tasks as
-        # unscheduled.
-        if self._is_queue_full(count_request):
-          unscheduled_tasks.extend(remote_tasks[i:])
-          break
-
-        self._api.push_task(task_req)
-      except HTTPError as api_failure:
+        logs.info(
+            f'[Swarming] task {response.task_id} scheduled successfully',
+            task_id=response.task_id,
+            job=task.job_type)
+      except SwarmingApiError as api_failure:
         logs.warning(
             f'''Failed to push task to Swarming: {task.command}, {task.job_type}
             . Reason: {api_failure}.
