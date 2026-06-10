@@ -43,6 +43,7 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     self._service_map = {
         adapter.id: adapter.service()
         for adapter in remote_task_adapters.RemoteTaskAdapters
+        if adapter.feature_flag.enabled
     }
     self._adapters = remote_task_adapters.RemoteTaskAdapters
 

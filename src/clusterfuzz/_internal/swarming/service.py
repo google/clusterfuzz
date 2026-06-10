@@ -32,10 +32,13 @@ SWARMING_MAIN_QUEUE_LIMIT_DEFAULT = 25
 class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
 
-  _api: SwarmingApi | None = None
+  _api: SwarmingApi
 
   def __init__(self):
     self._api = SwarmingApi.create()
+    if self._api is None:
+      raise ValueError(
+          'Failed to instantiate SwarmingApi. Swarming config not available.')
 
   # pylint: disable=no-member
   def _get_dimension(self, request: swarming_pb2.NewTaskRequest,
