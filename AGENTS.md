@@ -107,3 +107,25 @@ python butler.py format
 
 This will format the changed code in your current branch.
 It's possible to get into a state where linting and formatting contradict each other. In this case, STOP, the human will fix it.
+
+## Development Containers (Optional)
+
+Agents can optionally run the development environment and commands inside a dev container using the Dev Containers CLI (`devcontainer`).
+
+> [!IMPORTANT]
+> This approach is **optional**. Before starting a container or running commands inside a container, the agent MUST explicitly ask the user for permission if they want to proceed with such an approach.
+
+If the user approves:
+1. Ensure Docker is running, or ask the user to start it.
+2. Build/start the dev container:
+   ```bash
+   devcontainer up --workspace-folder .
+   ```
+3. Run butler commands inside the container using `devcontainer exec`:
+   ```bash
+   devcontainer exec --workspace-folder . pipenv run python butler.py <command>
+   ```
+   *Note: On Apple Silicon (ARM64) hosts, the initial setup script exits early. The agent must manually run the python dependencies script inside the container before executing other commands:*
+   ```bash
+   devcontainer exec --workspace-folder . env PYTHON=python3 bash local/install_python_deps_linux.bash
+   ```
