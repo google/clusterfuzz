@@ -130,6 +130,15 @@ def make_logout_url(dest_url):
 
 def check_redirect_url(url):
   """Check redirect URL is safe."""
+  # Browsers strip ASCII tab/newline and leading control/whitespace characters
+  # from URLs and normalize backslashes to forward slashes, so inputs such as
+  # `/\\evil.com`, ` //evil.com` or `\r\n//evil.com` would otherwise pass the
+  # scheme-relative check below and then navigate to an external host. Reject
+  # any input with a backslash, a control character, or leading/trailing
+  # whitespace before validating.
+  if (not url or url != url.strip() or '\\' in url
+      or any(ord(char) < 0x20 for char in url)):
+    raise helpers.EarlyExitError('Invalid redirect.', 403)
   if not _SAFE_URL_PATTERN.match(url):
     raise helpers.EarlyExitError('Invalid redirect.', 403)
 
