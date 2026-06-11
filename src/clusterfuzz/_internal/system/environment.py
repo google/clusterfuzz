@@ -23,11 +23,9 @@ import subprocess
 import sys
 import uuid
 
-import requests
 import yaml
 
 from clusterfuzz._internal import fuzzing
-from clusterfuzz._internal.metrics import logs
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -62,6 +60,7 @@ class UtaskMainRuntime(enum.Enum):
   BATCH = 'batch'
   KATA_CONTAINER = 'kata_container'
   INSTANCE_GROUP = 'instance_group'
+  SWARMING = 'swarming'
 
 
 def _eval_value(value_string):
@@ -725,7 +724,7 @@ def is_untrusted_worker():
   return get_value('UNTRUSTED_WORKER')
 
 
-def is_uworker():
+def is_uworker() -> bool:
   """Return whether or not the current bot is a uworker. This is not the same as
   OSS-Fuzz's untrusted worker."""
   return get_value('UWORKER')
@@ -734,24 +733,27 @@ def is_uworker():
 def get_runtime() -> UtaskMainRuntime:
   """
   Get the current runtime for running the tasks.
-  It can be KATA_CONTAINER, BATCH or INSTANCE_GROUP.
+  It can be KATA_CONTAINER, BATCH, SWARMING or INSTANCE_GROUP.
 
   :return: Enum UtaskMainRuntime with one of KATA_CONTAINER,
-  BATCH or INSTANCE_GROUP
+  BATCH, SWARMING or INSTANCE_GROUP
   :rtype: UtaskMainRuntime
   """
-  if is_uworker() and is_running_on_k8s():
+  if not is_uworker():
+    return UtaskMainRuntime.INSTANCE_GROUP
+
+  if is_running_on_swarming():
+    return UtaskMainRuntime.SWARMING
+
+  if is_running_on_k8s():
     return UtaskMainRuntime.KATA_CONTAINER
 
-  if is_uworker() and not is_running_on_k8s():
-    return UtaskMainRuntime.BATCH
-
-  return UtaskMainRuntime.INSTANCE_GROUP
+  return UtaskMainRuntime.BATCH
 
 
-def is_swarming_bot():
+def is_running_on_swarming() -> bool:
   """Return whether or not the current bot is a swarming bot."""
-  return get_value('SWARMING_BOT')
+  return get_value('SWARMING_BOT') is True
 
 
 def is_running_on_app_engine():
@@ -787,9 +789,12 @@ def parse_environment_definition(environment_string):
   return values
 
 
-def is_running_on_k8s():
+def is_running_on_k8s() -> bool:
   """Returns whether or not we're running on K8s."""
-  return os.getenv('IS_K8S_ENV') == 'true'
+  env_value = get_value('IS_K8S_ENV', False)
+  if isinstance(env_value, str):
+    return env_value.lower() == 'true'
+  return bool(env_value)
 
 
 def base_platform(override):
@@ -1240,42 +1245,6 @@ def is_tworker():
   return get_value('TWORKER', False)
 
 
-def update_task_enabled() -> bool:
-  """ It uses the GCE VM metadata server `update_task_enabled` flag.
-
-      This flag will be used to rollout the update_task deprecation
-      by disabling it progressively for each instance group through
-      the instance template metadata 
-  """
-  metadata_url = ("http://metadata.google.internal/computeMetadata/v1/" +
-                  "instance/attributes/")
-  metadata_header = {"Metadata-Flavor": "Google"}
-  metadata_key = "update_task_enabled"
-
-  running_on_batch = bool(is_uworker())
-
-  try:
-    # Construct the full URL for your specific metadata key
-    response = requests.get(
-        f"{metadata_url}{metadata_key}", headers=metadata_header, timeout=10)
-
-    # Raise an exception for bad status codes (4xx or 5xx)
-    response.raise_for_status()
-
-    # The metadata value is in the response text
-    metadata_value = response.text
-    logs.info(f"The value for '{metadata_key}' is: {metadata_value}")
-    is_update_task_enabled = metadata_value.lower() != 'false'
-
-    # The flag is_uworker is true for Batch environment
-    # The update task should run if it's not a Batch environment
-    # and the flag is enabled on the VM template metadata
-    return not running_on_batch and is_update_task_enabled
-
-  except requests.exceptions.HTTPError as http_error:
-    logs.warning(f"Http error fetching metadata: {http_error}")
-
-  except Exception as ex:
-    logs.error(f"Unknown exception fetching metadata: {ex}")
-
-  return not running_on_batch
+def is_running_unit_tests() -> bool:
+  """Returns whether or not we're running unit tests."""
+  return get_value('PY_UNITTESTS', False)

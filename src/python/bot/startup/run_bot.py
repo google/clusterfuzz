@@ -27,17 +27,24 @@ import sys
 import time
 import traceback
 
+import requests
+from requests import exceptions
+
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import feature_flags
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -90,7 +97,14 @@ def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on remote backends."""
 
   logs.info('Attempting to combine batch tasks.')
-  utask_mains = tasks.get_utask_mains()
+  utask_mains = tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
+
+  if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    swarming_utask_mains = tasks.get_utask_mains(
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+    logs.info(f'Found {len(swarming_utask_mains)} swarming utask mains.')
+    utask_mains.extend(swarming_utask_mains)
+
   if not utask_mains:
     logs.info('No utask mains.')
     return
@@ -112,12 +126,50 @@ def schedule_utask_mains():
         task.pubsub_task.cancel_lease_ack()
 
 
+def _get_max_task_executions():  # pylint: disable=inconsistent-return-statements
+  """Returns the MAX_TASK_EXECUTIONS limit as an int, or None if
+  invalid/unset."""
+  val = environment.get_value('MAX_TASK_EXECUTIONS')
+  if not val:
+    return None
+  try:
+    return int(val)
+  except ValueError:
+    logs.log_fatal_and_exit(f'Invalid value for MAX_TASK_EXECUTIONS: {val}')
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
+def _get_tworker_queue_override() -> str:
+  """Gets the tworker queue override from environment or metadata."""
+  queue_override = environment.get_value('OVERRIDE_TWORKER_QUEUE')
+  if queue_override:
+    return queue_override
+
+  if not compute_metadata.is_gce():
+    return ""
+
+  try:
+    queue_override = compute_metadata.get(
+        'instance/attributes/override_tworker_queue')
+    if queue_override:
+      return queue_override.strip()
+  except exceptions.RequestException as e:
+    if not (isinstance(e, exceptions.HTTPError) and
+            e.response.status_code == 404):
+      logs.warning(f'Error fetching override_tworker_queue metadata: {e}')
+
+  return ""
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
   from clusterfuzz._internal.bot.tasks import commands
 
   clean_exit = False
+  execution_count = 0
+  max_task_executions = _get_max_task_executions()
+
   while True:
     stacktrace = ''
     exception_occurred = False
@@ -125,7 +177,7 @@ def task_loop():
     # This caches the current environment on first run. Don't move this.
     environment.reset_environment()
     try:
-      if environment.update_task_enabled():
+      if update_task_enabled():
         logs.info("Running update task.")
         # Run regular updates.
         # TODO(metzman): Move this after utask_main execution
@@ -153,7 +205,8 @@ def task_loop():
         continue
 
       if environment.is_tworker():
-        task = tasks.tworker_get_task()
+        task = tasks.tworker_get_task(
+            override_queue=_get_tworker_queue_override())
       else:
         task = tasks.get_task()
 
@@ -189,8 +242,57 @@ def task_loop():
       time.sleep(utils.random_number(1, failure_wait_interval))
       break
 
+    execution_count += 1
+    if max_task_executions and execution_count >= max_task_executions:
+      logs.info(
+          f'Reached MAX_TASK_EXECUTIONS limit ({max_task_executions}). Exiting.'
+      )
+      clean_exit = True
+      break
+
   task_payload = task.payload() if task else None
   return stacktrace, clean_exit, task_payload
+
+
+def update_task_enabled() -> bool:
+  """ It uses the GCE VM metadata server `update_task_enabled` flag.
+
+      This flag will be used to rollout the update_task deprecation
+      by disabling it progressively for each instance group through
+      the instance template metadata 
+  """
+  metadata_url = ("http://metadata.google.internal/computeMetadata/v1/" +
+                  "instance/attributes/")
+  metadata_header = {"Metadata-Flavor": "Google"}
+  metadata_key = "update_task_enabled"
+
+  running_on_batch = bool(environment.is_uworker())
+
+  try:
+    # Construct the full URL for your specific metadata key
+    response = requests.get(
+        f"{metadata_url}{metadata_key}", headers=metadata_header, timeout=10)
+
+    # Raise an exception for bad status codes (4xx or 5xx)
+    response.raise_for_status()
+
+    # The metadata value is in the response text
+    metadata_value = response.text
+    logs.info(f"The value for '{metadata_key}' is: {metadata_value}")
+    is_update_task_enabled = metadata_value.lower() != 'false'
+
+    # The flag is_uworker is true for Batch environment
+    # The update task should run if it's not a Batch environment
+    # and the flag is enabled on the VM template metadata
+    return not running_on_batch and is_update_task_enabled
+
+  except requests.exceptions.HTTPError as http_error:
+    logs.warning(f"Http error fetching metadata: {http_error}")
+
+  except Exception as ex:
+    logs.error(f"Unknown exception fetching metadata: {ex}")
+
+  return not running_on_batch
 
 
 def main():

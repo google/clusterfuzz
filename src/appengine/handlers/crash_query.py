@@ -19,6 +19,7 @@ from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from handlers import base_handler
+from libs import access
 from libs import auth
 from libs import handler
 from libs import helpers
@@ -55,6 +56,11 @@ class Handler(base_handler.Handler):
 
     duplicate_testcase = data_handler.find_testcase(
         project, state.crash_type, state.crash_state, security_flag)
+    if (duplicate_testcase and duplicate_testcase.security_flag and
+        not access.can_user_access_testcase(duplicate_testcase)):
+      # Do not disclose the existence or identifiers of a security-confidential
+      # testcase to a user who is not allowed to access it.
+      duplicate_testcase = None
     if duplicate_testcase:
       result['result'] = 'duplicate'
       result['duplicate_id'] = duplicate_testcase.key.id()

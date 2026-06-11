@@ -29,9 +29,9 @@ class HandlerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
         'libs.helpers.get_testcase',
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'clusterfuzz._internal.system.environment.is_running_on_app_engine',
     ])
-    self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
+    self.mock.is_running_on_app_engine.return_value = True
 
     import server
     self.app = webtest.TestApp(server.app)

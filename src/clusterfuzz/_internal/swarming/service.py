@@ -13,14 +13,71 @@
 # limitations under the License.
 """Swarming service."""
 
+from requests.exceptions import HTTPError
+
 from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.base.tasks.pub_sub_task_queue import \
+    get_max_size_for_queue
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
+from clusterfuzz._internal.swarming.api import SwarmingApi
+from clusterfuzz._internal.swarming.api import SwarmingApiError
+
+SWARMING_MAIN_QUEUE_LIMIT_DEFAULT = 25
 
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
   """Remote task service implementation for Swarming."""
+
+  _api: SwarmingApi
+
+  def __init__(self):
+    self._api = SwarmingApi.create()
+    if self._api is None:
+      raise ValueError(
+          'Failed to instantiate SwarmingApi. Swarming config not available.')
+
+  # pylint: disable=no-member
+  def _get_dimension(self, request: swarming_pb2.NewTaskRequest,
+                     key: str) -> str:
+    """Extracts a dimension value from the task request.
+
+    Returns:
+      The dimension value if found, or an empty string otherwise.
+    """
+    for dimension in request.task_slices[0].properties.dimensions:
+      if dimension.key == key:
+        return dimension.value
+    return ""
+
+  def _is_queue_full(self,
+                     count_request: swarming_pb2.TasksCountRequest) -> bool:  # pylint: disable=no-member
+    """Checks if the queue is full based on pending tasks count.
+
+    Returns True if the queue is full or if the check fails (Fail Closed).
+    """
+    # TODO(b/517517107): Improve backpressure calculation to account for
+    # differently-sized bot groups in swarming.
+    try:
+      response = self._api.count_tasks(count_request)
+    except SwarmingApiError as e:
+      logs.error('[Swarming] Failed to check backpressure (Fail Closed): '
+                 f'{e}')
+      return True
+
+    count = response.count if response.count else 0
+    max_pending_tasks = get_max_size_for_queue(
+        SWARMING_MAIN_QUEUE_LIMIT_DEFAULT,
+        FeatureFlags.SWARMING_MAX_PENDING_TASKS)
+    if count >= max_pending_tasks:
+      logs.info(f'[Swarming] Backpressure applied. Queue size: {count}. '
+                'Stopping scheduling.')
+      return True
+
+    return False
 
   def create_utask_main_job(self, module: str, job_type: str,
                             input_download_url: str):
@@ -44,17 +101,46 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
     """
     unscheduled_tasks = []
     logs.info(f'[Swarming] Pushing {len(remote_tasks)} tasks trough service.')
-    for task in remote_tasks:
+    for i, task in enumerate(remote_tasks):
       try:
         if not swarming.is_swarming_task(task.job_type):
           unscheduled_tasks.append(task)
           continue
-        if request := swarming.create_new_task_request(
-            task.command, task.job_type, task.argument):
-          swarming.push_swarming_task(request)
-      except Exception:  # pylint: disable=broad-except
-        logs.error(
-            f'Failed to push task to Swarming: {task.command}, {task.job_type}.'
-        )
+
+        task_req = swarming.create_new_task_request(task.command, task.job_type,
+                                                    task.argument)
+        if not task_req:
+          unscheduled_tasks.append(task)
+          continue
+
+        os_val = self._get_dimension(task_req, 'os')
+        pool_val = self._get_dimension(task_req, 'pool')
+        if not os_val or not pool_val:
+          logs.error(f'[Swarming] Failed to find required dimension for job '
+                     f'{task.job_type}.')
+          unscheduled_tasks.append(task)
+          continue
+
+        # Since there are multiple concurrent scheduling sessions/bots, it is
+        # important to always check the queue size with Swarming to account for
+        # the possibility that the queue was empty in the first iteration but
+        # filled up on subsequent iterations due to other schedulers.
+        count_request = swarming_pb2.TasksCountRequest(  # pylint: disable=no-member
+            tags=[f'pool:{pool_val}', f'os:{os_val}'],
+            state=swarming_pb2.QUERY_PENDING)  # pylint: disable=no-member
+
+        # If the queue is full, there is no sense in continuing to schedule
+        # tasks in this session, so we return the remaining tasks as
+        # unscheduled.
+        if self._is_queue_full(count_request):
+          unscheduled_tasks.extend(remote_tasks[i:])
+          break
+
+        self._api.push_task(task_req)
+      except HTTPError as api_failure:
+        logs.warning(
+            f'''Failed to push task to Swarming: {task.command}, {task.job_type}
+            . Reason: {api_failure}.
+            ''')
         unscheduled_tasks.append(task)
     return unscheduled_tasks

@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Swarming tests."""
-import base64
 import os
 import unittest
 from unittest import mock
-
-from google.protobuf import json_format
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
@@ -50,6 +47,47 @@ class SwarmingTest(unittest.TestCase):
     os.environ.pop('DEPLOYMENT_BUCKET', None)
     os.environ.pop('PROJECT_NAME', None)
     os.environ.pop('HOST_JOB_SELECTION', None)
+
+  def test_has_swarming_env_vars_empty_env(self):
+    """Tests that empty environment returns False."""
+    self.assertFalse(swarming.has_swarming_env_vars({}))
+
+  def test_has_swarming_env_vars_is_swarming_job_true(self):
+    """Tests that IS_SWARMING_JOB=True returns True."""
+    self.assertTrue(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': 'True'}))
+    self.assertTrue(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': 'true'}))
+    self.assertTrue(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': '1'}))
+
+  def test_has_swarming_env_vars_is_swarming_job_false(self):
+    """Tests that IS_SWARMING_JOB=False returns False."""
+    self.assertFalse(
+        swarming.has_swarming_env_vars({
+            'IS_SWARMING_JOB': 'False'
+        }))
+    self.assertFalse(swarming.has_swarming_env_vars({'IS_SWARMING_JOB': '0'}))
+
+  def test_has_swarming_env_vars_swarming_dimensions(self):
+    """Tests that SWARMING_DIMENSIONS returns True."""
+    self.assertTrue(
+        swarming.has_swarming_env_vars({
+            'SWARMING_DIMENSIONS': 'os:linux'
+        }))
+
+  def test_has_swarming_env_vars_empty_dimensions_and_false_job(self):
+    """Tests that SWARMING_DIMENSIONS={} and IS_SWARMING_JOB=False returns False."""
+    self.assertFalse(
+        swarming.has_swarming_env_vars({
+            'SWARMING_DIMENSIONS': {},
+            'IS_SWARMING_JOB': 'False'
+        }))
+
+  def test_has_swarming_env_vars_both(self):
+    """Tests that both variables return True."""
+    self.assertTrue(
+        swarming.has_swarming_env_vars({
+            'IS_SWARMING_JOB': 'True',
+            'SWARMING_DIMENSIONS': 'os:linux'
+        }))
 
   def test_get_spec_from_config_with_docker_image(self):
     """Tests that create_new_task_request works as expected."""
@@ -106,8 +144,7 @@ class SwarmingTest(unittest.TestCase):
                              '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
                              '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
 
@@ -191,8 +228,7 @@ class SwarmingTest(unittest.TestCase):
                                 'package_install_path/bin'
                             ])
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
 
@@ -251,114 +287,9 @@ class SwarmingTest(unittest.TestCase):
                              '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
                              '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
                     ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
+                    secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
-
-  def test_push_swarming_task(self):
-    """Tests that push_swarming_task works as expected."""
-    mock_creds = mock.MagicMock()
-    mock_creds.token = 'fake_token'
-    self.mock.get_scoped_service_account_credentials.return_value = mock_creds
-
-    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    job.put()
-    task_request = swarming.create_new_task_request('fuzz', job.name,
-                                                    'https://download_url')
-    swarming.push_swarming_task(task_request)
-
-    expected_new_task_request = swarming_pb2.NewTaskRequest(
-        name='task_name',
-        priority=1,
-        realm='realm-name',
-        service_account='test-clusterfuzz-service-account-email',
-        task_slices=[
-            swarming_pb2.TaskSlice(
-                expiration_secs=86400,
-                properties=swarming_pb2.TaskProperties(
-                    command=[
-                        'luci-auth', 'context', '--', './linux_entry_point.sh'
-                    ],
-                    dimensions=[
-                        swarming_pb2.StringPair(
-                            key='os', value=str(job.platform).capitalize()),
-                        swarming_pb2.StringPair(key='pool', value='pool-name')
-                    ],
-                    cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
-                    cas_input_root=swarming_pb2.CASReference(
-                        cas_instance=
-                        'projects/server-name/instances/instance_name',
-                        digest=swarming_pb2.Digest(
-                            hash='linux_entry_point_archive_hash',
-                            size_bytes=1234)),
-                    execution_timeout_secs=12345,
-                    env=[
-                        swarming_pb2.StringPair(
-                            key='DOCKER_IMAGE',
-                            value=
-                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
-                        ),
-                        swarming_pb2.StringPair(key='UWORKER', value='True'),
-                        swarming_pb2.StringPair(
-                            key='SWARMING_BOT', value='True'),
-                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
-                        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
-                        swarming_pb2.StringPair(
-                            key='DISABLE_MOUNTS', value='True'),
-                        swarming_pb2.StringPair(
-                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
-                        swarming_pb2.StringPair(
-                            key='DOCKER_ENV_VARS',
-                            value=
-                            ('{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
-                             'base:a2f4dd6-202202070654", "UWORKER": "True", '
-                             '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
-                             '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
-                             '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
-                    ],
-                    secret_bytes=base64.b64encode(
-                        'https://download_url'.encode('utf-8'))))
-        ])
-
-    self.mock.get_scoped_service_account_credentials.assert_called_with(
-        swarming._SWARMING_SCOPES)  # pylint: disable=protected-access
-    expected_headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer fake_token'
-    }
-    expected_url = 'https://server-name/prpc/swarming.v2.Tasks/NewTask'
-    self.mock.post_url.assert_called_with(
-        url=expected_url,
-        data=json_format.MessageToJson(expected_new_task_request),
-        headers=expected_headers)
-
-  def test_push_swarming_task_with_refresh(self):
-    """Tests that push_swarming_task refreshes credentials if token is missing."""
-    mock_creds = mock.MagicMock()
-    mock_creds.token = None
-    self.mock.get_scoped_service_account_credentials.return_value = mock_creds
-
-    def refresh_side_effect(_):
-      mock_creds.token = 'refreshed_token'
-
-    mock_creds.refresh.side_effect = refresh_side_effect
-
-    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    job.put()
-    request = swarming.create_new_task_request('fuzz', job.name,
-                                               'https://download_url')
-    swarming.push_swarming_task(request)
-
-    mock_creds.refresh.assert_called_with(self.mock.Request.return_value)
-    expected_headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer refreshed_token'
-    }
-    self.assertEqual(self.mock.post_url.call_args[1]['headers'],
-                     expected_headers)
 
   def test_is_swarming_task(self):
     """Tests that is_swarming_task works as expected."""

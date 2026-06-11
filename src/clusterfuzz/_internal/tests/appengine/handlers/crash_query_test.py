@@ -52,7 +52,9 @@ class CrashQueryTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'libs.auth.get_current_user',
+        'libs.access.can_user_access_testcase',
     ])
+    self.mock.can_user_access_testcase.return_value = True
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule('/', view_func=crash_query.Handler.as_view('/'))
     self.app = webtest.TestApp(flaskapp)
@@ -130,6 +132,32 @@ class CrashQueryTest(unittest.TestCase):
         'bug_id': '1337',
         'type': 'Heap-buffer-overflow\nWRITE 4',
         'state': expected_crash_state,
+        'security': True,
+    }, response.json)
+
+  def test_duplicate_security_flag_no_access(self):
+    """A security-confidential duplicate is not disclosed to a user without
+    access to it."""
+    self.mock.can_user_access_testcase.return_value = False
+    t = data_types.Testcase(
+        open=True,
+        status='Processed',
+        crash_state='Foo\nBar\nMain\n',
+        crash_type='Heap-buffer-overflow\nWRITE 4',
+        project_name='project',
+        security_flag=True)
+    t.put()
+
+    response = self.app.post_json(
+        '/', {
+            'project': 'project',
+            'fuzz_target': 'target',
+            'stacktrace': TEST_STACKTRACE_OVERFLOW,
+        })
+    self.assertEqual({
+        'result': 'new',
+        'type': 'Heap-buffer-overflow\nWRITE 4',
+        'state': 'Foo\nBar\nMain\n',
         'security': True,
     }, response.json)
 

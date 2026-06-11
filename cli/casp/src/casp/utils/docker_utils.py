@@ -24,13 +24,16 @@ import docker
 
 # TODO: Make this configurable.
 PROJECT_TO_IMAGE = {
-    'dev': ("gcr.io/clusterfuzz-images/chromium/base/immutable/dev:"
-            "20251008165901-utc-893e97e-640142509185-compute-d609115-prod"),
+    'dev': ("us-central1-docker.pkg.dev/clusterfuzz-images/"
+            "clusterfuzz-immutable-images/chromium/base/immutable/dev:"
+            "20260602195617-utc-2b32898-640142509185-compute-44245e9-prod"),
     'internal': (
-        "gcr.io/clusterfuzz-images/chromium/base/immutable/internal:"
-        "20251110132749-utc-363160d-640142509185-compute-c7f2f8c-prod"),
-    'external': ("gcr.io/clusterfuzz-images/base/immutable/external:"
-                 "20251111191918-utc-b5863ff-640142509185-compute-c5c296c-prod")
+        "us-central1-docker.pkg.dev/clusterfuzz-images/"
+        "clusterfuzz-immutable-images/chromium/base/immutable/internal:"
+        "20260602195617-utc-2b32898-640142509185-compute-44245e9-prod"),
+    'external': ("us-central1-docker.pkg.dev/clusterfuzz-images/"
+                 "clusterfuzz-immutable-images/base/immutable/external:"
+                 "20260602195617-utc-2b32898-640142509185-compute-44245e9-prod")
 }
 _DEFAULT_WORKING_DIR = '/data/clusterfuzz'
 

@@ -69,6 +69,11 @@ LOCKSCREEN_TABLE_NAME = 'locksettings'
 
 def add_test_accounts_if_needed():
   """Add test account to work with GmsCore, etc."""
+  # Short-circuit: UWORKERs do not have Datastore access to retrieve
+  # credentials.
+  if environment.is_uworker():
+    return
+
   last_test_account_check_time = persistent_cache.get_value(
       constants.LAST_TEST_ACCOUNT_CHECK_KEY,
       constructor=datetime.datetime.utcfromtimestamp)
@@ -311,11 +316,12 @@ def initialize_device():
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  sanitizer.setup_asan_if_needed()
+  asan_reboot_done = sanitizer.setup_asan_if_needed()
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  reboot()
+  if not asan_reboot_done:
+    reboot()
 
   # Make sure we are running as root after restart.
   adb.run_as_root()

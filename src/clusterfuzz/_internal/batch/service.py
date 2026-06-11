@@ -46,23 +46,26 @@ from clusterfuzz._internal.system import environment
 # A named tuple that defines the execution environment for a batch workload.
 # This includes details about the machine, disk, network, and container image,
 # as well as ClusterFuzz-specific settings.
-BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release',
-    'disk_size_gb',
-    'disk_type',
-    'docker_image',
-    'user_data',
-    'service_account_email',
-    'subnetwork',
-    'preemptible',
-    'project',
-    'machine_type',
-    'network',
-    'gce_region',
-    'priority',
-    'max_run_duration',
-    'retry',
-])
+BatchWorkloadSpec = collections.namedtuple(
+    'BatchWorkloadSpec', [
+        'clusterfuzz_release',
+        'disk_size_gb',
+        'disk_type',
+        'docker_image',
+        'user_data',
+        'service_account_email',
+        'subnetwork',
+        'preemptible',
+        'project',
+        'machine_type',
+        'network',
+        'gce_region',
+        'priority',
+        'max_run_duration',
+        'retry',
+        'project_number',
+    ],
+    defaults=(None,))
 
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
                                            ['name', 'weight'])
@@ -370,6 +373,7 @@ def _get_specs_from_config(
       docker_image_uri = instance_spec['docker_image']
 
     project_name = batch_config.get('project')
+    project_number = batch_config.get('project-number')
     clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
     # Lower numbers are a lower priority, meaning less likely to run From:
     # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
@@ -399,6 +403,7 @@ def _get_specs_from_config(
         network=subconfig['network'],
         subnetwork=subconfig['subnetwork'],
         project=project_name,
+        project_number=project_number,
         clusterfuzz_release=clusterfuzz_release,
         priority=priority,
         max_run_duration=max_run_duration,
@@ -448,7 +453,7 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
     job_name = get_job_name()
     create_request.job_id = job_name
     # The job's parent is the region in which the job will run
-    project_id = spec.project
+    project_id = spec.project_number or spec.project
     create_request.parent = f'projects/{project_id}/locations/{spec.gce_region}'
     job_result = _send_create_job_request(create_request)
     logs.info(f'Created batch job id={job_name}.', spec=spec)

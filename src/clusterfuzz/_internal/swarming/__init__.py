@@ -17,9 +17,6 @@ import base64
 import json
 import uuid
 
-from google.auth.transport import requests
-from google.protobuf import json_format
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.errors import BadConfigError
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
@@ -31,10 +28,12 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
-_SWARMING_SCOPES = [
-    'https://www.googleapis.com/auth/cloud-platform',
-    'https://www.googleapis.com/auth/userinfo.email'
-]
+
+def has_swarming_env_vars(job_environment: dict) -> bool:
+  """Returns True if the job environment contains swarming env vars."""
+  return bool(
+      utils.string_is_true(job_environment.get('IS_SWARMING_JOB')) or
+      job_environment.get('SWARMING_DIMENSIONS'))
 
 
 def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
@@ -48,13 +47,11 @@ def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
       logs.info('[Swarming DEBUG] Job not found', job_name=job_name)
       return False
 
-  job_environment = job.get_environment()
-  if not utils.string_is_true(job_environment.get(
-      'IS_SWARMING_JOB')) and not job_environment.get('SWARMING_DIMENSIONS'):
+  if not has_swarming_env_vars(job.get_environment()):
     logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
     return False
 
-  swarming_config = _get_swarming_config()
+  swarming_config = get_swarming_config()
   if swarming_config is None:
     logs.warning(
         """[Swarming DEBUG] current task is not suitable for swarming. 
@@ -74,7 +71,7 @@ def _get_task_name(job_name: str):
   return f't-{str(uuid.uuid4()).lower()}-{job_name}'
 
 
-def _get_swarming_config() -> local_config.SwarmingConfig | None:
+def get_swarming_config() -> local_config.SwarmingConfig | None:
   """Returns the swarming config."""
   try:
     return local_config.SwarmingConfig()
@@ -87,7 +84,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
                         ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """ Gets all swarming dimensions for a task.
   Job dimensions have more precedence than static dimensions"""
-  swarming_config = _get_swarming_config()
+  swarming_config = get_swarming_config()
   if not swarming_config:
     logs.error(
         '[Swarming] No dimensions set. Reason: failed to retrieve config')
@@ -95,7 +92,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
 
   unique_dimensions = {}
   unique_dimensions['os'] = str(job.platform).capitalize()
-  unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
+  unique_dimensions['pool'] = swarming_config.get('swarming_pool')
 
   for dimension in platform_specific_dimensions:
     unique_dimensions[dimension['key'].lower()] = dimension['value']
@@ -202,7 +199,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   if job is None:
     return None
 
-  swarming_config = _get_swarming_config()
+  swarming_config = get_swarming_config()
   if not swarming_config:
     return None
 
@@ -251,40 +248,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
                   execution_timeout_secs=execution_timeout_secs,
                   env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
-                  secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
+                  secret_bytes=download_url.encode('utf-8')))
       ])
 
   return new_task_request
-
-
-def push_swarming_task(task_request: swarming_pb2.NewTaskRequest):  # pylint: disable=no-member
-  """Schedules a task on swarming."""
-  swarming_config = _get_swarming_config()
-  if not swarming_config:
-    logs.error(
-        '[Swarming] Failed to push task into swarming. Reason: No config.')
-    return
-  creds = credentials.get_scoped_service_account_credentials(_SWARMING_SCOPES)
-  if not creds:
-    logs.error(
-        '[Swarming] Failed to push task into swarming. Reason: No credentials.')
-    return
-
-  if not creds.token:
-    creds.refresh(requests.Request())
-
-  headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': f'Bearer {creds.token}'
-  }
-  swarming_server = _get_swarming_config().get('swarming_server')
-  url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  message_body = json_format.MessageToJson(task_request)
-  logs.info(
-      f"""[Swarming] Pushing task {task_request.name}
-            as {creds.service_account_email}""",
-      url=url,
-      body=message_body)
-  response = utils.post_url(url=url, data=message_body, headers=headers)
-  logs.info(f'[Swarming] Response from {task_request.name}', response=response)
