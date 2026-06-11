@@ -66,6 +66,11 @@ class BuildArchive(archive.ArchiveReader):
     self._reader = reader
     self._fuzz_targets = None
 
+  @abc.abstractmethod
+  def archive_schema_version(self) -> int:
+    """Returns the schema version number for this archive."""
+    raise NotImplementedError
+
   def list_members(self) -> List[archive.ArchiveMemberInfo]:
     return self._reader.list_members()
 
@@ -161,6 +166,10 @@ class BuildArchive(archive.ArchiveReader):
 class DefaultBuildArchive(BuildArchive):
   """Default class for handling builds. This should work with everything.
   """
+
+  @override
+  def archive_schema_version(self) -> int:
+    return 0
 
   def get_path_for_target(self, fuzz_target: str) -> str:
     """Returns the path in the archive of the fuzz_target if found.
@@ -344,8 +353,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
       self._root_dir = super().root_dir()  # pylint: disable=attribute-defined-outside-init
     return self._root_dir
 
+  @override
   def archive_schema_version(self) -> int:
-    """Returns the schema version number for this archive."""
     return self._archive_schema_version
 
   @override
