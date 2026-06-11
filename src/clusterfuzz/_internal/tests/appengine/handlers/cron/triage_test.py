@@ -386,8 +386,11 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
 
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(
-        'Skipping filing a bug since similar testcase (2) in issue (1) '
-        'is blacklisted with ClusterFuzz-Ignore label.',
+        'Skipping filing a bug since similar testcase '
+        '(<a href="https://test-clusterfuzz.appspot.com/testcase?key=2">2</a>)'
+        ' in issue '
+        '(<a href="https://bugs.chromium.org/p/test-project/issues/detail?'
+        'id=1">1</a>) is blacklisted with ClusterFuzz-Ignore label.',
         testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_similar_testcase_with_issue_recently_closed(self):
@@ -412,8 +415,12 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
 
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(
-        'Delaying filing a bug since similar testcase (2) in issue (1) '
-        'was just fixed.', testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+        'Delaying filing a bug since similar testcase '
+        '(<a href="https://test-clusterfuzz.appspot.com/testcase?key=2">2</a>)'
+        ' in issue '
+        '(<a href="https://bugs.chromium.org/p/test-project/issues/detail?'
+        'id=1">1</a>) was just fixed.',
+        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
 
 @test_utils.with_cloud_emulators('datastore')

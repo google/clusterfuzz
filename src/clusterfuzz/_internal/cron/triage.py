@@ -259,21 +259,27 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
     if not issue:
       continue
 
+    similar_testcase_id = similar_testcase.key.id()
+    testcase_url = data_handler.TESTCASE_REPORT_URL.format(
+        domain=data_handler.get_domain(), testcase_id=similar_testcase_id)
+    issue_url = issue_tracker.issue_url(issue.id)
+    testcase_link = f'<a href="{testcase_url}">{similar_testcase_id}</a>'
+    issue_link = f'<a href="{issue_url}">{issue.id}</a>'
+
     # If the reproducible issue is not verified yet, bug is still valid and
     # might be caused by non-availability of latest builds. In that case,
     # don't file a new bug yet.
     if similar_testcase.open and not similar_testcase.one_time_crasher_flag:
       _add_triage_message(
           testcase, 'Delaying filing a bug since similar reproducible testcase '
-          f'({similar_testcase.key.id()} in issue {issue.id}) is not verified '
-          'yet.')
+          f'({testcase_link} in issue {issue_link}) is not verified yet.')
       return True
 
     # If the issue is still open, no need to file a duplicate bug.
     if issue.is_open:
       _add_triage_message(
           testcase, f'Skipping filing a bug since similar testcase '
-          f'({similar_testcase.key.id()}) has an open issue ({issue.id}).')
+          f'({testcase_link}) has an open issue ({issue_link}).')
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to
@@ -283,12 +289,9 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
     if ignore_label in issue.labels:
       _add_triage_message(
           testcase,
-          ('Skipping filing a bug since similar testcase ({testcase_id}) in '
-           'issue ({issue_id}) is blacklisted with {ignore_label} label.'
-          ).format(
-              testcase_id=similar_testcase.key.id(),
-              issue_id=issue.id,
-              ignore_label=ignore_label))
+          f'Skipping filing a bug since similar testcase '
+          f'({testcase_link}) in issue ({issue_link}) is blacklisted with '
+          f'{ignore_label} label.')
       return True
 
     # If this testcase is not reproducible, and a previous similar
@@ -299,7 +302,7 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
       _add_triage_message(
           testcase,
           'Skipping filing unreproducible bug since one was already filed '
-          f'({similar_testcase.key.id()} in issue {issue.id}).')
+          f'({testcase_link} in issue {issue_link}).')
       return True
 
     # If the issue is recently closed, wait certain time period to make sure
@@ -308,9 +311,8 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
         issue.closed_time, hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED)):
       _add_triage_message(
           testcase,
-          ('Delaying filing a bug since similar testcase '
-           '({testcase_id}) in issue ({issue_id}) was just fixed.').format(
-               testcase_id=similar_testcase.key.id(), issue_id=issue.id))
+          f'Delaying filing a bug since similar testcase '
+          f'({testcase_link}) in issue ({issue_link}) was just fixed.')
       return True
 
   return False
