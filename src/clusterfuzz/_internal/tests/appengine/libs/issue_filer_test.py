@@ -652,6 +652,41 @@ class IssueFilerTests(unittest.TestCase):
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
+  def test_filed_issues_external_fuzzer_author(self):
+    """Tests issue filing for external fuzzer author."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+    
+    data_types.Fuzzer(
+        name='fuzzer',
+        external_contribution=True,
+        primary_owner='owner@example.com').put()
+        
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    
+    self.testcase1.security_flag = True
+    self.testcase1.put()
+    
+    issue_filer.file_issue(self.testcase1, issue_tracker, user_email='reporter@example.com')
+    
+    self.assertEqual('owner@example.com', issue_tracker._itm.last_issue.reporter)
+
+  def test_filed_issues_external_fuzzer_no_author(self):
+    """Tests issue filing for external fuzzer without author."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+    
+    data_types.Fuzzer(
+        name='fuzzer',
+        external_contribution=True).put()
+        
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    
+    self.testcase1.security_flag = True
+    self.testcase1.put()
+    
+    issue_filer.file_issue(self.testcase1, issue_tracker, user_email='reporter@example.com')
+    
+    self.assertEqual('reporter@example.com', issue_tracker._itm.last_issue.reporter)
+
   def test_testcase_metadata_labels_and_components(self):
     """Tests issue filing with additional labels and components."""
     self.mock.get.return_value = CHROMIUM_POLICY

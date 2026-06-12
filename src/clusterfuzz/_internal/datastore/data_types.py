@@ -347,6 +347,9 @@ class Fuzzer(Model):
   # reward flags.
   external_contribution = ndb.BooleanProperty(default=False)
 
+  # Primary owner to be reported for bugs filed by CF
+  primary_owner = ndb.StringProperty()
+
   # Max testcases to generate for this fuzzer.
   max_testcases = ndb.IntegerProperty()
 
