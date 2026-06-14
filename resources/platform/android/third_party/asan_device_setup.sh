@@ -92,15 +92,26 @@ function get_device_arch { # OUT OUT64
     local _outvar=$1
     local _outvar64=$2
     local _ABI=$(adb_shell getprop ro.product.cpu.abi)
+    local _ABILIST=$(adb_shell getprop ro.product.cpu.abilist)
+    if [[ -z "$_ABILIST" ]]; then
+        _ABILIST=$_ABI
+    fi
     local _ARCH=
     local _ARCH64=
-    if [[ $_ABI == x86* ]]; then
+    if [[ $_ABI == x86_64* ]]; then
+        _ARCH64=x86_64
+        if [[ $_ABILIST =~ (^|,)x86($|,) ]]; then
+            _ARCH=i686
+        fi
+    elif [[ $_ABI == x86* ]]; then
         _ARCH=i686
+    elif [[ $_ABI == arm64-v8a* ]]; then
+        _ARCH64=aarch64
+        if [[ $_ABILIST =~ (^|,)armeabi($|,) || $_ABILIST =~ (^|,)armeabi-v7a($|,) ]]; then
+            _ARCH=arm
+        fi
     elif [[ $_ABI == armeabi* ]]; then
         _ARCH=arm
-    elif [[ $_ABI == arm64-v8a* ]]; then
-        _ARCH=arm
-        _ARCH64=aarch64
     else
         echo "Unrecognized device ABI: $_ABI"
         exit 1
@@ -174,11 +185,17 @@ adb_remount
 adb_wait_for_device
 
 get_device_arch ARCH ARCH64
-echo "Target architecture: $ARCH"
-ASAN_RT="libclang_rt.asan-$ARCH-android.so"
+if [[ -n $ARCH ]]; then
+  echo "Target architecture: $ARCH"
+  ASAN_RT="libclang_rt.asan-$ARCH-android.so"
+fi
 if [[ -n $ARCH64 ]]; then
   echo "Target architecture: $ARCH64"
   ASAN_RT64="libclang_rt.asan-$ARCH64-android.so"
+fi
+if [[ -z $ARCH && -z $ARCH64 ]]; then
+  echo "Could not detect any supported architecture"
+  exit 1
 fi
 
 RELEASE=$(adb_shell getprop ro.build.version.release)
@@ -201,15 +218,17 @@ if [[ x$revert == xyes ]]; then
       adb_shell rm /system/bin/asanwrapper
     elif ! adb_shell ls -l /system/bin/app_process64.real | grep -o 'No such file or directory' >&/dev/null; then
       # 64-bit installation.
-      adb_shell mv /system/bin/app_process32.real /system/bin/app_process32
+      if adb_shell '[ -f /system/bin/app_process32.real ]'; then
+        adb_shell mv /system/bin/app_process32.real /system/bin/app_process32
+      fi
       adb_shell mv /system/bin/app_process64.real /system/bin/app_process64
-      adb_shell rm /system/bin/asanwrapper
-      adb_shell rm /system/bin/asanwrapper64
+      adb_shell rm -f /system/bin/asanwrapper
+      adb_shell rm -f /system/bin/asanwrapper64
     else
       # 32-bit installation.
-      adb_shell rm /system/bin/app_process.wrap
-      adb_shell rm /system/bin/asanwrapper
-      adb_shell rm /system/bin/app_process
+      adb_shell rm -f /system/bin/app_process.wrap
+      adb_shell rm -f /system/bin/asanwrapper
+      adb_shell rm -f /system/bin/app_process
       adb_shell ln -s /system/bin/app_process32 /system/bin/app_process
     fi
 
@@ -223,7 +242,12 @@ if [[ x$revert == xyes ]]; then
 
     # Remove the library on the last step to give a chance to the 'su' binary to
     # be executed without problem.
-    adb_shell rm /system/lib/$ASAN_RT
+    if [[ -n "$ASAN_RT" ]]; then
+      adb_shell rm -f /system/lib/$ASAN_RT
+    fi
+    if [[ -n "$ASAN_RT64" ]]; then
+      adb_shell rm -f /system/lib64/$ASAN_RT64
+    fi
 
     echo '>> Done'
     exit 0
@@ -249,14 +273,16 @@ elif [[ $(basename "$HERE") == "bin" ]]; then
     fi
 fi
 
-if [[ -z "$ASAN_RT_PATH" || ! -f "$ASAN_RT_PATH/$ASAN_RT" ]]; then
-    echo ">> ASan runtime library not found"
-    exit 1
+if [[ -n "$ASAN_RT" ]]; then
+  if [[ -z "$ASAN_RT_PATH" || ! -f "$ASAN_RT_PATH/$ASAN_RT" ]]; then
+      echo ">> ASan runtime library not found: $ASAN_RT"
+      exit 1
+  fi
 fi
 
 if [[ -n "$ASAN_RT64" ]]; then
   if [[ -z "$ASAN_RT_PATH" || ! -f "$ASAN_RT_PATH/$ASAN_RT64" ]]; then
-    echo ">> ASan runtime library not found"
+    echo ">> ASan runtime library not found: $ASAN_RT64"
     exit 1
   fi
 fi
@@ -280,10 +306,12 @@ fi
 
 echo '>> Copying files from the device'
 if [[ -n "$ASAN_RT64" ]]; then
-  adb_pull /system/lib/"$ASAN_RT" "$TMPDIROLD" || true
+  if [[ -n "$ASAN_RT" ]]; then
+    adb_pull /system/lib/"$ASAN_RT" "$TMPDIROLD" || true
+    adb_pull /system/bin/app_process32 "$TMPDIROLD" || true
+    adb_pull /system/bin/app_process32.real "$TMPDIROLD" || true
+  fi
   adb_pull /system/lib64/"$ASAN_RT64" "$TMPDIROLD" || true
-  adb_pull /system/bin/app_process32 "$TMPDIROLD" || true
-  adb_pull /system/bin/app_process32.real "$TMPDIROLD" || true
   adb_pull /system/bin/app_process64 "$TMPDIROLD" || true
   adb_pull /system/bin/app_process64.real "$TMPDIROLD" || true
   adb_pull /system/bin/asanwrapper "$TMPDIROLD" || true
@@ -304,7 +332,9 @@ fi
 
 echo '>> Generating wrappers'
 
-cp "$ASAN_RT_PATH/$ASAN_RT" "$TMPDIR/"
+if [[ -n "$ASAN_RT" ]]; then
+  cp "$ASAN_RT_PATH/$ASAN_RT" "$TMPDIR/"
+fi
 if [[ -n "$ASAN_RT64" ]]; then
   cp "$ASAN_RT_PATH/$ASAN_RT64" "$TMPDIR/"
 fi
@@ -346,10 +376,14 @@ if [[ -f "$TMPDIR/app_process64" ]]; then
   # A 64-bit device.
   if [[ ! -f "$TMPDIR/app_process64.real" ]]; then
     # New installation.
-    mv "$TMPDIR/app_process32" "$TMPDIR/app_process32.real"
+    if [[ -f "$TMPDIR/app_process32" ]]; then
+      mv "$TMPDIR/app_process32" "$TMPDIR/app_process32.real"
+    fi
     mv "$TMPDIR/app_process64" "$TMPDIR/app_process64.real"
   fi
-  generate_zygote_wrapper "app_process32" "/system/bin/app_process32.real"
+  if [[ -f "$TMPDIR/app_process32.real" || -f "$TMPDIR/app_process32" ]]; then
+    generate_zygote_wrapper "app_process32" "/system/bin/app_process32.real"
+  fi
   generate_zygote_wrapper "app_process64" "/system/bin/app_process64.real"
 else
   # A 32-bit device.
@@ -409,16 +443,24 @@ if ! ( cd "$TMPDIRBASE" && diff -qr old/ new/ ) ; then
     echo '>> Pushing files to the device'
 
     if [[ -n "$ASAN_RT64" ]]; then
-      install "$TMPDIR/$ASAN_RT" /system/lib 644
+      if [[ -n "$ASAN_RT" ]]; then
+        install "$TMPDIR/$ASAN_RT" /system/lib 644
+      fi
       install "$TMPDIR/$ASAN_RT64" /system/lib64 644
-      install "$TMPDIR/app_process32" /system/bin 755 $CTX
-      install "$TMPDIR/app_process32.real" /system/bin 755 $CTX
+      if [[ -f "$TMPDIR/app_process32" ]]; then
+        install "$TMPDIR/app_process32" /system/bin 755 $CTX
+      fi
+      if [[ -f "$TMPDIR/app_process32.real" ]]; then
+        install "$TMPDIR/app_process32.real" /system/bin 755 $CTX
+      fi
       install "$TMPDIR/app_process64" /system/bin 755 $CTX
       install "$TMPDIR/app_process64.real" /system/bin 755 $CTX
       install "$TMPDIR/asanwrapper" /system/bin 755
       install "$TMPDIR/asanwrapper64" /system/bin 755
 
-      adb_shell ln -sf $ASAN_RT /system/lib/$ASAN_RT_SYMLINK
+      if [[ -n "$ASAN_RT" ]]; then
+        adb_shell ln -sf $ASAN_RT /system/lib/$ASAN_RT_SYMLINK
+      fi
       adb_shell ln -sf $ASAN_RT64 /system/lib64/$ASAN_RT_SYMLINK
     else
       install "$TMPDIR/$ASAN_RT" /system/lib 644
