@@ -1530,7 +1530,7 @@ class UntrustedRunEngineFuzzerTest(
         '[{"strategy_name": "value_profile", '
         '"probability": 1.0, "engine": "libFuzzer"}]')
 
-    build_manager.setup_build()
+    build_manager.setup_build(fuzz_target='test_fuzzer')
     corpus_directory = os.path.join(self.temp_dir, 'corpus')
     testcase_directory = os.path.join(self.temp_dir, 'artifacts')
     os.makedirs(file_host.rebase_to_worker_root(corpus_directory))

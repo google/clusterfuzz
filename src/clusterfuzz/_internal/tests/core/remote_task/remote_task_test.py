@@ -16,7 +16,9 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.k8s import service as k8s_service
+from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -46,6 +48,17 @@ class RemoteTaskGateTest(unittest.TestCase):
                                 '_load_gke_credentials')
     self.addCleanup(patcher.stop)
     patcher.start()
+
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.KUBERNETES.feature_flag.
+        value,
+        enabled=True).put()
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.GCP_BATCH.feature_flag.value,
+        enabled=True).put()
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.SWARMING.feature_flag.value,
+        enabled=True).put()
 
     self.gate = remote_task_gate.RemoteTaskGate()
 
@@ -98,3 +111,17 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.gate.create_utask_main_jobs([task])
 
     self.assertTrue(mock_k8s_create.called)
+
+  def test_service_map_filtering(self):
+    """Test that RemoteTaskGate only constructs services for enabled flags."""
+    # pylint: disable=protected-access
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.SWARMING.feature_flag.value,
+        enabled=False).put()
+
+    # Create a new gate instance to trigger __init__ again.
+    gate = remote_task_gate.RemoteTaskGate()
+
+    self.assertNotIn('swarming', gate._service_map)
+    self.assertIn('kubernetes', gate._service_map)
+    self.assertIn('gcp_batch', gate._service_map)

@@ -522,14 +522,23 @@ class Build(BaseBuild):
       with self._open_build_archive(base_build_dir, build_dir, build_url,
                                     http_build_url) as build:
         unpack_start_time = time.time()
-        if not self._unpack_everything:
-          # We will never unpack the full build so we need to get the targets
-          # from the build archive.
+        if self.is_discovery or not self._unpack_everything:
+          # We need the list of fuzz targets, either because we are performing
+          # initial fuzz target discovery, or because we are only unpacking
+          # selected fuzz targets.
           list_fuzz_target_start_time = time.time()
           self._fuzz_targets = list(build.list_fuzz_targets())
           _emit_job_build_retrieval_metric(list_fuzz_target_start_time,
                                            'list_fuzz_targets',
                                            self._build_type)
+
+        if self.is_discovery:
+          # If no fuzz target is selected, we only needed the list of fuzz
+          # targets and can skip unpacking the archive entirely.
+          logs.info('No fuzz target selected; skipping unpack for discovery.')
+          return True
+
+        if not self._unpack_everything:
           # We only want to unpack a single fuzz target if unpack_everything is
           # False.
           fuzz_target_to_unpack = self.fuzz_target
@@ -537,7 +546,7 @@ class Build(BaseBuild):
           fuzz_target_to_unpack = None
 
         # If the fuzz_target is None, this will return the full size.
-        extracted_size = build.unpacked_size(fuzz_target=self.fuzz_target)
+        extracted_size = build.unpacked_size(fuzz_target=fuzz_target_to_unpack)
 
         if not _make_space(extracted_size, current_build_dir=base_build_dir):
           shell.clear_data_directories()
@@ -593,6 +602,16 @@ class Build(BaseBuild):
   def build_dir(self):
     """The build directory. Usually a subdirectory of base_build_dir."""
     raise NotImplementedError
+
+  @property
+  def is_discovery(self):
+    """Return True if this is a discovery run.
+
+    A discovery run is an engine fuzzer job (e.g., LibFuzzer) with no fuzz
+    target selected. build_prefix is checked to exclude extra builds, which
+    don't set fuzz_target but need to be unpacked."""
+    return (environment.is_engine_fuzzer_job() and not self.fuzz_target and
+            not self.build_prefix)
 
   @property
   def fuzz_targets(self):
@@ -1336,7 +1355,7 @@ def setup_regular_build(revision,
 
   # Additional binaries to pull (for fuzzing engines such as Centipede).
   extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
-  if extra_bucket_path:
+  if extra_bucket_path and not build.is_discovery:
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
     extra_build_urls = get_build_urls_list(extra_bucket_path)

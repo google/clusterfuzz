@@ -1692,9 +1692,9 @@ class FuzzingSession:
       else:
         result_crash = None
 
-      engine_output = _to_engine_output(output, result_crash, return_code,
-                                        log_time)
-      self.fuzz_task_output.engine_outputs.append(engine_output)
+      fuzzer_run_output = _to_fuzzer_run_output(output, result_crash,
+                                                return_code, log_time)
+      self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -2304,27 +2304,27 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_engine_output(output: str, crash_path: str, return_code: int,
-                      log_time: datetime.datetime):
-  """Returns an EngineOutput proto."""
+def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
+                          log_time: datetime.datetime):
+  """Returns a FuzzerRunOutput proto."""
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
 
   proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
-  engine_output = uworker_msg_pb2.EngineOutput(
+  fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
       output=bytes(truncated_output, 'utf-8'),
       return_code=return_code,
       timestamp=proto_timestamp)
 
   if crash_path is None:
-    return engine_output
+    return fuzzer_run_output
   if os.path.getsize(crash_path) > 10 * 1024**2:
-    return engine_output
+    return fuzzer_run_output
   with open(crash_path, 'rb') as fp:
-    engine_output.testcase = fp.read()
+    fuzzer_run_output.testcase = fp.read()
 
-  return engine_output
+  return fuzzer_run_output
 
 
 def _add_build_metadata_to_output(
@@ -2335,15 +2335,16 @@ def _add_build_metadata_to_output(
   fuzz_task_output.gn_args = data_handler.get_filtered_gn_args() or ''
 
 
-def _upload_engine_output(engine_output, fuzzer_name):
-  timestamp = uworker_io.proto_timestamp_to_timestamp(engine_output.timestamp)
+def _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name):
+  timestamp = uworker_io.proto_timestamp_to_timestamp(
+      fuzzer_run_output.timestamp)
   testcase_manager.upload_log(
-      engine_output.output.decode(),
-      engine_output.return_code,
+      fuzzer_run_output.output.decode(),
+      fuzzer_run_output.return_code,
       timestamp,
       fuzzer_name=fuzzer_name)
   testcase_manager.upload_testcase(
-      None, engine_output.testcase, timestamp, fuzzer_name=fuzzer_name)
+      None, fuzzer_run_output.testcase, timestamp, fuzzer_name=fuzzer_name)
 
 
 def _utask_postprocess(output):
@@ -2361,8 +2362,8 @@ def _utask_postprocess(output):
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
   fuzzer_name = output.fuzz_task_output.fully_qualified_fuzzer_name
-  for engine_output in output.fuzz_task_output.engine_outputs:
-    _upload_engine_output(engine_output, fuzzer_name)
+  for fuzzer_run_output in output.fuzz_task_output.fuzzer_run_outputs:
+    _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name)
 
 
 def utask_postprocess(output):

@@ -904,7 +904,7 @@ class UntrustedEngineReproduceTest(
 
     self._setup_env(job_type='libfuzzer_asan_job')
 
-    build_manager.setup_build()
+    build_manager.setup_build(fuzz_target='test_fuzzer')
     result = testcase_manager.engine_reproduce(
         libfuzzer_engine.Engine(), 'test_fuzzer', testcase_file_path, [], 30)
 
