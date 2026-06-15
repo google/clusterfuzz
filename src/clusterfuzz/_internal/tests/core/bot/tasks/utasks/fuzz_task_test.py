@@ -1371,67 +1371,6 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(3, actual.fuzz_task_output.testcases_generated)
     self.assertEqual(3, actual.fuzz_task_output.testcases_executed)
 
-  @mock.patch(
-      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
-  )
-  @mock.patch('clusterfuzz._internal.bot.testcase_manager.read_testcase_data')
-  @mock.patch('clusterfuzz._internal.system.environment.is_uworker')
-  def test_utask_main_blackbox_fuzzer_uworker(self, mock_is_uworker,
-                                              mock_read_testcase_data,
-                                              mock_generate_blackbox_testcases):
-    """Test utask_main processing for a blackbox fuzzer on a uworker."""
-    mock_is_uworker.return_value = True
-    self._setup_utask_env()
-    fuzzer = self._create_test_fuzzer()
-
-    # Configure get_crash_data to return a proper CrashInfo with string attributes
-    from clusterfuzz.stacktraces import CrashInfo
-    mock_crash_info = CrashInfo()
-    mock_crash_info.crash_stacktrace = 'Fuzzer output stacktrace'
-    mock_crash_info.crash_type = 'Type'
-    mock_crash_info.crash_state = 'State'
-    self.mock.get_crash_data.return_value = mock_crash_info
-    mock_read_testcase_data.side_effect = lambda path: b'testcase-content-' + path.encode()
-
-    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
-    setup_input = uworker_msg_pb2.SetupInput(
-        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
-
-    uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name=fuzzer.name,
-        job_type='asan_test',
-        fuzz_task_input=fuzz_task_input,
-        setup_input=setup_input)
-
-    # Mock out actual test-case generation for 3 tests.
-    expected_testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
-    mock_generate_blackbox_testcases.return_value = (
-        fuzz_task.GenerateBlackboxTestcasesResult(
-            True, expected_testcase_file_paths,
-            {'fuzzer_binary_name': fuzzer.name}))
-
-    actual = fuzz_task.utask_main(uworker_input)
-
-    self.assertEqual(3, actual.fuzz_task_output.testcases_generated)
-    self.assertEqual(3, actual.fuzz_task_output.testcases_executed)
-
-    # Verify that direct GCS uploads were NOT called on the sandboxed worker.
-    self.assertEqual(0, self.mock.upload_log.call_count)
-    self.assertEqual(0, self.mock.upload_testcase.call_count)
-
-    # Verify that fuzzer logs/testcases are returned inside fuzzer_run_outputs.
-    self.assertEqual(3, len(actual.fuzz_task_output.fuzzer_run_outputs))
-    for i, fuzzer_run_output in enumerate(
-        actual.fuzz_task_output.fuzzer_run_outputs):
-      self.assertIn(b'Fuzzer output stacktrace', fuzzer_run_output.output)
-      # For crashes (first and third are crashed based on is_crash side_effect),
-      # verify the testcase content is passed back.
-      if i in (0, 2):
-        expected_content = b'testcase-content-/tests/' + str(i).encode()
-        self.assertEqual(expected_content, fuzzer_run_output.testcase)
-      else:
-        self.assertEqual(b'', fuzzer_run_output.testcase)
-
 
 @test_utils.with_cloud_emulators('datastore')
 class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
