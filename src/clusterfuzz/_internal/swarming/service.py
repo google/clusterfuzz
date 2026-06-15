@@ -113,9 +113,8 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
       os_val = self._get_dimension(task_req, 'os')
       pool_val = self._get_dimension(task_req, 'pool')
       if not os_val or not pool_val:
-        logs.warning(f'[Swarming] Failed to find required dimension for job '
-                     f'{task.job_type}.')
-        unscheduled_tasks.append(task)
+        logs.error(f'[Swarming] Failed to find required dimension for job '
+                   f'{task.job_type}. Discarding task')
         continue
 
       # Since there are multiple concurrent scheduling sessions/bots, it is
@@ -129,7 +128,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
       # If the queue is full, there is no sense in continuing to schedule
       # tasks in this session, so we return the remaining tasks as
       # unscheduled.
-      # TODO(b/524280052): Don't check the queue full state more than once.
+      # TODO(b/524280052): Memoize queue state check.
       if self._is_queue_full(count_request):
         unscheduled_tasks.extend(remote_tasks[i:])
         break

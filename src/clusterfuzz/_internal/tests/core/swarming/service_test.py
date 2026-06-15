@@ -234,3 +234,28 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled[1].job_type, 'job2')
 
     self.mock_api.push_task.assert_not_called()
+
+  def test_create_utask_main_job_missing_dimensions(self):
+    """Test that a task with missing dimensions is discarded (returns None).
+    All tasks not returned by this method will be marked as ACK, hence discarding it.
+    """
+
+    self.mock.get_command_from_module.return_value = 'fuzz'
+    self.mock.is_swarming_task.return_value = True
+
+    # Request with missing dimensions (e.g., missing 'os')
+    invalid_request = swarming_pb2.NewTaskRequest(task_slices=[
+        swarming_pb2.TaskSlice(
+            properties=swarming_pb2.TaskProperties(dimensions=[
+                swarming_pb2.StringPair(
+                    key='pool', value='chrome-sec-clusterfuzz'),
+            ]))
+    ])
+    self.mock.create_new_task_request.return_value = invalid_request
+
+    result = self.service.create_utask_main_job('fuzz_task', 'job_type',
+                                                'http://url')
+
+    # Discarded task doesn't needs to return to the queue, hence we return None.
+    self.assertIsNone(result)
+    self.mock_api.push_task.assert_not_called()
