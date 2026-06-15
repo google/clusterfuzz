@@ -129,27 +129,32 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
       # If the queue is full, there is no sense in continuing to schedule
       # tasks in this session, so we return the remaining tasks as
       # unscheduled.
+      # TODO(b/524280052): Don't check the queue full state more than once.
       if self._is_queue_full(count_request):
         unscheduled_tasks.extend(remote_tasks[i:])
         break
 
+      response: swarming_pb2.NewTaskResponse
       try:
         response = self._api.push_task(task_req)
-        if not response or not response.task_id:
-          logs.warning(
-              '[Swarming] task not scheduled, no task_id in response',
-              response=response,
-              job=task.job_type)
-          unscheduled_tasks.append(task)
-          continue
-        logs.info(
-            f'[Swarming] task {response.task_id} scheduled successfully',
-            task_id=response.task_id,
-            job=task.job_type)
       except SwarmingApiError as api_failure:
         logs.warning(
             f'''Failed to push task to Swarming: {task.command}, {task.job_type}
             . Reason: {api_failure}.
             ''')
         unscheduled_tasks.append(task)
+        continue
+
+      if not response or not response.task_id:
+        logs.warning(
+            '[Swarming] task not scheduled, no task_id in response',
+            response=response,
+            job=task.job_type)
+        unscheduled_tasks.append(task)
+      else:
+        logs.info(
+            f'[Swarming] task {response.task_id} scheduled successfully',
+            task_id=response.task_id,
+            job=task.job_type)
+
     return unscheduled_tasks

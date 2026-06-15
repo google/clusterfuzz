@@ -162,6 +162,7 @@ class SwarmingServiceTest(unittest.TestCase):
 
     self.assertEqual(unscheduled, tasks)
     self.assertEqual(self.mock_api.push_task.call_count, 1)
+
   def test_init_no_config(self):
     """Test that __init__ raises ValueError when config is missing."""
     self.mock.create.return_value = None
