@@ -883,6 +883,9 @@ class Config(Model):
   # functional bugs.
   relax_security_bug_restrictions = ndb.BooleanProperty(default=False)
 
+  # Flag to use the V4 Android Build API instead of V3.
+  use_android_build_api_v4 = ndb.BooleanProperty(default=False)
+
   # Coverage reports bucket.
   coverage_reports_bucket = ndb.StringProperty(default='')
 
