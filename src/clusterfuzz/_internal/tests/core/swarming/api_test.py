@@ -43,8 +43,8 @@ class SwarmingAPITest(unittest.TestCase):
 
   def test_push_task(self):
     """Tests that push_task works as expected."""
-    expected_response = '{"taskId": "123"}'
-    self.mock.post_url.return_value = expected_response
+    self.mock.post_url.return_value = '{"taskId": "123"}'
+    expected_response = swarming_pb2.TaskRequestResponse(task_id="123")
     task_request = swarming_pb2.NewTaskRequest(
         name='test_task',
         priority=1,
@@ -154,6 +154,7 @@ class SwarmingAPITest(unittest.TestCase):
   def test_push_task_no_credentials(self):
     """Tests that push_task gets called with an empty token when credentials are missing."""
     self.mock.get_scoped_service_account_credentials.return_value = None
+    self.mock.post_url.return_value = '{}'
     self.api.push_task(swarming_pb2.NewTaskRequest())
 
     _, kwargs = self.mock.post_url.call_args
@@ -174,7 +175,7 @@ class SwarmingAPITest(unittest.TestCase):
     self.mock.post_url.side_effect = HTTPError(
         "Unauthorized", response=mock.Mock(status_code=401))
 
-    with self.assertRaises(HTTPError):
+    with self.assertRaises(SwarmingApiError):
       self.api.push_task(swarming_pb2.NewTaskRequest())
 
   def test_count_tasks_auth_error(self):
@@ -191,8 +192,21 @@ class SwarmingAPITest(unittest.TestCase):
     from google.auth.exceptions import DefaultCredentialsError
     self.mock.get_scoped_service_account_credentials.side_effect = DefaultCredentialsError(
         "No creds")
+    self.mock.post_url.return_value = '{}'
 
     self.api.push_task(swarming_pb2.NewTaskRequest())
 
     _, kwargs = self.mock.post_url.call_args
     self.assertEqual(kwargs['headers']['Authorization'], 'Bearer ')
+
+  def test_push_task_empty_response(self):
+    """Tests that push_task raises SwarmingApiError on empty response."""
+    self.mock.post_url.return_value = ''
+    with self.assertRaises(SwarmingApiError):
+      self.api.push_task(swarming_pb2.NewTaskRequest())
+
+  def test_push_task_parse_error(self):
+    """Tests that push_task raises SwarmingApiError on parse failure."""
+    self.mock.post_url.return_value = 'invalid json'
+    with self.assertRaises(SwarmingApiError):
+      self.api.push_task(swarming_pb2.NewTaskRequest())

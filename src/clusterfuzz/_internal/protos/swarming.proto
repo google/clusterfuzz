@@ -406,6 +406,38 @@ message NewTaskRequest {
   string realm = 18;
 }
 
+// Description of a task request as registered by the server.
+// This message is used when retrieving information about an existing task.
+// See NewTaskRequest for more details.
+message TaskRequestResponse {
+  string task_id = 1;
+  int32 expiration_secs = 2;
+  string name = 3;
+  string parent_task_id = 4;
+  int32 priority = 5;
+  // For some amount of time, the properties will be copied into the
+  // task_slices and vice-versa, to give time to the clients to update.
+  // Eventually, only task_slices will be supported.
+  TaskProperties properties = 6;
+  repeated string tags = 7;
+  google.protobuf.Timestamp created_ts = 8;
+  string user = 9;
+  // User name of whoever posted this task, extracted from the credentials.
+  string authenticated = 10;
+  repeated TaskSlice task_slices = 11;
+  // Indicates what OAuth2 credentials the task uses when calling other services.
+  string service_account = 12;
+  string realm = 13;
+
+  // Configuration of Swarming:ResultDB integration.
+  ResultDBCfg resultdb = 14;
+
+  string pubsub_topic = 15;
+  string pubsub_userdata = 16;
+  int32 bot_ping_tolerance_secs = 17;
+  string rbe_instance = 18;
+}
+
 message TasksCountRequest {
   google.protobuf.Timestamp start = 1;
   google.protobuf.Timestamp end = 2;
