@@ -179,6 +179,7 @@ class EditHandlerTest(unittest.TestCase):
             'additional_environment_string': 'args=123',
             'data_bundle_name': 'test_bundle',
             'external_contribution': True,
+            'untrusted': False,
             'executable_path': 'executable',
             'last_edited_by': 'editor@example.com',
             'launcher_script': 'launcher',
@@ -188,3 +189,68 @@ class EditHandlerTest(unittest.TestCase):
             'source': 'original@example.com',
             'timeout': 30,
         })
+
+  def test_update_fuzzer_untrusted_success(self):
+    """Test updating a fuzzer to untrusted with a Linux job succeeds."""
+    # Create a Linux job.
+    job = data_types.Job(name='linux_job', platform='LINUX')
+    job.put()
+
+    fuzzer_name = 'test_fuzzer'
+    fuzzer = data_types.Fuzzer(
+        name=fuzzer_name,
+        jobs=[],
+        revision=1,
+        source='original@example.com',
+        timeout=10,
+    )
+    fuzzer.put()
+
+    request_payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+        'name': fuzzer_name,
+        'untrusted': True,
+        'jobs': ['linux_job'],
+    }
+
+    resp = self.app.post_json('/fuzzers/edit', request_payload)
+    self.assertEqual(302, resp.status_int)  # Redirects to /fuzzers
+
+    fuzzer = fuzzer.key.get()
+    self.assertTrue(fuzzer.untrusted)
+    self.assertEqual(fuzzer.jobs, ['linux_job'])
+
+  def test_update_fuzzer_untrusted_failure_non_linux(self):
+    """Test updating a fuzzer to untrusted with a non-Linux job fails."""
+    # Create a Windows job.
+    job = data_types.Job(name='windows_job', platform='WINDOWS')
+    job.put()
+
+    fuzzer_name = 'test_fuzzer'
+    fuzzer = data_types.Fuzzer(
+        name=fuzzer_name,
+        jobs=[],
+        revision=1,
+        source='original@example.com',
+        timeout=10,
+    )
+    fuzzer.put()
+
+    request_payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+        'name': fuzzer_name,
+        'untrusted': True,
+        'jobs': ['windows_job'],
+    }
+
+    resp = self.app.post_json(
+        '/fuzzers/edit', request_payload, expect_errors=True)
+    self.assertEqual(400, resp.status_int)
+    self.assertIn('Untrusted fuzzers can only be run on Linux jobs',
+                  resp.normal_body.decode())
+
+    # Verify fuzzer was not updated to untrusted.
+    fuzzer = fuzzer.key.get()
+    self.assertFalse(fuzzer.untrusted)
