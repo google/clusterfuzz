@@ -356,8 +356,15 @@ def _get_specs_from_config(
     if (task.command, task.job_type) in specs:
       # Don't repeat work for no reason.
       continue
-    config_name, disk_size_gb, base_os_version = config_map[(task.command,
-                                                             task.job_type)]
+    try:
+      config_name, disk_size_gb, base_os_version = config_map[(task.command,
+                                                               task.job_type)]
+    except Exception:
+      logs.error(
+          'Error on mapping the job',
+          command=task.command,
+          job_type=task.job_type)
+      continue
 
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
