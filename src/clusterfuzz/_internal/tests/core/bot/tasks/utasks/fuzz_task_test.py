@@ -1762,6 +1762,48 @@ class EmitTestcaseCreationEventTest(unittest.TestCase):
             creation_origin=events.TestcaseOrigin.FUZZ_TASK,
             uploader=None))
 
+  def test_create_testcase_trusted_fuzzer(self):
+    """Test creating a testcase with a trusted fuzzer."""
+    fuzzer = data_types.Fuzzer(name='engine', untrusted=False)
+    fuzzer.put()
+
+    self.uworker_input.setup_input.CopyFrom(uworker_msg_pb2.SetupInput())
+    self.uworker_input.setup_input.fuzzer.CopyFrom(
+        uworker_io.entity_to_protobuf(fuzzer))
+
+    self.mock.store_testcase.side_effect = _store_generic_testcase
+
+    fuzz_task.create_testcase(
+        group=self.group,
+        uworker_input=self.uworker_input,
+        uworker_output=self.uworker_output,
+        fully_qualified_fuzzer_name='engine')
+
+    self.mock.store_testcase.assert_called_once()
+    kwargs = self.mock.store_testcase.call_args[1]
+    self.assertTrue(kwargs.get('trusted'))
+
+  def test_create_testcase_untrusted_fuzzer(self):
+    """Test creating a testcase with an untrusted fuzzer."""
+    fuzzer = data_types.Fuzzer(name='engine', untrusted=True)
+    fuzzer.put()
+
+    self.uworker_input.setup_input.CopyFrom(uworker_msg_pb2.SetupInput())
+    self.uworker_input.setup_input.fuzzer.CopyFrom(
+        uworker_io.entity_to_protobuf(fuzzer))
+
+    self.mock.store_testcase.side_effect = _store_generic_testcase
+
+    fuzz_task.create_testcase(
+        group=self.group,
+        uworker_input=self.uworker_input,
+        uworker_output=self.uworker_output,
+        fully_qualified_fuzzer_name='engine')
+
+    self.mock.store_testcase.assert_called_once()
+    kwargs = self.mock.store_testcase.call_args[1]
+    self.assertFalse(kwargs.get('trusted'))
+
 
 def _store_generic_testcase(*args, **kwargs):  # pylint: disable=unused-argument
   """Store a generic testcase and return its id."""
