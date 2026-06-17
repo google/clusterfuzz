@@ -256,7 +256,8 @@ def is_remote_task(command: str, job_name: str) -> bool:
   """
   try:
     _get_specs_from_config(
-        [remote_task_types.RemoteTask(command, job_name, None)])
+        [remote_task_types.RemoteTask(command, job_name, None)],
+        should_check_regions=False)
     return True
   except ValueError:
     return False
@@ -300,15 +301,15 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   return config_map
 
 
-def _get_subconfig(batch_config, instance_spec):
+def _get_subconfig(batch_config, instance_spec, should_check_regions=True):
   all_subconfigs = batch_config.get('subconfigs', {})
   instance_subconfigs = instance_spec['subconfigs']
 
   queue_check_regions = batch_config.get('queue_check_regions')
-  if not queue_check_regions:
-    logs.info(
-        'Skipping batch load check because queue_check_regions is not configured.'
-    )
+  if not should_check_regions or not queue_check_regions:
+    logs.info('Skipping batch load check. '
+              f'should_check_regions: {should_check_regions}, '
+              f'queue_check_regions: {queue_check_regions}')
     weighted_subconfigs = [
         WeightedSubconfig(subconfig['name'], subconfig['weight'])
         for subconfig in instance_subconfigs
@@ -343,8 +344,8 @@ def _get_subconfig(batch_config, instance_spec):
   return all_subconfigs[chosen_name]
 
 
-def _get_specs_from_config(
-    batch_tasks: List[remote_task_types.RemoteTask]) -> Dict:
+def _get_specs_from_config(batch_tasks: List[remote_task_types.RemoteTask],
+                           should_check_regions: bool = True) -> Dict:
   """Gets the configured specifications for a batch workload."""
   if not batch_tasks:
     return {}
@@ -389,7 +390,8 @@ def _get_specs_from_config(
     # This saves us time and reduces fragementation, e.g. every linux fuzz task
     # run in this call will run in the same zone.
     if config_name not in subconfig_map:
-      subconfig = _get_subconfig(batch_config, instance_spec)
+      subconfig = _get_subconfig(batch_config, instance_spec,
+                                 should_check_regions)
       subconfig_map[config_name] = subconfig
 
     should_retry = instance_spec.get('retry', False)
