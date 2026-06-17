@@ -26,6 +26,7 @@ from typing import Optional
 from google.cloud import monitoring_v3
 
 from clusterfuzz._internal.base import external_tasks
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
@@ -437,6 +438,10 @@ def get_task():
                   f'default {default_android_queue()} queue.')
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
+
+  if not feature_flags.FeatureFlags.ENABLE_FUZZ_FOR_BOTS.enabled:
+    logs.warning('Fuzzing is disabled for long-lived bots.')
+    return None
 
   task = get_fuzz_task()
   if not task:
