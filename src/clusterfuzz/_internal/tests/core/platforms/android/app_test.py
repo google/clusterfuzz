@@ -14,10 +14,13 @@
 """Tests for app functions."""
 
 import os
+from unittest import mock
+from unittest import TestCase
 
 from clusterfuzz._internal.platforms.android import app
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import android_helpers
+from clusterfuzz._internal.tests.test_libs import helpers
 
 
 class IsInstalledTest(android_helpers.AndroidTest):
@@ -61,3 +64,33 @@ class GetPackageNameTest(android_helpers.AndroidTest):
     """Test apk path passed as argument."""
     self.assertEqual(
         app.get_package_name(self.test_apk_path), self.test_apk_pkg_name)
+
+
+class InstallTest(TestCase):
+  """Tests install."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+    self.run_command_patcher = mock.patch(
+        'clusterfuzz._internal.platforms.android.adb.run_command')
+    self.mock_run_command = self.run_command_patcher.start()
+    self.addCleanup(self.run_command_patcher.stop)
+
+  def test_install_normal(self):
+    """Test normal installation without any additional flags."""
+    app.install('/path/to/app.apk')
+    self.mock_run_command.assert_called_once_with(
+        ['install', '-r', '/path/to/app.apk'])
+
+  def test_install_with_additional_flags(self):
+    """Test installation with additional flags."""
+    app.install('/path/to/app.apk', g=True, t=True)
+    self.mock_run_command.assert_called_once_with(
+        ['install', '-r', '-g', '-t', '/path/to/app.apk'])
+
+  def test_install_with_valued_flags(self):
+    """Test installation with flags that take string/numeric values."""
+    app.install('/path/to/app.apk', abi='x86', no_streaming=True)
+    self.mock_run_command.assert_called_once_with(
+        ['install', '-r', '--abi', 'x86', '--no-streaming', '/path/to/app.apk'])

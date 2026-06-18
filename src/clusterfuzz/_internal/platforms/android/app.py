@@ -93,9 +93,25 @@ def get_package_name(apk_path=None):
   return match.group(1)
 
 
-def install(package_apk_path):
-  """Install a package from an apk path."""
-  return adb.run_command(['install', '-r', package_apk_path])
+def install(package_apk_path: str, **kwargs):
+  """Install a package from an apk path.
+
+  Args:
+    package_apk_path: Path to the apk file to install.
+    **kwargs: Additional arguments to pass to the install command.
+  """
+  cmd = ['install', '-r']
+  for key, value in kwargs.items():
+    if not value:
+      continue
+
+    flag = '-' + key if len(key) == 1 else '--' + key.replace('_', '-')
+    cmd.append(flag)
+    if not isinstance(value, bool):
+      cmd.append(str(value))
+
+  cmd.append(package_apk_path)
+  return adb.run_command(cmd)
 
 
 def is_installed(package_name):
