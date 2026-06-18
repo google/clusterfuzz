@@ -99,24 +99,24 @@ class GetNoStreamingFlagTest(unittest.TestCase):
 
   def test_normal_job(self):
     """Test flags returned for a normal job."""
-    self.assertEqual(device._get_no_streaming_flag(), [])
+    self.assertEqual(device._get_no_streaming_flag(), '')
 
   def test_asan_job(self):
     """Test flags returned for an ASan job."""
     environment.set_value('JOB_NAME', 'android_asan_job')
-    self.assertEqual(device._get_no_streaming_flag(), ['--no-streaming'])
+    self.assertEqual(device._get_no_streaming_flag(), '--no-streaming')
 
   def test_hwasan_job(self):
     """Test flags returned for a non ASAN job like HWASan."""
     environment.set_value('JOB_NAME', 'android_hwasan_job')
-    self.assertEqual(device._get_no_streaming_flag(), [])
+    self.assertEqual(device._get_no_streaming_flag(), '')
 
   def test_asan_device_env(self):
     """Test flags returned for an ASan device via ASAN_DEVICE_SETUP env."""
     environment.set_value('ASAN_DEVICE_SETUP', True)
-    self.assertEqual(device._get_no_streaming_flag(), ['--no-streaming'])
+    self.assertEqual(device._get_no_streaming_flag(), '--no-streaming')
 
   def test_asan_device_flavor(self):
     """Test flags returned for an ASan device via settings build flavor."""
     self.mock.get_sanitizer_tool_name.return_value = 'asan'
-    self.assertEqual(device._get_no_streaming_flag(), ['--no-streaming'])
+    self.assertEqual(device._get_no_streaming_flag(), '--no-streaming')
