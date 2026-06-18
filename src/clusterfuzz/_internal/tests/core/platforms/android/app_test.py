@@ -14,8 +14,8 @@
 """Tests for app functions."""
 
 import os
-import unittest
 from unittest import mock
+from unittest import TestCase
 
 from clusterfuzz._internal.platforms.android import app
 from clusterfuzz._internal.system import environment
@@ -66,7 +66,7 @@ class GetPackageNameTest(android_helpers.AndroidTest):
         app.get_package_name(self.test_apk_path), self.test_apk_pkg_name)
 
 
-class InstallTest(unittest.TestCase):
+class InstallTest(TestCase):
   """Tests install."""
 
   def setUp(self):
