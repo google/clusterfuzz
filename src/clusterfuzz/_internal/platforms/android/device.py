@@ -352,12 +352,14 @@ def initialize_environment():
   environment.set_value('LOG_TASK_TIMES', True)
 
 
-def _get_no_streaming_flag() -> str:
-  """Returns '--no-streaming' if the job or device requires ASan. Otherwise,
-  returns an empty string.
+def _needs_no_streaming_for_asan() -> bool:
+  """
+  Asan setup requires non-streaming installation because streaming
+  installation prevents wrap.sh from being invoked on modern Android
+  versions which is necessary for ASan to function correctly.
 
-  This is required because streaming installation prevents wrap.sh from
-  functioning correctly on modern Android versions.
+  Returns:
+    bool: True if the job or device requires ASan, False otherwise.
   """
   is_asan_job = False
   job_name = environment.get_value('JOB_NAME')
@@ -370,10 +372,7 @@ def _get_no_streaming_flag() -> str:
       environment.get_value('ASAN_DEVICE_SETUP') or
       settings.get_sanitizer_tool_name() == 'asan')
 
-  if is_asan_job or is_asan_device:
-    return '--no-streaming'
-
-  return ''
+  return is_asan_job or is_asan_device
 
 
 def install_application_if_needed(apk_path, force_update):
@@ -401,7 +400,7 @@ def install_application_if_needed(apk_path, force_update):
   # package list or force_update flag has been set.
   if force_update or not app.is_installed(package_name):
     app.uninstall(package_name)
-    app.install(apk_path, additional_flags=[_get_no_streaming_flag()])
+    app.install(apk_path, no_streaming=_needs_no_streaming_for_asan())
 
     if not app.is_installed(package_name):
       logs.error('Package %s was not installed successfully.' % package_name)

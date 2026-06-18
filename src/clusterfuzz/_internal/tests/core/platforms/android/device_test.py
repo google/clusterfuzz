@@ -84,8 +84,8 @@ class AddTestAccountsIfNeededTest(unittest.TestCase):
     self.mock.get_value.assert_not_called()
 
 
-class GetNoStreamingFlagTest(unittest.TestCase):
-  """Tests _get_no_streaming_flag."""
+class NeedsNoStreamingForAsanTest(unittest.TestCase):
+  """Tests _needs_no_streaming_for_asan."""
 
   # pylint: disable=protected-access
 
@@ -98,25 +98,25 @@ class GetNoStreamingFlagTest(unittest.TestCase):
     self.mock.get_sanitizer_tool_name.return_value = None
 
   def test_normal_job(self):
-    """Test flags returned for a normal job."""
-    self.assertEqual(device._get_no_streaming_flag(), '')
+    """Test outcome for a normal job."""
+    self.assertFalse(device._needs_no_streaming_for_asan())
 
   def test_asan_job(self):
-    """Test flags returned for an ASan job."""
+    """Test outcome for an ASan job."""
     environment.set_value('JOB_NAME', 'android_asan_job')
-    self.assertEqual(device._get_no_streaming_flag(), '--no-streaming')
+    self.assertTrue(device._needs_no_streaming_for_asan())
 
   def test_hwasan_job(self):
-    """Test flags returned for a non ASAN job like HWASan."""
+    """Test outcome for a non ASAN job like HWASan."""
     environment.set_value('JOB_NAME', 'android_hwasan_job')
-    self.assertEqual(device._get_no_streaming_flag(), '')
+    self.assertFalse(device._needs_no_streaming_for_asan())
 
   def test_asan_device_env(self):
-    """Test flags returned for an ASan device via ASAN_DEVICE_SETUP env."""
+    """Test outcome for an ASan device via ASAN_DEVICE_SETUP env."""
     environment.set_value('ASAN_DEVICE_SETUP', True)
-    self.assertEqual(device._get_no_streaming_flag(), '--no-streaming')
+    self.assertTrue(device._needs_no_streaming_for_asan())
 
   def test_asan_device_flavor(self):
-    """Test flags returned for an ASan device via settings build flavor."""
+    """Test outcome for an ASan device via settings build flavor."""
     self.mock.get_sanitizer_tool_name.return_value = 'asan'
-    self.assertEqual(device._get_no_streaming_flag(), '--no-streaming')
+    self.assertTrue(device._needs_no_streaming_for_asan())

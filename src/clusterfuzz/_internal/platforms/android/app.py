@@ -93,13 +93,23 @@ def get_package_name(apk_path=None):
   return match.group(1)
 
 
-def install(package_apk_path: str, additional_flags: list[str] = None):
-  """Install a package from an apk path."""
-  if additional_flags is None:
-    additional_flags = []
+def install(package_apk_path: str, **kwargs):
+  """Install a package from an apk path.
 
+  Args:
+    package_apk_path: Path to the apk file to install.
+    **kwargs: Additional arguments to pass to the install command.
+  """
   cmd = ['install', '-r']
-  cmd.extend(additional_flags)
+  for key, value in kwargs.items():
+    if not value:
+      continue
+
+    flag = '-' + key if len(key) == 1 else '--' + key.replace('_', '-')
+    cmd.append(flag)
+    if not isinstance(value, bool):
+      cmd.append(str(value))
+
   cmd.append(package_apk_path)
   return adb.run_command(cmd)
 

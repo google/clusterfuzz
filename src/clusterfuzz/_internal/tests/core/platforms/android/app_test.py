@@ -85,6 +85,12 @@ class InstallTest(TestCase):
 
   def test_install_with_additional_flags(self):
     """Test installation with additional flags."""
-    app.install('/path/to/app.apk', additional_flags=['-g', '-t'])
+    app.install('/path/to/app.apk', g=True, t=True)
     self.mock_run_command.assert_called_once_with(
         ['install', '-r', '-g', '-t', '/path/to/app.apk'])
+
+  def test_install_with_valued_flags(self):
+    """Test installation with flags that take string/numeric values."""
+    app.install('/path/to/app.apk', abi='x86', no_streaming=True)
+    self.mock_run_command.assert_called_once_with(
+        ['install', '-r', '--abi', 'x86', '--no-streaming', '/path/to/app.apk'])
