@@ -193,6 +193,7 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
     ab_target = 'slider-fuzz-test-debug'
   else:
     logs.error(f'Unsupported device {device}.')
+    return
 
   branch = 'polygon-trusty-whitechapel-master'
   if not bid:
