@@ -330,8 +330,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     """Ensure that untrusted fuzzers are filtered out on long-lived bots."""
     os.environ['UWORKER'] = is_uworker
 
-    data_types.Fuzzer(name='untrusted_fuzzer', untrusted_content=True).put()
-    data_types.Fuzzer(name='trusted_fuzzer', untrusted_content=False).put()
+    data_types.Fuzzer(name='untrusted_fuzzer', untrusted=True).put()
+    data_types.Fuzzer(name='trusted_fuzzer', untrusted=False).put()
 
     untrusted_mapping = data_types.FuzzerJob()
     untrusted_mapping.fuzzer = 'untrusted_fuzzer'
