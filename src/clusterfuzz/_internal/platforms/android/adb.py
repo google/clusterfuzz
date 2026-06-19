@@ -600,7 +600,7 @@ def get_device_path():
         open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
     return '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
 
-  if environment.is_android_cuttlefish():
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
     return None
 
   device_serial = environment.get_value('ANDROID_SERIAL')
@@ -612,7 +612,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if environment.is_android_cuttlefish():
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
     # Nothing to do here.
     return True
 
