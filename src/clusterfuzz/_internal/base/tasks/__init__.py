@@ -439,7 +439,9 @@ def get_task():
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
 
-  if not feature_flags.FeatureFlags.ENABLE_FUZZ_FOR_BOTS.enabled:
+  if (not feature_flags.FeatureFlags.ENABLE_FUZZ_FOR_BOTS.enabled or
+      environment.platform().lower() not in
+      feature_flags.FeatureFlags.ENABLE_FUZZ_FOR_BOTS.string_value):
     logs.warning('Fuzzing is disabled for long-lived bots.')
     return None
 
