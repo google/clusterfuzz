@@ -1123,11 +1123,14 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
 
 class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
-  """Android APK libFuzzer runner."""
+  """Android APK libFuzzer runner (v2 Standard)."""
 
-  def __init__(self, executable_path, build_directory, default_args=None):
+  def __init__(self, apk_path, build_directory, fuzzer_library):
     super().__init__(executable_path=android.adb.get_adb_path(), default_args=[])
-    self.apk_path = executable_path
+    self.apk_path = apk_path
+    self.build_directory = build_directory
+    self.fuzzer_library = fuzzer_library
+    
     self.package_name = android.app.get_package_name(self.apk_path)
     if not self.package_name:
       raise LibFuzzerError(f'Failed to get package name for {self.apk_path}')
@@ -1193,6 +1196,21 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
+  def _push_libraries_to_device(self):
+    """Push all shared libraries to the app's private data directory."""
+    device_lib_dir = f'/data/data/{self.package_name}/files/'
+    android.adb.run_as_root()
+    android.adb.run_shell_command(f'mkdir -p {device_lib_dir}', root=True)
+    
+    logs.info(f'Deploying shared libraries to {device_lib_dir}...')
+    # Find and push all .so files in the build directory
+    for root, _, files in os.walk(self.build_directory):
+      for file in files:
+        if file.endswith('.so'):
+          local_path = os.path.join(root, file)
+          device_path = os.path.join(device_lib_dir, file)
+          android.adb.copy_local_file_to_remote(local_path, device_path)
+
   def fuzz(self, corpus_directories, fuzz_timeout, artifact_prefix=None, additional_args=None, extra_env=None):
     sync_directories = list(corpus_directories)
     if artifact_prefix:
@@ -1204,10 +1222,17 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
     if artifact_prefix:
       artifact_prefix = self._get_device_path(artifact_prefix)
 
+    # Deploy the shared libraries to the app's private directory
+    self._push_libraries_to_device()
+
     fuzzer_args = []
     if additional_args:
       fuzzer_args.extend(additional_args)
     fuzzer_args.extend(device_corpus_dirs)
+    
+    # Inject the library-to-load flag
+    fuzzer_args.append(f'--library-to-load={self.fuzzer_library}')
+    
     fuzzer_args_str = ' '.join(fuzzer_args)
 
     if self.instrumentation_runner:
@@ -1298,9 +1323,19 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
       raise undercoat.UndercoatError('Instance handle not provided.')
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
-    if fuzzer_path.endswith('.apk'):
-      runner = AndroidApkLibFuzzerRunner(fuzzer_path, build_dir)
+    base_apk_path = os.path.join(build_dir, 'apks', 'ChromiumFuzzerBase.apk')
+    if os.path.exists(base_apk_path):
+      # New standard APK fuzzing v2
+      fuzzer_name = os.path.basename(fuzzer_path)
+      if fuzzer_name.startswith('lib') and fuzzer_name.endswith('__library.so'):
+        fuzzer_library = fuzzer_name
+      else:
+        fuzzer_library = f'lib{fuzzer_name}__library.so'
+      
+      logs.info(f'Using standard APK v2 runner for {fuzzer_name}. Base APK: {base_apk_path}, Library: {fuzzer_library}')
+      runner = AndroidApkLibFuzzerRunner(base_apk_path, build_dir, fuzzer_library)
     else:
+      # Non-APK command-line binary fuzzing
       runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
