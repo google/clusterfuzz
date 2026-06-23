@@ -225,7 +225,10 @@ def get_adb_path():
 
 def get_device_state():
   """Return the device status."""
-  if environment.is_android_emulator():
+  # Emulators do not support the fastboot protocol and cannot enter physical ramdump mode.
+  # The original check was backwards (checking emulator instead of physical devices), causing a 20-second
+  # fastboot timeout on every state check on emulators. We correct this to only run fastboot checks on physical devices.
+  if not environment.is_android_emulator():
     fastboot_state = run_fastboot_command(
         ['getvar', 'is-ramdump-mode'], timeout=GET_DEVICE_STATE_TIMEOUT)
     if fastboot_state and 'is-ramdump-mode: yes' in fastboot_state:
