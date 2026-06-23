@@ -58,7 +58,8 @@ def _use_v4():
     return use_v4
   except Exception as e:
     logs.error(
-        'AndroidBuildAPI error reading feature flag use_android_build_api_v4. Defaulting to False.',
+        'AndroidBuildAPI error reading feature flag use_android_build_api_v4. '
+        'Defaulting to False.',
         error=str(e))
     return False
 
@@ -103,7 +104,8 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   artifact = execute_request_with_retries(artifact_query)
   if artifact is None:
     logs.error(
-        'AndroidBuildAPI download_artifact failed: artifact metadata unreachable.',
+        'AndroidBuildAPI download_artifact failed: artifact metadata '
+        'unreachable.',
         api_version=version_tag,
         operation='download_artifact',
         build_id=bid,
@@ -241,6 +243,7 @@ def get_artifacts_for_build(client,
                  f'{request.body}, {request.methodId}')
 
   artifacts = []
+
   results = []
   while request:
     result = execute_request_with_retries(request)
@@ -380,7 +383,8 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
         branch=branch,
         target=target,
         signed=signed,
-        status='failed')
+        status='failed',
+        request_str=request_str)
     return None
 
   build = builds['builds'][0]
