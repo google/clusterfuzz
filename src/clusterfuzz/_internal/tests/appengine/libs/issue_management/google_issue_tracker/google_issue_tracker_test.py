@@ -154,6 +154,63 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertEqual(
         datetime.datetime(2019, 6, 24, 6, 40, 7, 672), issue.closed_time)
 
+  def test_is_unrestricted_limit_none(self):
+    """Test is_unrestricted returns True when accessLevel is LIMIT_NONE."""
+    self.client.issues().get().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId': '29002',
+            'type': 'BUG',
+            'status': 'NEW',
+            'priority': 'P2',
+            'severity': 'S2',
+            'title': 'test',
+            'accessLimit': {
+                'accessLevel': 'LIMIT_NONE'
+            },
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertTrue(issue.is_unrestricted)
+
+  def test_is_unrestricted_limit_view(self):
+    """Test is_unrestricted returns False when accessLevel is LIMIT_VIEW."""
+    self.client.issues().get().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId': '29002',
+            'type': 'BUG',
+            'status': 'NEW',
+            'priority': 'P2',
+            'severity': 'S2',
+            'title': 'test',
+            'accessLimit': {
+                'accessLevel': 'LIMIT_VIEW'
+            },
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertFalse(issue.is_unrestricted)
+
+  def test_is_unrestricted_no_access_limit(self):
+    """Test is_unrestricted returns False when no accessLimit field."""
+    self.client.issues().get().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId': '29002',
+            'type': 'BUG',
+            'status': 'NEW',
+            'priority': 'P2',
+            'severity': 'S2',
+            'title': 'test',
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertFalse(issue.is_unrestricted)
+
   def test_get_labels(self):
     """Test getting labels."""
     self.client.issues().get().execute.return_value = {
