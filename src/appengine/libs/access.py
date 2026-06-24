@@ -21,10 +21,15 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.metrics import logs
 from libs import auth
 from libs import helpers
+from libs import request_cache
+
+PRIVILEGED_USER_CACHE_CAPACITY = 10
 
 
+@request_cache.wrap(PRIVILEGED_USER_CACHE_CAPACITY)
 def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
   if local_config.AuthConfig().get('all_users_privileged'):
@@ -47,12 +52,16 @@ def _is_privileged_user(email):
         utils.is_service_account(privileged_group)):
       continue
 
-    group_id = google_groups.get_group_id(privileged_group)
-    if not group_id:
-      continue
+    try:
+      group_id = google_groups.get_group_id(privileged_group)
+      if not group_id:
+        continue
 
-    if google_groups.check_transitive_group_membership(group_id, email):
-      return True
+      if google_groups.check_transitive_group_membership(group_id, email):
+        return True
+    except:
+      logs.error(f'Failed to check privileged group membership for {email}')
+      return False
 
   return False
 
@@ -93,6 +102,15 @@ def _is_domain_allowed(email):
   return False
 
 
+def _is_trusted_domain_user(user):
+  """Check if a user should be trusted based on their email domain.
+
+  Domain-allowlist trust requires a verified email: a self-assertable
+  federated email (e.g. an unverified GitHub/Enterprise Managed User address)
+  must not be trusted as a whitelisted domain."""
+  return bool(user) and user.email_verified and _is_domain_allowed(user.email)
+
+
 class UserAccess:
   Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
@@ -130,7 +148,7 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
       external_users.is_fuzzer_allowed_for_user(email, fuzzer_name)):
     return UserAccess.Allowed
 
-  if not need_privileged_access and _is_domain_allowed(email):
+  if not need_privileged_access and _is_trusted_domain_user(user):
     return UserAccess.Allowed
 
   return UserAccess.Denied
@@ -171,7 +189,8 @@ def can_user_access_testcase(testcase):
       issues_to_check.append(original_issue)
 
   relaxed_restrictions = (
-      config.relax_testcase_restrictions or _is_domain_allowed(user_email))
+      config.relax_testcase_restrictions or
+      _is_trusted_domain_user(auth.get_current_user()))
   for issue in issues_to_check:
     if relaxed_restrictions:
       if (any(utils.emails_equal(user_email, cc) for cc in issue.ccs) or

@@ -27,23 +27,29 @@ source "$(${PYTHON} -m pipenv --venv)/bin/activate"
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
-  ANDROID_SDK_REVISION=4333796
-  ANDROID_VERSION=28
-  ANDROID_TOOLS_BIN=$ANDROID_SDK_INSTALL_DIR/tools/bin/
+  ANDROID_SDK_REVISION=11076708
+  ANDROID_VERSION=34
+  ANDROID_TOOLS_BIN=$ANDROID_SDK_INSTALL_DIR/cmdline-tools/latest/bin/
 
   # Install the Android emulator and its dependencies. Used in tests and as an
   # option during Android test case reproduction.
   rm -rf $ANDROID_SDK_INSTALL_DIR
-  mkdir $ANDROID_SDK_INSTALL_DIR
-  curl https://dl.google.com/android/repository/sdk-tools-linux-$ANDROID_SDK_REVISION.zip \
-      --output $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
-  unzip -d $ANDROID_SDK_INSTALL_DIR $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
+  mkdir -p $ANDROID_SDK_INSTALL_DIR
+  curl https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_REVISION}_latest.zip \
+      --output $ANDROID_SDK_INSTALL_DIR/cmdline-tools.zip
+  unzip -d $ANDROID_SDK_INSTALL_DIR/temp $ANDROID_SDK_INSTALL_DIR/cmdline-tools.zip
+  
+  # The new cmdline-tools expects to be in a directory named 'latest' or 'version'
+  # to find its own root.
+  mkdir -p $ANDROID_SDK_INSTALL_DIR/cmdline-tools
+  mv $ANDROID_SDK_INSTALL_DIR/temp/cmdline-tools $ANDROID_SDK_INSTALL_DIR/cmdline-tools/latest
+  rmdir $ANDROID_SDK_INSTALL_DIR/temp
 
+  yes | $ANDROID_TOOLS_BIN/sdkmanager --licenses
   $ANDROID_TOOLS_BIN/sdkmanager "emulator"
-  $ANDROID_TOOLS_BIN/sdkmanager "platform-tools" "platforms;android-$ANDROID_VERSION"
-  $ANDROID_TOOLS_BIN/sdkmanager "system-images;android-$ANDROID_VERSION;google_apis;x86"
-  $ANDROID_TOOLS_BIN/sdkmanager --licenses
-  $ANDROID_TOOLS_BIN/avdmanager create avd --force -n TestImage -k "system-images;android-$ANDROID_VERSION;google_apis;x86"
+  $ANDROID_TOOLS_BIN/sdkmanager "platform-tools" "platforms;android-$ANDROID_VERSION" "build-tools;$ANDROID_VERSION.0.0"
+  $ANDROID_TOOLS_BIN/sdkmanager "system-images;android-$ANDROID_VERSION;google_apis;x86_64"
+  $ANDROID_TOOLS_BIN/avdmanager create avd --force -n TestImage -k "system-images;android-$ANDROID_VERSION;google_apis;x86_64"
 fi
 
 # Install other dependencies (e.g. bower).

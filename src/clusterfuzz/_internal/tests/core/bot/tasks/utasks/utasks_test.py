@@ -199,7 +199,7 @@ class UworkerMainTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
-        'clusterfuzz._internal.system.environment.is_swarming_bot',
+        'clusterfuzz._internal.system.environment.is_running_on_swarming',
         'clusterfuzz._internal.metrics.events.emit',
     ])
     self.module = mock.MagicMock(__name__='tasks.analyze_task')
@@ -210,10 +210,8 @@ class UworkerMainTest(unittest.TestCase):
     """Tests that uworker_main works as intended."""
     start_time_ns = time.time_ns()
 
-    if execution_mode == utasks.Mode.SWARMING:
-      self.mock.is_swarming_bot.return_value = True  # pylint: disable=protected-access
-    else:
-      self.mock.is_swarming_bot.return_value = False
+    self.mock.is_running_on_swarming.return_value = (
+        execution_mode == utasks.Mode.SWARMING)
 
     preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
     preprocess_start_timestamp = timestamp_pb2.Timestamp()

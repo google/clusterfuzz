@@ -1330,6 +1330,53 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_isolate_pushstacktraceanddie(self):
+    """Test a crash in v8::internal::Isolate::PushStackTraceAndDie.
+    That frame itself should be excluded from the crash state."""
+    data = self._read_test_data('v8_isolate_pushstacktraceanddie.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x0539000001f2'
+    expected_state = ('v8::internal::LookupIterator::GetRootForNonJSReceiver\n'
+                      'void v8::internal::LookupIterator::Start<false>\n'
+                      'v8::internal::LoadIC::Load\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_error_with_small_number(self):
+    """Test a v8 error with a small number (see https://crbug.com/437859892)."""
+    data = self._read_test_data('v8_error_with_small_number.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = ('Funky failure at token NUMBER in bar.cc\n'
+                      'v8::internal::foo::Bar::Baz1<v8::internal::Isolate>\n'
+                      'v8::internal::foo::Bar::Baz2<v8::internal::Isolate>\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_fatal_error_no_file(self):
+    """Test a V8 fatal error where the file name is missing."""
+    data = self._read_test_data('v8_fatal_error_no_file.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        '!is_null()\n'
+        'v8::internal::WasmModuleObject::ExtractUtf8StringFromModuleBytes\n'
+        'v8::internal::wasm::InstanceBuilder::SanitizeImports\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_generic_segv(self):
     """Test a SEGV caught by a generic signal handler."""
     data = self._read_test_data('generic_segv.txt')
@@ -2360,6 +2407,35 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('!terminated_ in latency_info.cc\n'
                       'ui::LatencyInfo::AddLatencyNumberWithTimestampImpl\n'
                       'ui::LatencyInfo::AddLatencyNumberWithTimestamp\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_check_failure_chrome_semicolon(self):
+    """Test a CHECK failure in Chrome with the new semicolon format."""
+    data = '[123:456:file.cc(130)] Check failed: false; foo'
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = 'false in file.cc\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_check_failure_chrome_semicolon_file(self):
+    """Test a CHECK failure in Chrome using chrome_check_semicolon.txt."""
+    data = self._read_test_data('chrome_check_semicolon.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        '!HasAssociatedFieldTrialByFeatureName(feature_name) in feature_list.cc\n'
+        'base::FeatureList::RegisterFieldTrialOverride\n'
+        'variations::RegisterFeatureOverrides\n')
     expected_stacktrace = data
     expected_security_flag = False
 

@@ -261,6 +261,31 @@ class Blacklist(Model):
 class Fuzzer(Model):
   """Represents a fuzzer."""
 
+  _EXCLUDED_FIELDS_FOR_CONFIG = (
+      'created_at',
+      'timestamp',
+      'name',
+      'filename',
+      'blobstore_key',
+      'file_size',
+      'supported_platforms',
+      'result',
+      'result_timestamp',
+      'console_output',
+      'return_code',
+      'sample_testcase',
+      'untrusted_content',
+      'stats_columns',
+      'stats_column_descriptions',
+      'builtin',
+      'differential',
+      'has_large_testcases',
+  )
+
+  # Created at timestamp. Not set for fuzzers created before this field was
+  # added.
+  created_at = ndb.DateTimeProperty()
+
   # Additionally allows '.' and '@' over NAME_CHECK_REGEX.
   VALID_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_@.-]+$')
 
@@ -287,6 +312,9 @@ class Fuzzer(Model):
 
   # Fuzzer's source (for accountability).
   source = ndb.StringProperty()
+
+  # Last person to make changes to the Fuzzer code or configuration.
+  last_edited_by = ndb.StringProperty()
 
   # Testcase timeout.
   timeout = ndb.IntegerProperty()
@@ -338,7 +366,7 @@ class Fuzzer(Model):
   stats_column_descriptions = ndb.TextProperty(indexed=False)
 
   # Whether this is a builtin fuzzer.
-  builtin = ndb.BooleanProperty(indexed=False, default=False)
+  builtin = ndb.BooleanProperty(default=False)
 
   # Whether this is a differential fuzzer.
   differential = ndb.BooleanProperty(default=False)
@@ -346,6 +374,11 @@ class Fuzzer(Model):
   # If this flag is set, fuzzer generates the testcase in the larger directory
   # on disk |FUZZ_INPUTS_DISK|, rather than smaller tmpfs one (FUZZ_INPUTS).
   has_large_testcases = ndb.BooleanProperty(default=False)
+
+  def get_config_dict(self):
+    """Returns a dict containing the required config to upload a fuzzer."""
+
+    return self.to_dict(exclude=self._EXCLUDED_FIELDS_FOR_CONFIG)
 
 
 class BuildCrashStatsJobHistory(Model):

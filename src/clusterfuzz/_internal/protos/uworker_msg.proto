@@ -18,6 +18,7 @@ package uworker_msg;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 
 message SetupInput {
   optional google.protobuf.Any fuzzer = 1;
@@ -240,7 +241,7 @@ message FuzzTaskCrashGroup {
   optional bool one_time_crasher_flag = 4;
 }
 
-message EngineOutput {
+message FuzzerRunOutput {
   optional bytes output = 1;
   optional int64 return_code = 2;
   google.protobuf.Timestamp timestamp = 3;
@@ -262,10 +263,17 @@ message FuzzTaskOutput {
   repeated FuzzTaskCrashGroup crash_groups = 13;
   optional BuildData build_data = 14;
   optional int64 app_revision = 15;
-  repeated EngineOutput engine_outputs = 16;
+  repeated FuzzerRunOutput fuzzer_run_outputs = 16;
   optional string build_key = 17;
   optional string build_url = 18;
   optional string gn_args = 19;
+  // Number of testcases generated. Only applicable to blackbox fuzzers
+  optional int64 testcases_generated = 20;
+  optional google.protobuf.Duration testcase_generation_duration = 21;
+  optional google.protobuf.Duration testcase_execution_duration = 22;
+  // Total fuzzing session time. Includes time spent updating the fuzzer, build
+  // and test corpus set up, and crash processing.
+  optional google.protobuf.Duration fuzzing_duration = 23;
 }
 
 message MinimizeTaskOutput {

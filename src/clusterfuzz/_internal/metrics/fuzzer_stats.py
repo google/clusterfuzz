@@ -96,12 +96,49 @@ JOB_RUN_SCHEMA = {
         'name': 'kind',
         'type': 'STRING',
         'mode': 'NULLABLE'
+    }, {
+        'name': 'testcases_generated',
+        'type': 'INTEGER',
+        'mode': 'NULLABLE'
+    }, {
+        'name': 'testcase_generation_duration',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE'
+    }, {
+        'name': 'testcase_execution_duration',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE'
+    }, {
+        'name': 'fuzzing_duration',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE'
     }]
 }
 
 
 class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
+
+
+def _timedelta_to_duration_string(time_delta):
+  """Converts a datetime.timedelta to ISO8601 duration string.
+
+  BigQuery Load API requires the ISO8601 duration string rather than an INTERVAL
+  type.
+  https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-json#data_types
+  """
+  if isinstance(time_delta, str):
+    return time_delta
+
+  days = time_delta.days
+  seconds = time_delta.seconds
+  microseconds = time_delta.microseconds
+
+  hours = seconds // 3600
+  minutes = (seconds % 3600) // 60
+  secs = seconds % 60
+
+  return f"P{days}DT{hours}H{minutes}M{secs}.{microseconds:06}S"
 
 
 class BaseRun:
@@ -185,7 +222,10 @@ class BaseRun:
         result = JobRun(data['fuzzer'], data['job'], data['build_revision'],
                         data['timestamp'], data['testcases_executed'],
                         data['new_crashes'], data['known_crashes'],
-                        data.get('crashes'))
+                        data.get('crashes'), data.get('testcases_generated'),
+                        data.get('testcase_generation_duration'),
+                        data.get('testcase_execution_duration'),
+                        data.get('fuzzing_duration'))
     except KeyError:
       return None
 
@@ -200,8 +240,19 @@ class JobRun(BaseRun):
   SCHEMA = JOB_RUN_SCHEMA
 
   # `crashes` is a new field that will replace `new_crashes` and `old_crashes`.
-  def __init__(self, fuzzer, job, build_revision, timestamp,
-               number_of_testcases, new_crashes, known_crashes, crashes):
+  def __init__(self,
+               fuzzer,
+               job,
+               build_revision,
+               timestamp,
+               number_of_testcases,
+               new_crashes,
+               known_crashes,
+               crashes,
+               testcases_generated=None,
+               testcase_generation_duration=None,
+               testcase_execution_duration=None,
+               fuzzing_duration=None):
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
@@ -210,6 +261,19 @@ class JobRun(BaseRun):
         'known_crashes': known_crashes,
         'crashes': crashes
     })
+    if testcases_generated is not None:
+      self._stats_data['testcases_generated'] = testcases_generated
+    if testcase_generation_duration is not None:
+      self._stats_data[
+          'testcase_generation_duration'] = _timedelta_to_duration_string(
+              testcase_generation_duration)
+    if testcase_execution_duration is not None:
+      self._stats_data[
+          'testcase_execution_duration'] = _timedelta_to_duration_string(
+              testcase_execution_duration)
+    if fuzzing_duration is not None:
+      self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
+          fuzzing_duration)
 
 
 class TestcaseRun(BaseRun):

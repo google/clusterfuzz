@@ -17,58 +17,82 @@ import base64
 import json
 import uuid
 
-from google.auth.transport import requests
-from google.protobuf import json_format
-
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.errors import BadConfigError
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
-_SWARMING_SCOPES = [
-    'https://www.googleapis.com/auth/cloud-platform',
-    'https://www.googleapis.com/auth/userinfo.email'
-]
+
+def has_swarming_env_vars(job_environment: dict) -> bool:
+  """Returns True if the job environment contains swarming env vars."""
+  return bool(
+      utils.string_is_true(job_environment.get('IS_SWARMING_JOB')) or
+      job_environment.get('SWARMING_DIMENSIONS'))
 
 
-def is_swarming_task(command: str, job_name: str):
+def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
   """Returns True if the task is supposed to run on swarming."""
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    logs.info('[DEBUG] Flag is disabled', job_name=job_name)
     return False
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job:
-    return False
+  if job is None:
+    job = data_types.Job.query(data_types.Job.name == job_name).get()
+    if not job:
+      logs.info('[Swarming DEBUG] Job not found', job_name=job_name)
+      return False
 
-  job_environment = job.get_environment()
-  if not utils.string_is_true(job_environment.get('IS_SWARMING_JOB')):
-    return False
-
-  try:
-    _get_new_task_spec(command, job_name, '')
-    return True
-  except ValueError:
+  if not has_swarming_env_vars(job.get_environment()):
+    logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
     return False
 
+  swarming_config = get_swarming_config()
+  if swarming_config is None:
+    logs.warning(
+        """[Swarming DEBUG] current task is not suitable for swarming. 
+    'Reason: failed to retrieve config.""",
+        job_name=job_name)
+    return False
 
-def _get_task_name():
-  return 't-' + str(uuid.uuid4()).lower()
+  return _get_instance_spec(swarming_config, job) is not None
 
 
-def _get_swarming_config():
+def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
+                       job: data_types.Job) -> dict | None:
+  return swarming_config.get('mapping').get(job.platform, None)
+
+
+def _get_task_name(job_name: str):
+  return f't-{str(uuid.uuid4()).lower()}-{job_name}'
+
+
+def get_swarming_config() -> local_config.SwarmingConfig | None:
   """Returns the swarming config."""
-  return local_config.SwarmingConfig()
+  try:
+    return local_config.SwarmingConfig()
+  except (BadConfigError, ValueError) as e:
+    logs.error(f'[Swarming] Failed to retrieve config: {e}')
+    return None
 
 
 def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
                         ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """ Gets all swarming dimensions for a task.
   Job dimensions have more precedence than static dimensions"""
+  swarming_config = get_swarming_config()
+  if not swarming_config:
+    logs.error(
+        '[Swarming] No dimensions set. Reason: failed to retrieve config')
+    return []
+
   unique_dimensions = {}
-  unique_dimensions['os'] = job.platform
-  unique_dimensions['pool'] = _get_swarming_config().get('swarming_pool')
+  unique_dimensions['os'] = str(job.platform).capitalize()
+  unique_dimensions['pool'] = swarming_config.get('swarming_pool')
 
   for dimension in platform_specific_dimensions:
     unique_dimensions[dimension['key'].lower()] = dimension['value']
@@ -86,6 +110,70 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   return task_dimensions
 
 
+def _append_metadata_env_var(
+    env_vars: list[swarming_pb2.StringPair],  # pylint: disable=no-member
+    env_var_name: str,
+    metadata_path: str) -> None:
+  """Attempts to get a variable from the environment or metadata and appends it.
+
+  Args:
+    env_vars: The list of string pairs to append the retrieved value to.
+    env_var_name: The name of the environment variable to check and set.
+    metadata_path: The path in the compute metadata to check if not set in env.
+  """
+  value = environment.get_value(env_var_name)
+  if not value:
+    try:
+      value = compute_metadata.get(metadata_path)
+    except Exception:
+      pass
+
+  if value:
+    env_vars.append(
+        swarming_pb2.StringPair(  # pylint: disable=no-member
+            key=env_var_name, value=str(value)))
+  else:
+    logs.warning(f'{env_var_name} is not set or cannot be fetched.')
+
+
+def _get_env_vars(logs_project_id: str,
+                  instance_spec: dict) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
+  """Retrieve required environment variables from metadata and config."""
+  default_task_environment = [
+      swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(key='DISABLE_MOUNTS', value='True'),  # pylint: disable=no-member
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='LOGGING_CLOUD_PROJECT_ID',
+          value=logs_project_id or ''),
+  ]
+
+  _append_metadata_env_var(default_task_environment, 'DEPLOYMENT_BUCKET',
+                           'project/attributes/deployment-bucket')
+  _append_metadata_env_var(default_task_environment, 'HOST_JOB_SELECTION',
+                           'instance/attributes/host-job-selection')
+  _append_metadata_env_var(default_task_environment, 'DEPLOYMENT_ZIP',
+                           'project/attributes/deployment-zip')
+
+  swarming_bot_env = []
+  swarming_bot_env.append(
+      swarming_pb2.StringPair(  # pylint: disable=no-member
+          key='DOCKER_IMAGE',
+          value=instance_spec.get('docker_image', '')))
+
+  platform_specific_env = instance_spec.get('env', [])
+  for var in platform_specific_env:
+    swarming_bot_env.append(
+        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+
+  swarming_bot_env.extend(default_task_environment)
+  swarming_bot_env.append(_env_vars_to_json(swarming_bot_env))
+
+  return swarming_bot_env
+
+
 def _env_vars_to_json(
     env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
   """
@@ -99,16 +187,27 @@ def _env_vars_to_json(
       value=json.dumps(env_vars_dict))
 
 
-def _get_new_task_spec(command: str, job_name: str,
-                       download_url: str) -> swarming_pb2.NewTaskRequest:  # pylint: disable=no-member
-  """Gets the configured specifications for a swarming task."""
+def create_new_task_request(command: str, job_name: str, download_url: str
+                           ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
+  """Gets the configured specifications for a swarming task. 
+  Returns None if the task should'nt be executed on swarming 
+  or if the SWARMING_REMOTE_EXECUTION flag is disabled."""
+  if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    return None
+
   job = data_types.Job.query(data_types.Job.name == job_name).get()
-  config_name = job.platform
-  swarming_config = _get_swarming_config()
-  instance_spec = swarming_config.get('mapping').get(config_name, None)
+  if job is None:
+    return None
+
+  swarming_config = get_swarming_config()
+  if not swarming_config:
+    return None
+
+  instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
-    raise ValueError(f'No mapping for {config_name}')
-  swarming_realm = swarming_config.get('swarming_realm')
+    return None
+
+  swarming_realm = swarming_config.get('swarming_realm',)
   logs_project_id = swarming_config.get('logs_project_id')
   priority = instance_spec['priority']
   startup_command = instance_spec['command']
@@ -129,33 +228,12 @@ def _get_new_task_spec(command: str, job_name: str,
   # env_prefixes allows the modification of existing environment variables by
   # adding the values as prefixes to the env variable.
   env_prefixes = instance_spec.get('env_prefixes', {})
-  default_task_environment = [
-      swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(  # pylint: disable=no-member
-          key='LOGGING_CLOUD_PROJECT_ID',
-          value=logs_project_id),
-  ]
-
-  platform_specific_env = instance_spec.get('env', [])
-  swarming_bot_environment = []
-  swarming_bot_environment.append(
-      swarming_pb2.StringPair(  # pylint: disable=no-member
-          key='DOCKER_IMAGE',
-          value=instance_spec.get('docker_image', '')))
-  for var in platform_specific_env:
-    swarming_bot_environment.append(
-        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
-  swarming_bot_environment.append(_env_vars_to_json(default_task_environment))
-  swarming_bot_environment.extend(default_task_environment)
-
+  swarming_bot_environment = _get_env_vars(logs_project_id, instance_spec)
   dimensions = instance_spec.get('dimensions', [])
-
   cas_input_root = instance_spec.get('cas_input_root', {})
 
   new_task_request = swarming_pb2.NewTaskRequest(  # pylint: disable=no-member
-      name=_get_task_name(),
+      name=_get_task_name(job_name),
       priority=priority,
       realm=swarming_realm,
       service_account=service_account,
@@ -170,30 +248,7 @@ def _get_new_task_spec(command: str, job_name: str,
                   execution_timeout_secs=execution_timeout_secs,
                   env=swarming_bot_environment,
                   env_prefixes=env_prefixes,
-                  secret_bytes=base64.b64encode(download_url.encode('utf-8'))))
+                  secret_bytes=download_url.encode('utf-8')))
       ])
 
   return new_task_request
-
-
-def push_swarming_task(command, download_url, job_type):
-  """Schedules a task on swarming."""
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
-  if not job:
-    raise ValueError('invalid job_name')
-
-  task_spec = _get_new_task_spec(command, job_type, download_url)
-  creds, _ = credentials.get_default(_SWARMING_SCOPES)
-
-  if not creds.token:
-    creds.refresh(requests.Request())
-
-  headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': f'Bearer {creds.token}'
-  }
-  swarming_server = _get_swarming_config().get('swarming_server')
-  url = f'https://{swarming_server}/prpc/swarming.v2.Tasks/NewTask'
-  utils.post_url(
-      url=url, data=json_format.MessageToJson(task_spec), headers=headers)

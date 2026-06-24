@@ -44,13 +44,13 @@ class UtaskPreprocessTest(unittest.TestCase):
   def test_no_symbolized_builds(self):
     """Ensure that nothing is done when symbolized builds are missing."""
     self.mock.has_symbolized_builds.return_value = False
-    result = symbolize_task.utask_preprocess(self.testcase.key.id(), None, None)
+    result = symbolize_task.utask_preprocess(self.testcase.key.id(), None, {})
     self.assertIsNone(result)
 
   def test_preprocess_uworker_input(self):
     """Tests the preprocess behaviour for non custom binaries."""
     result = symbolize_task.utask_preprocess(
-        str(self.testcase.key.id()), 'job_type', None)
+        str(self.testcase.key.id()), 'job_type', {})
     self.assertEqual('job_type', result.job_type)
     returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
                                                         data_types.Testcase)

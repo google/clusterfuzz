@@ -26,6 +26,7 @@ from typing import Optional
 from google.cloud import monitoring_v3
 
 from clusterfuzz._internal.base import external_tasks
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
@@ -34,6 +35,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -100,6 +102,11 @@ TASK_END_TIME_KEY = 'task_end_time'
 POSTPROCESS_QUEUE = 'postprocess'
 UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
+
+SWARMING_QUEUES = {
+    PREPROCESS_QUEUE: 'preprocess-swarming',
+    UTASK_MAIN_QUEUE: 'utask_main-swarming',
+}
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
@@ -364,7 +371,7 @@ def get_preprocess_task():
   return task
 
 
-def tworker_get_task():
+def tworker_get_task(override_queue: str = None):
   """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
@@ -372,6 +379,10 @@ def tworker_get_task():
   # queue that is probably empty) to do a single preprocess. Investigate
   # combining preprocess and postprocess queues and allowing pulling of
   # multiple messages.
+  if override_queue:
+    logs.info(f'Overriding default queue to {override_queue}')
+    return get_regular_task(queue=override_queue)
+
   if random.random() < .5:
     # Pick either one with equal probability so we don't hurt the
     # throughput of one compared to the other.
@@ -427,6 +438,10 @@ def get_task():
                   f'default {default_android_queue()} queue.')
 
   logs.info(f'Could not get task from {regular_queue()}. Fuzzing.')
+
+  if not feature_flags.FeatureFlags.ENABLE_FUZZ_FOR_BOTS.enabled:
+    logs.warning('Fuzzing is disabled for long-lived bots.')
+    return None
 
   task = get_fuzz_task()
   if not task:
@@ -681,10 +696,9 @@ def get_task_from_message(message, queue=None, can_defer=True,
   return task
 
 
-def get_utask_mains() -> List[PubSubTask]:
+def get_utask_mains(queue_name: str) -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  queue_name = UTASK_MAIN_QUEUE
   base_os_version = environment.get_value('BASE_OS_VERSION')
   if base_os_version:
     queue_name = f'{queue_name}-{base_os_version}'
@@ -696,9 +710,8 @@ def get_utask_mains() -> List[PubSubTask]:
 
 
 @memoize.wrap(memoize.InMemory(60))
-def get_utask_main_queue_size():
+def get_utask_main_queue_size(queue_name: str) -> int:
   """Returns the size of the utask main queue."""
-  queue_name = UTASK_MAIN_QUEUE
   base_os_version = environment.get_value('BASE_OS_VERSION')
   if base_os_version:
     queue_name = f'{queue_name}-{base_os_version}'
@@ -850,7 +863,8 @@ class _PubSubLeaserThread(threading.Thread):
         logs.error('Leaser thread failed.')
 
 
-def add_utask_main(command, input_url, job_type, wait_time=None):
+def add_utask_main(command: str, input_url: str, job_type: str,
+                   wait_time: Optional[int], queue_name: str) -> None:
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
   initial_command = environment.get_value('TASK_PAYLOAD')
@@ -858,7 +872,7 @@ def add_utask_main(command, input_url, job_type, wait_time=None):
       command,
       input_url,
       job_type,
-      queue=UTASK_MAIN_QUEUE,
+      queue=queue_name,
       wait_time=wait_time,
       extra_info={'initial_command': initial_command})
 

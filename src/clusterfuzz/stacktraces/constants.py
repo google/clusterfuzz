@@ -90,7 +90,7 @@ CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
-    r'\s*\[[^\]]*[:]([^\](]*\([0-9]+\)|[^\]:]*[:][0-9]+).*\].*(?:Check failed:|DCHECK failed:|NOTREACHED hit.)\s*(.*)'  # pylint: disable=line-too-long
+    r'\s*\[[^\]]*[:]([^\](]*\([0-9]+\)|[^\]:]*[:][0-9]+).*\].*(?:Check failed:|DCHECK failed:|NOTREACHED hit.)\s*([^;]*)'  # pylint: disable=line-too-long
 )
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
@@ -120,7 +120,7 @@ FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
-FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
+FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error(?: in (.*))?$')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
 FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
@@ -641,6 +641,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Ignore error-throwing frames, the bug is in the caller.
     r'^blink::ReportV8FatalError',
     r'^v8::api_internal::ToLocalEmpty',
+    r'^v8::internal::Isolate::PushStackTraceAndDie',
+    r'^v8::internal::Isolate::PushParamsAndDie',
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',

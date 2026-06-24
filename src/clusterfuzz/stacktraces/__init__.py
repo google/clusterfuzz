@@ -1066,7 +1066,9 @@ class StackParser:
             FATAL_ERROR_REGEX, line, state, new_type='Fatal error', reset=True)
         if fatal_error_match:
           state.fatal_error_occurred = True
-          state.crash_state = _filter_stack_frame(fatal_error_match.group(1))
+          filename = fatal_error_match.group(1)
+          if filename is not None:
+            state.crash_state = _filter_stack_frame(filename)
 
         if state.is_golang:
           golang_fatal_error_match = self.update_state_on_match(
@@ -1403,10 +1405,12 @@ def filter_addresses_and_numbers(stack_frame):
   # Cases that we are avoiding:
   # - source.cc:1234
   # - libsomething-1.0.so (to avoid things like NUMBERso in replacements)
-  number_expression = r'''(?<![:0-9.])         # not preceeded by any of these
-                          (?:[0-9.]{4,}        # either >= 4 digits
-                             |(?<=[@#])[0-9]+) # or preceeded by @ or #
-                          (?![A-Za-z0-9.])     # not followed by any of these
+  # - very small integer comparisons, e.g. "x >= NUMBER" for "x >= 1"
+  number_expression = r'''(?<![:0-9.])          # not preceeded by any of these
+                          (?:[0-9.]{4,}         # either >= 4 digits
+                             |(?<=\ )[0-9]{2,}  # or >= 2 digits after space
+                             |(?<=[@#])[0-9]+)  # or preceeded by @ or #
+                          (?![A-Za-z0-9.])      # not followed by any of these
                           '''
   return re.sub(number_expression, 'NUMBER', result, flags=re.X)
 

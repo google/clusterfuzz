@@ -16,7 +16,9 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.k8s import service as k8s_service
+from clusterfuzz._internal.remote_task import remote_task_adapters
 from clusterfuzz._internal.remote_task import remote_task_gate
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -47,16 +49,30 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.addCleanup(patcher.stop)
     patcher.start()
 
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.KUBERNETES.feature_flag.
+        value,
+        enabled=True).put()
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.GCP_BATCH.feature_flag.value,
+        enabled=True).put()
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.SWARMING.feature_flag.value,
+        enabled=True).put()
+
     self.gate = remote_task_gate.RemoteTaskGate()
 
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_is_swarming_applicable')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
   def test_create_utask_main_jobs_k8s_limit_reached(
-      self, mock_gcp_create, mock_k8s_create, mock_get_frequency):
+      self, mock_gcp_create, mock_k8s_create, mock_get_frequency,
+      mock_is_swarming_applicable):
     """Test delegation when K8s limit is reached (handled by service)."""
+    mock_is_swarming_applicable.return_value = False
     # Setup tasks to go to Kubernetes
     mock_get_frequency.return_value = {'kubernetes': 1.0}
 
@@ -76,14 +92,17 @@ class RemoteTaskGateTest(unittest.TestCase):
     # Verify result is empty list
     self.assertEqual(result, [])
 
+  @mock.patch.object(remote_task_gate.RemoteTaskGate, '_is_swarming_applicable')
   @mock.patch.object(remote_task_gate.RemoteTaskGate, 'get_job_frequency')
   @mock.patch.object(k8s_service.KubernetesService, 'create_utask_main_jobs')
   @mock.patch(
       'clusterfuzz._internal.batch.service.GcpBatchService.create_utask_main_jobs'
   )
   def test_create_utask_main_jobs_success(self, _, mock_k8s_create,
-                                          mock_get_frequency):
+                                          mock_get_frequency,
+                                          mock_is_swarming_applicable):
     """Test successful creation."""
+    mock_is_swarming_applicable.return_value = False
     mock_get_frequency.return_value = {'kubernetes': 1.0}
     mock_pubsub_task = mock.Mock()
     task = remote_task_types.RemoteTask(
@@ -92,3 +111,17 @@ class RemoteTaskGateTest(unittest.TestCase):
     self.gate.create_utask_main_jobs([task])
 
     self.assertTrue(mock_k8s_create.called)
+
+  def test_service_map_filtering(self):
+    """Test that RemoteTaskGate only constructs services for enabled flags."""
+    # pylint: disable=protected-access
+    data_types.FeatureFlag(
+        id=remote_task_adapters.RemoteTaskAdapters.SWARMING.feature_flag.value,
+        enabled=False).put()
+
+    # Create a new gate instance to trigger __init__ again.
+    gate = remote_task_gate.RemoteTaskGate()
+
+    self.assertNotIn('swarming', gate._service_map)
+    self.assertIn('kubernetes', gate._service_map)
+    self.assertIn('gcp_batch', gate._service_map)

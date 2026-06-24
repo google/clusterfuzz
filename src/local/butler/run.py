@@ -37,6 +37,7 @@ def execute(args):
   if args.local:
     os.environ['DATASTORE_EMULATOR_HOST'] = constants.DATASTORE_EMULATOR_HOST
     os.environ['PUBSUB_EMULATOR_HOST'] = constants.PUBSUB_EMULATOR_HOST
+    os.environ['LOCAL_GCS_SERVER_HOST'] = constants.LOCAL_GCS_SERVER_HOST
     os.environ['DATASTORE_USE_PROJECT_ID_AS_APP_ID'] = 'true'
     os.environ['LOCAL_DEVELOPMENT'] = 'True'
 

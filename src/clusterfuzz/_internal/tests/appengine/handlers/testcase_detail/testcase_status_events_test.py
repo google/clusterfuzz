@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 
 import datetime
+import json
 import unittest
 from unittest import mock
 
@@ -746,9 +747,23 @@ class TestcaseEventHistoryTest(unittest.TestCase):
     """Verify that the task log query filter is generated correctly."""
     result = self.event_history._get_task_log_query_filter(
         'task123', 'minimize')
-    expected = (f'jsonPayload.extras.task_id="task123" AND '
-                f'jsonPayload.extras.testcase_id="{self.testcase_id}" AND '
-                'jsonPayload.extras.task_name="minimize" AND '
+    quoted_testcase_id = json.dumps(str(self.testcase_id))
+    expected = (f'jsonPayload.extras.task_id={json.dumps("task123")} AND '
+                f'jsonPayload.extras.testcase_id={quoted_testcase_id} AND '
+                f'jsonPayload.extras.task_name={json.dumps("minimize")} AND '
+                'timestamp >= "2025-01-01T00:00:00Z"')
+    self.assertEqual(result, expected)
+
+  def test_get_task_log_query_filter_escapes_values(self):
+    """Verify that task values are escaped before building the log filter."""
+    task_id = 'task123" OR severity>="WARNING'
+    task_name = 'minimize\\latest'
+
+    result = self.event_history._get_task_log_query_filter(task_id, task_name)
+    quoted_testcase_id = json.dumps(str(self.testcase_id))
+    expected = (f'jsonPayload.extras.task_id={json.dumps(task_id)} AND '
+                f'jsonPayload.extras.testcase_id={quoted_testcase_id} AND '
+                f'jsonPayload.extras.task_name={json.dumps(task_name)} AND '
                 'timestamp >= "2025-01-01T00:00:00Z"')
     self.assertEqual(result, expected)
 

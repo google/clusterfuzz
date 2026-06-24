@@ -182,7 +182,11 @@ def _get_url_content(url):
     url_content = url_data.decode('utf-8')
   else:
     # Fetch a regular url without authentication.
-    url_content = utils.fetch_url(url)
+    try:
+      url_content = utils.fetch_url(url)
+    except Exception:
+      logs.error(f'Failed to fetch URL {url}')
+      return None
 
     # Urls on googlesource.com return file data as base64 encoded to avoid
     # cross-site scripting attacks. If the requested url contains |format=text|,

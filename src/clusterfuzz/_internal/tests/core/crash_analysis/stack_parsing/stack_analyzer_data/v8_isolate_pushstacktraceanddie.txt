@@ -1,0 +1,73 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allow_user_segv_handler=1:check_malloc_usable_size=0:detect_leaks=1:detect_odr_violation=0:detect_stack_use_after_return=1:external_symbolizer_path=/mnt/scratch0/clusterfuzz/resources/platform/linux/llvm-symbolizer:fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:handle_sigtrap=1:print_scariness=1:print_summary=1:print_suppressions=0:redzone=16:strict_memcmp=0:symbolize=1:symbolize_inline_frames=false:use_sigaltstack=1
+[Command line] /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-release_1f17dda3b0e56007440db98eafbaad9618b3d0fa/revisions/d8 --random-seed=-219308200 --fuzzing --fuzzing --expose-gc --allow-natives-syntax --debug-code --disable-abortjs --omit-quit --disable-in-process-stack-traces --invoke-weak-callbacks --enable-slow-asserts --verify-heap --maglev-untagged-phis --regexp-interpret-all --optimize-on-next-call-optimizes-to-maglev --turboshaft-verify-load-store-taggedness --minor-ms --turboshaft-verify-load-elimination --jit-fuzzing --private-field-bytecodes --no-sparkplug --experimental-fuzzing --fuzzing /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-514.js
++----------------------------------------Debug Build Stacktrace----------------------------------------+
+V8 is running with experimental features enabled. Stability and security will suffer.
+Stacktrace:
+    ptr0=0x7e9a0107f1d9
+    failure_message_object=0x78fa4c6f0020
+==== JS stack trace =========================================
+    0: ExitFrame [pc: 0x5846b75fb376]
+    1: StubFrame [pc: 0x5846b76feb23]
+    2: __f_5 [0x7e9a0103e639] [/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-514.js:3530] [bytecode=0x78fa01010089 offset=318](this=0x7e9a010044a1 <JSGlobalProxy>,0x7e9a010277a9 <String[3]: #mod>,0x7e9a010277b9 <String[3]: #foo>)
+    3: /* anonymous */ [0x7e9a0103a46d] [/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-514.js:3534] [bytecode=0x78fa01000b99 offset=13453](this=0x7e9a010044a1 <JSGlobalProxy>)
+    4: InternalFrame [pc: 0x5846b754365c]
+    5: EntryFrame [pc: 0x5846b75433ab]
+==== Details ================================================
+[0]: ExitFrame [pc: 0x5846b75fb376]
+[1]: StubFrame [pc: 0x5846b76feb23]
+[2]: __f_5 [0x7e9a0103e639] [/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-514.js:3530] [bytecode=0x78fa01010089 offset=318](this=0x7e9a010044a1 <JSGlobalProxy>,0x7e9a010277a9 <String[3]: #mod>,0x7e9a010277b9 <String[3]: #foo>) {
+  // heap-allocated locals
+  var __v_38 = 0x7e9a010277b9 <String[3]: #foo>
+  var __v_37 = 0x7e9a010277a9 <String[3]: #mod>
+  var __v_39 = 0x7e9a01199359 <WasmModuleBuilder map = 0x7e9a010c86d9>
+  var __v_40 = 0x7e9a01199a09 <JSFunction (sfi = 0x7e9a01039965)>
+  // expression stack (top to bottom)
+  [08] : 0x7e9a0012fffd <optimized_out>
+  [07] : 0x7e9a0012fffd <optimized_out>
+  [06] : 0x7e9a0107f1d9 <ContextCell[const=0x7e9a010ca9f1 <Instance map = 0x7e9a01012fe1>]>
+  [05] : 0x7e9a0012fffd <optimized_out>
+  [04] : 2
+  [03] : 0x7e9a0104fcf9 <JSFunction assertEquals (sfi = 0x7e9a010383f5)>
+  [02] : 0x7e9a01199339 <FunctionContext[6]>
+  [01] : 0x7e9a0012fffd <optimized_out>
+  [00] : 0x7e9a0012fffd <optimized_out>
+--------- s o u r c e   c o d e ---------
+function __f_5(__v_37, __v_38) {\x0a  try {\x0a    var __v_39 = new WasmModuleBuilder();\x0a  } catch (e) {}\x0a  try {\x0a    /* VariableMutator: Replaced __v_39 with __v_9 */__v_9.addImport(__v_37, __v_38, kSig_i_i);\x0a  } catch (e) {}\x0a  try {\x0a    __v_39.addFunction('call_imp', kSig_i_i).addBody([kExprLocalGet, 0, kExprCallFunc...
+-----------------------------------------
+}
+[3]: /* anonymous */ [0x7e9a0103a46d] [/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-514.js:3534] [bytecode=0x78fa01000b99 offset=13453](this=0x7e9a010044a1 <JSGlobalProxy>) {
+  // heap-allocated locals
+  var WasmGlobalBuilder = 0x7e9a0105e789 <ContextCell[const=0x7e9a0105...
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==498==ERROR: AddressSanitizer: ABRT on unknown address 0x0539000001f2 (pc 0x7cfa4dce000b bp 0x7ffebcecda70 sp 0x7ffebcecd820 T0)
+SCARINESS: 10 (signal)
+    #0 0x7cfa4dce000b in raise /build/glibc-LcI20x/glibc-2.31/signal/../sysdeps/unix/sysv/linux/raise.c:51:1
+    #1 0x5846b2d10e8d in v8::internal::Isolate::PushStackTraceAndDie(void*, void*, void*, void*, void*, void*) src/execution/isolate.cc:713:3
+    #2 0x5846b3929945 in v8::internal::LookupIterator::GetRootForNonJSReceiver() const src/objects/lookup.cc:212:15
+    #3 0x5846b392a85d in void v8::internal::LookupIterator::Start<false>() src/objects/lookup.cc:57:29
+    #4 0x5846b3228954 in v8::internal::LoadIC::Load(v8::internal::Handle<v8::internal::Union<v8::internal::Smi, v8::internal::HeapNumber, v8::internal::BigInt, v8::internal::String, v8::internal::Symbol, v8::internal::Boolean, v8::internal::Null, v8::internal::Undefined, v8::internal::JSReceiver>>, v8::internal::Handle<v8::internal::Name>, bool, v8::internal::DirectHandle<v8::internal::Union<v8::internal::Smi, v8::internal::HeapNumber, v8::internal::BigInt, v8::internal::String, v8::internal::Symbol, v8::internal::Boolean, v8::internal::Null, v8::internal::Undefined, v8::internal::JSReceiver>>) src/objects/lookup-inl.h:63:7
+    #5 0x5846b3249716 in v8::internal::Runtime_LoadIC_Miss(int, unsigned long*, v8::internal::Isolate*) src/ic/ic.cc:3029:42
+    #6 0x5846b75fb375 in Builtins_CEntry_Return1_ArgvOnStack_NoBuiltinExit setup-isolate-deserialize.cc
+    #7 0x5846b76feb22 in Builtins_GetNamedPropertyHandler setup-isolate-deserialize.cc
+    #8 0x5846b75468bb in Builtins_InterpreterEntryTrampoline setup-isolate-deserialize.cc
+    #9 0x5846b75468bb in Builtins_InterpreterEntryTrampoline setup-isolate-deserialize.cc
+    #10 0x5846b754365b in Builtins_JSEntryTrampoline setup-isolate-deserialize.cc
+    #11 0x5846b75433aa in Builtins_JSEntry setup-isolate-deserialize.cc
+    #12 0x5846b2ce1ac4 in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) src/execution/simulator.h:216:12
+    #13 0x5846b2ce3098 in v8::internal::Execution::CallScript(v8::internal::Isolate*, v8::internal::DirectHandle<v8::internal::JSFunction>, v8::internal::DirectHandle<v8::internal::Object>, v8::internal::DirectHandle<v8::internal::Object>) src/execution/execution.cc:574:10
+    #14 0x5846b28b718b in v8::Script::Run(v8::Local<v8::Context>, v8::Local<v8::Data>) src/api/api.cc:2042:7
+    #15 0x5846b25f8df7 in v8::Shell::ExecuteString(v8::Isolate*, v8::Local<v8::String>, v8::Local<v8::String>, v8::Shell::ReportExceptions, v8::Global<v8::Value>*) src/d8/d8.cc:1041:44
+    #16 0x5846b26310e9 in v8::SourceGroup::Execute(v8::Isolate*) src/d8/d8.cc:5671:10
+    #17 0x5846b263d3bd in v8::Shell::RunMainIsolate(v8::Isolate*, bool) src/d8/d8.cc:6692:37
+    #18 0x5846b263c7f5 in v8::Shell::RunMain(v8::Isolate*, bool) src/d8/d8.cc:6600:18
+    #19 0x5846b263ff1b in v8::Shell::Main(int, char**) src/d8/d8.cc:7517:18
+    #20 0x7cfa4dcc1082 in __libc_start_main /build/glibc-LcI20x/glibc-2.31/csu/../csu/libc-start.c:308:16
+==498==Register values:
+rax = 0x0000000000000000  rbx = 0x00007cfa4dc9a980  rcx = 0x00007cfa4dce000b  rdx = 0x0000000000000000
+rdi = 0x0000000000000002  rsi = 0x00007ffebcecd820  rbp = 0x00007ffebcecda70  rsp = 0x00007ffebcecd820
+ r8 = 0x0000000000000000   r9 = 0x00007ffebcecd820  r10 = 0x0000000000000008  r11 = 0x0000000000000246
+r12 = 0x00000f1f498de000  r13 = 0x000078fa4c6f0020  r14 = 0x000078fa4c6f0000  r15 = 0x00000f1fc98d6004
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT /build/glibc-LcI20x/glibc-2.31/signal/../sysdeps/unix/sysv/linux/raise.c:51:1 in raise
+==498==ABORTING

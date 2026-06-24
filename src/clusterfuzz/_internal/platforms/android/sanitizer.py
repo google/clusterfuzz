@@ -69,25 +69,31 @@ def set_options(sanitizer_tool_name, sanitizer_options):
   if not sanitizer_options_file_path:
     return
 
-  adb.write_data_to_file(sanitizer_options, sanitizer_options_file_path)
+  # Skip reboot as the app will pick up the options file on restart.
+  adb.write_data_to_file(
+      sanitizer_options, sanitizer_options_file_path, should_reboot=False)
 
 
-def setup_asan_if_needed():
-  """Set up asan on device."""
+def setup_asan_if_needed() -> bool:
+  """Set up asan on device.
+  
+  Returns:
+    True if the device was rebooted or restarted during setup, False otherwise.
+  """
   if not environment.get_value('ASAN_DEVICE_SETUP'):
     # Only do this step if explicitly enabled in the job type. This cannot be
     # determined from libraries in application directory since they can go
     # missing in a bad build, so we want to catch that.
-    return
+    return False
 
   if settings.get_sanitizer_tool_name():
     # If this is a sanitizer build, no need to setup ASAN (incompatible).
-    return
+    return False
 
   app_directory = environment.get_value('APP_DIR')
   if not app_directory:
     # No app directory -> No ASAN runtime library. No work to do, bail out.
-    return
+    return False
 
   # Initialize variables.
   android_directory = environment.get_platform_resources_directory()
@@ -108,7 +114,7 @@ def setup_asan_if_needed():
   result = process.run_and_wait()
   if result.return_code:
     logs.error('Failed to setup ASan on device.', output=result.output)
-    return
+    return False
 
   logs.info(
       'ASan device setup script successfully finished, waiting for boot.',
@@ -117,3 +123,5 @@ def setup_asan_if_needed():
   # Wait until fully booted as otherwise shell restart followed by a quick
   # reboot can trigger data corruption in /data/data.
   adb.wait_until_fully_booted()
+
+  return True
