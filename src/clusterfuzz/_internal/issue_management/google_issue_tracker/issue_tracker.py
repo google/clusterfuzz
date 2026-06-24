@@ -247,8 +247,8 @@ class Issue(issue_tracker.Issue):
     Checks the accessLimit field from the Buganizer API response. An issue
     with accessLevel == LIMIT_NONE has no view restrictions.
     """
-    access_limit = self._data.get('issueState', {}).get('accessLimit',
-                                                        {}).get('accessLevel')
+    access_limit = self._data['issueState'].get('accessLimit',
+                                                {}).get('accessLevel')
     return access_limit == IssueAccessLevel.LIMIT_NONE
 
   def _get_component_tags(self):
