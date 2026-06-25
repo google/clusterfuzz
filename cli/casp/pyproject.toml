@@ -4,14 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casp"
-version = "0.0.8"
+# This is a placeholder version. The actual version is set
+# in publish-cli-to-pypi.yaml and publish-cli-to-testpypi.yaml
+# If you want to manually publish the CLI, you need to manually
+# set the version here.
+version = "0.0.8" 
 authors = [
   { name="PauloVLB", email="paulovlb@google.com" },
 ]
 description = "A new, modern Command-Line Interface (CLI) for ClusterFuzz."
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.6"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
