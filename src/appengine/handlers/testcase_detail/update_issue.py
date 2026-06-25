@@ -32,6 +32,17 @@ class Handler(base_handler.Handler):
     """Associate (or update) an existing issue with the testcase."""
     issue_id = helpers.cast(issue_id, int,
                             'Issue ID (%s) is not a number!' % issue_id)
+
+    # Verify that the supplied issue ID matches the testcase's currently linked
+    # issue. Without this check, a user authorized for one testcase could use
+    # that authorization to trigger issue-tracker writes on an arbitrary issue.
+    existing_issue_id = testcase.bug_information
+    if existing_issue_id and str(existing_issue_id) != str(issue_id):
+      raise helpers.EarlyExitError(
+          'The supplied issue ID (%d) does not match the issue currently '
+          'linked to this testcase (%s). You cannot update an unrelated '
+          'issue through this endpoint.' % (issue_id, existing_issue_id), 403)
+
     issue_tracker = helpers.get_issue_tracker_for_testcase(testcase)
 
     issue = helpers.get_or_exit(lambda: issue_tracker.get_issue(issue_id),
